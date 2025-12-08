@@ -40,7 +40,7 @@ const PremiumTextarea = forwardRef<HTMLTextAreaElement, PremiumTextareaProps>(
             transition-colors
             ${error 
               ? 'border-red-300 dark:border-red-700 focus:border-red-500 dark:focus:border-red-500' 
-              : 'border-gray-200 dark:border-gray-700 focus:border-emerald-500 dark:focus:border-emerald-500'
+              : 'border-gray-200 dark:border-[#3d3c3e] focus:border-emerald-500 dark:focus:border-emerald-500'
             }
             ${className}
           `}

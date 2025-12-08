@@ -101,8 +101,8 @@ export function InterviewCard({
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -2 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      className="group relative bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-5 
-        border border-gray-200/60 dark:border-gray-700/50
+      className="group relative bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-xl p-5 
+        border border-gray-200/60 dark:border-[#3d3c3e]/50
         hover:border-gray-300/80 dark:hover:border-gray-600/60
         shadow-sm hover:shadow-md
         cursor-pointer transition-all duration-200
@@ -120,7 +120,7 @@ export function InterviewCard({
           <CompanyLogo
             companyName={application.companyName}
             size="lg"
-            className="rounded-lg border border-gray-100 dark:border-gray-700 flex-shrink-0"
+            className="rounded-lg border border-gray-100 dark:border-[#3d3c3e] flex-shrink-0"
           />
 
           {/* Content */}
@@ -171,7 +171,7 @@ export function InterviewCard({
         <div className="flex-1"></div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/50 flex-shrink-0">
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50 flex-shrink-0">
           <span className="text-xs text-gray-400 dark:text-gray-500">
             {isPast ? 'Past interview' : 'Upcoming'}
           </span>
@@ -183,7 +183,7 @@ export function InterviewCard({
                 to={linkToPrepare}
                 onClick={(e) => e.stopPropagation()}
                 className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 
-                  dark:hover:text-gray-300 dark:hover:bg-gray-700
+                  dark:hover:text-gray-300 dark:hover:bg-[#3d3c3e]
                   transition-colors"
                 aria-label="View details"
               >
@@ -196,7 +196,7 @@ export function InterviewCard({
                 onEdit(); 
               }}
               className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 
-                dark:hover:text-gray-300 dark:hover:bg-gray-700
+                dark:hover:text-gray-300 dark:hover:bg-[#3d3c3e]
                 transition-colors"
               aria-label="Edit"
             >

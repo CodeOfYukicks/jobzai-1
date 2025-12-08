@@ -155,7 +155,7 @@ export default function HubPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-[#333234] dark:to-[#2b2a2c]">
       <PageTransition 
         {...transition} 
         onAnimationComplete={() => {}} 
@@ -166,7 +166,7 @@ export default function HubPage() {
         className="h-full"
       >
         {/* Header */}
-        <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 sticky top-0 z-50">
+        <header className="bg-white/80 dark:bg-[#242325]/80 backdrop-blur-md border-b border-gray-100 dark:border-[#3d3c3e] sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-3 items-center h-16 lg:h-20">
               {/* Left - Credits */}
@@ -192,7 +192,7 @@ export default function HubPage() {
                     transition={{ duration: 0.4 }}
                   />
                 ) : (
-                  <div className="h-12 w-12 bg-gray-100 dark:bg-gray-700 animate-pulse rounded-full" />
+                  <div className="h-12 w-12 bg-gray-100 dark:bg-[#3d3c3e] animate-pulse rounded-full" />
                 )}
               </Link>
 
@@ -201,7 +201,7 @@ export default function HubPage() {
                 <button
                   onClick={handleSignOut}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-500 dark:text-gray-400 
-                    hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+                    hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-all"
                 >
                   <LogOut className="w-4 h-4" />
                   <span className="hidden sm:inline text-sm font-medium">Sign Out</span>
@@ -290,7 +290,7 @@ export default function HubPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3 + index * 0.05 }}
                   className="group flex items-center gap-2.5 px-4 py-2.5 rounded-full 
-                    bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+                    bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e]
                     hover:border-transparent hover:shadow-lg
                     transition-all duration-300 whitespace-nowrap flex-shrink-0"
                   style={{ ['--action-color' as any]: action.color }}
@@ -326,7 +326,7 @@ export default function HubPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6"
+            className="bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-200 dark:border-[#3d3c3e] p-6"
           >
             <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-5">All Features</h2>
             
@@ -339,8 +339,8 @@ export default function HubPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.45 + index * 0.02 }}
                   className="group flex items-center gap-3 p-3 rounded-xl 
-                    bg-gray-50 dark:bg-gray-700/50
-                    hover:bg-gray-100 dark:hover:bg-gray-700
+                    bg-gray-50 dark:bg-[#3d3c3e]/50
+                    hover:bg-gray-100 dark:hover:bg-[#3d3c3e]
                     transition-all duration-200 text-left"
                 >
                   <div 

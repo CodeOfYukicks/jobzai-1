@@ -394,7 +394,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const displaySidebarWidth = isEffectivelyExpanded ? sidebarExpandedWidth : sidebarCollapsedWidth;
 
   return (
-    <div className={`${needsFullHeight ? 'h-screen' : 'min-h-screen'} bg-gray-50 dark:bg-gray-900 flex flex-col overflow-x-hidden`}>
+    <div className={`${needsFullHeight ? 'h-screen' : 'min-h-screen'} bg-gray-50 dark:bg-[#333234] flex flex-col overflow-x-hidden`}>
       {/* Top Bar - Desktop only */}
       <div className="hidden md:block">
         <TopBar
@@ -412,7 +412,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
       {/* Sidebar desktop - Full height, in front of top bar */}
       <aside 
-        className={`hidden md:fixed md:flex md:flex-col z-50 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 ${isCollapsed && isHoveringSidebar ? 'shadow-xl' : ''}`}
+        className={`hidden md:fixed md:flex md:flex-col z-50 bg-white dark:bg-[#2b2a2c] border-r border-gray-200 dark:border-[#3d3c3e] ${isCollapsed && isHoveringSidebar ? 'shadow-xl' : ''}`}
         style={{ 
           top: 0,
           left: 0,
@@ -423,7 +423,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         onMouseLeave={() => setIsHoveringSidebar(false)}
       >
         {/* Logo and collapse button at top of sidebar */}
-        <div className="relative flex h-12 shrink-0 items-center justify-between px-3 border-b border-gray-100 dark:border-gray-700/50">
+        <div className="relative flex h-12 shrink-0 items-center justify-between px-3 border-b border-gray-100 dark:border-[#3d3c3e]/50">
           {/* Logo */}
             <Link 
               to="/"
@@ -436,7 +436,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                 className="h-7 w-auto"
                 />
               ) : (
-              <div className="h-7 w-7 bg-gray-100 dark:bg-gray-700 animate-pulse rounded" />
+              <div className="h-7 w-7 bg-gray-100 dark:bg-[#3d3c3e] animate-pulse rounded" />
               )}
             </Link>
           {/* Bouton collapse - disabled on certain pages */}
@@ -446,7 +446,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               className={`group flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200
                   text-gray-400 dark:text-gray-500 
                   hover:text-gray-600 dark:hover:text-gray-300
-                  hover:bg-gray-100 dark:hover:bg-gray-700/50
+                  hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50
                   active:scale-95`}
                 aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
@@ -465,7 +465,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               className={`group flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200
                   text-gray-400 dark:text-gray-500 
                   hover:text-gray-600 dark:hover:text-gray-300
-                  hover:bg-gray-100 dark:hover:bg-gray-700/50
+                  hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50
                   active:scale-95`}
                 aria-label="Collapse sidebar"
               >
@@ -516,7 +516,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                       transition-all duration-200 relative overflow-hidden
                       ${location.pathname === item.href
                       ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
                       }`}
                   title={!isEffectivelyExpanded ? item.name : undefined}
                 >
@@ -559,7 +559,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                       transition-all duration-200 relative overflow-hidden
                       ${location.pathname === item.href
                       ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
                       }`}
                   title={!isEffectivelyExpanded ? item.name : undefined}
                 >
@@ -602,7 +602,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                       transition-all duration-200 relative overflow-hidden
                       ${location.pathname === item.href
                       ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
                       }`}
                   title={!isEffectivelyExpanded ? item.name : undefined}
                 >
@@ -635,7 +635,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           <div className="flex-shrink-0">
             {/* Credits Card - Premium Design */}
           {isEffectivelyExpanded ? (
-            <div className="p-2 border-t border-gray-100 dark:border-gray-700/50 relative z-10">
+            <div className="p-2 border-t border-gray-100 dark:border-[#3d3c3e]/50 relative z-10">
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -723,7 +723,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                 </motion.div>
               </div>
             ) : (
-            <div className="p-2 border-t border-gray-100 dark:border-gray-700/50">
+            <div className="p-2 border-t border-gray-100 dark:border-[#3d3c3e]/50">
                   <Link
                     to="/billing"
                 className="group relative flex items-center justify-center w-full p-2 rounded-lg
@@ -745,7 +745,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <div
         className={`sticky top-0 z-30 md:hidden transition-shadow ${
           hasScrolled ? 'shadow-sm' : ''
-        } bg-white/75 dark:bg-gray-900/70 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md border-b border-gray-200/60 dark:border-gray-800/60`}
+        } bg-white/75 dark:bg-[#2b2a2c]/70 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md border-b border-gray-200/60 dark:border-[#3d3c3e]/60`}
         style={{ paddingTop: 'max(env(safe-area-inset-top), 0px)' }}
       >
         <div className="flex items-center justify-between h-[56px] px-4">
@@ -753,7 +753,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             <button
               aria-label="Go back"
               onClick={() => (canGoBack ? navigate(-1) : navigate('/'))}
-              className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] active:scale-95 transition"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -773,14 +773,14 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           <div className="flex items-center gap-1.5">
             <button
               aria-label="Search"
-              className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] active:scale-95 transition"
             >
               <Search className="h-5 w-5" />
             </button>
             <button
               onClick={() => navigate('/settings')}
               aria-label="Open profile"
-              className="inline-flex items-center justify-center h-9 w-9 rounded-full overflow-hidden ring-1 ring-gray-200/70 dark:ring-gray-700/60 bg-gray-100/50 dark:bg-gray-800/60 active:scale-95 transition"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full overflow-hidden ring-1 ring-gray-200/70 dark:ring-[#3d3c3e]/60 bg-gray-100/50 dark:bg-[#3d3c3e]/60 active:scale-95 transition"
             >
               {profilePhoto ? (
                 <img src={profilePhoto} alt={userFirstName} className="h-full w-full object-cover" />
@@ -794,7 +794,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
       {/* Main content */}
       <div 
-        className={`flex flex-col flex-1 min-h-0 overflow-x-hidden ${isBuilderMode ? 'bg-white dark:bg-gray-800' : ''}`}
+        className={`flex flex-col flex-1 min-h-0 overflow-x-hidden ${isBuilderMode ? 'bg-white dark:bg-[#2b2a2c]' : ''}`}
       >
         {/* Desktop: spacer for fixed top bar */}
         <div 
@@ -818,7 +818,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   children
                 ) : (
                   /* Wrapper for main content with white background */
-                  <div className="md:bg-white md:dark:bg-gray-800 md:rounded-xl md:shadow-sm overflow-hidden">
+                  <div className="md:bg-white md:dark:bg-[#2b2a2c] md:rounded-xl md:shadow-sm overflow-hidden">
                     {children}
                   </div>
                 )}

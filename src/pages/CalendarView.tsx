@@ -644,7 +644,7 @@ export default function CalendarView() {
             {/* Calendar */}
             <div className="mt-6">
               {isLoading ? (
-                <div className="h-[calc(100vh-280px)] flex items-center justify-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+                <div className="h-[calc(100vh-280px)] flex items-center justify-center bg-white dark:bg-[#242325] rounded-xl border border-gray-200 dark:border-[#3d3c3e]">
                   <div className="flex flex-col items-center gap-3">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500" />
                     <p className="text-sm text-gray-500 dark:text-gray-400">Loading calendar...</p>

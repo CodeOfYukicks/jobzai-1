@@ -71,7 +71,7 @@ export default function NetworkInsightsInsight({ data }: NetworkInsightsInsightP
               </p>
             </div>
             <div className="flex-1">
-              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="h-3 bg-gray-200 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${data.connectionScore}%` }}
@@ -139,7 +139,7 @@ export default function NetworkInsightsInsight({ data }: NetworkInsightsInsightP
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.15 }}
-              className="p-4 bg-gray-50 dark:bg-gray-800/40 rounded-lg"
+              className="p-4 bg-gray-50 dark:bg-[#2b2a2c]/40 rounded-lg"
             >
               <div className="flex items-center justify-between mb-2">
                 <h5 className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase">
@@ -173,7 +173,7 @@ export default function NetworkInsightsInsight({ data }: NetworkInsightsInsightP
             Networking Tips
           </h4>
           
-          <div className="p-4 bg-white dark:bg-gray-800/40 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="p-4 bg-white dark:bg-[#2b2a2c]/40 rounded-lg border border-gray-200 dark:border-[#3d3c3e]">
             <ul className="space-y-2">
               {data.networkingTips.map((tip, index) => (
                 <li key={index} className="text-xs text-gray-700 dark:text-gray-300 flex items-start gap-2">

@@ -16,15 +16,15 @@ const InlineInput = forwardRef<HTMLInputElement, InlineInputProps>(
           {...props}
           className={`
             w-full px-3.5 py-2.5 
-            bg-white dark:bg-gray-900/50 
-            border border-gray-200/80 dark:border-gray-700/60 
+            bg-white dark:bg-[#242325]/50 
+            border border-gray-200/80 dark:border-[#3d3c3e]/60 
             rounded-lg 
             text-sm text-gray-900 dark:text-gray-100 
             placeholder-gray-400 dark:placeholder-gray-500
             font-normal
             focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50
             transition-all duration-200
-            ${props.disabled ? 'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-800/50' : ''}
+            ${props.disabled ? 'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-[#2b2a2c]/50' : ''}
             ${className}
           `}
         />

@@ -30,7 +30,7 @@ export function StepChip({
     technical: 'dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-900/40',
     manager: 'dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-900/40',
     final: 'dark:bg-green-900/30 dark:text-green-300 dark:border-green-900/40',
-    other: 'dark:bg-gray-800/40 dark:text-gray-300 dark:border-gray-700',
+    other: 'dark:bg-[#3d3c3e]/40 dark:text-gray-300 dark:border-[#3d3c3e]',
   };
 
   return (

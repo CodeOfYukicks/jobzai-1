@@ -166,7 +166,7 @@ export default function ExperienceInlineForm({
             min={yearOnly ? 1950 : undefined}
             max={yearOnly ? 2030 : undefined}
             disabled={hideSection}
-            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all disabled:opacity-50"
+            className="w-full px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all disabled:opacity-50"
           />
         </div>
         <div>
@@ -181,13 +181,13 @@ export default function ExperienceInlineForm({
             min={yearOnly ? 1950 : undefined}
             max={yearOnly ? 2030 : undefined}
             disabled={formData.current || hideSection}
-            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all disabled:opacity-50"
+            className="w-full px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all disabled:opacity-50"
           />
         </div>
       </div>
 
       {/* Date Options - Compact */}
-      <div className="p-2.5 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/30">
+      <div className="p-2.5 border border-dashed border-gray-200 dark:border-[#3d3c3e] rounded-lg bg-gray-50/50 dark:bg-[#2b2a2c]/30">
         <div className="flex flex-wrap items-center gap-4">
           <ToggleSwitch
             label="Current"
@@ -246,7 +246,7 @@ export default function ExperienceInlineForm({
                   value={bullet}
                   onChange={(e) => updateAchievement(index, e.target.value)}
                   placeholder="Describe your achievement..."
-                  className="flex-1 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500"
+                  className="flex-1 px-3 py-1.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500"
                 />
                 <button
                   type="button"
@@ -263,7 +263,7 @@ export default function ExperienceInlineForm({
         <button
           type="button"
           onClick={addAchievement}
-          className="w-full py-1.5 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
+          className="w-full py-1.5 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-[#2b2a2c] border border-dashed border-gray-200 dark:border-[#3d3c3e] rounded-lg hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
         >
           <Plus className="w-3 h-3" />
           Achievement

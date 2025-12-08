@@ -48,7 +48,7 @@ export default function BoardSelector({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-[#635BFF]/50 dark:hover:border-[#635BFF]/50 transition-all shadow-sm hover:shadow-md group"
+        className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] hover:border-[#635BFF]/50 dark:hover:border-[#635BFF]/50 transition-all shadow-sm hover:shadow-md group"
       >
         <div 
           className="w-3 h-3 rounded-full flex-shrink-0"
@@ -70,10 +70,10 @@ export default function BoardSelector({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-50 overflow-hidden"
+            className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-200 dark:border-[#3d3c3e] shadow-xl z-50 overflow-hidden"
           >
             {/* Header */}
-            <div className="px-3 py-2.5 border-b border-gray-100 dark:border-gray-700">
+            <div className="px-3 py-2.5 border-b border-gray-100 dark:border-[#3d3c3e]">
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Your Boards
               </p>
@@ -88,7 +88,7 @@ export default function BoardSelector({
                     onSelectBoard(board.id);
                     setIsOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60 transition-colors ${
                     currentBoardId === board.id ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
                   }`}
                 >
@@ -111,7 +111,7 @@ export default function BoardSelector({
                     <Check className="w-4 h-4 text-[#635BFF] flex-shrink-0" />
                   )}
                   {board.isDefault && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex-shrink-0">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#3d3c3e] text-gray-500 dark:text-gray-400 flex-shrink-0">
                       Default
                     </span>
                   )}
@@ -127,13 +127,13 @@ export default function BoardSelector({
             </div>
 
             {/* Actions */}
-            <div className="border-t border-gray-100 dark:border-gray-700 p-1.5">
+            <div className="border-t border-gray-100 dark:border-[#3d3c3e] p-1.5">
               <button
                 onClick={() => {
                   onViewAllBoards();
                   setIsOpen(false);
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-gray-600 dark:text-gray-300"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60 transition-colors text-gray-600 dark:text-gray-300"
               >
                 <LayoutGrid className="w-4 h-4" />
                 <span className="text-sm font-medium">View All Boards</span>

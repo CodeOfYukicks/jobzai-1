@@ -381,7 +381,7 @@ export default function TemplateCard({
           ? 'ring-2 ring-[#635BFF] shadow-md' 
           : 'ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-gray-300 dark:hover:ring-gray-600 hover:shadow-sm'
         }
-        bg-white dark:bg-gray-800
+        bg-white dark:bg-[#2b2a2c]
       `}
     >
       {/* Selected badge */}
@@ -396,7 +396,7 @@ export default function TemplateCard({
       )}
 
       {/* Preview area - very compact */}
-      <div className="p-0.5 bg-gray-50 dark:bg-gray-900/50">
+      <div className="p-0.5 bg-gray-50 dark:bg-[#242325]/50">
         <TemplatePreview template={template.value} accentColor={accentColorHex} />
       </div>
 

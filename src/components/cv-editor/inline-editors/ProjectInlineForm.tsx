@@ -186,7 +186,7 @@ export default function ProjectInlineForm({
           onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
           placeholder="Brief description..."
           rows={2}
-          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all resize-none"
+          className="w-full px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all resize-none"
         />
       </div>
 
@@ -223,7 +223,7 @@ export default function ProjectInlineForm({
             onChange={(e) => setTechInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTechnology())}
             placeholder="Add technology (Enter)"
-            className="flex-1 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500"
+            className="flex-1 px-3 py-1.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-xs placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500"
           />
           <button
             type="button"
@@ -236,7 +236,7 @@ export default function ProjectInlineForm({
       </div>
 
       {/* Date Toggle - Compact */}
-      <div className="p-2.5 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/30">
+      <div className="p-2.5 border border-dashed border-gray-200 dark:border-[#3d3c3e] rounded-lg bg-gray-50/50 dark:bg-[#2b2a2c]/30">
         <div className="flex items-center gap-4">
           <ToggleSwitch
             label="Show dates"
@@ -263,7 +263,7 @@ export default function ProjectInlineForm({
                 type="month"
                 value={formData.startDate || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                className="w-full px-2 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500"
+                className="w-full px-2 py-1.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500"
               />
             </div>
             <div>
@@ -273,7 +273,7 @@ export default function ProjectInlineForm({
                 value={formData.endDate || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
                 disabled={ongoingProject}
-                className="w-full px-2 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 disabled:opacity-50"
+                className="w-full px-2 py-1.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 disabled:opacity-50"
               />
             </div>
           </div>
@@ -311,7 +311,7 @@ export default function ProjectInlineForm({
                   value={highlight}
                   onChange={(e) => updateHighlight(index, e.target.value)}
                   placeholder="Key highlight..."
-                  className="flex-1 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500"
+                  className="flex-1 px-3 py-1.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-xs placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500"
                 />
                 <button
                   type="button"
@@ -328,7 +328,7 @@ export default function ProjectInlineForm({
         <button
           type="button"
           onClick={addHighlight}
-          className="w-full py-1.5 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-500 bg-white dark:bg-gray-800 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
+          className="w-full py-1.5 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-500 bg-white dark:bg-[#2b2a2c] border border-dashed border-gray-200 dark:border-[#3d3c3e] rounded-lg hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
         >
           <Plus className="w-3 h-3" />
           Highlight

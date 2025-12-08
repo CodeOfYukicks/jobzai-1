@@ -2621,7 +2621,7 @@ END:VCALENDAR`;
                 <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
               </div>
             ) : (
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-gray-700/20">
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-[#3d3c3e]/20">
                 <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
                    style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
                 />
@@ -2646,15 +2646,15 @@ END:VCALENDAR`;
                       <button
                         onClick={() => setIsCoverGalleryOpen(true)}
                         className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 
-                          bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800
-                          border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm transition-all duration-200
+                          bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm hover:bg-white dark:hover:bg-[#3d3c3e]
+                          border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-sm transition-all duration-200
                           hover:shadow-md group"
                       >
                         <Image className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
                         <span>Add {view !== 'boards' && currentBoardId ? 'board' : ''} cover</span>
                       </button>
                     ) : (
-                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
+                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-[#242325]/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
                         {/* Indicator showing which cover is being edited */}
                         {view !== 'boards' && currentBoardId && (
                           <span className="px-2 py-1 text-[10px] font-semibold text-[#635BFF] bg-[#635BFF]/10 rounded-md mr-1">
@@ -2664,19 +2664,19 @@ END:VCALENDAR`;
                         <button
                           onClick={() => setIsCoverGalleryOpen(true)}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                            hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
                         >
                           <Image className="w-3.5 h-3.5" />
                           Change
                         </button>
                         
-                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
                         
                         <button
                           onClick={() => coverFileInputRef.current?.click()}
                           disabled={isUpdatingCover}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                            hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
                         >
                           {isUpdatingCover ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -2686,7 +2686,7 @@ END:VCALENDAR`;
                           Upload
                         </button>
                         
-                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
                         
                         <button
                           onClick={handleRemoveCover}
@@ -2752,7 +2752,7 @@ END:VCALENDAR`;
                           className={`group inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full transition-all duration-200
                             ${effectiveCoverPhoto 
                               ? 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
-                              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-[#635BFF]/10 hover:text-[#635BFF]'
+                              : 'bg-gray-100 dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-300 hover:bg-[#635BFF]/10 hover:text-[#635BFF]'
                             }`}
                         >
                           <LayoutGrid className="w-3 h-3" />
@@ -2784,7 +2784,7 @@ END:VCALENDAR`;
                         setEditingBoard(null);
                         setShowBoardSettingsModal(true);
                       }}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl shadow-lg bg-gradient-to-r from-[#635BFF] to-[#7c75ff] text-white hover:from-[#5850e6] hover:to-[#6b64e6] hover:shadow-xl transition-all duration-200"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl shadow-md bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-lg border border-[#9fc015] transition-all duration-200"
                     >
                       <Plus className="w-4 h-4" />
                       <span>New Board</span>
@@ -2793,11 +2793,11 @@ END:VCALENDAR`;
                     /* Actions when inside a board */
                     <>
                       {/* View Toggle Pills */}
-                      <div className={`p-1 rounded-xl flex ${effectiveCoverPhoto ? 'bg-black/20 backdrop-blur-sm' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                      <div className={`p-1 rounded-xl flex ${effectiveCoverPhoto ? 'bg-black/20 backdrop-blur-sm' : 'bg-gray-100 dark:bg-[#2b2a2c]'}`}>
                         <button
                           onClick={() => setView('kanban')}
                           className={`px-3.5 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${view === 'kanban'
-                            ? 'bg-white dark:bg-gray-700 text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
+                            ? 'bg-white dark:bg-[#3d3c3e] text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
                             : effectiveCoverPhoto 
                               ? 'text-white/80 hover:text-white'
                               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -2809,7 +2809,7 @@ END:VCALENDAR`;
                         <button
                           onClick={() => setView('analytics')}
                           className={`px-3.5 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${view === 'analytics'
-                            ? 'bg-white dark:bg-gray-700 text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
+                            ? 'bg-white dark:bg-[#3d3c3e] text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
                             : effectiveCoverPhoto 
                               ? 'text-white/80 hover:text-white'
                               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -2832,7 +2832,7 @@ END:VCALENDAR`;
                   setShowLookupDropdown(false);
                   setNewApplicationModal(true);
                 }}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl shadow-lg bg-gradient-to-r from-[#635BFF] to-[#7c75ff] text-white hover:from-[#5850e6] hover:to-[#6b64e6] hover:shadow-xl transition-all duration-200"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl shadow-md bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-lg border border-[#9fc015] transition-all duration-200"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Application</span>
@@ -2846,13 +2846,13 @@ END:VCALENDAR`;
                         className={`relative p-2.5 rounded-xl transition-all duration-200
                   ${effectiveCoverPhoto 
                             ? 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                            : 'bg-gray-100 dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#3d3c3e]'
                   }`}
                 title="Automation Settings"
               >
                         <Settings className="w-5 h-5" />
                 {Object.values(automationSettings).some((s: any) => (s as { enabled?: boolean }).enabled) && (
-                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#635BFF] rounded-full border-2 border-white dark:border-gray-900" />
+                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#635BFF] rounded-full border-2 border-white dark:border-[#242325]" />
                 )}
               </motion.button>
                     </>
@@ -2882,7 +2882,7 @@ END:VCALENDAR`;
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3, delay: 0.05 * index }}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${effectiveCoverPhoto ? 'bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'}`}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${effectiveCoverPhoto ? 'bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-sm shadow-lg' : 'bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e]'}`}
                       >
                         <span 
                           className="w-2 h-2 rounded-full"
@@ -2913,7 +2913,7 @@ END:VCALENDAR`;
                   placeholder="Search by company or position..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
               </div>
@@ -2926,7 +2926,7 @@ END:VCALENDAR`;
                         className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                           dateFilter !== 'all' || customDateRange
                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
                     }`}
                 >
                   <Calendar className="w-4 h-4" />
@@ -2944,7 +2944,7 @@ END:VCALENDAR`;
                   className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     hasInterviews !== 'all' || interviewTypes.length > 0 || interviewStatus.length > 0 || upcomingInterviewsDays !== null
                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
                     }`}
                 >
                   <Users className="w-4 h-4" />
@@ -2962,7 +2962,7 @@ END:VCALENDAR`;
                         className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                           selectedCompanies.length > 0
                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
                     }`}
                 >
                   <Building className="w-4 h-4" />
@@ -2980,7 +2980,7 @@ END:VCALENDAR`;
                         className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                           sortBy !== 'appliedDate' || sortOrder !== 'desc'
                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
                     }`}
                 >
                   <Filter className="w-4 h-4" />
@@ -2997,7 +2997,7 @@ END:VCALENDAR`;
               {getActiveFilterCount() > 0 && (
                 <button
                   onClick={clearAllFilters}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
                 >
                   <XCircle className="w-4 h-4" />
                   <span>Clear all</span>
@@ -3171,7 +3171,7 @@ END:VCALENDAR`;
                                 transition={{ duration: 0.4, delay: 0.1 * columnIndex }}
                                 ref={provided.innerRef}
                                 {...provided.droppableProps}
-                                className={`flex-1 min-w-[280px] max-w-[340px] h-full flex flex-col bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 transition-colors duration-200 ${snapshot.isDraggingOver ? 'droppable-hover' : ''}`}
+                                className={`flex-1 min-w-[280px] max-w-[340px] h-full flex flex-col bg-transparent p-3 transition-colors duration-200 ${snapshot.isDraggingOver ? 'bg-gray-100/50 dark:bg-[#3d3c3e]/30 rounded-xl' : ''}`}
                               >
                               <div className="mb-2 sm:mb-3 text-center">
                                 <div className="mb-2">
@@ -3210,7 +3210,7 @@ END:VCALENDAR`;
                                     });
                                     setNewApplicationModal(true);
                                   }}
-                                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200 border border-gray-200 dark:border-gray-700 shadow-sm"
+                                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#2b2a2c] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] text-gray-900 dark:text-white transition-all duration-200 border border-gray-200 dark:border-[#3d3c3e] shadow-sm"
                                 >
                                   <Plus className="w-4 h-4" />
                                   <span className="text-xs font-semibold">Add</span>
@@ -3267,7 +3267,7 @@ END:VCALENDAR`;
                         
                         {/* Séparateur vertical droit entre les colonnes */}
                         {!isLastColumn && (
-                          <div className="w-px bg-gray-200 dark:bg-gray-700 mx-3 flex-shrink-0" />
+                          <div className="w-[2px] bg-gray-300 dark:bg-[#4a494b] mx-4 flex-shrink-0 rounded-full" />
                         )}
                       </div>
                       );
@@ -3287,7 +3287,7 @@ END:VCALENDAR`;
             >
               {/* Analytics Dashboard */}
               {applications.length === 0 ? (
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center">
+                <div className="bg-white dark:bg-[#2b2a2c] rounded-xl p-8 text-center">
                   <LineChart className="mx-auto w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No data to analyze yet</h3>
                   <p className="text-gray-500 dark:text-gray-400 mb-4">
@@ -3384,7 +3384,7 @@ END:VCALENDAR`;
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.4, delay: 0.1 * i }}
-                          className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+                          className="bg-white dark:bg-[#2b2a2c] p-4 rounded-xl border border-gray-200 dark:border-[#3d3c3e]"
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -3397,7 +3397,7 @@ END:VCALENDAR`;
                               <h3 className="text-2xl font-bold mt-1">{metric.value}</h3>
                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{metric.desc}</p>
                             </div>
-                            <div className="p-2 rounded-full bg-gray-100 dark:bg-gray-700">
+                            <div className="p-2 rounded-full bg-gray-100 dark:bg-[#3d3c3e]">
                               {metric.icon}
                             </div>
                           </div>
@@ -3429,7 +3429,7 @@ END:VCALENDAR`;
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: 0.3 }}
-                      className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+                      className="bg-white dark:bg-[#2b2a2c] p-4 rounded-xl border border-gray-200 dark:border-[#3d3c3e]"
                     >
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="font-medium">Top Industries</h3>
@@ -3451,7 +3451,7 @@ END:VCALENDAR`;
                                     </span>
                                   </div>
                                 </div>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                <div className="w-full bg-gray-200 dark:bg-[#3d3c3e] rounded-full h-2 overflow-hidden">
                                   <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${widthPercentage}%` }}
@@ -3475,7 +3475,7 @@ END:VCALENDAR`;
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: 0.4 }}
-                      className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+                      className="bg-white dark:bg-[#2b2a2c] p-4 rounded-xl border border-gray-200 dark:border-[#3d3c3e]"
                     >
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="font-medium">Top Technologies</h3>
@@ -3513,7 +3513,7 @@ END:VCALENDAR`;
                                     <span className="text-gray-700 dark:text-gray-300">{item.tech}</span>
                                     <span className="text-gray-500">{item.count}</span>
                                   </div>
-                                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                  <div className="w-full bg-gray-200 dark:bg-[#3d3c3e] rounded-full h-1.5 overflow-hidden">
                                     <motion.div
                                       initial={{ width: 0 }}
                                       animate={{ width: `${widthPercentage}%` }}
@@ -3538,7 +3538,7 @@ END:VCALENDAR`;
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: 0.5 }}
-                      className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+                      className="bg-white dark:bg-[#2b2a2c] p-4 rounded-xl border border-gray-200 dark:border-[#3d3c3e]"
                     >
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="font-medium">Seniority Distribution</h3>
@@ -3559,7 +3559,7 @@ END:VCALENDAR`;
                                     </span>
                                   </div>
                                 </div>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                <div className="w-full bg-gray-200 dark:bg-[#3d3c3e] rounded-full h-2 overflow-hidden">
                                   <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${percentage}%` }}
@@ -3583,7 +3583,7 @@ END:VCALENDAR`;
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: 0.6 }}
-                      className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+                      className="bg-white dark:bg-[#2b2a2c] p-4 rounded-xl border border-gray-200 dark:border-[#3d3c3e]"
                     >
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="font-medium">Employment Type</h3>
@@ -3604,7 +3604,7 @@ END:VCALENDAR`;
                                     </span>
                                   </div>
                                 </div>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                <div className="w-full bg-gray-200 dark:bg-[#3d3c3e] rounded-full h-2 overflow-hidden">
                                   <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${widthPercentage}%` }}
@@ -3629,7 +3629,7 @@ END:VCALENDAR`;
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: 0.7 }}
-                    className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+                    className="bg-white dark:bg-[#2b2a2c] p-4 rounded-xl border border-gray-200 dark:border-[#3d3c3e]"
                   >
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="font-medium">Location Insights</h3>
@@ -3643,7 +3643,7 @@ END:VCALENDAR`;
                             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">By Work Arrangement</h4>
                             <div className="space-y-3">
                               {locationData.byType.map((item, i) => (
-                                <div key={item.type} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+                                <div key={item.type} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-[#242325]/50">
                                   <div className="flex items-center gap-2">
                                     <MapPin className="w-4 h-4 text-gray-500" />
                                     <span className="text-sm font-medium text-gray-900 dark:text-white">{item.type}</span>
@@ -3774,7 +3774,7 @@ END:VCALENDAR`;
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: 0.9 }}
-                    className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+                    className="bg-white dark:bg-[#2b2a2c] p-4 rounded-xl border border-gray-200 dark:border-[#3d3c3e]"
                   >
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="font-medium">{currentBoardType === 'jobs' ? 'Applications' : 'Outreach'} Over Time</h3>
@@ -3883,10 +3883,10 @@ END:VCALENDAR`;
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 1.0 + 0.1 * i }}
-                        className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+                        className="bg-white dark:bg-[#2b2a2c] p-4 rounded-xl border border-gray-200 dark:border-[#3d3c3e]"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-full bg-gray-100 dark:bg-gray-700">
+                          <div className="p-2 rounded-full bg-gray-100 dark:bg-[#3d3c3e]">
                             {metric.icon}
                           </div>
                           <div>
@@ -3923,7 +3923,7 @@ END:VCALENDAR`;
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.95, y: 20 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-xl"
+                className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 w-full max-w-md shadow-xl"
               >
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Filter by Date</h3>
@@ -3973,7 +3973,7 @@ END:VCALENDAR`;
                             type="date"
                             value={customDateRange?.start || ''}
                             onChange={(e) => setCustomDateRange(prev => ({ ...prev || { start: '', end: '' }, start: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-[#4a494b] rounded-lg dark:bg-[#3d3c3e] text-sm"
                           />
                         </div>
                         <div>
@@ -3982,7 +3982,7 @@ END:VCALENDAR`;
                             type="date"
                             value={customDateRange?.end || ''}
                             onChange={(e) => setCustomDateRange(prev => ({ ...prev || { start: '', end: '' }, end: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-[#4a494b] rounded-lg dark:bg-[#3d3c3e] text-sm"
                           />
                         </div>
                       </div>
@@ -4021,7 +4021,7 @@ END:VCALENDAR`;
                       setCustomDateRange(null);
                       setUpdateDateFilter('all');
                     }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg"
                   >
                     Reset
                   </button>
@@ -4050,7 +4050,7 @@ END:VCALENDAR`;
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.95, y: 20 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto"
+                className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto"
               >
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Filter by Interviews</h3>
@@ -4162,7 +4162,7 @@ END:VCALENDAR`;
                       setInterviewStatus([]);
                       setUpcomingInterviewsDays(null);
                     }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg"
                   >
                     Reset
                   </button>
@@ -4191,7 +4191,7 @@ END:VCALENDAR`;
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.95, y: 20 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-xl max-h-[90vh] flex flex-col"
+                className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 w-full max-w-md shadow-xl max-h-[90vh] flex flex-col"
               >
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Filter by Company</h3>
@@ -4209,7 +4209,7 @@ END:VCALENDAR`;
                     placeholder="Search companies..."
                     value={companySearchQuery}
                     onChange={(e) => setCompanySearchQuery(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 text-sm"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-[#4a494b] rounded-lg dark:bg-[#3d3c3e] text-sm"
                   />
                 </div>
 
@@ -4220,7 +4220,7 @@ END:VCALENDAR`;
                       .map((company) => {
                         const count = applications.filter(app => app.companyName === company).length;
                         return (
-                          <label key={company} className="flex items-center justify-between gap-3 cursor-pointer p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
+                          <label key={company} className="flex items-center justify-between gap-3 cursor-pointer p-2 hover:bg-gray-50 dark:hover:bg-[#3d3c3e] rounded-lg">
                             <div className="flex items-center gap-3">
                               <input
                                 type="checkbox"
@@ -4271,7 +4271,7 @@ END:VCALENDAR`;
                       setSelectedCompanies([]);
                       setCompanySearchQuery('');
                     }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg"
                   >
                     Reset
                   </button>
@@ -4300,7 +4300,7 @@ END:VCALENDAR`;
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.95, y: 20 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-xl"
+                className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 w-full max-w-md shadow-xl"
               >
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sort Applications</h3>
@@ -4366,7 +4366,7 @@ END:VCALENDAR`;
                       setSortBy('appliedDate');
                       setSortOrder('desc');
                     }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg"
                   >
                     Reset
                   </button>
@@ -4419,10 +4419,10 @@ END:VCALENDAR`;
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white dark:bg-[#121212] w-full sm:rounded-2xl rounded-t-2xl max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
+                className="bg-white dark:bg-[#2b2a2c] w-full sm:rounded-2xl rounded-t-2xl max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
               >
                 {/* Header */}
-                <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl z-10 sticky top-0">
+                <div className="px-6 py-5 border-b border-gray-100 dark:border-[#3d3c3e] flex items-center justify-between bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl z-10 sticky top-0">
                   <div>
                     <h2 className="font-semibold text-xl text-gray-900 dark:text-white tracking-tight">
                       {eventType ? (eventType === 'application' 
@@ -4455,7 +4455,7 @@ END:VCALENDAR`;
                       setNewApplicationModal(false);
                       setShowFullForm(false);
                     }}
-                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -4475,7 +4475,7 @@ END:VCALENDAR`;
                             setEventType('application');
                             setShowFullForm(false);
                           }}
-                          className="group relative p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#1A1A1A] hover:bg-white dark:hover:bg-[#202020] hover:shadow-lg hover:border-transparent transition-all text-left"
+                          className="group relative p-6 rounded-2xl border border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] hover:bg-white dark:hover:bg-[#3d3c3e] hover:shadow-lg hover:border-transparent transition-all text-left"
                         >
                           <div className="flex flex-col items-start gap-4">
                             <div className="p-3.5 rounded-xl bg-white dark:bg-[#252525] shadow-sm group-hover:scale-110 transition-transform duration-300">
@@ -4504,7 +4504,7 @@ END:VCALENDAR`;
                             setEventType('interview');
                             setShowFullForm(true); // Interviews always show full form
                           }}
-                          className="group relative p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#1A1A1A] hover:bg-white dark:hover:bg-[#202020] hover:shadow-lg hover:border-transparent transition-all text-left"
+                          className="group relative p-6 rounded-2xl border border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] hover:bg-white dark:hover:bg-[#3d3c3e] hover:shadow-lg hover:border-transparent transition-all text-left"
                         >
                           <div className="flex flex-col items-start gap-4">
                             <div className="p-3.5 rounded-xl bg-white dark:bg-[#252525] shadow-sm group-hover:scale-110 transition-transform duration-300">
@@ -4527,11 +4527,11 @@ END:VCALENDAR`;
                     {eventType && (
                       <>
                         {/* Switcher - Minimalist */}
-                        <div className="relative p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                        <div className="relative p-1 bg-gray-100 dark:bg-[#2b2a2c] rounded-xl">
                           <div className="flex items-center relative">
                             {/* Sliding pill indicator */}
                             <motion.div
-                              className="absolute top-1 bottom-1 rounded-lg bg-white dark:bg-gray-700 shadow-sm"
+                              className="absolute top-1 bottom-1 rounded-lg bg-white dark:bg-[#3d3c3e] shadow-sm"
                               initial={false}
                               animate={{
                                 left: eventType === 'application' ? '4px' : 'calc(50% + 2px)',
@@ -4616,7 +4616,7 @@ END:VCALENDAR`;
                             </div>
                             <div className="relative flex items-center group">
                               <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 rounded-xl opacity-30 blur-sm group-hover:opacity-60 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
-                              <div className="relative flex items-center w-full bg-white dark:bg-[#1A1A1A] rounded-xl">
+                              <div className="relative flex items-center w-full bg-white dark:bg-[#242325] rounded-xl">
                                 <input
                                   type="url"
                                   value={formData.url || ''}
@@ -4632,7 +4632,7 @@ END:VCALENDAR`;
                                     whileTap={{ scale: 0.98 }}
                                     onClick={handleExtractJobInfo}
                                     disabled={isAnalyzingJob || !formData.url || !formData.url.trim()}
-                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-[#252525] text-gray-900 dark:text-white text-xs font-medium shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-[#303030] disabled:opacity-50 transition-all"
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-[#252525] text-gray-900 dark:text-white text-xs font-medium shadow-sm border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-100 dark:hover:bg-[#303030] disabled:opacity-50 transition-all"
                                   >
                                     {isAnalyzingJob ? (
                                       <Loader2 className="w-3 h-3 animate-spin" />
@@ -4659,7 +4659,7 @@ END:VCALENDAR`;
                                 required
                                 value={formData.companyName || ''}
                                 onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-                                className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                                 placeholder="e.g. Google, Spotify..."
                                 autoFocus
                               />
@@ -4673,7 +4673,7 @@ END:VCALENDAR`;
                                 required
                                 value={formData.contactName || ''}
                                 onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
-                                className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                                 placeholder="e.g. John Doe"
                               />
                             </div>
@@ -4695,7 +4695,7 @@ END:VCALENDAR`;
                             <div className="relative">
                               <div className="relative group">
                                 <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 rounded-lg opacity-20 blur-sm group-hover:opacity-40 transition duration-300"></div>
-                                <div className="relative flex items-center w-full bg-white dark:bg-[#1A1A1A] rounded-lg border border-gray-200 dark:border-gray-800">
+                                <div className="relative flex items-center w-full bg-white dark:bg-[#242325] rounded-lg border border-gray-200 dark:border-[#3d3c3e]">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                 <input
                                   type="text"
@@ -4722,7 +4722,7 @@ END:VCALENDAR`;
                                         location: '',
                                       }));
                                     }}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors"
                                   >
                                     <X className="w-3.5 h-3.5 text-gray-500" />
                                   </button>
@@ -4737,7 +4737,7 @@ END:VCALENDAR`;
                                   initial={{ opacity: 0, y: -10 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   exit={{ opacity: 0, y: -10 }}
-                                  className="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-800 rounded-lg shadow-2xl max-h-[140px] overflow-y-auto backdrop-blur-xl"
+                                  className="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-2xl max-h-[140px] overflow-y-auto backdrop-blur-xl"
                                 >
                                   {lookupApplications
                                     .filter(app =>
@@ -4773,7 +4773,7 @@ END:VCALENDAR`;
                                             }));
                                             setShowLookupDropdown(false);
                                           }}
-                                          className="w-full px-3 py-1.5 text-left hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 dark:hover:from-purple-900/20 dark:hover:to-indigo-900/20 transition-all border-b border-gray-100 dark:border-gray-800 last:border-b-0 flex items-center gap-2"
+                                          className="w-full px-3 py-1.5 text-left hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 dark:hover:from-purple-900/20 dark:hover:to-indigo-900/20 transition-all border-b border-gray-100 dark:border-[#3d3c3e] last:border-b-0 flex items-center gap-2"
                                         >
                                           {/* Company Logo/Avatar */}
                                           <div className={`flex-shrink-0 w-7 h-7 rounded-md ${getCompanyColor(app.companyName)} flex items-center justify-center shadow-sm`}>
@@ -4814,13 +4814,13 @@ END:VCALENDAR`;
                                 animate={{ opacity: 1, y: 0 }}
                                 className="flex flex-wrap items-center gap-2 p-3 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border border-purple-200/50 dark:border-purple-800/30"
                               >
-                                <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-md border border-purple-200 dark:border-purple-700">
+                                <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-md border border-purple-200 dark:border-purple-700">
                                   <Building className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                                   <span className="text-xs font-medium text-gray-900 dark:text-white">
                                     {lookupSelectedApplication.companyName}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-md border border-indigo-200 dark:border-indigo-700">
+                                <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-md border border-indigo-200 dark:border-indigo-700">
                                   <Briefcase className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                                   <span className="text-xs font-medium text-gray-900 dark:text-white">
                                     {lookupSelectedApplication.position}
@@ -4851,7 +4851,7 @@ END:VCALENDAR`;
                                       required
                                       value={formData.companyName || ''}
                                       onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                                       placeholder="e.g. Google, Spotify..."
                                     />
                                   </div>
@@ -4865,7 +4865,7 @@ END:VCALENDAR`;
                                       required
                                       value={formData.position || ''}
                                       onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                                       placeholder="e.g. Senior Frontend Engineer"
                                     />
                                   </div>
@@ -4879,7 +4879,7 @@ END:VCALENDAR`;
                                       required
                                       value={formData.location || ''}
                                       onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                                       placeholder="e.g. Remote, Paris..."
                                     />
                                   </div>
@@ -4898,7 +4898,7 @@ END:VCALENDAR`;
                                       required
                                       value={formData.companyName || ''}
                                       onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                                       placeholder="e.g. Google, Spotify..."
                                     />
                                   </div>
@@ -4913,7 +4913,7 @@ END:VCALENDAR`;
                                         required
                                         value={formData.contactName || ''}
                                         onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
-                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                                         placeholder="e.g. John Doe"
                                       />
                                     </div>
@@ -4925,7 +4925,7 @@ END:VCALENDAR`;
                                         type="text"
                                         value={formData.contactRole || ''}
                                         onChange={(e) => setFormData(prev => ({ ...prev, contactRole: e.target.value }))}
-                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                                         placeholder="e.g. Head of Engineering"
                                       />
                                     </div>
@@ -4940,7 +4940,7 @@ END:VCALENDAR`;
                                         type="email"
                                         value={formData.contactEmail || ''}
                                         onChange={(e) => setFormData(prev => ({ ...prev, contactEmail: e.target.value }))}
-                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                                         placeholder="john@company.com"
                                       />
                                     </div>
@@ -4952,7 +4952,7 @@ END:VCALENDAR`;
                                         type="url"
                                         value={formData.contactLinkedIn || ''}
                                         onChange={(e) => setFormData(prev => ({ ...prev, contactLinkedIn: e.target.value }))}
-                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                                         placeholder="linkedin.com/in/..."
                                       />
                                     </div>
@@ -4978,7 +4978,7 @@ END:VCALENDAR`;
                                           className={`p-2.5 rounded-xl border-2 transition-all text-center ${
                                             formData.outreachChannel === channel.value
                                               ? 'bg-purple-50 dark:bg-purple-900/30 border-purple-500 dark:border-purple-400'
-                                              : 'bg-gray-50 dark:bg-[#1A1A1A] border-transparent hover:border-gray-300 dark:hover:border-gray-600'
+                                              : 'bg-gray-50 dark:bg-[#242325] border-transparent hover:border-gray-300 dark:hover:border-gray-600'
                                           }`}
                                         >
                                           <span className="text-lg block mb-0.5">{channel.icon}</span>
@@ -5000,7 +5000,7 @@ END:VCALENDAR`;
                                       value={formData.messageSent || ''}
                                       onChange={(e) => setFormData(prev => ({ ...prev, messageSent: e.target.value }))}
                                       rows={3}
-                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none"
+                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none"
                                       placeholder="Summary of your outreach message..."
                                     />
                                   </div>
@@ -5051,7 +5051,7 @@ END:VCALENDAR`;
                                           type="time"
                                           value={formData.interviewTime}
                                           onChange={(e) => setFormData(prev => ({ ...prev, interviewTime: e.target.value }))}
-                                          className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-800 hover:border-purple-400 dark:hover:border-purple-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 shadow-sm hover:shadow-md transition-all"
+                                          className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e] hover:border-purple-400 dark:hover:border-purple-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 shadow-sm hover:shadow-md transition-all"
                                         />
                                       </div>
                                     </div>
@@ -5087,14 +5087,14 @@ END:VCALENDAR`;
                                             className={`relative p-4 rounded-xl border-2 transition-all ${
                                               isSelected
                                                 ? 'bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 border-purple-500 dark:border-purple-400 shadow-lg shadow-purple-500/20'
-                                                : 'bg-white dark:bg-[#1A1A1A] border-gray-200 dark:border-gray-800 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md'
+                                                : 'bg-white dark:bg-[#242325] border-gray-200 dark:border-[#3d3c3e] hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md'
                                             }`}
                                           >
                                             <div className="flex flex-col items-center gap-2">
                                               <div className={`p-2 rounded-lg transition-colors ${
                                                 isSelected
                                                   ? 'bg-purple-100 dark:bg-purple-900/50'
-                                                  : 'bg-gray-100 dark:bg-gray-800'
+                                                  : 'bg-gray-100 dark:bg-[#2b2a2c]'
                                               }`}>
                                                 <Icon className={`w-5 h-5 ${
                                                   isSelected
@@ -5136,7 +5136,7 @@ END:VCALENDAR`;
                                         type="text"
                                         value={formData.contactName || ''}
                                         onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
-                                        className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-800 hover:border-purple-400 dark:hover:border-purple-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 shadow-sm hover:shadow-md transition-all"
+                                        className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e] hover:border-purple-400 dark:hover:border-purple-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 shadow-sm hover:shadow-md transition-all"
                                         placeholder="e.g., John Doe, Hiring Manager"
                                       />
                                     </div>
@@ -5153,7 +5153,7 @@ END:VCALENDAR`;
                                   <textarea
                                     value={formData.notes || ''}
                                     onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none"
+                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none"
                                     placeholder="Add any additional details..."
                                     rows={3}
                                   />
@@ -5173,7 +5173,7 @@ END:VCALENDAR`;
                             <button
                               type="button"
                               onClick={() => setShowFullForm(true)}
-                              className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors border-b border-gray-300 dark:border-gray-700 hover:border-gray-900 dark:hover:border-white pb-0.5"
+                              className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors border-b border-gray-300 dark:border-[#3d3c3e] hover:border-gray-900 dark:hover:border-white pb-0.5"
                             >
                               Enter details manually without URL
                             </button>
@@ -5185,7 +5185,7 @@ END:VCALENDAR`;
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-[#121212] flex justify-end gap-3 z-10">
+                <div className="p-6 border-t border-gray-100 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] flex justify-end gap-3 z-10">
                   <button
                     type="button"
                     onClick={() => {
@@ -5233,15 +5233,15 @@ END:VCALENDAR`;
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white dark:bg-gray-800 w-full sm:rounded-xl rounded-t-2xl max-w-lg max-h-[90vh] flex flex-col"
+              className="bg-white dark:bg-[#2b2a2c] w-full sm:rounded-xl rounded-t-2xl max-w-lg max-h-[90vh] flex flex-col"
             >
               {/* Drag handle for mobile */}
               <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
-                <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                <div className="w-12 h-1 bg-gray-300 dark:bg-[#4a494b] rounded-full"></div>
               </div>
 
               {/* Header fixe */}
-              <div className="px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-700">
+              <div className="px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-[#3d3c3e]">
                 <div className="flex justify-between items-center">
                   <h2 className="text-lg font-semibold">Edit Application</h2>
                   <motion.button
@@ -5259,7 +5259,7 @@ END:VCALENDAR`;
                         notes: ''
                       });
                     }}
-                    className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                    className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
                     aria-label="Close modal"
                   >
                     <X className="w-4 h-4" />
@@ -5277,7 +5277,7 @@ END:VCALENDAR`;
                       type="text"
                       value={formData.companyName}
                       onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-[#3d3c3e] dark:bg-[#2b2a2c]"
                       required
                     />
                   </div>
@@ -5287,7 +5287,7 @@ END:VCALENDAR`;
                       type="text"
                       value={formData.position}
                       onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-[#3d3c3e] dark:bg-[#2b2a2c]"
                       required
                     />
                   </div>
@@ -5297,7 +5297,7 @@ END:VCALENDAR`;
                       type="text"
                       value={formData.location}
                       onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-[#3d3c3e] dark:bg-[#2b2a2c]"
                       required
                     />
                   </div>
@@ -5307,7 +5307,7 @@ END:VCALENDAR`;
                       type="date"
                       value={formData.appliedDate}
                       onChange={(e) => setFormData(prev => ({ ...prev, appliedDate: e.target.value }))}
-                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-[#3d3c3e] dark:bg-[#2b2a2c]"
                       required
                     />
                   </div>
@@ -5317,7 +5317,7 @@ END:VCALENDAR`;
                       type="url"
                       value={formData.url || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-[#3d3c3e] dark:bg-[#2b2a2c]"
                     />
                   </div>
                   <div>
@@ -5325,7 +5325,7 @@ END:VCALENDAR`;
                     <textarea
                       value={formData.notes || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800"
+                      className="w-full p-3 text-base sm:p-2 sm:text-sm rounded-lg border border-gray-200 dark:border-[#3d3c3e] dark:bg-[#2b2a2c]"
                       rows={3}
                     />
                   </div>
@@ -5388,7 +5388,7 @@ END:VCALENDAR`;
                                   type="date"
                                   value={newInterview.date}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, date: e.target.value }))}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-[#4a494b] rounded-lg dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                   required
                                 />
                               </div>
@@ -5398,7 +5398,7 @@ END:VCALENDAR`;
                                   type="time"
                                   value={newInterview.time}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, time: e.target.value }))}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-[#4a494b] rounded-lg dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                   required
                                 />
                               </div>
@@ -5410,7 +5410,7 @@ END:VCALENDAR`;
                                 <select
                                   value={newInterview.type}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, type: e.target.value as Interview['type'] }))}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-[#4a494b] rounded-lg dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                 >
                                   <option value="technical">Technical</option>
                                   <option value="hr">HR</option>
@@ -5424,7 +5424,7 @@ END:VCALENDAR`;
                                 <select
                                   value={newInterview.status}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, status: e.target.value as Interview['status'] }))}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-[#4a494b] rounded-lg dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                 >
                                   <option value="scheduled">Scheduled</option>
                                   <option value="completed">Completed</option>
@@ -5440,7 +5440,7 @@ END:VCALENDAR`;
                                 value={newInterview.location || ''}
                                 onChange={(e) => setNewInterview(prev => ({ ...prev, location: e.target.value }))}
                                 placeholder="e.g., Zoom, Office, Remote"
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-[#4a494b] rounded-lg dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                               />
                             </div>
 
@@ -5451,7 +5451,7 @@ END:VCALENDAR`;
                                 onChange={(e) => setNewInterview(prev => ({ ...prev, notes: e.target.value }))}
                                 placeholder="Add any notes or preparation tips..."
                                 rows={2}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-[#4a494b] rounded-lg dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                               />
                             </div>
 
@@ -5468,7 +5468,7 @@ END:VCALENDAR`;
                                     notes: ''
                                   });
                                 }}
-                                className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#3d3c3e] hover:bg-gray-200 dark:hover:bg-[#4a494b] rounded-lg transition-colors"
                               >
                                 Cancel
                               </button>
@@ -5538,7 +5538,7 @@ END:VCALENDAR`;
                                   };
                                   setFormData(prev => ({ ...prev, interviews: newInterviews }));
                                 }}
-                                className="text-xs px-2 py-1 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 capitalize"
+                                className="text-xs px-2 py-1 rounded border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] capitalize"
                               >
                                 <option value="technical">Technical</option>
                                 <option value="hr">HR</option>
@@ -5597,7 +5597,7 @@ END:VCALENDAR`;
                                     newInterviews[index] = { ...interview, date: e.target.value };
                                     setFormData(prev => ({ ...prev, interviews: newInterviews }));
                                   }}
-                                  className="flex-1 text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 dark:bg-gray-800/50 focus:ring-1 focus:ring-purple-500"
+                                  className="flex-1 text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-[#3d3c3e] dark:bg-[#2b2a2c]/50 focus:ring-1 focus:ring-purple-500"
                                 />
                               </div>
                               <div className="flex items-center gap-1.5">
@@ -5610,7 +5610,7 @@ END:VCALENDAR`;
                                     newInterviews[index] = { ...interview, time: e.target.value };
                                     setFormData(prev => ({ ...prev, interviews: newInterviews }));
                                   }}
-                                  className="flex-1 text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 dark:bg-gray-800/50 focus:ring-1 focus:ring-purple-500"
+                                  className="flex-1 text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-[#3d3c3e] dark:bg-[#2b2a2c]/50 focus:ring-1 focus:ring-purple-500"
                                 />
                               </div>
                             </div>
@@ -5626,7 +5626,7 @@ END:VCALENDAR`;
                                   newInterviews[index] = { ...interview, location: e.target.value };
                                   setFormData(prev => ({ ...prev, interviews: newInterviews }));
                                 }}
-                                className="flex-1 text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 dark:bg-gray-800/50 focus:ring-1 focus:ring-purple-500"
+                                className="flex-1 text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-[#3d3c3e] dark:bg-[#2b2a2c]/50 focus:ring-1 focus:ring-purple-500"
                               />
                             </div>
 
@@ -5640,14 +5640,14 @@ END:VCALENDAR`;
                                   newInterviews[index] = { ...interview, notes: e.target.value };
                                   setFormData(prev => ({ ...prev, interviews: newInterviews }));
                                 }}
-                                className="flex-1 text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 dark:bg-gray-800/50 min-h-[60px] resize-y focus:ring-1 focus:ring-purple-500"
+                                className="flex-1 text-xs px-2 py-1.5 rounded border border-gray-200 dark:border-[#3d3c3e] dark:bg-[#2b2a2c]/50 min-h-[60px] resize-y focus:ring-1 focus:ring-purple-500"
                                 rows={2}
                               />
                             </div>
                           </div>
 
                           {interview.status === 'scheduled' && editModal.application && (
-                            <div className="flex flex-col sm:flex-row gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex flex-col sm:flex-row gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-[#3d3c3e]">
                               <button
                                 onClick={() => downloadICS(interview, editModal.application!.companyName, editModal.application!.position)}
                                 className="flex-1 flex items-center justify-center gap-1 text-xs text-purple-600 dark:text-purple-400 py-2 px-3 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800"
@@ -5671,7 +5671,7 @@ END:VCALENDAR`;
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 px-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
+                    <div className="text-center py-8 px-4 bg-gray-50 dark:bg-[#242325]/30 rounded-lg border border-dashed border-gray-300 dark:border-[#3d3c3e]">
                       <Calendar className="w-8 h-8 mx-auto text-gray-400 dark:text-gray-600 mb-2" />
                       <p className="text-sm text-gray-500 dark:text-gray-400">No interviews scheduled yet</p>
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Click "Add Interview" to schedule one</p>
@@ -5681,7 +5681,7 @@ END:VCALENDAR`;
               </div>
 
               {/* Footer fixe avec les boutons */}
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-800 shadow-md">
+              <div className="p-4 border-t border-gray-200 dark:border-[#3d3c3e] sticky bottom-0 bg-white dark:bg-[#2b2a2c] shadow-md">
                 <div className="flex justify-end gap-2">
                   <button
                     onClick={() => {
@@ -5696,7 +5696,7 @@ END:VCALENDAR`;
                         notes: ''
                       });
                     }}
-                    className="px-4 py-3 sm:py-2 text-base sm:text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg flex-1 sm:flex-initial"
+                    className="px-4 py-3 sm:py-2 text-base sm:text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-[#3d3c3e] rounded-lg flex-1 sm:flex-initial"
                   >
                     Cancel
                   </button>
@@ -5830,10 +5830,10 @@ END:VCALENDAR`;
               exit={{ opacity: 0, scale: 0.95, y: "100%" }}
               transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className="group relative bg-white dark:bg-gray-900/80 backdrop-blur-xl w-full sm:rounded-2xl rounded-t-2xl max-w-lg max-h-[90vh] flex flex-col overflow-hidden
+              className="group relative bg-white dark:bg-[#242325]/80 backdrop-blur-xl w-full sm:rounded-2xl rounded-t-2xl max-w-lg max-h-[90vh] flex flex-col overflow-hidden
                 transition-all duration-500 ease-out
                 hover:shadow-2xl hover:shadow-black/10 dark:hover:shadow-black/30
-                border border-gray-200/60 dark:border-gray-800/50"
+                border border-gray-200/60 dark:border-[#3d3c3e]/50"
               style={{
                 boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
               }}
@@ -5843,11 +5843,11 @@ END:VCALENDAR`;
 
               {/* Drag handle for mobile */}
               <div className="w-full flex justify-center pt-2 pb-1 sm:hidden">
-                <div className="w-12 h-1 bg-gray-300/60 dark:bg-gray-600/60 rounded-full"></div>
+                <div className="w-12 h-1 bg-gray-300/60 dark:bg-[#4a494b]/60 rounded-full"></div>
               </div>
 
               {/* Header with title and close/edit buttons - Apple style */}
-              <div className="px-5 sm:px-6 py-4 border-b border-gray-200/60 dark:border-gray-800/50 sticky top-0 bg-white dark:bg-gray-900/80 backdrop-blur-xl z-10">
+              <div className="px-5 sm:px-6 py-4 border-b border-gray-200/60 dark:border-[#3d3c3e]/50 sticky top-0 bg-white dark:bg-[#242325]/80 backdrop-blur-xl z-10">
                 <div className="flex justify-between items-center">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">Application Timeline</h2>
                   <div className="flex items-center gap-1">
@@ -5894,7 +5894,7 @@ END:VCALENDAR`;
                         });
                       }}
                       className="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 
-                        hover:bg-gray-100/60 dark:hover:bg-gray-800/50 rounded-lg transition-all duration-200 backdrop-blur-sm"
+                        hover:bg-gray-100/60 dark:hover:bg-[#3d3c3e]/50 rounded-lg transition-all duration-200 backdrop-blur-sm"
                       aria-label="Close modal"
                     >
                       <X className="w-4 h-4" />
@@ -5917,13 +5917,13 @@ END:VCALENDAR`;
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <div className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-gray-800/50 backdrop-blur-sm">
+                      <div className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-[#2b2a2c]/50 backdrop-blur-sm">
                         <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                       </div>
                       <span>{selectedApplication.location}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <div className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-gray-800/50 backdrop-blur-sm">
+                      <div className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-[#2b2a2c]/50 backdrop-blur-sm">
                         <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
                       </div>
                       <span>Applied on {new Date(selectedApplication.appliedDate).toLocaleDateString()}</span>
@@ -5947,7 +5947,7 @@ END:VCALENDAR`;
                   )}
 
                   {selectedApplication.notes && (
-                    <div className="mt-4 p-4 bg-gray-50/80 dark:bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-200/60 dark:border-gray-800/50">
+                    <div className="mt-4 p-4 bg-gray-50/80 dark:bg-[#2b2a2c]/30 backdrop-blur-sm rounded-xl border border-gray-200/60 dark:border-[#3d3c3e]/50">
                       <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 mb-2.5 uppercase tracking-wide">
                         <FileIcon className="w-3.5 h-3.5" />
                         <span>Notes</span>
@@ -5968,7 +5968,7 @@ END:VCALENDAR`;
                     <Activity className="w-4 h-4 text-purple-500 dark:text-purple-400" />
                     <span>Status History</span>
                   </h4>
-                  <div className="relative pl-6 border-l-2 border-gray-200/50 dark:border-gray-700/50 space-y-4">
+                  <div className="relative pl-6 border-l-2 border-gray-200/50 dark:border-[#3d3c3e]/50 space-y-4">
                     {selectedApplication.statusHistory?.slice().reverse().map((status, index) => (
                       <motion.div
                         key={index}
@@ -5982,14 +5982,14 @@ END:VCALENDAR`;
                             status.status === 'interview' ? 'bg-purple-50/60 text-purple-600 border-purple-200/50 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/30' :
                               status.status === 'offer' ? 'bg-green-50/60 text-green-600 border-green-200/50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/30' :
                                 status.status === 'pending_decision' ? 'bg-amber-50/60 text-amber-600 border-amber-200/50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/30' :
-                                  status.status === 'archived' ? 'bg-gray-50/60 text-gray-600 border-gray-200/50 dark:bg-gray-950/30 dark:text-gray-400 dark:border-gray-800/30' :
+                                  status.status === 'archived' ? 'bg-gray-50/60 text-gray-600 border-gray-200/50 dark:bg-[#242325]/30 dark:text-gray-400 dark:border-[#3d3c3e]/30' :
                                     'bg-red-50/60 text-red-600 border-red-200/50 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/30'
                           }`}>
                           <span className="text-xs font-semibold capitalize">{status.status.slice(0, 1)}</span>
                         </div>
 
                         {/* Status details - Apple style */}
-                        <div className="bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-200/60 dark:border-gray-800/50 pl-4 py-3 px-4 transition-all duration-200 hover:bg-white dark:hover:bg-gray-800/50 relative z-0">
+                        <div className="bg-white/90 dark:bg-[#2b2a2c]/30 backdrop-blur-sm rounded-xl border border-gray-200/60 dark:border-[#3d3c3e]/50 pl-4 py-3 px-4 transition-all duration-200 hover:bg-white dark:hover:bg-[#3d3c3e]/50 relative z-0">
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <p className={`font-medium text-sm capitalize ${status.status === 'applied' ? 'text-blue-600 dark:text-blue-400' :
                                 status.status === 'interview' ? 'text-purple-600 dark:text-purple-400' :
@@ -6071,7 +6071,7 @@ END:VCALENDAR`;
                                 });
                               }}
                               className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 
-                                hover:bg-gray-100/60 dark:hover:bg-gray-800/50 rounded-lg transition-all duration-200 backdrop-blur-sm"
+                                hover:bg-gray-100/60 dark:hover:bg-[#3d3c3e]/50 rounded-lg transition-all duration-200 backdrop-blur-sm"
                               aria-label="Cancel"
                             >
                               <X className="w-3.5 h-3.5" />
@@ -6086,8 +6086,8 @@ END:VCALENDAR`;
                                   type="date"
                                   value={newInterview.date}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, date: e.target.value }))}
-                                  className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
-                                bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
+                                  className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-lg 
+                                bg-white/90 dark:bg-[#2b2a2c]/30 backdrop-blur-sm 
                                 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
                                 transition-all duration-200"
                                   required
@@ -6099,8 +6099,8 @@ END:VCALENDAR`;
                                   type="time"
                                   value={newInterview.time}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, time: e.target.value }))}
-                                  className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
-                                bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
+                                  className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-lg 
+                                bg-white/90 dark:bg-[#2b2a2c]/30 backdrop-blur-sm 
                                 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
                                 transition-all duration-200"
                                   required
@@ -6114,8 +6114,8 @@ END:VCALENDAR`;
                                 <select
                                   value={newInterview.type}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, type: e.target.value as Interview['type'] }))}
-                                  className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
-                                bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
+                                  className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-lg 
+                                bg-white/90 dark:bg-[#2b2a2c]/30 backdrop-blur-sm 
                                 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
                                 transition-all duration-200"
                                 >
@@ -6131,8 +6131,8 @@ END:VCALENDAR`;
                                 <select
                                   value={newInterview.status}
                                   onChange={(e) => setNewInterview(prev => ({ ...prev, status: e.target.value as Interview['status'] }))}
-                                  className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
-                                bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
+                                  className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-lg 
+                                bg-white/90 dark:bg-[#2b2a2c]/30 backdrop-blur-sm 
                                 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
                                 transition-all duration-200"
                                 >
@@ -6150,8 +6150,8 @@ END:VCALENDAR`;
                                 value={newInterview.location || ''}
                                 onChange={(e) => setNewInterview(prev => ({ ...prev, location: e.target.value }))}
                                 placeholder="e.g., Zoom, Office, Remote"
-                                className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
-                                bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
+                                className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-lg 
+                                bg-white/90 dark:bg-[#2b2a2c]/30 backdrop-blur-sm 
                                 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
                                 transition-all duration-200"
                               />
@@ -6164,8 +6164,8 @@ END:VCALENDAR`;
                                 onChange={(e) => setNewInterview(prev => ({ ...prev, notes: e.target.value }))}
                                 placeholder="Add any notes or preparation tips..."
                                 rows={2}
-                                className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/50 rounded-lg 
-                              bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm 
+                                className="w-full px-3 py-2.5 text-sm border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-lg 
+                              bg-white/90 dark:bg-[#2b2a2c]/30 backdrop-blur-sm 
                               focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 
                               transition-all duration-200 resize-none"
                               />
@@ -6187,8 +6187,8 @@ END:VCALENDAR`;
                                   });
                                 }}
                                 className="flex-1 px-3 py-2.5 text-xs font-medium text-gray-700 dark:text-gray-300 
-                              bg-gray-100/90 dark:bg-gray-700/50 hover:bg-gray-200 dark:hover:bg-gray-600/60 
-                              rounded-lg transition-all duration-200 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/50"
+                              bg-gray-100/90 dark:bg-[#3d3c3e]/50 hover:bg-gray-200 dark:hover:bg-[#4a494b]/60 
+                              rounded-lg transition-all duration-200 backdrop-blur-sm border border-gray-200/60 dark:border-[#3d3c3e]/50"
                               >
                                 Cancel
                               </motion.button>
@@ -6242,7 +6242,7 @@ END:VCALENDAR`;
 
                           {interview.location && (
                             <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mb-3">
-                              <div className="p-1 rounded-lg bg-white/80 dark:bg-gray-800/50 backdrop-blur-sm">
+                              <div className="p-1 rounded-lg bg-white/80 dark:bg-[#2b2a2c]/50 backdrop-blur-sm">
                                 <MapPin className="w-3 h-3" />
                               </div>
                               <span>{interview.location}</span>
@@ -6250,13 +6250,13 @@ END:VCALENDAR`;
                           )}
 
                           {interview.notes && (
-                            <div className="mb-3 p-3 bg-white/90 dark:bg-gray-800/30 backdrop-blur-sm rounded-lg border border-gray-200/60 dark:border-gray-800/50">
+                            <div className="mb-3 p-3 bg-white/90 dark:bg-[#2b2a2c]/30 backdrop-blur-sm rounded-lg border border-gray-200/60 dark:border-[#3d3c3e]/50">
                               <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{interview.notes}</p>
                             </div>
                           )}
 
                           {interview.status === 'scheduled' && (
-                            <div className="flex flex-col sm:flex-row gap-2 mt-4 pt-3 border-t border-gray-200/50 dark:border-gray-700/50">
+                            <div className="flex flex-col sm:flex-row gap-2 mt-4 pt-3 border-t border-gray-200/50 dark:border-[#3d3c3e]/50">
                               <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
@@ -6286,7 +6286,7 @@ END:VCALENDAR`;
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 px-4 bg-gray-50/80 dark:bg-gray-900/30 backdrop-blur-sm rounded-xl border border-dashed border-gray-200/60 dark:border-gray-700/50">
+                    <div className="text-center py-8 px-4 bg-gray-50/80 dark:bg-[#242325]/30 backdrop-blur-sm rounded-xl border border-dashed border-gray-200/60 dark:border-[#3d3c3e]/50">
                       <Calendar className="w-8 h-8 mx-auto text-gray-400 dark:text-gray-600 mb-2" />
                       <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">No interviews scheduled yet</p>
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Click "Add Interview" to schedule one</p>
@@ -6296,8 +6296,8 @@ END:VCALENDAR`;
               </div>
 
               {/* Footer with Close button - Apple style */}
-              <div className="px-5 sm:px-6 py-4 border-t border-gray-200/60 dark:border-gray-800/50 flex justify-end sticky bottom-0 
-            bg-white dark:bg-gray-900/80 backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-black/20">
+              <div className="px-5 sm:px-6 py-4 border-t border-gray-200/60 dark:border-[#3d3c3e]/50 flex justify-end sticky bottom-0 
+            bg-white dark:bg-[#242325]/80 backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-black/20">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -6347,7 +6347,7 @@ END:VCALENDAR`;
                 exit={{ scale: 0.96, y: 10, opacity: 0 }}
                 transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                 onClick={(e) => e.stopPropagation()}
-                className="relative bg-white dark:bg-gray-900 rounded-3xl w-full max-w-sm shadow-2xl border border-gray-100 dark:border-gray-800/50 overflow-hidden pointer-events-auto"
+                className="relative bg-white dark:bg-[#242325] rounded-3xl w-full max-w-sm shadow-2xl border border-gray-100 dark:border-[#3d3c3e]/50 overflow-hidden pointer-events-auto"
                 style={{ zIndex: 201 }}
               >
                 {/* Subtle gradient overlay */}
@@ -6376,7 +6376,7 @@ END:VCALENDAR`;
                   </p>
 
                   {/* Application Info - Ultra minimalist */}
-                  <div className="mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
+                  <div className="mb-8 pb-6 border-b border-gray-100 dark:border-[#3d3c3e]">
                     <div className="text-center space-y-1">
                       <div className="font-medium text-sm text-gray-900 dark:text-white">
                         {pendingMoveApplication.companyName}
@@ -6396,7 +6396,7 @@ END:VCALENDAR`;
                         setShowMoveToInterviewPrompt(false);
                         setPendingMoveApplication(null);
                       }}
-                      className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 border border-gray-200/50 dark:border-gray-700/50"
+                      className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-[#2b2a2c]/50 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-xl transition-all duration-200 border border-gray-200/50 dark:border-[#3d3c3e]/50"
                     >
                       {pendingMoveApplication.status === 'wishlist' ? 'Keep in Wishlist' : 
                        pendingMoveApplication.status === 'pending_decision' ? 'Keep in Pending Decision' : 
@@ -6430,14 +6430,14 @@ END:VCALENDAR`;
         {/* Delete Confirmation Modal */}
         {deleteModal.show && deleteModal.application && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
+            <div className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-1">
                 <h2 className="text-lg font-semibold">Delete Application</h2>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setDeleteModal({ show: false })}
-                  className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                  className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
                   aria-label="Close"
                 >
                   <X className="w-4 h-4" />
@@ -6451,7 +6451,7 @@ END:VCALENDAR`;
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setDeleteModal({ show: false })}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg flex-1 sm:flex-initial"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-[#3d3c3e] rounded-lg flex-1 sm:flex-initial"
                 >
                   Cancel
                 </button>

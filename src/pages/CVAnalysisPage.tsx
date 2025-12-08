@@ -5002,28 +5002,28 @@ URL to visit: ${jobUrl}
           key={analysis.id}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="relative bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-5 
-            border border-dashed border-gray-300 dark:border-gray-600"
+          className="relative bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-xl p-5 
+            border border-dashed border-gray-300 dark:border-[#4a494b]"
         >
           <div className="flex items-start gap-3">
             {/* Logo placeholder */}
-            <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700 
+            <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-[#3d3c3e] 
               flex items-center justify-center flex-shrink-0">
               <Loader2 className="w-4 h-4 text-gray-400 dark:text-gray-500 animate-spin" />
             </div>
             
             {/* Content skeleton */}
             <div className="flex-1 space-y-2">
-              <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded animate-pulse w-3/4" />
-              <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded animate-pulse w-1/2" />
+              <div className="h-4 bg-gray-100 dark:bg-[#3d3c3e] rounded animate-pulse w-3/4" />
+              <div className="h-3 bg-gray-100 dark:bg-[#3d3c3e] rounded animate-pulse w-1/2" />
             </div>
             
             {/* Score placeholder */}
-            <div className="w-12 h-6 bg-gray-100 dark:bg-gray-700 rounded-md animate-pulse" />
+            <div className="w-12 h-6 bg-gray-100 dark:bg-[#3d3c3e] rounded-md animate-pulse" />
           </div>
 
           {/* Status */}
-          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/50">
+          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50">
             <div className="flex items-center gap-2">
               <Zap className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
               <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -5067,8 +5067,8 @@ URL to visit: ${jobUrl}
         whileHover={{ y: -2 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
         layout={false}
-        className="group relative bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-5 
-          border border-gray-200/60 dark:border-gray-700/50
+        className="group relative bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-xl p-5 
+          border border-gray-200/60 dark:border-[#3d3c3e]/50
           hover:border-gray-300/80 dark:hover:border-gray-600/60
           shadow-sm hover:shadow-md
           cursor-pointer transition-all duration-200"
@@ -5087,7 +5087,7 @@ URL to visit: ${jobUrl}
             <CompanyLogo
               companyName={analysis.company}
               size="lg"
-              className="rounded-lg border border-gray-100 dark:border-gray-700 flex-shrink-0"
+              className="rounded-lg border border-gray-100 dark:border-[#3d3c3e] flex-shrink-0"
             />
 
             {/* Content */}
@@ -5137,7 +5137,7 @@ URL to visit: ${jobUrl}
                         <span
                           key={idx}
                           className="text-xs px-2 py-0.5 rounded-md 
-                            bg-gray-100/80 dark:bg-gray-700/50 
+                            bg-gray-100/80 dark:bg-[#3d3c3e]/60 
                             text-gray-600 dark:text-gray-400
                             font-normal"
                         >
@@ -5160,7 +5160,7 @@ URL to visit: ${jobUrl}
           })()}
 
           {/* Footer - minimal */}
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/50">
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50">
             <span className="text-xs text-gray-400 dark:text-gray-500">
               {formatDateString(analysis.date)}
             </span>
@@ -5170,7 +5170,7 @@ URL to visit: ${jobUrl}
               <button
                 onClick={(e) => { e.stopPropagation(); onSelect && onSelect(); }}
                 className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 
-                  dark:hover:text-gray-300 dark:hover:bg-gray-700
+                  dark:hover:text-gray-300 dark:hover:bg-[#3d3c3e]
                   transition-colors"
                 aria-label="View details"
               >
@@ -5179,7 +5179,7 @@ URL to visit: ${jobUrl}
               <button
                 onClick={(e) => { e.stopPropagation(); duplicateAnalysis(analysis); }}
                 className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 
-                  dark:hover:text-gray-300 dark:hover:bg-gray-700
+                  dark:hover:text-gray-300 dark:hover:bg-[#3d3c3e]
                   transition-colors"
                 aria-label="Duplicate"
               >
@@ -5199,9 +5199,9 @@ URL to visit: ${jobUrl}
 
           {/* Expanded Content */}
           {isExpanded && (
-            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-[#3d3c3e]">
               {/* Score Explanation Card */}
-              <div className="mb-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+              <div className="mb-5 bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] overflow-hidden">
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-medium text-gray-900 dark:text-white flex items-center">
@@ -5222,7 +5222,7 @@ URL to visit: ${jobUrl}
                     }
                   </p>
 
-                  <div className="w-full h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full mb-3 overflow-hidden">
+                  <div className="w-full h-2.5 bg-gray-100 dark:bg-[#3d3c3e] rounded-full mb-3 overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${analysis.matchScore >= 80 ? 'bg-gradient-to-r from-purple-500 to-indigo-500' :
                         analysis.matchScore >= 65 ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
@@ -5252,7 +5252,7 @@ URL to visit: ${jobUrl}
               {/* Category Scores */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 mb-5">
                 {Object.entries(analysis.categoryScores).map(([category, score], idx) => (
-                  <div key={idx} className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 flex flex-col items-center justify-center">
+                  <div key={idx} className="bg-gray-50 dark:bg-[#3d3c3e]/40 rounded-xl p-3 flex flex-col items-center justify-center">
                     <div className="text-xs uppercase tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-1">
                       {category.replace(/([A-Z])/g, ' $1').trim()}
                     </div>
@@ -5266,10 +5266,10 @@ URL to visit: ${jobUrl}
               {/* Expandable sections */}
               <div className="space-y-3">
                 {/* Executive Summary */}
-                <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
                   <button
                     onClick={() => toggleSection('summary')}
-                    className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                    className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60 transition-colors"
                   >
                     <div className="flex items-center">
                       <FileText className="w-5 h-5 mr-2 text-purple-500" />
@@ -5278,17 +5278,17 @@ URL to visit: ${jobUrl}
                     {expandedSection === 'summary' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
                   {expandedSection === 'summary' && (
-                    <div className="p-4 bg-white dark:bg-gray-800">
+                    <div className="p-4 bg-white dark:bg-[#2b2a2c]">
                       <p className="text-gray-700 dark:text-gray-300">{analysis.executiveSummary}</p>
                     </div>
                   )}
                 </div>
 
                 {/* Skills Match */}
-                <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
                   <button
                     onClick={() => toggleSection('skills')}
-                    className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                    className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60 transition-colors"
                   >
                     <div className="flex items-center">
                       <CheckCircle className="w-5 h-5 mr-2 text-[#635BFF]" />
@@ -5297,7 +5297,7 @@ URL to visit: ${jobUrl}
                     {expandedSection === 'skills' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
                   {expandedSection === 'skills' && (
-                    <div className="p-4 bg-white dark:bg-gray-800">
+                    <div className="p-4 bg-white dark:bg-[#2b2a2c]">
                       {analysis.skillsMatch?.matching && analysis.skillsMatch.matching.length > 0 ? (
                         <div className="flex flex-wrap gap-2 mb-3">
                           {analysis.skillsMatch.matching.map((skill, idx) => (
@@ -5332,10 +5332,10 @@ URL to visit: ${jobUrl}
                 </div>
 
                 {/* Experience Analysis */}
-                <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
                   <button
                     onClick={() => toggleSection('experience')}
-                    className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                    className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60 transition-colors"
                   >
                     <div className="flex items-center">
                       <Briefcase className="w-5 h-5 mr-2 text-blue-500" />
@@ -5344,10 +5344,10 @@ URL to visit: ${jobUrl}
                     {expandedSection === 'experience' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
                   {expandedSection === 'experience' && (
-                    <div className="p-4 bg-white dark:bg-gray-800">
+                    <div className="p-4 bg-white dark:bg-[#2b2a2c]">
                       <div className="space-y-4">
                         {analysis.experienceAnalysis.map((item, idx) => (
-                          <div key={idx} className="pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0">
+                          <div key={idx} className="pb-4 border-b border-gray-100 dark:border-[#3d3c3e] last:border-0 last:pb-0">
                             <h4 className="font-medium text-gray-900 dark:text-white mb-1">{item.aspect}</h4>
                             <p className="text-sm text-gray-600 dark:text-gray-400">{item.analysis}</p>
                           </div>
@@ -5359,7 +5359,7 @@ URL to visit: ${jobUrl}
 
                 {/* Critical Requirements Analysis - NEW SECTION */}
                 {analysis.criticalRequirementsAnalysis && (
-                  <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                  <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
                     <button
                       onClick={() => toggleSection('criticalRequirements')}
                       className="w-full flex items-center justify-between p-3 text-left bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 hover:from-red-100 hover:to-orange-100 dark:hover:from-red-900/30 dark:hover:to-orange-900/30 transition-colors"
@@ -5374,7 +5374,7 @@ URL to visit: ${jobUrl}
                       {expandedSection === 'criticalRequirements' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
                     {expandedSection === 'criticalRequirements' && (
-                      <div className="p-4 bg-white dark:bg-gray-800">
+                      <div className="p-4 bg-white dark:bg-[#2b2a2c]">
                         {/* Summary Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                           <div className="bg-red-50 dark:bg-red-900/10 rounded-lg p-4 border border-red-200 dark:border-red-800">
@@ -5452,7 +5452,7 @@ URL to visit: ${jobUrl}
                                           req.category === 'experience' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
                                             req.category === 'education' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' :
                                               req.category === 'certification' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
-                                                'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400'
+                                                'bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-400'
                                           }`}>
                                           {req.category}
                                         </span>
@@ -5535,7 +5535,7 @@ URL to visit: ${jobUrl}
                                   key={idx}
                                   className={`p-2 rounded-lg border text-sm ${req.found
                                     ? 'bg-[#635BFF]/5 dark:bg-[#5249e6]/10 border-[#635BFF]/20 dark:border-[#5249e6]/50'
-                                    : 'bg-gray-50 dark:bg-gray-700/30 border-gray-200 dark:border-gray-700'
+                                    : 'bg-gray-50 dark:bg-[#3d3c3e]/40 border-gray-200 dark:border-[#3d3c3e]'
                                   }`}
                                 >
                                   <div className="flex items-center gap-2">
@@ -5558,7 +5558,7 @@ URL to visit: ${jobUrl}
 
                 {/* Gap Analysis - NEW SECTION */}
                 {analysis.gapAnalysis && (
-                  <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                  <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
                     <button
                       onClick={() => toggleSection('gapAnalysis')}
                       className="w-full flex items-center justify-between p-3 text-left bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 hover:from-red-100 hover:to-pink-100 dark:hover:from-red-900/30 dark:hover:to-pink-900/30 transition-colors"
@@ -5575,7 +5575,7 @@ URL to visit: ${jobUrl}
                       {expandedSection === 'gapAnalysis' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
                     {expandedSection === 'gapAnalysis' && (
-                      <div className="p-4 bg-white dark:bg-gray-800">
+                      <div className="p-4 bg-white dark:bg-[#2b2a2c]">
                         {/* Overall Impact Summary */}
                         <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/10 dark:to-orange-900/10 rounded-lg p-4 mb-6 border border-red-200 dark:border-red-800">
                           <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Overall Impact Summary</h4>
@@ -5631,7 +5631,7 @@ URL to visit: ${jobUrl}
                                           gap.category === 'experience' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
                                             gap.category === 'education' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' :
                                               gap.category === 'certification' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
-                                                'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400'
+                                                'bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-400'
                                           }`}>
                                           {gap.category}
                                         </span>
@@ -5641,7 +5641,7 @@ URL to visit: ${jobUrl}
                                       </div>
                                     </div>
                                   </div>
-                                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 mb-3 border border-red-200 dark:border-red-800">
+                                  <div className="bg-white dark:bg-[#2b2a2c] rounded-lg p-3 mb-3 border border-red-200 dark:border-red-800">
                                     <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-1">Why This Matters:</p>
                                     <p className="text-sm text-gray-600 dark:text-gray-400">{gap.impact}</p>
                                   </div>
@@ -5696,7 +5696,7 @@ URL to visit: ${jobUrl}
                                           gap.category === 'experience' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
                                             gap.category === 'education' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' :
                                               gap.category === 'certification' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
-                                                'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400'
+                                                'bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-400'
                                           }`}>
                                           {gap.category}
                                         </span>
@@ -5706,7 +5706,7 @@ URL to visit: ${jobUrl}
                                       </div>
                                     </div>
                                   </div>
-                                  <div className="bg-white dark:bg-gray-800 rounded-lg p-2 mb-2 border border-orange-200 dark:border-orange-800">
+                                  <div className="bg-white dark:bg-[#2b2a2c] rounded-lg p-2 mb-2 border border-orange-200 dark:border-orange-800">
                                     <p className="text-xs text-gray-600 dark:text-gray-400">{gap.impact}</p>
                                   </div>
                                   <div className="bg-yellow-50 dark:bg-yellow-900/10 rounded-lg p-2 border border-yellow-200 dark:border-yellow-800">
@@ -5731,10 +5731,10 @@ URL to visit: ${jobUrl}
                 )}
 
                 {/* Recommendations */}
-                <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
                   <button
                     onClick={() => toggleSection('recommendations')}
-                    className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                    className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60 transition-colors"
                   >
                     <div className="flex items-center">
                       <Lightbulb className="w-5 h-5 mr-2 text-yellow-500" />
@@ -5743,10 +5743,10 @@ URL to visit: ${jobUrl}
                     {expandedSection === 'recommendations' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
                   {expandedSection === 'recommendations' && (
-                    <div className="p-4 bg-white dark:bg-gray-800">
+                    <div className="p-4 bg-white dark:bg-[#2b2a2c]">
                       <div className="space-y-3">
                         {analysis.recommendations.map((rec, idx) => (
-                          <div key={idx} className="rounded-lg border border-gray-100 dark:border-gray-700 p-3">
+                          <div key={idx} className="rounded-lg border border-gray-100 dark:border-[#3d3c3e] p-3">
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="font-medium text-gray-900 dark:text-white">{rec.title}</h4>
                               <span className={`text-xs px-2 py-0.5 rounded-full ${rec.priority === 'high'
@@ -5760,7 +5760,7 @@ URL to visit: ${jobUrl}
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400">{rec.description}</p>
                             {rec.examples && (
-                              <div className="mt-2 text-sm bg-gray-50 dark:bg-gray-700/30 p-2 rounded-md text-gray-700 dark:text-gray-300">
+                              <div className="mt-2 text-sm bg-gray-50 dark:bg-[#3d3c3e]/40 p-2 rounded-md text-gray-700 dark:text-gray-300">
                                 <span className="font-medium text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">Example</span>
                                 {rec.examples}
                               </div>
@@ -5774,10 +5774,10 @@ URL to visit: ${jobUrl}
 
                 {/* ATS Optimization Section */}
                 {analysis.atsOptimization && (
-                  <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                  <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
                     <button
                       onClick={() => toggleSection('atsOptimization')}
-                      className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                      className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60 transition-colors"
                     >
                       <div className="flex items-center">
                         <SearchCheck className="w-5 h-5 mr-2 text-purple-500" />
@@ -5791,7 +5791,7 @@ URL to visit: ${jobUrl}
                       {expandedSection === 'atsOptimization' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
                     {expandedSection === 'atsOptimization' && (
-                      <div className="p-4 bg-white dark:bg-gray-800">
+                      <div className="p-4 bg-white dark:bg-[#2b2a2c]">
                         <div className="space-y-4">
                           <div>
                             <h4 className="font-medium text-gray-900 dark:text-white mb-1">Formatting</h4>
@@ -5804,7 +5804,7 @@ URL to visit: ${jobUrl}
 
                           {/* Keyword Density Analysis */}
                           {analysis.atsOptimization.keywordDensity && (
-                            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <div className="border-t border-gray-200 dark:border-[#3d3c3e] pt-4">
                               <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center">
                                 <Target className="w-4 h-4 mr-2 text-purple-500" />
                                 Keyword Density Analysis
@@ -5816,7 +5816,7 @@ URL to visit: ${jobUrl}
                                     {analysis.atsOptimization.keywordDensity.overallDensity}%
                                   </span>
                                 </div>
-                                <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div className="w-full h-2 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
                                   <div
                                     className={`h-full rounded-full transition-all ${analysis.atsOptimization.keywordDensity.overallDensity >= 80
                                       ? 'bg-gradient-to-r from-purple-500 to-indigo-500'
@@ -5833,7 +5833,7 @@ URL to visit: ${jobUrl}
                                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Critical Keywords</p>
                                   <div className="grid grid-cols-1 gap-2">
                                     {analysis.atsOptimization.keywordDensity.criticalKeywords.slice(0, 10).map((kw, idx) => (
-                                      <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">
+                                      <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-[#3d3c3e]/60 rounded-md">
                                         <div className="flex items-center">
                                           {kw.found ? (
                                             <CheckCircle className="w-4 h-4 text-[#635BFF] mr-2" />
@@ -5877,7 +5877,7 @@ URL to visit: ${jobUrl}
 
                           {/* Section Completeness */}
                           {analysis.atsOptimization.sectionCompleteness && (
-                            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <div className="border-t border-gray-200 dark:border-[#3d3c3e] pt-4">
                               <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center">
                                 <FileText className="w-4 h-4 mr-2 text-indigo-500" />
                                 Section Completeness
@@ -5892,7 +5892,7 @@ URL to visit: ${jobUrl}
                               </div>
                               <div className="space-y-2">
                                 {analysis.atsOptimization.sectionCompleteness.sections.map((section, idx) => (
-                                  <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">
+                                  <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-[#3d3c3e]/60 rounded-md">
                                     <div className="flex items-center">
                                       {section.present ? (
                                         <CheckCircle className="w-4 h-4 text-[#635BFF] mr-2" />
@@ -5914,7 +5914,7 @@ URL to visit: ${jobUrl}
 
                           {/* Readability */}
                           {analysis.atsOptimization.readability && (
-                            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <div className="border-t border-gray-200 dark:border-[#3d3c3e] pt-4">
                               <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center">
                                 <Eye className="w-4 h-4 mr-2 text-blue-500" />
                                 Readability Score
@@ -5926,7 +5926,7 @@ URL to visit: ${jobUrl}
                                     {analysis.atsOptimization.readability.score}%
                                   </span>
                                 </div>
-                                <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div className="w-full h-2 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
                                   <div
                                     className={`h-full rounded-full transition-all ${analysis.atsOptimization.readability.score >= 80
                                       ? 'bg-gradient-to-r from-purple-500 to-indigo-500'
@@ -5962,7 +5962,7 @@ URL to visit: ${jobUrl}
                           )}
 
                           {analysis.atsOptimization.improvements.length > 0 && (
-                            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <div className="border-t border-gray-200 dark:border-[#3d3c3e] pt-4">
                               <h4 className="font-medium text-gray-900 dark:text-white mb-1">Recommended Improvements</h4>
                               <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
                                 {analysis.atsOptimization.improvements.map((improvement, idx) => (
@@ -5979,10 +5979,10 @@ URL to visit: ${jobUrl}
 
                 {/* Market Positioning Section */}
                 {analysis.marketPositioning && (
-                  <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                  <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
                     <button
                       onClick={() => toggleSection('marketPositioning')}
-                      className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                      className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60 transition-colors"
                     >
                       <div className="flex items-center">
                         <LineChart className="w-5 h-5 mr-2 text-indigo-500" />
@@ -5991,7 +5991,7 @@ URL to visit: ${jobUrl}
                       {expandedSection === 'marketPositioning' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
                     {expandedSection === 'marketPositioning' && (
-                      <div className="p-4 bg-white dark:bg-gray-800">
+                      <div className="p-4 bg-white dark:bg-[#2b2a2c]">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rounded-lg p-3">
                             <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-2 flex items-center">
@@ -6032,10 +6032,10 @@ URL to visit: ${jobUrl}
 
                 {/* Application Strategy Section */}
                 {analysis.applicationStrategy && (
-                  <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                  <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
                     <button
                       onClick={() => toggleSection('applicationStrategy')}
-                      className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                      className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60 transition-colors"
                     >
                       <div className="flex items-center">
                         <Target className="w-5 h-5 mr-2 text-teal-500" />
@@ -6044,9 +6044,9 @@ URL to visit: ${jobUrl}
                       {expandedSection === 'applicationStrategy' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
                     {expandedSection === 'applicationStrategy' && (
-                      <div className="p-4 bg-white dark:bg-gray-800">
+                      <div className="p-4 bg-white dark:bg-[#2b2a2c]">
                         <div className="space-y-4">
-                          <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3">
+                          <div className="bg-gray-50 dark:bg-[#3d3c3e]/40 rounded-lg p-3">
                             <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1.5 flex items-center">
                               <FileText className="w-4 h-4 mr-1.5 text-gray-600 dark:text-gray-400" />
                               Cover Letter Focus
@@ -6055,7 +6055,7 @@ URL to visit: ${jobUrl}
                               {analysis.applicationStrategy.coverLetterFocus}
                             </p>
                           </div>
-                          <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3">
+                          <div className="bg-gray-50 dark:bg-[#3d3c3e]/40 rounded-lg p-3">
                             <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1.5 flex items-center">
                               <UserRound className="w-4 h-4 mr-1.5 text-gray-600 dark:text-gray-400" />
                               Interview Preparation
@@ -6064,7 +6064,7 @@ URL to visit: ${jobUrl}
                               {analysis.applicationStrategy.interviewPreparation}
                             </p>
                           </div>
-                          <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3">
+                          <div className="bg-gray-50 dark:bg-[#3d3c3e]/40 rounded-lg p-3">
                             <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1.5 flex items-center">
                               <Palette className="w-4 h-4 mr-1.5 text-gray-600 dark:text-gray-400" />
                               Portfolio Suggestions
@@ -6074,7 +6074,7 @@ URL to visit: ${jobUrl}
                             </p>
                           </div>
                           {analysis.applicationStrategy.networkingTips && analysis.applicationStrategy.networkingTips.length > 0 && (
-                            <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3">
+                            <div className="bg-gray-50 dark:bg-[#3d3c3e]/40 rounded-lg p-3">
                               <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1.5 flex items-center">
                                 <UserRound className="w-4 h-4 mr-1.5 text-gray-600 dark:text-gray-400" />
                                 Networking Tips
@@ -6087,7 +6087,7 @@ URL to visit: ${jobUrl}
                             </div>
                           )}
                           {analysis.applicationStrategy.followUpStrategy && (
-                            <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3">
+                            <div className="bg-gray-50 dark:bg-[#3d3c3e]/40 rounded-lg p-3">
                               <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1.5 flex items-center">
                                 <Activity className="w-4 h-4 mr-1.5 text-gray-600 dark:text-gray-400" />
                                 Follow-Up Strategy
@@ -6129,7 +6129,7 @@ URL to visit: ${jobUrl}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
                   transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                  className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 mx-auto border border-gray-100 dark:border-gray-800"
+                  className="relative bg-white dark:bg-[#242325] rounded-2xl shadow-2xl max-w-sm w-full p-6 mx-auto border border-gray-100 dark:border-[#3d3c3e]"
                 >
                   <div className="text-center">
                     <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl 
@@ -6146,7 +6146,7 @@ URL to visit: ${jobUrl}
                     <button
                       onClick={() => setIsDeleteDialogOpen(false)}
                       className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 
-                        dark:bg-gray-800 dark:hover:bg-gray-700 
+                        dark:bg-[#2b2a2c] dark:hover:bg-[#3d3c3e] 
                         text-gray-700 dark:text-gray-300 
                         rounded-xl font-medium text-sm transition-colors"
                     >
@@ -6184,22 +6184,22 @@ URL to visit: ${jobUrl}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
+                  <div className="bg-white dark:bg-[#2b2a2c] rounded-lg p-2 shadow-sm">
                     <h5 className="font-medium text-purple-600 dark:text-purple-400 text-xs mb-1">Match Score</h5>
                     <p className="text-xs">Indicates your overall alignment with the job requirements. A score above 75% is considered strong.</p>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
+                  <div className="bg-white dark:bg-[#2b2a2c] rounded-lg p-2 shadow-sm">
                     <h5 className="font-medium text-purple-600 dark:text-purple-400 text-xs mb-1">Skills Match</h5>
                     <p className="text-xs">Shows which skills from the job you have and which are missing. Focus on adding missing high-relevance skills.</p>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
+                  <div className="bg-white dark:bg-[#2b2a2c] rounded-lg p-2 shadow-sm">
                     <h5 className="font-medium text-purple-600 dark:text-purple-400 text-xs mb-1">ATS Optimization</h5>
                     <p className="text-xs">Evaluates how well your resume will perform in Applicant Tracking Systems. Implement formatting suggestions for better results.</p>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
+                  <div className="bg-white dark:bg-[#2b2a2c] rounded-lg p-2 shadow-sm">
                     <h5 className="font-medium text-purple-600 dark:text-purple-400 text-xs mb-1">Competitive Analysis</h5>
                     <p className="text-xs">Shows how you compare to typical candidates for this role. Highlight your advantages in your application.</p>
                   </div>
@@ -6279,7 +6279,7 @@ URL to visit: ${jobUrl}
             animate={{ opacity: 1, y: 0 }}
             className={`border-2 rounded-xl p-5 transition-all duration-200 shadow-sm ${usingSavedCV
               ? 'border-purple-500 dark:border-purple-400 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/20 shadow-purple-200 dark:shadow-purple-900/20'
-              : 'border-purple-300 dark:border-purple-600 bg-white dark:bg-gray-800 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md'
+              : 'border-purple-300 dark:border-purple-600 bg-white dark:bg-[#2b2a2c] hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md'
               }`}
           >
             {/* Header with badge */}
@@ -6334,7 +6334,7 @@ URL to visit: ${jobUrl}
                   e.stopPropagation();
                   setShowCVPreview(true);
                 }}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#3d3c3e] hover:bg-gray-200 dark:hover:bg-[#4a494b] rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 <Eye className="w-4 h-4" />
                 Preview
@@ -6373,7 +6373,7 @@ URL to visit: ${jobUrl}
             </div>
           </motion.div>
         ) : (
-          <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-gray-50 dark:bg-gray-800/50">
+          <div className="border-2 border-dashed border-gray-200 dark:border-[#3d3c3e] rounded-xl p-4 bg-gray-50 dark:bg-[#2b2a2c]/50">
             <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
               No saved CV found in your profile. Upload a new one below.
             </p>
@@ -6383,10 +6383,10 @@ URL to visit: ${jobUrl}
         {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+              <div className="w-full border-t border-gray-300 dark:border-[#4a494b]"></div>
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-white dark:bg-gray-800 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+              <span className="bg-white dark:bg-[#2b2a2c] px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
                 OR
               </span>
             </div>
@@ -6399,13 +6399,13 @@ URL to visit: ${jobUrl}
           className={`border-2 rounded-xl overflow-hidden transition-all duration-200 ${
             selectedBuilderItem
               ? 'border-indigo-500 dark:border-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20'
-              : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+              : 'border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c]'
           }`}
         >
           {/* Header - Always visible */}
           <button
             onClick={() => setShowCVSelector(!showCVSelector)}
-            className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60 transition-colors"
           >
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
@@ -6453,10 +6453,10 @@ URL to visit: ${jobUrl}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="border-t border-gray-200 dark:border-gray-700"
+                className="border-t border-gray-200 dark:border-[#3d3c3e]"
               >
                 {/* Search Input */}
-                <div className="p-3 border-b border-gray-100 dark:border-gray-700/50">
+                <div className="p-3 border-b border-gray-100 dark:border-[#3d3c3e]/50">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
@@ -6464,7 +6464,7 @@ URL to visit: ${jobUrl}
                       value={cvSelectorSearch}
                       onChange={(e) => setCvSelectorSearch(e.target.value)}
                       placeholder="Search your CVs..."
-                      className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 text-gray-900 dark:text-white placeholder-gray-400"
+                      className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 dark:bg-[#3d3c3e]/60 border border-gray-200 dark:border-[#4a494b] rounded-lg focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 text-gray-900 dark:text-white placeholder-gray-400"
                     />
                   </div>
                 </div>
@@ -6495,7 +6495,7 @@ URL to visit: ${jobUrl}
                               className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${
                                 isSelected
                                   ? 'bg-indigo-50 dark:bg-indigo-900/30'
-                                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                  : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
                               }`}
                             >
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
@@ -6542,7 +6542,7 @@ URL to visit: ${jobUrl}
                               className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${
                                 isSelected
                                   ? 'bg-indigo-50 dark:bg-indigo-900/30'
-                                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                  : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
                               }`}
                             >
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
@@ -6605,10 +6605,10 @@ URL to visit: ${jobUrl}
         {/* Divider */}
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+            <div className="w-full border-t border-gray-300 dark:border-[#4a494b]"></div>
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-white dark:bg-gray-800 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+            <span className="bg-white dark:bg-[#2b2a2c] px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
               OR
             </span>
           </div>
@@ -6618,7 +6618,7 @@ URL to visit: ${jobUrl}
         <div
           className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200 ${cvFile && !usingSavedCV
             ? 'border-[#635BFF] dark:border-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#5249e6]/20'
-            : 'border-gray-300 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-gray-50 dark:hover:bg-gray-800'
+            : 'border-gray-300 dark:border-[#3d3c3e] hover:border-purple-400 dark:hover:border-purple-500 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
           }`}
           onClick={(e) => {
             e.preventDefault();
@@ -6780,7 +6780,7 @@ URL to visit: ${jobUrl}
   const ScoreCard = ({ title, score, icon, description }: { title: string, score: number, icon: React.ReactNode, description: string }) => {
     return (
       <div
-        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 hover:shadow-md transition-all duration-300 relative overflow-hidden group"
+        className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] p-4 hover:shadow-md transition-all duration-300 relative overflow-hidden group"
         title={description}
       >
         <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gray-50/20 to-gray-100/20 dark:from-gray-700/20 dark:to-gray-600/20 rounded-full -mr-10 -mt-10 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -6800,7 +6800,7 @@ URL to visit: ${jobUrl}
           </div>
         </div>
 
-        <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-gray-100/80 dark:border-gray-700/80 text-xs text-gray-500 dark:text-gray-400 max-h-0 overflow-hidden opacity-0 group-hover:max-h-24 group-hover:opacity-100 transition-all duration-300">
+        <div className="mt-2 p-2 bg-gray-50 dark:bg-[#2b2a2c]/40 rounded-lg border border-gray-100/80 dark:border-[#3d3c3e]/80 text-xs text-gray-500 dark:text-gray-400 max-h-0 overflow-hidden opacity-0 group-hover:max-h-24 group-hover:opacity-100 transition-all duration-300">
           {description}
         </div>
       </div>
@@ -6821,7 +6821,7 @@ URL to visit: ${jobUrl}
       )}
       <span className="truncate max-w-[120px]">{skill}</span>
       {matched && relevance && (
-        <span className="ml-1.5 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm text-[10px] px-1.5 py-0.5 rounded-full text-gray-600 dark:text-gray-400 border border-gray-200/50 dark:border-gray-700/50">
+        <span className="ml-1.5 bg-white/60 dark:bg-[#2b2a2c]/80 backdrop-blur-sm text-[10px] px-1.5 py-0.5 rounded-full text-gray-600 dark:text-gray-400 border border-gray-200/50 dark:border-[#3d3c3e]/50">
           {Math.round(relevance)}%
         </span>
       )}
@@ -6997,7 +6997,7 @@ URL to visit: ${jobUrl}
               animate={{ opacity: 1, y: 0 }}
               className={`border-2 rounded-xl p-4 transition-all duration-200 ${usingSavedCV
                 ? 'border-[#635BFF] dark:border-[#a5a0ff] bg-gradient-to-br from-[#635BFF]/5 to-[#7c75ff]/5 dark:from-[#635BFF]/10 dark:to-[#5249e6]/10 shadow-lg shadow-[#635BFF]/10 dark:shadow-[#635BFF]/20'
-                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1A1A1A] hover:border-[#635BFF]/50 dark:hover:border-[#a5a0ff]/50 hover:shadow-md'
+                : 'border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#1A1A1A] hover:border-[#635BFF]/50 dark:hover:border-[#a5a0ff]/50 hover:shadow-md'
                 }`}
             >
               {/* Header with badge */}
@@ -7052,7 +7052,7 @@ URL to visit: ${jobUrl}
                     e.stopPropagation();
                     setShowCVPreview(true);
                   }}
-                  className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#3d3c3e] hover:bg-gray-200 dark:hover:bg-[#4a494b] rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
                   <Eye className="w-4 h-4" />
                   Preview
@@ -7091,7 +7091,7 @@ URL to visit: ${jobUrl}
               </div>
             </motion.div>
           ) : (
-            <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-gray-50 dark:bg-gray-800/50">
+            <div className="border-2 border-dashed border-gray-200 dark:border-[#3d3c3e] rounded-xl p-3 bg-gray-50 dark:bg-[#2b2a2c]/50">
               <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                 No saved CV found in your profile. Upload a new one below.
               </p>
@@ -7101,10 +7101,10 @@ URL to visit: ${jobUrl}
           {/* Divider */}
           <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+              <div className="w-full border-t border-gray-300 dark:border-[#4a494b]"></div>
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-white dark:bg-[#121212] px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+              <span className="bg-white dark:bg-[#2b2a2c] px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
                 OR
               </span>
             </div>
@@ -7115,13 +7115,13 @@ URL to visit: ${jobUrl}
             className={`border-2 rounded-xl overflow-hidden transition-all duration-200 ${
               selectedBuilderItem
                 ? 'border-[#635BFF] dark:border-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
-                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1A1A1A]'
+                : 'border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#1A1A1A]'
             }`}
           >
             {/* Header - Always visible */}
             <button
               onClick={() => setShowCVSelector(!showCVSelector)}
-              className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60 transition-colors"
             >
               <div className="flex items-center gap-2.5">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
@@ -7163,9 +7163,9 @@ URL to visit: ${jobUrl}
 
             {/* Expandable Content */}
             {showCVSelector && (
-              <div className="border-t border-gray-200 dark:border-gray-700">
+              <div className="border-t border-gray-200 dark:border-[#3d3c3e]">
                 {/* Search Input */}
-                <div className="p-2.5 border-b border-gray-100 dark:border-gray-700/50">
+                <div className="p-2.5 border-b border-gray-100 dark:border-[#3d3c3e]/50">
                   <div className="relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
@@ -7173,7 +7173,7 @@ URL to visit: ${jobUrl}
                       value={cvSelectorSearch}
                       onChange={(e) => setCvSelectorSearch(e.target.value)}
                       placeholder="Search your CVs..."
-                      className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#635BFF]/50 focus:border-[#635BFF]/50 text-gray-900 dark:text-white placeholder-gray-400"
+                      className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 dark:bg-[#3d3c3e]/60 border border-gray-200 dark:border-[#4a494b] rounded-lg focus:ring-2 focus:ring-[#635BFF]/50 focus:border-[#635BFF]/50 text-gray-900 dark:text-white placeholder-gray-400"
                     />
                   </div>
                 </div>
@@ -7204,7 +7204,7 @@ URL to visit: ${jobUrl}
                               className={`px-3 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors ${
                                 isSelected
                                   ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
-                                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                  : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
                               }`}
                             >
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
@@ -7251,7 +7251,7 @@ URL to visit: ${jobUrl}
                               className={`px-3 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors ${
                                 isSelected
                                   ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
-                                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                  : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
                               }`}
                             >
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
@@ -7310,10 +7310,10 @@ URL to visit: ${jobUrl}
           {/* Divider */}
           <div className="relative my-3">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+              <div className="w-full border-t border-gray-200 dark:border-[#3d3c3e]"></div>
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-white dark:bg-[#121212] px-3 text-xs font-medium text-gray-400 dark:text-gray-500">
+              <span className="bg-white dark:bg-[#2b2a2c] px-3 text-xs font-medium text-gray-400 dark:text-gray-500">
                 OR
               </span>
             </div>
@@ -7335,7 +7335,7 @@ URL to visit: ${jobUrl}
                   ? 'border-[#635BFF] dark:border-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
                   : cvFile && !usingSavedCV
                     ? 'border-[#635BFF]/50 dark:border-[#a5a0ff]/50 bg-[#635BFF]/5 dark:bg-[#5249e6]/10'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-[#635BFF]/50 dark:hover:border-[#a5a0ff]/50 bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/60 dark:hover:bg-[#1A1A1A]'
+                    : 'border-gray-200 dark:border-[#3d3c3e] hover:border-[#635BFF]/50 dark:hover:border-[#a5a0ff]/50 bg-gray-50/50 dark:bg-[#2b2a2c]/30 hover:bg-gray-100/60 dark:hover:bg-[#1A1A1A]'
                 }`}
             >
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 transition-transform duration-200
@@ -7411,7 +7411,7 @@ URL to visit: ${jobUrl}
           className="space-y-4"
         >
           {/* Mode Toggle */}
-          <div className="flex items-center gap-1.5 p-1 bg-gray-100/50 dark:bg-gray-800/30 backdrop-blur-sm rounded-lg border border-gray-200/50 dark:border-gray-700/50">
+          <div className="flex items-center gap-1.5 p-1 bg-gray-100/50 dark:bg-[#2b2a2c]/30 backdrop-blur-sm rounded-lg border border-gray-200/50 dark:border-[#3d3c3e]/50">
             <button
               onClick={() => {
                 setJobInputMode('ai');
@@ -7420,7 +7420,7 @@ URL to visit: ${jobUrl}
               }}
               className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 ease-out ${jobInputMode === 'ai'
                 ? 'bg-gradient-to-r from-[#635BFF] to-[#7c75ff] dark:from-[#635BFF] dark:to-[#5249e6] text-white shadow-lg shadow-[#635BFF]/20 dark:shadow-[#635BFF]/30'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-[#3d3c3e]/50'
                 }`}
             >
               <Wand2 className="w-3.5 h-3.5" />
@@ -7435,7 +7435,7 @@ URL to visit: ${jobUrl}
               }}
               className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 ease-out ${jobInputMode === 'manual'
                 ? 'bg-gradient-to-r from-[#635BFF] to-[#7c75ff] dark:from-[#635BFF] dark:to-[#5249e6] text-white shadow-lg shadow-[#635BFF]/20 dark:shadow-[#635BFF]/30'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-[#3d3c3e]/50'
                 }`}
             >
               <AlignLeft className="w-3.5 h-3.5" />
@@ -7448,7 +7448,7 @@ URL to visit: ${jobUrl}
               }}
               className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 ease-out ${jobInputMode === 'saved'
                 ? 'bg-gradient-to-r from-[#635BFF] to-[#7c75ff] dark:from-[#635BFF] dark:to-[#5249e6] text-white shadow-lg shadow-[#635BFF]/20 dark:shadow-[#635BFF]/30'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-gray-800/50'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/60 dark:hover:bg-[#3d3c3e]/50'
                 }`}
             >
               <Briefcase className="w-3.5 h-3.5" />
@@ -7626,7 +7626,7 @@ URL to visit: ${jobUrl}
                           jobUrl: '',
                         });
                       }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors"
                     >
                       <X className="w-3.5 h-3.5 text-gray-400" />
                     </button>
@@ -7642,7 +7642,7 @@ URL to visit: ${jobUrl}
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="fixed z-[100] bg-white dark:bg-gray-800 border border-gray-200/60 dark:border-gray-700/50 rounded-xl shadow-xl max-h-80 overflow-y-auto"
+                        className="fixed z-[100] bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-xl shadow-xl max-h-80 overflow-y-auto"
                         style={dropdownPosition ? {
                           position: 'fixed',
                           top: `${dropdownPosition.top}px`,
@@ -7687,13 +7687,13 @@ URL to visit: ${jobUrl}
 
                                     toast.success('Job selected successfully');
                                   }}
-                                  className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-100 dark:border-gray-700/50 last:border-b-0"
+                                  className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60 transition-colors border-b border-gray-100 dark:border-[#3d3c3e]/50 last:border-b-0"
                                 >
                                   <div className="flex items-start gap-3">
                                     <CompanyLogo
                                       companyName={job.companyName}
                                       size="md"
-                                      className="rounded-lg border border-gray-100 dark:border-gray-700 flex-shrink-0"
+                                      className="rounded-lg border border-gray-100 dark:border-[#3d3c3e] flex-shrink-0"
                                     />
                                     <div className="flex-1 min-w-0">
                                       <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
@@ -7862,7 +7862,7 @@ URL to visit: ${jobUrl}
                 <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
               </div>
             ) : (
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-gray-700/20">
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-[#3d3c3e]/20">
                 <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
                    style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
                 />
@@ -7887,31 +7887,31 @@ URL to visit: ${jobUrl}
                       <button
                         onClick={() => setIsCoverGalleryOpen(true)}
                         className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 
-                          bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800
-                          border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm transition-all duration-200
+                          bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm hover:bg-white dark:hover:bg-[#3d3c3e]
+                          border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-sm transition-all duration-200
                           hover:shadow-md group"
                       >
                         <Image className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
                         <span>Add cover</span>
                       </button>
                     ) : (
-                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
+                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-[#242325]/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
                         <button
                           onClick={() => setIsCoverGalleryOpen(true)}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                            hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
                         >
                           <Image className="w-3.5 h-3.5" />
                           Change cover
                         </button>
                         
-                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
                         
                         <button
                           onClick={() => coverFileInputRef.current?.click()}
                           disabled={isUpdatingCover}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                            hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
                         >
                           {isUpdatingCover ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -7921,7 +7921,7 @@ URL to visit: ${jobUrl}
                           Upload
                         </button>
                         
-                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
                         
                         <button
                           onClick={handleRemoveCover}
@@ -7980,13 +7980,8 @@ URL to visit: ${jobUrl}
               setShowJobDropdown(false);
               setIsModalOpen(true);
             }}
-                  className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg shadow-sm hover:shadow transition-all duration-200
-                    ${coverPhoto 
-                      ? (isCoverDark 
-                        ? 'text-white bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30'
-                        : 'text-gray-900 dark:text-white bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800')
-                      : 'text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200
+                    text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015]"
           >
             <Sparkles className="w-4 h-4" />
             <span>New Analysis</span>
@@ -8021,7 +8016,7 @@ URL to visit: ${jobUrl}
                 placeholder="Search..."
                 className="w-full pl-9 pr-4 py-2 
                   bg-transparent
-                  border border-gray-200 dark:border-gray-700 rounded-lg
+                  border border-gray-200 dark:border-[#3d3c3e] rounded-lg
                   focus:border-gray-300 dark:focus:border-gray-600
                   focus:ring-0 focus:outline-none
                   text-sm text-gray-900 dark:text-white placeholder-gray-400
@@ -8035,7 +8030,7 @@ URL to visit: ${jobUrl}
                 <select
                   value={filterScore}
                   onChange={(e) => setFilterScore(e.target.value as any)}
-                  className="appearance-none bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
+                  className="appearance-none bg-transparent border border-gray-200 dark:border-[#3d3c3e] rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
                 >
                   <option value="all">All</option>
                   <option value="high">High</option>
@@ -8050,7 +8045,7 @@ URL to visit: ${jobUrl}
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="appearance-none bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
+                  className="appearance-none bg-transparent border border-gray-200 dark:border-[#3d3c3e] rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
                 >
                   <option value="date">Date</option>
                   <option value="score">Score</option>
@@ -8060,11 +8055,11 @@ URL to visit: ${jobUrl}
               </div>
 
               {/* View Toggle */}
-              <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg p-0.5">
+              <div className="flex items-center border border-gray-200 dark:border-[#3d3c3e] rounded-lg p-0.5">
                 <button
                   onClick={() => setViewMode('grid')}
                   className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'grid'
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                    ? 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-900 dark:text-white'
                     : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                     }`}
                   aria-label="Grid View"
@@ -8074,7 +8069,7 @@ URL to visit: ${jobUrl}
                 <button
                   onClick={() => setViewMode('list')}
                   className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'list'
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                    ? 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-900 dark:text-white'
                     : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                     }`}
                   aria-label="List View"
@@ -8109,7 +8104,7 @@ URL to visit: ${jobUrl}
             animate={{ opacity: 1 }}
             className="py-24 text-center"
           >
-            <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 
+            <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-[#2b2a2c] 
               flex items-center justify-center mx-auto mb-4">
               <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
             </div>
@@ -8138,13 +8133,12 @@ URL to visit: ${jobUrl}
                 setShowJobDropdown(false);
                 setIsModalOpen(true);
               }}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
-                text-gray-700 dark:text-gray-200 
-                bg-white dark:bg-gray-800 
-                border border-gray-200 dark:border-gray-700 rounded-lg
-                hover:bg-gray-50 dark:hover:bg-gray-700 
-                hover:border-gray-300 dark:hover:border-gray-600
-                shadow-sm transition-all duration-200"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold
+                text-gray-900 
+                bg-[#b7e219] 
+                border border-[#9fc015] rounded-lg
+                hover:bg-[#a5cb17] 
+                shadow-sm hover:shadow-md transition-all duration-200"
             >
               <Sparkles className="w-4 h-4" />
               <span>New Analysis</span>
@@ -8157,7 +8151,7 @@ URL to visit: ${jobUrl}
             animate={{ opacity: 1 }}
             className="py-20 text-center"
           >
-            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 
+            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] 
               flex items-center justify-center mx-auto mb-3">
               <Search className="w-4 h-4 text-gray-400 dark:text-gray-500" />
             </div>
@@ -8204,10 +8198,10 @@ URL to visit: ${jobUrl}
               exit={{ opacity: 0, scale: 0.96, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-[#121212] w-full sm:rounded-2xl rounded-t-2xl max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/5"
+              className="bg-white dark:bg-[#2b2a2c] w-full sm:rounded-2xl rounded-t-2xl max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/5"
             >
               {/* Header */}
-              <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800/50 flex items-center justify-between bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl z-10 sticky top-0">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-[#3d3c3e]/50 flex items-center justify-between bg-white/95 dark:bg-[#2b2a2c]/95 backdrop-blur-xl z-10 sticky top-0">
                 <div>
                   <h2 className="font-semibold text-lg text-gray-900 dark:text-white tracking-tight">
                     {steps[currentStep - 1].title}
@@ -8223,7 +8217,7 @@ URL to visit: ${jobUrl}
                     setJobSearchQuery('');
                     setShowJobDropdown(false);
                   }}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -8237,7 +8231,7 @@ URL to visit: ${jobUrl}
               </div>
 
               {/* Footer */}
-              <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-800/50 bg-white dark:bg-[#121212] flex justify-between items-center z-10">
+              <div className="px-5 py-4 border-t border-gray-100 dark:border-[#3d3c3e]/50 bg-white dark:bg-[#2b2a2c] flex justify-between items-center z-10">
                 <button
                   onClick={() => {
                     if (currentStep > 1) {

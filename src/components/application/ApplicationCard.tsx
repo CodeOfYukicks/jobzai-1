@@ -52,13 +52,13 @@ export function ApplicationCard({
       className={[
         'group relative w-full cursor-pointer select-none',
         'rounded-xl border',
-        'bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm',
-        'border-gray-200/60 dark:border-gray-700/50',
-        'hover:border-gray-300/80 dark:hover:border-gray-600/60',
-        'shadow-sm hover:shadow-md',
+        'bg-white/90 dark:bg-[#2b2a2c]/80 backdrop-blur-md',
+        'border-gray-200/60 dark:border-[#3d3c3e]/60',
+        'hover:border-gray-300/80 dark:hover:border-[#4a494b]/80',
+        'shadow-sm hover:shadow-lg dark:shadow-black/20',
         'transition-all duration-200',
         'h-full flex flex-col',
-        isDragging ? 'ring-2 ring-[#2563EB] ring-offset-0 shadow-lg' : '',
+        isDragging ? 'ring-2 ring-[#635BFF] ring-offset-0 shadow-xl dark:shadow-[#635BFF]/20' : '',
       ].join(' ')}
       role="button"
     >
@@ -77,7 +77,7 @@ export function ApplicationCard({
           <CompanyLogo 
             companyName={app.companyName} 
             size="lg"
-            className="rounded-lg border border-gray-100 dark:border-gray-700 flex-shrink-0"
+            className="rounded-lg border border-gray-100 dark:border-[#3d3c3e] flex-shrink-0"
           />
           <div className="flex-1 min-w-0">
             <h3
@@ -134,7 +134,7 @@ export function ApplicationCard({
 
         {/* Section 3: Entreprise */}
         <div className="mb-3 flex-shrink-0">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-gray-100/80 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-gray-100/80 dark:bg-[#3d3c3e]/50 border border-gray-200 dark:border-[#3d3c3e]">
             <CompanyLogo companyName={app.companyName} size="md" />
             <span className="text-sm font-normal text-gray-600 dark:text-gray-400">{app.companyName}</span>
           </div>
@@ -145,7 +145,7 @@ export function ApplicationCard({
           <div className="flex flex-wrap items-center gap-1.5 mb-3 flex-shrink-0">
             {interviewTypes.slice(0, 3).map((t) => <StepChip key={t} type={t} />)}
             {interviewTypes.length > 3 && (
-              <span className="text-[10px] text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
+              <span className="text-[10px] text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full border border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#3d3c3e]/40">
                 +{interviewTypes.length - 3}
               </span>
             )}
@@ -174,7 +174,7 @@ export function ApplicationCard({
         <div className="flex-1"></div>
 
         {/* Section 5: Footer avec actions */}
-        <div className="flex items-center justify-end pt-3 border-t border-gray-100 dark:border-gray-700/50 flex-shrink-0">
+        <div className="flex items-center justify-end pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50 flex-shrink-0">
           {/* Actions visibles au hover */}
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {onMoveToBoard && (

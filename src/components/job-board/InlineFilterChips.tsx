@@ -167,7 +167,7 @@ function getChipStyles(color: string): string {
     orange: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
     indigo: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
     pink: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
-    gray: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+    gray: 'bg-gray-100 text-gray-700 dark:bg-[#2b2a2c] dark:text-gray-300',
   };
   return styles[color] || styles.gray;
 }

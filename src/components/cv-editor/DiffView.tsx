@@ -85,7 +85,7 @@ export default function DiffView({
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="bg-[#635BFF]/5 dark:from-gray-800 dark:to-gray-900 rounded-xl p-4 border border-[#635BFF]/20 dark:border-gray-700"
+      className="bg-[#635BFF]/5 dark:from-gray-800 dark:to-gray-900 rounded-xl p-4 border border-[#635BFF]/20 dark:border-[#3d3c3e]"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
@@ -97,7 +97,7 @@ export default function DiffView({
         </div>
         
         {/* View Mode Toggle */}
-        <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm">
+        <div className="flex items-center gap-1 bg-white dark:bg-[#2b2a2c] rounded-lg p-1 shadow-sm">
           <button
             onClick={() => setViewMode('diff')}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
@@ -135,7 +135,7 @@ export default function DiffView({
       </div>
       
       {/* Content */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4 max-h-64 overflow-y-auto">
+      <div className="bg-white dark:bg-[#2b2a2c] rounded-lg p-4 mb-4 max-h-64 overflow-y-auto">
         <AnimatePresence mode="wait">
           <motion.div
             key={viewMode}
@@ -167,7 +167,7 @@ export default function DiffView({
       <div className="flex items-center justify-end gap-2">
         <button
           onClick={onReject}
-          className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+          className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#2b2a2c] border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
         >
           <X className="w-4 h-4" />
           Reject

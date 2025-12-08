@@ -167,8 +167,8 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
 
   const inputClass = `
     w-full px-4 py-2.5 rounded-xl
-    bg-white dark:bg-gray-800/80
-    border border-gray-200/80 dark:border-gray-600/50
+    bg-white dark:bg-[#2b2a2c]/80
+    border border-gray-200/80 dark:border-[#4a494b]/50
     text-gray-900 dark:text-white
     text-[15px]
     placeholder:text-gray-400 dark:placeholder:text-gray-500
@@ -238,9 +238,9 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center py-12 px-6 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-800/50 dark:to-gray-800/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/40"
+              className="text-center py-12 px-6 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-800/50 dark:to-gray-800/30 rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/40"
             >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white dark:bg-gray-700 shadow-sm flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white dark:bg-[#3d3c3e] shadow-sm flex items-center justify-center">
                 <Briefcase className="w-8 h-8 text-gray-400 dark:text-gray-500" />
               </div>
               <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
@@ -263,17 +263,17 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
               </div>
 
               <div className="flex items-center gap-3 justify-center text-xs text-gray-400 dark:text-gray-500 mb-4">
-                <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+                <div className="h-px flex-1 bg-gray-200 dark:bg-[#3d3c3e]" />
                 <span>or import from</span>
-                <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+                <div className="h-px flex-1 bg-gray-200 dark:bg-[#3d3c3e]" />
               </div>
 
               <div className="flex items-center justify-center gap-3">
-                <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm text-gray-600 dark:text-gray-300">
+                <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-[#3d3c3e]/50 border border-gray-200 dark:border-[#4a494b] rounded-lg hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors text-sm text-gray-600 dark:text-gray-300">
                   <Linkedin className="w-4 h-4 text-blue-600" />
                   LinkedIn
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm text-gray-600 dark:text-gray-300">
+                <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-[#3d3c3e]/50 border border-gray-200 dark:border-[#4a494b] rounded-lg hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors text-sm text-gray-600 dark:text-gray-300">
                   <Upload className="w-4 h-4" />
                   Upload CV
                 </button>
@@ -301,8 +301,8 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
                   className={`
                     relative rounded-xl transition-all duration-200
                     ${isEditing 
-                      ? 'bg-white dark:bg-gray-800/80 border border-gray-200/80 dark:border-gray-700/60 shadow-lg' 
-                      : 'bg-gray-50/80 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/40 hover:shadow-md'
+                      ? 'bg-white dark:bg-[#2b2a2c]/80 border border-gray-200/80 dark:border-[#3d3c3e]/60 shadow-lg' 
+                      : 'bg-gray-50/80 dark:bg-[#2b2a2c]/40 border border-gray-100 dark:border-[#3d3c3e]/40 hover:shadow-md'
                     }
                   `}
                 >
@@ -382,7 +382,7 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
                                   type="checkbox"
                                   checked={experience.current}
                                   onChange={(e) => updateExperience(index, 'current', e.target.checked)}
-                                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-gray-900/10 dark:focus:ring-white/10"
+                                  className="w-4 h-4 rounded border-gray-300 dark:border-[#4a494b] text-gray-900 dark:text-white focus:ring-gray-900/10 dark:focus:ring-white/10"
                                 />
                                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                   Current
@@ -490,7 +490,7 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => setEditingIndex(index)}
-                          className="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all shadow-sm"
+                          className="p-2 bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-sm border border-gray-200/50 dark:border-[#3d3c3e]/50 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all shadow-sm"
                           title="Edit"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -501,7 +501,7 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => setOpenMenuIndex(isMenuOpen ? null : index)}
-                            className="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all shadow-sm"
+                            className="p-2 bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-sm border border-gray-200/50 dark:border-[#3d3c3e]/50 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg transition-all shadow-sm"
                           >
                             <MoreVertical className="w-4 h-4" />
                           </motion.button>
@@ -512,11 +512,11 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
                                 initial={{ opacity: 0, scale: 0.95, y: -10 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                                className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden z-10"
+                                className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-xl shadow-xl overflow-hidden z-10"
                               >
                                 <button
                                   onClick={() => duplicateExperience(index)}
-                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
                                 >
                                   <Copy className="w-4 h-4" />
                                   Duplicate

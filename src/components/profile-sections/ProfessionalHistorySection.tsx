@@ -258,8 +258,8 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
 
   const inputClass = `
     w-full px-4 py-2.5 rounded-xl
-    bg-white dark:bg-gray-800
-    border border-gray-300 dark:border-gray-600
+    bg-white dark:bg-[#2b2a2c]
+    border border-gray-300 dark:border-[#4a494b]
     text-gray-900 dark:text-gray-100
     text-[15px]
     placeholder:text-gray-400 dark:placeholder:text-gray-400
@@ -317,8 +317,8 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
       {/* Experience List - Grouped by Company (LinkedIn Style) */}
       <div className="space-y-4">
         {formData.professionalHistory.length === 0 ? (
-          <div className="text-center py-12 px-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
-            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-white dark:bg-gray-700 shadow-sm flex items-center justify-center">
+          <div className="text-center py-12 px-6 bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-xl border border-gray-200 dark:border-[#3d3c3e]">
+            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-white dark:bg-[#3d3c3e] shadow-sm flex items-center justify-center">
               <Briefcase className="w-7 h-7 text-gray-400 dark:text-gray-500" />
             </div>
             <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
@@ -360,11 +360,11 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
                     <CompanyLogo 
                       companyName={group.company} 
                       size="xl"
-                      className="rounded border border-gray-200 dark:border-gray-700"
+                      className="rounded border border-gray-200 dark:border-[#3d3c3e]"
                     />
                     {/* Vertical timeline line (only for multiple positions) */}
                     {hasMultiplePositions && (
-                      <div className="absolute top-16 left-1/2 -translate-x-1/2 w-0.5 bg-gray-200 dark:bg-gray-700" 
+                      <div className="absolute top-16 left-1/2 -translate-x-1/2 w-0.5 bg-gray-200 dark:bg-[#3d3c3e]" 
                            style={{ height: 'calc(100% - 4rem)' }} />
                     )}
                   </div>
@@ -399,7 +399,7 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
                             
                             {isEditing ? (
                               /* Edit Mode */
-                              <div className="p-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                              <div className="p-5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg">
                                 <div className="flex items-center justify-between mb-5">
                                   <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                                     {experience.title || 'New Position'}
@@ -566,7 +566,7 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
                                     </button>
                                     
                                     {isMenuOpen && (
-                                      <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-20">
+                                      <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-lg overflow-hidden z-20">
                                         <button
                                           onClick={() => duplicateExperience(experience.originalIndex)}
                                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -683,7 +683,7 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
                 </div>
                 
                 {/* Separator between company groups */}
-                <div className="mt-5 border-b border-gray-100 dark:border-gray-700/50" />
+                <div className="mt-5 border-b border-gray-100 dark:border-[#3d3c3e]/50" />
               </div>
             );
           })

@@ -65,10 +65,10 @@ export default function MoveToBoardModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+          className="bg-white dark:bg-[#2b2a2c] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-[#3d3c3e]">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Move to Board
@@ -79,7 +79,7 @@ export default function MoveToBoardModal({
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
             >
               <X className="w-5 h-5 text-gray-500" />
             </button>
@@ -93,7 +93,7 @@ export default function MoveToBoardModal({
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
                   Current Board
                 </p>
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-[#3d3c3e]/50">
                   <div 
                     className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm"
                     style={{ backgroundColor: getBoardColor(currentBoard) }}
@@ -125,7 +125,7 @@ export default function MoveToBoardModal({
                     className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
                       selectedBoardId === board.id
                         ? 'border-[#635BFF] bg-[#635BFF]/5'
-                        : 'border-transparent bg-gray-50 dark:bg-gray-700/50 hover:border-gray-200 dark:hover:border-gray-600'
+                        : 'border-transparent bg-gray-50 dark:bg-[#3d3c3e]/50 hover:border-gray-200 dark:hover:border-[#4a494b]'
                     }`}
                   >
                     <div 
@@ -145,7 +145,7 @@ export default function MoveToBoardModal({
                       )}
                     </div>
                     {board.isDefault && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#4a494b] text-gray-500 dark:text-gray-400">
                         Default
                       </span>
                     )}
@@ -168,10 +168,10 @@ export default function MoveToBoardModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#2b2a2c]/50">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-colors"
+              className="px-4 py-2 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] font-medium transition-colors"
             >
               Cancel
             </button>

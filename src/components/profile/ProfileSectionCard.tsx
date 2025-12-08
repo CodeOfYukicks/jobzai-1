@@ -61,9 +61,9 @@ const ProfileSectionCard = ({
       onMouseLeave={() => setIsHovered(false)}
       className={`
         relative
-        bg-white dark:bg-gray-800
+        bg-white dark:bg-[#2b2a2c]
         rounded-xl
-        border border-gray-200 dark:border-gray-700
+        border border-gray-200 dark:border-[#3d3c3e]
         transition-shadow duration-200
         ${isHovered ? 'shadow-sm' : ''}
         ${className}
@@ -74,9 +74,9 @@ const ProfileSectionCard = ({
         className={`
           px-6 py-4
           ${isCollapsible ? 'cursor-pointer select-none' : ''}
-          ${!isCollapsed ? 'border-b border-gray-100 dark:border-gray-700/50' : ''}
+          ${!isCollapsed ? 'border-b border-gray-100 dark:border-[#3d3c3e]/50' : ''}
           transition-colors duration-150
-          ${isCollapsible && isHovered ? 'bg-gray-50/50 dark:bg-gray-700/10' : ''}
+          ${isCollapsible && isHovered ? 'bg-gray-50/50 dark:bg-[#3d3c3e]/10' : ''}
         `}
         onClick={() => isCollapsible && setIsCollapsed(!isCollapsed)}
       >
@@ -168,7 +168,7 @@ const ProfileSectionCard = ({
           {emptyState && isEmpty ? (
             <div className="flex flex-col items-center justify-center py-10 text-center">
               {icon && (
-                <div className="p-3 rounded-full bg-gray-100 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500 mb-4">
+                <div className="p-3 rounded-full bg-gray-100 dark:bg-[#3d3c3e]/50 text-gray-400 dark:text-gray-500 mb-4">
                   {icon}
                 </div>
               )}

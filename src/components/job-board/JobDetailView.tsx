@@ -428,9 +428,9 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
 
     if (!job) {
         return (
-            <div className="flex-1 flex items-center justify-center text-gray-400 bg-white dark:bg-gray-900 h-full">
+            <div className="flex-1 flex items-center justify-center text-gray-400 bg-white dark:bg-[#242325] h-full">
                 <div className="text-center">
-                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-[#2b2a2c] rounded-full flex items-center justify-center mx-auto mb-4">
                         <BriefcaseIcon className="w-8 h-8 text-gray-400" />
                     </div>
                     <p className="text-lg font-medium text-gray-500">Select a job to view details</p>
@@ -440,12 +440,12 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
     }
 
     return (
-        <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 h-full overflow-y-auto custom-scrollbar">
+        <div className="flex-1 flex flex-col bg-white dark:bg-[#242325] h-full overflow-y-auto custom-scrollbar">
             <div className="p-8 max-w-4xl mx-auto w-full">
                 {/* Header */}
                 <div className="mb-8">
                     <div className="flex items-start justify-between mb-6">
-                        <div className="w-20 h-20 bg-white rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-2 flex items-center justify-center">
+                        <div className="w-20 h-20 bg-white rounded-2xl border border-gray-100 dark:border-[#3d3c3e] shadow-sm p-2 flex items-center justify-center">
                             <CompanyLogo
                                 companyName={job.company}
                                 size="xl"
@@ -459,7 +459,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                                     className={`p-2.5 rounded-xl border transition-colors ${
                                         showShareMenu 
                                             ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
-                                            : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                                            : 'border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
                                     }`}
                                     title="Partager"
                                 >
@@ -473,26 +473,26 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             exit={{ opacity: 0, y: -10, scale: 0.95 }}
                                             transition={{ duration: 0.15 }}
-                                            className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+                                            className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#2b2a2c] rounded-xl shadow-lg border border-gray-200 dark:border-[#3d3c3e] overflow-hidden z-50"
                                         >
                                             <div className="py-1">
                                                 <button
                                                     onClick={() => handleShare('copy')}
-                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
                                                 >
                                                     <Link2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                                                     Copier le lien
                                                 </button>
                                                 <button
                                                     onClick={() => handleShare('linkedin')}
-                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
                                                 >
                                                     <Linkedin className="w-4 h-4 text-[#0A66C2]" />
                                                     LinkedIn
                                                 </button>
                                                 <button
                                                     onClick={() => handleShare('twitter')}
-                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
                                                 >
                                                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                                                         <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -501,14 +501,14 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                                                 </button>
                                                 <button
                                                     onClick={() => handleShare('whatsapp')}
-                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
                                                 >
                                                     <MessageCircle className="w-4 h-4 text-[#25D366]" />
                                                     WhatsApp
                                                 </button>
                                                 <button
                                                     onClick={() => handleShare('email')}
-                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
                                                 >
                                                     <Mail className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                                                     Email
@@ -526,7 +526,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                                 className={`p-2.5 rounded-xl border transition-colors ${
                                     isJobSaved(job.id)
                                         ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
-                                        : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                                        : 'border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
                                 }`}
                                 title={isJobSaved(job.id) ? 'Remove from saved' : 'Save for later'}
                             >
@@ -538,7 +538,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                                         onDismiss(job.id);
                                         toast.success('Job hidden from your feed');
                                     }}
-                                    className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
+                                    className="p-2.5 rounded-xl border border-gray-200 dark:border-[#3d3c3e] hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
                                     title="Not interested"
                                 >
                                     <X className="w-5 h-5" />
@@ -727,7 +727,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                     </div>
                 )}
 
-                <div className="h-px bg-gray-100 dark:bg-gray-800 mb-8" />
+                <div className="h-px bg-gray-100 dark:bg-[#2b2a2c] mb-8" />
 
                 {/* Job Details */}
                 <div className="space-y-8">
@@ -784,7 +784,7 @@ function DetailCard({ label, value }: { label: string, value?: string }) {
     const formattedValue = formatMetadataValue(value);
 
     return (
-        <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
+        <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]">
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">{label}</div>
             <div className="font-semibold text-gray-900 dark:text-white truncate text-sm" title={formattedValue}>
                 {formattedValue}
@@ -818,13 +818,13 @@ function MatchScoreItem({ icon, label, score, maxScore, canBeNegative = false }:
 
     return (
         <div className={`flex flex-col items-center p-2 rounded-xl ${
-            isNegative ? 'bg-red-50 dark:bg-red-900/20' : 'bg-white/50 dark:bg-gray-800/50'
+            isNegative ? 'bg-red-50 dark:bg-red-900/20' : 'bg-white/50 dark:bg-[#2b2a2c]/50'
         }`}>
             <div className={`mb-1 ${isNegative ? 'text-red-500' : 'text-indigo-600 dark:text-indigo-400'}`}>
                 {icon}
             </div>
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</div>
-            <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-gray-200 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
                 <div 
                     className={`h-full ${getColor(percentage, isNegative)} rounded-full transition-all duration-500`}
                     style={{ width: `${isNegative ? 100 : percentage}%` }}

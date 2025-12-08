@@ -327,8 +327,8 @@ const CVPreviewCard = memo(({
         />
 
         {/* Enhanced Stack effect layers */}
-        <div className="absolute top-0 left-0 w-full h-full bg-white/80 dark:bg-gray-700/80 rounded-[3px] transform translate-y-1.5 translate-x-1.5 opacity-0 group-hover:opacity-60 transition-all duration-300 -z-10 shadow-sm" />
-        <div className="absolute top-0 left-0 w-full h-full bg-white/60 dark:bg-gray-600/60 rounded-[3px] transform translate-y-3 translate-x-3 opacity-0 group-hover:opacity-40 transition-all duration-300 -z-20 shadow-sm" />
+        <div className="absolute top-0 left-0 w-full h-full bg-white/80 dark:bg-[#3d3c3e]/80 rounded-[3px] transform translate-y-1.5 translate-x-1.5 opacity-0 group-hover:opacity-60 transition-all duration-300 -z-10 shadow-sm" />
+        <div className="absolute top-0 left-0 w-full h-full bg-white/60 dark:bg-[#4a494b]/60 rounded-[3px] transform translate-y-3 translate-x-3 opacity-0 group-hover:opacity-40 transition-all duration-300 -z-20 shadow-sm" />
 
         <div
           className="relative w-full h-full bg-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] group-hover:shadow-[0_12px_32px_rgba(0,0,0,0.15)] transition-all duration-300 overflow-hidden rounded-[3px] ring-1 ring-black/5 group-hover:ring-black/10"
@@ -340,7 +340,7 @@ const CVPreviewCard = memo(({
              whileHover={{ opacity: 1, y: 0 }}
              className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300"
            >
-             <div className="flex items-center gap-1 px-2 py-1.5 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-full shadow-xl border border-black/5 dark:border-white/10">
+             <div className="flex items-center gap-1 px-2 py-1.5 bg-white/90 dark:bg-[#242325]/90 backdrop-blur-xl rounded-full shadow-xl border border-black/5 dark:border-white/10">
                <motion.button
                  onClick={(e) => { e.stopPropagation(); handleEdit(); }}
                  whileHover={{ scale: 1.1 }}
@@ -350,7 +350,7 @@ const CVPreviewCard = memo(({
                >
                  <Edit2 className="w-3.5 h-3.5" />
                </motion.button>
-               <div className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+               <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e]" />
                <motion.button
                  onClick={(e) => { e.stopPropagation(); handleNameClick(e); }}
                  whileHover={{ scale: 1.1 }}
@@ -360,7 +360,7 @@ const CVPreviewCard = memo(({
                >
                  <Sparkles className="w-3.5 h-3.5" />
                </motion.button>
-               <div className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+               <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e]" />
                <motion.button
                  onClick={(e) => { e.stopPropagation(); confirmDelete(); }}
                  whileHover={{ scale: 1.1 }}
@@ -456,8 +456,8 @@ const CVPreviewCard = memo(({
       {contextMenu.open && typeof window !== 'undefined' && window.document?.body && createPortal(
         <div
           ref={contextMenuRef}
-          className="fixed z-[9999] bg-white dark:bg-gray-800 rounded-lg shadow-xl
-            border border-gray-200 dark:border-gray-700 py-1 min-w-[140px]"
+          className="fixed z-[9999] bg-white dark:bg-[#2b2a2c] rounded-lg shadow-xl
+            border border-gray-200 dark:border-[#3d3c3e] py-1 min-w-[140px]"
           style={{
             left: `${contextMenu.x}px`,
             top: `${contextMenu.y}px`
@@ -466,7 +466,7 @@ const CVPreviewCard = memo(({
         >
           {onUpdateTags && (
             <>
-              <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+              <div className="px-3 py-2 border-b border-gray-100 dark:border-[#3d3c3e]">
                 <div className="flex items-center justify-between gap-1">
                   {TAG_COLORS.map((tag) => (
                     <button
@@ -537,7 +537,7 @@ const CVPreviewCard = memo(({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl"
+              className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 max-w-md w-full mx-4 shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">

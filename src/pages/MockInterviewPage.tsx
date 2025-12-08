@@ -852,8 +852,8 @@ export default function MockInterviewPage() {
         transition={{ delay: 0.1 + index * 0.05 }}
         whileHover={{ y: -2 }}
         onClick={() => handleViewSession(session.id)}
-        className={`group relative bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 
-          border border-gray-200/60 dark:border-gray-700/50
+        className={`group relative bg-white/80 dark:bg-[#2b2a2c]/60 backdrop-blur-sm rounded-xl p-4 
+          border border-gray-200/60 dark:border-[#3d3c3e]/50
           hover:border-gray-300/80 dark:hover:border-gray-600/60
           shadow-sm hover:shadow-md
           cursor-pointer transition-all duration-200
@@ -864,7 +864,7 @@ export default function MockInterviewPage() {
           <CompanyLogo
             companyName={session.companyName}
             size="md"
-            className="rounded-lg border border-gray-100 dark:border-gray-700 flex-shrink-0"
+            className="rounded-lg border border-gray-100 dark:border-[#3d3c3e] flex-shrink-0"
           />
 
           {/* Content */}
@@ -931,7 +931,7 @@ export default function MockInterviewPage() {
     >
       {/* Header */}
       <div className="flex items-center gap-2 mb-4 px-1">
-        <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800">
+        <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-[#2b2a2c]">
           <History className="h-4 w-4 text-gray-600 dark:text-gray-400" />
         </div>
         <h2 className="text-sm font-medium text-gray-900 dark:text-white">
@@ -950,7 +950,7 @@ export default function MockInterviewPage() {
           </div>
         ) : pastSessions.length === 0 ? (
           <div className="text-center py-12 px-4">
-            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-[#2b2a2c] flex items-center justify-center mx-auto mb-3">
               <Mic className="h-5 w-5 text-gray-400 dark:text-gray-500" />
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
@@ -988,7 +988,7 @@ export default function MockInterviewPage() {
             </div>
 
             {/* Divider */}
-            <div className="w-px bg-gray-200/60 dark:bg-gray-700/40 my-6" />
+            <div className="w-px bg-gray-200/60 dark:bg-[#3d3c3e]/40 my-6" />
 
             {/* Right Panel - History */}
             <div className="w-[340px] flex-shrink-0 p-6 overflow-hidden">
@@ -1191,33 +1191,34 @@ export default function MockInterviewPage() {
       className="h-full flex flex-col"
     >
       {/* Premium Header */}
-      <div className="flex-shrink-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
+      <div className="flex-shrink-0 bg-white/95 dark:bg-[#242325]/95 backdrop-blur-md border-b border-gray-200/60 dark:border-[#3d3c3e]/60 shadow-sm">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between gap-4">
             {/* Left: Back + Company Info */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4 min-w-0 flex-1">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleBackToSetup}
-                className="p-2 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-all text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                className="flex-shrink-0 p-2.5 rounded-xl bg-gray-100/80 dark:bg-[#2b2a2c]/80 hover:bg-gray-200/80 dark:hover:bg-[#3d3c3e]/80 border border-gray-200/50 dark:border-[#3d3c3e]/50 transition-all text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                aria-label="Go back"
               >
                 <ArrowLeft className="h-4 w-4" />
               </motion.button>
               
               {selectedApplication && (
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-px bg-gray-200 dark:bg-gray-700" />
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="h-10 w-px bg-gradient-to-b from-transparent via-gray-300 dark:via-gray-600 to-transparent" />
                   <CompanyLogo 
                     companyName={selectedApplication.companyName} 
                     size="md" 
-                    className="!rounded-lg ring-2 ring-gray-100 dark:ring-gray-700"
+                    className="!rounded-xl flex-shrink-0 ring-1 ring-gray-200/50 dark:ring-gray-700/50 shadow-sm"
                   />
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight truncate">
                       {selectedApplication.companyName}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
                       {selectedApplication.position}
                     </p>
                   </div>
@@ -1225,61 +1226,65 @@ export default function MockInterviewPage() {
               )}
             </div>
 
-            {/* Right: Timer + Status + Stop */}
-            <div className="flex items-center gap-3">
-              {/* Timer */}
+            {/* Right: Status Group + Actions */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+              {/* Status Group: Timer + Live Badge */}
               {isSessionActive && (
-                <motion.div
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-colors ${
-                    isTimeWarning 
-                      ? 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-500/10 dark:to-amber-500/10 border-orange-200 dark:border-orange-500/20' 
-                      : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-                  }`}
-                >
-                  <svg className="h-4 w-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className={`text-sm font-mono font-semibold ${
-                    isTimeWarning 
-                      ? 'text-orange-600 dark:text-orange-400' 
-                      : 'text-gray-700 dark:text-gray-300'
-                  }`}>
-                    {formatTime(elapsedTime)} / 10:00
-                  </span>
-                </motion.div>
+                <div className="flex items-center gap-2.5">
+                  {/* Timer */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border transition-all ${
+                      isTimeWarning 
+                        ? 'bg-gradient-to-r from-orange-50/90 to-amber-50/90 dark:from-orange-500/15 dark:to-amber-500/15 border-orange-200/60 dark:border-orange-500/30 shadow-sm' 
+                        : 'bg-gray-50/80 dark:bg-[#2b2a2c]/80 border-gray-200/60 dark:border-[#3d3c3e]/60'
+                    }`}
+                  >
+                    <Clock className={`h-4 w-4 flex-shrink-0 ${
+                      isTimeWarning 
+                        ? 'text-orange-500 dark:text-orange-400' 
+                        : 'text-gray-500 dark:text-gray-400'
+                    }`} />
+                    <span className={`text-sm font-mono font-bold whitespace-nowrap ${
+                      isTimeWarning 
+                        ? 'text-orange-600 dark:text-orange-400' 
+                        : 'text-gray-700 dark:text-gray-300'
+                    }`}>
+                      {formatTime(elapsedTime)} / 10:00
+                    </span>
+                  </motion.div>
+
+                  {/* Live Status Badge */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-50/90 to-green-50/90 dark:from-emerald-500/15 dark:to-green-500/15 border border-emerald-200/60 dark:border-emerald-500/30 shadow-sm"
+                  >
+                    <span className="relative flex h-2 w-2 flex-shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
+                      Live Session
+                    </span>
+                  </motion.div>
+                </div>
               )}
 
-              {/* Live Status Badge */}
-              {isSessionActive && (
-                <motion.div
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-500/10 dark:to-green-500/10 border border-emerald-200 dark:border-emerald-500/20"
-                >
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                  </span>
-                  <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                    Live Session
-                  </span>
-                </motion.div>
-              )}
-
-              {/* Stop Button */}
+              {/* End Interview Button */}
               {isSessionActive && (
                 <motion.button
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ scale: 1.02, backgroundColor: 'rgba(239, 68, 68, 0.15)' }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleEndInterviewClick}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 text-sm font-medium transition-all"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-50/90 dark:bg-red-500/10 hover:bg-red-100/90 dark:hover:bg-red-500/20 border border-red-200/60 dark:border-red-500/30 text-red-600 dark:text-red-400 text-sm font-semibold transition-all shadow-sm"
                 >
-                  <Square className="h-3.5 w-3.5" />
-                  End Interview
+                  <Square className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="whitespace-nowrap">End Interview</span>
                 </motion.button>
               )}
             </div>
@@ -1356,10 +1361,10 @@ export default function MockInterviewPage() {
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="w-full lg:w-[380px] flex-shrink-0 flex flex-col border-t lg:border-t-0 lg:border-l border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm"
+          className="w-full lg:w-[380px] flex-shrink-0 flex flex-col border-t lg:border-t-0 lg:border-l border-gray-100 dark:border-[#3d3c3e] bg-gray-50/80 dark:bg-[#242325]/80 backdrop-blur-sm"
         >
           {/* Transcript Header */}
-          <div className="flex-shrink-0 px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <div className="flex-shrink-0 px-5 py-4 border-b border-gray-100 dark:border-[#3d3c3e] bg-white dark:bg-[#242325]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-violet-50 dark:bg-violet-500/10">
@@ -1376,7 +1381,7 @@ export default function MockInterviewPage() {
                     : 'bg-cyan-50 dark:bg-cyan-500/10'
                   : connectionStatus === 'connecting'
                     ? 'bg-amber-50 dark:bg-amber-500/10'
-                    : 'bg-gray-100 dark:bg-gray-800'
+                    : 'bg-gray-100 dark:bg-[#2b2a2c]'
               }`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${
                   connectionStatus === 'live' 
@@ -1421,7 +1426,7 @@ export default function MockInterviewPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className={`p-3 rounded-xl ${
                           entry.role === 'assistant' 
-                            ? 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700' 
+                            ? 'bg-white dark:bg-[#2b2a2c] border border-gray-100 dark:border-[#3d3c3e]' 
                             : 'bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20'
                         }`}
                       >
@@ -1499,7 +1504,7 @@ export default function MockInterviewPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: 'spring', duration: 0.3 }}
-              className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden"
+              className="relative bg-white dark:bg-[#2b2a2c] rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Gradient Header */}
@@ -1510,7 +1515,7 @@ export default function MockInterviewPage() {
                 {/* Close Button */}
                 <button
                   onClick={() => setShowEndConfirmation(false)}
-                  className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -1534,7 +1539,7 @@ export default function MockInterviewPage() {
 
                 {/* Time completed */}
                 <div className="flex justify-center mb-6">
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700">
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 dark:bg-[#3d3c3e]">
                     <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -1548,7 +1553,7 @@ export default function MockInterviewPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowEndConfirmation(false)}
-                    className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-[#4a494b] text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
                   >
                     Continue Interview
                   </button>
@@ -1578,10 +1583,10 @@ export default function MockInterviewPage() {
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.4 }}
-      className="h-full flex flex-col bg-gray-50 dark:bg-gray-900"
+      className="h-full flex flex-col bg-gray-50 dark:bg-[#242325]"
     >
       {/* Header */}
-      <div className="flex-shrink-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+      <div className="flex-shrink-0 bg-white dark:bg-[#242325] border-b border-gray-100 dark:border-[#3d3c3e]">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -1589,7 +1594,7 @@ export default function MockInterviewPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleBackToSetup}
-                className="p-2 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-all text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                className="p-2 rounded-xl bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e] border border-gray-200 dark:border-[#3d3c3e] transition-all text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               >
                 <ArrowLeft className="h-4 w-4" />
               </motion.button>
@@ -1625,9 +1630,9 @@ export default function MockInterviewPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+            className="bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-200 dark:border-[#3d3c3e] overflow-hidden"
           >
-            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325]/50">
               <div className="flex items-center gap-2">
                 <Mic className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                 <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -1642,7 +1647,7 @@ export default function MockInterviewPage() {
                   key={entry.id}
                   className={`p-3 rounded-xl ${
                     entry.role === 'assistant' 
-                      ? 'bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600' 
+                      ? 'bg-gray-50 dark:bg-[#3d3c3e]/50 border border-gray-100 dark:border-[#4a494b]' 
                       : 'bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20'
                   }`}
                 >
@@ -1668,9 +1673,9 @@ export default function MockInterviewPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+            className="bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-200 dark:border-[#3d3c3e] overflow-hidden"
           >
-            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325]/50">
               <div className="flex items-center gap-2">
                 <svg className="h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -1745,7 +1750,7 @@ export default function MockInterviewPage() {
                       { label: 'Structure', score: analysis.scores.structure },
                       { label: 'Confidence', score: analysis.scores.confidence },
                     ].map(({ label, score }) => (
-                      <div key={label} className="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
+                      <div key={label} className="p-2.5 rounded-lg bg-gray-50 dark:bg-[#3d3c3e]/50 border border-gray-100 dark:border-[#4a494b]">
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{label}</span>
                           <span className={`text-sm font-bold ${
@@ -1770,7 +1775,7 @@ export default function MockInterviewPage() {
 
                   {/* Job Fit Assessment */}
                   {analysis.jobFit && (
-                    <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-600">
+                    <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#3d3c3e]/30 border border-gray-200 dark:border-[#4a494b]">
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
                           <Building className="h-4 w-4 text-violet-500" />
@@ -1798,7 +1803,7 @@ export default function MockInterviewPage() {
 
                   {/* Answer Quality */}
                   {analysis.answerQuality && (
-                    <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-600">
+                    <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#3d3c3e]/30 border border-gray-200 dark:border-[#4a494b]">
                       <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Answer Quality</h3>
                       <div className="space-y-2 text-xs">
                         <div>

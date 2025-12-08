@@ -472,7 +472,7 @@ const FolderItem = memo(({
               className="overflow-hidden"
             >
               {/* Vertical connecting line */}
-              <div className="relative ml-[11px] border-l border-gray-200 dark:border-gray-700/50 pl-0">
+              <div className="relative ml-[11px] border-l border-gray-200 dark:border-[#3d3c3e]/50 pl-0">
                 <div className="py-1 space-y-0.5">
                   {/* Notes first */}
                   {notes?.map(note => (
@@ -512,8 +512,8 @@ const FolderItem = memo(({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl
-              border border-gray-200 dark:border-gray-700 py-1 min-w-[140px]"
+            className="fixed z-50 bg-white dark:bg-[#2b2a2c] rounded-lg shadow-xl
+              border border-gray-200 dark:border-[#3d3c3e] py-1 min-w-[140px]"
             style={{
               left: menuButtonRef.current 
                 ? menuButtonRef.current.getBoundingClientRect().left - 140 + menuButtonRef.current.offsetWidth
@@ -566,7 +566,7 @@ const FolderItem = memo(({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl border border-gray-100 dark:border-gray-700"
+              className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl border border-gray-100 dark:border-[#3d3c3e]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/10 flex items-center justify-center mx-auto mb-4">
@@ -582,7 +582,7 @@ const FolderItem = memo(({
                 <button
                   onClick={() => setIsDeleteDialogOpen(false)}
                   className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 
-                    bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 
+                    bg-gray-100 dark:bg-[#3d3c3e] hover:bg-gray-200 dark:hover:bg-[#4a494b] 
                     rounded-lg transition-colors"
                 >
                   Cancel
@@ -712,11 +712,11 @@ const UncategorizedItem = memo(({
       whileTap={{ scale: 0.98 }}
       className={`w-full px-3 py-2 rounded-xl flex items-center gap-3 transition-all duration-200 group relative
         ${isActive && !isDraggingOver
-          ? 'bg-gray-100/80 text-gray-900 dark:bg-gray-700/50 dark:text-white shadow-lg shadow-gray-500/10' 
+          ? 'bg-gray-100/80 text-gray-900 dark:bg-[#3d3c3e]/50 dark:text-white shadow-lg shadow-gray-500/10' 
           : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-white/5'
         }
         ${isDraggingOver 
-          ? 'ring-2 ring-inset ring-gray-400/50 bg-gray-50/50 dark:bg-gray-800/50 backdrop-blur-sm' 
+          ? 'ring-2 ring-inset ring-gray-400/50 bg-gray-50/50 dark:bg-[#2b2a2c]/50 backdrop-blur-sm' 
           : ''
         }
       `}
@@ -814,8 +814,8 @@ const FolderSidebar = memo(({
         exit={{ width: 0, opacity: 0 }}
         transition={{ duration: 0.2, ease: 'easeInOut' }}
         className="flex-shrink-0 relative z-20
-          bg-white dark:bg-gray-800
-          border-r border-gray-200 dark:border-gray-700
+          bg-white dark:bg-[#2b2a2c]
+          border-r border-gray-200 dark:border-[#3d3c3e]
           flex flex-col h-full"
       >
         {/* Expand button */}
@@ -824,7 +824,7 @@ const FolderSidebar = memo(({
             onClick={onToggleCollapse}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
-            className="p-2 rounded-lg bg-white/50 dark:bg-gray-800/50 
+            className="p-2 rounded-lg bg-white/50 dark:bg-[#2b2a2c]/50 
               hover:bg-purple-50 dark:hover:bg-purple-900/30
               text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400
               transition-all duration-200 shadow-sm"
@@ -850,7 +850,7 @@ const FolderSidebar = memo(({
               onClick={() => onSelectFolder(null)}
               className={`p-2 rounded-lg transition-all ${
                 selectedFolderId === null 
-                  ? 'bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300' 
+                  ? 'bg-gray-100 dark:bg-[#3d3c3e]/50 text-gray-700 dark:text-gray-300' 
                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
               }`}
               title="Uncategorized"
@@ -869,12 +869,12 @@ const FolderSidebar = memo(({
       animate={{ width: 256, opacity: 1 }}
       transition={{ duration: 0.2, ease: 'easeInOut' }}
       className="w-64 flex-shrink-0 relative z-20
-        bg-white dark:bg-gray-800
-        border-r border-gray-200 dark:border-gray-700
+        bg-white dark:bg-[#2b2a2c]
+        border-r border-gray-200 dark:border-[#3d3c3e]
         flex flex-col h-full"
     >
       {/* Header */}
-      <div className="px-4 py-5 flex items-center justify-between border-b border-gray-100 dark:border-gray-700/50">
+      <div className="px-4 py-5 flex items-center justify-between border-b border-gray-100 dark:border-[#3d3c3e]/50">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white tracking-wide">
           Library
         </h3>
@@ -975,7 +975,7 @@ const FolderSidebar = memo(({
       </div>
       
       {/* Footer Stats */}
-      <div className="p-4 border-t border-gray-100 dark:border-gray-700/50">
+      <div className="p-4 border-t border-gray-100 dark:border-[#3d3c3e]/50">
         <div className="flex items-center justify-between text-xs">
           <span className="text-gray-500 dark:text-gray-400 font-medium">Storage</span>
           <span className="text-gray-700 dark:text-gray-300 font-semibold">{totalCount} {totalCount === 1 ? 'item' : 'items'}</span>

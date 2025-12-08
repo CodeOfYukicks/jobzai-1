@@ -164,7 +164,7 @@ export default function SectionEditor({
           key={action.id}
           onClick={() => handleAIAction(action.id)}
           disabled={isProcessingAI}
-          className="group flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800/60 border border-gray-200/60 dark:border-gray-700/60 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-900 dark:hover:text-gray-200 hover:shadow-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="group flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-[#2b2a2c]/60 border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-lg hover:bg-gray-50 dark:hover:bg-[#3d3c3e] hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-900 dark:hover:text-gray-200 hover:shadow-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {isProcessingAI && currentAction === action.id ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -241,7 +241,7 @@ export default function SectionEditor({
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mt-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-800/40 dark:to-gray-900/20 border border-gray-200/80 dark:border-gray-700/60 rounded-xl shadow-sm"
+        className="mt-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-800/40 dark:to-gray-900/20 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-xl shadow-sm"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
@@ -258,7 +258,7 @@ export default function SectionEditor({
           <div className="flex items-center gap-1.5">
             <button
               onClick={acceptSuggestion}
-              className="p-2.5 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 rounded-lg transition-all duration-200 shadow-sm hover:shadow"
+              className="p-2.5 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-[#4a494b] text-white dark:text-gray-900 rounded-lg transition-all duration-200 shadow-sm hover:shadow"
               title="Accept suggestion"
             >
               <Check className="w-4 h-4" />
@@ -269,7 +269,7 @@ export default function SectionEditor({
                 setShowDiff(false);
                 setOriginalContent('');
               }}
-              className="p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-200/80 dark:border-gray-700/60 rounded-lg transition-all duration-200"
+              className="p-2.5 bg-white dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-600 dark:text-gray-400 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg transition-all duration-200"
               title="Reject suggestion"
             >
               <X className="w-4 h-4" />
@@ -300,7 +300,7 @@ export default function SectionEditor({
                 type="text"
                 value={data.firstName || ''}
                 onChange={(e) => onChange({ firstName: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
                 placeholder="John"
               />
             </div>
@@ -312,7 +312,7 @@ export default function SectionEditor({
                 type="text"
                 value={data.lastName || ''}
                 onChange={(e) => onChange({ lastName: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
                 placeholder="Doe"
               />
             </div>
@@ -326,7 +326,7 @@ export default function SectionEditor({
               type="text"
               value={data.title || ''}
               onChange={(e) => onChange({ title: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
+              className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
               placeholder="Senior Software Engineer"
             />
           </div>
@@ -340,7 +340,7 @@ export default function SectionEditor({
                 type="email"
                 value={data.email || ''}
                 onChange={(e) => onChange({ email: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
                 placeholder="john.doe@example.com"
               />
             </div>
@@ -352,7 +352,7 @@ export default function SectionEditor({
                 type="tel"
                 value={data.phone || ''}
                 onChange={(e) => onChange({ phone: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
                 placeholder="+1 (555) 123-4567"
               />
             </div>
@@ -366,7 +366,7 @@ export default function SectionEditor({
               type="text"
               value={data.location || ''}
               onChange={(e) => onChange({ location: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
+              className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
               placeholder="San Francisco, CA"
             />
           </div>
@@ -379,7 +379,7 @@ export default function SectionEditor({
               type="url"
               value={data.linkedin || ''}
               onChange={(e) => onChange({ linkedin: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
+              className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
               placeholder="linkedin.com/in/johndoe"
             />
           </div>
@@ -418,7 +418,7 @@ export default function SectionEditor({
               value={data.summary || ''}
               onChange={(e) => onChange({ summary: e.target.value })}
               rows={4}
-              className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900/50 border border-gray-200/80 dark:border-gray-700/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200 resize-none"
+              className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200 resize-none"
               placeholder="Write a compelling summary that highlights your key strengths and career objectives..."
             />
             <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
@@ -513,7 +513,7 @@ export default function SectionEditor({
               {data.experiences?.map((exp: CVExperience) => (
                 <div
                   key={exp.id}
-                  className="group p-4 bg-white dark:bg-gray-800/40 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-all duration-200 cursor-pointer border border-gray-200/60 dark:border-gray-700/60 hover:border-gray-300/80 dark:hover:border-gray-600/80 shadow-sm hover:shadow-md"
+                  className="group p-4 bg-white dark:bg-[#2b2a2c]/40 rounded-lg hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60 transition-all duration-200 cursor-pointer border border-gray-200/60 dark:border-[#3d3c3e]/60 hover:border-gray-300/80 dark:hover:border-gray-600/80 shadow-sm hover:shadow-md"
                   onClick={() => setInlineEditingId(exp.id)}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -534,7 +534,7 @@ export default function SectionEditor({
                           e.stopPropagation();
                           setInlineEditingId(exp.id);
                         }}
-                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3d3c3e] rounded transition-colors"
                       >
                         <Edit3 className="w-3.5 h-3.5 text-gray-500" />
                       </button>
@@ -554,7 +554,7 @@ export default function SectionEditor({
               
               <button
                 onClick={() => setIsAddingNew(true)}
-                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 px-4 bg-white dark:bg-[#2b2a2c] text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Experience</span>
@@ -622,7 +622,7 @@ export default function SectionEditor({
               {data.education?.map((edu: CVEducation) => (
                 <div
                   key={edu.id}
-                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
+                  className="group p-3 bg-white dark:bg-[#2b2a2c] rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-[#4a494b] hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
                   onClick={() => setInlineEditingId(edu.id)}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -643,7 +643,7 @@ export default function SectionEditor({
                           e.stopPropagation();
                           setInlineEditingId(edu.id);
                         }}
-                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3d3c3e] rounded transition-colors"
                       >
                         <Edit3 className="w-3.5 h-3.5 text-gray-500" />
                       </button>
@@ -663,7 +663,7 @@ export default function SectionEditor({
               
               <button
                 onClick={() => setIsAddingNew(true)}
-                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 px-4 bg-white dark:bg-[#2b2a2c] text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Education</span>
@@ -693,7 +693,7 @@ export default function SectionEditor({
             <input
               type="text"
               placeholder="Add a skill..."
-              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-[#635BFF] focus:border-[#635BFF]"
+              className="flex-1 px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-300 dark:border-[#4a494b] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-[#635BFF] focus:border-[#635BFF]"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   const input = e.currentTarget;
@@ -779,7 +779,7 @@ export default function SectionEditor({
               {data.certifications?.map((cert: CVCertification) => (
                 <div
                   key={cert.id}
-                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
+                  className="group p-3 bg-white dark:bg-[#2b2a2c] rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-[#4a494b] hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
                   onClick={() => setInlineEditingId(cert.id)}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -800,7 +800,7 @@ export default function SectionEditor({
                           e.stopPropagation();
                           setInlineEditingId(cert.id);
                         }}
-                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3d3c3e] rounded transition-colors"
                       >
                         <Edit3 className="w-3.5 h-3.5 text-gray-500" />
                       </button>
@@ -820,7 +820,7 @@ export default function SectionEditor({
               
               <button
                 onClick={() => setIsAddingNew(true)}
-                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 px-4 bg-white dark:bg-[#2b2a2c] text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Certification</span>
@@ -912,7 +912,7 @@ export default function SectionEditor({
               {data.projects?.map((project: CVProject) => (
                 <div
                   key={project.id}
-                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
+                  className="group p-3 bg-white dark:bg-[#2b2a2c] rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-[#4a494b] hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
                   onClick={() => setInlineEditingId(project.id)}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -944,7 +944,7 @@ export default function SectionEditor({
                           e.stopPropagation();
                           setInlineEditingId(project.id);
                         }}
-                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3d3c3e] rounded transition-colors"
                       >
                         <Edit3 className="w-3.5 h-3.5 text-gray-500" />
                       </button>
@@ -964,7 +964,7 @@ export default function SectionEditor({
 
               <button
                 onClick={() => setIsAddingNew(true)}
-                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 px-4 bg-white dark:bg-[#2b2a2c] text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Project</span>
@@ -1032,7 +1032,7 @@ export default function SectionEditor({
               {data.languages?.map((language: CVLanguage) => (
                 <div
                   key={language.id}
-                  className="group p-3 bg-white dark:bg-gray-800 rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-gray-600 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
+                  className="group p-3 bg-white dark:bg-[#2b2a2c] rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-[#4a494b] hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
                   onClick={() => setInlineEditingId(language.id)}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -1050,7 +1050,7 @@ export default function SectionEditor({
                           e.stopPropagation();
                           setInlineEditingId(language.id);
                         }}
-                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3d3c3e] rounded transition-colors"
                       >
                         <Edit3 className="w-3.5 h-3.5 text-gray-500" />
                       </button>
@@ -1070,7 +1070,7 @@ export default function SectionEditor({
               
               <button
                 onClick={() => setIsAddingNew(true)}
-                className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-3 px-4 bg-white dark:bg-[#2b2a2c] text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="text-sm font-semibold">Add Language</span>

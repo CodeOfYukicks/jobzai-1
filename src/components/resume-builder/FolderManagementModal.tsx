@@ -121,10 +121,10 @@ export default function FolderManagementModal({
           exit={{ opacity: 0, scale: 0.95, y: "100%" }}
           transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-[#121212] w-full sm:rounded-2xl rounded-t-2xl max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
+          className="bg-white dark:bg-[#2b2a2c] w-full sm:rounded-2xl rounded-t-2xl max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
         >
           {/* Header */}
-          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl z-10 sticky top-0">
+          <div className="px-4 py-3 border-b border-gray-100 dark:border-[#3d3c3e] flex items-center justify-between bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl z-10 sticky top-0">
             <div>
               <h2 className="font-semibold text-lg text-gray-900 dark:text-white tracking-tight">
                 {editingFolder ? 'Edit Folder' : 'Create New Folder'}
@@ -159,7 +159,7 @@ export default function FolderManagementModal({
                   }
                 }}
                 placeholder="e.g., Software Engineering, Marketing, etc."
-                className="w-full px-3 py-2 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-800 
+                className="w-full px-3 py-2 bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e] 
                   rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50
                   text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
                   transition-all shadow-sm"
@@ -179,7 +179,7 @@ export default function FolderManagementModal({
                     ${
                       iconType === 'emoji'
                         ? 'border-purple-500/50 dark:border-purple-400/50 bg-purple-50/50 dark:bg-purple-900/10 text-purple-700 dark:text-purple-300'
-                        : 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#1A1A1A] text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'
+                        : 'border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-[#4a494b]'
                     }`}
                 >
                   Emoji
@@ -190,7 +190,7 @@ export default function FolderManagementModal({
                     ${
                       iconType === 'lucide'
                         ? 'border-purple-500/50 dark:border-purple-400/50 bg-purple-50/50 dark:bg-purple-900/10 text-purple-700 dark:text-purple-300'
-                        : 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#1A1A1A] text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'
+                        : 'border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-[#4a494b]'
                     }`}
                 >
                   Icon
@@ -208,7 +208,7 @@ export default function FolderManagementModal({
                         ${
                           icon === emoji
                             ? 'border-purple-500/50 dark:border-purple-400/50 bg-purple-50/50 dark:bg-purple-900/10 scale-110'
-                            : 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#1A1A1A] hover:border-gray-300 dark:hover:border-gray-700 hover:scale-105'
+                            : 'border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] hover:border-gray-300 dark:hover:border-[#4a494b] hover:scale-105'
                         }`}
                     >
                       {emoji}
@@ -231,7 +231,7 @@ export default function FolderManagementModal({
                           ${
                             isSelected
                               ? 'border-purple-500/50 dark:border-purple-400/50 bg-purple-50/50 dark:bg-purple-900/10'
-                              : 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#1A1A1A] hover:border-gray-300 dark:hover:border-gray-700'
+                              : 'border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] hover:border-gray-300 dark:hover:border-[#4a494b]'
                           }`}
                         style={isSelected ? { color: color } : {}}
                       >
@@ -257,7 +257,7 @@ export default function FolderManagementModal({
                       ${
                         color === colorOption.value
                           ? 'border-gray-900 dark:border-white ring-2 ring-offset-2 ring-purple-500 dark:ring-purple-400 shadow-md scale-105'
-                          : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 hover:scale-105'
+                          : 'border-gray-200 dark:border-[#3d3c3e] hover:border-gray-300 dark:hover:border-[#4a494b] hover:scale-105'
                       }`}
                     style={{ backgroundColor: colorOption.value }}
                     title={colorOption.name}
@@ -282,7 +282,7 @@ export default function FolderManagementModal({
                 Preview
               </label>
               <div
-                className="p-3 rounded-xl border-2 border-gray-200 dark:border-gray-800"
+                className="p-3 rounded-xl border-2 border-gray-200 dark:border-[#3d3c3e]"
                 style={{
                   background: `linear-gradient(135deg, ${selectedColorData.light}20 0%, ${selectedColorData.dark}10 100%)`,
                   borderColor: color + '40'
@@ -312,7 +312,7 @@ export default function FolderManagementModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl sticky bottom-0">
+          <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-gray-100 dark:border-[#3d3c3e] bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl sticky bottom-0">
             <button
               onClick={onClose}
               disabled={isSaving}

@@ -29,7 +29,7 @@ export default function ProfileTagsCloud({ tags, maxTags = 12, onCover = false }
           className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md transition-all duration-200 cursor-default
             ${onCover 
               ? 'text-white/90 bg-white/15 backdrop-blur-sm border border-white/20 hover:bg-white/25 hover:border-white/30' 
-              : 'text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800/60 border border-gray-200/50 dark:border-gray-700/50 hover:bg-gray-200/70 dark:hover:bg-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600'
+              : 'text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-[#2b2a2c]/60 border border-gray-200/50 dark:border-[#3d3c3e]/50 hover:bg-gray-200/70 dark:hover:bg-[#3d3c3e]/60 hover:border-gray-300 dark:hover:border-gray-600'
             }`}
         >
           {tag}

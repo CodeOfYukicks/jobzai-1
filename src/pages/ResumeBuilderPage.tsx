@@ -1405,9 +1405,9 @@ export default function ResumeBuilderPage() {
                 disabled={isCreatingNote}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
                   text-gray-700 dark:text-gray-200 
-                  bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm
-                  border border-gray-200 dark:border-gray-700 rounded-lg
-                  hover:bg-gray-50 dark:hover:bg-gray-700/80 
+                  bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm
+                  border border-gray-200 dark:border-[#3d3c3e] rounded-lg
+                  hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/80 
                   hover:border-gray-300 dark:hover:border-gray-600
                   shadow-sm hover:shadow transition-all duration-200
                   disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1424,9 +1424,9 @@ export default function ResumeBuilderPage() {
                 disabled={isCreatingWhiteboard}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
                   text-gray-700 dark:text-gray-200 
-                  bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm
-                  border border-gray-200 dark:border-gray-700 rounded-lg
-                  hover:bg-gray-50 dark:hover:bg-gray-700/80 
+                  bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm
+                  border border-gray-200 dark:border-[#3d3c3e] rounded-lg
+                  hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/80 
                   hover:border-gray-300 dark:hover:border-gray-600
                   shadow-sm hover:shadow transition-all duration-200
                   disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1443,9 +1443,9 @@ export default function ResumeBuilderPage() {
                   disabled={isCreating}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
                     text-gray-700 dark:text-gray-200 
-                    bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm
-                    border border-gray-200 dark:border-gray-700 rounded-lg
-                    hover:bg-gray-50 dark:hover:bg-gray-700/80 
+                    bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm
+                    border border-gray-200 dark:border-[#3d3c3e] rounded-lg
+                    hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/80 
                     hover:border-gray-300 dark:hover:border-gray-600
                     shadow-sm hover:shadow transition-all duration-200
                     disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1470,7 +1470,7 @@ export default function ResumeBuilderPage() {
                       placeholder="Search documents..."
                       className="w-full pl-9 pr-4 py-2 
                         bg-transparent
-                        border border-gray-200 dark:border-gray-700 rounded-lg
+                        border border-gray-200 dark:border-[#3d3c3e] rounded-lg
                         focus:border-gray-300 dark:focus:border-gray-600
                         focus:ring-0 focus:outline-none
                         text-sm text-gray-900 dark:text-white placeholder-gray-400
@@ -1481,7 +1481,7 @@ export default function ResumeBuilderPage() {
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as 'date' | 'name')}
-                      className="appearance-none bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
+                      className="appearance-none bg-transparent border border-gray-200 dark:border-[#3d3c3e] rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
                     >
                       <option value="date">Date</option>
                       <option value="name">Name</option>
@@ -1571,9 +1571,9 @@ export default function ResumeBuilderPage() {
                     disabled={isCreatingNote}
                     className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
                       text-gray-700 dark:text-gray-200 
-                      bg-white dark:bg-gray-800 
-                      border border-gray-200 dark:border-gray-700 rounded-lg
-                      hover:bg-gray-50 dark:hover:bg-gray-700 
+                      bg-white dark:bg-[#2b2a2c] 
+                      border border-gray-200 dark:border-[#3d3c3e] rounded-lg
+                      hover:bg-gray-50 dark:hover:bg-[#3d3c3e] 
                       hover:border-gray-300 dark:hover:border-gray-600
                       shadow-sm transition-all duration-200
                       disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1590,9 +1590,9 @@ export default function ResumeBuilderPage() {
                     disabled={isCreatingWhiteboard}
                     className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
                       text-gray-700 dark:text-gray-200 
-                      bg-white dark:bg-gray-800 
-                      border border-gray-200 dark:border-gray-700 rounded-lg
-                      hover:bg-gray-50 dark:hover:bg-gray-700 
+                      bg-white dark:bg-[#2b2a2c] 
+                      border border-gray-200 dark:border-[#3d3c3e] rounded-lg
+                      hover:bg-gray-50 dark:hover:bg-[#3d3c3e] 
                       hover:border-gray-300 dark:hover:border-gray-600
                       shadow-sm transition-all duration-200
                       disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1609,9 +1609,9 @@ export default function ResumeBuilderPage() {
                     disabled={isCreating}
                     className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
                       text-gray-700 dark:text-gray-200 
-                      bg-white dark:bg-gray-800 
-                      border border-gray-200 dark:border-gray-700 rounded-lg
-                      hover:bg-gray-50 dark:hover:bg-gray-700 
+                      bg-white dark:bg-[#2b2a2c] 
+                      border border-gray-200 dark:border-[#3d3c3e] rounded-lg
+                      hover:bg-gray-50 dark:hover:bg-[#3d3c3e] 
                       hover:border-gray-300 dark:hover:border-gray-600
                       shadow-sm transition-all duration-200
                       disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1681,7 +1681,7 @@ export default function ResumeBuilderPage() {
                   </div>
                 ) : (
                   <div className="py-16 text-center">
-                    <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 
+                    <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-[#2b2a2c] 
                       flex items-center justify-center mx-auto mb-3">
                       <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                     </div>
@@ -1723,10 +1723,10 @@ export default function ResumeBuilderPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-[#121212] w-full sm:rounded-2xl rounded-t-2xl max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
+              className="bg-white dark:bg-[#2b2a2c] w-full sm:rounded-2xl rounded-t-2xl max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
             >
               {/* Header */}
-              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl z-10 sticky top-0">
+              <div className="px-6 py-5 border-b border-gray-100 dark:border-[#3d3c3e] flex items-center justify-between bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl z-10 sticky top-0">
                 <div>
                   <h2 className="font-semibold text-xl text-gray-900 dark:text-white tracking-tight">
                     Create New Resume
@@ -1738,7 +1738,7 @@ export default function ResumeBuilderPage() {
                 <button
                   onClick={() => setIsCreateModalOpen(false)}
                   disabled={isCreating}
-                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
+                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1762,7 +1762,7 @@ export default function ResumeBuilderPage() {
                         }
                       }}
                       placeholder="e.g., Software Engineer Resume"
-                      className="w-full px-4 py-2.5 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-800 
+                      className="w-full px-4 py-2.5 bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e] 
                         rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50
                         text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
                         transition-all shadow-sm"
@@ -1779,7 +1779,7 @@ export default function ResumeBuilderPage() {
                       <div className="group relative">
                         <Info className="w-4 h-4 text-gray-400 dark:text-gray-500 cursor-help" />
                         <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block z-20">
-                          <div className="bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg py-2 px-3 shadow-xl whitespace-nowrap">
+                          <div className="bg-gray-900 dark:bg-[#2b2a2c] text-white text-xs rounded-lg py-2 px-3 shadow-xl whitespace-nowrap">
                             You can change the template anytime during editing
                             <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
                           </div>
@@ -1797,7 +1797,7 @@ export default function ResumeBuilderPage() {
                             ${
                               selectedTemplate === template.value
                                 ? 'border-purple-500/50 dark:border-purple-400/50 bg-purple-50/50 dark:bg-purple-900/10 shadow-lg shadow-purple-200/30 dark:shadow-purple-900/20'
-                                : 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#1A1A1A] hover:bg-white dark:hover:bg-[#202020] hover:shadow-lg hover:border-transparent'
+                                : 'border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] hover:bg-white dark:hover:bg-[#3d3c3e] hover:shadow-lg hover:border-transparent'
                             }`}
                         >
                           <div className="flex items-start justify-between">
@@ -1827,12 +1827,12 @@ export default function ResumeBuilderPage() {
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl">
+              <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100 dark:border-[#3d3c3e] bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl">
                 <button
                   onClick={() => setIsCreateModalOpen(false)}
                   disabled={isCreating}
                   className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300
-                    hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors
+                    hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors
                     disabled:opacity-50"
                 >
                   Cancel

@@ -680,9 +680,9 @@ const ProfessionalProfilePage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1 }}
               onClick={commandPalette.open}
-              className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-400 text-sm rounded-xl shadow-lg border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
             >
-              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono">⌘K</kbd>
+              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-[#3d3c3e] rounded text-xs font-mono">⌘K</kbd>
               <span>Quick actions</span>
             </motion.button>
           </div>

@@ -116,7 +116,7 @@ const SkillsPreview = ({ data }: { data?: any }) => {
             <span className="text-gray-700 dark:text-gray-300 font-medium truncate">{skill.name}</span>
             <span className="text-gray-500 dark:text-gray-400 text-xs">{skill.currentLevel}%</span>
           </div>
-          <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-2 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
             <div 
               className="h-full bg-emerald-500 dark:bg-emerald-400 rounded-full transition-all duration-500"
               style={{ width: `${skill.currentLevel}%` }}
@@ -157,7 +157,7 @@ const MarketPositionPreview = ({ data }: { data?: any }) => {
     <div className="space-y-2">
       {data?.marketFitScore && (
         <div className="flex items-center gap-3">
-          <div className="h-2 flex-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-2 flex-1 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
             <div 
               className="h-full bg-violet-500 dark:bg-violet-400 rounded-full"
               style={{ width: `${data.marketFitScore}%` }}
@@ -185,7 +185,7 @@ const InterviewReadinessPreview = ({ data }: { data?: any }) => {
     <div className="space-y-2">
       {data?.readinessScore && (
         <div className="flex items-center gap-3">
-          <div className="h-2 flex-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-2 flex-1 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
             <div 
               className="h-full bg-pink-500 dark:bg-pink-400 rounded-full"
               style={{ width: `${data.readinessScore}%` }}
@@ -213,7 +213,7 @@ const NetworkInsightsPreview = ({ data }: { data?: any }) => {
     <div className="space-y-2">
       {data?.connectionScore && (
         <div className="flex items-center gap-3">
-          <div className="h-2 flex-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-2 flex-1 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
             <div 
               className="h-full bg-cyan-500 dark:bg-cyan-400 rounded-full"
               style={{ width: `${data.connectionScore}%` }}
@@ -298,9 +298,9 @@ export default function InsightCard({
       transition={{ duration: 0.2, ease: "easeOut" }}
       className={`
         group relative w-full h-full text-left
-        bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm
+        bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm
         rounded-2xl p-6
-        border border-gray-200/60 dark:border-gray-700/50
+        border border-gray-200/60 dark:border-[#3d3c3e]/50
         hover:border-gray-300/80 dark:hover:border-gray-600/60
         shadow-sm hover:shadow-lg
         transition-all duration-200
@@ -339,7 +339,7 @@ export default function InsightCard({
       </div>
 
       {/* Footer - View more */}
-      <div className="flex items-center justify-between pt-4 mt-auto border-t border-gray-100 dark:border-gray-700/50 flex-shrink-0">
+      <div className="flex items-center justify-between pt-4 mt-auto border-t border-gray-100 dark:border-[#3d3c3e]/50 flex-shrink-0">
         <span className="text-xs text-gray-400 dark:text-gray-500">
           Click to explore
         </span>

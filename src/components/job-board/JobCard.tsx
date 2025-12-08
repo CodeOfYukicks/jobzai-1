@@ -33,7 +33,7 @@ function getMatchScoreColor(score: number): { bg: string; text: string; ring: st
         ring: 'ring-amber-500/20'
     };
     return { 
-        bg: 'bg-gray-100 dark:bg-gray-800', 
+        bg: 'bg-gray-100 dark:bg-[#2b2a2c]', 
         text: 'text-gray-600 dark:text-gray-400',
         ring: 'ring-gray-500/20'
     };
@@ -81,7 +81,7 @@ export function JobCard({
                 group cursor-pointer p-4 rounded-xl transition-all duration-200 relative
                 ${isSelected
                     ? 'bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-500 dark:border-indigo-400'
-                    : 'bg-white dark:bg-gray-900 border-2 border-transparent hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-md'
+                    : 'bg-white dark:bg-[#242325] border-2 border-transparent hover:border-gray-200 dark:hover:border-[#4a494b] hover:shadow-md'
                 }
             `}
         >
@@ -93,7 +93,7 @@ export function JobCard({
                         className={`p-1.5 rounded-lg transition-colors ${
                             isSaved 
                                 ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400' 
-                                : 'bg-white/80 dark:bg-gray-800/80 text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30'
+                                : 'bg-white/80 dark:bg-[#2b2a2c]/80 text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30'
                         } backdrop-blur-sm shadow-sm`}
                         title={isSaved ? 'Unsave' : 'Save for later'}
                     >
@@ -103,7 +103,7 @@ export function JobCard({
                 {onDismiss && !isSaved && (
                     <button
                         onClick={handleDismiss}
-                        className="p-1.5 rounded-lg bg-white/80 dark:bg-gray-800/80 text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 backdrop-blur-sm shadow-sm transition-colors"
+                        className="p-1.5 rounded-lg bg-white/80 dark:bg-[#2b2a2c]/80 text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 backdrop-blur-sm shadow-sm transition-colors"
                         title="Not interested"
                     >
                         <X className="w-4 h-4" />
@@ -122,7 +122,7 @@ export function JobCard({
             <div className="flex gap-4">
                 {/* Large Square Logo */}
                 <div className="shrink-0">
-                    <div className="w-16 h-16 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center p-1 shadow-sm">
+                    <div className="w-16 h-16 rounded-lg bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] flex items-center justify-center p-1 shadow-sm">
                         <CompanyLogo companyName={job.company} size="xl" />
                     </div>
                 </div>
@@ -156,7 +156,7 @@ export function JobCard({
                     {/* Tags */}
                     <div className="flex flex-wrap gap-1.5">
                         {job.type && (
-                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300">
                                 {job.type}
                             </span>
                         )}
@@ -176,7 +176,7 @@ export function JobCard({
 
             {/* Why This Job? - Expandable Section */}
             {hasReasons && (
-                <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                <div className="mt-3 pt-3 border-t border-gray-100 dark:border-[#3d3c3e]">
                     <button
                         onClick={handleToggleReasons}
                         className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"

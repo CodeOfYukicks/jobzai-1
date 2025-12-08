@@ -139,10 +139,10 @@ export default function InsightDetailPanel({ type, data, open, onClose }: Insigh
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="flex h-full flex-col bg-white dark:bg-gray-900 shadow-2xl rounded-l-3xl border-l border-gray-200 dark:border-gray-800"
+                    className="flex h-full flex-col bg-white dark:bg-[#242325] shadow-2xl rounded-l-3xl border-l border-gray-200 dark:border-[#3d3c3e]"
                   >
                     {/* Header */}
-                    <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 rounded-tl-3xl">
+                    <div className="sticky top-0 z-10 bg-white/80 dark:bg-[#242325]/80 backdrop-blur-lg border-b border-gray-200 dark:border-[#3d3c3e] rounded-tl-3xl">
                       <div className="px-6 py-5">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
@@ -177,7 +177,7 @@ export default function InsightDetailPanel({ type, data, open, onClose }: Insigh
                     </div>
 
                     {/* Footer */}
-                    <div className="sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 px-6 py-4">
+                    <div className="sticky bottom-0 bg-white/80 dark:bg-[#242325]/80 backdrop-blur-lg border-t border-gray-200 dark:border-[#3d3c3e] px-6 py-4">
                       <div className="flex items-center justify-between">
                         <p className="text-xs text-gray-400 dark:text-gray-500">
                           AI-powered insights • Updated based on your latest profile
@@ -185,7 +185,7 @@ export default function InsightDetailPanel({ type, data, open, onClose }: Insigh
                         <button
                           onClick={onClose}
                           className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 
-                            bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 
+                            bg-gray-100 dark:bg-[#2b2a2c] hover:bg-gray-200 dark:hover:bg-[#3d3c3e] 
                             rounded-xl transition-colors duration-200"
                         >
                           Close

@@ -74,7 +74,7 @@ export default function SaveAsModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800"
+            className="bg-white dark:bg-[#242325] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800"
           >
             {/* Header */}
             <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
@@ -114,7 +114,7 @@ export default function SaveAsModal({
                   onChange={(e) => setName(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="e.g., Software Engineer @ Google"
-                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 
+                  className="w-full px-4 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] 
                     rounded-xl focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500
                     text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
                     transition-all text-sm"
@@ -127,7 +127,7 @@ export default function SaveAsModal({
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Save to Folder
                 </label>
-                <div className="space-y-1.5 max-h-48 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-700 p-2">
+                <div className="space-y-1.5 max-h-48 overflow-y-auto rounded-xl border border-gray-200 dark:border-[#3d3c3e] p-2">
                   {/* Uncategorized Option */}
                   <button
                     onClick={() => setSelectedFolderId(null)}
@@ -184,7 +184,7 @@ export default function SaveAsModal({
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-end gap-3 bg-gray-50 dark:bg-gray-900/50">
+            <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-end gap-3 bg-gray-50 dark:bg-[#242325]/50">
               <button
                 onClick={onClose}
                 disabled={isSaving}

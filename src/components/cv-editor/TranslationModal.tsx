@@ -150,7 +150,7 @@ export default function TranslationModal({
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`flex items-center justify-center w-9 h-9 rounded-lg bg-gray-50 dark:bg-gray-800 text-xl shadow-sm border border-gray-100 dark:border-gray-700`}>
+                    <div className={`flex items-center justify-center w-9 h-9 rounded-lg bg-gray-50 dark:bg-[#2b2a2c] text-xl shadow-sm border border-gray-100 dark:border-[#3d3c3e]`}>
                       {selectedLangObj ? selectedLangObj.flag : '🌐'}
                     </div>
                     <div>
@@ -213,7 +213,7 @@ export default function TranslationModal({
                     <div className={`p-2 rounded-lg ${
                       selectedFolderId === null 
                         ? 'bg-purple-100 text-purple-600 dark:bg-purple-500/20 dark:text-purple-300' 
-                        : 'bg-gray-100 dark:bg-gray-800'
+                        : 'bg-gray-100 dark:bg-[#2b2a2c]'
                     }`} style={{ 
                       color: selectedFolder ? undefined : undefined,
                       backgroundColor: selectedFolder ? `${selectedFolder.color}15` : undefined
@@ -276,7 +276,7 @@ export default function TranslationModal({
                               : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
                           }`}
                         >
-                          <div className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-800" style={{ color: folder.color }}>
+                          <div className="p-1.5 rounded-md bg-gray-100 dark:bg-[#2b2a2c]" style={{ color: folder.color }}>
                             {renderFolderIcon(folder.icon || 'Folder', 'currentColor')}
                           </div>
                           <span className="text-sm font-medium flex-1 truncate">{folder.name}</span>

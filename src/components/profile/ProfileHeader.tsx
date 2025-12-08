@@ -259,7 +259,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
-      className="relative overflow-hidden rounded-xl bg-white dark:bg-gray-800/95 border border-gray-200 dark:border-gray-700"
+      className="relative overflow-hidden rounded-xl bg-white dark:bg-[#2b2a2c]/95 border border-gray-200 dark:border-[#3d3c3e]"
     >
       {/* Cover Photo Area */}
       <div className="relative h-48 sm:h-52 overflow-hidden group">
@@ -326,7 +326,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
             transition={{ duration: 0.2 }}
           >
             {/* Circular profile photo with white ring - LinkedIn signature */}
-            <div className="w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-white dark:bg-gray-800 p-1 shadow-lg ring-4 ring-white dark:ring-gray-800">
+            <div className="w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-white dark:bg-[#2b2a2c] p-1 shadow-lg ring-4 ring-white dark:ring-gray-800">
               <div className="relative w-full h-full rounded-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600">
                 {formData.profilePhoto ? (
                   <img
@@ -371,7 +371,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
             </div>
             
             {/* Camera button - Always visible on mobile */}
-            <label className="absolute bottom-1 right-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 p-2 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors shadow-md border border-gray-200 dark:border-gray-600 sm:opacity-0 sm:group-hover/photo:opacity-100">
+            <label className="absolute bottom-1 right-1 bg-white dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-200 p-2 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-[#4a494b] transition-colors shadow-md border border-gray-200 dark:border-[#4a494b] sm:opacity-0 sm:group-hover/photo:opacity-100">
               <input
                 type="file"
                 accept="image/*"
@@ -392,7 +392,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleStartEdit}
-            className="p-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            className="p-2.5 bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-[#4a494b] transition-colors"
             title="Edit profile"
           >
             <Edit2 className="w-5 h-5" />
@@ -418,14 +418,14 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
                       value={editFormData.firstName}
                       onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
                       placeholder="First Name"
-                      className="flex-1 px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                      className="flex-1 px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
                     />
                     <input
                       type="text"
                       value={editFormData.lastName}
                       onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
                       placeholder="Last Name"
-                      className="flex-1 px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                      className="flex-1 px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
                     />
                   </div>
                   <input
@@ -433,14 +433,14 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
                     value={editFormData.headline}
                     onChange={(e) => setEditFormData(prev => ({ ...prev, headline: e.target.value }))}
                     placeholder="Professional headline (e.g., Consultant at Accenture | CRM Specialist)"
-                    className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                    className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
                   />
                   <input
                     type="text"
                     value={editFormData.location}
                     onChange={(e) => setEditFormData(prev => ({ ...prev, location: e.target.value }))}
                     placeholder="Location (e.g., Paris, Île-de-France, France)"
-                    className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                    className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
                   />
                   <div className="flex gap-2 pt-2">
                     <motion.button
@@ -456,7 +456,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleCancelEdit}
-                      className="flex items-center gap-2 px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold rounded-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className="flex items-center gap-2 px-5 py-2.5 border border-gray-300 dark:border-[#4a494b] text-gray-700 dark:text-gray-300 text-sm font-semibold rounded-full hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
                     >
                       Cancel
                     </motion.button>

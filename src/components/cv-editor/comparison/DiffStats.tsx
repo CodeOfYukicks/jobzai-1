@@ -1,10 +1,10 @@
 /**
  * DiffStats Component
- * Shows change statistics with animated counters
+ * Shows change statistics with animated counters - Premium dark design
  */
 
 import { motion } from 'framer-motion';
-import { Plus, Minus, Edit3, Equal } from 'lucide-react';
+import { Plus, Minus, RefreshCw, Equal } from 'lucide-react';
 
 interface DiffStatsProps {
   added: number;
@@ -26,9 +26,9 @@ export default function DiffStats({
   className = '',
 }: DiffStatsProps) {
   const sizeClasses = {
-    sm: 'text-[10px] gap-1.5 px-2 py-0.5',
-    md: 'text-xs gap-2 px-3 py-1',
-    lg: 'text-sm gap-3 px-4 py-1.5',
+    sm: 'text-[10px] gap-2 px-2.5 py-1',
+    md: 'text-xs gap-3 px-3 py-1.5',
+    lg: 'text-sm gap-4 px-4 py-2',
   };
 
   const iconSizes = {
@@ -42,8 +42,11 @@ export default function DiffStats({
   if (!hasChanges && !showUnchanged) {
     return (
       <span className={`inline-flex items-center ${sizeClasses[size]} 
-                        bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 
-                        rounded-full font-medium ${className}`}>
+                        rounded-lg font-medium text-white/30 ${className}`}
+            style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}>
         <Equal className={iconSizes[size]} />
         <span>No changes</span>
       </span>
@@ -52,13 +55,17 @@ export default function DiffStats({
 
   return (
     <div className={`inline-flex items-center ${sizeClasses[size]} 
-                     bg-gray-100/80 dark:bg-gray-800/80 rounded-full font-medium ${className}`}>
+                     rounded-lg font-medium ${className}`}
+         style={{
+           background: 'rgba(255,255,255,0.03)',
+           border: '1px solid rgba(255,255,255,0.06)',
+         }}>
       {added > 0 && (
         <motion.span
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, delay: 0.1 }}
-          className="inline-flex items-center gap-0.5 text-[#5249e6] dark:text-[#a5a0ff]"
+          className="inline-flex items-center gap-1 text-emerald-400"
         >
           <Plus className={iconSizes[size]} />
           <span>{added}</span>
@@ -70,9 +77,9 @@ export default function DiffStats({
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, delay: 0.2 }}
-          className="inline-flex items-center gap-0.5 text-amber-600 dark:text-amber-400"
+          className="inline-flex items-center gap-1 text-amber-400"
         >
-          <Edit3 className={iconSizes[size]} />
+          <RefreshCw className={iconSizes[size]} />
           <span>{modified}</span>
         </motion.span>
       )}
@@ -82,7 +89,7 @@ export default function DiffStats({
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, delay: 0.3 }}
-          className="inline-flex items-center gap-0.5 text-red-500 dark:text-red-400"
+          className="inline-flex items-center gap-1 text-red-400"
         >
           <Minus className={iconSizes[size]} />
           <span>{removed}</span>
@@ -94,7 +101,7 @@ export default function DiffStats({
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, delay: 0.4 }}
-          className="inline-flex items-center gap-0.5 text-gray-500 dark:text-gray-400"
+          className="inline-flex items-center gap-1 text-white/30"
         >
           <Equal className={iconSizes[size]} />
           <span>{unchanged}</span>
@@ -123,15 +130,67 @@ export function DiffBadge({
       initial={{ scale: 0 }}
       animate={{ scale: 1 }}
       className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5
-                  text-[10px] font-bold rounded-full
-                  bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300
+                  text-[10px] font-bold rounded-md text-amber-400
                   ${className}`}
+      style={{
+        background: 'rgba(251,191,36,0.15)',
+        border: '1px solid rgba(251,191,36,0.3)',
+      }}
     >
       {changes}
     </motion.span>
   );
 }
 
+/**
+ * Large stats display for headers
+ */
+export function DiffStatsLarge({
+  added,
+  removed,
+  modified,
+}: {
+  added: number;
+  removed: number;
+  modified: number;
+}) {
+  return (
+    <div className="flex items-center gap-6">
+      {/* Added */}
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+             style={{ background: 'rgba(16,185,129,0.15)' }}>
+          <Plus className="w-4 h-4 text-emerald-400" />
+        </div>
+        <div>
+          <span className="text-lg font-bold text-emerald-400">{added}</span>
+          <span className="text-xs text-white/30 ml-1.5">added</span>
+        </div>
+      </div>
 
+      {/* Removed */}
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+             style={{ background: 'rgba(248,113,113,0.15)' }}>
+          <Minus className="w-4 h-4 text-red-400" />
+        </div>
+        <div>
+          <span className="text-lg font-bold text-red-400">{removed}</span>
+          <span className="text-xs text-white/30 ml-1.5">removed</span>
+        </div>
+      </div>
 
-
+      {/* Modified */}
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+             style={{ background: 'rgba(251,191,36,0.15)' }}>
+          <RefreshCw className="w-4 h-4 text-amber-400" />
+        </div>
+        <div>
+          <span className="text-lg font-bold text-amber-400">{modified}</span>
+          <span className="text-xs text-white/30 ml-1.5">modified</span>
+        </div>
+      </div>
+    </div>
+  );
+}

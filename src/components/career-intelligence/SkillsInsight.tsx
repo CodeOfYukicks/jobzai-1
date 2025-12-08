@@ -85,7 +85,7 @@ export default function SkillsInsight({ data }: SkillsInsightProps) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="p-4 bg-gray-50 dark:bg-gray-800/40 rounded-lg"
+              className="p-4 bg-gray-50 dark:bg-[#2b2a2c]/40 rounded-lg"
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
@@ -111,7 +111,7 @@ export default function SkillsInsight({ data }: SkillsInsightProps) {
                   <span>Current: {skill.currentLevel}%</span>
                   <span>Required: {skill.requiredLevel}%</span>
                 </div>
-                <div className="relative h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div className="relative h-2 bg-gray-200 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
                   {/* Current Level */}
                   <motion.div
                     initial={{ width: 0 }}
@@ -146,7 +146,7 @@ export default function SkillsInsight({ data }: SkillsInsightProps) {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2 + index * 0.05 }}
-                className="p-3 border border-gray-200 dark:border-gray-700/50 rounded-lg
+                className="p-3 border border-gray-200 dark:border-[#3d3c3e]/50 rounded-lg
                   hover:border-indigo-200 dark:hover:border-indigo-800/50
                   transition-colors duration-200"
               >
@@ -182,7 +182,7 @@ export default function SkillsInsight({ data }: SkillsInsightProps) {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 + index * 0.05 }}
-                className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg
+                className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#2b2a2c]/40 rounded-lg
                   hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-colors duration-200 cursor-pointer group"
               >
                 <span className="text-lg">{getResourceIcon(resource.type)}</span>

@@ -102,7 +102,7 @@ export default function BoardsOverview({
               />
               
               {/* Main Card - Compact */}
-              <div className="relative h-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-700/50 shadow-sm hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300">
+              <div className="relative h-full bg-white/90 dark:bg-[#2b2a2c]/80 backdrop-blur-md rounded-2xl border border-gray-200/80 dark:border-[#3d3c3e]/60 shadow-sm hover:shadow-xl dark:shadow-black/20 hover:border-gray-300 dark:hover:border-[#4a494b] transition-all duration-300">
                 
                 {/* Compact Cover Section */}
                 <div className="relative h-16 overflow-hidden rounded-t-2xl">
@@ -148,7 +148,7 @@ export default function BoardsOverview({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -5 }}
                         transition={{ duration: 0.12 }}
-                        className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-50"
+                        className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-200 dark:border-[#3d3c3e] shadow-xl z-50"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div className="p-1">
@@ -157,7 +157,7 @@ export default function BoardsOverview({
                               onEditBoard(board);
                               setOpenMenuId(null);
                             }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
                           >
                             <Edit2 className="w-3.5 h-3.5 opacity-60" />
                             Edit
@@ -167,14 +167,14 @@ export default function BoardsOverview({
                               onDuplicateBoard(board);
                               setOpenMenuId(null);
                             }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
                           >
                             <Copy className="w-3.5 h-3.5 opacity-60" />
                             Duplicate
                           </button>
                           {!board.isDefault && (
                             <>
-                              <div className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
+                              <div className="my-1 h-px bg-gray-200 dark:bg-[#3d3c3e]" />
                               <button
                                 onClick={() => {
                                   onDeleteBoard(board);
@@ -195,7 +195,7 @@ export default function BoardsOverview({
 
                 {/* Floating Icon - Outside cover to avoid clipping */}
                 <motion.div 
-                  className="absolute top-12 left-3 z-20 w-9 h-9 rounded-xl flex items-center justify-center text-base shadow-md ring-2 ring-white dark:ring-gray-900"
+                  className="absolute top-12 left-3 z-20 w-9 h-9 rounded-xl flex items-center justify-center text-base shadow-md ring-2 ring-white dark:ring-[#242325]"
                   style={{ background: `linear-gradient(135deg, ${color}, ${color}dd)` }}
                   animate={{ y: isHovered ? -2 : 0 }}
                   transition={{ duration: 0.2 }}
@@ -250,7 +250,7 @@ export default function BoardsOverview({
                   </div>
 
                   {/* Mini Progress Bar */}
-                  <div className="flex gap-0.5 h-1 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+                  <div className="flex gap-0.5 h-1 rounded-full overflow-hidden bg-gray-100 dark:bg-[#2b2a2c]">
                     {(boardType === 'jobs' ? [
                       { key: 'wishlist', color: '#8B5CF6' },
                       { key: 'applied', color: '#3B82F6' },
@@ -311,9 +311,9 @@ export default function BoardsOverview({
           onClick={onCreateBoard}
           className="group relative h-full min-h-[140px]"
         >
-          <div className="h-full bg-gray-50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-[#635BFF] dark:hover:border-[#635BFF] hover:bg-[#635BFF]/5 dark:hover:bg-[#635BFF]/10 transition-all duration-300 flex flex-col items-center justify-center p-4">
+          <div className="h-full bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-[#3d3c3e] hover:border-[#635BFF] dark:hover:border-[#635BFF] hover:bg-[#635BFF]/5 dark:hover:bg-[#635BFF]/10 transition-all duration-300 flex flex-col items-center justify-center p-4">
             <motion.div 
-              className="w-10 h-10 rounded-xl bg-gray-200 dark:bg-gray-700 flex items-center justify-center mb-2 group-hover:bg-[#635BFF]/20 transition-all duration-200"
+              className="w-10 h-10 rounded-xl bg-gray-200 dark:bg-[#3d3c3e] flex items-center justify-center mb-2 group-hover:bg-[#635BFF]/20 transition-all duration-200"
               whileHover={{ scale: 1.05, rotate: 90 }}
               transition={{ duration: 0.3 }}
             >

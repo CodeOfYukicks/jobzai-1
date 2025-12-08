@@ -209,7 +209,7 @@ Return only the improved text, nothing else.`
                 }}
                 placeholder="Write a brief summary of your professional background, skills, and career goals..."
                 rows={5}
-                className="w-full px-4 py-3 pr-32 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 resize-none text-sm leading-relaxed focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-100 focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 pr-32 rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white placeholder-gray-400 resize-none text-sm leading-relaxed focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-100 focus:border-transparent outline-none transition-all"
               />
 
               {/* AI Improve Button - Premium glass style */}
@@ -252,11 +252,11 @@ Return only the improved text, nothing else.`
                   className="mt-3 glass-panel rounded-xl p-4 space-y-3 shadow-glow-sm relative overflow-hidden"
                 >
                   {/* Sparkle effect background */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-gray-100/50 dark:bg-gray-700/20 rounded-full blur-3xl"></div>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gray-100/50 dark:bg-[#3d3c3e]/20 rounded-full blur-3xl"></div>
 
                   <div className="relative flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <div className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                      <div className="p-1.5 bg-gray-100 dark:bg-[#3d3c3e] rounded-lg">
                         <Sparkles className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                       </div>
                       <h3 className="font-bold text-sm text-gray-900 dark:text-white">AI Improved Version</h3>
@@ -275,7 +275,7 @@ Return only the improved text, nothing else.`
                         onClick={rejectImproved}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 
+                        className="flex items-center gap-1 px-3 py-1.5 bg-gray-100/80 dark:bg-[#3d3c3e]/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 
                           rounded-lg text-xs font-medium hover:bg-gray-200/80 dark:hover:bg-gray-600/80 transition-all duration-300"
                       >
                         <X className="h-3.5 w-3.5" />
@@ -283,7 +283,7 @@ Return only the improved text, nothing else.`
                       </motion.button>
                     </div>
                   </div>
-                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 rounded-lg">
+                  <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] p-3 rounded-lg">
                     <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                       {improvedText}
                     </p>
@@ -324,7 +324,7 @@ Return only the improved text, nothing else.`
                       value={highlight}
                       onChange={(e) => updateHighlight(index, e.target.value)}
                       placeholder="Add a key highlight or achievement"
-                      className="flex-1 px-3 py-2 rounded-lg text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-100 focus:border-transparent outline-none transition-all"
+                      className="flex-1 px-3 py-2 rounded-lg text-sm border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-100 focus:border-transparent outline-none transition-all"
                     />
                   </div>
                   {highlights.length > 1 && (

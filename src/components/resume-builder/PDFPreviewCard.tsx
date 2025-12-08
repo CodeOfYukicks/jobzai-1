@@ -290,8 +290,8 @@ const PDFPreviewCard = memo(({
         />
 
         {/* Enhanced Stack effect layers */}
-        <div className="absolute top-0 left-0 w-full h-full bg-white/80 dark:bg-gray-700/80 rounded-[3px] transform translate-y-1.5 translate-x-1.5 opacity-0 group-hover:opacity-60 transition-all duration-300 -z-10 shadow-sm" />
-        <div className="absolute top-0 left-0 w-full h-full bg-white/60 dark:bg-gray-600/60 rounded-[3px] transform translate-y-3 translate-x-3 opacity-0 group-hover:opacity-40 transition-all duration-300 -z-20 shadow-sm" />
+        <div className="absolute top-0 left-0 w-full h-full bg-white/80 dark:bg-[#3d3c3e]/80 rounded-[3px] transform translate-y-1.5 translate-x-1.5 opacity-0 group-hover:opacity-60 transition-all duration-300 -z-10 shadow-sm" />
+        <div className="absolute top-0 left-0 w-full h-full bg-white/60 dark:bg-[#4a494b]/60 rounded-[3px] transform translate-y-3 translate-x-3 opacity-0 group-hover:opacity-40 transition-all duration-300 -z-20 shadow-sm" />
 
         <div className="relative w-full h-full bg-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] group-hover:shadow-[0_12px_32px_rgba(0,0,0,0.15)] transition-all duration-300 overflow-hidden rounded-[3px] ring-1 ring-black/5 group-hover:ring-black/10">
           
@@ -339,7 +339,7 @@ const PDFPreviewCard = memo(({
             initial={{ opacity: 0, y: 10 }}
             className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300"
           >
-            <div className="flex items-center gap-1 px-2 py-1.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-full shadow-xl border border-black/5 dark:border-white/10">
+            <div className="flex items-center gap-1 px-2 py-1.5 bg-white/95 dark:bg-[#242325]/95 backdrop-blur-xl rounded-full shadow-xl border border-black/5 dark:border-white/10">
               <motion.button
                 onClick={(e) => { e.stopPropagation(); handleView(); }}
                 whileHover={{ scale: 1.1 }}
@@ -349,7 +349,7 @@ const PDFPreviewCard = memo(({
               >
                 <Eye className="w-3.5 h-3.5" />
               </motion.button>
-              <div className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+              <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e]" />
               <motion.button
                 onClick={(e) => { e.stopPropagation(); handleDownload(); }}
                 whileHover={{ scale: 1.1 }}
@@ -359,7 +359,7 @@ const PDFPreviewCard = memo(({
               >
                 <Download className="w-3.5 h-3.5" />
               </motion.button>
-              <div className="w-px h-3 bg-gray-200 dark:bg-gray-700" />
+              <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e]" />
               <motion.button
                 onClick={(e) => { e.stopPropagation(); setIsDeleteDialogOpen(true); }}
                 whileHover={{ scale: 1.1 }}
@@ -399,8 +399,8 @@ const PDFPreviewCard = memo(({
       {contextMenu.open && typeof window !== 'undefined' && window.document?.body && createPortal(
         <div
           ref={contextMenuRef}
-          className="fixed z-[9999] bg-white dark:bg-gray-800 rounded-xl shadow-2xl
-            border border-gray-200 dark:border-gray-700 py-1.5 min-w-[160px]"
+          className="fixed z-[9999] bg-white dark:bg-[#2b2a2c] rounded-xl shadow-2xl
+            border border-gray-200 dark:border-[#3d3c3e] py-1.5 min-w-[160px]"
           style={{
             left: `${contextMenu.x}px`,
             top: `${contextMenu.y}px`
@@ -431,7 +431,7 @@ const PDFPreviewCard = memo(({
             <Download className="w-4 h-4 text-green-500" />
             Download
           </button>
-          <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
+          <div className="my-1 border-t border-gray-100 dark:border-[#3d3c3e]" />
           <button
             onMouseDown={(e) => {
               e.stopPropagation();
@@ -465,7 +465,7 @@ const PDFPreviewCard = memo(({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-[#2b2a2c] rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-[#3d3c3e]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-4 mb-4">
@@ -481,7 +481,7 @@ const PDFPreviewCard = memo(({
                   </p>
                 </div>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 bg-gray-50 dark:bg-[#242325]/50 rounded-lg p-3">
                 "{document.name}" will be permanently deleted.
               </p>
               <div className="flex items-center gap-3 justify-end">

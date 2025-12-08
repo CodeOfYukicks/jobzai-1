@@ -232,8 +232,8 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
 
   const inputClass = `
     w-full px-4 py-2.5 rounded-xl
-    bg-white dark:bg-gray-800
-    border border-gray-300 dark:border-gray-600
+    bg-white dark:bg-[#2b2a2c]
+    border border-gray-300 dark:border-[#4a494b]
     text-gray-900 dark:text-gray-100
     text-[15px]
     placeholder:text-gray-400 dark:placeholder:text-gray-400
@@ -256,8 +256,8 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
         {/* Education List */}
         <div className="space-y-4">
           {formData.educations.length === 0 ? (
-            <div className="text-center py-10 px-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
-              <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-white dark:bg-gray-700 shadow-sm flex items-center justify-center">
+            <div className="text-center py-10 px-6 bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-xl border border-gray-200 dark:border-[#3d3c3e]">
+              <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-white dark:bg-[#3d3c3e] shadow-sm flex items-center justify-center">
                 <GraduationCap className="w-7 h-7 text-gray-400 dark:text-gray-500" />
               </div>
               <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
@@ -283,7 +283,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                 <div key={education.id}>
                   {isEditing ? (
                     /* Edit Mode */
-                    <div className="p-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div className="p-5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg">
                       <div className="flex items-center justify-between mb-5">
                         <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                           {education.institution || 'New Education'}
@@ -311,7 +311,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                                   p-2.5 rounded-lg text-sm font-medium transition-all
                                   ${education.degree === option.id
                                     ? 'bg-[#0A66C2] text-white'
-                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                    : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
                                   }
                                 `}
                               >
@@ -465,7 +465,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                           </button>
                           
                           {isMenuOpen && (
-                            <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-20">
+                            <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-lg overflow-hidden z-20">
                               <button
                                 onClick={() => duplicateEducation(index)}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -489,7 +489,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                   
                   {/* Separator */}
                   {index < formData.educations.length - 1 && !isEditing && (
-                    <div className="border-b border-gray-100 dark:border-gray-700/50 my-2" />
+                    <div className="border-b border-gray-100 dark:border-[#3d3c3e]/50 my-2" />
                   )}
                 </div>
               );
@@ -518,7 +518,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
               onKeyPress={(e) => e.key === 'Enter' && handleAddLanguage()}
               list="languages-list"
               placeholder="Type a language..."
-              className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A66C2] focus:border-[#0A66C2] transition-all"
+              className="w-full px-4 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-gray-900 dark:text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0A66C2] focus:border-[#0A66C2] transition-all"
             />
             <datalist id="languages-list">
               {commonLanguages.map((lang) => (
@@ -529,7 +529,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
           <select
             value={newLanguageLevel}
             onChange={(e) => setNewLanguageLevel(e.target.value)}
-            className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#0A66C2] focus:border-[#0A66C2] transition-all appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_0.75rem_center] bg-[length:1rem] pr-10"
+            className="px-4 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#0A66C2] focus:border-[#0A66C2] transition-all appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_0.75rem_center] bg-[length:1rem] pr-10"
           >
             <option value="">Select level</option>
             {languageLevels.map((level) => (
@@ -579,7 +579,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 px-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
+            <div className="text-center py-8 px-6 bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-lg border border-dashed border-gray-200 dark:border-[#3d3c3e]">
               <Languages className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
               <p className="text-sm text-gray-500 dark:text-gray-400">Add your language skills</p>
             </div>

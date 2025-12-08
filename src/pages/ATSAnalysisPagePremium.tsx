@@ -68,7 +68,7 @@ function CompanyLogoWithoutBox({ companyName }: { companyName: string }) {
           className="h-full w-full object-contain drop-shadow-sm"
         />
       ) : (
-        <div className="h-full w-full rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+        <div className="h-full w-full rounded-2xl bg-gray-100 dark:bg-[#2b2a2c] flex items-center justify-center">
           <span className="text-2xl font-bold text-gray-400 dark:text-gray-500">
             {getInitials(companyName)}
           </span>
@@ -88,9 +88,9 @@ interface SectionProps {
 function Section({ id, title, description, children }: SectionProps) {
   return (
     <section id={id} className="scroll-mt-24">
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm hover:shadow-md transition-all duration-300 p-8 space-y-6">
+      <div className="bg-white dark:bg-[#242325] rounded-xl border border-gray-200/60 dark:border-[#3d3c3e]/60 shadow-sm hover:shadow-md transition-all duration-300 p-8 space-y-6">
         {/* Section Header with subtle separator */}
-        <div className="space-y-3 pb-6 border-b border-gray-200/60 dark:border-gray-800/60">
+        <div className="space-y-3 pb-6 border-b border-gray-200/60 dark:border-[#3d3c3e]/60">
           <h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
             {title}
           </h2>
@@ -148,10 +148,10 @@ function RightSidebarPanel({
   ];
 
   return (
-    <div className="hidden lg:block fixed right-0 top-12 bottom-0 w-96 bg-white dark:bg-gray-950 border-l border-gray-200 dark:border-gray-800 z-30">
+    <div className="hidden lg:block fixed right-0 top-12 bottom-0 w-96 bg-white dark:bg-[#333234] border-l border-gray-200 dark:border-[#3d3c3e] z-30">
       <div className="h-full flex flex-col">
         {/* Notion Style Tab Headers */}
-        <div className="relative flex border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
+        <div className="relative flex border-b border-gray-100 dark:border-[#3d3c3e] flex-shrink-0">
           <button
             onClick={() => setSidebarTab('summary')}
             className={`relative flex-1 px-4 py-4 text-xs font-medium transition-all ${sidebarTab === 'summary'
@@ -245,8 +245,8 @@ function RightSidebarPanel({
                       key={section.id}
                       onClick={() => onNavigate(section.id)}
                       className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-150 group ${activeSection === section.id
-                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                        ? 'bg-gray-100 dark:bg-[#2b2a2c] text-gray-900 dark:text-white font-medium'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
                         }`}
                     >
                       <div className="flex items-center gap-3">
@@ -862,7 +862,7 @@ export default function ATSAnalysisPagePremium() {
         <div className="min-h-screen bg-gray-50 dark:bg-[#0A0A0B] flex items-center justify-center">
           <div className="flex flex-col items-center justify-center space-y-4">
             <div className="relative">
-              <div className="w-16 h-16 rounded-full border-4 border-gray-200 dark:border-gray-800"></div>
+              <div className="w-16 h-16 rounded-full border-4 border-gray-200 dark:border-[#3d3c3e]"></div>
               <div className="absolute top-0 left-0 w-16 h-16 rounded-full border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent animate-spin"></div>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
@@ -880,7 +880,7 @@ export default function ATSAnalysisPagePremium() {
       <AuthLayout>
         <div className="min-h-screen bg-gray-50 dark:bg-[#0A0A0B] flex items-center justify-center">
           <div className="flex flex-col items-center justify-center max-w-md text-center px-4">
-            <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+            <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-[#2b2a2c] flex items-center justify-center mb-4">
               <span className="text-3xl">🔍</span>
             </div>
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
@@ -972,7 +972,7 @@ export default function ATSAnalysisPagePremium() {
 
               {/* Right: Overall Match Score - Styled Card */}
               <div className="flex-shrink-0">
-                <div className={`bg-white dark:bg-gray-900 rounded-2xl border-2 shadow-sm hover:shadow-lg transition-all duration-300 px-8 py-6 ${
+                <div className={`bg-white dark:bg-[#242325] rounded-2xl border-2 shadow-sm hover:shadow-lg transition-all duration-300 px-8 py-6 ${
                   analysis.match_scores.overall_score >= 80 
                     ? 'border-[#635BFF]/20 dark:border-[#635BFF]/30' 
                     : analysis.match_scores.overall_score >= 60 
@@ -1018,7 +1018,7 @@ export default function ATSAnalysisPagePremium() {
                 ref={(el) => { sectionsRef.current['overview'] = el; }}
                 className="scroll-mt-24"
               >
-                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+                <div className="bg-white dark:bg-[#242325] rounded-xl border border-gray-200/60 dark:border-[#3d3c3e]/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
                   {/* Header with subtle gradient background */}
                   <div className="bg-gradient-to-br from-[#635BFF]/5 to-[#7c75ff]/5 dark:from-[#635BFF]/10 dark:to-[#7c75ff]/10 p-8 pb-6">
                     <div className="flex items-center gap-3 mb-4">

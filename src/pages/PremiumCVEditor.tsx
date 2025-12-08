@@ -1089,21 +1089,21 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
 
   return (
     <AuthLayout>
-      <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-950">
+      <div className="h-full flex flex-col bg-gray-50 dark:bg-[#333234]">
         {/* Header */}
-        <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex-shrink-0 z-20">
+        <header className="h-16 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e] flex-shrink-0 z-20">
           <div className="h-full max-w-[1920px] mx-auto px-4 lg:px-6">
             <div className="flex items-center justify-between h-full">
               {/* Left: Title & Company */}
               <div className="flex items-center gap-4 min-w-0 flex-1">
                 <button 
                   onClick={() => navigate(-1)}
-                  className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-500 transition-colors"
+                  className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg text-gray-500 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
                 
-                <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 mx-2" />
+                <div className="h-6 w-px bg-gray-200 dark:bg-[#3d3c3e] mx-2" />
                 
                 {isResumeBuilder ? (
                 <div className="flex items-center min-w-0 flex-1">
@@ -1173,7 +1173,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                 {/* Status Indicator */}
                 <div className="flex items-center">
                   {isSaving && (
-                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium px-2 py-1.5 flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium px-2 py-1.5 flex items-center gap-1.5 bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-lg">
                       <Loader2 className="w-3 h-3 animate-spin" />
                       <span className="hidden sm:inline">Saving...</span>
                     </span>
@@ -1189,7 +1189,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                 {/* Toggle preview on mobile */}
                 <button
                   onClick={() => setShowPreview(!showPreview)}
-                  className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
                   title={showPreview ? 'Hide preview' : 'Show preview'}
                 >
                   {showPreview ? (
@@ -1200,21 +1200,21 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                 </button>
 
                 {/* Separator */}
-                <div className="hidden md:block h-6 w-px bg-gray-200 dark:bg-gray-700" />
+                <div className="hidden md:block h-6 w-px bg-gray-200 dark:bg-[#3d3c3e]" />
 
                 {/* Group 1: Document Actions (Save / Save As) */}
-                <div className="flex items-center gap-1 px-1.5 py-1 bg-gray-50/80 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50">
+                <div className="flex items-center gap-1 px-1.5 py-1 bg-gray-50/80 dark:bg-[#2b2a2c]/50 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-[#3d3c3e]/50">
                   {/* Save Button */}
                   <button
                     onClick={handleSave}
                     disabled={!isDirty || isSaving}
                     className="group relative flex items-center gap-2 px-3.5 py-2 
-                      bg-white dark:bg-gray-800 
+                      bg-white dark:bg-[#2b2a2c] 
                       text-gray-700 dark:text-gray-200 
                       rounded-lg 
-                      border border-gray-200/80 dark:border-gray-700/80 
+                      border border-gray-200/80 dark:border-[#3d3c3e]/80 
                       hover:border-gray-300 dark:hover:border-gray-600 
-                      hover:bg-gray-50 dark:hover:bg-gray-750 
+                      hover:bg-gray-50 dark:hover:bg-[#3d3c3e] 
                       hover:shadow-sm 
                       active:scale-[0.98] 
                       transition-all duration-200 
@@ -1231,12 +1231,12 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                     <button
                       onClick={() => setIsSaveAsModalOpen(true)}
                       className="group relative flex items-center gap-2 px-3.5 py-2 
-                        bg-white dark:bg-gray-800 
+                        bg-white dark:bg-[#2b2a2c] 
                         text-gray-700 dark:text-gray-200 
                         rounded-lg 
-                        border border-gray-200/80 dark:border-gray-700/80 
+                        border border-gray-200/80 dark:border-[#3d3c3e]/80 
                         hover:border-gray-300 dark:hover:border-gray-600 
-                        hover:bg-gray-50 dark:hover:bg-gray-750 
+                        hover:bg-gray-50 dark:hover:bg-[#3d3c3e] 
                         hover:shadow-sm 
                         active:scale-[0.98] 
                         transition-all duration-200 
@@ -1256,10 +1256,10 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                     onClick={() => setIsTranslationModalOpen(true)}
                     disabled={isTranslating}
                     className={`group relative flex items-center gap-2 px-3.5 py-2 
-                      bg-white dark:bg-gray-800 
+                      bg-white dark:bg-[#2b2a2c] 
                       text-gray-700 dark:text-gray-200 
                       rounded-lg 
-                      border border-gray-200/80 dark:border-gray-700/80 
+                      border border-gray-200/80 dark:border-[#3d3c3e]/80 
                       hover:border-purple-300 dark:hover:border-purple-500 
                       hover:bg-purple-50 dark:hover:bg-purple-900/20 
                       hover:text-purple-700 dark:hover:text-purple-300 
@@ -1341,7 +1341,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
           <div className="h-full flex overflow-hidden relative">
           {/* Left: Editor Panel */}
           <div
-            className={`h-full relative border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-visible flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+            className={`h-full relative border-r border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325] overflow-visible flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
               isLeftPanelCollapsed 
                 ? 'w-16' 
                 : 'w-full lg:w-[480px]'
@@ -1379,7 +1379,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className="h-full flex-1 bg-gray-100 dark:bg-gray-950 hidden lg:block"
+                className="h-full flex-1 bg-gray-100 dark:bg-[#333234] hidden lg:block"
                 transition={{ duration: 0.2 }}
               >
                 <PreviewContainer
@@ -1405,7 +1405,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="lg:hidden fixed inset-0 z-40 bg-gray-100 dark:bg-gray-950"
+                className="lg:hidden fixed inset-0 z-40 bg-gray-100 dark:bg-[#333234]"
               >
                 <PreviewContainer
                   cvData={cvData}
@@ -1423,7 +1423,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                 {/* Close button for mobile preview */}
                 <button
                   onClick={() => setShowPreview(false)}
-                  className="fixed top-20 right-4 z-50 p-3 bg-white dark:bg-gray-800 rounded-full shadow-lg"
+                  className="fixed top-20 right-4 z-50 p-3 bg-white dark:bg-[#2b2a2c] rounded-full shadow-lg"
                 >
                   <EyeOff className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 </button>

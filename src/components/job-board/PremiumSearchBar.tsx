@@ -168,7 +168,7 @@ export function PremiumSearchBar({
         }}
         transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
         className={`
-          relative bg-white dark:bg-gray-900 rounded-2xl overflow-visible
+          relative bg-white dark:bg-[#242325] rounded-2xl overflow-visible
           transition-all duration-200
           ${isFocused ? 'ring-2 ring-indigo-500/20' : ''}
           ${isCollapsed ? 'rounded-xl' : 'rounded-2xl'}
@@ -237,7 +237,7 @@ export function PremiumSearchBar({
               hidden sm:flex flex-shrink-0 items-center justify-center px-6 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-sm
               ${searchInput.trim() 
                 ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20' 
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                : 'bg-gray-100 dark:bg-[#2b2a2c] text-gray-400 dark:text-gray-500 cursor-not-allowed'
               }
             `}
           >
@@ -291,10 +291,10 @@ export function PremiumSearchBar({
             <span className="font-medium text-gray-700 dark:text-gray-300">"Remote React Developer"</span>
           </p>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
-            <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-[10px] font-mono border border-gray-300 dark:border-gray-700">↑</kbd>{' '}
-            <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-[10px] font-mono border border-gray-300 dark:border-gray-700">↓</kbd> to navigate • {' '}
-            <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-[10px] font-mono border border-gray-300 dark:border-gray-700">Enter</kbd> to select • {' '}
-            <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-[10px] font-mono border border-gray-300 dark:border-gray-700">Esc</kbd> to close
+            <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-[#2b2a2c] rounded text-[10px] font-mono border border-gray-300 dark:border-[#3d3c3e]">↑</kbd>{' '}
+            <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-[#2b2a2c] rounded text-[10px] font-mono border border-gray-300 dark:border-[#3d3c3e]">↓</kbd> to navigate • {' '}
+            <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-[#2b2a2c] rounded text-[10px] font-mono border border-gray-300 dark:border-[#3d3c3e]">Enter</kbd> to select • {' '}
+            <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-[#2b2a2c] rounded text-[10px] font-mono border border-gray-300 dark:border-[#3d3c3e]">Esc</kbd> to close
           </p>
         </motion.div>
       )}

@@ -634,7 +634,7 @@ END:VCALENDAR`;
                 <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
               </div>
             ) : (
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-gray-700/20">
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-[#3d3c3e]/20">
                 <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
                    style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
                 />
@@ -659,31 +659,31 @@ END:VCALENDAR`;
                       <button
                         onClick={() => setIsCoverGalleryOpen(true)}
                         className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 
-                          bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800
-                          border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm transition-all duration-200
+                          bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm hover:bg-white dark:hover:bg-[#3d3c3e]
+                          border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-sm transition-all duration-200
                           hover:shadow-md group"
                       >
                         <Image className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
                         <span>Add cover</span>
                       </button>
                     ) : (
-                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
+                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-[#242325]/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
                         <button
                           onClick={() => setIsCoverGalleryOpen(true)}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                            hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
                         >
                           <Image className="w-3.5 h-3.5" />
                           Change cover
                         </button>
                         
-                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
                         
                         <button
                           onClick={() => coverFileInputRef.current?.click()}
                           disabled={isUpdatingCover}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                            hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
                         >
                           {isUpdatingCover ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -693,7 +693,7 @@ END:VCALENDAR`;
                           Upload
                         </button>
                         
-                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
                         
                         <button
                           onClick={handleRemoveCover}
@@ -750,7 +750,7 @@ END:VCALENDAR`;
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.1 * index }}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 ${coverPhoto ? 'drop-shadow-lg' : ''}`}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border bg-white dark:bg-[#2b2a2c] border-gray-200 dark:border-[#3d3c3e] ${coverPhoto ? 'drop-shadow-lg' : ''}`}
                   >
                     <stat.icon className={`w-4 h-4 ${
                       stat.color === 'blue' 
@@ -782,13 +782,13 @@ END:VCALENDAR`;
                 className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-2">
                 <div className="flex flex-wrap items-center gap-3">
               {/* Period Filter */}
-              <div className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50/80 p-0.5 text-xs dark:border-gray-800 dark:bg-gray-900/60">
+              <div className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50/80 p-0.5 text-xs dark:border-[#3d3c3e] dark:bg-[#242325]/60">
                 <button
                   onClick={() => setFilterPeriod('all')}
                   className={`px-3 py-1.5 rounded-full font-medium transition-colors
                     ${filterPeriod === 'all'
                       ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-50 dark:text-gray-900'
-                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-[#3d3c3e]/80'}`}
                 >
                   All
                 </button>
@@ -797,7 +797,7 @@ END:VCALENDAR`;
                   className={`px-3 py-1.5 rounded-full font-medium transition-colors
                     ${filterPeriod === 'upcoming'
                       ? 'bg-white text-[#635BFF] shadow-sm dark:bg-gray-50 dark:text-[#635BFF]'
-                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-[#3d3c3e]/80'}`}
                 >
                   Upcoming
                 </button>
@@ -806,20 +806,20 @@ END:VCALENDAR`;
                   className={`px-3 py-1.5 rounded-full font-medium transition-colors
                     ${filterPeriod === 'past'
                       ? 'bg-white text-blue-600 shadow-sm dark:bg-gray-50 dark:text-blue-500'
-                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-[#3d3c3e]/80'}`}
                 >
                   Past
                 </button>
               </div>
 
               {/* Type Filter */}
-              <div className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50/80 p-0.5 text-xs dark:border-gray-800 dark:bg-gray-900/60">
+              <div className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50/80 p-0.5 text-xs dark:border-[#3d3c3e] dark:bg-[#242325]/60">
                 <button
                   onClick={() => setFilterType('all')}
                   className={`px-3 py-1.5 rounded-full font-medium transition-colors
                     ${filterType === 'all'
                       ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-50 dark:text-gray-900'
-                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-[#3d3c3e]/80'}`}
                 >
                   All types
                 </button>
@@ -828,7 +828,7 @@ END:VCALENDAR`;
                   className={`px-3 py-1.5 rounded-full font-medium transition-colors
                     ${filterType === 'hr'
                       ? 'bg-white text-pink-600 shadow-sm dark:bg-gray-50 dark:text-pink-600'
-                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-[#3d3c3e]/80'}`}
                 >
                   HR
                 </button>
@@ -837,7 +837,7 @@ END:VCALENDAR`;
                   className={`px-3 py-1.5 rounded-full font-medium transition-colors
                     ${filterType === 'technical'
                       ? 'bg-white text-teal-600 shadow-sm dark:bg-gray-50 dark:text-teal-600'
-                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-[#3d3c3e]/80'}`}
                 >
                   Technical
                 </button>
@@ -846,7 +846,7 @@ END:VCALENDAR`;
                   className={`px-3 py-1.5 rounded-full font-medium transition-colors
                     ${filterType === 'manager'
                       ? 'bg-white text-amber-600 shadow-sm dark:bg-gray-50 dark:text-amber-600'
-                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-[#3d3c3e]/80'}`}
                 >
                   Manager
                 </button>
@@ -855,7 +855,7 @@ END:VCALENDAR`;
                   className={`px-3 py-1.5 rounded-full font-medium transition-colors
                     ${filterType === 'final'
                       ? 'bg-white text-green-600 shadow-sm dark:bg-gray-50 dark:text-green-600'
-                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-gray-800/80'}`}
+                      : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-[#3d3c3e]/80'}`}
                 >
                   Final
                 </button>
@@ -865,7 +865,7 @@ END:VCALENDAR`;
               {/* Sort Button */}
               <button
                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="inline-flex items-center justify-center self-start rounded-full border border-gray-200 bg-white/80 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900/70 dark:text-gray-200 dark:hover:bg-gray-800"
+                className="inline-flex items-center justify-center self-start rounded-full border border-gray-200 bg-white/80 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-[#3d3c3e] dark:bg-[#242325]/70 dark:text-gray-200 dark:hover:bg-[#3d3c3e]"
                 aria-label={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
               >
                 <Calendar className={`h-4 w-4 ${sortOrder === 'desc' ? 'rotate-180' : ''} transition-transform`} />
@@ -895,13 +895,13 @@ END:VCALENDAR`;
             animate={{ opacity: 1 }}
             className="space-y-4">
             {[...Array(3)].map((_, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden animate-pulse p-5">
+              <div key={index} className="bg-white dark:bg-[#2b2a2c] rounded-xl shadow-sm border border-gray-100 dark:border-[#3d3c3e] overflow-hidden animate-pulse p-5">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                  <div className="w-10 h-10 bg-gray-200 dark:bg-[#3d3c3e] rounded-full"></div>
                   <div className="flex-1">
-                    <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-2"></div>
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-40 mb-3"></div>
-                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+                    <div className="h-5 bg-gray-200 dark:bg-[#3d3c3e] rounded w-48 mb-2"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-[#3d3c3e] rounded w-40 mb-3"></div>
+                    <div className="h-3 bg-gray-200 dark:bg-[#3d3c3e] rounded w-32"></div>
                   </div>
                 </div>
               </div>
@@ -911,7 +911,7 @@ END:VCALENDAR`;
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+            className="text-center py-16 bg-white dark:bg-[#2b2a2c] rounded-2xl shadow-sm border border-gray-100 dark:border-[#3d3c3e]">
             <div className="w-20 h-20 bg-gradient-to-br from-[#635BFF]/10 to-[#7c75ff]/10 dark:from-[#635BFF]/30 dark:to-[#7c75ff]/30 rounded-full flex items-center justify-center mx-auto mb-5">
               <Calendar className="w-10 h-10 text-[#635BFF] dark:text-[#a5a0ff]" />
             </div>
@@ -929,8 +929,8 @@ END:VCALENDAR`;
             <div className="flex flex-col sm:flex-row justify-center gap-3 max-w-md mx-auto">
               <Link
                 to="/applications"
-                className="inline-flex items-center justify-center px-5 py-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 
-                  border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
+                className="inline-flex items-center justify-center px-5 py-2.5 bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 
+                  border border-gray-200 dark:border-[#3d3c3e] rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
               >
                 <Briefcase className="w-4 h-4 mr-2" />
                 <span className="text-sm font-medium">Track Applications</span>
@@ -1005,7 +1005,7 @@ END:VCALENDAR`;
                       <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                         Past Interviews
                       </h2>
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-[#2b2a2c] dark:text-gray-300">
                         {getPastInterviews().filter(item => filterType === 'all' || item.interview.type === filterType).length}
                       </span>
                     </div>

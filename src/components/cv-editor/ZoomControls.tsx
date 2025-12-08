@@ -26,12 +26,12 @@ export default function ZoomControls({
   maxZoom = 150
 }: ZoomControlsProps) {
   return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#2b2a2c] rounded-lg shadow-sm border border-gray-200 dark:border-[#3d3c3e]">
       {/* Zoom Out */}
       <button
         onClick={onZoomOut}
         disabled={zoom <= minZoom}
-        className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        className="p-1.5 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         title="Zoom out"
       >
         <ZoomOut className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -72,7 +72,7 @@ export default function ZoomControls({
       <button
         onClick={onZoomIn}
         disabled={zoom >= maxZoom}
-        className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        className="p-1.5 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         title="Zoom in"
       >
         <ZoomIn className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -84,7 +84,7 @@ export default function ZoomControls({
       {/* Reset Zoom */}
       <button
         onClick={onZoomReset}
-        className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+        className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded transition-colors"
         title="Reset zoom (100%)"
       >
         Reset
@@ -94,7 +94,7 @@ export default function ZoomControls({
       {onFitToWidth && (
         <button
           onClick={onFitToWidth}
-          className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+          className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded transition-colors"
           title="Fit to width"
         >
           Fit Width
@@ -105,7 +105,7 @@ export default function ZoomControls({
       {onFitToPage && (
         <button
           onClick={onFitToPage}
-          className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+          className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded transition-colors"
           title="Fit to page"
         >
           Fit Page
@@ -121,7 +121,7 @@ export default function ZoomControls({
       {onFullscreen && (
         <button
           onClick={onFullscreen}
-          className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+          className="p-1.5 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded transition-colors"
           title="Fullscreen"
         >
           <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -132,7 +132,7 @@ export default function ZoomControls({
       {onDownload && (
         <button
           onClick={onDownload}
-          className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+          className="p-1.5 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded transition-colors"
           title="Download PDF"
         >
           <Download className="w-4 h-4 text-gray-600 dark:text-gray-400" />

@@ -71,7 +71,7 @@ export default function PremiumModal({
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: 'spring', duration: 0.4, bounce: 0.25 }}
               className={`
-                w-full ${maxWidthClasses[maxWidth]} bg-white dark:bg-gray-900 
+                w-full ${maxWidthClasses[maxWidth]} bg-white dark:bg-[#242325] 
                 rounded-2xl shadow-2xl pointer-events-auto overflow-hidden
                 flex flex-col max-h-[90vh]
               `}
@@ -96,7 +96,7 @@ export default function PremiumModal({
 
               {/* Footer */}
               {footer && (
-                <div className="px-8 py-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+                <div className="px-8 py-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-[#2b2a2c]/50">
                   {footer}
                 </div>
               )}

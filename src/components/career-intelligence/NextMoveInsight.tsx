@@ -58,7 +58,7 @@ export default function NextMoveInsight({ data }: NextMoveInsightProps) {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="group p-4 bg-gray-50 dark:bg-gray-800/40 rounded-lg
+              className="group p-4 bg-gray-50 dark:bg-[#2b2a2c]/40 rounded-lg
                 border border-transparent hover:border-gray-200 dark:hover:border-gray-700
                 transition-all duration-200"
             >
@@ -97,7 +97,7 @@ export default function NextMoveInsight({ data }: NextMoveInsightProps) {
               </p>
               
               {company.topRole && (
-                <div className="mt-3 pt-3 border-t border-gray-200/50 dark:border-gray-700/50">
+                <div className="mt-3 pt-3 border-t border-gray-200/50 dark:border-[#3d3c3e]/50">
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     Best fit role: <span className="text-gray-700 dark:text-gray-300 font-medium">{company.topRole}</span>
                   </p>
@@ -130,7 +130,7 @@ export default function NextMoveInsight({ data }: NextMoveInsightProps) {
           {/* Steps Timeline */}
           <div className="relative">
             {/* Vertical Line */}
-            <div className="absolute left-[7px] top-3 bottom-3 w-px bg-gray-200 dark:bg-gray-700" />
+            <div className="absolute left-[7px] top-3 bottom-3 w-px bg-gray-200 dark:bg-[#3d3c3e]" />
             
             <div className="space-y-4">
               {data.careerPath.steps?.map((step, index) => (
@@ -143,7 +143,7 @@ export default function NextMoveInsight({ data }: NextMoveInsightProps) {
                 >
                   {/* Dot */}
                   <div className="absolute left-0 top-1.5 w-[15px] h-[15px] rounded-full 
-                    bg-white dark:bg-gray-900 border-2 border-indigo-500 z-10" />
+                    bg-white dark:bg-[#242325] border-2 border-indigo-500 z-10" />
                   
                   <div className="flex-1 pb-4">
                     <div className="flex items-center gap-2 mb-1">

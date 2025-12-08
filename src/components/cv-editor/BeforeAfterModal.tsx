@@ -1,14 +1,15 @@
 /**
  * BeforeAfterModal Component
  * Premium modal overlay for CV comparison with word-level diffs
+ * Design: "Glassmorphism meets Code Editor"
  */
 
-import { useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useCallback, useMemo, useState, useEffect } from 'react';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import {
-  X, GitCompare, Eye, EyeOff, Columns, Sparkles,
+  X, GitCompare, Columns, Sparkles,
   FileText, Briefcase, GraduationCap, Code,
-  ArrowLeft, ChevronRight, RotateCcw
+  Plus, Minus, RefreshCw
 } from 'lucide-react';
 import {
   CVComparisonResult,
@@ -16,7 +17,7 @@ import {
   ComparisonViewMode,
   ComparisonModalState,
 } from '../../types/cvComparison';
-import { SummaryDiff, ExperienceDiff, EducationDiff, SkillsDiff, DiffStats } from './comparison';
+import { SummaryDiff, ExperienceDiff, EducationDiff, SkillsDiff } from './comparison';
 
 interface BeforeAfterModalProps {
   isOpen: boolean;
@@ -34,59 +35,70 @@ interface BeforeAfterModalProps {
 const sectionConfig: Record<ComparisonSectionType, { 
   icon: typeof FileText; 
   label: string; 
-  color: string;
-  bgColor: string;
+  gradient: string;
 }> = {
   summary: { 
     icon: FileText, 
     label: 'Summary', 
-    color: 'text-blue-600 dark:text-blue-400',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/30'
+    gradient: 'from-blue-500 to-cyan-500'
   },
   experiences: { 
     icon: Briefcase, 
     label: 'Experience', 
-    color: 'text-purple-600 dark:text-purple-400',
-    bgColor: 'bg-purple-100 dark:bg-purple-900/30'
+    gradient: 'from-purple-500 to-pink-500'
   },
   education: { 
     icon: GraduationCap, 
     label: 'Education', 
-    color: 'text-indigo-600 dark:text-indigo-400',
-    bgColor: 'bg-indigo-100 dark:bg-indigo-900/30'
+    gradient: 'from-indigo-500 to-purple-500'
   },
   skills: { 
     icon: Code, 
     label: 'Skills', 
-    color: 'text-cyan-600 dark:text-cyan-400',
-    bgColor: 'bg-cyan-100 dark:bg-cyan-900/30'
+    gradient: 'from-emerald-500 to-teal-500'
   },
   certifications: { 
     icon: FileText, 
     label: 'Certifications', 
-    color: 'text-amber-600 dark:text-amber-400',
-    bgColor: 'bg-amber-100 dark:bg-amber-900/30'
+    gradient: 'from-amber-500 to-orange-500'
   },
   languages: { 
     icon: FileText, 
     label: 'Languages', 
-    color: 'text-[#5249e6] dark:text-[#a5a0ff]',
-    bgColor: 'bg-[#635BFF]/10 dark:bg-[#5249e6]/30'
+    gradient: 'from-rose-500 to-pink-500'
   },
   projects: { 
     icon: FileText, 
     label: 'Projects', 
-    color: 'text-rose-600 dark:text-rose-400',
-    bgColor: 'bg-rose-100 dark:bg-rose-900/30'
+    gradient: 'from-violet-500 to-purple-500'
   },
 };
 
-const viewModeConfig: Record<ComparisonViewMode, { icon: typeof GitCompare; label: string }> = {
-  diff: { icon: GitCompare, label: 'Diff' },
-  before: { icon: EyeOff, label: 'Before' },
-  after: { icon: Eye, label: 'After' },
-  split: { icon: Columns, label: 'Split' },
-};
+// Animated counter component
+function AnimatedCounter({ value, className = '' }: { value: number; className?: string }) {
+  const [displayValue, setDisplayValue] = useState(0);
+  
+  useEffect(() => {
+    const duration = 800;
+    const steps = 20;
+    const increment = value / steps;
+    let current = 0;
+    
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= value) {
+        setDisplayValue(value);
+        clearInterval(timer);
+      } else {
+        setDisplayValue(Math.floor(current));
+      }
+    }, duration / steps);
+    
+    return () => clearInterval(timer);
+  }, [value]);
+  
+  return <span className={className}>{displayValue}</span>;
+}
 
 export default function BeforeAfterModal({
   isOpen,
@@ -106,34 +118,38 @@ export default function BeforeAfterModal({
   const availableSections = useMemo(() => {
     if (!comparison) return [];
     
-    const sections: { type: ComparisonSectionType; hasChanges: boolean; stats: any }[] = [];
+    const sections: { type: ComparisonSectionType; hasChanges: boolean; changeCount: number }[] = [];
     
     if (comparison.summary) {
+      const stats = comparison.summary.changeStats;
       sections.push({ 
         type: 'summary', 
         hasChanges: comparison.summary.hasChanges,
-        stats: comparison.summary.changeStats
+        changeCount: stats.added + stats.removed + stats.modified
       });
     }
     if (comparison.experiences) {
+      const stats = comparison.experiences.changeStats;
       sections.push({ 
         type: 'experiences', 
         hasChanges: comparison.experiences.hasChanges,
-        stats: comparison.experiences.changeStats
+        changeCount: stats.added + stats.removed + stats.modified
       });
     }
     if (comparison.education) {
+      const stats = comparison.education.changeStats;
       sections.push({ 
         type: 'education', 
         hasChanges: comparison.education.hasChanges,
-        stats: comparison.education.changeStats
+        changeCount: stats.added + stats.removed + stats.modified
       });
     }
     if (comparison.skills) {
+      const stats = comparison.skills.changeStats;
       sections.push({ 
         type: 'skills', 
         hasChanges: comparison.skills.hasChanges,
-        stats: comparison.skills.changeStats
+        changeCount: stats.added + stats.removed + stats.modified
       });
     }
     
@@ -180,185 +196,227 @@ export default function BeforeAfterModal({
     }
   }, [comparison, effectiveSection, viewMode, expandedExperienceIds, onToggleExperienceExpanded]);
 
+  // Calculate total changes for the summary
+  const totalChanges = useMemo(() => {
+    if (!comparison) return { added: 0, removed: 0, modified: 0 };
+    return {
+      added: comparison.totalStats.totalAdded,
+      removed: comparison.totalStats.totalRemoved,
+      modified: comparison.totalStats.totalModified,
+    };
+  }, [comparison]);
+
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop with noise texture */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 z-50"
+            style={{
+              background: 'linear-gradient(135deg, rgba(10,10,11,0.97) 0%, rgba(20,20,25,0.98) 100%)',
+              backdropFilter: 'blur(8px)',
+            }}
           />
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-4 md:inset-8 lg:inset-12 xl:inset-16 
-                       bg-white dark:bg-[#1a1a1d] rounded-3xl shadow-2xl z-50
-                       flex flex-col overflow-hidden
-                       border border-gray-200 dark:border-gray-800"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ 
+              type: 'spring', 
+              damping: 30, 
+              stiffness: 400,
+              duration: 0.4 
+            }}
+            className="fixed inset-3 sm:inset-4 md:inset-6 lg:inset-8 z-50
+                       flex flex-col overflow-hidden rounded-2xl
+                       border border-white/10"
+            style={{
+              background: 'linear-gradient(180deg, rgba(25,25,30,0.95) 0%, rgba(15,15,18,0.98) 100%)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.05)',
+            }}
           >
             {/* Header */}
-            <div className="flex-shrink-0 px-6 py-4 border-b border-gray-200 dark:border-gray-800
-                            bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-[#1a1a1d]">
+            <div className="flex-shrink-0 px-6 py-4 border-b border-white/5">
               <div className="flex items-center justify-between">
+                {/* Left: Title */}
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#635BFF] to-[#7c75ff] 
-                                  flex items-center justify-center shadow-lg shadow-[#635BFF]/20">
-                    <Sparkles className="w-6 h-6 text-white" />
-                  </div>
+                  <motion.div 
+                    initial={{ rotate: -180, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.5 }}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(251,191,36,0.2) 0%, rgba(245,158,11,0.1) 100%)',
+                      border: '1px solid rgba(251,191,36,0.3)',
+                    }}
+                  >
+                    <Sparkles className="w-5 h-5 text-amber-400" />
+                  </motion.div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                      AI Changes Overview
+                    <h2 className="text-lg font-semibold text-white tracking-tight"
+                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                      CV Changes Review
                     </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Compare your original CV with AI-optimized version
+                    <p className="text-xs text-white/40 mt-0.5">
+                      Compare your original with AI-optimized version
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  {/* Global Stats */}
-                  {comparison && (
-                    <DiffStats
-                      added={comparison.totalStats.totalAdded}
-                      removed={comparison.totalStats.totalRemoved}
-                      modified={comparison.totalStats.totalModified}
-                      size="md"
-                    />
-                  )}
-                  
-                  {/* Close Button */}
-                  <button
-                    onClick={onClose}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center
-                               text-gray-400 hover:text-gray-600 dark:hover:text-gray-300
-                               hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                {/* Center: View Mode Toggle */}
+                <div className="absolute left-1/2 -translate-x-1/2">
+                  <LayoutGroup>
+                    <div className="relative flex items-center p-1 rounded-xl"
+                         style={{
+                           background: 'rgba(255,255,255,0.05)',
+                           border: '1px solid rgba(255,255,255,0.08)',
+                         }}>
+                      <button
+                        onClick={() => onSetViewMode('diff')}
+                        className="relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium 
+                                    transition-colors duration-200"
+                      >
+                        {viewMode === 'diff' && (
+                          <motion.div
+                            layoutId="viewModeIndicator"
+                            className="absolute inset-0 rounded-lg"
+                            style={{
+                              background: 'linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.1) 100%)',
+                              border: '1px solid rgba(251,191,36,0.3)',
+                            }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                          />
+                        )}
+                        <GitCompare className={`relative z-10 w-4 h-4 ${viewMode === 'diff' ? 'text-amber-400' : 'text-white/50'}`} />
+                        <span className={`relative z-10 ${viewMode === 'diff' ? 'text-amber-400' : 'text-white/50 hover:text-white/70'}`}>Unified</span>
+                      </button>
+                      
+                      <button
+                        onClick={() => onSetViewMode('split')}
+                        className="relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium 
+                                    transition-colors duration-200"
+                      >
+                        {viewMode === 'split' && (
+                          <motion.div
+                            layoutId="viewModeIndicator"
+                            className="absolute inset-0 rounded-lg"
+                            style={{
+                              background: 'linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.1) 100%)',
+                              border: '1px solid rgba(251,191,36,0.3)',
+                            }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                          />
+                        )}
+                        <Columns className={`relative z-10 w-4 h-4 ${viewMode === 'split' ? 'text-amber-400' : 'text-white/50'}`} />
+                        <span className={`relative z-10 ${viewMode === 'split' ? 'text-amber-400' : 'text-white/50 hover:text-white/70'}`}>Side by Side</span>
+                      </button>
+                    </div>
+                  </LayoutGroup>
                 </div>
+
+                {/* Right: Close Button */}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={onClose}
+                  className="w-9 h-9 rounded-lg flex items-center justify-center
+                             text-white/40 hover:text-white/70 transition-colors"
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </motion.button>
               </div>
 
-              {/* View Mode Toggle */}
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
-                  {(Object.keys(viewModeConfig) as ComparisonViewMode[]).map((mode) => {
-                    const config = viewModeConfig[mode];
-                    const Icon = config.icon;
-                    return (
-                      <button
-                        key={mode}
-                        onClick={() => onSetViewMode(mode)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium 
-                                    transition-all duration-200 ${
-                          viewMode === mode
-                            ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        {config.label}
-                      </button>
-                    );
-                  })}
-                </div>
+              {/* Section Pills */}
+              <div className="flex items-center gap-2 mt-5 overflow-x-auto pb-1 scrollbar-hide">
+                {availableSections.map(({ type, hasChanges, changeCount }, index) => {
+                  const config = sectionConfig[type];
+                  const Icon = config.icon;
+                  const isActive = effectiveSection === type;
 
-                {/* Legend */}
-                {viewMode === 'diff' && (
-                  <div className="flex items-center gap-4 text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded bg-[#635BFF]/10 dark:bg-[#5249e6]/40 border border-[#7c75ff] dark:border-[#a5a0ff]" />
-                      <span className="text-gray-500 dark:text-gray-400">Added</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded bg-red-100 dark:bg-red-900/40 border border-red-300 dark:border-red-700" />
-                      <span className="text-gray-500 dark:text-gray-400">Removed</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700" />
-                      <span className="text-gray-500 dark:text-gray-400">Modified</span>
-                    </div>
-                  </div>
-                )}
+                  return (
+                    <motion.button
+                      key={type}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 + 0.2 }}
+                      onClick={() => onSelectSection(type)}
+                      className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium 
+                                  transition-all duration-300 whitespace-nowrap ${
+                        isActive
+                          ? 'text-white'
+                          : 'text-white/40 hover:text-white/60'
+                      }`}
+                      style={{
+                        background: isActive 
+                          ? 'rgba(255,255,255,0.08)' 
+                          : 'transparent',
+                        border: isActive 
+                          ? '1px solid rgba(255,255,255,0.12)' 
+                          : '1px solid transparent',
+                        boxShadow: isActive 
+                          ? '0 0 20px rgba(251,191,36,0.1)' 
+                          : 'none',
+                      }}
+                    >
+                      {/* Active indicator dot */}
+                      {isActive && (
+                        <motion.span
+                          layoutId="activeSectionDot"
+                          className="absolute -left-0.5 top-1/2 -translate-y-1/2 w-1 h-4 rounded-full"
+                          style={{
+                            background: 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)',
+                          }}
+                        />
+                      )}
+                      
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-amber-400' : ''}`} />
+                      <span>{config.label}</span>
+                      
+                      {/* Change count badge */}
+                      {hasChanges && changeCount > 0 && (
+                        <motion.span
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-md"
+                          style={{
+                            background: isActive 
+                              ? 'linear-gradient(135deg, rgba(251,191,36,0.3) 0%, rgba(245,158,11,0.2) 100%)'
+                              : 'rgba(255,255,255,0.1)',
+                            color: isActive ? '#fbbf24' : 'rgba(255,255,255,0.5)',
+                          }}
+                        >
+                          {changeCount}
+                        </motion.span>
+                      )}
+                    </motion.button>
+                  );
+                })}
               </div>
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex min-h-0 overflow-hidden">
-              {/* Section Sidebar */}
-              <div className="w-64 flex-shrink-0 border-r border-gray-200 dark:border-gray-800
-                              bg-gray-50/50 dark:bg-gray-900/50 overflow-y-auto">
-                <div className="p-4 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3 px-2">
-                    Sections
-                  </p>
-                  {availableSections.map(({ type, hasChanges, stats }) => {
-                    const config = sectionConfig[type];
-                    const Icon = config.icon;
-                    const isActive = effectiveSection === type;
-
-                    return (
-                      <button
-                        key={type}
-                        onClick={() => onSelectSection(type)}
-                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl
-                                    transition-all duration-200 group ${
-                          isActive
-                            ? 'bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700'
-                            : 'hover:bg-white/50 dark:hover:bg-gray-800/50'
-                        }`}
-                      >
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center
-                                        ${isActive ? config.bgColor : 'bg-gray-100 dark:bg-gray-800'}`}>
-                          <Icon className={`w-4.5 h-4.5 ${isActive ? config.color : 'text-gray-400 dark:text-gray-500'}`} />
-                        </div>
-                        <div className="flex-1 text-left min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className={`text-sm font-medium ${
-                              isActive ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
-                            }`}>
-                              {config.label}
-                            </span>
-                            {hasChanges && (
-                              <span className="flex-shrink-0 w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                            )}
-                          </div>
-                          {hasChanges && stats && (
-                            <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
-                              {stats.added > 0 && `+${stats.added}`}
-                              {stats.modified > 0 && ` ~${stats.modified}`}
-                              {stats.removed > 0 && ` -${stats.removed}`}
-                            </p>
-                          )}
-                        </div>
-                        <ChevronRight className={`w-4 h-4 transition-transform ${
-                          isActive 
-                            ? 'text-gray-400 translate-x-0' 
-                            : 'text-gray-300 dark:text-gray-600 group-hover:translate-x-0.5'
-                        }`} />
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Content Area */}
-              <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-hidden">
+              <div className="h-full overflow-y-auto custom-scrollbar">
                 <div className="p-6">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={effectiveSection}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.2 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3, ease: 'easeOut' }}
                     >
                       {renderSectionContent()}
                     </motion.div>
@@ -367,58 +425,113 @@ export default function BeforeAfterModal({
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 dark:border-gray-800
-                            bg-gray-50/50 dark:bg-gray-900/50">
+            {/* Footer - Stats Summary */}
+            <div className="flex-shrink-0 px-6 py-4 border-t border-white/5">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {onRevertSection && (
-                    <button
-                      onClick={() => onRevertSection(effectiveSection)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl
-                                 text-sm font-medium text-gray-600 dark:text-gray-400
-                                 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      Revert This Section
-                    </button>
-                  )}
-                </div>
+                {/* Stats */}
+                <motion.div 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="flex items-center gap-6"
+                >
+                  {/* Added */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md flex items-center justify-center"
+                         style={{ background: 'rgba(16,185,129,0.15)' }}>
+                      <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                    </div>
+                    <span className="text-sm">
+                      <AnimatedCounter value={totalChanges.added} className="font-semibold text-emerald-400" />
+                      <span className="text-white/40 ml-1.5">additions</span>
+                    </span>
+                  </div>
 
+                  {/* Removed */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md flex items-center justify-center"
+                         style={{ background: 'rgba(248,113,113,0.15)' }}>
+                      <Minus className="w-3.5 h-3.5 text-red-400" />
+                    </div>
+                    <span className="text-sm">
+                      <AnimatedCounter value={totalChanges.removed} className="font-semibold text-red-400" />
+                      <span className="text-white/40 ml-1.5">removals</span>
+                    </span>
+                  </div>
+
+                  {/* Modified */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md flex items-center justify-center"
+                         style={{ background: 'rgba(251,191,36,0.15)' }}>
+                      <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
+                    </div>
+                    <span className="text-sm">
+                      <AnimatedCounter value={totalChanges.modified} className="font-semibold text-amber-400" />
+                      <span className="text-white/40 ml-1.5">modifications</span>
+                    </span>
+                  </div>
+                </motion.div>
+
+                {/* Actions */}
                 <div className="flex items-center gap-3">
                   {onRevertAll && (
-                    <button
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                       onClick={onRevertAll}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl
-                                 text-sm font-medium text-red-600 dark:text-red-400
-                                 border border-red-200 dark:border-red-800/50
-                                 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg
+                                 text-sm font-medium text-red-400 transition-colors"
+                      style={{
+                        background: 'rgba(248,113,113,0.1)',
+                        border: '1px solid rgba(248,113,113,0.2)',
+                      }}
                     >
-                      <ArrowLeft className="w-4 h-4" />
-                      Revert All Changes
-                    </button>
+                      Revert All
+                    </motion.button>
                   )}
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={onClose}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl
-                               text-sm font-semibold text-white
-                               bg-gradient-to-r from-[#635BFF] to-[#7c75ff]
-                               hover:from-[#5249e6] hover:to-[#7c75ff]
-                               shadow-lg shadow-[#635BFF]/20
-                               transition-all duration-200"
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-lg
+                               text-sm font-semibold text-black transition-all"
+                    style={{
+                      background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                      boxShadow: '0 4px 14px rgba(251,191,36,0.3)',
+                    }}
                   >
                     Done
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </div>
           </motion.div>
+
+          {/* Custom scrollbar styles */}
+          <style>{`
+            .custom-scrollbar::-webkit-scrollbar {
+              width: 6px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-track {
+              background: transparent;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+              background: rgba(255,255,255,0.1);
+              border-radius: 3px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+              background: rgba(255,255,255,0.2);
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+              display: none;
+            }
+            .scrollbar-hide {
+              -ms-overflow-style: none;
+              scrollbar-width: none;
+            }
+          `}</style>
         </>
       )}
     </AnimatePresence>
   );
 }
-
-
-
-

@@ -110,7 +110,7 @@ export default function CompanyHeader({ companyName, jobTitle, appliedDate }: Co
   return (
     <div className="flex items-center gap-3">
       {/* Company Logo */}
-      <div className="w-11 h-11 rounded-xl overflow-hidden shadow-sm flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+      <div className="w-11 h-11 rounded-xl overflow-hidden shadow-sm flex items-center justify-center bg-gray-100 dark:bg-[#2b2a2c]">
         {!logoError && companyName ? (
           <img
             src={getCompanyLogo(companyName)}

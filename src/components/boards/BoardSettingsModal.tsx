@@ -212,7 +212,7 @@ export default function BoardSettingsModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 40 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-200/50 dark:border-gray-700/50"
+          className="bg-white dark:bg-[#242325] rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-200/50 dark:border-[#3d3c3e]/50"
         >
           <AnimatePresence mode="wait">
             {/* Step 1: Type Selection (only in create mode) */}
@@ -225,10 +225,10 @@ export default function BoardSettingsModal({
                 transition={{ duration: 0.2 }}
               >
                 {/* Header */}
-                <div className="relative px-6 py-6 border-b border-gray-100 dark:border-gray-800">
+                <div className="relative px-6 py-6 border-b border-gray-100 dark:border-[#3d3c3e]">
                   <button
                     onClick={onClose}
-                    className="absolute top-6 right-6 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition-colors"
+                    className="absolute top-6 right-6 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-400 transition-colors"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -247,7 +247,7 @@ export default function BoardSettingsModal({
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.99 }}
                     onClick={() => handleSelectType('jobs')}
-                    className="w-full p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-[#635BFF] dark:hover:border-[#635BFF] bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/50 transition-all group text-left"
+                    className="w-full p-6 rounded-2xl border-2 border-gray-200 dark:border-[#3d3c3e] hover:border-[#635BFF] dark:hover:border-[#635BFF] bg-gradient-to-br from-white to-gray-50 dark:from-[#2b2a2c] dark:to-[#2b2a2c]/50 transition-all group text-left"
                   >
                     <div className="flex items-start gap-5">
                       <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#635BFF] to-[#8B5CF6] flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#635BFF]/20">
@@ -269,7 +269,7 @@ export default function BoardSettingsModal({
                           {Object.values(JOB_COLUMN_LABELS).map((label) => (
                             <span
                               key={label}
-                              className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-300"
+                              className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-[#3d3c3e] text-xs font-medium text-gray-600 dark:text-gray-300"
                             >
                               {label}
                             </span>
@@ -285,7 +285,7 @@ export default function BoardSettingsModal({
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.99 }}
                     onClick={() => handleSelectType('campaigns')}
-                    className="w-full p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/50 transition-all group text-left"
+                    className="w-full p-6 rounded-2xl border-2 border-gray-200 dark:border-[#3d3c3e] hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] bg-gradient-to-br from-white to-gray-50 dark:from-[#2b2a2c] dark:to-[#2b2a2c]/50 transition-all group text-left"
                   >
                     <div className="flex items-start gap-5">
                       <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#EC4899] flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#8B5CF6]/20">
@@ -307,7 +307,7 @@ export default function BoardSettingsModal({
                           {Object.values(CAMPAIGN_COLUMN_LABELS).map((label) => (
                             <span
                               key={label}
-                              className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-300"
+                              className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-[#3d3c3e] text-xs font-medium text-gray-600 dark:text-gray-300"
                             >
                               {label}
                             </span>
@@ -341,7 +341,7 @@ export default function BoardSettingsModal({
                         : `linear-gradient(135deg, ${color}40 0%, ${color}20 50%, transparent 100%)`
                     }}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white dark:to-gray-900" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white dark:to-[#242325]" />
                   </div>
                   
                   {/* Floating Icon */}
@@ -402,14 +402,14 @@ export default function BoardSettingsModal({
 
                 {/* Section Tabs */}
                 <div className="px-6 pb-4">
-                  <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                  <div className="flex gap-1 p-1 bg-gray-100 dark:bg-[#2b2a2c] rounded-xl">
                     {sections.map((section) => (
                       <button
                         key={section.id}
                         onClick={() => setActiveSection(section.id)}
                         className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
                           activeSection === section.id
-                            ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                            ? 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white shadow-sm'
                             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                         }`}
                       >
@@ -446,7 +446,7 @@ export default function BoardSettingsModal({
                               ? "e.g., Tech Jobs 2025, Remote Positions..." 
                               : "e.g., Startup Outreach, Q1 Campaign..."
                             }
-                            className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-[#635BFF] focus:bg-white dark:focus:bg-gray-800 transition-all outline-none"
+                            className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#2b2a2c] text-gray-900 dark:text-white placeholder-gray-400 focus:border-[#635BFF] focus:bg-white dark:focus:bg-gray-800 transition-all outline-none"
                           />
                         </div>
 
@@ -464,7 +464,7 @@ export default function BoardSettingsModal({
                               : "Describe your outreach campaign..."
                             }
                             rows={3}
-                            className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-[#635BFF] focus:bg-white dark:focus:bg-gray-800 transition-all outline-none resize-none"
+                            className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#2b2a2c] text-gray-900 dark:text-white placeholder-gray-400 focus:border-[#635BFF] focus:bg-white dark:focus:bg-gray-800 transition-all outline-none resize-none"
                           />
                         </div>
 
@@ -479,7 +479,7 @@ export default function BoardSettingsModal({
                                 type="text"
                                 value={icon}
                                 onChange={(e) => setIcon(e.target.value.slice(-2))}
-                                className="w-16 h-16 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-center text-2xl focus:border-[#635BFF] transition-all outline-none"
+                                className="w-16 h-16 rounded-xl border-2 border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#2b2a2c] text-center text-2xl focus:border-[#635BFF] transition-all outline-none"
                                 placeholder={boardType === 'jobs' ? '💼' : '📨'}
                               />
                             </div>
@@ -495,7 +495,7 @@ export default function BoardSettingsModal({
                                     className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-all ${
                                       icon === emoji 
                                         ? 'bg-[#635BFF] ring-2 ring-[#635BFF]/30 shadow-lg' 
-                                        : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                        : 'bg-gray-100 dark:bg-[#2b2a2c] hover:bg-gray-200 dark:hover:bg-[#3d3c3e]'
                                     }`}
                                   >
                                     {emoji}
@@ -613,7 +613,7 @@ export default function BoardSettingsModal({
                         transition={{ duration: 0.2 }}
                         className="space-y-5"
                       >
-                        <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+                        <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-200 dark:border-[#3d3c3e]">
                           <p className="text-sm text-gray-600 dark:text-gray-300">
                             <span className="font-semibold">
                               {boardType === 'jobs' ? 'Job Application' : 'Campaign'} columns
@@ -623,7 +623,7 @@ export default function BoardSettingsModal({
                             {standardColumns.map((col) => (
                               <span 
                                 key={col}
-                                className="px-3 py-1 rounded-lg bg-white dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600"
+                                className="px-3 py-1 rounded-lg bg-white dark:bg-[#3d3c3e] text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-[#4a494b]"
                               >
                                 {columnLabels[col]}
                               </span>
@@ -648,7 +648,7 @@ export default function BoardSettingsModal({
                                   animate={{ opacity: 1, y: 0 }}
                                   exit={{ opacity: 0, x: -20 }}
                                   transition={{ delay: index * 0.05 }}
-                                  className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 group"
+                                  className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] group"
                                 >
                                   <div className="flex gap-1">
                                     {BOARD_COLORS.slice(0, 5).map((c) => (
@@ -684,7 +684,7 @@ export default function BoardSettingsModal({
                               onChange={(e) => setNewColumnName(e.target.value)}
                               placeholder="New column name..."
                               onKeyDown={(e) => e.key === 'Enter' && addCustomColumn()}
-                              className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-[#635BFF] transition-all outline-none"
+                              className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#2b2a2c] text-gray-900 dark:text-white placeholder-gray-400 focus:border-[#635BFF] transition-all outline-none"
                             />
                             <motion.button
                               whileHover={{ scale: 1.02 }}
@@ -700,7 +700,7 @@ export default function BoardSettingsModal({
 
                         {/* Delete Board */}
                         {mode === 'edit' && onDelete && !board?.isDefault && (
-                          <div className="pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
+                          <div className="pt-6 mt-6 border-t border-gray-200 dark:border-[#3d3c3e]">
                             {!showDeleteConfirm ? (
                               <button
                                 onClick={() => setShowDeleteConfirm(true)}
@@ -743,7 +743,7 @@ export default function BoardSettingsModal({
                                   </button>
                                   <button
                                     onClick={() => setShowDeleteConfirm(false)}
-                                    className="flex-1 py-2.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium text-sm transition-colors"
+                                    className="flex-1 py-2.5 rounded-xl bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#4a494b] text-gray-700 dark:text-gray-300 font-medium text-sm transition-colors"
                                   >
                                     Cancel
                                   </button>
@@ -758,7 +758,7 @@ export default function BoardSettingsModal({
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">
+                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-[#3d3c3e] bg-gray-50/50 dark:bg-[#2b2a2c]/50">
                   <div className="text-xs text-gray-400">
                     {name.trim() ? (
                       <span className="flex items-center gap-1">
@@ -772,7 +772,7 @@ export default function BoardSettingsModal({
                   <div className="flex items-center gap-3">
                     <button
                       onClick={onClose}
-                      className="px-5 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-colors"
+                      className="px-5 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] font-medium transition-colors"
                     >
                       Cancel
                     </button>

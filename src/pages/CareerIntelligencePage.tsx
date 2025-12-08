@@ -402,7 +402,7 @@ export default function CareerIntelligencePage() {
                 <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
               </div>
             ) : (
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-50/50 via-white to-purple-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-indigo-900/20 border-b border-white/20 dark:border-gray-700/20">
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-50/50 via-white to-purple-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-indigo-900/20 border-b border-white/20 dark:border-[#3d3c3e]/20">
                 <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
                    style={{ backgroundImage: 'radial-gradient(#6366F1 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
                 />
@@ -427,31 +427,31 @@ export default function CareerIntelligencePage() {
                       <button
                         onClick={() => setIsCoverGalleryOpen(true)}
                         className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 
-                          bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800
-                          border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm transition-all duration-200
+                          bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm hover:bg-white dark:hover:bg-[#3d3c3e]
+                          border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-sm transition-all duration-200
                           hover:shadow-md group"
                       >
                         <Image className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors" />
                         <span>Add cover</span>
                       </button>
                     ) : (
-                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
+                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-[#242325]/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
                         <button
                           onClick={() => setIsCoverGalleryOpen(true)}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                            hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
                         >
                           <Image className="w-3.5 h-3.5" />
                           Change cover
                         </button>
                         
-                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
                         
                         <button
                           onClick={() => coverFileInputRef.current?.click()}
                           disabled={isUpdatingCover}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                            hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                            hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
                         >
                           {isUpdatingCover ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -461,7 +461,7 @@ export default function CareerIntelligencePage() {
                           Upload
                         </button>
                         
-                        <div className="w-px h-3 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
                         
                         <button
                           onClick={handleRemoveCover}
@@ -511,8 +511,8 @@ export default function CareerIntelligencePage() {
                     ${coverPhoto 
                       ? (isCoverDark 
                         ? 'text-white bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30'
-                        : 'text-gray-900 dark:text-white bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800')
-                      : 'text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        : 'text-gray-900 dark:text-white bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-sm border border-gray-200 dark:border-[#3d3c3e] hover:bg-white dark:hover:bg-[#3d3c3e]')
+                      : 'text-gray-700 dark:text-gray-200 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
@@ -744,7 +744,7 @@ export default function CareerIntelligencePage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="mt-12 pt-6 border-t border-gray-100 dark:border-gray-800"
+              className="mt-12 pt-6 border-t border-gray-100 dark:border-[#3d3c3e]"
             >
               <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
                 Insights saved · Last updated {(() => {

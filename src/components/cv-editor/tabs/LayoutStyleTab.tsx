@@ -111,12 +111,12 @@ function CollapsibleSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border border-gray-100 dark:border-gray-800/60 rounded-xl bg-white/50 dark:bg-gray-900/30 backdrop-blur-sm overflow-hidden">
+    <div className="border border-gray-100 dark:border-[#3d3c3e]/60 rounded-xl bg-white/50 dark:bg-[#242325]/30 backdrop-blur-sm overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors"
       >
-        <div className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-gray-800/60">
+        <div className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-[#2b2a2c]/60">
           <Icon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
         </div>
         <span className="flex-1 text-left text-sm font-medium text-gray-900 dark:text-white">
@@ -189,7 +189,7 @@ function PremiumSlider({
         </span>
       </div>
       <div className="relative pt-1 pb-1">
-        <div className="relative h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+        <div className="relative h-2 bg-gray-100 dark:bg-[#2b2a2c] rounded-full overflow-hidden">
           <motion.div 
             className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#635BFF] to-[#8B5CF6] rounded-full"
             initial={false}
@@ -248,9 +248,9 @@ function FontPicker({
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/60 rounded-xl hover:border-[#635BFF]/50 dark:hover:border-[#635BFF]/30 transition-all group"
+        className="w-full flex items-center gap-3 px-4 py-3 bg-white dark:bg-[#2b2a2c]/60 border border-gray-200 dark:border-[#3d3c3e]/60 rounded-xl hover:border-[#635BFF]/50 dark:hover:border-[#635BFF]/30 transition-all group"
       >
-        <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700/50 group-hover:bg-[#635BFF]/10 transition-colors">
+        <div className="p-2 rounded-lg bg-gray-100 dark:bg-[#3d3c3e]/50 group-hover:bg-[#635BFF]/10 transition-colors">
           <Type className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-[#635BFF]" />
         </div>
         <div className="flex-1 text-left">
@@ -282,10 +282,10 @@ function FontPicker({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.96 }}
               transition={{ duration: 0.15 }}
-              className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-20 overflow-hidden max-h-[320px] overflow-y-auto"
+              className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e] rounded-xl shadow-xl z-20 overflow-hidden max-h-[320px] overflow-y-auto"
             >
               {/* Sans-Serif Group */}
-              <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 sticky top-0">
+              <div className="px-3 py-2 bg-gray-50 dark:bg-[#2b2a2c]/50 sticky top-0">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Sans-Serif
                 </span>
@@ -319,7 +319,7 @@ function FontPicker({
               ))}
 
               {/* Serif Group */}
-              <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 sticky top-0">
+              <div className="px-3 py-2 bg-gray-50 dark:bg-[#2b2a2c]/50 sticky top-0">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Serif
                 </span>
@@ -433,7 +433,7 @@ function OptionSelector({
             className={`flex flex-col items-start px-3 py-2.5 rounded-xl border transition-all text-left ${
               value === option.value
                 ? 'border-[#635BFF] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
-                : 'border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800/40'
+                : 'border-gray-200 dark:border-[#3d3c3e]/60 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-[#2b2a2c]/40'
             }`}
           >
             <span className={`text-sm font-medium ${
@@ -499,7 +499,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
       {/* Subtle gradient header */}
-      <div className="sticky top-0 z-10 px-5 py-4 bg-gradient-to-b from-gray-50 via-gray-50/95 to-gray-50/0 dark:from-gray-900 dark:via-gray-900/95 dark:to-gray-900/0">
+      <div className="sticky top-0 z-10 px-5 py-4 bg-gradient-to-b from-gray-50 via-gray-50/95 to-gray-50/0 dark:from-[#242325] dark:via-[#242325]/95 dark:to-[#242325]/0">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
           Style & Layout
         </h2>
@@ -542,8 +542,8 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                             className={`
                               group flex items-center gap-2.5 px-3 py-2.5 rounded-xl
                               ${snapshot.isDragging 
-                                ? 'bg-white dark:bg-gray-800 shadow-2xl ring-2 ring-[#635BFF] z-50' 
-                                : 'bg-gray-50/80 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-800/60'
+                                ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50' 
+                                : 'bg-gray-50/80 dark:bg-[#2b2a2c]/40 hover:bg-gray-100 dark:hover:bg-gray-800/60'
                               }
                               ${isLocked ? 'opacity-50' : ''}
                             `}
@@ -586,7 +586,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                   onBlur={saveTitle}
                                   onKeyPress={(e) => e.key === 'Enter' && saveTitle()}
                                   autoFocus
-                                  className="w-full px-2 py-1 text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-[#635BFF] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#635BFF]/30"
+                                  className="w-full px-2 py-1 text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-[#3d3c3e] border border-[#635BFF] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#635BFF]/30"
                                 />
                               ) : (
                                 <span

@@ -208,16 +208,16 @@ export default function EditorPanel({
   // Collapsed version - just icons
   if (isCollapsed) {
     return (
-      <div className="h-full flex flex-col overflow-hidden bg-white dark:bg-gray-900">
+      <div className="h-full flex flex-col overflow-hidden bg-white dark:bg-[#242325]">
         {/* Collapsed Header with expand button */}
-        <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="flex-shrink-0 border-b border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325]">
           <div className="px-3 py-3 flex items-center justify-center">
             {onToggleCollapse && (
               <motion.button
                 onClick={onToggleCollapse}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-all duration-200 group"
+                className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] hover:bg-gray-200 dark:hover:bg-[#3d3c3e] border border-gray-200 dark:border-[#3d3c3e] transition-all duration-200 group"
                 aria-label="Expand panel"
                 title="Ouvrir le panneau"
               >
@@ -244,7 +244,7 @@ export default function EditorPanel({
               className={`
                 relative w-full flex items-center justify-center p-2.5 rounded-lg transition-all
                 ${section.enabled
-                  ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e]'
                   : 'text-gray-400 dark:text-gray-600 opacity-50'
                 }
               `}
@@ -253,7 +253,7 @@ export default function EditorPanel({
               {sectionIcons[section.type] || <FileText className="w-5 h-5" />}
               {/* AI indicator for sections with AI enhancement */}
               {(section.type === 'summary' || section.type === 'experience' || section.type === 'projects') && (
-                <span className="absolute -top-1 -right-1 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 border border-white dark:border-gray-900">
+                <span className="absolute -top-1 -right-1 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 border border-white dark:border-[#242325]">
                   <Sparkles className="w-2 h-2 text-white" />
                 </span>
               )}
@@ -266,9 +266,9 @@ export default function EditorPanel({
 
   // Full version
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-white dark:bg-gray-900">
+    <div className="h-full flex flex-col overflow-hidden bg-white dark:bg-[#242325]">
       {/* Premium Tabs Navigation */}
-      <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+      <div className="flex-shrink-0 border-b border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325]">
         <div className="px-4 py-3 flex items-center">
           {/* AI Review Tab */}
           <button
@@ -367,7 +367,7 @@ export default function EditorPanel({
               onClick={onToggleCollapse}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-all duration-200 group"
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] hover:bg-gray-200 dark:hover:bg-[#3d3c3e] border border-gray-200 dark:border-[#3d3c3e] transition-all duration-200 group"
               aria-label={isCollapsed ? 'Expand panel' : 'Collapse panel'}
               title="Réduire le panneau"
             >
@@ -411,7 +411,7 @@ export default function EditorPanel({
             className="flex-1 min-h-0 overflow-hidden flex flex-col"
           >
             {/* Premium Header with gradient fade */}
-            <div className="sticky top-0 z-10 px-5 py-4 bg-gradient-to-b from-white via-white/95 to-white/0 dark:from-gray-900 dark:via-gray-900/95 dark:to-gray-900/0">
+            <div className="sticky top-0 z-10 px-5 py-4 bg-gradient-to-b from-white via-white/95 to-white/0 dark:from-[#242325] dark:via-[#242325]/95 dark:to-[#242325]/0">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 CV Sections
               </h2>
@@ -446,17 +446,17 @@ export default function EditorPanel({
                               className={`
                                 group rounded-xl border overflow-hidden
                                 ${snapshot.isDragging 
-                                  ? 'shadow-2xl ring-2 ring-[#635BFF] bg-white dark:bg-gray-800 border-[#635BFF] z-50' 
+                                  ? 'shadow-2xl ring-2 ring-[#635BFF] bg-white dark:bg-[#2b2a2c] border-[#635BFF] z-50' 
                                   : expandedSection === section.id
-                                    ? 'bg-white dark:bg-gray-900/50 shadow-sm border-gray-200 dark:border-gray-700/60 ring-1 ring-gray-100 dark:ring-gray-800'
-                                    : 'bg-white/50 dark:bg-gray-900/30 backdrop-blur-sm border-gray-100 dark:border-gray-800/60 hover:border-gray-200 dark:hover:border-gray-700/80 hover:shadow-sm hover:bg-white/80 dark:hover:bg-gray-900/40'
+                                    ? 'bg-white dark:bg-[#242325]/50 shadow-sm border-gray-200 dark:border-[#3d3c3e]/60 ring-1 ring-gray-100 dark:ring-gray-800'
+                                    : 'bg-white/50 dark:bg-[#242325]/30 backdrop-blur-sm border-gray-100 dark:border-[#3d3c3e]/60 hover:border-gray-200 dark:hover:border-gray-700/80 hover:shadow-sm hover:bg-white/80 dark:hover:bg-gray-900/40'
                                 }
                               `}
                               style={provided.draggableProps.style}
                             >
                               {/* Section Header */}
                               <div 
-                                className="w-full flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"
+                                className="w-full flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-[#3d3c3e]/30 transition-colors"
                                 onClick={() => toggleExpanded(section.id)}
                               >
                                 {/* Drag Handle - always slightly visible, more on hover */}
@@ -482,7 +482,7 @@ export default function EditorPanel({
                                     ? 'bg-[#635BFF]/10 text-[#635BFF]'
                                     : expandedSection === section.id 
                                       ? 'bg-[#635BFF]/10 text-[#635BFF] dark:text-[#a5a0ff]' 
-                                      : 'bg-gray-100/80 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400'
+                                      : 'bg-gray-100/80 dark:bg-[#2b2a2c]/60 text-gray-500 dark:text-gray-400'
                                   }
                                 `}>
                                   {sectionIconsSmall[section.type] || <FileText className="w-4 h-4" />}
@@ -516,7 +516,7 @@ export default function EditorPanel({
                                     e.stopPropagation();
                                     onToggleSection(section.id);
                                   }}
-                                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
+                                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
                                   title={section.enabled ? 'Masquer la section' : 'Afficher la section'}
                                 >
                                   {section.enabled ? (
@@ -546,7 +546,7 @@ export default function EditorPanel({
                                     transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                                     className="overflow-hidden"
                                   >
-                                    <div className="px-4 pb-4 pt-2 border-t border-gray-100 dark:border-gray-800/60">
+                                    <div className="px-4 pb-4 pt-2 border-t border-gray-100 dark:border-[#3d3c3e]/60">
                                       <SectionEditor
                                         section={section}
                                         data={getSectionData(section)}

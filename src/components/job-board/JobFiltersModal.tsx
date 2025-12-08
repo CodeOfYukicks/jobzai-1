@@ -36,8 +36,8 @@ export function JobFiltersModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-                <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+            <div className="bg-white dark:bg-[#242325] rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                <div className="p-4 border-b border-gray-200 dark:border-[#3d3c3e] flex items-center justify-between">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white">All Filters</h2>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
                         <X className="w-5 h-5 text-gray-500" />
@@ -85,7 +85,7 @@ export function JobFiltersModal({
                                 placeholder="Search tech..."
                                 value={techSearch}
                                 onChange={(e) => setTechSearch(e.target.value)}
-                                className="w-full pl-8 pr-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
+                                className="w-full pl-8 pr-2 py-1.5 text-xs border border-gray-200 dark:border-[#3d3c3e] rounded-md bg-gray-50 dark:bg-[#2b2a2c] text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
                             />
                         </div>
                         <div className="max-h-48 overflow-y-auto pr-1 custom-scrollbar">
@@ -108,7 +108,7 @@ export function JobFiltersModal({
                                 placeholder="Search skills..."
                                 value={skillSearch}
                                 onChange={(e) => setSkillSearch(e.target.value)}
-                                className="w-full pl-8 pr-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
+                                className="w-full pl-8 pr-2 py-1.5 text-xs border border-gray-200 dark:border-[#3d3c3e] rounded-md bg-gray-50 dark:bg-[#2b2a2c] text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
                             />
                         </div>
                         <div className="max-h-48 overflow-y-auto pr-1 custom-scrollbar">
@@ -138,7 +138,7 @@ export function JobFiltersModal({
                     </FilterAccordion>
                 </div>
 
-                <div className="p-4 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3 bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl">
+                <div className="p-4 border-t border-gray-200 dark:border-[#3d3c3e] flex justify-end gap-3 bg-gray-50 dark:bg-[#242325]/50 rounded-b-2xl">
                     <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
                         Cancel
                     </button>

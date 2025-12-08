@@ -52,8 +52,8 @@ export function JobFilterBar({
             className={`
                 search-header-container
                 ${isCollapsed ? 'search-header-collapsed' : 'search-header-expanded'}
-                bg-gradient-to-b from-gray-50/80 to-white dark:from-gray-950/80 dark:to-gray-900 
-                backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 sticky top-0 z-30
+                bg-gradient-to-b from-gray-50/80 to-white dark:from-[#333234]/80 dark:to-[#242325] 
+                backdrop-blur-xl border-b border-gray-200/50 dark:border-[#3d3c3e]/50 sticky top-0 z-30
             `}
             style={{
                 backdropFilter: 'blur(12px)',
@@ -73,7 +73,7 @@ export function JobFilterBar({
                             className="flex justify-center mb-6"
                         >
                             <motion.div 
-                                className="inline-flex bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl p-1 rounded-2xl border border-gray-200/50 dark:border-gray-800/50"
+                                className="inline-flex bg-white/80 dark:bg-[#242325]/80 backdrop-blur-xl p-1 rounded-2xl border border-gray-200/50 dark:border-[#3d3c3e]/50"
                                 style={{
                                     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
                                 }}
@@ -91,7 +91,7 @@ export function JobFilterBar({
                                     {mode === 'explore' && (
                                         <motion.div
                                             layoutId="activeTab"
-                                            className="absolute inset-0 bg-white dark:bg-gray-800 rounded-xl shadow-sm"
+                                            className="absolute inset-0 bg-white dark:bg-[#2b2a2c] rounded-xl shadow-sm"
                                             transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                                         />
                                     )}
@@ -113,7 +113,7 @@ export function JobFilterBar({
                                     {mode === 'matches' && (
                                         <motion.div
                                             layoutId="activeTab"
-                                            className="absolute inset-0 bg-white dark:bg-gray-800 rounded-xl shadow-sm"
+                                            className="absolute inset-0 bg-white dark:bg-[#2b2a2c] rounded-xl shadow-sm"
                                             transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                                         />
                                     )}
@@ -132,7 +132,7 @@ export function JobFilterBar({
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.25, delay: 0.1 }}
-                            className="hidden sm:flex flex-shrink-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl p-1 rounded-xl border border-gray-200/50 dark:border-gray-800/50"
+                            className="hidden sm:flex flex-shrink-0 bg-white/80 dark:bg-[#242325]/80 backdrop-blur-xl p-1 rounded-xl border border-gray-200/50 dark:border-[#3d3c3e]/50"
                             style={{
                                 boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)',
                             }}
@@ -150,7 +150,7 @@ export function JobFilterBar({
                                 {mode === 'explore' && (
                                     <motion.div
                                         layoutId="activeTabInline"
-                                        className="absolute inset-0 bg-white dark:bg-gray-800 rounded-lg shadow-sm"
+                                        className="absolute inset-0 bg-white dark:bg-[#2b2a2c] rounded-lg shadow-sm"
                                         transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
                                     />
                                 )}
@@ -172,7 +172,7 @@ export function JobFilterBar({
                                 {mode === 'matches' && (
                                     <motion.div
                                         layoutId="activeTabInline"
-                                        className="absolute inset-0 bg-white dark:bg-gray-800 rounded-lg shadow-sm"
+                                        className="absolute inset-0 bg-white dark:bg-[#2b2a2c] rounded-lg shadow-sm"
                                         transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
                                     />
                                 )}
@@ -213,7 +213,7 @@ export function JobFilterBar({
                             flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all
                             ${activeFiltersCount > 0
                                 ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 shadow-sm'
-                                : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 shadow-sm'
+                                : 'bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-[#4a494b] shadow-sm'
                             }
                         `}
                     >
@@ -289,7 +289,7 @@ function FilterPill({ label, active, onClick }: { label: string, active: boolean
                 px-3.5 py-1.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all shadow-sm
                 ${active
                     ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md'
-                    : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                    : 'bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-[#4a494b]'
                 }
             `}
         >

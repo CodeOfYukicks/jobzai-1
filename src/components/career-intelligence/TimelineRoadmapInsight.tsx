@@ -96,7 +96,7 @@ export default function TimelineRoadmapInsight({ data }: TimelineRoadmapInsightP
         
         <div className="relative">
           {/* Timeline line */}
-          <div className="absolute left-[11px] top-6 bottom-6 w-0.5 bg-gray-200 dark:bg-gray-700" />
+          <div className="absolute left-[11px] top-6 bottom-6 w-0.5 bg-gray-200 dark:bg-[#3d3c3e]" />
           
           <div className="space-y-4">
             {data.milestones?.map((milestone, index) => (
@@ -107,7 +107,7 @@ export default function TimelineRoadmapInsight({ data }: TimelineRoadmapInsightP
                 transition={{ delay: index * 0.1 }}
                 className="relative flex gap-4"
               >
-                <div className="relative z-10 flex-shrink-0 bg-white dark:bg-gray-900">
+                <div className="relative z-10 flex-shrink-0 bg-white dark:bg-[#242325]">
                   {getStatusIcon(milestone.status)}
                 </div>
                 
@@ -158,7 +158,7 @@ export default function TimelineRoadmapInsight({ data }: TimelineRoadmapInsightP
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="p-4 bg-gray-50 dark:bg-gray-800/40 rounded-lg border-l-4 border-l-teal-400"
+            className="p-4 bg-gray-50 dark:bg-[#2b2a2c]/40 rounded-lg border-l-4 border-l-teal-400"
           >
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg font-bold text-teal-600 dark:text-teal-400">30</span>
@@ -174,7 +174,7 @@ export default function TimelineRoadmapInsight({ data }: TimelineRoadmapInsightP
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="p-4 bg-gray-50 dark:bg-gray-800/40 rounded-lg border-l-4 border-l-cyan-400"
+            className="p-4 bg-gray-50 dark:bg-[#2b2a2c]/40 rounded-lg border-l-4 border-l-cyan-400"
           >
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg font-bold text-cyan-600 dark:text-cyan-400">60</span>
@@ -190,7 +190,7 @@ export default function TimelineRoadmapInsight({ data }: TimelineRoadmapInsightP
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="p-4 bg-gray-50 dark:bg-gray-800/40 rounded-lg border-l-4 border-l-emerald-400"
+            className="p-4 bg-gray-50 dark:bg-[#2b2a2c]/40 rounded-lg border-l-4 border-l-emerald-400"
           >
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">90</span>

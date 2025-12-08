@@ -4027,12 +4027,12 @@ Return ONLY the pitch text, no explanations or formatting.`;
       <AuthLayout>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-6"></div>
+            <div className="h-8 bg-gray-200 dark:bg-[#3d3c3e] rounded w-1/3 mb-4"></div>
+            <div className="h-4 bg-gray-200 dark:bg-[#3d3c3e] rounded w-1/2 mb-6"></div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="h-40 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              <div className="h-40 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              <div className="h-40 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              <div className="h-40 bg-gray-200 dark:bg-[#3d3c3e] rounded"></div>
+              <div className="h-40 bg-gray-200 dark:bg-[#3d3c3e] rounded"></div>
+              <div className="h-40 bg-gray-200 dark:bg-[#3d3c3e] rounded"></div>
             </div>
           </div>
         </div>
@@ -4322,7 +4322,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-8 border border-gray-200 dark:border-gray-700 text-center shadow-sm"
+                  className="bg-white dark:bg-[#2b2a2c] rounded-xl p-8 border border-gray-200 dark:border-[#3d3c3e] text-center shadow-sm"
                 >
                   <div className="max-w-md mx-auto">
                     <div className="mx-auto w-16 h-16 bg-jobzai-100 dark:bg-jobzai-900/30 
@@ -4334,7 +4334,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                       Enter a job posting URL above and click "Analyze" to get personalized interview preparation guidance.
                     </p>
 
-                    <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg text-left mb-2">
+                    <div className="bg-gray-50 dark:bg-[#3d3c3e]/30 p-4 rounded-lg text-left mb-2">
                       <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
                         <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
                         What you'll get:
@@ -5327,7 +5327,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                       exit={{ opacity: 0 }}
                       className="grid grid-cols-1 md:grid-cols-2 gap-6"
                     >
-                      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                      <div className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 border border-gray-200 dark:border-[#3d3c3e] shadow-sm">
                         <div className="mb-6">
                           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                             Skills Assessment
@@ -5348,7 +5348,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
-                                className="group relative bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 hover:border-jobzai-300 dark:hover:border-jobzai-700 transition-all duration-200 hover:shadow-md"
+                                className="group relative bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-gray-800 rounded-xl p-5 border border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-300 dark:hover:border-jobzai-700 transition-all duration-200 hover:shadow-md"
                               >
                                 {/* Skill Text */}
                                 <div className="mb-4">
@@ -5372,7 +5372,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                               ? currentRating === rating
                                                 ? 'bg-jobzai-600 dark:bg-jobzai-500 text-white shadow-md scale-105 ring-2 ring-jobzai-300 dark:ring-jobzai-700'
                                                 : 'bg-jobzai-400 dark:bg-jobzai-600 text-white'
-                                              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 hover:bg-jobzai-100 dark:hover:bg-jobzai-900/30 hover:text-jobzai-600 dark:hover:text-jobzai-400'
+                                              : 'bg-gray-200 dark:bg-[#3d3c3e] text-gray-400 dark:text-gray-500 hover:bg-jobzai-100 dark:hover:bg-jobzai-900/30 hover:text-jobzai-600 dark:hover:text-jobzai-400'
                                             }
                                         `}
                                           aria-label={`Rate ${skill} ${rating} out of 5`}
@@ -5409,7 +5409,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                     initial={{ width: 0 }}
                                     animate={{ width: '100%' }}
                                     transition={{ delay: 0.2, duration: 0.5 }}
-                                    className="mt-3 h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden"
+                                    className="mt-3 h-1 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden"
                                   >
                                     <div
                                       className="h-full bg-gradient-to-r from-jobzai-500 to-jobzai-600 rounded-full transition-all duration-300"
@@ -5431,7 +5431,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                         </div>
                       </div>
 
-                      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                      <div className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 border border-gray-200 dark:border-[#3d3c3e] shadow-sm">
                         <div className="mb-6">
                           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Skill Coach</h3>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -5445,7 +5445,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: idx * 0.05 }}
-                              className="group relative bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 hover:border-jobzai-300 dark:hover:border-jobzai-700 transition-all duration-200 hover:shadow-md"
+                              className="group relative bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-gray-800 rounded-xl p-5 border border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-300 dark:hover:border-jobzai-700 transition-all duration-200 hover:shadow-md"
                             >
                               {/* Header Section */}
                               <div className="mb-4">
@@ -5480,7 +5480,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                               </div>
 
                               {/* 30-minute plan */}
-                              <div className="mt-5 pt-4 border-t border-gray-200 dark:border-gray-700">
+                              <div className="mt-5 pt-4 border-t border-gray-200 dark:border-[#3d3c3e]">
                                 <div className="flex items-center gap-2 mb-3">
                                   <Clock className="w-4 h-4 text-jobzai-600 dark:text-jobzai-400" />
                                   <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-200">30‑minute plan</h5>
@@ -5489,13 +5489,13 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                   {(ensureDefaultTasks(skill)).map(t => (
                                     <label
                                       key={t.id}
-                                      className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group/item"
+                                      className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50 transition-colors cursor-pointer group/item"
                                     >
                                       <input
                                         type="checkbox"
                                         checked={t.done}
                                         onChange={() => toggleMicroTask(skill, t.id)}
-                                        className="mt-0.5 w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-jobzai-600 focus:ring-jobzai-500 focus:ring-2 cursor-pointer"
+                                        className="mt-0.5 w-4 h-4 rounded border-gray-300 dark:border-[#4a494b] text-jobzai-600 focus:ring-jobzai-500 focus:ring-2 cursor-pointer"
                                       />
                                       <span className={`text-sm text-gray-700 dark:text-gray-300 flex-1 ${t.done ? 'line-through text-gray-400 dark:text-gray-500' : ''
                                         }`}>
@@ -5507,41 +5507,41 @@ Return ONLY the pitch text, no explanations or formatting.`;
                               </div>
 
                               {/* STAR stories */}
-                              <div className="mt-5 pt-4 border-t border-gray-200 dark:border-gray-700">
+                              <div className="mt-5 pt-4 border-t border-gray-200 dark:border-[#3d3c3e]">
                                 <div className="flex items-center gap-2 mb-3">
                                   <Award className="w-4 h-4 text-jobzai-600 dark:text-jobzai-400" />
                                   <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-200">STAR stories</h5>
                                 </div>
                                 <div className="space-y-3">
                                   {(skillCoach?.starStories?.[skill] || []).map(story => (
-                                    <div key={story.id} className="space-y-2.5 p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
+                                    <div key={story.id} className="space-y-2.5 p-3 rounded-lg bg-gray-50 dark:bg-[#242325]/40 border border-gray-200 dark:border-[#3d3c3e]">
                                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                                         <textarea
                                           rows={3}
                                           value={story.situation}
                                           onChange={(e) => updateStarField(skill, story.id, 'situation', e.target.value)}
                                           placeholder="Situation (context, stakes, constraints)"
-                                          className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white resize-y focus:ring-2 focus:ring-jobzai-500 focus:border-transparent"
+                                          className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-[#4a494b] dark:bg-[#2b2a2c] dark:text-white resize-y focus:ring-2 focus:ring-jobzai-500 focus:border-transparent"
                                         />
                                         <textarea
                                           rows={3}
                                           value={story.action}
                                           onChange={(e) => updateStarField(skill, story.id, 'action', e.target.value)}
                                           placeholder="Action (what you did, how, tools)"
-                                          className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white resize-y focus:ring-2 focus:ring-jobzai-500 focus:border-transparent"
+                                          className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-[#4a494b] dark:bg-[#2b2a2c] dark:text-white resize-y focus:ring-2 focus:ring-jobzai-500 focus:border-transparent"
                                         />
                                         <textarea
                                           rows={3}
                                           value={story.result}
                                           onChange={(e) => updateStarField(skill, story.id, 'result', e.target.value)}
                                           placeholder="Result (impact, metrics, lessons)"
-                                          className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white resize-y focus:ring-2 focus:ring-jobzai-500 focus:border-transparent"
+                                          className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-[#4a494b] dark:bg-[#2b2a2c] dark:text-white resize-y focus:ring-2 focus:ring-jobzai-500 focus:border-transparent"
                                         />
                                       </div>
                                       <div className="flex gap-2">
                                         <button
                                           onClick={() => handleStarExportClick(skill, story.id)}
-                                          className="text-xs px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium"
+                                          className="text-xs px-3 py-1.5 bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-[#4a494b] transition-colors font-medium"
                                         >
                                           Export to Notes
                                         </button>
@@ -5556,7 +5556,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                   ))}
                                   <button
                                     onClick={() => addStarStory(skill)}
-                                    className="w-full text-sm px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium border border-gray-200 dark:border-gray-600 border-dashed"
+                                    className="w-full text-sm px-4 py-2.5 bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-[#4a494b] transition-colors font-medium border border-gray-200 dark:border-[#4a494b] border-dashed"
                                   >
                                     + Add story
                                   </button>
@@ -5607,7 +5607,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                       exit={{ opacity: 0 }}
                       className="grid grid-cols-1 md:grid-cols-3 gap-6"
                     >
-                      <div className="md:col-span-3 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                      <div className="md:col-span-3 bg-white dark:bg-[#2b2a2c] rounded-xl p-6 border border-gray-200 dark:border-[#3d3c3e] shadow-sm">
                         <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-5">Preparation Tips</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                           {[
@@ -5624,7 +5624,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
-                                className={`p-5 rounded-xl shadow-sm border ${checked ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-800'}`}
+                                className={`p-5 rounded-xl shadow-sm border ${checked ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-[#242325]/50 border-gray-100 dark:border-[#3d3c3e]'}`}
                               >
                                 <div className="flex items-start justify-between">
                                   <div className="flex items-start">
@@ -5650,7 +5650,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                         </div>
                       </div>
 
-                      <div className="md:col-span-3 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                      <div className="md:col-span-3 bg-white dark:bg-[#2b2a2c] rounded-xl p-6 border border-gray-200 dark:border-[#3d3c3e] shadow-sm">
                         <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-5">Helpful Resources</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                           {[
@@ -5662,7 +5662,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: index * 0.05 }}
-                              className="flex items-start p-5 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors hover:shadow-sm"
+                              className="flex items-start p-5 border border-gray-200 dark:border-[#3d3c3e] rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors hover:shadow-sm"
                               href={resource.url}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -5677,11 +5677,11 @@ Return ONLY the pitch text, no explanations or formatting.`;
                             </motion.a>
                           ))}
                         </div>
-                        <div className="mt-6 p-4 border-t border-gray-200 dark:border-gray-700">
+                        <div className="mt-6 p-4 border-t border-gray-200 dark:border-[#3d3c3e]">
                           <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3">Your resources</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
                             {(resourcesData?.savedLinks || []).map(link => (
-                              <div key={link.id} className="relative p-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:shadow-md transition-shadow bg-white dark:bg-gray-800 group">
+                              <div key={link.id} className="relative p-4 border border-gray-200 dark:border-[#3d3c3e] rounded-xl hover:shadow-md transition-shadow bg-white dark:bg-[#2b2a2c] group">
                                 <button
                                   onClick={async () => {
                                     const updated = { ...(resourcesData || {}), savedLinks: (resourcesData?.savedLinks || []).filter(l => l.id !== link.id) } as Interview['resourcesData'];
@@ -5707,8 +5707,8 @@ Return ONLY the pitch text, no explanations or formatting.`;
                             )}
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                            <input value={newResourceTitle} onChange={(e) => setNewResourceTitle(e.target.value)} placeholder="Title" className="px-3 py-2 rounded-lg border dark:bg-gray-800 dark:border-gray-700" />
-                            <input value={newResourceUrl} onChange={(e) => setNewResourceUrl(e.target.value)} placeholder="https://..." className="px-3 py-2 rounded-lg border dark:bg-gray-800 dark:border-gray-700" />
+                            <input value={newResourceTitle} onChange={(e) => setNewResourceTitle(e.target.value)} placeholder="Title" className="px-3 py-2 rounded-lg border dark:bg-[#2b2a2c] dark:border-[#3d3c3e]" />
+                            <input value={newResourceUrl} onChange={(e) => setNewResourceUrl(e.target.value)} placeholder="https://..." className="px-3 py-2 rounded-lg border dark:bg-[#2b2a2c] dark:border-[#3d3c3e]" />
                             <button onClick={async () => {
                               const t = newResourceTitle.trim();
                               const u = newResourceUrl.trim();
@@ -5732,14 +5732,14 @@ Return ONLY the pitch text, no explanations or formatting.`;
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.3, ease: "easeOut" }}
-                      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col h-[750px] sm:h-[800px] shadow-lg overflow-hidden backdrop-blur-sm"
+                      className="bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-200 dark:border-[#3d3c3e] flex flex-col h-[750px] sm:h-[800px] shadow-lg overflow-hidden backdrop-blur-sm"
                     >
                       {/* Compact Header - Apple style */}
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="px-5 py-3.5 border-b border-gray-200/60 dark:border-gray-700/50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl flex items-center justify-between sticky top-0 z-10"
+                        className="px-5 py-3.5 border-b border-gray-200/60 dark:border-[#3d3c3e]/50 bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl flex items-center justify-between sticky top-0 z-10"
                       >
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-jobzai-500 to-jobzai-600 flex items-center justify-center shadow-sm">
@@ -5775,7 +5775,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                   setIsUserNearBottom(true);
                                 }
                               }}
-                              className="sticky bottom-4 left-1/2 -translate-x-1/2 z-20 mx-auto px-4 py-2 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/60 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-jobzai-600 dark:hover:text-jobzai-400"
+                              className="sticky bottom-4 left-1/2 -translate-x-1/2 z-20 mx-auto px-4 py-2 rounded-full bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-xl border border-gray-200/60 dark:border-[#3d3c3e]/50 shadow-lg hover:shadow-xl transition-all flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-jobzai-600 dark:hover:text-jobzai-400"
                             >
                               <ChevronDown className="w-4 h-4" />
                               <span>New messages</span>
@@ -5865,7 +5865,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                         input?.focus();
                                       }, 100);
                                     }}
-                                    className="text-xs text-left p-3 border border-gray-200/60 dark:border-gray-700/50 rounded-lg hover:border-jobzai-300/60 dark:hover:border-jobzai-700/50 hover:bg-jobzai-50/60 dark:hover:bg-jobzai-900/20 transition-all shadow-sm hover:shadow-md backdrop-blur-sm bg-white/50 dark:bg-gray-800/50"
+                                    className="text-xs text-left p-3 border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-lg hover:border-jobzai-300/60 dark:hover:border-jobzai-700/50 hover:bg-jobzai-50/60 dark:hover:bg-jobzai-900/20 transition-all shadow-sm hover:shadow-md backdrop-blur-sm bg-white/50 dark:bg-[#2b2a2c]/50"
                                   >
                                     <div className="flex items-center gap-2.5">
                                       <div className="w-7 h-7 rounded-lg bg-jobzai-100/80 dark:bg-jobzai-900/30 flex items-center justify-center flex-shrink-0">
@@ -5908,7 +5908,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                       initial={{ opacity: 0, scale: 0.9 }}
                                       animate={{ opacity: 1, scale: 1 }}
                                       transition={{ delay: 0.1 }}
-                                      className="px-4 py-3 rounded-2xl rounded-tl-sm bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/50 shadow-sm"
+                                      className="px-4 py-3 rounded-2xl rounded-tl-sm bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-sm border border-gray-200/60 dark:border-[#3d3c3e]/50 shadow-sm"
                                     >
                                       <div className="flex items-center gap-3">
                                         {/* Elegant thinking indicator - Apple style */}
@@ -6029,7 +6029,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                     px-4 py-3 rounded-xl shadow-sm backdrop-blur-sm
                                     ${msg.role === 'user'
                                         ? 'bg-gradient-to-br from-jobzai-600 to-jobzai-700 text-white rounded-tr-sm'
-                                        : 'bg-white/90 dark:bg-gray-800/90 text-gray-800 dark:text-gray-200 rounded-tl-sm border border-gray-200/60 dark:border-gray-700/50'}
+                                        : 'bg-white/90 dark:bg-[#2b2a2c]/90 text-gray-800 dark:text-gray-200 rounded-tl-sm border border-gray-200/60 dark:border-[#3d3c3e]/50'}
                                   `}
                                   >
                                     <p className="text-sm leading-6 whitespace-pre-wrap break-words">{displayContent}</p>
@@ -6068,7 +6068,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="px-5 sm:px-6 py-4 border-t border-gray-200/60 dark:border-gray-700/50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl relative"
+                        className="px-5 sm:px-6 py-4 border-t border-gray-200/60 dark:border-[#3d3c3e]/50 bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl relative"
                       >
                         <div className="flex gap-3 items-end">
                           <div className="relative flex-1">
@@ -6083,7 +6083,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                               }}
                               placeholder="Ask a question or practice an answer..."
                               rows={1}
-                              className="w-full p-4 pr-14 text-sm bg-gray-50/80 dark:bg-gray-900/50 border border-gray-200/60 dark:border-gray-700/50 rounded-xl focus:ring-2 focus:ring-jobzai-500/50 focus:border-jobzai-500/50 dark:text-white resize-none min-h-[52px] max-h-[140px] transition-all shadow-sm hover:shadow-md focus:shadow-lg leading-5"
+                              className="w-full p-4 pr-14 text-sm bg-gray-50/80 dark:bg-[#242325]/50 border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-xl focus:ring-2 focus:ring-jobzai-500/50 focus:border-jobzai-500/50 dark:text-white resize-none min-h-[52px] max-h-[140px] transition-all shadow-sm hover:shadow-md focus:shadow-lg leading-5"
                               style={{
                                 height: 'auto',
                                 overflow: 'hidden'
@@ -6207,12 +6207,12 @@ Return ONLY the pitch text, no explanations or formatting.`;
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
                 className={`${isNotesExpanded
-                  ? 'fixed inset-4 z-50 bg-white dark:bg-gray-800 overflow-hidden'
-                  : 'bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm mb-8'
+                  ? 'fixed inset-4 z-50 bg-white dark:bg-[#2b2a2c] overflow-hidden'
+                  : 'bg-white dark:bg-[#2b2a2c] rounded-xl p-6 border border-gray-200 dark:border-[#3d3c3e] shadow-sm mb-8'
                   }`}
               >
                 {/* Header with title and buttons */}
-                <div className={`flex items-center ${isNotesExpanded ? 'p-6 border-b border-gray-200 dark:border-gray-700 relative z-[60] bg-white dark:bg-gray-800' : 'mb-6'}`}>
+                <div className={`flex items-center ${isNotesExpanded ? 'p-6 border-b border-gray-200 dark:border-[#3d3c3e] relative z-[60] bg-white dark:bg-[#2b2a2c]' : 'mb-6'}`}>
                   {/* Left: Title */}
                   <div className="flex-1 flex items-center gap-3">
                     <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -6231,7 +6231,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                     <div className="absolute left-1/2 transform -translate-x-1/2">
                       <button
                         onClick={() => setIsNotesExpanded(false)}
-                        className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors bg-gray-50 dark:bg-gray-700/50"
+                        className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors bg-gray-50 dark:bg-[#3d3c3e]/50"
                         title="Collapse"
                       >
                         <Minimize2 className="w-5 h-5" />
@@ -6246,7 +6246,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                         <select
                           value={filterColor || ''}
                           onChange={(e) => setFilterColor(e.target.value || null)}
-                          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-jobzai-500"
+                          className="px-3 py-2 border border-gray-300 dark:border-[#4a494b] rounded-lg bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-jobzai-500"
                         >
                           <option value="">All Colors</option>
                           <option value="#ffeb3b">Yellow</option>
@@ -6259,7 +6259,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                         {filterColor && (
                           <button
                             onClick={() => setFilterColor(null)}
-                            className="px-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            className="px-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
                             title="Clear filter"
                           >
                             <X className="w-4 h-4" />
@@ -6274,7 +6274,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                         </button>
                         <button
                           onClick={toggleNotesExpanded}
-                          className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors"
                           title="Expand"
                         >
                           <Maximize2 className="w-5 h-5" />
@@ -6290,18 +6290,18 @@ Return ONLY the pitch text, no explanations or formatting.`;
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="relative h-[calc(100%-80px)] overflow-hidden bg-gray-50 dark:bg-gray-900/50 flex"
+                      className="relative h-[calc(100%-80px)] overflow-hidden bg-gray-50 dark:bg-[#242325]/50 flex"
                     >
                       {/* Tools Menu - Left Side */}
                       <div className="relative z-20">
                         <div
-                          className="tool-menu h-full bg-white dark:bg-gray-800 rounded-l-2xl shadow-lg border-r border-gray-200 dark:border-gray-700 flex flex-col items-center overflow-y-auto"
+                          className="tool-menu h-full bg-white dark:bg-[#2b2a2c] rounded-l-2xl shadow-lg border-r border-gray-200 dark:border-[#3d3c3e] flex flex-col items-center overflow-y-auto"
                           style={{ padding: '8px', gap: '4px' }}
                         >
                           {/* Close button */}
                           <button
                             onClick={() => setIsNotesExpanded(false)}
-                            className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors mb-1"
+                            className="w-6 h-6 rounded-full bg-gray-100 dark:bg-[#3d3c3e] hover:bg-gray-200 dark:hover:bg-[#4a494b] flex items-center justify-center transition-colors mb-1"
                           >
                             <X className="w-3 h-3 text-gray-600 dark:text-gray-300" />
                           </button>
@@ -6314,7 +6314,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                             }}
                             className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${selectedTool === 'select'
                               ? 'bg-jobzai-100 dark:bg-jobzai-900/30 text-jobzai-600 dark:text-jobzai-400'
-                              : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                              : 'hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-600 dark:text-gray-400'
                               }`}
                             title="Select"
                           >
@@ -6329,7 +6329,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                             }}
                             className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${selectedTool === 'sticky'
                               ? 'bg-jobzai-100 dark:bg-jobzai-900/30 text-jobzai-600 dark:text-jobzai-400'
-                              : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                              : 'hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-600 dark:text-gray-400'
                               }`}
                             title="New Sticky Note"
                           >
@@ -6343,7 +6343,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                             }}
                             className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${selectedTool === 'pen'
                               ? 'bg-jobzai-100 dark:bg-jobzai-900/30 text-jobzai-600 dark:text-jobzai-400'
-                              : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                              : 'hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-600 dark:text-gray-400'
                               }`}
                             title="Draw"
                           >
@@ -6362,7 +6362,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                             }}
                             className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${selectedTool === 'text'
                               ? 'bg-jobzai-100 dark:bg-jobzai-900/30 text-jobzai-600 dark:text-jobzai-400'
-                              : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                              : 'hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-600 dark:text-gray-400'
                               }`}
                             title="Text"
                           >
@@ -6375,7 +6375,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                           <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="tool-submenu absolute left-0 top-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 min-w-[100px] z-50"
+                            className="tool-submenu absolute left-0 top-full mt-2 bg-white dark:bg-[#2b2a2c] rounded-lg shadow-lg border border-gray-200 dark:border-[#3d3c3e] p-2 min-w-[100px] z-50"
                           >
                             <div className="space-y-1.5">
                               {/* Color options */}
@@ -6390,7 +6390,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                   <button
                                     key={idx}
                                     onClick={() => setDrawingColor(colorOption.color)}
-                                    className={`w-full flex items-center gap-1.5 p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${drawingColor === colorOption.color ? 'bg-jobzai-50 dark:bg-jobzai-900/20' : ''
+                                    className={`w-full flex items-center gap-1.5 p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors ${drawingColor === colorOption.color ? 'bg-jobzai-50 dark:bg-jobzai-900/20' : ''
                                       }`}
                                   >
                                     <div className="w-3 h-3 rounded" style={{ backgroundColor: colorOption.color }}></div>
@@ -6400,14 +6400,14 @@ Return ONLY the pitch text, no explanations or formatting.`;
                               </div>
 
                               {/* Stroke width */}
-                              <div className="pt-1.5 border-t border-gray-200 dark:border-gray-700">
+                              <div className="pt-1.5 border-t border-gray-200 dark:border-[#3d3c3e]">
                                 <div className="text-[10px] font-medium text-gray-600 dark:text-gray-400 mb-1">Size</div>
                                 <div className="space-y-0.5">
                                   {[1, 2, 3].map((width) => (
                                     <button
                                       key={width}
                                       onClick={() => setDrawingStrokeWidth(width)}
-                                      className={`w-full flex items-center gap-1.5 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${drawingStrokeWidth === width ? 'bg-jobzai-50 dark:bg-jobzai-900/20' : ''
+                                      className={`w-full flex items-center gap-1.5 p-1 rounded hover:bg-gray-100 dark:hover:bg-[#3d3c3e] ${drawingStrokeWidth === width ? 'bg-jobzai-50 dark:bg-jobzai-900/20' : ''
                                         }`}
                                     >
                                       <div className="flex gap-0.5">
@@ -6450,7 +6450,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                         />
 
                         {/* Canvas info overlay */}
-                        <div className="absolute top-4 right-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg px-3 py-2.5 z-50 text-xs border border-gray-200 dark:border-gray-700">
+                        <div className="absolute top-4 right-4 bg-white/95 dark:bg-[#2b2a2c]/95 backdrop-blur-sm rounded-lg shadow-lg px-3 py-2.5 z-50 text-xs border border-gray-200 dark:border-[#3d3c3e]">
                           <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-2">
                               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
@@ -6937,7 +6937,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                     stiffness: 300,
                     duration: 0.3
                   }}
-                  className="relative bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-auto shadow-2xl border border-gray-200/50 dark:border-gray-700/50"
+                  className="relative bg-white dark:bg-[#2b2a2c] rounded-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-auto shadow-2xl border border-gray-200/50 dark:border-[#3d3c3e]/50"
                   style={{
                     background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%)',
                     boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)'
@@ -6963,7 +6963,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                     </div>
                     <button
                       onClick={() => setIsNoteModalOpen(false)}
-                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition-all duration-200 hover:scale-110"
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] p-2 rounded-full transition-all duration-200 hover:scale-110"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -6983,7 +6983,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                         value={noteTitle}
                         onChange={(e) => setNoteTitle(e.target.value)}
                         placeholder="Give your note a title..."
-                        className="w-full p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-jobzai-500 focus:border-jobzai-500 dark:bg-gray-700/50 dark:text-white transition-all duration-200 placeholder:text-gray-400"
+                        className="w-full p-4 border-2 border-gray-200 dark:border-[#3d3c3e] rounded-xl focus:ring-2 focus:ring-jobzai-500 focus:border-jobzai-500 dark:bg-[#3d3c3e]/50 dark:text-white transition-all duration-200 placeholder:text-gray-400"
                         autoFocus
                       />
                     </motion.div>
@@ -7001,7 +7001,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                         onChange={(e) => setNoteContent(e.target.value)}
                         placeholder="Write your note content here..."
                         rows={8}
-                        className="w-full p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-jobzai-500 focus:border-jobzai-500 dark:bg-gray-700/50 dark:text-white resize-none transition-all duration-200 placeholder:text-gray-400"
+                        className="w-full p-4 border-2 border-gray-200 dark:border-[#3d3c3e] rounded-xl focus:ring-2 focus:ring-jobzai-500 focus:border-jobzai-500 dark:bg-[#3d3c3e]/50 dark:text-white resize-none transition-all duration-200 placeholder:text-gray-400"
                       />
                     </motion.div>
 
@@ -7039,12 +7039,12 @@ Return ONLY the pitch text, no explanations or formatting.`;
                       </div>
                     </motion.div>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-[#3d3c3e]">
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setIsNoteModalOpen(false)}
-                        className="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 text-gray-700 dark:text-gray-300 font-medium"
+                        className="px-6 py-3 border-2 border-gray-300 dark:border-[#4a494b] rounded-xl hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 transition-all duration-200 text-gray-700 dark:text-gray-300 font-medium"
                       >
                         Cancel
                       </motion.button>
@@ -7089,7 +7089,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                 stiffness: 300,
                 duration: 0.3
               }}
-              className="relative bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-2xl w-full shadow-2xl border border-gray-200/50 dark:border-gray-700/50"
+              className="relative bg-white dark:bg-[#2b2a2c] rounded-2xl p-8 max-w-2xl w-full shadow-2xl border border-gray-200/50 dark:border-[#3d3c3e]/50"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
@@ -7107,7 +7107,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                     setShowStarExportModal(false);
                     setPendingStarExport(null);
                   }}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition-all duration-200 hover:scale-110"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] p-2 rounded-full transition-all duration-200 hover:scale-110"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -7124,7 +7124,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                     setShowStarExportModal(false);
                     setPendingStarExport(null);
                   }}
-                  className="p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-jobzai-500 dark:hover:border-jobzai-500 bg-white dark:bg-gray-800 transition-all duration-200 text-left group"
+                  className="p-6 rounded-xl border-2 border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-500 dark:hover:border-jobzai-500 bg-white dark:bg-[#2b2a2c] transition-all duration-200 text-left group"
                 >
                   <div className="flex flex-col items-center text-center space-y-3">
                     <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
@@ -7148,7 +7148,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                     setShowStarExportModal(false);
                     setPendingStarExport(null);
                   }}
-                  className="p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-jobzai-500 dark:hover:border-jobzai-500 bg-white dark:bg-gray-800 transition-all duration-200 text-left group"
+                  className="p-6 rounded-xl border-2 border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-500 dark:hover:border-jobzai-500 bg-white dark:bg-[#2b2a2c] transition-all duration-200 text-left group"
                 >
                   <div className="flex flex-col items-center text-center space-y-3">
                     <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30 transition-colors">

@@ -50,7 +50,7 @@ export default function TopBar({
 
   return (
     <header 
-      className="fixed top-0 right-0 z-40 h-12 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
+      className="fixed top-0 right-0 z-40 h-12 bg-white dark:bg-[#2b2a2c] border-b border-gray-200 dark:border-[#3d3c3e]"
       style={{ left: sidebarWidth }}
     >
       <div className="h-full flex items-center justify-center px-4 relative">
@@ -63,8 +63,8 @@ export default function TopBar({
             <input
               type="text"
               placeholder="Search across Jobzai..."
-              className="w-full h-9 pl-10 pr-20 bg-gray-50 dark:bg-gray-900/50 
-                border border-gray-200 dark:border-gray-700 
+              className="w-full h-9 pl-10 pr-20 bg-gray-50 dark:bg-[#242325] 
+                border border-gray-200 dark:border-[#3d3c3e] 
                 rounded-lg text-sm text-gray-900 dark:text-gray-100
                 placeholder:text-gray-400 dark:placeholder:text-gray-500
                 focus:outline-none focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF]
@@ -72,7 +72,7 @@ export default function TopBar({
               readOnly
             />
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#3d3c3e] border border-gray-200 dark:border-[#4a494b]">
                 <Command className="h-3 w-3 text-gray-400" />
                 <span className="text-[11px] font-medium text-gray-400">K</span>
               </div>
@@ -88,7 +88,7 @@ export default function TopBar({
               onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
               className="relative flex items-center justify-center h-8 w-8 rounded-lg
                 text-gray-500 dark:text-gray-400
-                hover:bg-gray-100 dark:hover:bg-gray-700/50
+                hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50
                 hover:text-gray-700 dark:hover:text-gray-200
                 transition-all duration-200"
               aria-label="Notifications"
@@ -109,8 +109,8 @@ export default function TopBar({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.96 }}
                   transition={{ duration: 0.15, ease: 'easeOut' }}
-                  className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 
-                    rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 
+                  className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#2b2a2c] 
+                    rounded-xl shadow-xl border border-gray-200 dark:border-[#3d3c3e] 
                     overflow-hidden z-50"
                 >
                   {/* Header */}
@@ -127,7 +127,7 @@ export default function TopBar({
 
                   {/* Empty State */}
                   <div className="px-4 py-10 text-center">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 mb-3">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-[#3d3c3e] mb-3">
                       <Bell className="h-6 w-6 text-gray-400" />
                     </div>
                     <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
@@ -139,7 +139,7 @@ export default function TopBar({
                   </div>
 
                   {/* Footer */}
-                  <div className="px-4 py-2.5 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30">
+                  <div className="px-4 py-2.5 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-[#242325]">
                     <button className="w-full text-xs font-medium text-gray-600 dark:text-gray-300 
                       hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors text-center">
                       View all notifications
@@ -153,18 +153,18 @@ export default function TopBar({
           {/* Assistant Button */}
           <button
             className="flex items-center gap-1.5 h-8 px-3 rounded-full
-              bg-gray-100 dark:bg-gray-700
-              border border-gray-200 dark:border-gray-600
-              text-gray-700 dark:text-gray-200
-              hover:bg-gray-200 dark:hover:bg-gray-600
-              hover:border-gray-300 dark:hover:border-gray-500
+              bg-[#b7e219]
+              border border-gray-200 dark:border-[#4a494b]
+              text-gray-900
+              hover:bg-[#a5cc17]
+              hover:border-gray-300 dark:hover:border-[#5a595b]
               active:scale-[0.98]
               transition-all duration-150"
             aria-label="Assistant"
             title="AI Assistant"
           >
-            <Sparkles className="h-4 w-4" />
-            <span className="text-[13px] font-medium">Assistant</span>
+            <Sparkles className="h-4 w-4 text-gray-900" />
+            <span className="text-[13px] font-medium text-gray-900">Assistant</span>
           </button>
 
           {/* User Profile with Dropdown */}
@@ -172,7 +172,7 @@ export default function TopBar({
             <button
               onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
               className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg
-                hover:bg-gray-100 dark:hover:bg-gray-700/50
+                hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50
                 transition-all duration-200 group"
             >
               <div className="relative">
@@ -202,8 +202,8 @@ export default function TopBar({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.96 }}
                   transition={{ duration: 0.15, ease: 'easeOut' }}
-                  className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 
-                    rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 
+                  className="absolute right-0 mt-2 w-72 bg-white dark:bg-[#2b2a2c] 
+                    rounded-xl shadow-xl border border-gray-200 dark:border-[#3d3c3e] 
                     overflow-hidden z-50"
                 >
                   {/* User Info Header */}
@@ -239,7 +239,7 @@ export default function TopBar({
                     <Link
                       to="/professional-profile"
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 
-                        hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 transition-colors"
                       onClick={() => setIsProfileMenuOpen(false)}
                     >
                       <User className="h-4 w-4 text-gray-400" />
@@ -249,7 +249,7 @@ export default function TopBar({
                     <Link
                       to="/settings"
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 
-                        hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 transition-colors"
                       onClick={() => setIsProfileMenuOpen(false)}
                     >
                       <Settings className="h-4 w-4 text-gray-400" />
@@ -259,7 +259,7 @@ export default function TopBar({
                     <Link
                       to="/billing"
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 
-                        hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 transition-colors"
                       onClick={() => setIsProfileMenuOpen(false)}
                     >
                       <CreditCard className="h-4 w-4 text-gray-400" />
@@ -290,7 +290,7 @@ export default function TopBar({
                         {profileCompletion}%
                       </span>
                     </div>
-                    <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-gradient-to-r from-[#635BFF] to-[#7c75ff] rounded-full transition-all duration-500"
                         style={{ width: `${profileCompletion}%` }}

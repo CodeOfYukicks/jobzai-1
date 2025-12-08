@@ -206,10 +206,10 @@ export default function AICompanionPanel({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed right-0 top-12 h-[calc(100vh-48px)] w-96 bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col"
+            className="fixed right-0 top-12 h-[calc(100vh-48px)] w-96 bg-white dark:bg-[#242325] shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-[#3d3c3e]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-[#635BFF]/10 dark:bg-[#5249e6]/30 rounded-lg">
@@ -226,7 +226,7 @@ export default function AICompanionPanel({
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                 </button>
@@ -234,7 +234,7 @@ export default function AICompanionPanel({
             </div>
 
             {/* ATS Score */}
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-[#3d3c3e]">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   ATS Compatibility Score
@@ -242,7 +242,7 @@ export default function AICompanionPanel({
                 <button
                   onClick={analyzeCVContent}
                   disabled={isAnalyzing}
-                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded transition-colors"
                   title="Refresh analysis"
                 >
                   <RefreshCw className={`w-4 h-4 text-gray-500 dark:text-gray-400 ${isAnalyzing ? 'animate-spin' : ''}`} />
@@ -250,7 +250,7 @@ export default function AICompanionPanel({
               </div>
               
               <div className="relative">
-                <div className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div className="w-full h-3 bg-gray-200 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${atsScore}%` }}
@@ -301,7 +301,7 @@ export default function AICompanionPanel({
                       key={suggestion.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                      className="p-3 bg-gray-50 dark:bg-[#2b2a2c] rounded-lg border border-gray-200 dark:border-[#3d3c3e]"
                     >
                       <div className="flex items-start gap-3">
                         {getSuggestionIcon(suggestion.type)}
@@ -342,7 +342,7 @@ export default function AICompanionPanel({
             </div>
 
             {/* Quick Stats */}
-            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-[#3d3c3e]">
               <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
                 Quick Stats
               </h3>

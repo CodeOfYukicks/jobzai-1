@@ -47,7 +47,7 @@ export function SearchSuggestionsDropdown({
           duration: 0.25, 
           ease: [0.34, 1.56, 0.64, 1]
         }}
-        className="absolute top-full left-0 right-0 mt-3 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden z-50"
+        className="absolute top-full left-0 right-0 mt-3 bg-white dark:bg-[#242325] rounded-2xl shadow-xl border border-gray-200 dark:border-[#3d3c3e] overflow-hidden z-50"
         style={{
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04)',
         }}
@@ -84,7 +84,7 @@ export function SearchSuggestionsDropdown({
           {hasSuggestions && (
             <div className="p-2">
               {hasRecentSearches && !searchInput.trim() && (
-                <div className="h-px bg-gray-200 dark:bg-gray-800 my-2" />
+                <div className="h-px bg-gray-200 dark:bg-[#2b2a2c] my-2" />
               )}
               <div className="px-3 py-2">
                 <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
@@ -150,7 +150,7 @@ function SuggestionItem({ icon, text, type, isSelected, onClick, onRemove }: Sug
         flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg cursor-pointer group
         transition-all duration-150
         ${isSelected 
-          ? 'bg-gray-100 dark:bg-gray-800 shadow-sm' 
+          ? 'bg-gray-100 dark:bg-[#2b2a2c] shadow-sm' 
           : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
         }
       `}

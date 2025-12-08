@@ -118,8 +118,8 @@ const UpcomingEventCard = ({
       onClick={onSelect}
       className={`
         relative group cursor-pointer rounded-lg p-3.5
-        bg-white dark:bg-gray-900
-        border border-gray-200 dark:border-gray-800
+        bg-white dark:bg-[#242325]
+        border border-gray-200 dark:border-[#3d3c3e]
         hover:border-gray-300 dark:hover:border-gray-700
         hover:shadow-sm
         transition-all duration-150
@@ -152,7 +152,7 @@ const UpcomingEventCard = ({
               </h4>
               <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{position}</p>
             </div>
-            <span className="flex-shrink-0 flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+            <span className="flex-shrink-0 flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-400">
               <span className={`w-1.5 h-1.5 rounded-full ${typeInfo.dotColor}`} />
               {typeInfo.label}
             </span>
@@ -271,12 +271,12 @@ export const UpcomingEventsPanel = ({ events, onSelectEvent, onAddEvent }: Upcom
     groupedEvents.nextWeek.length > 0;
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-gray-950 border-l border-gray-200 dark:border-gray-800">
+    <div className="h-full flex flex-col bg-white dark:bg-[#333234] border-l border-gray-200 dark:border-[#3d3c3e]">
       {/* Header - Notion Style */}
-      <div className="flex-shrink-0 p-5 pb-4 border-b border-gray-100 dark:border-gray-800">
+      <div className="flex-shrink-0 p-5 pb-4 border-b border-gray-100 dark:border-[#3d3c3e]">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
+            <div className="p-2 rounded-lg bg-gray-100 dark:bg-[#2b2a2c]">
               <CalendarDays className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </div>
             <div>
@@ -288,21 +288,21 @@ export const UpcomingEventsPanel = ({ events, onSelectEvent, onAddEvent }: Upcom
 
         {/* Quick Stats - Notion Style */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+          <div className="p-3 rounded-lg border border-gray-100 dark:border-[#3d3c3e] bg-gray-50/50 dark:bg-[#242325]/50">
             <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
               Today
             </p>
             <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.todayCount}</p>
           </div>
 
-          <div className="p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+          <div className="p-3 rounded-lg border border-gray-100 dark:border-[#3d3c3e] bg-gray-50/50 dark:bg-[#242325]/50">
             <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
               Week
             </p>
             <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.thisWeekCount}</p>
           </div>
 
-          <div className="p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+          <div className="p-3 rounded-lg border border-gray-100 dark:border-[#3d3c3e] bg-gray-50/50 dark:bg-[#242325]/50">
             <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
               Total
             </p>
@@ -321,7 +321,7 @@ export const UpcomingEventsPanel = ({ events, onSelectEvent, onAddEvent }: Upcom
               exit={{ opacity: 0, y: -20 }}
               className="flex flex-col items-center justify-center py-12 px-4 text-center"
             >
-              <div className="p-4 rounded-xl bg-gray-100 dark:bg-gray-800 mb-4">
+              <div className="p-4 rounded-xl bg-gray-100 dark:bg-[#2b2a2c] mb-4">
                 <Calendar className="w-7 h-7 text-gray-400 dark:text-gray-500" />
               </div>
               <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-1">

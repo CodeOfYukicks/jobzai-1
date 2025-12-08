@@ -77,7 +77,7 @@ export const CalendarTopbar = ({
   const activeFilters = [!showApplications, !showInterviews, !showWishlists].filter(Boolean).length;
 
   return (
-    <div className="flex items-center justify-between pb-6 border-b border-gray-200 dark:border-gray-800">
+    <div className="flex items-center justify-between pb-6 border-b border-gray-200 dark:border-[#3d3c3e]">
       {/* Left: Date Display */}
       <div className="flex items-center gap-4">
         <div>
@@ -96,14 +96,14 @@ export const CalendarTopbar = ({
       <div className="flex items-center gap-2">
         {/* View Switcher - Transparent Style */}
         {onViewChange && (
-          <div className="hidden sm:flex items-center bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+          <div className="hidden sm:flex items-center bg-gray-100 dark:bg-[#2b2a2c] p-1 rounded-lg">
             {viewOptions.map((option) => (
               <button
                 key={option.value}
                 onClick={() => onViewChange(option.value)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   selectedView === option.value
-                    ? 'bg-white dark:bg-gray-700 text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
+                    ? 'bg-white dark:bg-[#3d3c3e] text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
                     : 'text-gray-600 dark:text-gray-400 hover:text-[#635BFF] dark:hover:text-[#a5a0ff]'
                 }`}
               >
@@ -122,7 +122,7 @@ export const CalendarTopbar = ({
               className={`relative inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 showFilterMenu || activeFilters > 0
                   ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20 text-[#635BFF] dark:text-[#a5a0ff] border border-[#635BFF]/30 dark:border-[#a5a0ff]/30'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
               }`}
             >
               <Filter className="w-4 h-4" />
@@ -141,7 +141,7 @@ export const CalendarTopbar = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 4 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 top-full mt-2 z-50 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 min-w-[240px]"
+                  className="absolute right-0 top-full mt-2 z-50 bg-white dark:bg-[#242325] rounded-xl shadow-lg border border-gray-200 dark:border-[#3d3c3e] py-2 min-w-[240px]"
                 >
                   <div className="px-4 py-2 text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                     Event Types
@@ -150,7 +150,7 @@ export const CalendarTopbar = ({
                   {/* Applications Toggle */}
                   <button
                     onClick={onToggleApplications}
-                    className="w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    className="w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-3 h-3 rounded-sm bg-[#635BFF]" />
@@ -162,7 +162,7 @@ export const CalendarTopbar = ({
                       className={`w-10 h-[22px] rounded-full transition-all duration-200 relative ${
                         showApplications 
                           ? 'bg-[#635BFF] dark:bg-[#7c75ff]' 
-                          : 'bg-gray-200 dark:bg-gray-700'
+                          : 'bg-gray-200 dark:bg-[#3d3c3e]'
                       }`}
                     >
                       <motion.div
@@ -176,7 +176,7 @@ export const CalendarTopbar = ({
                   {/* Interviews Toggle */}
                   <button
                     onClick={onToggleInterviews}
-                    className="w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    className="w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-3 h-3 rounded-sm bg-emerald-500" />
@@ -188,7 +188,7 @@ export const CalendarTopbar = ({
                       className={`w-10 h-[22px] rounded-full transition-all duration-200 relative ${
                         showInterviews 
                           ? 'bg-emerald-500 dark:bg-emerald-500' 
-                          : 'bg-gray-200 dark:bg-gray-700'
+                          : 'bg-gray-200 dark:bg-[#3d3c3e]'
                       }`}
                     >
                       <motion.div
@@ -202,7 +202,7 @@ export const CalendarTopbar = ({
                   {/* Wishlists Toggle */}
                   <button
                     onClick={onToggleWishlists}
-                    className="w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    className="w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-3 h-3 rounded-sm bg-pink-500" />
@@ -214,7 +214,7 @@ export const CalendarTopbar = ({
                       className={`w-10 h-[22px] rounded-full transition-all duration-200 relative ${
                         showWishlists 
                           ? 'bg-pink-500 dark:bg-pink-500' 
-                          : 'bg-gray-200 dark:bg-gray-700'
+                          : 'bg-gray-200 dark:bg-[#3d3c3e]'
                       }`}
                     >
                       <motion.div
@@ -233,23 +233,23 @@ export const CalendarTopbar = ({
         {/* Today Button - Transparent Style */}
         <button
           onClick={onToday}
-          className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-[#635BFF] dark:hover:text-[#a5a0ff] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-[#635BFF] dark:hover:text-[#a5a0ff] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
         >
           Today
         </button>
 
         {/* Navigation Buttons - Transparent Style */}
-        <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg">
+        <div className="flex items-center border border-gray-200 dark:border-[#3d3c3e] rounded-lg">
           <button
             onClick={onPrevious}
-            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors rounded-l-lg border-r border-gray-200 dark:border-gray-700"
+            className="p-2 hover:bg-gray-50 dark:hover:bg-[#3d3c3e] text-gray-500 dark:text-gray-400 hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors rounded-l-lg border-r border-gray-200 dark:border-[#3d3c3e]"
             aria-label="Previous"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={onNext}
-            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors rounded-r-lg"
+            className="p-2 hover:bg-gray-50 dark:hover:bg-[#3d3c3e] text-gray-500 dark:text-gray-400 hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors rounded-r-lg"
             aria-label="Next"
           >
             <ChevronRight className="w-4 h-4" />
@@ -264,9 +264,9 @@ export const CalendarTopbar = ({
             onClick={onAddEvent}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
               text-gray-700 dark:text-gray-200 
-              bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm
-              border border-gray-200 dark:border-gray-700 rounded-lg
-              hover:bg-gray-50 dark:hover:bg-gray-700/80 
+              bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm
+              border border-gray-200 dark:border-[#3d3c3e] rounded-lg
+              hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/80 
               hover:border-gray-300 dark:hover:border-gray-600
               shadow-sm hover:shadow transition-all duration-200"
           >

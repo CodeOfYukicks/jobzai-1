@@ -55,7 +55,7 @@ export default function InterviewReadinessInsight({ data }: InterviewReadinessIn
       case 'culture':
         return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
       default:
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
+        return 'bg-gray-100 text-gray-700 dark:bg-[#2b2a2c] dark:text-gray-400';
     }
   };
 
@@ -90,7 +90,7 @@ export default function InterviewReadinessInsight({ data }: InterviewReadinessIn
               </p>
             </div>
             <div className="flex-1">
-              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="h-3 bg-gray-200 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${data.readinessScore}%` }}
@@ -120,7 +120,7 @@ export default function InterviewReadinessInsight({ data }: InterviewReadinessIn
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="p-4 bg-gray-50 dark:bg-gray-800/40 rounded-lg"
+              className="p-4 bg-gray-50 dark:bg-[#2b2a2c]/40 rounded-lg"
             >
               <div className="flex items-start justify-between gap-3 mb-2">
                 <p className="text-sm font-medium text-gray-900 dark:text-white flex-1">
@@ -153,7 +153,7 @@ export default function InterviewReadinessInsight({ data }: InterviewReadinessIn
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`p-4 bg-white dark:bg-gray-800/40 rounded-lg border-l-4 ${getImportanceColor(area.importance)}`}
+              className={`p-4 bg-white dark:bg-[#2b2a2c]/40 rounded-lg border-l-4 ${getImportanceColor(area.importance)}`}
             >
               <div className="flex items-center justify-between mb-2">
                 <h5 className="text-sm font-medium text-gray-900 dark:text-white">
@@ -163,7 +163,7 @@ export default function InterviewReadinessInsight({ data }: InterviewReadinessIn
                   {area.currentLevel}% ready
                 </span>
               </div>
-              <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-2">
+              <div className="h-1.5 bg-gray-200 dark:bg-[#3d3c3e] rounded-full overflow-hidden mb-2">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${area.currentLevel}%` }}

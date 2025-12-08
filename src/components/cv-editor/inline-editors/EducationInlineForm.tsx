@@ -99,7 +99,7 @@ export default function EducationInlineForm({
             min={yearOnly ? 1950 : undefined}
             max={yearOnly ? 2030 : undefined}
             disabled={hideSection}
-            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all disabled:opacity-50"
+            className="w-full px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all disabled:opacity-50"
           />
         </div>
         <div>
@@ -114,7 +114,7 @@ export default function EducationInlineForm({
             min={yearOnly ? 1950 : undefined}
             max={yearOnly ? 2030 : undefined}
             disabled={inProgress || hideSection}
-            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all disabled:opacity-50"
+            className="w-full px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all disabled:opacity-50"
           />
         </div>
         <InlineInput
@@ -126,7 +126,7 @@ export default function EducationInlineForm({
       </div>
 
       {/* Date Options - Compact */}
-      <div className="p-2.5 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/30">
+      <div className="p-2.5 border border-dashed border-gray-200 dark:border-[#3d3c3e] rounded-lg bg-gray-50/50 dark:bg-[#2b2a2c]/30">
         <div className="flex flex-wrap items-center gap-4">
           <ToggleSwitch
             label="In Progress"

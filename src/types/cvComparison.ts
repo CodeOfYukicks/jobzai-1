@@ -205,7 +205,7 @@ export interface CVComparisonResult {
 // MODAL STATE
 // ============================================================================
 
-export type ComparisonViewMode = 'diff' | 'before' | 'after' | 'split';
+export type ComparisonViewMode = 'diff' | 'split';
 
 /**
  * Modal state for the comparison overlay

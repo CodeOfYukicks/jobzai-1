@@ -24,7 +24,7 @@ export function ProgressBar({ status }: { status: StatusType }) {
   const isNegative = status === 'rejected';
   const isNeutral = status === 'archived';
 
-  const track = 'h-1.5 w-full rounded-full bg-[#E5E7EB] dark:bg-gray-700 overflow-hidden';
+  const track = 'h-1.5 w-full rounded-full bg-[#E5E7EB] dark:bg-[#3d3c3e] overflow-hidden';
   const primaryFill = 'bg-[#2563EB]';
   const successFill = 'bg-[#22C55E]';
   const warningFill = 'bg-[#FACC15]';

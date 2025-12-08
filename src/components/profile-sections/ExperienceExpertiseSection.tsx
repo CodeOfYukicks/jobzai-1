@@ -161,10 +161,10 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
   if (isLoading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32" />
-        <div className="h-12 bg-gray-100 dark:bg-gray-800 rounded-xl" />
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24" />
-        <div className="h-14 bg-gray-100 dark:bg-gray-800 rounded-xl" />
+        <div className="h-4 bg-gray-200 dark:bg-[#3d3c3e] rounded w-32" />
+        <div className="h-12 bg-gray-100 dark:bg-[#2b2a2c] rounded-xl" />
+        <div className="h-4 bg-gray-200 dark:bg-[#3d3c3e] rounded w-24" />
+        <div className="h-14 bg-gray-100 dark:bg-[#2b2a2c] rounded-xl" />
       </div>
     );
   }
@@ -288,7 +288,7 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   layout
-                  className="group p-4 bg-gray-50/80 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700/50 hover:border-gray-200 dark:hover:border-gray-600 transition-colors"
+                  className="group p-4 bg-gray-50/80 dark:bg-[#2b2a2c]/50 rounded-xl border border-gray-100 dark:border-[#3d3c3e]/50 hover:border-gray-200 dark:hover:border-[#4a494b] transition-colors"
                 >
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <input
@@ -296,14 +296,14 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
                       value={cert.name}
                       onChange={(e) => handleCertificationChange(index, 'name', e.target.value)}
                       placeholder="Certification name"
-                      className="px-3.5 py-2.5 bg-white dark:bg-gray-700 border border-gray-200/80 dark:border-gray-600/50 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+                      className="px-3.5 py-2.5 bg-white dark:bg-[#3d3c3e] border border-gray-200/80 dark:border-[#4a494b]/50 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
                     />
                     <input
                       type="text"
                       value={cert.issuer}
                       onChange={(e) => handleCertificationChange(index, 'issuer', e.target.value)}
                       placeholder="Issuing organization"
-                      className="px-3.5 py-2.5 bg-white dark:bg-gray-700 border border-gray-200/80 dark:border-gray-600/50 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+                      className="px-3.5 py-2.5 bg-white dark:bg-[#3d3c3e] border border-gray-200/80 dark:border-[#4a494b]/50 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
                     />
                     <div className="flex gap-2">
                       <input
@@ -311,7 +311,7 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
                         value={cert.year}
                         onChange={(e) => handleCertificationChange(index, 'year', e.target.value)}
                         placeholder="Year"
-                        className="flex-1 px-3.5 py-2.5 bg-white dark:bg-gray-700 border border-gray-200/80 dark:border-gray-600/50 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+                        className="flex-1 px-3.5 py-2.5 bg-white dark:bg-[#3d3c3e] border border-gray-200/80 dark:border-[#4a494b]/50 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
                       />
                       <motion.button
                         whileHover={{ scale: 1.05 }}
