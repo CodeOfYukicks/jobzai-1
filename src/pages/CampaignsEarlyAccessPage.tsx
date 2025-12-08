@@ -137,7 +137,7 @@ export default function CampaignsEarlyAccessPage() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-4"
           >
-            Campaigns
+            AutoPilot
           </motion.h1>
 
           {/* Description */}
@@ -148,13 +148,13 @@ export default function CampaignsEarlyAccessPage() {
             className="mb-6 max-w-2xl mx-auto space-y-2"
           >
             <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-              Create and manage mass job application campaigns. Target companies that interest you and automate your outreach.
+              <span className="font-semibold text-purple-600 dark:text-purple-400">Your job search, on cruise control.</span> AutoPilot finds opportunities that match your profile and applies for you — automatically, 24/7.
             </p>
             <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-              Use AI to discover and apply to job opportunities that are never posted publicly. Generate personalized applications with just a few clicks—let AI handle the heavy lifting.
+              Wake up to interview invites. Our AI scouts the hidden job market, crafts personalized applications, and lands them in hiring managers' inboxes while you sleep.
             </p>
             <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 leading-relaxed">
-              <span className="font-semibold text-gray-700 dark:text-gray-200">85% of opportunities</span> never reach job boards. Be the first to apply.
+              <span className="font-semibold text-gray-700 dark:text-gray-200">85% of opportunities</span> never hit job boards. AutoPilot gets you there first.
             </p>
           </motion.div>
 
@@ -202,7 +202,7 @@ export default function CampaignsEarlyAccessPage() {
                     You're on the list!
                   </h3>
                   <p className="text-xs text-green-700 dark:text-green-300">
-                    We'll notify you as soon as Campaigns becomes available.
+                    We'll notify you as soon as AutoPilot is ready for takeoff.
                   </p>
                 </div>
               </div>
@@ -250,7 +250,7 @@ export default function CampaignsEarlyAccessPage() {
                 
                 <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          AI-powered application sent automatically
+                          Applied by AutoPilot while you slept
                         </p>
                 </div>
                     </motion.div>

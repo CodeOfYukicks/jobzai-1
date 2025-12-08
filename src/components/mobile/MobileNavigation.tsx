@@ -20,7 +20,7 @@ const PRIMARY_TABS: NavItem[] = [
 const MORE_ITEMS: NavItem[] = [
   { icon: FileSearch, label: 'Resume Lab', path: '/cv-analysis' },
   { icon: Clock, label: 'Interviews', path: '/upcoming-interviews' },
-  { icon: ScrollText, label: 'Campaigns', path: '/campaigns' },
+  { icon: ScrollText, label: 'AutoPilot', path: '/campaigns' },
   { icon: Lightbulb, label: 'Ideas', path: '/recommendations' },
 ];
 

@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, Lightbulb, Settings, CreditCard, User, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, Calendar, Clock, ChevronLeft, ChevronRight, Search, FileEdit, Mic } from 'lucide-react';
+import { LayoutDashboard, ScrollText, Lightbulb, Settings, CreditCard, User, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, Calendar, Clock, ChevronLeft, ChevronRight, Search, FileEdit, Mic, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, collection, query, getDocs } from 'firebase/firestore';
@@ -48,7 +48,8 @@ const navigationGroups = {
   apply: {
     main: [
       { name: 'Job Board', href: '/jobs', icon: LayoutGrid },
-      { name: 'Campaigns', href: '/campaigns', icon: ScrollText },
+      { name: 'AutoPilot', href: '/campaigns', icon: ScrollText },
+      { name: 'Campaigns', href: '/campaigns-auto', icon: Target },
       { name: 'Resume Lab', href: '/cv-analysis', icon: FileSearch },
     ],
   },

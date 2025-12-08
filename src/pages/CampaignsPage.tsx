@@ -458,8 +458,8 @@ export default function CampaignsPage() {
               <tr>
                 <td colSpan={6} className="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
                   {searchQuery || Object.keys(filters).length > 0 
-                    ? "No campaigns match your filters or search criteria" 
-                    : "No campaigns found. Create your first campaign to get started."}
+                    ? "No AutoPilot campaigns match your filters or search criteria" 
+                    : "No AutoPilot campaigns yet. Launch your first one to start auto-applying!"}
                 </td>
               </tr>
             )}
@@ -566,10 +566,11 @@ export default function CampaignsPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-3xl font-bold text-purple-600 dark:text-white">
-                Campaigns
+                AutoPilot
               </h1>
-              <p className="mt-2 text-gray-500 dark:text-gray-400">
-                Manage your job application campaigns
+              <p className="mt-2 text-gray-500 dark:text-gray-400 max-w-xl">
+                Sit back and let AI work for you. AutoPilot automatically applies to jobs that match your profile — 
+                <span className="text-purple-600 dark:text-purple-400 font-medium"> while you sleep</span>.
               </p>
             </div>
             <button
@@ -581,7 +582,7 @@ export default function CampaignsPage() {
             >
               <div className="flex items-center gap-2">
                 <Plus className="h-4 w-4 text-white" />
-                <span className="text-sm font-medium text-white">New Campaign</span>
+                <span className="text-sm font-medium text-white">Launch AutoPilot</span>
               </div>
             </button>
           </div>
@@ -638,7 +639,7 @@ export default function CampaignsPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search campaigns..."
+              placeholder="Search AutoPilot campaigns..."
               className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 
                 border border-gray-200 dark:border-gray-700 rounded-xl
                 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
@@ -690,12 +691,12 @@ export default function CampaignsPage() {
               <Inbox className="h-8 w-8 text-purple-600 dark:text-purple-400" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              Aucun résultat trouvé
+              {Object.keys(filters).length > 0 || searchQuery ? "No results found" : "Ready to go on AutoPilot?"}
             </h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">
+            <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
               {Object.keys(filters).length > 0 || searchQuery ?
-                "Aucune campagne ne correspond à vos filtres ou à votre recherche."
-                : "Commencez par créer votre première campagne !"}
+                "No autopilot campaigns match your filters or search criteria."
+                : "Launch your first AutoPilot campaign and let AI automatically apply to jobs tailored to your skills and preferences."}
             </p>
           </div>
         )}
