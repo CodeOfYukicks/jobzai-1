@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, Lightbulb, CreditCard, User, Plus, FileSearch, LayoutGrid, Briefcase, Calendar, Clock, ChevronLeft, ChevronRight, Search, FileEdit, Mic, Target } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LayoutDashboard, ScrollText, Lightbulb, User, Plus, FileSearch, LayoutGrid, Briefcase, Calendar, Clock, ChevronLeft, ChevronRight, Search, FileEdit, Mic, Target } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -141,6 +141,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [credits, setCredits] = useState(0);
+  const [userPlan, setUserPlan] = useState<'free' | 'standard' | 'premium'>('free');
   const { currentUser, logout } = useAuth();
   const [logoUrlLight, setLogoUrlLight] = useState<string>('');
   const [logoUrlDark, setLogoUrlDark] = useState<string>('');
@@ -191,6 +192,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           if (doc.exists()) {
             const userData = doc.data();
             setCredits(userData.credits || 0);
+            setUserPlan(userData.plan || 'free');
             setProfileCompletion(calculateProfileCompletion(userData));
             setProfilePhoto(userData.profilePhoto || '');
           }
@@ -649,107 +651,75 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
           {/* Section du bas - flex-shrink-0 pour taille fixe */}
           <div className="flex-shrink-0">
-            {/* Credits Card - Premium Design */}
+            {/* Plan & Credits Card - Ultra Premium Minimalist Design */}
           {isEffectivelyExpanded ? (
-            <div className="p-2 border-t border-gray-100 dark:border-[#3d3c3e]/50 relative z-10">
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-[#635BFF] via-[#5249e6] to-[#7c75ff] p-3 shadow-lg hover:shadow-xl transition-all duration-500"
-                >
-                  {/* Mesh gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-mesh opacity-30" />
-                  
-                {/* Decorative animated circles */}
-                  <motion.div
-                    className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-white/15 blur-xl"
-                    animate={{
-                      scale: [1, 1.2, 1],
-                      opacity: [0.15, 0.25, 0.15],
-                    }}
-                    transition={{
-                      duration: 4,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                  />
-                  <motion.div
-                    className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-[#7c75ff]/10 blur-2xl"
-                    animate={{
-                      scale: [1, 1.3, 1],
-                      opacity: [0.1, 0.2, 0.1],
-                    }}
-                    transition={{
-                      duration: 5,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                      delay: 0.5,
-                    }}
-                  />
-                  
-                  <div className="relative z-10">
-                  {/* Credit amount */}
-                    <div className="flex items-baseline gap-1.5 mb-2">
-                      <motion.span
-                        key={credits}
-                        initial={{ scale: 1.1, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
-                      className="text-xl font-bold text-white tracking-tight"
+            <div className="p-3 border-t border-gray-100 dark:border-[#3d3c3e]/50">
+                <div className="space-y-2">
+                  {/* Plan Badge */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-1.5 h-1.5 rounded-full ${
+                        userPlan === 'premium' ? 'bg-amber-400' :
+                        userPlan === 'standard' ? 'bg-[#635BFF]' : 'bg-gray-400'
+                      }`} />
+                      <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        {userPlan === 'premium' ? 'Premium' : userPlan === 'standard' ? 'Standard' : 'Free'}
+                      </span>
+                    </div>
+                    {userPlan !== 'premium' && (
+                      <Link
+                        to="/billing"
+                        className="text-[10px] font-medium text-[#635BFF] dark:text-[#a5a0ff] hover:underline underline-offset-2"
                       >
-                        {credits.toLocaleString()}
-                      </motion.span>
-                      <span className="text-[10px] font-medium text-white/80 tracking-wider uppercase">
-                        credits
-                      </span>
-                    </div>
-
-                  {/* Progress bar */}
-                  <div className="relative h-0.5 bg-white/15 rounded-full overflow-hidden mb-2.5">
-                      <motion.div
-                      className="h-full bg-gradient-to-r from-white/60 to-white/90 rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.min((credits / 500) * 100, 100)}%` }}
-                        transition={{
-                          duration: 0.8,
-                          ease: [0.4, 0, 0.2, 1],
-                        }}
-                      />
-                    </div>
-
-                  {/* Add More Credits button */}
-                    <Link
-                      to="/billing"
-                    className="group/button relative inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md
-                        backdrop-blur-md bg-white/10 border border-white/20
-                        hover:bg-white/20 hover:border-white/30
-                        active:scale-[0.98]
-                      transition-all duration-300 ease-out"
-                  >
-                      <div className="relative flex items-center justify-center w-4 h-4 rounded-full bg-white/20 
-                      group-hover/button:bg-white/30 transition-all duration-300">
-                        <Plus className="h-3 w-3 text-white" />
-                      </div>
-                      <span className="text-[10px] font-semibold text-white/95 tracking-wide">
-                        Add More Credits
-                      </span>
-                    </Link>
+                        Upgrade
+                      </Link>
+                    )}
                   </div>
-                </motion.div>
+
+                  {/* Credits Display */}
+                  <Link 
+                    to="/billing"
+                    className="group block p-3 rounded-xl bg-gray-50 dark:bg-[#3d3c3e]/30 
+                      hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50 
+                      transition-all duration-200"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
+                            {credits >= 999999 ? '∞' : credits.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">
+                            credits
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-center w-7 h-7 rounded-lg 
+                        bg-[#635BFF]/10 dark:bg-[#635BFF]/20
+                        group-hover:bg-[#635BFF] transition-colors duration-200">
+                        <Plus className="h-3.5 w-3.5 text-[#635BFF] dark:text-[#a5a0ff] 
+                          group-hover:text-white transition-colors duration-200" />
+                      </div>
+                    </div>
+                  </Link>
+                </div>
               </div>
             ) : (
             <div className="p-2 border-t border-gray-100 dark:border-[#3d3c3e]/50">
                   <Link
                     to="/billing"
-                className="group relative flex items-center justify-center w-full p-2 rounded-lg
-                      bg-gradient-to-br from-[#635BFF] via-[#5249e6] to-[#7c75ff]
-                      hover:from-[#7c75ff] hover:via-[#8b85ff] hover:to-[#9d97ff]
-                  shadow-md hover:shadow-lg
-                  transition-all duration-300 ease-out"
-                    title={`${credits.toLocaleString()} credits`}
+                className="group relative flex flex-col items-center justify-center w-full p-2 rounded-lg
+                      hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/30
+                  transition-all duration-200"
+                    title={`${userPlan === 'premium' ? 'Premium' : userPlan === 'standard' ? 'Standard' : 'Free'} • ${credits.toLocaleString()} credits`}
                   >
-                    <CreditCard className="relative z-10 h-4 w-4 text-white group-hover:scale-110 transition-transform duration-300" />
+                    <div className={`w-1.5 h-1.5 rounded-full mb-1 ${
+                      userPlan === 'premium' ? 'bg-amber-400' :
+                      userPlan === 'standard' ? 'bg-[#635BFF]' : 'bg-gray-400'
+                    }`} />
+                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 tabular-nums">
+                      {credits >= 999999 ? '∞' : credits}
+                    </span>
                   </Link>
               </div>
             )}
