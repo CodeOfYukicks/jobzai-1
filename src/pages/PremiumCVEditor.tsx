@@ -1089,7 +1089,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
 
   return (
     <AuthLayout>
-      <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
+      <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-950">
         {/* Header */}
         <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex-shrink-0 z-20">
           <div className="h-full max-w-[1920px] mx-auto px-4 lg:px-6">

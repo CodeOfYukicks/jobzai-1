@@ -148,7 +148,7 @@ function RightSidebarPanel({
   ];
 
   return (
-    <div className="hidden lg:block fixed right-0 top-0 bottom-0 w-96 bg-white dark:bg-gray-950 border-l border-gray-200 dark:border-gray-800 z-30">
+    <div className="hidden lg:block fixed right-0 top-12 bottom-0 w-96 bg-white dark:bg-gray-950 border-l border-gray-200 dark:border-gray-800 z-30">
       <div className="h-full flex flex-col">
         {/* Notion Style Tab Headers */}
         <div className="relative flex border-b border-gray-100 dark:border-gray-800 flex-shrink-0">

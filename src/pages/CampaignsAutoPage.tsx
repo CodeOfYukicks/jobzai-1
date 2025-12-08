@@ -31,7 +31,21 @@ import {
   RefreshCw,
   Wand2,
   Play,
-  CheckCircle2
+  CheckCircle2,
+  User,
+  Briefcase,
+  ArrowUpDown,
+  Copy,
+  CheckCircle,
+  Download,
+  Activity,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  Globe,
+  Minus,
+  Square,
+  BadgeCheck
 } from 'lucide-react';
 import { toast } from '@/contexts/ToastContext';
 import { getDoc, doc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
@@ -184,16 +198,25 @@ export default function CampaignsAutoPage() {
   const [replyContent, setReplyContent] = useState<{ from: string; subject: string; body: string; date: string } | null>(null);
   const [isLoadingReply, setIsLoadingReply] = useState(false);
 
-  // Column resize state (percentages)
+  // Selection state for premium multi-select
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
+
+  // Sorting state
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Column resize state (percentages) - adjusted for checkbox column
   const [columnWidths, setColumnWidths] = useState({
-    contact: 14,
-    title: 16,
-    company: 14,
-    location: 14,
-    email: 18,
-    linkedin: 9,
-    status: 8,
-    actions: 7
+    checkbox: 4,
+    contact: 13,
+    title: 15,
+    company: 13,
+    location: 13,
+    email: 17,
+    linkedin: 8,
+    status: 9,
+    actions: 8
   });
   const resizingColumnRef = useRef<string | null>(null);
   const startXRef = useRef<number>(0);
@@ -762,6 +785,111 @@ export default function CampaignsAutoPage() {
     replied: recipients.filter(r => r.status === 'replied').length
   };
 
+  // Selection handlers
+  const handleSelectAll = useCallback(() => {
+    if (selectedRows.size === filteredRecipients.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(filteredRecipients.map(r => r.id)));
+    }
+  }, [filteredRecipients, selectedRows.size]);
+
+  const handleSelectRow = useCallback((id: string) => {
+    setSelectedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleCopyEmail = useCallback(async (email: string) => {
+    try {
+      await navigator.clipboard.writeText(email);
+      setCopiedEmail(email);
+      toast.success('Email copied!');
+      setTimeout(() => setCopiedEmail(null), 2000);
+    } catch (error) {
+      toast.error('Failed to copy email');
+    }
+  }, []);
+
+  // Sort handler
+  const handleSort = useCallback((column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  }, [sortColumn]);
+
+  // Sorted recipients
+  const sortedRecipients = [...filteredRecipients].sort((a, b) => {
+    if (!sortColumn) return 0;
+    
+    let aVal = '';
+    let bVal = '';
+    
+    switch (sortColumn) {
+      case 'contact':
+        aVal = a.fullName || '';
+        bVal = b.fullName || '';
+        break;
+      case 'title':
+        aVal = a.title || '';
+        bVal = b.title || '';
+        break;
+      case 'company':
+        aVal = a.company || '';
+        bVal = b.company || '';
+        break;
+      case 'location':
+        aVal = a.location || '';
+        bVal = b.location || '';
+        break;
+      case 'email':
+        aVal = a.email || '';
+        bVal = b.email || '';
+        break;
+      case 'status':
+        aVal = a.status || '';
+        bVal = b.status || '';
+        break;
+      default:
+        return 0;
+    }
+    
+    const comparison = aVal.localeCompare(bVal);
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  // Clear selection when campaign changes
+  useEffect(() => {
+    setSelectedRows(new Set());
+  }, [selectedCampaignId]);
+
+  // Get status color for left border
+  const getStatusBorderColor = (status: RecipientStatus) => {
+    switch (status) {
+      case 'replied':
+        return 'border-l-emerald-500';
+      case 'opened':
+        return 'border-l-blue-500';
+      case 'sent':
+        return 'border-l-amber-500';
+      case 'email_ready':
+      case 'email_generated':
+        return 'border-l-purple-500';
+      case 'pending':
+      default:
+        return 'border-l-gray-300 dark:border-l-gray-600';
+    }
+  };
+
   if (isLoading) {
     return (
       <AuthLayout>
@@ -1251,256 +1379,627 @@ export default function CampaignsAutoPage() {
             </motion.div>
           )}
 
-          {/* Premium Spreadsheet Table - Notion/Google Sheets Style */}
+          {/* Premium Data Table - Linear/Notion Style */}
           {(campaigns.length > 0 || recipients.length > 0) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.3 }}
-            className="flex-1 min-h-0 bg-white dark:bg-white/[0.02] mx-6 border border-gray-200 dark:border-white/[0.06] rounded-lg overflow-hidden flex flex-col backdrop-blur-sm"
+            className="flex-1 min-h-0 mx-6 border border-gray-200/80 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col 
+              bg-white dark:bg-[#0a0a0a] shadow-sm dark:shadow-2xl dark:shadow-black/20"
+            style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" }}
           >
-            <div className="flex-1 min-h-0 overflow-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-white/10 scrollbar-track-transparent">
+            <div className="flex-1 min-h-0 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-white/10 scrollbar-track-transparent">
               <table ref={tableRef} className="w-full border-collapse table-fixed">
+                {/* Premium Header with Glassmorphism */}
                 <thead className="sticky top-0 z-20">
-                  <tr className="border-b border-gray-200 dark:border-[#2a2a2a]">
-                    <th style={{ width: `${columnWidths.contact}%` }} className="relative px-4 py-3 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414] border-r border-gray-100 dark:border-[#2a2a2a]">
-                      Contact
+                  <tr className="border-b border-gray-200 dark:border-white/[0.06]">
+                    {/* Checkbox Column Header */}
+                    <th 
+                      style={{ width: `${columnWidths.checkbox}%` }} 
+                      className="px-3 py-3.5 bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
+                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04]"
+                    >
+                      <div className="flex items-center justify-center">
+                        <button
+                          onClick={handleSelectAll}
+                          className={`w-4.5 h-4.5 rounded-[4px] border-2 flex items-center justify-center transition-all duration-200 
+                            ${selectedRows.size === filteredRecipients.length && filteredRecipients.length > 0
+                              ? 'bg-gradient-to-br from-violet-500 to-purple-600 border-violet-500 shadow-sm shadow-violet-500/25'
+                              : selectedRows.size > 0
+                                ? 'bg-gradient-to-br from-violet-500/50 to-purple-600/50 border-violet-400'
+                                : 'border-gray-300 dark:border-gray-600 hover:border-violet-400 dark:hover:border-violet-500'
+                            }`}
+                        >
+                          {selectedRows.size === filteredRecipients.length && filteredRecipients.length > 0 ? (
+                            <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                          ) : selectedRows.size > 0 ? (
+                            <Minus className="w-3 h-3 text-white" strokeWidth={3} />
+                          ) : null}
+                        </button>
+                      </div>
+                    </th>
+                    
+                    {/* Contact Header */}
+                    <th 
+                      style={{ width: `${columnWidths.contact}%` }} 
+                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
+                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.02] transition-colors"
+                      onClick={() => handleSort('contact')}
+                    >
+                      <div className="flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</span>
+                        <div className={`transition-all duration-200 ${sortColumn === 'contact' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                          {sortColumn === 'contact' && sortDirection === 'desc' ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
+                          ) : (
+                            <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
+                          )}
+                        </div>
+                      </div>
                       <div 
-                        onMouseDown={(e) => handleResizeStart(e, 'contact')}
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
+                        onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'contact'); }}
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
                       />
                     </th>
-                    <th style={{ width: `${columnWidths.title}%` }} className="relative px-4 py-3 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414] border-r border-gray-100 dark:border-[#2a2a2a]">
-                      Title
+                    
+                    {/* Title Header */}
+                    <th 
+                      style={{ width: `${columnWidths.title}%` }} 
+                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
+                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.02] transition-colors"
+                      onClick={() => handleSort('title')}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Title</span>
+                        <div className={`transition-all duration-200 ${sortColumn === 'title' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                          {sortColumn === 'title' && sortDirection === 'desc' ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
+                          ) : (
+                            <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
+                          )}
+                        </div>
+                      </div>
                       <div 
-                        onMouseDown={(e) => handleResizeStart(e, 'title')}
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
+                        onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'title'); }}
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
                       />
                     </th>
-                    <th style={{ width: `${columnWidths.company}%` }} className="relative px-4 py-3 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414] border-r border-gray-100 dark:border-[#2a2a2a]">
-                      Company
+                    
+                    {/* Company Header */}
+                    <th 
+                      style={{ width: `${columnWidths.company}%` }} 
+                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
+                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.02] transition-colors"
+                      onClick={() => handleSort('company')}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Company</span>
+                        <div className={`transition-all duration-200 ${sortColumn === 'company' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                          {sortColumn === 'company' && sortDirection === 'desc' ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
+                          ) : (
+                            <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
+                          )}
+                        </div>
+                      </div>
                       <div 
-                        onMouseDown={(e) => handleResizeStart(e, 'company')}
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
+                        onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'company'); }}
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
                       />
                     </th>
-                    <th style={{ width: `${columnWidths.location}%` }} className="relative px-4 py-3 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414] border-r border-gray-100 dark:border-[#2a2a2a]">
-                      Location
+                    
+                    {/* Location Header */}
+                    <th 
+                      style={{ width: `${columnWidths.location}%` }} 
+                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
+                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.02] transition-colors"
+                      onClick={() => handleSort('location')}
+                    >
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Location</span>
+                        <div className={`transition-all duration-200 ${sortColumn === 'location' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                          {sortColumn === 'location' && sortDirection === 'desc' ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
+                          ) : (
+                            <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
+                          )}
+                        </div>
+                      </div>
                       <div 
-                        onMouseDown={(e) => handleResizeStart(e, 'location')}
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
+                        onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'location'); }}
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
                       />
                     </th>
-                    <th style={{ width: `${columnWidths.email}%` }} className="relative px-4 py-3 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414] border-r border-gray-100 dark:border-[#2a2a2a]">
-                      Email
+                    
+                    {/* Email Header */}
+                    <th 
+                      style={{ width: `${columnWidths.email}%` }} 
+                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
+                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.02] transition-colors"
+                      onClick={() => handleSort('email')}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</span>
+                        <div className={`transition-all duration-200 ${sortColumn === 'email' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                          {sortColumn === 'email' && sortDirection === 'desc' ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
+                          ) : (
+                            <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
+                          )}
+                        </div>
+                      </div>
                       <div 
-                        onMouseDown={(e) => handleResizeStart(e, 'email')}
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
+                        onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'email'); }}
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
                       />
                     </th>
-                    <th style={{ width: `${columnWidths.linkedin}%` }} className="relative px-4 py-3 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414] border-r border-gray-100 dark:border-[#2a2a2a]">
-                      LinkedIn
+                    
+                    {/* LinkedIn Header */}
+                    <th 
+                      style={{ width: `${columnWidths.linkedin}%` }} 
+                      className="relative px-4 py-3.5 text-left bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
+                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Linkedin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">LinkedIn</span>
+                      </div>
                       <div 
                         onMouseDown={(e) => handleResizeStart(e, 'linkedin')}
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
                       />
                     </th>
-                    <th style={{ width: `${columnWidths.status}%` }} className="relative px-4 py-3 text-left text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414] border-r border-gray-100 dark:border-[#2a2a2a]">
-                      Status
+                    
+                    {/* Status Header */}
+                    <th 
+                      style={{ width: `${columnWidths.status}%` }} 
+                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
+                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.02] transition-colors"
+                      onClick={() => handleSort('status')}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</span>
+                        <div className={`transition-all duration-200 ${sortColumn === 'status' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                          {sortColumn === 'status' && sortDirection === 'desc' ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
+                          ) : (
+                            <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
+                          )}
+                        </div>
+                      </div>
                       <div 
-                        onMouseDown={(e) => handleResizeStart(e, 'status')}
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-purple-400 dark:hover:bg-purple-500 transition-colors"
+                        onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'status'); }}
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
                       />
                     </th>
-                    <th style={{ width: `${columnWidths.actions}%` }} className="px-4 py-3 text-center text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-[#141414]">
-                      Actions
+                    
+                    {/* Actions Header */}
+                    <th 
+                      style={{ width: `${columnWidths.actions}%` }} 
+                      className="px-4 py-3.5 text-center bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] backdrop-blur-xl"
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <Zap className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</span>
+                      </div>
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                
+                <tbody className="divide-y divide-gray-50 dark:divide-white/[0.02]">
+                  {/* Loading State with Premium Skeleton */}
                   {isLoadingRecipients ? (
-                    <tr>
-                      <td colSpan={8} className="px-6 py-16 text-center">
-                        <div className="flex flex-col items-center">
-                          <Loader2 className="w-5 h-5 animate-spin text-gray-400 dark:text-gray-500" />
-                          <p className="text-sm text-gray-400 dark:text-gray-500 mt-3">Loading contacts...</p>
-                        </div>
-                      </td>
-                    </tr>
+                    Array.from({ length: 8 }).map((_, i) => (
+                      <tr key={i} className="animate-pulse">
+                        <td className="px-3 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
+                          <div className="flex items-center justify-center">
+                            <div className="w-4 h-4 rounded bg-gray-200 dark:bg-white/[0.05]" />
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-white/[0.08] dark:to-white/[0.04]" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-3.5 bg-gray-200 dark:bg-white/[0.05] rounded-full w-24" />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
+                          <div className="h-3.5 bg-gray-200 dark:bg-white/[0.05] rounded-full w-32" />
+                        </td>
+                        <td className="px-4 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded bg-gray-200 dark:bg-white/[0.05]" />
+                            <div className="h-3.5 bg-gray-200 dark:bg-white/[0.05] rounded-full w-20" />
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
+                          <div className="h-3.5 bg-gray-200 dark:bg-white/[0.05] rounded-full w-28" />
+                        </td>
+                        <td className="px-4 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
+                          <div className="h-3.5 bg-gray-200 dark:bg-white/[0.05] rounded-full w-36" />
+                        </td>
+                        <td className="px-4 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
+                          <div className="w-6 h-6 rounded bg-gray-200 dark:bg-white/[0.05]" />
+                        </td>
+                        <td className="px-4 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
+                          <div className="h-6 bg-gray-200 dark:bg-white/[0.05] rounded-full w-16" />
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center justify-center gap-1">
+                            <div className="w-7 h-7 rounded bg-gray-200 dark:bg-white/[0.05]" />
+                            <div className="w-7 h-7 rounded bg-gray-200 dark:bg-white/[0.05]" />
+                          </div>
+                        </td>
+                      </tr>
+                    ))
                   ) : recipients.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-6 py-16 text-center">
-                        <div className="flex flex-col items-center">
-                          <Users className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-3" />
-                          <p className="text-sm text-gray-400 dark:text-gray-500">
-                            {selectedCampaign ? 'No contacts found. Try adjusting your targeting.' : 'Select or create a campaign to see contacts.'}
+                      <td colSpan={9} className="px-6 py-20 text-center">
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex flex-col items-center"
+                        >
+                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-white/[0.05] dark:to-white/[0.02] flex items-center justify-center mb-4 shadow-inner">
+                            <Users className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                          </div>
+                          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-1">No contacts yet</h3>
+                          <p className="text-[13px] text-gray-500 dark:text-gray-500 max-w-xs">
+                            {selectedCampaign ? 'No contacts found for this campaign. Try adjusting your targeting criteria.' : 'Select a campaign to view contacts.'}
                           </p>
-                        </div>
+                        </motion.div>
                       </td>
                     </tr>
-                  ) : filteredRecipients.length === 0 ? (
+                  ) : sortedRecipients.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-6 py-16 text-center">
-                        <div className="flex flex-col items-center">
-                          <Search className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-3" />
-                          <p className="text-sm text-gray-400 dark:text-gray-500">
+                      <td colSpan={9} className="px-6 py-20 text-center">
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex flex-col items-center"
+                        >
+                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-100 to-purple-200 dark:from-violet-500/10 dark:to-purple-500/5 flex items-center justify-center mb-4">
+                            <Search className="w-8 h-8 text-violet-500 dark:text-violet-400" />
+                          </div>
+                          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-1">No results found</h3>
+                          <p className="text-[13px] text-gray-500 dark:text-gray-500 mb-3">
                             No contacts match "{searchQuery}"
                           </p>
                           <button
                             onClick={() => setSearchQuery('')}
-                            className="mt-2 text-sm text-purple-600 dark:text-purple-400 hover:underline"
+                            className="text-sm font-medium text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
                           >
                             Clear search
                           </button>
-                        </div>
+                        </motion.div>
                       </td>
                     </tr>
                   ) : (
-                    filteredRecipients.map((recipient, index) => (
-                    <motion.tr 
+                    sortedRecipients.map((recipient, index) => (
+                      <motion.tr 
                         key={recipient.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                        transition={{ duration: 0.15, delay: 0.01 * Math.min(index, 15) }}
-                        className="group hover:bg-[#f7f7f5] dark:hover:bg-white/[0.02] transition-colors duration-100
-                          border-b border-gray-100 dark:border-white/[0.04]"
-                    >
-                      {/* Name */}
-                        <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
-                          <span className="text-[13px] text-gray-900 dark:text-gray-200 truncate block">
-                            {recipient.fullName}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.2, delay: 0.015 * Math.min(index, 20) }}
+                        className={`group relative transition-all duration-150 ease-out
+                          ${selectedRows.has(recipient.id) 
+                            ? 'bg-violet-50/50 dark:bg-violet-500/[0.06]' 
+                            : index % 2 === 0 
+                              ? 'bg-white dark:bg-transparent' 
+                              : 'bg-gray-50/30 dark:bg-white/[0.01]'
+                          }
+                          hover:bg-gray-100/70 dark:hover:bg-white/[0.03] 
+                          hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)]
+                          border-l-[3px] ${getStatusBorderColor(recipient.status)}`}
+                      >
+                        {/* Checkbox Cell */}
+                        <td className="px-3 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
+                          <div className="flex items-center justify-center">
+                            <button
+                              onClick={() => handleSelectRow(recipient.id)}
+                              className={`w-4.5 h-4.5 rounded-[4px] border-2 flex items-center justify-center transition-all duration-200 
+                                ${selectedRows.has(recipient.id)
+                                  ? 'bg-gradient-to-br from-violet-500 to-purple-600 border-violet-500 shadow-sm shadow-violet-500/25 scale-105'
+                                  : 'border-gray-300 dark:border-gray-600 hover:border-violet-400 dark:hover:border-violet-500 hover:scale-105'
+                                }`}
+                            >
+                              {selectedRows.has(recipient.id) && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                >
+                                  <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                                </motion.div>
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                        
+                        {/* Contact Cell with Avatar */}
+                        <td className="px-4 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
+                          <div className="flex items-center gap-3">
+                            {/* Premium Avatar */}
+                            <div className="relative flex-shrink-0">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-white
+                                bg-gradient-to-br ${
+                                  index % 5 === 0 ? 'from-violet-500 to-purple-600' :
+                                  index % 5 === 1 ? 'from-blue-500 to-cyan-600' :
+                                  index % 5 === 2 ? 'from-emerald-500 to-teal-600' :
+                                  index % 5 === 3 ? 'from-amber-500 to-orange-600' :
+                                  'from-rose-500 to-pink-600'
+                                } shadow-sm`}
+                              >
+                                {recipient.firstName?.charAt(0)}{recipient.lastName?.charAt(0)}
+                              </div>
+                              {recipient.status === 'replied' && (
+                                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0a0a0a] flex items-center justify-center">
+                                  <Check className="w-2 h-2 text-white" strokeWidth={3} />
+                                </div>
+                              )}
+                            </div>
+                            <span className="text-[13px] font-medium text-gray-900 dark:text-gray-100 truncate 
+                              group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors cursor-default">
+                              {recipient.fullName}
+                            </span>
+                          </div>
+                        </td>
+                        
+                        {/* Title Cell */}
+                        <td className="px-4 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
+                          <span className="text-[13px] text-gray-600 dark:text-gray-400 truncate block">
+                            {recipient.title || <span className="text-gray-300 dark:text-gray-600">—</span>}
                           </span>
                         </td>
                         
-                        {/* Title */}
-                        <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
-                          <span className="text-[13px] text-gray-600 dark:text-gray-400 truncate block">
-                            {recipient.title || '—'}
-                        </span>
-                      </td>
-                      
-                      {/* Company */}
-                        <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
-                          <div className="flex items-center gap-2">
+                        {/* Company Cell with Logo */}
+                        <td className="px-4 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
+                          <div className="flex items-center gap-2.5">
                             {recipient.company && (
                               <CompanyLogo companyName={recipient.company} size="sm" />
                             )}
-                            <span className="text-[13px] text-gray-900 dark:text-gray-200 truncate">
-                              {recipient.company || '—'}
-                        </span>
-                          </div>
-                      </td>
-                      
-                        {/* Location */}
-                        <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
-                          <div className="flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                            <span className="text-[13px] text-gray-600 dark:text-gray-400 truncate">
-                              {recipient.location || '—'}
-                        </span>
+                            <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200 truncate">
+                              {recipient.company || <span className="text-gray-300 dark:text-gray-600 font-normal">—</span>}
+                            </span>
                           </div>
                         </td>
-                      
-                        {/* Email */}
-                        <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
-                          {recipient.email && !recipient.email.includes('not_unlocked') ? (
-                            <a 
-                              href={`mailto:${recipient.email}`}
-                              className="inline-flex items-center gap-1.5 text-[13px] text-gray-600 dark:text-gray-400 
-                                hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
-                            >
-                              <Mail className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                              <span className="truncate">{recipient.email}</span>
-                            </a>
+                        
+                        {/* Location Cell */}
+                        <td className="px-4 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
+                          {recipient.location ? (
+                            <div className="flex items-center gap-1.5">
+                              <Globe className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                              <span className="text-[13px] text-gray-600 dark:text-gray-400 truncate">
+                                {recipient.location}
+                              </span>
+                            </div>
                           ) : (
-                            <span className="text-[13px] text-gray-400 dark:text-gray-600">—</span>
+                            <span className="text-[13px] text-gray-300 dark:text-gray-600">—</span>
                           )}
-                      </td>
-                      
-                      {/* LinkedIn */}
-                        <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
+                        </td>
+                        
+                        {/* Email Cell with Copy */}
+                        <td className="px-4 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
+                          {recipient.email && !recipient.email.includes('not_unlocked') ? (
+                            <div className="flex items-center gap-2 group/email">
+                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                <BadgeCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                                <span className="text-[13px] text-gray-600 dark:text-gray-400 truncate">
+                                  {recipient.email}
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => handleCopyEmail(recipient.email!)}
+                                className={`p-1 rounded transition-all duration-200 opacity-0 group-hover/email:opacity-100
+                                  ${copiedEmail === recipient.email 
+                                    ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' 
+                                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]'
+                                  }`}
+                                title="Copy email"
+                              >
+                                {copiedEmail === recipient.email ? (
+                                  <Check className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[13px] text-gray-300 dark:text-gray-600">—</span>
+                          )}
+                        </td>
+                        
+                        {/* LinkedIn Cell */}
+                        <td className="px-4 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
                           {recipient.linkedinUrl ? (
-                        <a
+                            <a
                               href={recipient.linkedinUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="inline-flex items-center justify-center w-8 h-8 rounded-lg
                                 text-[#0A66C2] dark:text-[#71b7fb] 
                                 hover:bg-[#0A66C2]/10 dark:hover:bg-[#71b7fb]/10 
+                                hover:shadow-[0_0_0_4px_rgba(10,102,194,0.1)] dark:hover:shadow-[0_0_0_4px_rgba(113,183,251,0.1)]
                                 transition-all duration-200"
                               title="View LinkedIn Profile"
                             >
                               <Linkedin className="w-4 h-4" />
                             </a>
                           ) : (
-                            <span className="text-[13px] text-gray-400 dark:text-gray-600">—</span>
+                            <span className="text-[13px] text-gray-300 dark:text-gray-600">—</span>
                           )}
-                      </td>
-                      
-                      {/* Status */}
-                        <td className="px-3 py-2.5 border-r border-gray-100 dark:border-white/[0.04]">
-                          <span className="inline-flex items-center gap-1.5 text-[12px] font-medium">
-                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                              recipient.status === 'replied' ? 'bg-emerald-500' :
+                        </td>
+                        
+                        {/* Status Cell with Premium Badge */}
+                        <td className="px-4 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold
+                            ${recipient.status === 'replied' 
+                              ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200/50 dark:ring-emerald-500/20' 
+                              : recipient.status === 'opened' 
+                              ? 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-500/10 dark:to-cyan-500/10 text-blue-700 dark:text-blue-400 ring-1 ring-blue-200/50 dark:ring-blue-500/20' 
+                              : recipient.status === 'sent' 
+                              ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200/50 dark:ring-amber-500/20' 
+                              : recipient.status === 'email_generated' || recipient.status === 'email_ready'
+                              ? 'bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-500/10 dark:to-purple-500/10 text-violet-700 dark:text-violet-400 ring-1 ring-violet-200/50 dark:ring-violet-500/20' 
+                              : 'bg-gray-100 dark:bg-white/[0.05] text-gray-500 dark:text-gray-500 ring-1 ring-gray-200/50 dark:ring-white/[0.05]'
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              recipient.status === 'replied' ? 'bg-emerald-500 animate-pulse' :
                               recipient.status === 'opened' ? 'bg-blue-500' :
-                              recipient.status === 'sent' ? 'bg-amber-500' :
+                              recipient.status === 'sent' ? 'bg-amber-500 animate-pulse' :
+                              recipient.status === 'email_generated' || recipient.status === 'email_ready' ? 'bg-violet-500' :
                               'bg-gray-400 dark:bg-gray-600'
                             }`} />
-                            <span className={`${
-                              recipient.status === 'replied' ? 'text-emerald-700 dark:text-emerald-400' :
-                              recipient.status === 'opened' ? 'text-blue-700 dark:text-blue-400' :
-                              recipient.status === 'sent' ? 'text-amber-700 dark:text-amber-400' :
-                              'text-gray-500 dark:text-gray-500'
-                            }`}>
                             {getStatusLabel(recipient.status)}
-                            </span>
-                        </span>
-                      </td>
-                      
-                      {/* Actions */}
-                        <td className="px-3 py-2.5">
-                          <div className="flex items-center justify-center gap-0.5">
-                          <button
-                            onClick={() => setEmailPreviewRecipient(recipient)}
-                            disabled={!recipient.emailGenerated}
-                            className={`p-1.5 rounded transition-colors ${
-                              recipient.emailGenerated 
-                                ? 'text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-500/10'
-                                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                            }`}
-                            title={recipient.emailGenerated ? "View email" : "Email not generated yet"}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleViewReply(recipient)}
-                            disabled={recipient.status !== 'replied'}
-                            className={`p-1.5 rounded transition-colors ${
-                              recipient.status === 'replied'
-                                ? 'text-emerald-500 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'
-                                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                            }`}
-                            title={recipient.status === 'replied' ? "View reply" : "No reply yet"}
-                          >
-                            <Reply className="w-4 h-4" />
-                          </button>
-                          <button
-                              className="p-1.5 rounded text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 
-                                hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors"
-                            title="More options"
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
+                          </span>
+                        </td>
+                        
+                        {/* Actions Cell */}
+                        <td className="px-3 py-3">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => setEmailPreviewRecipient(recipient)}
+                              disabled={!recipient.emailGenerated}
+                              className={`p-1.5 rounded-lg transition-all duration-200 ${
+                                recipient.emailGenerated 
+                                  ? 'text-gray-400 dark:text-gray-500 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 hover:shadow-sm'
+                                  : 'text-gray-200 dark:text-gray-700 cursor-not-allowed'
+                              }`}
+                              title={recipient.emailGenerated ? "View email" : "Email not generated yet"}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleViewReply(recipient)}
+                              disabled={recipient.status !== 'replied'}
+                              className={`p-1.5 rounded-lg transition-all duration-200 ${
+                                recipient.status === 'replied'
+                                  ? 'text-emerald-500 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:shadow-sm'
+                                  : 'text-gray-200 dark:text-gray-700 cursor-not-allowed'
+                              }`}
+                              title={recipient.status === 'replied' ? "View reply" : "No reply yet"}
+                            >
+                              <Reply className="w-4 h-4" />
+                            </button>
+                            <button
+                              className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 
+                                hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-all duration-200 
+                                opacity-0 group-hover:opacity-100"
+                              title="More options"
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </motion.tr>
                     ))
                   )}
                 </tbody>
               </table>
             </div>
+            
+            {/* Premium Table Footer */}
+            {sortedRecipients.length > 0 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-white/[0.04] 
+                bg-gradient-to-b from-gray-50/50 to-white dark:from-[#0f0f0f] dark:to-[#0a0a0a]">
+                <div className="text-[12px] text-gray-500 dark:text-gray-500">
+                  Showing <span className="font-semibold text-gray-700 dark:text-gray-300">{sortedRecipients.length}</span> of <span className="font-semibold text-gray-700 dark:text-gray-300">{recipients.length}</span> contacts
+                </div>
+                <div className="flex items-center gap-2">
+                  <button className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 
+                    hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-[12px] text-gray-500 dark:text-gray-500 px-2">Page 1 of 1</span>
+                  <button className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 
+                    hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </motion.div>
           )}
+          
+          {/* Floating Bulk Actions Bar */}
+          <AnimatePresence>
+            {selectedRows.size > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+              >
+                <div className="flex items-center gap-3 px-4 py-3 bg-gray-900 dark:bg-white/95 rounded-xl shadow-2xl shadow-gray-900/20 dark:shadow-black/40 
+                  border border-gray-800 dark:border-gray-200 backdrop-blur-xl"
+                  style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" }}
+                >
+                  {/* Selection count */}
+                  <div className="flex items-center gap-2 pr-3 border-r border-gray-700 dark:border-gray-300">
+                    <div className="w-6 h-6 rounded-full bg-violet-500 flex items-center justify-center">
+                      <span className="text-[11px] font-bold text-white">{selectedRows.size}</span>
+                    </div>
+                    <span className="text-[13px] font-medium text-gray-300 dark:text-gray-700">selected</span>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex items-center gap-1">
+                    <button 
+                      onClick={handleGenerateEmails}
+                      disabled={isGeneratingEmails}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium
+                        text-gray-300 dark:text-gray-700 hover:text-white dark:hover:text-gray-900 
+                        hover:bg-violet-600 dark:hover:bg-violet-100 transition-colors"
+                    >
+                      <Wand2 className="w-4 h-4" />
+                      Generate
+                    </button>
+                    <button 
+                      onClick={handleSendEmails}
+                      disabled={isSendingEmails}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium
+                        text-gray-300 dark:text-gray-700 hover:text-white dark:hover:text-gray-900 
+                        hover:bg-emerald-600 dark:hover:bg-emerald-100 transition-colors"
+                    >
+                      <Send className="w-4 h-4" />
+                      Send
+                    </button>
+                    <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium
+                      text-gray-300 dark:text-gray-700 hover:text-white dark:hover:text-gray-900 
+                      hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors"
+                    >
+                      <Download className="w-4 h-4" />
+                      Export
+                    </button>
+                  </div>
+                  
+                  {/* Clear selection */}
+                  <button 
+                    onClick={() => setSelectedRows(new Set())}
+                    className="ml-2 p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-white dark:hover:text-gray-900 
+                      hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors"
+                    title="Clear selection"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Empty State - Only show when NO campaigns AND NO recipients exist */}
           {campaigns.length === 0 && recipients.length === 0 && !isLoadingRecipients && (

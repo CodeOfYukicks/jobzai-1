@@ -206,7 +206,7 @@ export default function AICompanionPanel({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed right-0 top-0 h-full w-96 bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col"
+            className="fixed right-0 top-12 h-[calc(100vh-48px)] w-96 bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">

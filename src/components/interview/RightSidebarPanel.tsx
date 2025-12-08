@@ -293,7 +293,7 @@ export default function RightSidebarPanel({
   ];
 
   return (
-    <div className="hidden lg:flex fixed right-0 top-0 h-screen w-[400px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-l border-slate-200/60 dark:border-slate-800/60 z-30 flex-col shadow-sidebar">
+    <div className="hidden lg:flex fixed right-0 top-12 h-[calc(100vh-48px)] w-[400px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-l border-slate-200/60 dark:border-slate-800/60 z-30 flex-col shadow-sidebar">
       
       {/* Tab Headers - Premium Jobzai style matching TabPills */}
       <div className="flex-shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">

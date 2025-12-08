@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, Lightbulb, Settings, CreditCard, User, LogOut, Plus, FileSearch, LayoutGrid, Briefcase, Calendar, Clock, ChevronLeft, ChevronRight, Search, FileEdit, Mic, Target } from 'lucide-react';
+import { LayoutDashboard, ScrollText, Lightbulb, CreditCard, User, Plus, FileSearch, LayoutGrid, Briefcase, Calendar, Clock, ChevronLeft, ChevronRight, Search, FileEdit, Mic, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, collection, query, getDocs } from 'firebase/firestore';
@@ -146,7 +146,6 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const [logoUrlDark, setLogoUrlDark] = useState<string>('');
   const [isHovered, setIsHovered] = useState<string | null>(null);
   const [profileCompletion, setProfileCompletion] = useState(0);
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState(
     location.pathname.startsWith('/cv-optimizer/') || 
@@ -402,15 +401,18 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           profilePhoto={profilePhoto}
           userInitial={userInitial}
           userFirstName={userFirstName}
+          userEmail={currentUser?.email || ''}
           isDarkMode={isDarkMode}
           onThemeToggle={handleThemeToggle}
           sidebarWidth={currentSidebarWidth}
+          profileCompletion={profileCompletion}
+          onSignOut={handleSignOut}
         />
       </div>
 
       {/* Sidebar desktop - Full height, in front of top bar */}
       <aside 
-        className={`hidden md:fixed md:flex md:flex-col z-50 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ${isCollapsed && isHoveringSidebar ? 'shadow-2xl' : ''}`}
+        className={`hidden md:fixed md:flex md:flex-col z-50 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 ${isCollapsed && isHoveringSidebar ? 'shadow-xl' : ''}`}
         style={{ 
           top: 0,
           left: 0,
@@ -423,460 +425,320 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         {/* Logo and collapse button at top of sidebar */}
         <div className="relative flex h-12 shrink-0 items-center justify-between px-3 border-b border-gray-100 dark:border-gray-700/50">
           {/* Logo */}
-          <Link 
-            to="/"
+            <Link 
+              to="/"
             className={`flex items-center ${!isEffectivelyExpanded ? 'justify-center w-full' : ''} hover:opacity-80 transition-opacity`}
-          >
-            {(isDarkMode ? logoUrlDark : logoUrlLight) ? (
-              <img 
-                src={isDarkMode ? logoUrlDark : logoUrlLight} 
+            >
+              {(isDarkMode ? logoUrlDark : logoUrlLight) ? (
+                <img 
+                  src={isDarkMode ? logoUrlDark : logoUrlLight} 
                 alt="Jobzai" 
                 className="h-7 w-auto"
-              />
-            ) : (
-              <div className="h-7 w-7 bg-gray-100 dark:bg-gray-700 animate-pulse rounded" />
-            )}
-          </Link>
-          {/* Bouton collapse - disabled on certain pages */}
-          {location.pathname !== '/applications' && location.pathname !== '/jobs' && location.pathname !== '/upcoming-interviews' && location.pathname !== '/mock-interview' && location.pathname !== '/calendar' && location.pathname !== '/campaigns-auto' && !location.pathname.startsWith('/interview-prep/') && !location.pathname.startsWith('/ats-analysis/') && location.pathname !== '/resume-builder' && !(location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) && !location.pathname.startsWith('/notes/') && (
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className={`group flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200
-                text-gray-400 dark:text-gray-500 
-                hover:text-gray-600 dark:hover:text-gray-300
-                hover:bg-gray-100 dark:hover:bg-gray-700/50
-                active:scale-95`}
-              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              {isCollapsed ? (
-                <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                />
               ) : (
-                <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+              <div className="h-7 w-7 bg-gray-100 dark:bg-gray-700 animate-pulse rounded" />
               )}
-            </button>
-          )}
+            </Link>
+          {/* Bouton collapse - disabled on certain pages */}
+            {location.pathname !== '/applications' && location.pathname !== '/jobs' && location.pathname !== '/upcoming-interviews' && location.pathname !== '/mock-interview' && location.pathname !== '/calendar' && location.pathname !== '/campaigns-auto' && !location.pathname.startsWith('/interview-prep/') && !location.pathname.startsWith('/ats-analysis/') && location.pathname !== '/resume-builder' && !(location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) && !location.pathname.startsWith('/notes/') && (
+              <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+              className={`group flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200
+                  text-gray-400 dark:text-gray-500 
+                  hover:text-gray-600 dark:hover:text-gray-300
+                  hover:bg-gray-100 dark:hover:bg-gray-700/50
+                  active:scale-95`}
+                aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {isCollapsed ? (
+                  <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                ) : (
+                  <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                )}
+              </button>
+            )}
 
           {/* Bouton collapse for locked pages - visible when expanded */}
-          {(location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/upcoming-interviews' || location.pathname === '/mock-interview' || location.pathname === '/calendar' || location.pathname === '/campaigns-auto' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/') || location.pathname === '/resume-builder' || (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) || location.pathname.startsWith('/notes/')) && !isCollapsed && (
-            <button
-              onClick={() => setIsCollapsed(true)}
+            {(location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/upcoming-interviews' || location.pathname === '/mock-interview' || location.pathname === '/calendar' || location.pathname === '/campaigns-auto' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/') || location.pathname === '/resume-builder' || (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) || location.pathname.startsWith('/notes/')) && !isCollapsed && (
+              <button
+                onClick={() => setIsCollapsed(true)}
               className={`group flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200
-                text-gray-400 dark:text-gray-500 
-                hover:text-gray-600 dark:hover:text-gray-300
-                hover:bg-gray-100 dark:hover:bg-gray-700/50
-                active:scale-95`}
-              aria-label="Collapse sidebar"
-            >
-              <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-            </button>
-          )}
-        </div>
+                  text-gray-400 dark:text-gray-500 
+                  hover:text-gray-600 dark:hover:text-gray-300
+                  hover:bg-gray-100 dark:hover:bg-gray-700/50
+                  active:scale-95`}
+                aria-label="Collapse sidebar"
+              >
+                <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+              </button>
+            )}
+          </div>
 
-        {/* Navigation principale - flex-1 pour prendre l'espace disponible */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {/* Navigation principale - flex-1 pour prendre l'espace disponible */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
           <nav className="p-2 space-y-1">
-            {/* APPLY Section */}
+              {/* APPLY Section */}
             <div className="space-y-0.5">
               {isEffectivelyExpanded && (
                 <p className="px-3 pt-2 pb-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  APPLY
-                </p>
-              )}
-              
-              {navigationGroups.apply.main.map((item) => (
-                <SidebarLink
-                  key={item.name}
-                  name={item.name}
-                  href={item.href}
-                  icon={item.icon}
+                    APPLY
+                  </p>
+                )}
+                
+                {navigationGroups.apply.main.map((item) => (
+                  <SidebarLink
+                    key={item.name}
+                    name={item.name}
+                    href={item.href}
+                    icon={item.icon}
                   isCollapsed={!isEffectivelyExpanded}
-                  isHovered={isHovered}
-                  onMouseEnter={setIsHovered}
-                  onMouseLeave={() => setIsHovered(null)}
-                />
-              ))}
-            </div>
+                    isHovered={isHovered}
+                    onMouseEnter={setIsHovered}
+                    onMouseLeave={() => setIsHovered(null)}
+                  />
+                ))}
+              </div>
 
-            {/* TRACK Section */}
+              {/* TRACK Section */}
             <div className="space-y-0.5">
               {isEffectivelyExpanded && (
                 <p className="px-3 pt-3 pb-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  TRACK
-                </p>
-              )}
-              {navigationGroups.track.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onMouseEnter={() => setIsHovered(item.name)}
-                  onMouseLeave={() => setIsHovered(null)}
+                    TRACK
+                  </p>
+                )}
+                {navigationGroups.track.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    onMouseEnter={() => setIsHovered(item.name)}
+                    onMouseLeave={() => setIsHovered(null)}
                   className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg 
-                    transition-all duration-200 relative overflow-hidden
-                    ${location.pathname === item.href
+                      transition-all duration-200 relative overflow-hidden
+                      ${location.pathname === item.href
                       ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                    }`}
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}
                   title={!isEffectivelyExpanded ? item.name : undefined}
                 >
                   <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
                     <item.icon className={`h-[18px] w-[18px] transition-colors
-                      ${location.pathname === item.href 
-                        ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
-                        : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
-                    />
+                        ${location.pathname === item.href 
+                          ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
+                          : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
+                      />
                     {isEffectivelyExpanded && (
-                      <span className="flex-1">{item.name}</span>
-                    )}
-                  </div>
+                        <span className="flex-1">{item.name}</span>
+                      )}
+                    </div>
 
-                  {location.pathname === item.href && (
-                    <motion.div
-                      layoutId="activeIndicator"
+                    {location.pathname === item.href && (
+                      <motion.div
+                        layoutId="activeIndicator"
                       className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 
                         bg-[#635BFF] dark:bg-[#a5a0ff] rounded-r-full"
-                    />
-                  )}
-                </Link>
-              ))}
-            </div>
+                      />
+                    )}
+                  </Link>
+                ))}
+              </div>
 
-            {/* PREPARE Section */}
+              {/* PREPARE Section */}
             <div className="space-y-0.5">
               {isEffectivelyExpanded && (
                 <p className="px-3 pt-3 pb-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  PREPARE
-                </p>
-              )}
-              {navigationGroups.prepare.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onMouseEnter={() => setIsHovered(item.name)}
-                  onMouseLeave={() => setIsHovered(null)}
+                    PREPARE
+                  </p>
+                )}
+                {navigationGroups.prepare.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    onMouseEnter={() => setIsHovered(item.name)}
+                    onMouseLeave={() => setIsHovered(null)}
                   className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg 
-                    transition-all duration-200 relative overflow-hidden
-                    ${location.pathname === item.href
+                      transition-all duration-200 relative overflow-hidden
+                      ${location.pathname === item.href
                       ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                    }`}
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}
                   title={!isEffectivelyExpanded ? item.name : undefined}
                 >
                   <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
                     <item.icon className={`h-[18px] w-[18px] transition-colors
-                      ${location.pathname === item.href 
-                        ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
-                        : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
-                    />
+                        ${location.pathname === item.href 
+                          ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
+                          : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
+                      />
                     {isEffectivelyExpanded && (
-                      <span className="flex-1">{item.name}</span>
-                    )}
-                  </div>
+                        <span className="flex-1">{item.name}</span>
+                      )}
+                    </div>
 
-                  {location.pathname === item.href && (
-                    <motion.div
-                      layoutId="activeIndicator"
+                    {location.pathname === item.href && (
+                      <motion.div
+                        layoutId="activeIndicator"
                       className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 
                         bg-[#635BFF] dark:bg-[#a5a0ff] rounded-r-full"
-                    />
-                  )}
-                </Link>
-              ))}
-            </div>
+                      />
+                    )}
+                  </Link>
+                ))}
+              </div>
 
-            {/* IMPROVE Section */}
+              {/* IMPROVE Section */}
             <div className="space-y-0.5">
               {isEffectivelyExpanded && (
                 <p className="px-3 pt-3 pb-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  IMPROVE
-                </p>
-              )}
-              {navigationGroups.improve.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onMouseEnter={() => setIsHovered(item.name)}
-                  onMouseLeave={() => setIsHovered(null)}
+                    IMPROVE
+                  </p>
+                )}
+                {navigationGroups.improve.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    onMouseEnter={() => setIsHovered(item.name)}
+                    onMouseLeave={() => setIsHovered(null)}
                   className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg 
-                    transition-all duration-200 relative overflow-hidden
-                    ${location.pathname === item.href
+                      transition-all duration-200 relative overflow-hidden
+                      ${location.pathname === item.href
                       ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                    }`}
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}
                   title={!isEffectivelyExpanded ? item.name : undefined}
                 >
                   <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
                     <item.icon className={`h-[18px] w-[18px] transition-colors
-                      ${location.pathname === item.href 
-                        ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
-                        : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
-                    />
+                        ${location.pathname === item.href 
+                          ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
+                          : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
+                      />
                     {isEffectivelyExpanded && (
-                      <span className="flex-1">{item.name}</span>
-                    )}
-                  </div>
+                        <span className="flex-1">{item.name}</span>
+                      )}
+                    </div>
 
-                  {location.pathname === item.href && (
-                    <motion.div
-                      layoutId="activeIndicator"
+                    {location.pathname === item.href && (
+                      <motion.div
+                        layoutId="activeIndicator"
                       className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 
                         bg-[#635BFF] dark:bg-[#a5a0ff] rounded-r-full"
-                    />
-                  )}
-                </Link>
-              ))}
-            </div>
+                      />
+                    )}
+                  </Link>
+                ))}
+              </div>
 
-            {/* Profile Completion Alert si < 90% */}
-            {isEffectivelyExpanded && profileCompletion < 90 && (
-              <div className="mt-3 px-2">
+            </nav>
+          </div>
+
+          {/* Section du bas - flex-shrink-0 pour taille fixe */}
+          <div className="flex-shrink-0">
+            {/* Credits Card - Premium Design */}
+          {isEffectivelyExpanded ? (
+            <div className="p-2 border-t border-gray-100 dark:border-gray-700/50 relative z-10">
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="relative overflow-hidden rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 
-                    dark:from-amber-900/20 dark:to-amber-800/20 p-2.5"
+                  transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-[#635BFF] via-[#5249e6] to-[#7c75ff] p-3 shadow-lg hover:shadow-xl transition-all duration-500"
                 >
-                  <div className="relative">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-medium text-amber-900 dark:text-amber-100">
-                        Profile Completion
-                      </span>
-                      <span className="text-xs font-bold text-amber-900 dark:text-amber-100">
-                        {profileCompletion}%
+                  {/* Mesh gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-mesh opacity-30" />
+                  
+                {/* Decorative animated circles */}
+                  <motion.div
+                    className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-white/15 blur-xl"
+                    animate={{
+                      scale: [1, 1.2, 1],
+                      opacity: [0.15, 0.25, 0.15],
+                    }}
+                    transition={{
+                      duration: 4,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  />
+                  <motion.div
+                    className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-[#7c75ff]/10 blur-2xl"
+                    animate={{
+                      scale: [1, 1.3, 1],
+                      opacity: [0.1, 0.2, 0.1],
+                    }}
+                    transition={{
+                      duration: 5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: 0.5,
+                    }}
+                  />
+                  
+                  <div className="relative z-10">
+                  {/* Credit amount */}
+                    <div className="flex items-baseline gap-1.5 mb-2">
+                      <motion.span
+                        key={credits}
+                        initial={{ scale: 1.1, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                      className="text-xl font-bold text-white tracking-tight"
+                      >
+                        {credits.toLocaleString()}
+                      </motion.span>
+                      <span className="text-[10px] font-medium text-white/80 tracking-wider uppercase">
+                        credits
                       </span>
                     </div>
 
-                    {/* Barre de progression */}
-                    <div className="h-1 bg-amber-200/50 dark:bg-amber-700/30 rounded-full overflow-hidden mb-2">
-                      <motion.div 
-                        className="h-full bg-amber-500 dark:bg-amber-400 rounded-full"
+                  {/* Progress bar */}
+                  <div className="relative h-0.5 bg-white/15 rounded-full overflow-hidden mb-2.5">
+                      <motion.div
+                      className="h-full bg-gradient-to-r from-white/60 to-white/90 rounded-full"
                         initial={{ width: 0 }}
-                        animate={{ width: `${profileCompletion}%` }}
-                        transition={{ duration: 0.5 }}
+                        animate={{ width: `${Math.min((credits / 500) * 100, 100)}%` }}
+                        transition={{
+                          duration: 0.8,
+                          ease: [0.4, 0, 0.2, 1],
+                        }}
                       />
                     </div>
 
+                  {/* Add More Credits button */}
                     <Link
-                      to="/professional-profile"
-                      className="inline-flex items-center gap-1.5 text-[11px] font-medium text-amber-900 
-                        dark:text-amber-100 hover:text-amber-700 dark:hover:text-amber-300 
-                        transition-colors"
-                    >
-                      Complete Profile
-                      <svg 
-                        className="w-3 h-3" 
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke="currentColor"
-                      >
-                        <path 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
-                          strokeWidth={2} 
-                          d="M9 5l7 7-7 7" 
-                        />
-                      </svg>
+                      to="/billing"
+                    className="group/button relative inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md
+                        backdrop-blur-md bg-white/10 border border-white/20
+                        hover:bg-white/20 hover:border-white/30
+                        active:scale-[0.98]
+                      transition-all duration-300 ease-out"
+                  >
+                      <div className="relative flex items-center justify-center w-4 h-4 rounded-full bg-white/20 
+                      group-hover/button:bg-white/30 transition-all duration-300">
+                        <Plus className="h-3 w-3 text-white" />
+                      </div>
+                      <span className="text-[10px] font-semibold text-white/95 tracking-wide">
+                        Add More Credits
+                      </span>
                     </Link>
                   </div>
                 </motion.div>
               </div>
-            )}
-          </nav>
-        </div>
-
-        {/* Section du bas - flex-shrink-0 pour taille fixe */}
-        <div className="flex-shrink-0">
-          {/* Credits Card - Premium Design */}
-          {isEffectivelyExpanded ? (
-            <div className="p-2 border-t border-gray-100 dark:border-gray-700/50 relative z-10">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-[#635BFF] via-[#5249e6] to-[#7c75ff] p-3 shadow-lg hover:shadow-xl transition-all duration-500"
-              >
-                {/* Mesh gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-mesh opacity-30" />
-                
-                {/* Decorative animated circles */}
-                <motion.div
-                  className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-white/15 blur-xl"
-                  animate={{
-                    scale: [1, 1.2, 1],
-                    opacity: [0.15, 0.25, 0.15],
-                  }}
-                  transition={{
-                    duration: 4,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-                <motion.div
-                  className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-[#7c75ff]/10 blur-2xl"
-                  animate={{
-                    scale: [1, 1.3, 1],
-                    opacity: [0.1, 0.2, 0.1],
-                  }}
-                  transition={{
-                    duration: 5,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: 0.5,
-                  }}
-                />
-                
-                <div className="relative z-10">
-                  {/* Credit amount */}
-                  <div className="flex items-baseline gap-1.5 mb-2">
-                    <motion.span
-                      key={credits}
-                      initial={{ scale: 1.1, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
-                      className="text-xl font-bold text-white tracking-tight"
-                    >
-                      {credits.toLocaleString()}
-                    </motion.span>
-                    <span className="text-[10px] font-medium text-white/80 tracking-wider uppercase">
-                      credits
-                    </span>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="relative h-0.5 bg-white/15 rounded-full overflow-hidden mb-2.5">
-                    <motion.div
-                      className="h-full bg-gradient-to-r from-white/60 to-white/90 rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min((credits / 500) * 100, 100)}%` }}
-                      transition={{
-                        duration: 0.8,
-                        ease: [0.4, 0, 0.2, 1],
-                      }}
-                    />
-                  </div>
-
-                  {/* Add More Credits button */}
+            ) : (
+            <div className="p-2 border-t border-gray-100 dark:border-gray-700/50">
                   <Link
                     to="/billing"
-                    className="group/button relative inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md
-                      backdrop-blur-md bg-white/10 border border-white/20
-                      hover:bg-white/20 hover:border-white/30
-                      active:scale-[0.98]
-                      transition-all duration-300 ease-out"
-                  >
-                    <div className="relative flex items-center justify-center w-4 h-4 rounded-full bg-white/20 
-                      group-hover/button:bg-white/30 transition-all duration-300">
-                      <Plus className="h-3 w-3 text-white" />
-                    </div>
-                    <span className="text-[10px] font-semibold text-white/95 tracking-wide">
-                      Add More Credits
-                    </span>
-                  </Link>
-                </div>
-              </motion.div>
-            </div>
-          ) : (
-            <div className="p-2 border-t border-gray-100 dark:border-gray-700/50">
-              <Link
-                to="/billing"
                 className="group relative flex items-center justify-center w-full p-2 rounded-lg
-                  bg-gradient-to-br from-[#635BFF] via-[#5249e6] to-[#7c75ff]
-                  hover:from-[#7c75ff] hover:via-[#8b85ff] hover:to-[#9d97ff]
+                      bg-gradient-to-br from-[#635BFF] via-[#5249e6] to-[#7c75ff]
+                      hover:from-[#7c75ff] hover:via-[#8b85ff] hover:to-[#9d97ff]
                   shadow-md hover:shadow-lg
                   transition-all duration-300 ease-out"
-                title={`${credits.toLocaleString()} credits`}
-              >
-                <CreditCard className="relative z-10 h-4 w-4 text-white group-hover:scale-110 transition-transform duration-300" />
-              </Link>
-            </div>
-          )}
-
-          {/* User Profile - Simplified for sidebar bottom */}
-          <div className={`p-2 border-t border-gray-100 dark:border-gray-700/50`}>
-            <div className="relative z-20">
-              <button 
-                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className={`w-full group ${!isEffectivelyExpanded ? 'p-1.5 justify-center' : 'p-1.5'} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 
-                  transition-all duration-200 flex items-center ${!isEffectivelyExpanded ? 'flex-col' : ''}`}
-              >
-                <div className={`flex items-center ${!isEffectivelyExpanded ? 'flex-col' : 'gap-2'}`}>
-                  <div className="relative">
-                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#635BFF] to-[#7c75ff] 
-                      flex items-center justify-center shadow-md overflow-hidden">
-                      {profilePhoto ? (
-                        <img 
-                          src={profilePhoto} 
-                          alt={userFirstName}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-white text-sm font-medium">
-                          {userInitial}
-                        </span>
-                      )}
-                    </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-400 
-                      border-2 border-white dark:border-gray-800" />
-                  </div>
-                  {isEffectivelyExpanded && (
-                    <div className="flex-1 text-left min-w-0">
-                      <p className="text-[12px] font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {userFirstName}
-                      </p>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
-                        {currentUser?.email}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </button>
-
-              {/* Dropdown menu */}
-              <AnimatePresence>
-                {isProfileMenuOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className={`absolute bottom-full ${!isEffectivelyExpanded ? 'left-0 w-48' : 'left-0 w-full'} mb-2 bg-white dark:bg-gray-800 
-                      rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50`}
+                    title={`${credits.toLocaleString()} credits`}
                   >
-                    <div className="py-1">
-                      <Link
-                        to="/settings"
-                        className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 
-                          hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                        onClick={() => setIsProfileMenuOpen(false)}
-                      >
-                        <Settings className="h-4 w-4" />
-                        Settings
-                      </Link>
-                      <Link
-                        to="/billing"
-                        className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 
-                          hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                        onClick={() => setIsProfileMenuOpen(false)}
-                      >
-                        <CreditCard className="h-4 w-4" />
-                        Billing
-                      </Link>
-                      <button
-                        onClick={() => {
-                          handleSignOut();
-                          setIsProfileMenuOpen(false);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 
-                          hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Sign out
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-        </div>
+                    <CreditCard className="relative z-10 h-4 w-4 text-white group-hover:scale-110 transition-transform duration-300" />
+                  </Link>
+              </div>
+            )}
+
+                        </div>
       </aside>
 
       {/* Mobile Top App Bar */}
@@ -932,7 +794,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
       {/* Main content */}
       <div 
-        className={`flex flex-col flex-1 min-h-0 transition-all duration-300 overflow-x-hidden ${isBuilderMode ? 'bg-white dark:bg-gray-800' : ''}`}
+        className={`flex flex-col flex-1 min-h-0 overflow-x-hidden ${isBuilderMode ? 'bg-white dark:bg-gray-800' : ''}`}
       >
         {/* Desktop: spacer for fixed top bar */}
         <div 
@@ -941,7 +803,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         />
         
         <main 
-          className={`flex-1 min-h-0 flex flex-col transition-all duration-300 ${
+          className={`flex-1 min-h-0 flex flex-col ${
             isCollapsed ? 'md:ml-[72px]' : 'md:ml-[256px]'
           }`}
         >

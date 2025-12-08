@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Bell, MessageSquare, Command } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search, Bell, Sparkles, Command, User, Settings, CreditCard, LogOut, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeSwitch from './ThemeSwitch';
 
@@ -8,28 +8,39 @@ interface TopBarProps {
   profilePhoto: string;
   userInitial: string;
   userFirstName: string;
+  userEmail: string;
   isDarkMode: boolean;
   onThemeToggle: (checked: boolean) => void;
   sidebarWidth: number;
+  profileCompletion: number;
+  onSignOut: () => void;
 }
 
 export default function TopBar({
   profilePhoto,
   userInitial,
   userFirstName,
+  userEmail,
   isDarkMode,
   onThemeToggle,
   sidebarWidth,
+  profileCompletion,
+  onSignOut,
 }: TopBarProps) {
   const navigate = useNavigate();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close notifications dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
         setIsNotificationsOpen(false);
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
       }
     };
 
@@ -39,7 +50,7 @@ export default function TopBar({
 
   return (
     <header 
-      className="fixed top-0 right-0 z-40 h-12 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 transition-all duration-300"
+      className="fixed top-0 right-0 z-40 h-12 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
       style={{ left: sidebarWidth }}
     >
       <div className="h-full flex items-center justify-center px-4 relative">
@@ -71,16 +82,6 @@ export default function TopBar({
 
         {/* Right: Actions - Positioned absolutely */}
         <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-          {/* Theme Toggle */}
-          <div className="hidden sm:flex items-center">
-            <ThemeSwitch
-              checked={isDarkMode}
-              onChange={onThemeToggle}
-              size={12}
-              widthEm={4.5}
-            />
-          </div>
-
           {/* Notifications */}
           <div className="relative" ref={notificationsRef}>
             <button
@@ -149,54 +150,183 @@ export default function TopBar({
             </AnimatePresence>
           </div>
 
-          {/* Chat (placeholder) */}
+          {/* Assistant Button */}
           <button
-            className="flex items-center justify-center h-8 w-8 rounded-lg
-              text-gray-500 dark:text-gray-400
-              hover:bg-gray-100 dark:hover:bg-gray-700/50
-              hover:text-gray-700 dark:hover:text-gray-200
-              transition-all duration-200"
-            aria-label="Chat"
-            title="Chat (coming soon)"
+            className="flex items-center gap-1.5 h-8 px-3 rounded-full
+              bg-gray-100 dark:bg-gray-700
+              border border-gray-200 dark:border-gray-600
+              text-gray-700 dark:text-gray-200
+              hover:bg-gray-200 dark:hover:bg-gray-600
+              hover:border-gray-300 dark:hover:border-gray-500
+              active:scale-[0.98]
+              transition-all duration-150"
+            aria-label="Assistant"
+            title="AI Assistant"
           >
-            <MessageSquare className="h-[18px] w-[18px]" />
+            <Sparkles className="h-4 w-4" />
+            <span className="text-[13px] font-medium">Assistant</span>
           </button>
 
-          {/* Divider */}
-          <div className="hidden sm:block w-px h-5 bg-gray-200 dark:bg-gray-700 mx-0.5" />
-
-          {/* User Avatar */}
-          <button
-            onClick={() => navigate('/settings')}
-            className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg
-              hover:bg-gray-100 dark:hover:bg-gray-700/50
-              transition-all duration-200 group"
-          >
-            <div className="relative">
-              <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#635BFF] to-[#7c75ff] 
-                flex items-center justify-center overflow-hidden
-                ring-2 ring-transparent group-hover:ring-[#635BFF]/20 transition-all">
-                {profilePhoto ? (
-                  <img 
-                    src={profilePhoto} 
-                    alt={userFirstName}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-white text-xs font-medium">
-                    {userInitial}
-                  </span>
-                )}
+          {/* User Profile with Dropdown */}
+          <div className="relative" ref={profileMenuRef}>
+            <button
+              onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+              className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg
+                hover:bg-gray-100 dark:hover:bg-gray-700/50
+                transition-all duration-200 group"
+            >
+              <div className="relative">
+                <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#635BFF] to-[#7c75ff] 
+                  flex items-center justify-center overflow-hidden
+                  ring-2 ring-transparent group-hover:ring-[#635BFF]/20 transition-all">
+                  {profilePhoto ? (
+                    <img 
+                      src={profilePhoto} 
+                      alt={userFirstName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white text-xs font-medium">
+                      {userInitial}
+                    </span>
+                  )}
+                </div>
               </div>
-              {/* Online indicator */}
-              <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-green-400 
-                border-[1.5px] border-white dark:border-gray-800" />
-            </div>
-            <span className="hidden sm:block text-[13px] font-medium text-gray-700 dark:text-gray-200 
-              group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
-              {userFirstName}
-            </span>
-          </button>
+            </button>
+
+            {/* Profile Dropdown Menu */}
+            <AnimatePresence>
+              {isProfileMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                  className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 
+                    rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 
+                    overflow-hidden z-50"
+                >
+                  {/* User Info Header */}
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#635BFF] to-[#7c75ff] 
+                        flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {profilePhoto ? (
+                          <img 
+                            src={profilePhoto} 
+                            alt={userFirstName}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-white text-sm font-medium">
+                            {userInitial}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                          {userFirstName}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {userEmail}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="py-1">
+                    <Link
+                      to="/professional-profile"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 
+                        hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      <User className="h-4 w-4 text-gray-400" />
+                      <span>Your profile</span>
+                    </Link>
+
+                    <Link
+                      to="/settings"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 
+                        hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      <Settings className="h-4 w-4 text-gray-400" />
+                      <span>Settings</span>
+                    </Link>
+
+                    <Link
+                      to="/billing"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 
+                        hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      <CreditCard className="h-4 w-4 text-gray-400" />
+                      <span>Billing</span>
+                    </Link>
+                  </div>
+
+                  {/* Theme Toggle */}
+                  <div className="px-4 py-2.5 border-t border-gray-100 dark:border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700 dark:text-gray-200">Theme</span>
+                      <ThemeSwitch
+                        checked={isDarkMode}
+                        onChange={onThemeToggle}
+                        size={12}
+                        widthEm={4.5}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Profile Completion */}
+                  <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                        Profile completion
+                      </span>
+                      <span className="text-xs font-bold text-[#635BFF] dark:text-[#a5a0ff]">
+                        {profileCompletion}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-[#635BFF] to-[#7c75ff] rounded-full transition-all duration-500"
+                        style={{ width: `${profileCompletion}%` }}
+                      />
+                    </div>
+                    {profileCompletion < 100 && (
+                      <Link
+                        to="/professional-profile"
+                        className="flex items-center justify-between mt-2 text-xs text-[#635BFF] dark:text-[#a5a0ff] 
+                          hover:text-[#7c75ff] transition-colors"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                      >
+                        <span>Complete your profile</span>
+                        <ChevronRight className="h-3 w-3" />
+                      </Link>
+                    )}
+                  </div>
+
+                  {/* Sign Out */}
+                  <div className="py-1 border-t border-gray-100 dark:border-gray-700">
+                    <button
+                      onClick={() => {
+                        onSignOut();
+                        setIsProfileMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 
+                        hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Sign out</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </header>
