@@ -19,6 +19,7 @@ import {
   Bell,
   MapPin,
   Heart,
+  Layout,
 } from 'lucide-react';
 import { CalendarEvent } from './types';
 import { CompanyLogo } from '../common/CompanyLogo';
@@ -88,6 +89,11 @@ const UpcomingEventCard = ({
   const interview = isInterview ? resource.interview : null;
   const companyName = resource?.companyName || 'Company';
   const position = resource?.position || 'Position';
+  
+  // Board info
+  const boardName = resource?.boardName;
+  const boardIcon = resource?.boardIcon;
+  const boardColor = resource?.boardColor;
 
   const typeInfo = isInterview
     ? getInterviewTypeInfo(interview?.type || 'other')
@@ -185,6 +191,20 @@ const UpcomingEventCard = ({
             <div className="mt-1.5 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
               <MapPin className="w-3 h-3" />
               <span className="truncate">{interview.location}</span>
+            </div>
+          )}
+
+          {/* Board indicator - minimalist */}
+          {boardName && (
+            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-500">
+              <span 
+                className="w-1.5 h-1.5 rounded-full flex-shrink-0" 
+                style={{ backgroundColor: boardColor || '#6B7280' }}
+              />
+              <span className="truncate">
+                {boardIcon && <span className="mr-0.5">{boardIcon}</span>}
+                {boardName}
+              </span>
             </div>
           )}
 

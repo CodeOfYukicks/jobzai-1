@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import moment from 'moment';
-import { collection, query, getDocs, getDoc, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, getDocs, getDoc, addDoc, doc, updateDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
@@ -13,6 +13,7 @@ import {
   UpcomingEventsPanel,
 } from '../components/calendar';
 import { CalendarEvent, CalendarView as CalendarViewType } from '../components/calendar/types';
+import { KanbanBoard } from '../types/job';
 
 // Types from JobApplicationsPage
 interface Interview {
@@ -68,6 +69,7 @@ export default function CalendarView() {
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [justSelectedEvent, setJustSelectedEvent] = useState(false);
+  const [boards, setBoards] = useState<KanbanBoard[]>([]);
   const dragTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const dragStartTimeRef = useRef<number>(0);
 
@@ -80,6 +82,27 @@ export default function CalendarView() {
     };
   }, []);
 
+  // Fetch boards from Firestore
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const fetchBoards = async () => {
+      try {
+        const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
+        const boardsSnapshot = await getDocs(query(boardsRef, orderBy('createdAt', 'asc')));
+        const boardsData: KanbanBoard[] = [];
+        boardsSnapshot.forEach((doc) => {
+          boardsData.push({ id: doc.id, ...doc.data() } as KanbanBoard);
+        });
+        setBoards(boardsData);
+      } catch (error) {
+        console.error('Error fetching boards:', error);
+      }
+    };
+    
+    fetchBoards();
+  }, [currentUser]);
+
   // Fetch applications and interviews from Firestore
   useEffect(() => {
     if (!currentUser) {
@@ -90,13 +113,39 @@ export default function CalendarView() {
     const fetchApplicationsAndInterviews = async () => {
       try {
         setIsLoading(true);
+        
+        // Fetch boards first to map board info
+        const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
+        const boardsSnapshot = await getDocs(query(boardsRef, orderBy('createdAt', 'asc')));
+        const boardsMap = new Map<string, KanbanBoard>();
+        let defaultBoard: KanbanBoard | null = null;
+        
+        boardsSnapshot.forEach((doc) => {
+          const board = { id: doc.id, ...doc.data() } as KanbanBoard;
+          boardsMap.set(board.id, board);
+          if (board.isDefault) {
+            defaultBoard = board;
+          }
+        });
+        
+        // Fetch applications
         const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
         const applicationsSnapshot = await getDocs(query(applicationsRef));
         
         const newEvents: CalendarEvent[] = [];
         
         applicationsSnapshot.forEach((doc) => {
-          const application = { id: doc.id, ...doc.data() } as JobApplication;
+          const application = { id: doc.id, ...doc.data() } as JobApplication & { boardId?: string };
+          
+          // Get board info for this application
+          const boardId = application.boardId;
+          const board = boardId ? boardsMap.get(boardId) : defaultBoard;
+          const boardInfo = board ? {
+            boardId: board.id,
+            boardName: board.name,
+            boardIcon: board.icon,
+            boardColor: board.color,
+          } : null;
           
           // Add application/wishlist date as event
           if (application.appliedDate) {
@@ -112,7 +161,7 @@ export default function CalendarView() {
               allDay: true,
               type: isWishlist ? 'wishlist' : 'application',
               color: isWishlist ? '#ec4899' : '#8b5cf6',
-              resource: application,
+              resource: { ...application, ...boardInfo },
             });
           }
           
@@ -142,7 +191,7 @@ export default function CalendarView() {
                   allDay: false,
                   type: 'interview',
                   color,
-                  resource: { ...application, interview },
+                  resource: { ...application, interview, ...boardInfo },
                 });
               }
             });

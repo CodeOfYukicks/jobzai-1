@@ -521,20 +521,41 @@ export default function JobApplicationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser, automationSettings]);
 
-  // Handle highlight parameter from URL to open application modal
+  // Handle highlight and board parameters from URL to open application modal
   useEffect(() => {
     const highlightId = searchParams.get('highlight');
-    if (highlightId && applications.length > 0 && !isLoading) {
+    const boardId = searchParams.get('board');
+    
+    if (highlightId && applications.length > 0 && boards.length > 0 && !isLoading) {
       const app = applications.find(a => a.id === highlightId);
       if (app && (!selectedApplication || selectedApplication.id !== highlightId)) {
+        // If a board is specified, switch to that board first
+        if (boardId) {
+          const targetBoard = boards.find(b => b.id === boardId);
+          if (targetBoard) {
+            setCurrentBoardId(boardId);
+            setView('kanban');
+          }
+        } else if (app.boardId) {
+          // If no board in URL but app has a boardId, switch to that board
+          const targetBoard = boards.find(b => b.id === app.boardId);
+          if (targetBoard) {
+            setCurrentBoardId(app.boardId);
+            setView('kanban');
+          }
+        }
+        
+        // Open the application modal
         setSelectedApplication(app);
         setTimelineModal(true);
-        // Remove highlight from URL after opening
+        
+        // Remove params from URL after opening
         searchParams.delete('highlight');
+        searchParams.delete('board');
         setSearchParams(searchParams, { replace: true });
       }
     }
-  }, [searchParams, applications, isLoading, selectedApplication, setSearchParams]);
+  }, [searchParams, applications, boards, isLoading, selectedApplication, setSearchParams]);
 
   // Charger les candidatures existantes quand on sélectionne "interview" dans le modal
   useEffect(() => {
@@ -965,7 +986,7 @@ export default function JobApplicationsPage() {
           companyName: formData.companyName,
           position: effectivePosition,
           location: effectiveLocation,
-          status: formData.status || defaultStatus,
+          status: defaultStatus,
           appliedDate: formData.appliedDate,
           url: formData.url || '',
           description: formData.description || '',  // AI-powered summary (3 bullet points)
@@ -1404,8 +1425,9 @@ export default function JobApplicationsPage() {
     // Text search filter
     if (searchQuery.trim()) {
       filtered = filtered.filter(app =>
-        app.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.position.toLowerCase().includes(searchQuery.toLowerCase())
+        (app.companyName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (app.position || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (app.contactName || '').toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -1823,8 +1845,8 @@ export default function JobApplicationsPage() {
         statusHistory
       });
 
-      // Lancer les confettis si déplacé vers "offer"
-      if (newStatus === 'offer') {
+      // Lancer les confettis si déplacé vers "offer" ou "opportunity"
+      if (newStatus === 'offer' || (newStatus as string) === 'opportunity') {
         fireConfetti();
       }
 
@@ -1889,10 +1911,40 @@ export default function JobApplicationsPage() {
   // Get column labels based on board type
   const columnLabels = currentBoardType === 'jobs' ? JOB_COLUMN_LABELS : CAMPAIGN_COLUMN_LABELS;
 
+  // Map statuses between board types for display compatibility
+  const getEffectiveStatus = (appStatus: string): string => {
+    if (currentBoardType === 'campaigns') {
+      // Map jobs statuses to campaigns equivalents
+      const jobsToCampaigns: Record<string, string> = {
+        'applied': 'targets',
+        'wishlist': 'targets',
+        'interview': 'meeting',
+        'offer': 'opportunity',
+        'rejected': 'no_response',
+        'archived': 'closed',
+        'pending_decision': 'follow_up',
+      };
+      return jobsToCampaigns[appStatus] || appStatus;
+    } else {
+      // Map campaigns statuses to jobs equivalents
+      const campaignsToJobs: Record<string, string> = {
+        'targets': 'applied',
+        'contacted': 'applied',
+        'follow_up': 'interview',
+        'replied': 'interview',
+        'meeting': 'interview',
+        'opportunity': 'offer',
+        'no_response': 'rejected',
+        'closed': 'archived',
+      };
+      return campaignsToJobs[appStatus] || appStatus;
+    }
+  };
+
   // Build applicationsByStatus dynamically based on board type
   const applicationsByStatus: Record<string, JobApplication[]> = {};
   columnOrder.forEach(status => {
-    applicationsByStatus[status] = filteredApplications.filter(app => app.status === status);
+    applicationsByStatus[status] = filteredApplications.filter(app => getEffectiveStatus(app.status) === status);
   });
 
   // Analytics helper functions - now filtered by current board
@@ -2869,13 +2921,21 @@ END:VCALENDAR`;
                   className="flex items-center gap-2 mt-4"
                 >
               {(() => {
-                    const stats = [
-                      { label: 'Applied', count: filteredApplications.filter(a => a.status === 'applied').length, color: '#3B82F6', bg: 'bg-blue-500/10' },
-                      { label: 'Interview', count: filteredApplications.filter(a => a.status === 'interview').length, color: '#8B5CF6', bg: 'bg-purple-500/10' },
-                      { label: 'Pending', count: filteredApplications.filter(a => a.status === 'pending_decision').length, color: '#F59E0B', bg: 'bg-amber-500/10' },
-                      { label: 'Offer', count: filteredApplications.filter(a => a.status === 'offer').length, color: '#10B981', bg: 'bg-emerald-500/10' },
-                      { label: 'Rejected', count: filteredApplications.filter(a => a.status === 'rejected').length, color: '#EF4444', bg: 'bg-red-500/10' }
-                    ];
+                    const stats = currentBoardType === 'campaigns' 
+                      ? [
+                          { label: 'Targets', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'targets').length, color: '#6B7280', bg: 'bg-gray-500/10' },
+                          { label: 'Contacted', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'contacted').length, color: '#3B82F6', bg: 'bg-blue-500/10' },
+                          { label: 'Replied', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'replied').length, color: '#8B5CF6', bg: 'bg-purple-500/10' },
+                          { label: 'Meeting', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'meeting').length, color: '#F59E0B', bg: 'bg-amber-500/10' },
+                          { label: 'Opportunity', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'opportunity').length, color: '#10B981', bg: 'bg-emerald-500/10' }
+                        ]
+                      : [
+                          { label: 'Applied', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'applied').length, color: '#3B82F6', bg: 'bg-blue-500/10' },
+                          { label: 'Interview', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'interview').length, color: '#8B5CF6', bg: 'bg-purple-500/10' },
+                          { label: 'Pending', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'pending_decision').length, color: '#F59E0B', bg: 'bg-amber-500/10' },
+                          { label: 'Offer', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'offer').length, color: '#10B981', bg: 'bg-emerald-500/10' },
+                          { label: 'Rejected', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'rejected').length, color: '#EF4444', bg: 'bg-red-500/10' }
+                        ];
                     return stats.map((stat, index) => (
                 <motion.div
                   key={stat.label}
@@ -3156,7 +3216,7 @@ END:VCALENDAR`;
                     {/* Exclude 'archived' from visible columns - only show main workflow columns */}
                     {columnOrder.filter(col => col !== 'archived').map((status, columnIndex) => {
                       const visibleColumns = columnOrder.filter(col => col !== 'archived');
-                      const statusCount = filteredApplications.filter(a => a.status === status).length;
+                      const statusCount = filteredApplications.filter(a => getEffectiveStatus(a.status) === status).length;
                       const isLastColumn = columnIndex === visibleColumns.length - 1;
                       // Get column color for campaigns
                       const columnColor = currentBoardType === 'campaigns' ? CAMPAIGN_COLUMN_COLORS[status] : undefined;
@@ -3228,7 +3288,7 @@ END:VCALENDAR`;
                                 className="flex-1 overflow-y-auto space-y-2 sm:space-y-3"
                               >
                                 <ApplicationList
-                                  applications={filteredApplications.filter(a => a.status === status)}
+                                  applications={filteredApplications.filter(a => getEffectiveStatus(a.status) === status)}
                                   onCardClick={(app) => {
                                     setSelectedApplication(app);
                                     setTimelineModal(true);
@@ -5202,7 +5262,8 @@ END:VCALENDAR`;
                     onClick={handleCreateApplication}
                     disabled={
                       !eventType || 
-                      (eventType === 'application' && (!formData.companyName || !formData.position || !formData.location || !formData.appliedDate)) ||
+                      (eventType === 'application' && currentBoardType === 'campaigns' && (!formData.companyName || !formData.contactName || !formData.appliedDate)) ||
+                      (eventType === 'application' && currentBoardType !== 'campaigns' && (!formData.companyName || !formData.position || !formData.location || !formData.appliedDate)) ||
                       (eventType === 'interview' && (!linkedApplicationId || !formData.interviewDate))
                     }
                     className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-black rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-gray-200 dark:shadow-none flex items-center gap-2"

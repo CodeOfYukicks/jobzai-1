@@ -212,7 +212,12 @@ export default function BoardSettingsModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 40 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="bg-white dark:bg-[#242325] rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-200/50 dark:border-[#3d3c3e]/50"
+          className={`bg-white dark:bg-[#1a191b] rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-hidden border border-gray-200/20 dark:border-white/5 ${
+            step === 'type' && mode === 'create' ? 'max-w-lg' : 'max-w-2xl'
+          }`}
+          style={{
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05) inset'
+          }}
         >
           <AnimatePresence mode="wait">
             {/* Step 1: Type Selection (only in create mode) */}
@@ -225,96 +230,108 @@ export default function BoardSettingsModal({
                 transition={{ duration: 0.2 }}
               >
                 {/* Header */}
-                <div className="relative px-6 py-6 border-b border-gray-100 dark:border-[#3d3c3e]">
+                <div className="relative px-5 py-4 border-b border-gray-100/50 dark:border-white/5">
                   <button
                     onClick={onClose}
-                    className="absolute top-6 right-6 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-400 transition-colors"
+                    className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-all"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4" />
                   </button>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white tracking-tight">
                     Create New Board
                   </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
                     What type of board do you want to create?
                   </p>
                 </div>
 
                 {/* Type Cards */}
-                <div className="p-6 space-y-4">
+                <div className="p-4 space-y-3">
                   {/* Jobs Board Type */}
                   <motion.button
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
+                    whileHover={{ scale: 1.005 }}
+                    whileTap={{ scale: 0.995 }}
                     onClick={() => handleSelectType('jobs')}
-                    className="w-full p-6 rounded-2xl border-2 border-gray-200 dark:border-[#3d3c3e] hover:border-[#635BFF] dark:hover:border-[#635BFF] bg-gradient-to-br from-white to-gray-50 dark:from-[#2b2a2c] dark:to-[#2b2a2c]/50 transition-all group text-left"
+                    className="relative w-full p-4 rounded-xl border border-gray-200/60 dark:border-white/[0.06] hover:border-[#635BFF]/50 dark:hover:border-[#635BFF]/40 bg-gradient-to-br from-white to-gray-50/80 dark:from-[#242325] dark:to-[#1f1e20] transition-all duration-200 group text-left overflow-hidden"
+                    style={{
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(255,255,255,0.02) inset'
+                    }}
                   >
-                    <div className="flex items-start gap-5">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#635BFF] to-[#8B5CF6] flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#635BFF]/20">
-                        <Briefcase className="w-8 h-8 text-white" />
+                    {/* Subtle gradient overlay on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#635BFF]/0 to-[#635BFF]/0 group-hover:from-[#635BFF]/[0.02] group-hover:to-[#8B5CF6]/[0.04] transition-all duration-300 pointer-events-none" />
+                    
+                    <div className="relative flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#635BFF] to-[#8B5CF6] flex items-center justify-center flex-shrink-0 shadow-md shadow-[#635BFF]/15 group-hover:shadow-lg group-hover:shadow-[#635BFF]/25 transition-shadow duration-200">
+                        <Briefcase className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
                             Job Applications
                           </h3>
-                          <span className="px-2 py-0.5 rounded-full bg-[#635BFF]/10 text-[#635BFF] text-xs font-medium">
+                          <span className="px-1.5 py-0.5 rounded-md bg-[#635BFF]/10 dark:bg-[#635BFF]/15 text-[#635BFF] text-[10px] font-semibold uppercase tracking-wide">
                             Classic
                           </span>
                         </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2.5 leading-relaxed">
                           Track applications to job postings with a traditional workflow
                         </p>
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-1">
                           {Object.values(JOB_COLUMN_LABELS).map((label) => (
                             <span
                               key={label}
-                              className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-[#3d3c3e] text-xs font-medium text-gray-600 dark:text-gray-300"
+                              className="px-2 py-0.5 rounded-md bg-gray-100/80 dark:bg-white/[0.04] text-[11px] font-medium text-gray-500 dark:text-gray-400 border border-gray-200/50 dark:border-white/[0.04]"
                             >
                               {label}
                             </span>
                           ))}
                         </div>
                       </div>
-                      <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-[#635BFF] group-hover:translate-x-1 transition-all flex-shrink-0 mt-5" />
+                      <ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-[#635BFF] group-hover:translate-x-0.5 transition-all duration-200 flex-shrink-0 mt-4" />
                     </div>
                   </motion.button>
 
                   {/* Campaigns Board Type */}
                   <motion.button
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
+                    whileHover={{ scale: 1.005 }}
+                    whileTap={{ scale: 0.995 }}
                     onClick={() => handleSelectType('campaigns')}
-                    className="w-full p-6 rounded-2xl border-2 border-gray-200 dark:border-[#3d3c3e] hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] bg-gradient-to-br from-white to-gray-50 dark:from-[#2b2a2c] dark:to-[#2b2a2c]/50 transition-all group text-left"
+                    className="relative w-full p-4 rounded-xl border border-gray-200/60 dark:border-white/[0.06] hover:border-[#8B5CF6]/50 dark:hover:border-[#8B5CF6]/40 bg-gradient-to-br from-white to-gray-50/80 dark:from-[#242325] dark:to-[#1f1e20] transition-all duration-200 group text-left overflow-hidden"
+                    style={{
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(255,255,255,0.02) inset'
+                    }}
                   >
-                    <div className="flex items-start gap-5">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#EC4899] flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#8B5CF6]/20">
-                        <Send className="w-8 h-8 text-white" />
+                    {/* Subtle gradient overlay on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#8B5CF6]/0 to-[#EC4899]/0 group-hover:from-[#8B5CF6]/[0.02] group-hover:to-[#EC4899]/[0.04] transition-all duration-300 pointer-events-none" />
+                    
+                    <div className="relative flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#EC4899] flex items-center justify-center flex-shrink-0 shadow-md shadow-[#8B5CF6]/15 group-hover:shadow-lg group-hover:shadow-[#8B5CF6]/25 transition-shadow duration-200">
+                        <Send className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
                             Outreach Campaigns
                           </h3>
-                          <span className="px-2 py-0.5 rounded-full bg-[#8B5CF6]/10 text-[#8B5CF6] text-xs font-medium">
+                          <span className="px-1.5 py-0.5 rounded-md bg-[#8B5CF6]/10 dark:bg-[#8B5CF6]/15 text-[#8B5CF6] text-[10px] font-semibold uppercase tracking-wide">
                             Prospecting
                           </span>
                         </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2.5 leading-relaxed">
                           Manage spontaneous applications and outreach campaigns
                         </p>
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-1">
                           {Object.values(CAMPAIGN_COLUMN_LABELS).map((label) => (
                             <span
                               key={label}
-                              className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-[#3d3c3e] text-xs font-medium text-gray-600 dark:text-gray-300"
+                              className="px-2 py-0.5 rounded-md bg-gray-100/80 dark:bg-white/[0.04] text-[11px] font-medium text-gray-500 dark:text-gray-400 border border-gray-200/50 dark:border-white/[0.04]"
                             >
                               {label}
                             </span>
                           ))}
                         </div>
                       </div>
-                      <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-[#8B5CF6] group-hover:translate-x-1 transition-all flex-shrink-0 mt-5" />
+                      <ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-[#8B5CF6] group-hover:translate-x-0.5 transition-all duration-200 flex-shrink-0 mt-4" />
                     </div>
                   </motion.button>
                 </div>
@@ -334,25 +351,25 @@ export default function BoardSettingsModal({
                 <div className="relative">
                   {/* Cover Preview */}
                   <div 
-                    className="h-28 w-full overflow-hidden"
+                    className="h-20 w-full overflow-hidden"
                     style={{ 
                       background: coverPhoto 
                         ? `url(${coverPhoto}) center/cover`
                         : `linear-gradient(135deg, ${color}40 0%, ${color}20 50%, transparent 100%)`
                     }}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white dark:to-[#242325]" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white dark:to-[#1a191b]" />
                   </div>
                   
                   {/* Floating Icon */}
-                  <div className="absolute left-6 bottom-0 translate-y-1/2">
+                  <div className="absolute left-5 bottom-0 translate-y-1/2">
                     <motion.div 
-                      className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-xl ring-4 ring-white dark:ring-gray-900"
+                      className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl shadow-lg ring-[3px] ring-white dark:ring-[#1a191b]"
                       style={{ background: `linear-gradient(135deg, ${color}, ${color}dd)` }}
                       whileHover={{ scale: 1.05 }}
                       transition={{ duration: 0.2 }}
                     >
-                      {icon || <Sparkles className="w-7 h-7 text-white" />}
+                      {icon || <Sparkles className="w-5 h-5 text-white" />}
                     </motion.div>
                   </div>
 
@@ -360,24 +377,24 @@ export default function BoardSettingsModal({
                   {mode === 'create' && (
                     <button
                       onClick={() => setStep('type')}
-                      className="absolute top-4 left-4 p-2 rounded-xl bg-black/20 hover:bg-black/40 backdrop-blur-sm text-white transition-colors flex items-center gap-1"
+                      className="absolute top-3 left-3 p-1.5 rounded-lg bg-black/20 hover:bg-black/40 backdrop-blur-sm text-white transition-colors flex items-center gap-1"
                     >
-                      <ArrowLeft className="w-4 h-4" />
-                      <span className="text-sm">Back</span>
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span className="text-xs">Back</span>
                     </button>
                   )}
 
                   {/* Close Button */}
                   <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 p-2 rounded-xl bg-black/20 hover:bg-black/40 backdrop-blur-sm text-white transition-colors"
+                    className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/20 hover:bg-black/40 backdrop-blur-sm text-white transition-colors"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4" />
                   </button>
 
                   {/* Board Type Badge */}
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm ${
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2">
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide backdrop-blur-sm ${
                       boardType === 'jobs' 
                         ? 'bg-[#635BFF]/80 text-white' 
                         : 'bg-[#8B5CF6]/80 text-white'
@@ -388,11 +405,11 @@ export default function BoardSettingsModal({
                 </div>
 
                 {/* Title Section */}
-                <div className="px-6 pt-12 pb-4">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <div className="px-5 pt-8 pb-3">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">
                     {mode === 'create' ? 'Configure Your Board' : 'Edit Board'}
                   </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
                     {mode === 'create' 
                       ? `Set up your new ${boardType === 'jobs' ? 'job tracking' : 'outreach'} board` 
                       : 'Update your board settings'
@@ -401,19 +418,19 @@ export default function BoardSettingsModal({
                 </div>
 
                 {/* Section Tabs */}
-                <div className="px-6 pb-4">
-                  <div className="flex gap-1 p-1 bg-gray-100 dark:bg-[#2b2a2c] rounded-xl">
+                <div className="px-5 pb-3">
+                  <div className="flex gap-0.5 p-0.5 bg-gray-100/80 dark:bg-white/[0.03] rounded-lg border border-gray-200/50 dark:border-white/[0.04]">
                     {sections.map((section) => (
                       <button
                         key={section.id}
                         onClick={() => setActiveSection(section.id)}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-xs font-medium transition-all ${
                           activeSection === section.id
-                            ? 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white shadow-sm'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                            ? 'bg-white dark:bg-white/[0.08] text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                         }`}
                       >
-                        <section.icon className="w-4 h-4" />
+                        <section.icon className="w-3.5 h-3.5" />
                         {section.label}
                       </button>
                     ))}
@@ -421,7 +438,7 @@ export default function BoardSettingsModal({
                 </div>
 
                 {/* Content */}
-                <div className="px-6 pb-6 overflow-y-auto max-h-[calc(90vh-380px)]">
+                <div className="px-5 pb-5 overflow-y-auto max-h-[calc(90vh-340px)]">
                   <AnimatePresence mode="wait">
                     {/* Basics Section */}
                     {activeSection === 'basics' && (
@@ -431,11 +448,11 @@ export default function BoardSettingsModal({
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 20 }}
                         transition={{ duration: 0.2 }}
-                        className="space-y-5"
+                        className="space-y-4"
                       >
                         {/* Name */}
                         <div>
-                          <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                          <label className="block text-xs font-semibold text-gray-900 dark:text-white mb-1.5">
                             Board Name <span className="text-red-500">*</span>
                           </label>
                           <input
@@ -446,13 +463,13 @@ export default function BoardSettingsModal({
                               ? "e.g., Tech Jobs 2025, Remote Positions..." 
                               : "e.g., Startup Outreach, Q1 Campaign..."
                             }
-                            className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#2b2a2c] text-gray-900 dark:text-white placeholder-gray-400 focus:border-[#635BFF] focus:bg-white dark:focus:bg-gray-800 transition-all outline-none"
+                            className="w-full px-3.5 py-2.5 rounded-lg text-sm border border-gray-200/80 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-[#635BFF] focus:bg-white dark:focus:bg-white/[0.04] transition-all outline-none"
                           />
                         </div>
 
                         {/* Description */}
                         <div>
-                          <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                          <label className="block text-xs font-semibold text-gray-900 dark:text-white mb-1.5">
                             Description
                             <span className="font-normal text-gray-400 ml-1">(optional)</span>
                           </label>
@@ -463,39 +480,39 @@ export default function BoardSettingsModal({
                               ? "What kind of jobs will you track here?"
                               : "Describe your outreach campaign..."
                             }
-                            rows={3}
-                            className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#2b2a2c] text-gray-900 dark:text-white placeholder-gray-400 focus:border-[#635BFF] focus:bg-white dark:focus:bg-gray-800 transition-all outline-none resize-none"
+                            rows={2}
+                            className="w-full px-3.5 py-2.5 rounded-lg text-sm border border-gray-200/80 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-[#635BFF] focus:bg-white dark:focus:bg-white/[0.04] transition-all outline-none resize-none"
                           />
                         </div>
 
                         {/* Icon */}
                         <div>
-                          <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                          <label className="block text-xs font-semibold text-gray-900 dark:text-white mb-2">
                             Board Icon
                           </label>
-                          <div className="flex items-start gap-4">
+                          <div className="flex items-start gap-3">
                             <div className="relative">
                               <input
                                 type="text"
                                 value={icon}
                                 onChange={(e) => setIcon(e.target.value.slice(-2))}
-                                className="w-16 h-16 rounded-xl border-2 border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#2b2a2c] text-center text-2xl focus:border-[#635BFF] transition-all outline-none"
+                                className="w-12 h-12 rounded-lg border border-gray-200/80 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02] text-center text-xl focus:border-[#635BFF] transition-all outline-none"
                                 placeholder={boardType === 'jobs' ? '💼' : '📨'}
                               />
                             </div>
                             <div className="flex-1">
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Quick picks:</p>
-                              <div className="flex flex-wrap gap-1.5">
+                              <p className="text-[10px] text-gray-500 dark:text-gray-500 mb-1.5">Quick picks:</p>
+                              <div className="flex flex-wrap gap-1">
                                 {emojiSuggestions.map((emoji) => (
                                   <motion.button
                                     key={emoji}
-                                    whileHover={{ scale: 1.15 }}
+                                    whileHover={{ scale: 1.1 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => setIcon(emoji)}
-                                    className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-all ${
+                                    className={`w-8 h-8 rounded-md flex items-center justify-center text-base transition-all ${
                                       icon === emoji 
-                                        ? 'bg-[#635BFF] ring-2 ring-[#635BFF]/30 shadow-lg' 
-                                        : 'bg-gray-100 dark:bg-[#2b2a2c] hover:bg-gray-200 dark:hover:bg-[#3d3c3e]'
+                                        ? 'bg-[#635BFF] ring-2 ring-[#635BFF]/30 shadow-md' 
+                                        : 'bg-gray-100/80 dark:bg-white/[0.04] hover:bg-gray-200 dark:hover:bg-white/[0.08]'
                                     }`}
                                   >
                                     {emoji}
@@ -758,8 +775,8 @@ export default function BoardSettingsModal({
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-[#3d3c3e] bg-gray-50/50 dark:bg-[#2b2a2c]/50">
-                  <div className="text-xs text-gray-400">
+                <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100/50 dark:border-white/[0.04] bg-gray-50/30 dark:bg-white/[0.01]">
+                  <div className="text-[11px] text-gray-400">
                     {name.trim() ? (
                       <span className="flex items-center gap-1">
                         <Check className="w-3 h-3 text-green-500" />
@@ -769,10 +786,10 @@ export default function BoardSettingsModal({
                       <span>Enter a board name to continue</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={onClose}
-                      className="px-5 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] font-medium transition-colors"
+                      className="px-4 py-2 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.04] font-medium transition-colors"
                     >
                       Cancel
                     </button>
@@ -781,16 +798,16 @@ export default function BoardSettingsModal({
                       whileTap={{ scale: 0.98 }}
                       onClick={handleSave}
                       disabled={!name.trim() || isSaving}
-                      className={`px-6 py-2.5 rounded-xl text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none flex items-center gap-2 ${
+                      className={`px-4 py-2 rounded-lg text-xs text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none flex items-center gap-1.5 ${
                         boardType === 'jobs'
                           ? 'bg-gradient-to-r from-[#635BFF] to-[#8B5CF6] hover:shadow-[#635BFF]/25'
                           : 'bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] hover:shadow-[#8B5CF6]/25'
                       }`}
                     >
                       {isSaving ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
-                        <Sparkles className="w-4 h-4" />
+                        <Sparkles className="w-3.5 h-3.5" />
                       )}
                       {mode === 'create' ? 'Create Board' : 'Save Changes'}
                     </motion.button>

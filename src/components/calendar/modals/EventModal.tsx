@@ -18,7 +18,8 @@ import {
   Timer,
   CheckCircle2,
   Circle,
-  AlertCircle
+  AlertCircle,
+  Layout
 } from 'lucide-react';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
@@ -42,6 +43,11 @@ export const EventModal = ({ event, onClose }: EventModalProps) => {
 
   const companyName = application?.companyName || 'Company';
   const position = application?.position || 'Position';
+  
+  // Board info
+  const boardName = resource?.boardName;
+  const boardIcon = resource?.boardIcon;
+  const boardColor = resource?.boardColor;
 
   // Generate .ics file for calendar
   const generateICSFile = () => {
@@ -80,7 +86,13 @@ END:VCALENDAR`;
 
   const handleNavigateToApplication = () => {
     if (application?.id) {
-      navigate(`/applications?highlight=${application.id}`);
+      // Include boardId to navigate to the correct board first
+      const params = new URLSearchParams();
+      params.set('highlight', application.id);
+      if (resource?.boardId) {
+        params.set('board', resource.boardId);
+      }
+      navigate(`/applications?${params.toString()}`);
     }
   };
 
@@ -256,6 +268,18 @@ END:VCALENDAR`;
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${statusInfo.bg} ${statusInfo.color}`}>
                         {statusInfo.icon}
                         {statusInfo.text}
+                      </span>
+                    )}
+                    
+                    {/* Board Badge - minimalist */}
+                    {boardName && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 border border-gray-200/50 dark:border-gray-700/50">
+                        <span 
+                          className="w-2 h-2 rounded-full flex-shrink-0" 
+                          style={{ backgroundColor: boardColor || '#6B7280' }}
+                        />
+                        {boardIcon && <span className="text-[10px]">{boardIcon}</span>}
+                        {boardName}
                       </span>
                     )}
                   </div>

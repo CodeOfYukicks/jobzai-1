@@ -3,14 +3,16 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import { CompanyLogo } from '../common/CompanyLogo';
 import { Job } from '../../types/job-board';
+import { KanbanBoard } from '../../types/job';
 import { Building2, MapPin, Clock, Share2, Bookmark, Heart, Sparkles, Target, Briefcase, GraduationCap, Code, AlertTriangle, Users, X, Link2, Linkedin, Mail, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { toast } from '@/contexts/ToastContext';
 import { extractJobInfo, DetailedJobInfo, generateJobInsightsFromDescription, generateJobTagsFromDescription, generateBasicInsightsFromJobData, generateBasicSummaryFromJobData, JobDataForFallback } from '../../lib/jobExtractor';
 import { useJobInteractions } from '../../hooks/useJobInteractions';
+import SelectBoardModal from '../boards/SelectBoardModal';
 
 interface JobDetailViewProps {
     job: Job | null;
@@ -23,6 +25,10 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
     const [isInWishlist, setIsInWishlist] = useState(false);
     const [showShareMenu, setShowShareMenu] = useState(false);
     const shareMenuRef = useRef<HTMLDivElement>(null);
+    
+    // Board selection state
+    const [boards, setBoards] = useState<KanbanBoard[]>([]);
+    const [showBoardSelector, setShowBoardSelector] = useState(false);
     
     // Job Interactions (V5.0 - Feedback Loop)
     const { isJobSaved, toggleSave, trackView, trackApply } = useJobInteractions();
@@ -94,6 +100,39 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
         };
     }, [showShareMenu]);
 
+    // Fetch user's boards (only job-type boards, not campaigns)
+    useEffect(() => {
+        const fetchBoards = async () => {
+            if (!currentUser) {
+                setBoards([]);
+                return;
+            }
+
+            try {
+                const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
+                const boardsQuery = query(boardsRef, orderBy('createdAt', 'asc'));
+                const snapshot = await getDocs(boardsQuery);
+                
+                const allBoards = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                })) as KanbanBoard[];
+
+                // Filter for job-type boards only (boardType === 'jobs' or undefined/null for legacy boards)
+                const jobBoards = allBoards.filter(board => 
+                    !board.boardType || board.boardType === 'jobs'
+                );
+
+                setBoards(jobBoards);
+            } catch (error) {
+                console.error('Error fetching boards:', error);
+                setBoards([]);
+            }
+        };
+
+        fetchBoards();
+    }, [currentUser]);
+
     // Handle share to different platforms
     const handleShare = (platform: 'copy' | 'linkedin' | 'twitter' | 'whatsapp' | 'email') => {
         if (!job) return;
@@ -122,16 +161,9 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
         setShowShareMenu(false);
     };
 
-    const handleAddToWishlist = async () => {
-        if (!currentUser) {
-            toast.error('Please log in to add jobs to your wishlist');
-            return;
-        }
-
-        if (!job) {
-            toast.error('No job selected');
-            return;
-        }
+    // Core function to add job to wishlist with a specific boardId
+    const addJobToWishlist = async (boardId?: string) => {
+        if (!currentUser || !job) return;
 
         // Helper function to create a promise with timeout
         const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, errorMsg: string): Promise<T> => {
@@ -231,7 +263,9 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                     status: 'wishlist',
                     date: new Date().toISOString().split('T')[0],
                     notes: 'Added from Job Board'
-                }]
+                }],
+                // Include boardId if provided
+                ...(boardId && { boardId })
             };
 
             // Add to Firestore immediately
@@ -424,6 +458,35 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
             toast.error('Failed to add to wishlist');
             setIsAddingToWishlist(false);
         }
+    };
+
+    // Handler called when user clicks "Add to Wishlist" button
+    const handleAddToWishlist = async () => {
+        if (!currentUser) {
+            toast.error('Please log in to add jobs to your wishlist');
+            return;
+        }
+
+        if (!job) {
+            toast.error('No job selected');
+            return;
+        }
+
+        // If user has multiple job-type boards, show selection modal
+        if (boards.length > 1) {
+            setShowBoardSelector(true);
+            return;
+        }
+
+        // If user has exactly one board or no boards, add directly
+        const targetBoardId = boards.length === 1 ? boards[0].id : undefined;
+        await addJobToWishlist(targetBoardId);
+    };
+
+    // Handler when user selects a board from the modal
+    const handleBoardSelected = async (boardId: string) => {
+        setShowBoardSelector(false);
+        await addJobToWishlist(boardId);
     };
 
     if (!job) {
@@ -748,6 +811,17 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                     </div>
                 </div>
             </div>
+
+            {/* Board Selection Modal */}
+            <SelectBoardModal
+                isOpen={showBoardSelector}
+                onClose={() => setShowBoardSelector(false)}
+                onSelect={handleBoardSelected}
+                boards={boards}
+                jobTitle={job.title}
+                companyName={job.company}
+                isLoading={isAddingToWishlist}
+            />
         </div>
     );
 }
