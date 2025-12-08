@@ -57,7 +57,7 @@ export const Toggle = memo(function Toggle({
               <div className="
                 relative
                 p-5 rounded-xl
-                bg-gradient-to-br from-jobzai-50/80 to-slate-50 dark:from-jobzai-950/30 dark:to-slate-900/50
+                bg-gradient-to-br from-jobzai-50/80 to-slate-50 dark:from-jobzai-950/30 dark:to-[#242325]/50
                 ring-1 ring-jobzai-200/40 dark:ring-jobzai-800/30
                 text-sm leading-relaxed text-slate-700 dark:text-slate-300
               ">

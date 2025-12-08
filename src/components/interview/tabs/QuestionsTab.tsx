@@ -53,10 +53,10 @@ const QuestionsTab = memo(function QuestionsTab({
     <div className="max-w-4xl mx-auto">
       {/* Loading Overlay - Minimal */}
       {isRegeneratingQuestions && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-[#1a1a1c]/80 backdrop-blur-sm">
           <div className="flex flex-col items-center text-center px-6 max-w-md">
             {/* Progress Bar */}
-            <div className="w-full h-1 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden mb-6">
+            <div className="w-full h-1 rounded-full bg-slate-200 dark:bg-[#2b2a2c] overflow-hidden mb-6">
               <div
                 className="h-full bg-slate-900 dark:bg-white transition-all duration-500 ease-out"
                 style={{ width: `${Math.min(100, Math.max(0, regeneratingProgress))}%` }}
@@ -106,7 +106,7 @@ const QuestionsTab = memo(function QuestionsTab({
           {/* Empty State - No Questions */}
           {questionEntries.length === 0 && (
             <div className="py-20 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-100 dark:bg-[#2b2a2c] mb-6">
                 <span className="text-2xl">?</span>
               </div>
               <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">

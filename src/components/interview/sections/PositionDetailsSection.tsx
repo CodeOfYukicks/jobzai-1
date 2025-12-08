@@ -31,11 +31,11 @@ const PositionDetailsSection = memo(function PositionDetailsSection({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.2 }}
-      className="rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-slate-200/60 dark:ring-slate-800/60 overflow-hidden transition-all hover:shadow-premium-soft"
+      className="rounded-2xl bg-white dark:bg-[#242325] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 overflow-hidden transition-all hover:shadow-premium-soft"
     >
       
       {/* Header Bar - Premium gradient accent */}
-      <div className="relative px-8 py-5 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50 via-white to-slate-50 dark:from-slate-800/50 dark:via-slate-900 dark:to-slate-800/50">
+      <div className="relative px-8 py-5 border-b border-slate-100 dark:border-[#3d3c3e] bg-gradient-to-r from-slate-50 via-white to-slate-50 dark:from-[#2b2a2c]/50 dark:via-[#242325] dark:to-[#2b2a2c]/50">
         {/* Subtle violet accent line */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-jobzai-500/30 to-transparent" />
         
@@ -61,7 +61,7 @@ const PositionDetailsSection = memo(function PositionDetailsSection({
         {responsibilities.length > 0 ? (
           <div className="space-y-0">
             {/* Headline insight */}
-            <p className="text-[15px] leading-relaxed text-slate-600 dark:text-slate-400 mb-6 pb-6 border-b border-slate-100 dark:border-slate-800">
+            <p className="text-[15px] leading-relaxed text-slate-600 dark:text-slate-400 mb-6 pb-6 border-b border-slate-100 dark:border-[#3d3c3e]">
               {headline}.
             </p>
 
@@ -82,7 +82,7 @@ const PositionDetailsSection = memo(function PositionDetailsSection({
                       group rounded-xl transition-all duration-200
                       ${isExpanded 
                         ? 'bg-jobzai-50/50 dark:bg-jobzai-950/20 ring-1 ring-jobzai-200/50 dark:ring-jobzai-800/30' 
-                        : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/30'
+                        : 'hover:bg-slate-50/80 dark:hover:bg-[#3d3c3e]/30'
                       }
                     `}
                   >
@@ -100,7 +100,7 @@ const PositionDetailsSection = memo(function PositionDetailsSection({
                         text-xs font-semibold transition-all
                         ${isExpanded 
                           ? 'bg-jobzai-500 text-white' 
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 group-hover:bg-jobzai-100 dark:group-hover:bg-jobzai-900/30 group-hover:text-jobzai-600 dark:group-hover:text-jobzai-400'
+                          : 'bg-slate-100 dark:bg-[#2b2a2c] text-slate-400 dark:text-slate-500 group-hover:bg-jobzai-100 dark:group-hover:bg-jobzai-900/30 group-hover:text-jobzai-600 dark:group-hover:text-jobzai-400'
                         }
                       `}>
                         {String(index + 1).padStart(2, '0')}
@@ -136,7 +136,7 @@ const PositionDetailsSection = memo(function PositionDetailsSection({
           </div>
         ) : (
           <div className="py-16 text-center">
-            <div className="w-14 h-14 mx-auto rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+            <div className="w-14 h-14 mx-auto rounded-xl bg-slate-100 dark:bg-[#2b2a2c] flex items-center justify-center mb-4">
               <FileText className="w-6 h-6 text-slate-400" />
             </div>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">

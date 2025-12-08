@@ -293,12 +293,12 @@ export default function RightSidebarPanel({
   ];
 
   return (
-    <div className="hidden lg:flex fixed right-0 top-12 h-[calc(100vh-48px)] w-[400px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-l border-slate-200/60 dark:border-slate-800/60 z-30 flex-col shadow-sidebar">
+    <div className="hidden lg:flex fixed right-0 top-12 h-[calc(100vh-48px)] w-[400px] bg-white/95 dark:bg-[#242325]/95 backdrop-blur-xl border-l border-slate-200/60 dark:border-[#3d3c3e]/60 z-30 flex-col shadow-sidebar">
       
       {/* Tab Headers - Premium Jobzai style matching TabPills */}
-      <div className="flex-shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
+      <div className="flex-shrink-0 bg-white/80 dark:bg-[#242325]/80 backdrop-blur-sm">
         <div className="relative" ref={tabsContainerRef}>
-          <nav className="flex items-center border-b border-slate-200/60 dark:border-slate-800/60">
+          <nav className="flex items-center border-b border-slate-200/60 dark:border-[#3d3c3e]/60">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = sidebarTab === tab.id;
@@ -315,11 +315,11 @@ export default function RightSidebarPanel({
                     border-b-2 -mb-px
                     ${isActive
                       ? 'text-jobzai-500 dark:text-jobzai-400 border-jobzai-500 dark:border-jobzai-400'
-                      : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
+                      : 'text-slate-500 dark:text-gray-400 border-transparent hover:text-slate-700 dark:hover:text-gray-200 hover:bg-slate-50/50 dark:hover:bg-[#3d3c3e]/30'
                     }
                   `}
                 >
-                  <Icon className={`w-4 h-4 transition-colors duration-200 ${isActive ? 'text-jobzai-500 dark:text-jobzai-400' : 'text-slate-400 dark:text-slate-500'}`} />
+                  <Icon className={`w-4 h-4 transition-colors duration-200 ${isActive ? 'text-jobzai-500 dark:text-jobzai-400' : 'text-slate-400 dark:text-gray-500'}`} />
                   <span className="hidden xl:inline">{tab.label}</span>
                   
                   {/* Active indicator glow effect */}
@@ -375,7 +375,7 @@ export default function RightSidebarPanel({
                       stroke="currentColor"
                       strokeWidth="5"
                       fill="none"
-                      className="text-slate-100 dark:text-slate-800"
+                      className="text-slate-100 dark:text-gray-200"
                     />
                     <motion.circle
                       cx="40" cy="40" r="34"
@@ -404,7 +404,7 @@ export default function RightSidebarPanel({
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                     Preparation
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <p className="text-sm text-slate-500 dark:text-gray-400">
                     {milestones.filter((m) => m.completed).length}/{milestones.length} completed
                   </p>
                 </div>
@@ -412,7 +412,7 @@ export default function RightSidebarPanel({
 
               {/* Milestones - Premium card style */}
               <div className="space-y-3">
-                <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-slate-400 dark:text-slate-500">
+                <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-slate-400 dark:text-gray-500">
                   Milestones
                 </span>
 
@@ -431,7 +431,7 @@ export default function RightSidebarPanel({
                         group w-full flex items-center gap-3 p-3.5 rounded-xl text-left transition-all duration-200
                         ${milestone.completed
                           ? 'bg-emerald-50/80 dark:bg-emerald-950/20 ring-1 ring-emerald-200/50 dark:ring-emerald-800/30'
-                          : 'bg-white dark:bg-slate-800/50 ring-1 ring-slate-200/60 dark:ring-slate-700/60 hover:ring-jobzai-300/50 dark:hover:ring-jobzai-600/30 hover:shadow-premium-soft'
+                          : 'bg-white dark:bg-[#2b2a2c]/50 ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 hover:ring-jobzai-300/50 dark:hover:ring-jobzai-600/30 hover:shadow-premium-soft'
                         }
                       `}
                     >
@@ -439,7 +439,7 @@ export default function RightSidebarPanel({
                         flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all
                         ${milestone.completed
                           ? 'bg-emerald-500 text-white shadow-sm'
-                          : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 group-hover:bg-jobzai-100 dark:group-hover:bg-jobzai-900/30 group-hover:text-jobzai-600 dark:group-hover:text-jobzai-400'
+                          : 'bg-slate-100 dark:bg-[#3d3c3e] text-slate-400 dark:text-gray-500 group-hover:bg-jobzai-100 dark:group-hover:bg-jobzai-900/30 group-hover:text-jobzai-600 dark:group-hover:text-jobzai-400'
                         }
                       `}>
                         {milestone.completed ? (
@@ -458,7 +458,7 @@ export default function RightSidebarPanel({
                       </div>
 
                       {!milestone.completed && (
-                        <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-jobzai-500 transition-colors" />
+                        <ChevronRight className="w-4 h-4 text-slate-300 dark:text-gray-500 group-hover:text-jobzai-500 transition-colors" />
                       )}
                     </motion.button>
                   ))}
@@ -498,10 +498,10 @@ export default function RightSidebarPanel({
             >
               {/* Header */}
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-slate-400 dark:text-slate-500">
+                <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-slate-400 dark:text-gray-500">
                   Session History
                 </span>
-                <span className="text-xs font-medium text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                <span className="text-xs font-medium text-slate-400 dark:text-gray-500 bg-slate-100 dark:bg-[#2b2a2c] px-2 py-0.5 rounded-full">
                   {sortedHistory.length}
                 </span>
               </div>
@@ -513,7 +513,7 @@ export default function RightSidebarPanel({
                     <History className="w-6 h-6 text-jobzai-500" />
                   </div>
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">No sessions yet</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-[200px] mx-auto">
+                  <p className="text-xs text-slate-400 dark:text-gray-500 mt-1 max-w-[200px] mx-auto">
                     Start a practice session to track your progress
                   </p>
                 </div>
@@ -530,7 +530,7 @@ export default function RightSidebarPanel({
                     transition={{ delay: index * 0.05 }}
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.99 }}
-                    className="group w-full p-4 rounded-xl bg-white dark:bg-slate-800/50 ring-1 ring-slate-200/60 dark:ring-slate-700/60 text-left transition-all hover:ring-jobzai-300/50 dark:hover:ring-jobzai-600/30 hover:shadow-premium-soft"
+                    className="group w-full p-4 rounded-xl bg-white dark:bg-[#2b2a2c]/50 ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 text-left transition-all hover:ring-jobzai-300/50 dark:hover:ring-jobzai-600/30 hover:shadow-premium-soft"
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div>
@@ -560,9 +560,9 @@ export default function RightSidebarPanel({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-gray-400">
                       <span>{session.answeredCount}/{session.questionsCount} answered</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-jobzai-500 transition-colors" />
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-300 dark:text-gray-500 group-hover:text-jobzai-500 transition-colors" />
                     </div>
                   </motion.button>
                 ))}
@@ -582,13 +582,13 @@ export default function RightSidebarPanel({
             >
               {/* Context Section */}
               {userId && (
-                <div className="flex-shrink-0 border-b border-slate-200/60 dark:border-slate-800/60">
+                <div className="flex-shrink-0 border-b border-slate-200/60 dark:border-[#3d3c3e]/60">
                   {/* Context Header with Collapse Button */}
                   <button
                     onClick={() => setIsContextExpanded(!isContextExpanded)}
-                    className="w-full flex items-center justify-between px-4 pt-4 pb-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
+                    className="w-full flex items-center justify-between px-4 pt-4 pb-2 hover:bg-slate-50/50 dark:hover:bg-[#3d3c3e]/30 transition-colors"
                   >
-                    <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-slate-400 dark:text-slate-500">
+                    <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-slate-400 dark:text-gray-500">
                       Context
                       {contextDocuments.length > 0 && (
                         <span className="ml-2 text-jobzai-600 dark:text-jobzai-400">
@@ -598,9 +598,9 @@ export default function RightSidebarPanel({
                     </span>
                     <div className="flex items-center gap-2">
                       {isContextExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                        <ChevronUp className="w-4 h-4 text-slate-400 dark:text-gray-500" />
                       ) : (
-                        <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                        <ChevronDown className="w-4 h-4 text-slate-400 dark:text-gray-500" />
                       )}
                     </div>
                   </button>
@@ -641,7 +641,7 @@ export default function RightSidebarPanel({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
                       onClick={scrollToBottom}
-                      className="sticky top-2 left-1/2 -translate-x-1/2 z-20 mx-auto px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 ring-1 ring-slate-200/60 dark:ring-slate-700/60 shadow-lg flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
+                      className="sticky top-2 left-1/2 -translate-x-1/2 z-20 mx-auto px-3 py-1.5 rounded-full bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 shadow-lg flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-[#3d3c3e] transition-all"
                     >
                       <ChevronDown className="w-3 h-3" />
                       <span>New messages</span>
@@ -657,7 +657,7 @@ export default function RightSidebarPanel({
                     <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">
                       Interview Coach
                     </h3>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 text-center mb-6 max-w-[220px]">
+                    <p className="text-xs text-slate-400 dark:text-gray-500 text-center mb-6 max-w-[220px]">
                       Practice answers and get AI-powered feedback
                     </p>
 
@@ -672,12 +672,12 @@ export default function RightSidebarPanel({
                           transition={{ delay: i * 0.1 }}
                           whileHover={{ scale: 1.01, x: 4 }}
                           whileTap={{ scale: 0.99 }}
-                          className="w-full p-3.5 rounded-xl text-left bg-white dark:bg-slate-800/50 ring-1 ring-slate-200/60 dark:ring-slate-700/60 hover:ring-jobzai-300/50 dark:hover:ring-jobzai-600/30 hover:shadow-premium-soft transition-all"
+                          className="w-full p-3.5 rounded-xl text-left bg-white dark:bg-[#2b2a2c]/50 ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 hover:ring-jobzai-300/50 dark:hover:ring-jobzai-600/30 hover:shadow-premium-soft transition-all"
                         >
-                          <span className="block text-sm font-medium text-slate-800 dark:text-slate-200">
+                          <span className="block text-sm font-medium text-slate-800 dark:text-gray-200">
                             {suggestion.text}
                           </span>
-                          <span className="block text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                          <span className="block text-xs text-slate-400 dark:text-gray-500 mt-0.5">
                             {suggestion.description}
                           </span>
                         </motion.button>
@@ -694,7 +694,7 @@ export default function RightSidebarPanel({
                             <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm" style={{ background: 'linear-gradient(135deg, #635BFF 0%, #5249e6 100%)' }}>
                               <Bot className="w-4 h-4 text-white" />
                             </div>
-                            <div className="px-4 py-3 rounded-2xl rounded-tl-lg bg-slate-50 dark:bg-slate-800 ring-1 ring-slate-200/60 dark:ring-slate-700/60">
+                            <div className="px-4 py-3 rounded-2xl rounded-tl-lg bg-slate-50 dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60">
                               <div className="flex items-center gap-2">
                                 <div className="flex gap-1">
                                   {[0, 1, 2].map((i) => (
@@ -755,19 +755,19 @@ export default function RightSidebarPanel({
                             <img 
                               src={userPhotoURL} 
                               alt="You" 
-                              className="w-8 h-8 rounded-xl object-cover flex-shrink-0 ring-1 ring-slate-200/60 dark:ring-slate-700/60"
+                              className="w-8 h-8 rounded-xl object-cover flex-shrink-0 ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60"
                             />
                           ) : (
                             <div 
                               className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${
                                 msg.role === 'user' 
-                                  ? 'bg-slate-200 dark:bg-slate-700' 
+                                  ? 'bg-slate-200 dark:bg-[#3d3c3e]' 
                                   : ''
                               }`}
                               style={msg.role === 'assistant' ? { background: 'linear-gradient(135deg, #635BFF 0%, #5249e6 100%)' } : undefined}
                             >
                               {msg.role === 'user' 
-                                ? <User className="w-4 h-4 text-slate-600 dark:text-slate-300" /> 
+                                ? <User className="w-4 h-4 text-slate-600 dark:text-gray-300" /> 
                                 : <Bot className="w-4 h-4 text-white" />
                               }
                             </div>
@@ -776,7 +776,7 @@ export default function RightSidebarPanel({
                             className={`px-4 py-3 rounded-2xl ${
                               msg.role === 'user'
                                 ? 'rounded-tr-lg text-white shadow-lg'
-                                : 'rounded-tl-lg bg-slate-50 dark:bg-slate-800 ring-1 ring-slate-200/60 dark:ring-slate-700/60 text-slate-800 dark:text-slate-200'
+                                : 'rounded-tl-lg bg-slate-50 dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 text-slate-800 dark:text-gray-200'
                             }`}
                             style={msg.role === 'user' ? { background: 'linear-gradient(135deg, #635BFF 0%, #5249e6 100%)', boxShadow: '0 4px 14px rgba(99, 91, 255, 0.25)' } : undefined}
                           >
@@ -808,12 +808,12 @@ export default function RightSidebarPanel({
               </div>
 
               {/* Input Area - Premium design */}
-              <div className="flex-shrink-0 p-4 border-t border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
+              <div className="flex-shrink-0 p-4 border-t border-slate-200/60 dark:border-[#3d3c3e]/60 bg-white/80 dark:bg-[#242325]/80 backdrop-blur-sm">
                 {chatMessages.length > 0 && (
                   <div className="flex items-center gap-2 mb-3">
                     <button
                       onClick={onClearChat}
-                      className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                      className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 transition-colors px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-[#3d3c3e]"
                     >
                       Clear chat
                     </button>
@@ -844,7 +844,7 @@ export default function RightSidebarPanel({
 
                 {/* Transcribing Indicator */}
                 {isTranscribing && (
-                  <div className="flex items-center justify-center gap-2 mb-3 py-2.5 px-4 rounded-xl bg-slate-50 dark:bg-slate-800 ring-1 ring-slate-200/60 dark:ring-slate-700/60">
+                  <div className="flex items-center justify-center gap-2 mb-3 py-2.5 px-4 rounded-xl bg-slate-50 dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60">
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-jobzai-500" />
                     <span className="text-xs font-medium text-slate-500">
                       Transcribing...
@@ -853,10 +853,10 @@ export default function RightSidebarPanel({
                 )}
 
                 {/* Input Container - Premium style */}
-                <div className={`relative flex items-center gap-2 bg-slate-50/80 dark:bg-slate-800/50 rounded-xl ring-1 transition-all ${
+                <div className={`relative flex items-center gap-2 bg-slate-50/80 dark:bg-[#2b2a2c]/50 rounded-xl ring-1 transition-all ${
                   isRecording 
                     ? 'ring-jobzai-400/50 dark:ring-jobzai-600/50' 
-                    : 'ring-slate-200/60 dark:ring-slate-700/60 focus-within:ring-jobzai-400/50 dark:focus-within:ring-jobzai-600/50'
+                    : 'ring-slate-200/60 dark:ring-[#3d3c3e]/60 focus-within:ring-jobzai-400/50 dark:focus-within:ring-jobzai-600/50'
                 }`}>
                   <button className="p-2.5 text-slate-400 hover:text-jobzai-500 transition-colors flex-shrink-0">
                     <Plus className="w-5 h-5" />

@@ -5348,7 +5348,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
-                                className="group relative bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-gray-800 rounded-xl p-5 border border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-300 dark:hover:border-jobzai-700 transition-all duration-200 hover:shadow-md"
+                                className="group relative bg-gradient-to-br from-gray-50 to-white dark:from-[#242325]/50 dark:to-[#2b2a2c] rounded-xl p-5 border border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-300 dark:hover:border-jobzai-700 transition-all duration-200 hover:shadow-md"
                               >
                                 {/* Skill Text */}
                                 <div className="mb-4">
@@ -5445,7 +5445,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: idx * 0.05 }}
-                              className="group relative bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-gray-800 rounded-xl p-5 border border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-300 dark:hover:border-jobzai-700 transition-all duration-200 hover:shadow-md"
+                              className="group relative bg-gradient-to-br from-gray-50 to-white dark:from-[#242325]/50 dark:to-[#2b2a2c] rounded-xl p-5 border border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-300 dark:hover:border-jobzai-700 transition-all duration-200 hover:shadow-md"
                             >
                               {/* Header Section */}
                               <div className="mb-4">
@@ -5662,7 +5662,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: index * 0.05 }}
-                              className="flex items-start p-5 border border-gray-200 dark:border-[#3d3c3e] rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors hover:shadow-sm"
+                              className="flex items-start p-5 border border-gray-200 dark:border-[#3d3c3e] rounded-xl hover:bg-gray-50 dark:hover:bg-[#242325]/50 transition-colors hover:shadow-sm"
                               href={resource.url}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -5760,7 +5760,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                       {/* Chat messages area avec scroll personnalisé */}
                       <div
                         ref={chatContainerRef}
-                        className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-4 bg-gradient-to-b from-gray-50/30 via-white to-white dark:from-gray-900/20 dark:via-gray-900/10 dark:to-gray-900/20 scrollbar-thin scrollbar-thumb-jobzai-200 scrollbar-track-transparent relative"
+                        className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-4 bg-gradient-to-b from-gray-50/30 via-white to-white dark:from-[#242325]/20 dark:via-[#242325]/10 dark:to-[#242325]/20 scrollbar-thin scrollbar-thumb-jobzai-200 scrollbar-track-transparent relative"
                       >
                         {/* Scroll to bottom button - appears when user scrolls up */}
                         <AnimatePresence>

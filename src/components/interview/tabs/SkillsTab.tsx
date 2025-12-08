@@ -419,7 +419,7 @@ const SkillsTab = memo(function SkillsTab({
                           value={story[field.key as keyof typeof story] as string}
                           onChange={(e) => updateStarField(skill, story.id, field.key as 'situation' | 'action' | 'result', e.target.value)}
                           placeholder={field.placeholder}
-                          className="w-full rounded-lg border-0 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none focus:ring-2 focus:ring-jobzai-500/30 focus:outline-none transition-all"
+                          className="w-full rounded-lg border-0 bg-white dark:bg-[#2b2a2c] px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none focus:ring-2 focus:ring-jobzai-500/30 focus:outline-none transition-all"
                       />
                     </div>
                     ))}
@@ -480,7 +480,7 @@ const SkillsTab = memo(function SkillsTab({
               onClick={() => addStarStory(skill)}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="group/add relative inline-flex items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 transition-all hover:border-jobzai-300 hover:text-jobzai-600 dark:hover:border-jobzai-600 dark:hover:text-jobzai-400"
+              className="group/add relative inline-flex items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-slate-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 transition-all hover:border-jobzai-300 hover:text-jobzai-600 dark:hover:border-jobzai-600 dark:hover:text-jobzai-400"
             >
               <Plus className="w-3.5 h-3.5 transition-transform duration-200 group-hover/add:rotate-90" />
               <span>Add Manually</span>

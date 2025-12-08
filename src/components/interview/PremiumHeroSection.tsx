@@ -46,7 +46,7 @@ function PremiumTag({
   variant?: TagVariant;
 }) {
   const variants: Record<TagVariant, string> = {
-    default: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+    default: 'bg-slate-100 text-slate-600 dark:bg-[#2b2a2c] dark:text-slate-400',
     success: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400',
     violet: 'bg-jobzai-50 text-jobzai-600 dark:bg-jobzai-950/50 dark:text-jobzai-400',
     warning: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400',
@@ -145,8 +145,8 @@ export function PremiumHeroSection({
                 <div 
                   className="
                     h-16 w-16 rounded-2xl 
-                    backdrop-blur-xl bg-white/90 dark:bg-slate-800/90 
-                    ring-1 ring-slate-200/50 dark:ring-slate-700/50
+                    backdrop-blur-xl bg-white/90 dark:bg-[#2b2a2c]/90 
+                    ring-1 ring-slate-200/50 dark:ring-[#3d3c3e]/50
                     flex items-center justify-center
                     transition-all duration-300 
                     group-hover:ring-jobzai-300/50 dark:group-hover:ring-jobzai-600/50
@@ -230,11 +230,11 @@ export function PremiumHeroSection({
                 transition={{ delay: 0.2, duration: 0.4 }}
                 className="
                   inline-flex flex-col items-end
-                  bg-white/80 dark:bg-slate-800/80
+                  bg-white/80 dark:bg-[#2b2a2c]/80
                   backdrop-blur-xl
                   rounded-2xl
                   px-5 py-4
-                  border border-slate-200/60 dark:border-slate-700/60
+                  border border-slate-200/60 dark:border-[#3d3c3e]/60
                   shadow-premium-soft
                 "
               >

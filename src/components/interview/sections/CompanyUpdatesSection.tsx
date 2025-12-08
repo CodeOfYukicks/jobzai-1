@@ -36,13 +36,13 @@ const CompanyUpdatesSection = memo(function CompanyUpdatesSection({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.3 }}
-      className="rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-slate-200/60 dark:ring-slate-800/60 overflow-hidden transition-all hover:shadow-premium-soft"
+      className="rounded-2xl bg-white dark:bg-[#242325] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 overflow-hidden transition-all hover:shadow-premium-soft"
     >
       
       {/* Collapsible Header */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="w-full px-8 py-5 flex items-center justify-between hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors"
+        className="w-full px-8 py-5 flex items-center justify-between hover:bg-slate-50/50 dark:hover:bg-[#3d3c3e]/20 transition-colors"
       >
         <div className="flex items-center gap-4">
           <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-slate-400 dark:text-slate-500">
@@ -98,8 +98,8 @@ const CompanyUpdatesSection = memo(function CompanyUpdatesSection({
             )}
 
             {newsItems.length === 0 && !isNewsLoading ? (
-              <div className="py-10 text-center border-t border-slate-100 dark:border-slate-800">
-                <div className="w-12 h-12 mx-auto rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3">
+              <div className="py-10 text-center border-t border-slate-100 dark:border-[#3d3c3e]">
+                <div className="w-12 h-12 mx-auto rounded-xl bg-slate-100 dark:bg-[#2b2a2c] flex items-center justify-center mb-3">
                   <Newspaper className="w-5 h-5 text-slate-400" />
                 </div>
                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -110,7 +110,7 @@ const CompanyUpdatesSection = memo(function CompanyUpdatesSection({
                 </p>
               </div>
             ) : (
-              <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
+              <div className="border-t border-slate-100 dark:border-[#3d3c3e] pt-4">
                 {/* News List */}
                 <div className="space-y-1">
                   {visibleNews.map((news, i) => (
@@ -119,18 +119,18 @@ const CompanyUpdatesSection = memo(function CompanyUpdatesSection({
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.05 }}
-                      className="group flex items-start gap-4 px-4 py-3.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all"
+                      className="group flex items-start gap-4 px-4 py-3.5 rounded-xl hover:bg-slate-50 dark:hover:bg-[#3d3c3e]/30 transition-all"
                     >
                       {/* Sentiment dot */}
                       <div className="flex-shrink-0 mt-2">
                         <div 
                           className={`
-                            w-2.5 h-2.5 rounded-full ring-2 ring-offset-2 ring-offset-white dark:ring-offset-slate-900
+                            w-2.5 h-2.5 rounded-full ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#242325]
                             ${news.sentiment === 'positive' 
                               ? 'bg-emerald-500 ring-emerald-200 dark:ring-emerald-800' 
                               : news.sentiment === 'negative' 
                               ? 'bg-rose-500 ring-rose-200 dark:ring-rose-800' 
-                              : 'bg-slate-400 ring-slate-200 dark:bg-slate-500 dark:ring-slate-700'
+                              : 'bg-slate-400 ring-slate-200 dark:bg-slate-500 dark:ring-[#3d3c3e]'
                             }
                           `} 
                         />
@@ -189,7 +189,7 @@ const CompanyUpdatesSection = memo(function CompanyUpdatesSection({
 
                 {/* Show more */}
                 {hasMore && (
-                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
+                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#3d3c3e] text-center">
                     <motion.button
                       type="button"
                       onClick={() => setShowAllNewsItems(!showAllNewsItems)}

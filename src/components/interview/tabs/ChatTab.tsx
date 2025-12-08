@@ -54,9 +54,9 @@ const ChatTab = memo(function ChatTab({
       ];
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col h-[750px] sm:h-[800px] shadow-lg overflow-hidden backdrop-blur-sm">
+    <div className="bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-200 dark:border-[#3d3c3e] flex flex-col h-[750px] sm:h-[800px] shadow-lg overflow-hidden backdrop-blur-sm">
       {/* Compact Header */}
-      <div className="px-5 py-3.5 border-b border-gray-200/60 dark:border-gray-700/50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl flex items-center justify-between sticky top-0 z-10">
+      <div className="px-5 py-3.5 border-b border-gray-200/60 dark:border-[#3d3c3e]/50 bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-sm">
             <MessageSquare className="w-4 h-4 text-white" />
@@ -107,7 +107,7 @@ const ChatTab = memo(function ChatTab({
                   setIsUserNearBottom(true);
                 }
               }}
-              className="sticky bottom-4 left-1/2 -translate-x-1/2 z-20 mx-auto px-4 py-2 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/60 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400"
+              className="sticky bottom-4 left-1/2 -translate-x-1/2 z-20 mx-auto px-4 py-2 rounded-full bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-xl border border-gray-200/60 dark:border-[#3d3c3e]/50 shadow-lg hover:shadow-xl transition-all flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400"
             >
               <ChevronDown className="w-4 h-4" />
               <span>New messages</span>
@@ -137,7 +137,7 @@ const ChatTab = memo(function ChatTab({
                       input?.focus();
                     }, 100);
                   }}
-                  className="text-xs text-left p-3 border border-gray-200/60 dark:border-gray-700/50 rounded-lg hover:border-purple-300/60 dark:hover:border-purple-700/50 hover:bg-purple-50/60 dark:hover:bg-purple-900/20 transition-all shadow-sm hover:shadow-md backdrop-blur-sm bg-white/50 dark:bg-gray-800/50"
+                  className="text-xs text-left p-3 border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-lg hover:border-purple-300/60 dark:hover:border-purple-700/50 hover:bg-purple-50/60 dark:hover:bg-purple-900/20 transition-all shadow-sm hover:shadow-md backdrop-blur-sm bg-white/50 dark:bg-[#2b2a2c]/50"
                 >
                   <div className="flex items-center gap-2.5">
                     <div className="w-7 h-7 rounded-lg bg-purple-100/80 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
@@ -158,7 +158,7 @@ const ChatTab = memo(function ChatTab({
                     <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-purple-600 shadow-md ring-1 ring-indigo-200/50 dark:ring-indigo-900/50">
                       <Bot className="w-4 h-4 text-white" />
                     </div>
-                    <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/50 shadow-sm">
+                    <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-sm border border-gray-200/60 dark:border-[#3d3c3e]/50 shadow-sm">
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-1">
                           <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 animate-pulse" />
@@ -210,7 +210,7 @@ const ChatTab = memo(function ChatTab({
                     px-4 py-3 rounded-xl shadow-sm backdrop-blur-sm
                     ${msg.role === 'user'
                       ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-tr-sm'
-                      : 'bg-white/90 dark:bg-gray-800/90 text-gray-800 dark:text-gray-200 rounded-tl-sm border border-gray-200/60 dark:border-gray-700/50'}
+                      : 'bg-white/90 dark:bg-[#2b2a2c]/90 text-gray-800 dark:text-gray-200 rounded-tl-sm border border-gray-200/60 dark:border-[#3d3c3e]/50'}
                   `}>
                     <p className="text-sm leading-6 whitespace-pre-wrap break-words">{displayContent}</p>
                     
@@ -241,7 +241,7 @@ const ChatTab = memo(function ChatTab({
       </div>
       
       {/* Input area */}
-      <div className="px-5 sm:px-6 py-4 border-t border-gray-200/60 dark:border-gray-700/50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl relative">
+      <div className="px-5 sm:px-6 py-4 border-t border-gray-200/60 dark:border-[#3d3c3e]/50 bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl relative">
         <div className="flex gap-3 items-end">
           <div className="relative flex-1">
             <textarea
@@ -255,7 +255,7 @@ const ChatTab = memo(function ChatTab({
               }}
               placeholder="Ask a question or practice an answer..."
               rows={1}
-              className="w-full p-4 pr-14 text-sm bg-gray-50/80 dark:bg-gray-900/50 border border-gray-200/60 dark:border-gray-700/50 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 dark:text-white resize-none min-h-[52px] max-h-[140px] transition-all shadow-sm hover:shadow-md focus:shadow-lg leading-5"
+              className="w-full p-4 pr-14 text-sm bg-gray-50/80 dark:bg-[#242325]/50 border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 dark:text-white resize-none min-h-[52px] max-h-[140px] transition-all shadow-sm hover:shadow-md focus:shadow-lg leading-5"
               style={{ 
                 height: 'auto',
                 overflow: 'hidden'

@@ -27,8 +27,8 @@ export function AICard({
 				className="
 					relative overflow-hidden
 					rounded-2xl 
-					bg-white dark:bg-slate-900
-					border border-slate-200 dark:border-slate-800
+					bg-white dark:bg-[#242325]
+					border border-slate-200 dark:border-[#3d3c3e]
 					shadow-sm hover:shadow-md
 					transition-shadow duration-300
 					p-6
@@ -78,8 +78,8 @@ export function AICard({
 								placeholder="https://careers.company.com/job/..."
 								className="
 									w-full py-3 px-4
-									bg-slate-50 dark:bg-slate-800/50
-									border border-slate-200 dark:border-slate-700
+									bg-slate-50 dark:bg-[#2b2a2c]/50
+									border border-slate-200 dark:border-[#3d3c3e]
 									rounded-xl
 									text-sm text-slate-900 dark:text-white
 									placeholder:text-slate-400 dark:placeholder:text-slate-500

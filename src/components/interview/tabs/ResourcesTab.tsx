@@ -151,7 +151,7 @@ const ResourcesTab = memo(function ResourcesTab({
         group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl px-4 py-2.5 text-sm font-semibold transition-all
         ${variant === 'primary' 
           ? 'text-white shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none' 
-          : 'ring-1 ring-slate-200 dark:ring-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:ring-jobzai-400 dark:hover:ring-jobzai-600 hover:text-jobzai-600 dark:hover:text-jobzai-400 disabled:opacity-50'
+          : 'ring-1 ring-slate-200 dark:ring-[#3d3c3e] bg-white dark:bg-[#2b2a2c] text-slate-600 dark:text-slate-300 hover:ring-jobzai-400 dark:hover:ring-jobzai-600 hover:text-jobzai-600 dark:hover:text-jobzai-400 disabled:opacity-50'
         }
       `}
       style={variant === 'primary' ? { background: 'linear-gradient(135deg, #635BFF 0%, #5249e6 100%)', boxShadow: '0 4px 14px rgba(99, 91, 255, 0.35)' } : undefined}
@@ -198,7 +198,7 @@ const ResourcesTab = memo(function ResourcesTab({
               whileHover={{ y: -4 }}
               className={`
                 relative flex flex-col p-5 rounded-2xl transition-all duration-300 
-                ring-1 ring-slate-200/60 dark:ring-slate-800/60
+                ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60
                 hover:shadow-premium-hover hover:ring-jobzai-300/50 dark:hover:ring-jobzai-700/50
                 group overflow-hidden
                 ${resource.bgColor}
@@ -254,7 +254,7 @@ const ResourcesTab = memo(function ResourcesTab({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="group relative p-5 rounded-xl bg-white dark:bg-slate-800/50 ring-1 ring-slate-200/60 dark:ring-slate-700/50 hover:shadow-premium-soft hover:ring-jobzai-300/50 dark:hover:ring-jobzai-700/50 transition-all duration-200"
+                className="group relative p-5 rounded-xl bg-white dark:bg-[#2b2a2c]/50 ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/50 hover:shadow-premium-soft hover:ring-jobzai-300/50 dark:hover:ring-jobzai-700/50 transition-all duration-200"
               >
                 {/* Subtle indicator */}
                 <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-gradient-to-b from-jobzai-400 to-jobzai-500 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -266,7 +266,7 @@ const ResourcesTab = memo(function ResourcesTab({
                   onClick={() => handleCopyQuestion(question, index)}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  className="absolute top-3 right-3 p-2 text-slate-400 hover:text-jobzai-600 dark:hover:text-jobzai-400 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-white/90 dark:bg-slate-800/90 rounded-lg backdrop-blur-sm ring-1 ring-slate-200/50 dark:ring-slate-700/50"
+                  className="absolute top-3 right-3 p-2 text-slate-400 hover:text-jobzai-600 dark:hover:text-jobzai-400 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-white/90 dark:bg-[#2b2a2c]/90 rounded-lg backdrop-blur-sm ring-1 ring-slate-200/50 dark:ring-[#3d3c3e]/50"
                   title="Copy question"
                 >
                   {copiedIndex === index ? (
@@ -279,7 +279,7 @@ const ResourcesTab = memo(function ResourcesTab({
             ))
           ) : (
             // Premium Empty State
-            <div className="col-span-full relative overflow-hidden rounded-2xl ring-1 ring-slate-200/60 dark:ring-slate-700/50 bg-gradient-to-br from-slate-50 via-white to-jobzai-50/30 dark:from-slate-800/50 dark:via-slate-900 dark:to-jobzai-950/10">
+            <div className="col-span-full relative overflow-hidden rounded-2xl ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/50 bg-gradient-to-br from-slate-50 via-white to-jobzai-50/30 dark:from-[#2b2a2c]/50 dark:via-[#242325] dark:to-jobzai-950/10">
               {/* Background Pattern */}
               <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02]" style={{
                 backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
@@ -336,7 +336,7 @@ const ResourcesTab = memo(function ResourcesTab({
                 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="text-xs font-medium text-slate-500 hover:text-jobzai-600 dark:text-slate-400 dark:hover:text-jobzai-400 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="text-xs font-medium text-slate-500 hover:text-jobzai-600 dark:text-slate-400 dark:hover:text-jobzai-400 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-[#3d3c3e]"
                 disabled={!pitchText}
               >
                 <Copy className="w-3.5 h-3.5" />
@@ -352,7 +352,7 @@ const ResourcesTab = memo(function ResourcesTab({
             </div>
           </div>
 
-          <div className="relative group rounded-2xl bg-white dark:bg-slate-800 shadow-premium-soft ring-1 ring-slate-200/60 dark:ring-slate-700/60 overflow-hidden transition-all hover:shadow-premium-hover hover:ring-jobzai-300/50 dark:hover:ring-jobzai-700/50">
+          <div className="relative group rounded-2xl bg-white dark:bg-[#2b2a2c] shadow-premium-soft ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 overflow-hidden transition-all hover:shadow-premium-hover hover:ring-jobzai-300/50 dark:hover:ring-jobzai-700/50">
             {/* Subtle top accent */}
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-jobzai-500/20 via-jobzai-500/40 to-jobzai-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
             
@@ -372,12 +372,12 @@ const ResourcesTab = memo(function ResourcesTab({
                   ? 'bg-emerald-50/90 text-emerald-600 ring-emerald-200/60 dark:bg-emerald-950/50 dark:text-emerald-400 dark:ring-emerald-800/50' 
                   : speakingTime > 60 
                     ? 'bg-amber-50/90 text-amber-600 ring-amber-200/60 dark:bg-amber-950/50 dark:text-amber-400 dark:ring-amber-800/50'
-                    : 'bg-slate-50/90 text-slate-500 ring-slate-200/60 dark:bg-slate-800/90 dark:text-slate-400 dark:ring-slate-700/60'
+                    : 'bg-slate-50/90 text-slate-500 ring-slate-200/60 dark:bg-[#2b2a2c]/90 dark:text-slate-400 dark:ring-[#3d3c3e]/60'
                 }
               `}>
                 ~{speakingTime}s speaking time
               </div>
-              <div className="px-3 py-1.5 rounded-full bg-slate-50/90 dark:bg-slate-800/90 text-slate-500 dark:text-slate-400 text-[11px] font-semibold ring-1 ring-slate-200/60 dark:ring-slate-700/60 backdrop-blur-md">
+              <div className="px-3 py-1.5 rounded-full bg-slate-50/90 dark:bg-[#2b2a2c]/90 text-slate-500 dark:text-slate-400 text-[11px] font-semibold ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 backdrop-blur-md">
                 {wordCount} words
               </div>
             </div>

@@ -38,7 +38,7 @@ export function TabPills({ items, activeId, onChange, className = '' }: TabPills
 			{/* Full-width container with centered content */}
 			<div className="relative" ref={containerRef}>
 				{/* Tab buttons - evenly distributed with premium styling */}
-				<nav className="flex items-center justify-center border-b border-slate-200/60 dark:border-slate-800/60">
+				<nav className="flex items-center justify-center border-b border-slate-200/60 dark:border-[#3d3c3e]/60">
 					{items.map((item) => {
 						const isActive = activeId === item.id;
 						return (
@@ -56,7 +56,7 @@ export function TabPills({ items, activeId, onChange, className = '' }: TabPills
 									border-b-2 -mb-px
 									${isActive
 										? 'text-jobzai-500 dark:text-jobzai-400 border-jobzai-500 dark:border-jobzai-400'
-										: 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
+										: 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50/50 dark:hover:bg-[#3d3c3e]/30'
 									}
 								`}
 							>

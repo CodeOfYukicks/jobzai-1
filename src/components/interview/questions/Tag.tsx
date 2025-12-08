@@ -13,7 +13,7 @@ const variantStyles: Record<TagVariant, string> = {
   behavioral: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 ring-1 ring-amber-200/60 dark:ring-amber-800/50',
   company: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 ring-1 ring-emerald-200/60 dark:ring-emerald-800/50',
   role: 'bg-jobzai-50 text-jobzai-700 dark:bg-jobzai-950/50 dark:text-jobzai-300 ring-1 ring-jobzai-200/60 dark:ring-jobzai-800/50',
-  default: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 ring-1 ring-slate-200/60 dark:ring-slate-700/50',
+  default: 'bg-slate-100 text-slate-600 dark:bg-[#2b2a2c] dark:text-slate-400 ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/50',
 };
 
 // Map label to variant

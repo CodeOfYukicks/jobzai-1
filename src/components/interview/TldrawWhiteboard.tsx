@@ -462,7 +462,7 @@ export const TldrawWhiteboard = forwardRef<TldrawWhiteboardRef, TldrawWhiteboard
         style={{ width: width || '100%', height: height || 600 }}
       >
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-indigo-600 dark:border-gray-600 dark:border-t-indigo-400" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-indigo-600 dark:border-[#3d3c3e] dark:border-t-indigo-400" />
           <span className="text-sm text-gray-500 dark:text-gray-400">
             Loading whiteboard...
           </span>
@@ -509,14 +509,14 @@ export const TldrawWhiteboard = forwardRef<TldrawWhiteboardRef, TldrawWhiteboard
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -window.innerHeight, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="fixed inset-0 z-50 bg-white dark:bg-gray-900"
+          className="fixed inset-0 z-50 bg-white dark:bg-[#242325]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header with close button */}
           <div className="absolute top-4 right-4 z-[60]">
             <button
               onClick={() => setIsFullscreen(false)}
-              className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-lg"
+              className="p-2 rounded-lg bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors shadow-lg"
               title="Réduire"
             >
               <Minimize2 className="w-5 h-5 text-gray-600 dark:text-gray-300" />

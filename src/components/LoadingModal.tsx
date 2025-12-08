@@ -32,7 +32,7 @@ export default function LoadingModal({ isOpen, progress, message = "Generating y
                 stiffness: 300,
                 damping: 30
               }}
-              className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 max-w-md w-full mx-4 pointer-events-auto border border-gray-200 dark:border-gray-800"
+              className="bg-white dark:bg-[#242325] rounded-3xl shadow-2xl p-8 max-w-md w-full mx-4 pointer-events-auto border border-gray-200 dark:border-[#3d3c3e]"
             >
               {/* Spinner with Progress */}
               <div className="flex flex-col items-center justify-center mb-6">
@@ -47,7 +47,7 @@ export default function LoadingModal({ isOpen, progress, message = "Generating y
                       stroke="currentColor"
                       strokeWidth="8"
                       fill="none"
-                      className="text-gray-200 dark:text-gray-800"
+                      className="text-gray-200 dark:text-[#3d3c3e]"
                     />
                     {/* Progress Circle */}
                     <circle
@@ -87,7 +87,7 @@ export default function LoadingModal({ isOpen, progress, message = "Generating y
               </div>
 
               {/* Progress Bar (Optional - for visual feedback) */}
-              <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+              <div className="w-full bg-gray-100 dark:bg-[#3d3c3e] rounded-full h-1.5 overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}

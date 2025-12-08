@@ -59,7 +59,7 @@ const CompanyProfileSection = memo(function CompanyProfileSection({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="h-full rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-slate-200/60 dark:ring-slate-800/60 p-8 transition-all hover:shadow-premium-soft"
+      className="h-full rounded-2xl bg-white dark:bg-[#242325] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 p-8 transition-all hover:shadow-premium-soft"
     >
       
       {/* Top: Logo + Company Name inline */}
@@ -73,8 +73,8 @@ const CompanyProfileSection = memo(function CompanyProfileSection({
           <div 
             className="
               h-14 w-14 rounded-xl 
-              backdrop-blur-xl bg-gradient-to-br from-slate-50 to-white dark:from-slate-800 dark:to-slate-900
-              ring-1 ring-slate-200/80 dark:ring-slate-700/80
+              backdrop-blur-xl bg-gradient-to-br from-slate-50 to-white dark:from-[#2b2a2c] dark:to-[#242325]
+              ring-1 ring-slate-200/80 dark:ring-[#3d3c3e]/80
               flex items-center justify-center
               transition-all duration-200
               hover:ring-jobzai-300/50 dark:hover:ring-jobzai-600/50
@@ -119,7 +119,7 @@ const CompanyProfileSection = memo(function CompanyProfileSection({
           {/* Location tag */}
           {application.location && (
             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800">
+              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-[#2b2a2c]">
                 <MapPin className="w-3 h-3 text-jobzai-500" />
                 {application.location}
               </span>
@@ -144,7 +144,7 @@ const CompanyProfileSection = memo(function CompanyProfileSection({
       </div>
 
       {/* Divider - subtle gradient */}
-      <div className="my-6 h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent" />
+      <div className="my-6 h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-[#3d3c3e] to-transparent" />
 
       {/* Bottom: Quick Stats Row */}
       <div className="flex items-center gap-6">

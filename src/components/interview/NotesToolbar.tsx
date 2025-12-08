@@ -34,7 +34,7 @@ function ToolbarButton({ onClick, isActive, disabled, title, children }: Toolbar
       title={title}
       className={[
         'p-2 rounded-md transition-all duration-200',
-        'hover:bg-gray-100 dark:hover:bg-gray-800',
+        'hover:bg-gray-100 dark:hover:bg-[#3d3c3e]',
         'disabled:opacity-30 disabled:cursor-not-allowed',
         isActive
           ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
@@ -47,7 +47,7 @@ function ToolbarButton({ onClick, isActive, disabled, title, children }: Toolbar
 }
 
 function ToolbarDivider() {
-  return <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />;
+  return <div className="w-px h-6 bg-gray-200 dark:bg-[#3d3c3e] mx-1" />;
 }
 
 export default function NotesToolbar({ editor }: NotesToolbarProps) {
@@ -72,7 +72,7 @@ export default function NotesToolbar({ editor }: NotesToolbarProps) {
   };
 
   return (
-    <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-3 py-2 flex items-center gap-1 flex-wrap">
+    <div className="border-b border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325]/50 px-3 py-2 flex items-center gap-1 flex-wrap">
       {/* Text Formatting */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}

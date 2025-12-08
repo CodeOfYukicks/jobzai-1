@@ -77,8 +77,8 @@ export function InterviewQuestionsHeader<T extends string = string>({
               className="
                 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl
                 text-sm font-semibold
-                ring-1 ring-slate-200/60 dark:ring-slate-700/60
-                bg-white dark:bg-slate-800
+                ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60
+                bg-white dark:bg-[#2b2a2c]
                 text-slate-600 dark:text-slate-300
                 hover:ring-jobzai-300/50 dark:hover:ring-jobzai-700/50
                 hover:text-jobzai-600 dark:hover:text-jobzai-400
@@ -116,7 +116,7 @@ export function InterviewQuestionsHeader<T extends string = string>({
                   transition-all duration-200
                   ${isActive
                     ? 'text-jobzai-600 dark:text-jobzai-400 bg-jobzai-50/50 dark:bg-jobzai-950/20'
-                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
+                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50/50 dark:hover:bg-[#3d3c3e]/30'
                   }
                 `}
               >
@@ -132,7 +132,7 @@ export function InterviewQuestionsHeader<T extends string = string>({
         </div>
 
         {/* Subtle bottom border */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-slate-200/60 dark:bg-slate-800/60" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-slate-200/60 dark:bg-[#2b2a2c]/60" />
 
         {/* Animated underline indicator - Jobzai Violet gradient */}
         <motion.div

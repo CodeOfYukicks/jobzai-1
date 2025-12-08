@@ -181,10 +181,10 @@ export default function NotesAIPopover({
           transform: 'translateX(-50%) translateY(-100%)',
           zIndex: 9999,
         }}
-        className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-lg shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden w-[240px]"
+        className="bg-white/95 dark:bg-[#242325]/95 backdrop-blur-xl rounded-lg shadow-2xl border border-gray-200 dark:border-[#3d3c3e] overflow-hidden w-[240px]"
       >
         {/* Simple Header */}
-        <div className="px-4 py-2.5 border-b border-gray-200 dark:border-gray-800">
+        <div className="px-4 py-2.5 border-b border-gray-200 dark:border-[#3d3c3e]">
           <div className="flex items-center gap-2 text-gray-900 dark:text-white">
             <Wand2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             <span className="text-xs font-semibold">AI Enhance</span>

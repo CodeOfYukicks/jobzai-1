@@ -22,7 +22,7 @@ const KeyPointsSection = memo(function KeyPointsSection({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.1 }}
-      className="h-full rounded-2xl bg-gradient-to-br from-slate-50/80 to-white dark:from-slate-900/80 dark:to-slate-900 ring-1 ring-slate-200/60 dark:ring-slate-800/60 p-6 transition-all hover:shadow-premium-soft"
+      className="h-full rounded-2xl bg-gradient-to-br from-slate-50/80 to-white dark:from-[#242325]/80 dark:to-[#242325] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 p-6 transition-all hover:shadow-premium-soft"
     >
       
       {/* Header - Premium badge style */}
@@ -48,7 +48,7 @@ const KeyPointsSection = memo(function KeyPointsSection({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="group py-3.5 border-b border-slate-100 dark:border-slate-800/60 last:border-b-0"
+                className="group py-3.5 border-b border-slate-100 dark:border-[#3d3c3e]/60 last:border-b-0"
               >
                 <div className="flex items-start gap-3">
                   {/* Number indicator - Premium violet gradient */}
@@ -80,7 +80,7 @@ const KeyPointsSection = memo(function KeyPointsSection({
         </div>
       ) : (
         <div className="py-10 text-center">
-          <div className="w-12 h-12 mx-auto rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3">
+          <div className="w-12 h-12 mx-auto rounded-xl bg-slate-100 dark:bg-[#2b2a2c] flex items-center justify-center mb-3">
             <MessageSquare className="w-5 h-5 text-slate-400" />
           </div>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">

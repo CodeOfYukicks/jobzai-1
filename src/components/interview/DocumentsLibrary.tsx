@@ -33,7 +33,7 @@ function DeleteConfirmationModal({ document, onConfirm, onCancel }: DeleteModalP
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 max-w-sm w-full ring-1 ring-slate-200/60 dark:ring-slate-800/60"
+        className="bg-white dark:bg-[#242325] rounded-2xl shadow-xl p-6 max-w-sm w-full ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60"
       >
         <div className="flex flex-col items-center text-center mb-6">
           <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-4">
@@ -50,7 +50,7 @@ function DeleteConfirmationModal({ document, onConfirm, onCancel }: DeleteModalP
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+            className="px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#3d3c3e] rounded-xl transition-colors"
           >
             Cancel
           </button>
@@ -102,10 +102,10 @@ function DocumentCard({ document, onOpen, onDelete, isHighlighted }: {
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.99 }}
       onClick={onOpen}
-      className={`group relative bg-white dark:bg-slate-800/50 rounded-xl p-4 transition-all duration-200 cursor-pointer ${
+      className={`group relative bg-white dark:bg-[#2b2a2c]/50 rounded-xl p-4 transition-all duration-200 cursor-pointer ${
         isHighlighted 
           ? 'ring-2 ring-jobzai-400 dark:ring-jobzai-500 shadow-lg shadow-jobzai-200/30 dark:shadow-jobzai-900/20' 
-          : 'ring-1 ring-slate-200/60 dark:ring-slate-700/60 hover:ring-jobzai-300/50 dark:hover:ring-jobzai-600/30 hover:shadow-premium-soft'
+          : 'ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 hover:ring-jobzai-300/50 dark:hover:ring-jobzai-600/30 hover:shadow-premium-soft'
       }`}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -184,7 +184,7 @@ export default function DocumentsLibrary({
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
-      <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-slate-200/60 dark:border-slate-800/60">
+      <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-slate-200/60 dark:border-[#3d3c3e]/60">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white tracking-tight">
             My Notes
@@ -212,7 +212,7 @@ export default function DocumentsLibrary({
             placeholder="Search notes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-slate-50/80 dark:bg-slate-800/50 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 ring-1 ring-slate-200/60 dark:ring-slate-700/60 focus:ring-jobzai-400/50 dark:focus:ring-jobzai-600/50 focus:outline-none transition-all"
+            className="w-full pl-9 pr-4 py-2.5 bg-slate-50/80 dark:bg-[#2b2a2c]/50 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 focus:ring-jobzai-400/50 dark:focus:ring-jobzai-600/50 focus:outline-none transition-all"
           />
         </div>
       </div>
@@ -235,7 +235,7 @@ export default function DocumentsLibrary({
               onClick={onCreateDocument}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="px-5 py-2.5 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white text-sm font-medium rounded-xl ring-1 ring-slate-200/60 dark:ring-slate-700/60 hover:ring-jobzai-300/50 dark:hover:ring-jobzai-600/30 hover:shadow-premium-soft transition-all"
+              className="px-5 py-2.5 bg-white dark:bg-[#2b2a2c]/50 text-slate-900 dark:text-white text-sm font-medium rounded-xl ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 hover:ring-jobzai-300/50 dark:hover:ring-jobzai-600/30 hover:shadow-premium-soft transition-all"
             >
               Create First Note
             </motion.button>

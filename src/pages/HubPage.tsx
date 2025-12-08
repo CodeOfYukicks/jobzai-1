@@ -16,6 +16,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import EditableWidgetGrid from '../components/hub/EditableWidgetGrid';
+import { loadThemeFromStorage } from '../lib/theme';
 
 // Navigation groups matching sidebar structure
 const navigationGroups = {
@@ -55,22 +56,80 @@ export default function HubPage() {
   });
   const [totalApplications, setTotalApplications] = useState(0);
   const [activeInterviews, setActiveInterviews] = useState(0);
-  const [logoUrl, setLogoUrl] = useState<string>('');
+  const [logoUrlLight, setLogoUrlLight] = useState<string>('');
+  const [logoUrlDark, setLogoUrlDark] = useState<string>('');
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [successRate, setSuccessRate] = useState(0);
 
-  // Load logo
+  // Load logos (light and dark)
   useEffect(() => {
-    const loadLogo = async () => {
+    const loadLogos = async () => {
       try {
         const storage = getStorage();
-        const logoRef = ref(storage, 'images/logo-only.png');
-        const url = await getDownloadURL(logoRef);
-        setLogoUrl(url);
+        
+        // Logo pour le mode clair
+        const logoLightRef = ref(storage, 'images/logo-only.png');
+        const lightUrl = await getDownloadURL(logoLightRef);
+        setLogoUrlLight(lightUrl);
+        
+        // Logo pour le mode sombre
+        const logoDarkRef = ref(storage, 'images/logo-only-dark.png');
+        const darkUrl = await getDownloadURL(logoDarkRef);
+        setLogoUrlDark(darkUrl);
       } catch (error) {
-        console.error('Error loading logo:', error);
+        console.error('Error loading logos:', error);
       }
     };
-    loadLogo();
+
+    loadLogos();
+  }, []);
+
+  // Initialize and track dark mode
+  useEffect(() => {
+    const updateThemeState = () => {
+      const savedTheme = loadThemeFromStorage();
+      const currentIsDark = document.documentElement.classList.contains('dark');
+      
+      if (savedTheme === 'system') {
+        const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setIsDarkMode(systemIsDark);
+      } else {
+        const shouldBeDark = savedTheme === 'dark';
+        setIsDarkMode(shouldBeDark);
+      }
+    };
+    
+    // Set initial state
+    const savedTheme = loadThemeFromStorage();
+    if (savedTheme === 'system') {
+      const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDarkMode(systemIsDark);
+    } else {
+      setIsDarkMode(savedTheme === 'dark');
+    }
+    
+    // Listen to system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemChange = () => {
+      const savedTheme = loadThemeFromStorage();
+      if (savedTheme === 'system') {
+        updateThemeState();
+      }
+    };
+    mediaQuery.addEventListener('change', handleSystemChange);
+    
+    // Listen to localStorage changes (when theme is changed in Settings or elsewhere)
+    const handleStorageChange = () => {
+      updateThemeState();
+    };
+    
+    // Custom event for same-tab updates
+    window.addEventListener('themechange', handleStorageChange);
+    
+    return () => {
+      mediaQuery.removeEventListener('change', handleSystemChange);
+      window.removeEventListener('themechange', handleStorageChange);
+    };
   }, []);
 
   const handleCardClick = (e: React.MouseEvent, item: any) => {
@@ -182,9 +241,9 @@ export default function HubPage() {
 
               {/* Center - Logo */}
               <Link to="/" className="flex items-center justify-center hover:scale-105 transition-transform duration-300">
-                {logoUrl ? (
+                {(isDarkMode ? logoUrlDark : logoUrlLight) ? (
                   <motion.img 
-                    src={logoUrl} 
+                    src={isDarkMode ? logoUrlDark : logoUrlLight} 
                     alt="Logo" 
                     className="h-12 w-auto"
                     initial={{ opacity: 0, scale: 0.8 }}

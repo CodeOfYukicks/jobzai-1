@@ -7,22 +7,51 @@ export default function PageLoader() {
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>('');
+  const [darkLogoUrl, setDarkLogoUrl] = useState<string>('');
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const prevPathnameRef = useRef<string>(location.pathname);
 
-  // Charger le logo depuis Firebase Storage
+  // Détecter le mode sombre
   useEffect(() => {
-    const loadLogo = async () => {
+    const checkDarkMode = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'));
+    };
+    
+    checkDarkMode();
+    
+    // Observer les changements de classe sur le document
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    
+    return () => observer.disconnect();
+  }, []);
+
+  // Charger les logos depuis Firebase Storage
+  useEffect(() => {
+    const loadLogos = async () => {
       try {
         const storage = getStorage();
+        
+        // Logo normal (light mode)
         const logoRef = ref(storage, 'images/logo-only.png');
         const url = await getDownloadURL(logoRef);
         setLogoUrl(url);
+        
+        // Logo dark mode
+        try {
+          const darkLogoRef = ref(storage, 'images/logo-only-dark.png');
+          const darkUrl = await getDownloadURL(darkLogoRef);
+          setDarkLogoUrl(darkUrl);
+        } catch {
+          // Si le logo dark n'existe pas, utiliser le logo normal
+          setDarkLogoUrl(url);
+        }
       } catch (error) {
         console.error('Error loading logo:', error);
       }
     };
 
-    loadLogo();
+    loadLogos();
   }, []);
 
   // Utiliser useLayoutEffect pour déclencher l'animation de manière synchrone (avant le paint)
@@ -42,7 +71,9 @@ export default function PageLoader() {
     }
   }, [location.pathname]);
 
-  if (!logoUrl) return null;
+  const currentLogo = isDarkMode ? (darkLogoUrl || logoUrl) : logoUrl;
+  
+  if (!currentLogo) return null;
 
   return (
     <AnimatePresence mode="wait">
@@ -53,7 +84,7 @@ export default function PageLoader() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-[99999] flex items-center justify-center bg-white dark:bg-gray-900"
+          className="fixed inset-0 z-[99999] flex items-center justify-center bg-white dark:bg-[#333234]"
           style={{ 
             pointerEvents: 'auto',
             willChange: 'opacity',
@@ -65,7 +96,7 @@ export default function PageLoader() {
           }}
         >
           <motion.img
-            src={logoUrl}
+            src={currentLogo}
             alt="Logo"
             className="w-16 h-16 object-contain"
             initial={{ scale: 0.8, opacity: 0 }}
