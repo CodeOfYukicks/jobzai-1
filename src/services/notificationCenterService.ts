@@ -307,9 +307,9 @@ export async function createTaskCompleteNotification(
   }
 ): Promise<string> {
   const titles: Record<string, string> = {
-    cv_rewrite: '✨ CV Optimized Successfully',
-    ats_analysis: '📊 ATS Analysis Complete',
-    cover_letter: '📝 Cover Letter Generated',
+    cv_rewrite: 'CV Optimized Successfully',
+    ats_analysis: 'ATS Analysis Complete',
+    cover_letter: 'Cover Letter Generated',
   };
   
   const messages: Record<string, string> = {
@@ -354,7 +354,7 @@ export async function createEmailReplyNotification(
 ): Promise<string> {
   return createNotification(userId, {
     type: 'email_reply',
-    title: '📬 New Reply Received',
+    title: 'New Reply Received',
     message: `${options.contactName}${options.companyName ? ` from ${options.companyName}` : ''} replied to your email`,
     actionUrl: options.campaignId ? `/campaigns-auto` : '/applications',
     actionLabel: 'View Reply',
@@ -389,13 +389,13 @@ export async function createInterviewReminderNotification(
   let message = '';
   
   if (options.hoursUntil <= 1.5) {
-    title = '⏰ Interview Starting Soon';
+    title = 'Interview Starting Soon';
     message = `Your ${options.interviewType} interview at ${options.companyName} starts in about 1 hour`;
   } else if (options.hoursUntil <= 3.5) {
-    title = '📅 Interview Today';
+    title = 'Interview Today';
     message = `Your ${options.interviewType} interview at ${options.companyName} is in about 3 hours`;
   } else {
-    title = '📆 Interview Tomorrow';
+    title = 'Interview Tomorrow';
     message = `Don't forget your ${options.interviewType} interview at ${options.companyName} tomorrow at ${options.interviewTime}`;
   }
   
@@ -445,7 +445,7 @@ export async function createStatusChangeNotification(
   
   return createNotification(userId, {
     type: 'status_change',
-    title: '📋 Application Updated',
+    title: 'Application Updated',
     message: `${options.position} at ${options.companyName} moved to "${newStatusLabel}"`,
     actionUrl: '/applications',
     actionLabel: 'View Application',
@@ -475,7 +475,7 @@ export async function createAchievementNotification(
   
   return createNotification(userId, {
     type: 'achievement',
-    title: isAchievement ? '🏆 Achievement Unlocked!' : '✅ Mission Complete!',
+    title: isAchievement ? 'Achievement Unlocked' : 'Mission Complete',
     message: isAchievement
       ? `You've earned the "${options.achievementName}" achievement${options.xpEarned ? ` (+${options.xpEarned} XP)` : ''}`
       : `You've completed "${options.missionName}"${options.xpEarned ? ` and earned ${options.xpEarned} XP` : ''}`,

@@ -64,7 +64,7 @@ import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
 import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
 import AutomationSettingsModal from '../components/application/AutomationSettingsModal';
 import { checkAndApplyAutomations, isApplicationInactive, getInactiveDays } from '../lib/automationEngine';
-import { BoardSettingsModal, BoardsOverview, MoveToBoardModal } from '../components/boards';
+import { BoardSettingsModal, BoardsOverview, MoveToBoardModal, DeleteBoardModal } from '../components/boards';
 import { RelationshipGoalSelector } from '../components/outreach';
 import { WarmthIndicator } from '../components/outreach';
 
@@ -170,6 +170,8 @@ export default function JobApplicationsPage() {
   const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
   const [showBoardSettingsModal, setShowBoardSettingsModal] = useState(false);
   const [editingBoard, setEditingBoard] = useState<KanbanBoard | null>(null);
+  const [showDeleteBoardModal, setShowDeleteBoardModal] = useState(false);
+  const [boardToDelete, setBoardToDelete] = useState<KanbanBoard | null>(null);
   const [showMoveToBoardModal, setShowMoveToBoardModal] = useState(false);
   const [applicationToMove, setApplicationToMove] = useState<JobApplication | null>(null);
 
@@ -356,34 +358,50 @@ export default function JobApplicationsPage() {
     }
   };
 
-  const handleDeleteBoard = async () => {
-    if (!currentUser || !editingBoard || editingBoard.isDefault) return;
+  const handleDeleteBoard = async (targetBoardId?: string) => {
+    if (!currentUser || !boardToDelete || boardToDelete.isDefault) return;
 
     try {
-      // Move all applications from this board to default board
-      const defaultBoard = boards.find(b => b.isDefault);
-      if (defaultBoard) {
-        const boardApplications = applications.filter(app => app.boardId === editingBoard.id);
+      // Get the board type (default to 'jobs' for backwards compatibility)
+      const deletedBoardType = boardToDelete.boardType || 'jobs';
+      
+      // Get applications in this board
+      const boardApplications = applications.filter(app => app.boardId === boardToDelete.id);
+      
+      if (targetBoardId) {
+        // Transfer applications to the specified board
+        const targetBoard = boards.find(b => b.id === targetBoardId);
+        if (targetBoard) {
+          for (const app of boardApplications) {
+            const appRef = doc(db, 'users', currentUser.uid, 'jobApplications', app.id);
+            await updateDoc(appRef, {
+              boardId: targetBoard.id,
+              updatedAt: serverTimestamp(),
+            });
+          }
+        }
+      } else {
+        // Delete all applications in this board
         for (const app of boardApplications) {
           const appRef = doc(db, 'users', currentUser.uid, 'jobApplications', app.id);
-          await updateDoc(appRef, {
-            boardId: defaultBoard.id,
-            updatedAt: serverTimestamp(),
-          });
+          await deleteDoc(appRef);
         }
       }
 
       // Delete the board
-      const boardRef = doc(db, 'users', currentUser.uid, 'boards', editingBoard.id);
+      const boardRef = doc(db, 'users', currentUser.uid, 'boards', boardToDelete.id);
       await deleteDoc(boardRef);
 
       // Switch to default board if we were on the deleted one
-      if (currentBoardId === editingBoard.id) {
-        const defaultBoard = boards.find(b => b.isDefault);
+      if (currentBoardId === boardToDelete.id) {
+        const defaultBoard = boards.find(b => b.isDefault && (b.boardType || 'jobs') === deletedBoardType);
         setCurrentBoardId(defaultBoard?.id || null);
       }
 
-      notify.success('Board deleted successfully!');
+      const message = targetBoardId 
+        ? 'Board deleted and applications transferred!' 
+        : 'Board and applications deleted!';
+      notify.success(message);
     } catch (error) {
       console.error('Error deleting board:', error);
       notify.error('Failed to delete board');
@@ -3322,9 +3340,8 @@ END:VCALENDAR`;
                   setShowBoardSettingsModal(true);
                 }}
                 onDeleteBoard={(board) => {
-                  setEditingBoard(board);
-                  // Show confirmation in BoardSettingsModal
-                  setShowBoardSettingsModal(true);
+                  setBoardToDelete(board);
+                  setShowDeleteBoardModal(true);
                 }}
                 onDuplicateBoard={handleDuplicateBoard}
               />
@@ -6930,9 +6947,20 @@ END:VCALENDAR`;
             setEditingBoard(null);
           }}
           onSave={editingBoard ? handleUpdateBoard : handleCreateBoard}
-          onDelete={editingBoard && !editingBoard.isDefault ? handleDeleteBoard : undefined}
           board={editingBoard}
           mode={editingBoard ? 'edit' : 'create'}
+        />
+
+        {/* Delete Board Modal */}
+        <DeleteBoardModal
+          isOpen={showDeleteBoardModal}
+          onClose={() => {
+            setShowDeleteBoardModal(false);
+            setBoardToDelete(null);
+          }}
+          onDelete={handleDeleteBoard}
+          board={boardToDelete}
+          boards={boards}
         />
 
         {/* Move to Board Modal */}
