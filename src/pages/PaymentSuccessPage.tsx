@@ -5,7 +5,7 @@ import { CheckCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { recordCreditHistory } from '../lib/creditHistory';
 
 export default function PaymentSuccessPage() {
@@ -21,7 +21,7 @@ export default function PaymentSuccessPage() {
     }
 
     if (!sessionId) {
-      toast.error('Invalid payment session');
+      notify.error('Invalid payment session');
       navigate('/billing');
       return;
     }
@@ -199,17 +199,17 @@ export default function PaymentSuccessPage() {
                   window.location.href = '/hub';
                 }, 1000);
                 
-                toast.success('Payment successful! Your profile has been completed. Thank you!');
+                notify.success('Payment successful! Your profile has been completed. Thank you!');
               } catch (error) {
                 console.error('❌ Error completing profile after payment:', error);
-                toast.error('Payment successful but failed to complete profile. Please contact support.');
+                notify.error('Payment successful but failed to complete profile. Please contact support.');
                 setTimeout(() => {
                   window.location.href = '/hub';
                 }, 2000);
               }
             } else {
               console.log('ℹ️ No pending profile completion, redirecting to billing');
-              toast.success('Payment successful! Your subscription has been activated.');
+              notify.success('Payment successful! Your subscription has been activated.');
               setTimeout(() => {
                 navigate('/billing');
               }, 2000);
@@ -348,16 +348,16 @@ export default function PaymentSuccessPage() {
               window.location.href = '/hub';
             }, 1000);
             
-            toast.success('Payment successful! Your profile has been completed. Thank you!');
+            notify.success('Payment successful! Your profile has been completed. Thank you!');
           } catch (error) {
             console.error('Error completing profile:', error);
-            toast.error('Payment successful but failed to complete profile. Please contact support.');
+            notify.error('Payment successful but failed to complete profile. Please contact support.');
             setTimeout(() => {
               navigate('/hub');
             }, 2000);
           }
         } else {
-          toast.success('Payment successful! Your account is being updated.');
+          notify.success('Payment successful! Your account is being updated.');
           setTimeout(() => {
             navigate('/billing');
           }, 2000);

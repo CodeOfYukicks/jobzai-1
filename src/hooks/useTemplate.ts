@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { Template } from '../types/template';
@@ -11,12 +11,12 @@ export function useTemplate() {
 
   const handleSave = async (template: Template) => {
     if (!currentUser) {
-      toast.error('You must be logged in to save templates');
+      notify.error('You must be logged in to save templates');
       return;
     }
 
     if (!template.name || !template.subject || !template.content) {
-      toast.error('Please fill in all required fields');
+      notify.error('Please fill in all required fields');
       return;
     }
 
@@ -33,11 +33,11 @@ export function useTemplate() {
       const templatesRef = collection(db, 'users', currentUser.uid, 'emailTemplates');
       await addDoc(templatesRef, templateData);
 
-      toast.success('Template saved successfully!');
+      notify.success('Template saved successfully!');
       navigate('/email-templates');
     } catch (error) {
       console.error('Error saving template:', error);
-      toast.error('Failed to save template. Please try again.');
+      notify.error('Failed to save template. Please try again.');
     }
   };
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Linkedin, Upload, X, FileText, Check, AlertCircle, Loader2 } from 'lucide-react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface LinkedInConnectButtonProps {
   onImportComplete?: (data: LinkedInProfileData) => void;
@@ -100,11 +100,11 @@ const LinkedInConnectButton = ({
 
       const data = await response.json();
       setParsedData(data);
-      toast.success('LinkedIn profile parsed successfully!');
+      notify.success('LinkedIn profile parsed successfully!');
     } catch (err) {
       console.error('Error parsing LinkedIn PDF:', err);
       setError('Failed to parse the LinkedIn PDF. Please try again.');
-      toast.error('Failed to parse LinkedIn PDF');
+      notify.error('Failed to parse LinkedIn PDF');
     } finally {
       setIsParsing(false);
     }
@@ -114,7 +114,7 @@ const LinkedInConnectButton = ({
     if (parsedData && onImportComplete) {
       onImportComplete(parsedData);
       handleCloseModal();
-      toast.success('Profile data imported successfully!');
+      notify.success('Profile data imported successfully!');
     }
   };
 

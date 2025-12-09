@@ -4,7 +4,7 @@ import {
   Wand2, TrendingUp, Target, Minus, Plus, 
   CheckCircle, X, Loader2, ChevronDown, ChevronUp, Trash2, Sparkles 
 } from 'lucide-react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface AIAction {
   id: string;
@@ -320,7 +320,7 @@ export default function EditorSectionCard({
 
   const handleAIAction = async (action: AIAction) => {
     if (!onAIAction) {
-      toast.error('AI action not available');
+      notify.error('AI action not available');
       return;
     }
 
@@ -329,10 +329,10 @@ export default function EditorSectionCard({
     try {
       const result = await onAIAction(action.id, sectionType, editedContent);
       setAiSuggestion(result);
-      toast.success(`${action.label} ready for review`);
+      notify.success(`${action.label} ready for review`);
     } catch (error) {
       console.error('AI action failed:', error);
-      toast.error('Failed to generate suggestion');
+      notify.error('Failed to generate suggestion');
       setAiActionContext(null);
     } finally {
       setIsGenerating(false);
@@ -341,7 +341,7 @@ export default function EditorSectionCard({
 
   const handleEntryAIAction = async (index: number, action: AIAction) => {
     if (!onAIAction) {
-      toast.error('AI action not available');
+      notify.error('AI action not available');
       return;
     }
     const blockContent = blocks[index];
@@ -357,10 +357,10 @@ export default function EditorSectionCard({
           actionLabel: action.label,
         },
       }));
-      toast.success(`${action.label} preview ready for ${title} #${index + 1}`);
+      notify.success(`${action.label} preview ready for ${title} #${index + 1}`);
     } catch (error) {
       console.error('AI entry action failed:', error);
-      toast.error('Failed to update entry');
+      notify.error('Failed to update entry');
     } finally {
       setEntryActionState(null);
     }
@@ -372,14 +372,14 @@ export default function EditorSectionCard({
       onChange(aiSuggestion);
       setAiSuggestion(null);
       setAiActionContext(null);
-      toast.success('Changes applied!');
+      notify.success('Changes applied!');
     }
   };
 
   const rejectSuggestion = () => {
     setAiSuggestion(null);
     setAiActionContext(null);
-    toast.info('Suggestion discarded');
+    notify.info('Suggestion discarded');
   };
 
   const acceptEntrySuggestion = (index: number) => {
@@ -391,7 +391,7 @@ export default function EditorSectionCard({
       delete next[index];
       return next;
     });
-    toast.success('Entry updated with AI suggestion');
+    notify.success('Entry updated with AI suggestion');
   };
 
   const discardEntrySuggestion = (index: number) => {
@@ -400,7 +400,7 @@ export default function EditorSectionCard({
       delete next[index];
       return next;
     });
-    toast.info('Suggestion discarded');
+    notify.info('Suggestion discarded');
   };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {

@@ -1,10 +1,9 @@
 /**
  * Hook for monitoring background tasks and showing notifications
- * Displays toast notifications when tasks complete or fail
+ * Uses the smart notify system for elegant feedback
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { toast } from '@/contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -13,6 +12,7 @@ import {
   subscribeToCompletedTasks,
   markNotificationShown,
 } from '../services/backgroundTaskService';
+import { notify } from '../lib/notify';
 
 interface UseBackgroundTasksReturn {
   activeTasks: BackgroundTask[];
@@ -42,39 +42,44 @@ export function useBackgroundTasks(): UseBackgroundTasksReturn {
   useEffect(() => {
     if (!currentUser?.uid) return;
 
+    console.log('🔔 [BackgroundTasks] Subscribing to completed tasks for user:', currentUser.uid);
+
     const unsubscribe = subscribeToCompletedTasks(currentUser.uid, async (completedTasks) => {
+      console.log('🔔 [BackgroundTasks] Received completed tasks:', completedTasks.length, completedTasks.map(t => ({ id: t.id, status: t.status, type: t.type })));
+      
       for (const task of completedTasks) {
         // Skip if we already processed this notification in this session
         if (processedNotifications.current.has(task.id)) {
+          console.log('🔔 [BackgroundTasks] Skipping already processed task:', task.id);
           continue;
         }
         
         // Mark as processed in this session
         processedNotifications.current.add(task.id);
+        console.log('🔔 [BackgroundTasks] Processing task:', task.id, task.type, task.status);
         
         // Show notification based on task type and status
-        if (task.type === 'cv_rewrite') {
+        if (task.type === 'cv_rewrite' || task.type === 'ats_analysis' || task.type === 'cover_letter') {
           if (task.status === 'completed') {
-            toast.success(
-              `🎉 Optimized CV generated successfully!`,
-              {
-                description: task.jobTitle && task.company 
-                  ? `CV tailored for ${task.jobTitle} at ${task.company}`
-                  : 'Your CV has been optimized successfully',
-                duration: 10000,
-                action: task.analysisId ? {
-                  label: 'View CV',
-                  onClick: () => navigate(`/ats-analysis/${task.analysisId}`)
-                } : undefined,
-              }
-            );
+            console.log('🔔 [BackgroundTasks] Creating notification for completed task:', task.id);
+            // Create persistent notification + subtle feedback
+            try {
+              await notify.taskComplete({
+                taskType: task.type,
+                taskId: task.id,
+                analysisId: task.analysisId,
+                jobTitle: task.jobTitle,
+                company: task.company,
+                showToast: true, // Shows subtle micro-feedback
+              });
+              console.log('🔔 [BackgroundTasks] Notification created successfully for:', task.id);
+            } catch (notifyError) {
+              console.error('🔔 [BackgroundTasks] Failed to create notification:', notifyError);
+            }
           } else if (task.status === 'failed') {
-            toast.error(
-              `❌ CV generation failed`,
-              {
-                description: task.error || 'An error occurred during generation',
-                duration: 8000,
-              }
+            // Errors still use visible toast
+            notify.error(
+              `${task.type === 'cv_rewrite' ? 'CV generation' : task.type === 'ats_analysis' ? 'ATS analysis' : 'Cover letter generation'} failed`
             );
           }
         }
@@ -82,6 +87,7 @@ export function useBackgroundTasks(): UseBackgroundTasksReturn {
         // Mark notification as shown in Firestore
         try {
           await markNotificationShown(currentUser.uid, task.id);
+          console.log('🔔 [BackgroundTasks] Marked notification as shown:', task.id);
         } catch (error) {
           console.error('Failed to mark notification as shown:', error);
         }

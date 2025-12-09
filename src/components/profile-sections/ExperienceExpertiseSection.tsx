@@ -3,7 +3,7 @@ import { RotateCcw, Calculator, Award, Wrench, Sparkles } from 'lucide-react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   PremiumInput, 
@@ -109,7 +109,7 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
       },
       (error) => {
         console.error('Error loading experience data:', error);
-        toast.error('Failed to load experience data');
+        notify.error('Failed to load experience data');
         setIsLoading(false);
       }
     );
@@ -140,7 +140,7 @@ const ExperienceExpertiseSection = ({ onUpdate }: SectionProps) => {
       setFormData(newFormData);
       setIsManuallyEdited(false);
       onUpdate(newFormData);
-      toast.success('Reset to calculated value');
+      notify.success('Reset to calculated value');
     }
   };
 

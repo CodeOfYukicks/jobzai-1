@@ -4,7 +4,7 @@ import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface CVSelectionProps {
   currentCV: string | File | null;
@@ -56,14 +56,14 @@ export default function CVSelection({ currentCV, onCVChange }: CVSelectionProps)
 
     // Validate file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('CV must be less than 5MB');
+      notify.error('CV must be less than 5MB');
       return;
     }
 
     // Validate file type
     const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (!allowedTypes.includes(file.type)) {
-      toast.error('Please upload a PDF or Word document');
+      notify.error('Please upload a PDF or Word document');
       return;
     }
 
@@ -86,13 +86,13 @@ export default function CVSelection({ currentCV, onCVChange }: CVSelectionProps)
 
       onCVChange(file); // Pass the file object
       setSelectedOption('new');
-      toast.success('CV uploaded successfully');
+      notify.success('CV uploaded successfully');
     } catch (error: any) {
       console.error('Error uploading CV:', error);
       if (error.code === 'storage/unauthorized') {
-        toast.error('Permission denied. Please try again or contact support.');
+        notify.error('Permission denied. Please try again or contact support.');
       } else {
-        toast.error('Failed to upload CV. Please try again.');
+        notify.error('Failed to upload CV. Please try again.');
       }
       setNewFile(null);
     } finally {

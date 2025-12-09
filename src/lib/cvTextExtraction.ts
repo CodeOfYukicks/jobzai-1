@@ -1,4 +1,4 @@
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 /**
  * Structure for an extracted professional experience
@@ -302,7 +302,7 @@ export async function extractCVTextAndTags(images: string[]): Promise<CVExtracti
             if (response.status === 503) {
                 errorMessage = '⚠️ OpenAI API key is not configured. Please add OPENAI_API_KEY to your .env file and restart the server.';
                 console.error('❌ Configuration Error: OpenAI API key is missing');
-                toast.error(errorMessage, { duration: 8000 });
+                notify.error(errorMessage, { duration: 8000 });
                 throw new Error(errorMessage);
             }
             
@@ -360,7 +360,7 @@ export async function extractCVTextAndTags(images: string[]): Promise<CVExtracti
         }
     } catch (error: unknown) {
         console.error('❌ GPT-4o Vision extraction failed:', error);
-        toast.error(
+        notify.error(
             `Failed to extract CV text: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
         throw error;

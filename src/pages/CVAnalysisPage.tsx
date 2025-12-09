@@ -22,7 +22,7 @@ import { CompanyLogo } from '../components/common/CompanyLogo';
 import { getDoc, doc, setDoc, collection, query, where, getDocs, orderBy, addDoc, serverTimestamp, deleteDoc, onSnapshot, updateDoc, Unsubscribe } from 'firebase/firestore';
 import { JobApplication } from '../types/job';
 import { getDownloadURL, ref, getStorage, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { db, storage, auth } from '../lib/firebase';
 import PrivateRoute from '../components/PrivateRoute';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -2668,7 +2668,7 @@ export default function CVAnalysisPage() {
         setSavedJobs(jobs);
       } catch (error) {
         console.error('Error fetching saved jobs:', error);
-        toast.error('Failed to load saved jobs');
+        notify.error('Failed to load saved jobs');
       } finally {
         setIsLoadingSavedJobs(false);
       }
@@ -2942,9 +2942,9 @@ export default function CVAnalysisPage() {
         if (error instanceof Error &&
           error.toString().includes('permission')) {
           console.warn('Permission error detected. You need to update Firestore security rules.');
-          toast.error('Permission error. Please check Firestore security rules.');
+          notify.error('Permission error. Please check Firestore security rules.');
         } else {
-          toast.error('Unable to load your saved analyses');
+          notify.error('Unable to load your saved analyses');
         }
       }
     };
@@ -3006,7 +3006,7 @@ export default function CVAnalysisPage() {
             ));
 
             // Show error notification
-            toast.error(`Analysis failed: ${data.error || 'Unknown error'}`, {
+            notify.error(`Analysis failed: ${data.error || 'Unknown error'}`, {
               duration: 8000,
               icon: '❌'
             });
@@ -3021,7 +3021,7 @@ export default function CVAnalysisPage() {
             ));
 
             // Show success notification
-            toast.success(`Analysis complete! Match score: ${normalizedMatchScore || 0}%`, {
+            notify.success(`Analysis complete! Match score: ${normalizedMatchScore || 0}%`, {
               duration: 5000,
               icon: '🎉'
             });
@@ -3098,7 +3098,7 @@ export default function CVAnalysisPage() {
           }
 
           // Show error notification
-          toast.error(`Analysis timed out for ${analysis.jobTitle} at ${analysis.company}. Please try again.`, {
+          notify.error(`Analysis timed out for ${analysis.jobTitle} at ${analysis.company}. Please try again.`, {
             duration: 8000,
             icon: '⏱️'
           });
@@ -3228,19 +3228,19 @@ export default function CVAnalysisPage() {
           });
           console.log(`✅ Successfully linked analysis ${docRef.id} to job application ${jobToLink.id}`);
           console.log(`📊 Total analyses linked: ${existingIds.length}`);
-          toast.success(`Analysis linked to ${jobToLink.companyName} - ${jobToLink.position}`, {
+          notify.success(`Analysis linked to ${jobToLink.companyName} - ${jobToLink.position}`, {
             duration: 5000
           });
         } catch (linkError) {
           console.error('❌ Error linking analysis to job application:', linkError);
-          toast.error('Analysis saved but could not be linked to job application');
+          notify.error('Analysis saved but could not be linked to job application');
           // Don't fail the entire operation if linking fails
         }
       } else {
         console.log('⚠️ No saved job provided or selected, analysis will not be linked to any job application');
       }
 
-      toast.success('Analysis saved successfully!');
+      notify.success('Analysis saved successfully!');
       return {
         ...analysis,
         skillsMatch: normalizedSkillsMatch, // Return normalized version
@@ -3252,9 +3252,9 @@ export default function CVAnalysisPage() {
       // Vérifier si c'est une erreur de permission
       if (error instanceof Error && error.toString().includes('permission')) {
         console.warn('Permission error detected. You need to update Firestore security rules.');
-        toast.error('Permission error during save. Please check Firestore security rules.');
+        notify.error('Permission error during save. Please check Firestore security rules.');
       } else {
-        toast.error('Unable to save analysis, but results are available');
+        notify.error('Unable to save analysis, but results are available');
       }
 
       // Retourner l'analyse avec un ID généré localement pour maintenir la fonctionnalité
@@ -3386,7 +3386,7 @@ export default function CVAnalysisPage() {
       const file = new File([blob], cvName, { type: blob.type || 'application/pdf' });
 
       setIsDownloadingCV(false);
-      toast.success('CV loaded successfully');
+      notify.success('CV loaded successfully');
       return file;
     } catch (error: any) {
       setIsDownloadingCV(false);
@@ -3404,7 +3404,7 @@ export default function CVAnalysisPage() {
         errorMessage = `Failed to download CV: ${error.message}`;
       }
 
-      toast.error(errorMessage);
+      notify.error(errorMessage);
       throw error;
     }
   };
@@ -3491,14 +3491,14 @@ export default function CVAnalysisPage() {
 
     // Validate file type
     if (fileToProcess.type !== 'application/pdf') {
-      toast.error('Please upload a PDF file');
+      notify.error('Please upload a PDF file');
       return;
     }
 
     setCvFile(fileToProcess);
     setUsingSavedCV(false); // Reset saved CV flag when uploading new file
     setSelectedBuilderItem(null); // Reset builder item when uploading new file
-    toast.success('CV selected successfully');
+    notify.success('CV selected successfully');
   };
 
   // Handle selecting saved CV from profile
@@ -3510,7 +3510,7 @@ export default function CVAnalysisPage() {
       setCvFile(file);
       setUsingSavedCV(true);
       setSelectedBuilderItem(null); // Reset builder item when using saved CV
-      toast.success('Saved CV selected successfully');
+      notify.success('Saved CV selected successfully');
     } catch (error) {
       console.error('Error using saved CV:', error);
       // Error toast is already shown in downloadCVFromUrl
@@ -3549,9 +3549,9 @@ export default function CVAnalysisPage() {
     setValidationOptions({ disableValidation: !newState });
 
     if (newState) {
-      toast.success('Content validation has been enabled');
+      notify.success('Content validation has been enabled');
     } else {
-      toast.success('Content validation has been temporarily disabled');
+      notify.success('Content validation has been temporarily disabled');
     }
   };
 
@@ -3850,12 +3850,12 @@ Return ONLY a structured JSON object with the following schema:
   // Fonction pour extraire les informations du job depuis l'URL
   const handleExtractJobInfo = async () => {
     if (!formData.jobUrl || !formData.jobUrl.trim()) {
-      toast.error('Please enter a job URL first');
+      notify.error('Please enter a job URL first');
       return;
     }
 
     setIsExtractingJob(true);
-    toast.info('Extracting job information with AI...', { duration: 2000 });
+    notify.info('Extracting job information with AI...', { duration: 2000 });
 
     try {
       const jobUrl = formData.jobUrl.trim();
@@ -4056,10 +4056,10 @@ URL to visit: ${jobUrl}
         // Avertissements selon la longueur et le contenu
         if (descriptionLength < 300) {
           console.warn('Job description seems very short. It may be incomplete.');
-          toast.warning('The job description extracted seems very short (< 300 chars). Please verify it contains all sections from the page.');
+          notify.warning('The job description extracted seems very short (< 300 chars). Please verify it contains all sections from the page.');
         } else if (descriptionLength < 800) {
           console.warn('Job description may be incomplete. Most job postings are longer.');
-          toast.warning('The extracted description may be incomplete. Please review and ensure all sections were captured.');
+          notify.warning('The extracted description may be incomplete. Please review and ensure all sections were captured.');
         }
 
         // Vérifier les sections critiques manquantes
@@ -4073,7 +4073,7 @@ URL to visit: ${jobUrl}
 
         if (missingSections.length > 0 && descriptionLength < 1000) {
           console.warn(`Job description may be missing key sections: ${missingSections.join(', ')}`);
-          toast.warning(`The extracted description may be missing some sections (${missingSections.join(', ')}). Please review the original page and add missing information manually if needed.`);
+          notify.warning(`The extracted description may be missing some sections (${missingSections.join(', ')}). Please review the original page and add missing information manually if needed.`);
         }
 
         // Log pour vérification
@@ -4113,18 +4113,18 @@ URL to visit: ${jobUrl}
         // Message de succès avec information sur la longueur
         const descLength = extractedDescription.length;
         if (descLength > 500) {
-          toast.success(`Job information extracted successfully! (${descLength} characters)`);
+          notify.success(`Job information extracted successfully! (${descLength} characters)`);
         } else {
-          toast.success('Job information extracted successfully!');
+          notify.success('Job information extracted successfully!');
         }
       } catch (parseError: any) {
         console.error('Error parsing extracted data:', parseError);
-        toast.error(`Failed to parse extracted information: ${parseError.message || 'Unknown error'}. Please try again or enter the information manually.`);
+        notify.error(`Failed to parse extracted information: ${parseError.message || 'Unknown error'}. Please try again or enter the information manually.`);
         throw parseError;
       }
     } catch (error: any) {
       console.error('Error extracting job info:', error);
-      toast.error(`Failed to extract job information: ${error.message || 'Unknown error'}. Please try again or enter the information manually.`);
+      notify.error(`Failed to extract job information: ${error.message || 'Unknown error'}. Please try again or enter the information manually.`);
     } finally {
       setIsExtractingJob(false);
     }
@@ -4150,7 +4150,7 @@ URL to visit: ${jobUrl}
       setIsModalOpen(false);
 
       if (!cvFile && !selectedCV && !selectedBuilderItem) {
-        toast.error('Please select a resume');
+        notify.error('Please select a resume');
         return;
       }
 
@@ -4168,7 +4168,7 @@ URL to visit: ${jobUrl}
             console.log('✅ PDF fetched successfully:', effectiveCvFile.name);
           } catch (fetchError) {
             console.error('❌ Error fetching PDF:', fetchError);
-            toast.error('Failed to load the selected PDF');
+            notify.error('Failed to load the selected PDF');
             return;
           }
         } else {
@@ -4386,7 +4386,7 @@ URL to visit: ${jobUrl}
       setAnalyses(prev => [placeholderAnalysis, ...prev]);
 
       // Afficher un toast informatif
-      toast.info('Analysis started in background. You can continue browsing.', {
+      notify.info('Analysis started in background. You can continue browsing.', {
         duration: 4000,
         icon: '🚀'
       });
@@ -4408,7 +4408,7 @@ URL to visit: ${jobUrl}
           });
 
           if (!jobTitle || !company || jobTitle === 'Untitled Position' || company === 'Unknown Company') {
-            toast.error('Job title and company are required. Please extract or enter them first.');
+            notify.error('Job title and company are required. Please extract or enter them first.');
             console.error('❌ Missing job information:', { jobTitle, company });
             // Supprimer le placeholder de Firestore et de l'état local
             try {
@@ -4558,7 +4558,7 @@ URL to visit: ${jobUrl}
                   updatedAt: serverTimestamp()
                 });
                 console.log(`✅ Successfully linked analysis to ${jobToLink.companyName} - ${jobToLink.position}`);
-                toast.success(`Analysis linked to ${jobToLink.companyName}`);
+                notify.success(`Analysis linked to ${jobToLink.companyName}`);
               } catch (linkError) {
                 console.error('❌ Error linking analysis:', linkError);
               }
@@ -4585,7 +4585,7 @@ URL to visit: ${jobUrl}
           setCvSelectorSearch('');
 
           // Notification de succès
-          toast.success(`Analysis complete! Match score: ${fullAnalysis.matchScore}%`, {
+          notify.success(`Analysis complete! Match score: ${fullAnalysis.matchScore}%`, {
             duration: 5000,
             icon: '🎉'
           });
@@ -4600,12 +4600,12 @@ URL to visit: ${jobUrl}
             console.error('❌ Error deleting placeholder from Firestore:', deleteError);
           }
           setAnalyses(prev => prev.filter(a => a.id !== placeholderId));
-          toast.error(`Analysis failed: ${error.message || 'Unknown error'}`, {
+          notify.error(`Analysis failed: ${error.message || 'Unknown error'}`, {
             duration: 5000
           });
         }
       } else {
-        toast.error('Please upload a PDF file for analysis');
+        notify.error('Please upload a PDF file for analysis');
         // Supprimer le placeholder de Firestore et de l'état local
         try {
           const analysesRef = collection(db, 'users', auth.currentUser?.uid || 'anonymous', 'analyses');
@@ -4627,7 +4627,7 @@ URL to visit: ${jobUrl}
         }
         setAnalyses(prev => prev.filter(a => a.id !== placeholderId));
       }
-      toast.error(`Analysis failed: ${error.message || 'Unknown error'}`, {
+      notify.error(`Analysis failed: ${error.message || 'Unknown error'}`, {
         duration: 5000
       });
     }
@@ -4716,7 +4716,7 @@ URL to visit: ${jobUrl}
     // Si c'est une analyse locale, la supprimer uniquement de l'état local
     if (analysisId.startsWith('local_')) {
       setAnalyses(prev => prev.filter(a => a.id !== analysisId));
-      toast.success('Analysis deleted');
+      notify.success('Analysis deleted');
       return;
     }
 
@@ -4727,16 +4727,16 @@ URL to visit: ${jobUrl}
 
       // Mettre à jour l'UI
       setAnalyses(prev => prev.filter(a => a.id !== analysisId));
-      toast.success('Analysis deleted');
+      notify.success('Analysis deleted');
     } catch (error) {
       console.error('Error deleting analysis:', error);
 
       // Vérifier si c'est une erreur de permission
       if (error instanceof Error && error.toString().includes('permission')) {
         console.warn('Permission error detected. You need to update Firestore security rules.');
-        toast.error('Permission error during delete. Please check Firestore security rules.');
+        notify.error('Permission error during delete. Please check Firestore security rules.');
       } else {
-        toast.error('Unable to delete analysis');
+        notify.error('Unable to delete analysis');
       }
     }
   };
@@ -4752,10 +4752,10 @@ URL to visit: ${jobUrl}
       };
       const saved = await saveAnalysisToFirestore(copy);
       setAnalyses(prev => [saved, ...prev]);
-      toast.success('Analysis duplicated');
+      notify.success('Analysis duplicated');
     } catch (e) {
       console.error('Error duplicating analysis:', e);
-      toast.error('Unable to duplicate analysis');
+      notify.error('Unable to duplicate analysis');
     }
   };
 
@@ -4889,10 +4889,10 @@ URL to visit: ${jobUrl}
       const isDark = await detectCoverBrightness(coverUrl);
       setIsCoverDark(isDark);
       
-      toast.success('Cover updated');
+      notify.success('Cover updated');
     } catch (error) {
       console.error('Error updating cover:', error);
-      toast.error('Failed to update cover');
+      notify.error('Failed to update cover');
     } finally {
       setIsUpdatingCover(false);
     }
@@ -4937,10 +4937,10 @@ URL to visit: ${jobUrl}
 
       setCoverPhoto(null);
       setIsCoverDark(null);
-      toast.success('Cover removed');
+      notify.success('Cover removed');
     } catch (error) {
       console.error('Error removing cover:', error);
-      toast.error('Failed to remove cover');
+      notify.error('Failed to remove cover');
     } finally {
       setIsUpdatingCover(false);
     }
@@ -6245,7 +6245,7 @@ URL to visit: ${jobUrl}
       <button
         type="button"
         className="ml-2 inline-flex items-center text-xs text-gray-500 hover:text-indigo-600"
-        onClick={() => toast.info(
+        onClick={() => notify.info(
           "Content validation helps ensure that you've uploaded a proper CV and job description. " +
           "If you're having issues with legitimate files being rejected, you can temporarily disable validation.",
           { duration: 8000 }
@@ -6953,7 +6953,7 @@ URL to visit: ${jobUrl}
 
       if (!apiKey) {
         console.error('❌ Clé API OpenAI manquante dans .env.local');
-        toast.error('La clé API OpenAI est manquante. Veuillez configurer votre .env.local');
+        notify.error('La clé API OpenAI est manquante. Veuillez configurer votre .env.local');
         return null;
       }
 
@@ -6973,7 +6973,7 @@ URL to visit: ${jobUrl}
       };
     } catch (error) {
       console.error('❌ Erreur lors de l\'analyse directe avec GPT Vision:', error);
-      toast.error('Erreur lors de l\'analyse avancée. Utilisation de l\'analyse standard.');
+      notify.error('Erreur lors de l\'analyse avancée. Utilisation de l\'analyse standard.');
       return null;
     }
   };
@@ -7685,7 +7685,7 @@ URL to visit: ${jobUrl}
                                       jobUrl: job.url || '',
                                     });
 
-                                    toast.success('Job selected successfully');
+                                    notify.success('Job selected successfully');
                                   }}
                                   className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60 transition-colors border-b border-gray-100 dark:border-[#3d3c3e]/50 last:border-b-0"
                                 >
@@ -7810,11 +7810,11 @@ URL to visit: ${jobUrl}
           const file = target.files[0];
           // Validate file type
           if (file.type !== 'application/pdf') {
-            toast.error('Please upload a PDF file');
+            notify.error('Please upload a PDF file');
             return;
           }
           setCvFile(file);
-          toast.success('CV selected successfully');
+          notify.success('CV selected successfully');
         }
       });
 
@@ -8253,7 +8253,7 @@ URL to visit: ${jobUrl}
                     if (currentStep < steps.length) {
                       if (currentStep === 2) {
                         if (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim()) {
-                          toast.error('Please fill in all job information fields');
+                          notify.error('Please fill in all job information fields');
                           return;
                         }
                       }

@@ -23,7 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import FirebaseImage from './FirebaseImage';
 import { applyTheme, loadThemeFromStorage, type Theme } from '../lib/theme';
 
@@ -154,10 +154,10 @@ export default function Navbar() {
     try {
       await logout();
       navigate('/login');
-      toast.success('Signed out successfully');
+      notify.success('Signed out successfully');
     } catch (error) {
       console.error('Error signing out:', error);
-      toast.error('Failed to sign out');
+      notify.error('Failed to sign out');
     }
   };
 

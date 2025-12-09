@@ -36,7 +36,7 @@ import {
   saveWhiteboardThumbnail,
 } from '../lib/whiteboardDocService';
 import { WhiteboardDocument } from '../types/whiteboardDoc';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -108,12 +108,12 @@ export default function WhiteboardEditorPage() {
           setWhiteboard(fetchedWhiteboard);
           setEditedTitle(fetchedWhiteboard.title || '');
         } else {
-          toast.error('Whiteboard not found');
+          notify.error('Whiteboard not found');
           navigate('/resume-builder');
         }
       } catch (error) {
         console.error('Error fetching whiteboard:', error);
-        toast.error('Failed to load whiteboard');
+        notify.error('Failed to load whiteboard');
       } finally {
         setIsLoading(false);
       }
@@ -271,7 +271,7 @@ export default function WhiteboardEditorPage() {
       setIsEditingTitle(false);
     } catch (error) {
       console.error('Error updating title:', error);
-      toast.error('Failed to update title');
+      notify.error('Failed to update title');
     }
   }, [currentUser, whiteboardId, editedTitle]);
 
@@ -299,11 +299,11 @@ export default function WhiteboardEditorPage() {
     setIsDeleting(true);
     try {
       await deleteWhiteboard(currentUser.uid, whiteboardId);
-      toast.success('Whiteboard deleted');
+      notify.success('Whiteboard deleted');
       navigate('/resume-builder');
     } catch (error) {
       console.error('Error deleting whiteboard:', error);
-      toast.error('Failed to delete whiteboard');
+      notify.error('Failed to delete whiteboard');
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, Trash2, Clock, Search, MoreVertical } from 'lucide-react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 export interface NoteDocument {
   id: string;
@@ -168,7 +168,7 @@ export default function DocumentsLibrary({
   const handleDeleteConfirm = () => {
     if (documentToDelete) {
       onDeleteDocument(documentToDelete.id);
-      toast.success('Document deleted');
+      notify.success('Document deleted');
       setDocumentToDelete(null);
     }
   };

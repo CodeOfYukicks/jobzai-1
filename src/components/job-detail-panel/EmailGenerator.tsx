@@ -13,7 +13,7 @@ import {
   FileText,
   Send,
 } from 'lucide-react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { JobApplication, GeneratedEmail } from '../../types/job';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { 
@@ -69,7 +69,7 @@ export const EmailGenerator = ({ job, type, onSave, autoGenerate = false, onGene
 
   const handleGenerate = useCallback(async () => {
     if (!profile) {
-      toast.error('Please complete your profile first to generate personalized documents');
+      notify.error('Please complete your profile first to generate personalized documents');
       return;
     }
 
@@ -99,18 +99,18 @@ export const EmailGenerator = ({ job, type, onSave, autoGenerate = false, onGene
       }
 
       if (result.error) {
-        toast.error(result.errorMessage || 'Failed to generate document');
+        notify.error(result.errorMessage || 'Failed to generate document');
         return;
       }
 
       setGeneratedContent(result.content);
       setEditedContent(result.content);
       onContentGenerated?.(result.content);
-      toast.success(`${title} generated successfully!`);
+      notify.success(`${title} generated successfully!`);
       onGenerationComplete?.();
     } catch (error) {
       console.error('Error generating document:', error);
-      toast.error('An error occurred while generating the document');
+      notify.error('An error occurred while generating the document');
       onGenerationComplete?.();
     } finally {
       setIsGenerating(false);
@@ -131,10 +131,10 @@ export const EmailGenerator = ({ job, type, onSave, autoGenerate = false, onGene
     try {
       await navigator.clipboard.writeText(contentToCopy);
       setIsCopied(true);
-      toast.success('Copied to clipboard!');
+      notify.success('Copied to clipboard!');
       setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
-      toast.error('Failed to copy to clipboard');
+      notify.error('Failed to copy to clipboard');
     }
   };
 
@@ -144,7 +144,7 @@ export const EmailGenerator = ({ job, type, onSave, autoGenerate = false, onGene
     const contentToSave = editMode ? editedContent : generatedContent;
     
     if (!contentToSave) {
-      toast.error('No content to save');
+      notify.error('No content to save');
       return;
     }
 
@@ -159,11 +159,11 @@ export const EmailGenerator = ({ job, type, onSave, autoGenerate = false, onGene
       };
 
       await onSave(newEmail);
-      toast.success('Email saved to history!');
+      notify.success('Email saved to history!');
       setEditMode(false);
     } catch (error) {
       console.error('Error saving email:', error);
-      toast.error('Failed to save email');
+      notify.error('Failed to save email');
     } finally {
       setIsSaving(false);
     }

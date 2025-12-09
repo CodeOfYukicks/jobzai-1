@@ -14,7 +14,7 @@ import {
   Building,
 } from 'lucide-react';
 import moment from 'moment';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -116,12 +116,12 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
   // AI Job Extraction
   const handleExtractJobInfo = async () => {
     if (!formData.url || !formData.url.trim()) {
-      toast.error('Please enter a job URL first');
+      notify.error('Please enter a job URL first');
       return;
     }
 
     setIsAnalyzingJob(true);
-    toast.info('Analyzing job posting...', { duration: 2000 });
+    notify.info('Analyzing job posting...', { duration: 2000 });
 
     try {
       const jobUrl = formData.url.trim();
@@ -164,10 +164,10 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
         notes: formattedNotes || prev.notes || '',
       }));
 
-      toast.success('Job information extracted successfully!');
+      notify.success('Job information extracted successfully!');
     } catch (error) {
       console.error('Error extracting job info:', error);
-      toast.error(
+      notify.error(
         `Failed to extract job information: ${
           error instanceof Error ? error.message : 'Unknown error'
         }. Please fill in the fields manually.`
@@ -183,7 +183,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
     }
 
     if (!eventType) {
-      toast.error('Please select an event type first');
+      notify.error('Please select an event type first');
       return;
     }
 
@@ -202,7 +202,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
       onClose();
     } catch (error) {
       console.error('Error adding event:', error);
-      toast.error('Failed to add event');
+      notify.error('Failed to add event');
     } finally {
       setIsSubmitting(false);
     }
@@ -515,7 +515,7 @@ export const AddEventModal = ({ selectedDate, onClose, onAddEvent }: AddEventMod
                                         location: app.location || prev.location,
                                       }));
                                       setShowApplicationDropdown(false);
-                                      toast.success('Application linked successfully');
+                                      notify.success('Application linked successfully');
                                     }}
                                     className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors border-b border-gray-100 dark:border-[#3d3c3e] last:border-b-0"
                                   >

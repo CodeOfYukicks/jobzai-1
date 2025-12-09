@@ -4,7 +4,7 @@ import { collection, query, getDocs, addDoc, updateDoc, doc, where, Timestamp, s
 import { db, storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import AuthLayout from '../components/AuthLayout';
 import { 
   Calendar, 
@@ -116,7 +116,7 @@ export default function UpcomingInterviewsPage() {
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching interviews:', error);
-      toast.error('Failed to load interviews');
+      notify.error('Failed to load interviews');
       setIsLoading(false);
     }
   };
@@ -253,7 +253,7 @@ END:VCALENDAR`;
   // Function to create a sample interview for debugging
   const createSampleInterview = async () => {
     if (!currentUser) {
-      toast.error("You must be logged in");
+      notify.error("You must be logged in");
       return;
     }
 
@@ -301,7 +301,7 @@ END:VCALENDAR`;
           updatedAt: serverTimestamp()
         });
         
-        toast.success('Created sample job application with an upcoming interview');
+        notify.success('Created sample job application with an upcoming interview');
       } else {
         // Use the first application to add a sample interview
         const application = applicationsSnapshot.docs[0];
@@ -329,7 +329,7 @@ END:VCALENDAR`;
           updatedAt: serverTimestamp()
         });
         
-        toast.success('Added sample upcoming interview to existing application');
+        notify.success('Added sample upcoming interview to existing application');
       }
       
       // Refresh the data
@@ -337,7 +337,7 @@ END:VCALENDAR`;
       
     } catch (error) {
       console.error('Error creating sample interview:', error);
-      toast.error('Failed to create sample interview');
+      notify.error('Failed to create sample interview');
     }
   };
 
@@ -355,7 +355,7 @@ END:VCALENDAR`;
       );
       
       if (!interviewToUpdate) {
-        toast.error('Interview not found');
+        notify.error('Interview not found');
         return;
       }
       
@@ -390,14 +390,14 @@ END:VCALENDAR`;
       );
       
       // Show success message
-      toast.success(`Interview status updated to ${newStatus}`);
+      notify.success(`Interview status updated to ${newStatus}`);
       
       // Refetch to make sure the list is correct
       fetchAllInterviews();
       
     } catch (error) {
       console.error('Error updating interview status:', error);
-      toast.error('Failed to update interview status');
+      notify.error('Failed to update interview status');
     }
   };
 
@@ -408,7 +408,7 @@ END:VCALENDAR`;
       const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
       const target = allInterviews.find(item => item.application.id === applicationId);
       if (!target) {
-        toast.error('Application not found');
+        notify.error('Application not found');
         return;
       }
       const updated = (target.application.interviews || []).filter(i => i.id !== interviewId);
@@ -417,10 +417,10 @@ END:VCALENDAR`;
         updatedAt: serverTimestamp()
       });
       setAllInterviews(prev => prev.filter(i => !(i.application.id === applicationId && i.interview.id === interviewId)));
-      toast.success('Interview deleted');
+      notify.success('Interview deleted');
     } catch (err) {
       console.error('Error deleting interview:', err);
-      toast.error('Failed to delete interview');
+      notify.error('Failed to delete interview');
     }
   };
 
@@ -554,10 +554,10 @@ END:VCALENDAR`;
       const isDark = await detectCoverBrightness(coverUrl);
       setIsCoverDark(isDark);
       
-      toast.success('Cover updated');
+      notify.success('Cover updated');
     } catch (error) {
       console.error('Error updating cover:', error);
-      toast.error('Failed to update cover');
+      notify.error('Failed to update cover');
     } finally {
       setIsUpdatingCover(false);
     }
@@ -602,10 +602,10 @@ END:VCALENDAR`;
 
       setCoverPhoto(null);
       setIsCoverDark(null);
-      toast.success('Cover removed');
+      notify.success('Cover removed');
     } catch (error) {
       console.error('Error removing cover:', error);
-      toast.error('Failed to remove cover');
+      notify.error('Failed to remove cover');
     } finally {
       setIsUpdatingCover(false);
     }
@@ -983,7 +983,7 @@ END:VCALENDAR`;
                             interview={item.interview}
                             isPast={false}
                             linkToPrepare={`/interview-prep/${item.application.id}/${item.interview.id}`}
-                            onEdit={() => toast.info('Edit interview not implemented yet')}
+                            onEdit={() => notify.info('Edit interview not implemented yet')}
                             onDelete={() => deleteInterview(item.application.id, item.interview.id)}
                             onMarkCompleted={() => updateInterviewStatus(item.application.id, item.interview.id, 'completed')}
                             onMarkCancelled={() => updateInterviewStatus(item.application.id, item.interview.id, 'cancelled')}
@@ -1026,7 +1026,7 @@ END:VCALENDAR`;
                             interview={item.interview}
                             isPast={true}
                             linkToPrepare={`/interview-prep/${item.application.id}/${item.interview.id}`}
-                            onEdit={() => toast.info('Edit interview not implemented yet')}
+                            onEdit={() => notify.info('Edit interview not implemented yet')}
                             onDelete={() => deleteInterview(item.application.id, item.interview.id)}
                             onMarkCompleted={() => updateInterviewStatus(item.application.id, item.interview.id, 'completed')}
                             onMarkCancelled={() => updateInterviewStatus(item.application.id, item.interview.id, 'cancelled')}
@@ -1056,7 +1056,7 @@ END:VCALENDAR`;
                         interview={item.interview}
                         isPast={isPast}
                         linkToPrepare={`/interview-prep/${item.application.id}/${item.interview.id}`}
-                        onEdit={() => toast.info('Edit interview not implemented yet')}
+                        onEdit={() => notify.info('Edit interview not implemented yet')}
                         onDelete={() => deleteInterview(item.application.id, item.interview.id)}
                         onMarkCompleted={() => updateInterviewStatus(item.application.id, item.interview.id, 'completed')}
                         onMarkCancelled={() => updateInterviewStatus(item.application.id, item.interview.id, 'cancelled')}

@@ -6,7 +6,7 @@ import { Search, Plus, Edit2 } from 'lucide-react';
 import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import CreateTemplateDialog from './CreateTemplateDialog';
 import TemplateEditModal from './TemplateEditModal';
 
@@ -65,7 +65,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       }
     } catch (error) {
       console.error('Error loading templates:', error);
-      toast.error('Failed to load email templates');
+      notify.error('Failed to load email templates');
     } finally {
       setIsLoading(false);
     }

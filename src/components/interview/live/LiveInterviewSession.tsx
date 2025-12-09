@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { LiveSessionConfig, InterviewType, QuestionCount } from './LiveSessionConfig';
 import { LiveInterviewIntro } from './LiveInterviewIntro';
 import { LiveInterviewQuestion } from './LiveInterviewQuestion';
@@ -103,7 +103,7 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
                 setSessionState('intro');
             } else {
                 // No fallback questions - stay on config or show error
-                toast.error('Failed to generate questions. Please try again.');
+                notify.error('Failed to generate questions. Please try again.');
             }
         } finally {
             setIsGeneratingQuestions(false);

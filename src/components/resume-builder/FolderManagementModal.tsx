@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Loader2, Folder, Briefcase, Target, Star, Heart, Zap, Rocket, BookOpen, Code, Palette } from 'lucide-react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 export interface Folder {
   id: string;
@@ -88,7 +88,7 @@ export default function FolderManagementModal({
 
   const handleSave = async () => {
     if (!name.trim()) {
-      toast.error('Please enter a folder name');
+      notify.error('Please enter a folder name');
       return;
     }
 

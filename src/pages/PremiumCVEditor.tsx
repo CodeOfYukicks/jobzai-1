@@ -5,7 +5,7 @@ import {
   Download, Save, Eye, EyeOff, X, ZoomIn, ZoomOut, RefreshCw, FolderOpen, Languages, Loader2, GitCompare
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { getDoc, doc, updateDoc, serverTimestamp, collection, query, orderBy, getDocs, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
@@ -277,18 +277,18 @@ export default function PremiumCVEditor() {
       if (previousAnalysis) {
         const scoreImprovement = analysisResult.summary.overallScore - previousAnalysis.score;
         if (scoreImprovement > 0) {
-          toast.success(`Analysis complete! Your score improved by +${scoreImprovement} points! 🎉`);
+          notify.success(`Analysis complete! Your score improved by +${scoreImprovement} points! 🎉`);
         } else if (scoreImprovement < 0) {
-          toast.info('Analysis complete. Let\'s work on improving your CV.');
+          notify.info('Analysis complete. Let\'s work on improving your CV.');
         } else {
-          toast.success('Analysis complete!');
+          notify.success('Analysis complete!');
         }
       }
       
       console.log('✅ AI review analysis completed');
     } catch (error: any) {
       console.error('❌ AI review analysis error:', error);
-      toast.error('Failed to analyze CV. Please try again.');
+      notify.error('Failed to analyze CV. Please try again.');
       // Mark as analyzed even on error to prevent re-triggering
       setReviewState(prev => ({
         ...prev,
@@ -322,7 +322,7 @@ export default function PremiumCVEditor() {
   const loadATSData = async (analysisId: string) => {
     if (!currentUser) {
       console.error('No user authenticated');
-      toast.error('Please sign in to access the CV editor');
+      notify.error('Please sign in to access the CV editor');
       return;
     }
     
@@ -372,7 +372,7 @@ export default function PremiumCVEditor() {
       
     } catch (error) {
       console.error('Error loading ATS analysis data:', error);
-      toast.error('Failed to load CV data');
+      notify.error('Failed to load CV data');
       // Fallback to profile data if analysis load fails
       loadUserProfile();
     }
@@ -382,7 +382,7 @@ export default function PremiumCVEditor() {
   const loadResumeData = async (resumeId: string) => {
     if (!currentUser) {
       console.error('No user authenticated');
-      toast.error('Please sign in to access the CV editor');
+      notify.error('Please sign in to access the CV editor');
       return;
     }
     
@@ -423,15 +423,15 @@ export default function PremiumCVEditor() {
           });
         }
         
-        toast.success('Resume loaded successfully');
+        notify.success('Resume loaded successfully');
       } else {
         console.error('Resume document not found');
-        toast.error('Resume not found');
+        notify.error('Resume not found');
         navigate('/resume-builder');
       }
     } catch (error) {
       console.error('Error loading resume data:', error);
-      toast.error('Failed to load resume');
+      notify.error('Failed to load resume');
     }
   };
 
@@ -492,7 +492,7 @@ export default function PremiumCVEditor() {
         newIgnored.add(id);
         return { ...prev, ignoredIds: newIgnored };
       });
-      toast.success('Suggestion dismissed');
+      notify.success('Suggestion dismissed');
       return;
     }
     
@@ -511,7 +511,7 @@ export default function PremiumCVEditor() {
         }));
         setIsDirty(true);
         setHighlightTarget(null);
-          toast.success('Personal info updated!');
+          notify.success('Personal info updated!');
         return;
         }
       }
@@ -527,7 +527,7 @@ export default function PremiumCVEditor() {
         }));
         setIsDirty(true);
         setHighlightTarget(null);
-        toast.success('Summary updated!');
+        notify.success('Summary updated!');
         return;
         }
       }
@@ -550,7 +550,7 @@ export default function PremiumCVEditor() {
           }));
           setIsDirty(true);
           setHighlightTarget(null);
-          toast.success('Skill added!');
+          notify.success('Skill added!');
           return;
         }
       }
@@ -584,7 +584,7 @@ export default function PremiumCVEditor() {
           }
           setIsDirty(true);
           setHighlightTarget(null);
-          toast.success('Experience updated!');
+          notify.success('Experience updated!');
           return;
         }
       }
@@ -617,7 +617,7 @@ export default function PremiumCVEditor() {
           }
           setIsDirty(true);
           setHighlightTarget(null);
-          toast.success('Education updated!');
+          notify.success('Education updated!');
           return;
         }
       }
@@ -651,7 +651,7 @@ export default function PremiumCVEditor() {
           }
           setIsDirty(true);
           setHighlightTarget(null);
-          toast.success('Certification updated!');
+          notify.success('Certification updated!');
           return;
         }
         // Add new certification
@@ -679,7 +679,7 @@ export default function PremiumCVEditor() {
           });
           setIsDirty(true);
           setHighlightTarget(null);
-          toast.success('Certification added!');
+          notify.success('Certification added!');
           return;
         }
       }
@@ -714,7 +714,7 @@ export default function PremiumCVEditor() {
           }
           setIsDirty(true);
           setHighlightTarget(null);
-          toast.success('Project updated!');
+          notify.success('Project updated!');
           return;
         }
       }
@@ -747,7 +747,7 @@ export default function PremiumCVEditor() {
           }
           setIsDirty(true);
           setHighlightTarget(null);
-          toast.success('Language updated!');
+          notify.success('Language updated!');
           return;
         }
       }
@@ -770,7 +770,7 @@ export default function PremiumCVEditor() {
           }));
           setIsDirty(true);
           setHighlightTarget(null);
-          toast.success(`${targetField.charAt(0).toUpperCase() + targetField.slice(1)} updated!`);
+          notify.success(`${targetField.charAt(0).toUpperCase() + targetField.slice(1)} updated!`);
           return;
         }
       }
@@ -780,11 +780,11 @@ export default function PremiumCVEditor() {
       console.error('   targetSection:', targetSection);
       console.error('   targetField:', targetField);
       console.error('   targetItemId:', action.targetItemId);
-      toast.error('Unable to apply this suggestion automatically. Please edit manually.');
+      notify.error('Unable to apply this suggestion automatically. Please edit manually.');
       
     } catch (error) {
       console.error('❌ Error applying suggestion:', error);
-      toast.error('Failed to apply suggestion');
+      notify.error('Failed to apply suggestion');
     }
   }, [setCvData, setIsDirty]);
 
@@ -801,10 +801,10 @@ export default function PremiumCVEditor() {
       
       await saveCVData(id, editorStateToSave, isResumeBuilder);
       setIsDirty(false);
-      toast.success('CV saved successfully');
+      notify.success('CV saved successfully');
     } catch (error) {
       console.error('Error saving CV:', error);
-      toast.error('Failed to save CV');
+      notify.error('Failed to save CV');
     } finally {
       setIsSaving(false);
     }
@@ -824,10 +824,10 @@ export default function PremiumCVEditor() {
         compression: true
       });
       setIsExportModalOpen(false);
-      toast.success('CV exported successfully! High-quality PDF generated.');
+      notify.success('CV exported successfully! High-quality PDF generated.');
     } catch (error) {
       console.error('Error exporting CV:', error);
-      toast.error('Failed to export CV. Please try again.');
+      notify.error('Failed to export CV. Please try again.');
     } finally {
       setIsExporting(false);
     }
@@ -836,7 +836,7 @@ export default function PremiumCVEditor() {
   // Handle export to library - generates PDF and uploads to documents collection
   const handleExportToLibrary = async (fileName: string, folderId: string | null) => {
     if (!currentUser) {
-      toast.error('Please sign in to save to library');
+      notify.error('Please sign in to save to library');
       return;
     }
 
@@ -870,7 +870,7 @@ export default function PremiumCVEditor() {
 
       setIsExportModalOpen(false);
       
-      toast.success(
+      notify.success(
         <div className="flex flex-col gap-1">
           <span>PDF saved to library!</span>
           <button 
@@ -884,7 +884,7 @@ export default function PremiumCVEditor() {
       );
     } catch (error) {
       console.error('Error saving PDF to library:', error);
-      toast.error('Failed to save PDF to library. Please try again.');
+      notify.error('Failed to save PDF to library. Please try again.');
     } finally {
       setIsExporting(false);
     }
@@ -900,13 +900,13 @@ export default function PremiumCVEditor() {
   // Handle share
   const handleShare = () => {
     // TODO: Implement share functionality
-    toast.info('Share functionality coming soon!');
+    notify.info('Share functionality coming soon!');
   };
 
   // Handle Save As - save tailored CV to Resume Builder library
   const handleSaveAs = async (name: string, folderId: string | null) => {
     if (!currentUser) {
-      toast.error('Please sign in to save');
+      notify.error('Please sign in to save');
       return;
     }
     
@@ -934,7 +934,7 @@ export default function PremiumCVEditor() {
       
       setIsSaveAsModalOpen(false);
       
-      toast.success(
+      notify.success(
         <div className="flex flex-col gap-1">
           <span>CV saved to library!</span>
           <button 
@@ -948,7 +948,7 @@ export default function PremiumCVEditor() {
       );
     } catch (error) {
       console.error('Error saving CV to library:', error);
-      toast.error('Failed to save CV to library');
+      notify.error('Failed to save CV to library');
     } finally {
       setIsSavingAs(false);
     }
@@ -1072,7 +1072,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
           language: targetLanguage
         });
         
-        toast.success('CV translated successfully!');
+        notify.success('CV translated successfully!');
         
         // Navigate to new resume
         navigate(`/resume-builder/${newResumeId}/cv-editor`);
@@ -1081,7 +1081,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
       }
     } catch (error: any) {
       console.error('Translation error:', error);
-      toast.error(error.message || 'Failed to translate CV. Please try again.');
+      notify.error(error.message || 'Failed to translate CV. Please try again.');
     } finally {
       setIsTranslating(false);
     }
@@ -1121,10 +1121,10 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                               updatedAt: serverTimestamp()
                             });
                             setResumeName(editedName.trim());
-                            toast.success('Resume renamed');
+                            notify.success('Resume renamed');
                           } catch (error) {
                             console.error('Error renaming resume:', error);
-                            toast.error('Failed to rename resume');
+                            notify.error('Failed to rename resume');
                             setEditedName(resumeName);
                           }
                         } else {

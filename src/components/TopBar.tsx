@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Bell, Sparkles, Command, User, Settings, CreditCard, LogOut, ChevronRight } from 'lucide-react';
+import { Search, Sparkles, Command, User, Settings, CreditCard, LogOut, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeSwitch from './ThemeSwitch';
+import { NotificationCenter } from './NotificationCenter';
 
 interface TopBarProps {
   profilePhoto: string;
@@ -14,6 +15,7 @@ interface TopBarProps {
   sidebarWidth: number;
   profileCompletion: number;
   onSignOut: () => void;
+  onOpenSearch?: () => void;
 }
 
 export default function TopBar({
@@ -26,19 +28,15 @@ export default function TopBar({
   sidebarWidth,
   profileCompletion,
   onSignOut,
+  onOpenSearch,
 }: TopBarProps) {
   const navigate = useNavigate();
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const notificationsRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
-        setIsNotificationsOpen(false);
-      }
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
         setIsProfileMenuOpen(false);
       }
@@ -56,115 +54,52 @@ export default function TopBar({
       <div className="h-full flex items-center justify-center px-4 relative">
         {/* Center: Search Bar */}
         <div className="w-full max-w-xl">
-          <div className="relative group">
+          <button
+            onClick={onOpenSearch}
+            className="relative group w-full"
+          >
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400 group-focus-within:text-[#635BFF] transition-colors" />
+              <Search className="h-4 w-4 text-gray-400 group-hover:text-[#635BFF] transition-colors" />
             </div>
-            <input
-              type="text"
-              placeholder="Search across Jobzai..."
+            <div
               className="w-full h-9 pl-10 pr-20 bg-gray-50 dark:bg-[#242325] 
                 border border-gray-200 dark:border-[#3d3c3e] 
-                rounded-lg text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 dark:placeholder:text-gray-500
-                focus:outline-none focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF]
-                transition-all duration-200"
-              readOnly
-            />
+                rounded-lg text-sm text-left
+                text-gray-400 dark:text-gray-500
+                group-hover:border-[#635BFF]/50 group-hover:bg-white dark:group-hover:bg-[#2b2a2c]
+                group-hover:shadow-sm
+                transition-all duration-200
+                flex items-center cursor-pointer"
+            >
+              Search across Jobzai...
+            </div>
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#3d3c3e] border border-gray-200 dark:border-[#4a494b]">
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#3d3c3e] border border-gray-200 dark:border-[#4a494b] group-hover:border-[#635BFF]/30 transition-colors">
                 <Command className="h-3 w-3 text-gray-400" />
                 <span className="text-[11px] font-medium text-gray-400">K</span>
               </div>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Right: Actions - Positioned absolutely */}
         <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-          {/* Notifications */}
-          <div className="relative" ref={notificationsRef}>
-            <button
-              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-              className="relative flex items-center justify-center h-8 w-8 rounded-lg
-                text-gray-500 dark:text-gray-400
-                hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50
-                hover:text-gray-700 dark:hover:text-gray-200
-                transition-all duration-200"
-              aria-label="Notifications"
-            >
-              <Bell className="h-[18px] w-[18px]" />
-              {/* Notification badge */}
-              <span className="absolute top-1 right-1 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#635BFF] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#635BFF]"></span>
-              </span>
-            </button>
-
-            {/* Notifications Dropdown */}
-            <AnimatePresence>
-              {isNotificationsOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                  transition={{ duration: 0.15, ease: 'easeOut' }}
-                  className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#2b2a2c] 
-                    rounded-xl shadow-xl border border-gray-200 dark:border-[#3d3c3e] 
-                    overflow-hidden z-50"
-                >
-                  {/* Header */}
-                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                        Notifications
-                      </h3>
-                      <button className="text-xs font-medium text-[#635BFF] hover:text-[#7c75ff] transition-colors">
-                        Mark all read
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Empty State */}
-                  <div className="px-4 py-10 text-center">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-[#3d3c3e] mb-3">
-                      <Bell className="h-6 w-6 text-gray-400" />
-                    </div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
-                      No notifications yet
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      We'll notify you when something important happens
-                    </p>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="px-4 py-2.5 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-[#242325]">
-                    <button className="w-full text-xs font-medium text-gray-600 dark:text-gray-300 
-                      hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors text-center">
-                      View all notifications
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          {/* Notification Center */}
+          <NotificationCenter />
 
           {/* Assistant Button */}
           <button
             className="flex items-center gap-1.5 h-8 px-3 rounded-lg
-              bg-[#b7e219]
-              border border-gray-200 dark:border-[#4a494b]
-              text-gray-900
-              hover:bg-[#a5cc17]
-              hover:border-gray-300 dark:hover:border-[#5a595b]
+              bg-gray-900 dark:bg-white
+              border border-gray-900 dark:border-white
+              hover:bg-gray-800 dark:hover:bg-gray-100
               active:scale-[0.98]
               transition-all duration-150"
             aria-label="Assistant"
             title="AI Assistant"
           >
-            <Sparkles className="h-4 w-4 text-gray-900" />
-            <span className="text-[13px] font-medium text-gray-900">Assistant</span>
+            <Sparkles className="h-4 w-4 text-white dark:text-gray-900" />
+            <span className="text-[13px] font-medium text-white dark:text-gray-900">Assistant</span>
           </button>
 
           {/* User Profile with Dropdown */}

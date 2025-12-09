@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { createElement } from 'react';
 import { Info } from 'lucide-react';
 
@@ -160,7 +160,7 @@ export function useA4ContentFitter(options: UseA4ContentFitterOptions = {}) {
 
           if (shouldWarn && !showWarningRef.current) {
             setShowWarning(true);
-            toast.info('Le contenu a été ajusté automatiquement pour tenir sur une page A4', {
+            notify.info('Le contenu a été ajusté automatiquement pour tenir sur une page A4', {
               icon: createElement(Info, { className: 'w-4 h-4' }),
               duration: 4000,
               style: {

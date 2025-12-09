@@ -4,7 +4,7 @@ import { X, Save, Mail } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import MergeFieldSelector from './MergeFieldSelector';
 import TemplatePreview from './TemplatePreview';
 import { EmailTemplate } from '../types';
@@ -84,7 +84,7 @@ export default function EditTemplateModal({ template, onClose, onUpdate }: EditT
 
   const handleSubmit = async () => {
     if (!currentUser) {
-      toast.error('You must be logged in to edit templates');
+      notify.error('You must be logged in to edit templates');
       return;
     }
 
@@ -102,12 +102,12 @@ export default function EditTemplateModal({ template, onClose, onUpdate }: EditT
       const templateRef = doc(db, 'users', currentUser.uid, 'emailTemplates', template.id);
       await updateDoc(templateRef, updateData);
 
-      toast.success('Template updated successfully');
+      notify.success('Template updated successfully');
       onUpdate();
       onClose();
     } catch (error) {
       console.error('Error saving template:', error);
-      toast.error('Failed to save template');
+      notify.error('Failed to save template');
     } finally {
       setIsSaving(false);
     }

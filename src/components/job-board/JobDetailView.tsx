@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { extractJobInfo, DetailedJobInfo, generateJobInsightsFromDescription, generateJobTagsFromDescription, generateBasicInsightsFromJobData, generateBasicSummaryFromJobData, JobDataForFallback } from '../../lib/jobExtractor';
 import { useJobInteractions } from '../../hooks/useJobInteractions';
 import SelectBoardModal from '../boards/SelectBoardModal';
@@ -143,7 +143,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
         switch (platform) {
             case 'copy':
                 navigator.clipboard.writeText(shareUrl);
-                toast.success('Lien copié !');
+                notify.success('Lien copié !');
                 break;
             case 'linkedin':
                 window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
@@ -216,7 +216,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                     _fallbackReason: reason,
                     updatedAt: serverTimestamp()
                 });
-                toast.info('Basic job summary created from listing data', { duration: 3000 });
+                notify.info('Basic job summary created from listing data', { duration: 3000 });
             } catch (updateError) {
                 console.error('❌ Failed to apply local fallback:', updateError);
             }
@@ -235,7 +235,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
             const existingApplications = await getDocs(q);
 
             if (!existingApplications.empty) {
-                toast.error('This job is already in your applications');
+                notify.error('This job is already in your applications');
                 setIsAddingToWishlist(false);
                 return;
             }
@@ -274,14 +274,14 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
             // Update UI state immediately for fast feedback
             setIsInWishlist(true);
             setIsAddingToWishlist(false);
-            toast.success('Added to wishlist! 💜');
+            notify.success('Added to wishlist! 💜');
 
             // Run AI extraction in background (async, non-blocking)
             const AI_TIMEOUT_MS = 30000; // 30 seconds timeout for AI calls
 
             if (job.applyUrl) {
                 // Show analyzing message
-                toast.info('🤖 Analyzing job with AI...', { duration: 3000 });
+                notify.info('🤖 Analyzing job with AI...', { duration: 3000 });
 
                 try {
                     // Extract job info with AI asynchronously using URL (with timeout)
@@ -332,7 +332,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                         updatedAt: serverTimestamp()
                     });
 
-                    toast.success('AI analysis complete! ✨', { duration: 2000 });
+                    notify.success('AI analysis complete! ✨', { duration: 2000 });
                 } catch (extractError) {
                     console.error('❌ Error extracting job info from URL:', {
                         error: extractError,
@@ -342,7 +342,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
 
                     // Show error toast for URL extraction failure
                     const errorMsg = extractError instanceof Error ? extractError.message : 'Unknown error';
-                    toast.warning(`AI analysis failed: ${errorMsg.substring(0, 50)}. Trying alternative...`, { duration: 3000 });
+                    notify.warning(`AI analysis failed: ${errorMsg.substring(0, 50)}. Trying alternative...`, { duration: 3000 });
 
                     // Fallback 1: Try to generate insights from description via ChatGPT
                     if (job.description && job.description.trim().length > 50) {
@@ -371,13 +371,13 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                                 updatedAt: serverTimestamp()
                             });
 
-                            toast.success('AI analysis complete! ✨', { duration: 2000 });
+                            notify.success('AI analysis complete! ✨', { duration: 2000 });
                         } catch (fallbackError) {
                             console.error('❌ API fallback also failed:', {
                                 error: fallbackError,
                                 jobId: docRef.id
                             });
-                            toast.warning('AI service unavailable. Using local analysis...', { duration: 3000 });
+                            notify.warning('AI service unavailable. Using local analysis...', { duration: 3000 });
                             
                             // Fallback 2: Use local fallback
                             await applyLocalFallback(docRef, 'API_FALLBACK_FAILED');
@@ -398,7 +398,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                 });
 
                 // Show analyzing message
-                toast.info('Analyzing job details from description...', { duration: 3000 });
+                notify.info('Analyzing job details from description...', { duration: 3000 });
 
                 try {
                     // Generate jobInsights and tags from description (with timeout)
@@ -426,7 +426,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                         updatedAt: serverTimestamp()
                     });
 
-                    toast.success('AI analysis complete! ✨', { duration: 2000 });
+                    notify.success('AI analysis complete! ✨', { duration: 2000 });
                 } catch (insightsError) {
                     console.error('❌ Error generating jobInsights from description:', {
                         error: insightsError,
@@ -436,7 +436,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                     });
                     
                     const errorMsg = insightsError instanceof Error ? insightsError.message : 'Unknown error';
-                    toast.warning(`AI analysis failed: ${errorMsg.substring(0, 50)}. Using local analysis...`, { duration: 3000 });
+                    notify.warning(`AI analysis failed: ${errorMsg.substring(0, 50)}. Using local analysis...`, { duration: 3000 });
                     
                     // Use local fallback
                     await applyLocalFallback(docRef, 'DESCRIPTION_API_FAILED');
@@ -455,7 +455,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
         } catch (error) {
             console.error('Error adding to wishlist:', error);
             setIsInWishlist(false); // Revert state on error
-            toast.error('Failed to add to wishlist');
+            notify.error('Failed to add to wishlist');
             setIsAddingToWishlist(false);
         }
     };
@@ -463,12 +463,12 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
     // Handler called when user clicks "Add to Wishlist" button
     const handleAddToWishlist = async () => {
         if (!currentUser) {
-            toast.error('Please log in to add jobs to your wishlist');
+            notify.error('Please log in to add jobs to your wishlist');
             return;
         }
 
         if (!job) {
-            toast.error('No job selected');
+            notify.error('No job selected');
             return;
         }
 
@@ -584,7 +584,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                             <button 
                                 onClick={() => {
                                     toggleSave(job.id, { matchScore: job.matchScore });
-                                    toast.success(isJobSaved(job.id) ? 'Removed from saved jobs' : 'Saved for later');
+                                    notify.success(isJobSaved(job.id) ? 'Removed from saved jobs' : 'Saved for later');
                                 }}
                                 className={`p-2.5 rounded-xl border transition-colors ${
                                     isJobSaved(job.id)
@@ -599,7 +599,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                                 <button 
                                     onClick={() => {
                                         onDismiss(job.id);
-                                        toast.success('Job hidden from your feed');
+                                        notify.success('Job hidden from your feed');
                                     }}
                                     className="p-2.5 rounded-xl border border-gray-200 dark:border-[#3d3c3e] hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
                                     title="Not interested"

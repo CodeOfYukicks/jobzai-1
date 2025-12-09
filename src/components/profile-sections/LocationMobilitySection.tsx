@@ -3,7 +3,7 @@ import { MapPin, Globe, Building2, Home, Plane, Check } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { motion } from 'framer-motion';
 import { 
   PremiumInput, 
@@ -49,7 +49,7 @@ const LocationMobilitySection = ({ onUpdate }: SectionProps) => {
         }
       } catch (error) {
         console.error('Error loading mobility data:', error);
-        toast.error('Failed to load mobility preferences');
+        notify.error('Failed to load mobility preferences');
       } finally {
         setIsLoading(false);
       }

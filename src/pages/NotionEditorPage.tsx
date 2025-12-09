@@ -33,7 +33,7 @@ import {
   createAutoSaver,
   NotionDocument,
 } from '../lib/notionDocService';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { db, storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
@@ -315,12 +315,12 @@ export default function NotionEditorPage() {
           });
         }, 250);
       } else {
-        toast.error('Note not found');
+        notify.error('Note not found');
         navigate('/resume-builder');
       }
     } catch (error) {
       console.error('Error loading note:', error);
-      toast.error('Failed to load note');
+      notify.error('Failed to load note');
     } finally {
       setIsLoadingNote(false);
     }
@@ -418,12 +418,12 @@ export default function NotionEditorPage() {
             setSelectedFolderId(fetchedNote.folderId);
           }
         } else {
-          toast.error('Note not found');
+          notify.error('Note not found');
           navigate('/resume-builder');
         }
       } catch (error) {
         console.error('Error fetching note:', error);
-        toast.error('Failed to load note');
+        notify.error('Failed to load note');
       } finally {
         setIsLoading(false);
       }
@@ -466,7 +466,7 @@ export default function NotionEditorPage() {
           console.log('Mention embed saved immediately');
         } catch (error) {
           console.error('Error saving mention embed:', error);
-          toast.error('Failed to save mention embed');
+          notify.error('Failed to save mention embed');
         }
       } else {
         // Use debounced save for regular content
@@ -565,7 +565,7 @@ export default function NotionEditorPage() {
       setNote((prev) => prev ? { ...prev, coverImage: coverUrl } : null);
     } catch (error) {
       console.error('Error updating cover:', error);
-      toast.error('Failed to update cover image');
+      notify.error('Failed to update cover image');
     } finally {
       setIsUpdatingCover(false);
     }
@@ -591,10 +591,10 @@ export default function NotionEditorPage() {
       });
       
       setNote((prev) => prev ? { ...prev, coverImage: coverUrl } : null);
-      toast.success('Cover image updated');
+      notify.success('Cover image updated');
     } catch (error) {
       console.error('Error updating cover:', error);
-      toast.error('Failed to update cover image');
+      notify.error('Failed to update cover image');
     } finally {
       setIsUpdatingCover(false);
       setIsCoverCropperOpen(false);
@@ -624,10 +624,10 @@ export default function NotionEditorPage() {
       }
       
       setNote((prev) => prev ? { ...prev, coverImage: undefined } : null);
-      toast.success('Cover image removed');
+      notify.success('Cover image removed');
     } catch (error) {
       console.error('Error removing cover:', error);
-      toast.error('Failed to remove cover image');
+      notify.error('Failed to remove cover image');
     } finally {
       setIsUpdatingCover(false);
     }
@@ -721,10 +721,10 @@ export default function NotionEditorPage() {
       });
       
       setNote((prev) => prev ? { ...prev, coverImage: coverUrl } : null);
-      toast.success('Cover position updated');
+      notify.success('Cover position updated');
     } catch (error) {
       console.error('Error repositioning cover:', error);
-      toast.error('Failed to reposition cover');
+      notify.error('Failed to reposition cover');
     } finally {
       setIsUpdatingCover(false);
     }
@@ -739,9 +739,9 @@ export default function NotionEditorPage() {
       await autoSaverRef.current.saveNow();
       setHasUnsavedChanges(false);
       setLastSaved(new Date());
-      toast.success('Saved');
+      notify.success('Saved');
     } catch (error) {
-      toast.error('Failed to save');
+      notify.error('Failed to save');
     } finally {
       setIsSaving(false);
     }
@@ -807,7 +807,7 @@ export default function NotionEditorPage() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    toast.success('Exported as Markdown');
+    notify.success('Exported as Markdown');
     setShowMenu(false);
   }, [note]);
 
@@ -825,7 +825,7 @@ export default function NotionEditorPage() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    toast.success('Exported as JSON');
+    notify.success('Exported as JSON');
     setShowMenu(false);
   }, [note]);
 
@@ -836,11 +836,11 @@ export default function NotionEditorPage() {
     setIsDeleting(true);
     try {
       await deleteNote(currentUser.uid, activeNoteId);
-      toast.success('Note deleted');
+      notify.success('Note deleted');
       navigate('/resume-builder');
     } catch (error) {
       console.error('Error deleting note:', error);
-      toast.error('Failed to delete note');
+      notify.error('Failed to delete note');
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);

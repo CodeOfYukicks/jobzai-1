@@ -1,6 +1,10 @@
-import { toast } from '@/contexts/ToastContext';
 import { collection, getDocs, query, where, Timestamp, doc, getDoc, DocumentData } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { createInterviewReminderNotification } from './notificationCenterService';
+import { notify } from '../lib/notify';
+
+// Track which interview reminders we've already created notifications for (to avoid duplicates)
+const notifiedInterviews = new Set<string>();
 
 interface Interview {
   id: string;
@@ -62,50 +66,83 @@ export const checkUpcomingInterviews = async (userId?: string) => {
       }
     });
 
-    // Show notifications based on how soon the interview is
-    upcomingInterviews.forEach(interview => {
+    // Create notifications based on how soon the interview is
+    for (const interview of upcomingInterviews) {
       const interviewTime = new Date(`${interview.date}T${interview.time || '00:00'}`);
       const timeUntilInterview = interviewTime.getTime() - now.getTime();
       const hoursUntilInterview = timeUntilInterview / (1000 * 60 * 60);
       
-      const companyInfo = interview.companyName 
-        ? `${interview.companyName}${interview.position ? ` - ${interview.position}` : ''}`
-        : 'Upcoming interview';
+      // Create a unique key for this notification to avoid duplicates
+      const notificationKey = `${interview.applicationId}_${interview.date}_${hoursUntilInterview <= 1.5 ? '1h' : hoursUntilInterview <= 3.5 ? '3h' : '24h'}`;
       
-      // Notification for interview in about 1 hour
+      // Skip if we've already notified for this interview at this time threshold
+      if (notifiedInterviews.has(notificationKey)) {
+        continue;
+      }
+      
+      // Notification for interview in about 1 hour (high priority - show subtle feedback)
       if (hoursUntilInterview <= 1.5 && hoursUntilInterview > 0.8) {
-        toast.warning(`${companyInfo} interview in about 1 hour!`, {
-          description: `Your ${interview.type} interview is coming up soon. Click to prepare.`,
-          duration: 10000,
-          action: {
-            label: 'Prepare',
-            onClick: () => window.location.href = `/upcoming-interviews`
-          }
-        });
+        notifiedInterviews.add(notificationKey);
+        
+        // Create persistent notification (no toast, just notification center)
+        try {
+          await createInterviewReminderNotification(userId!, {
+            companyName: interview.companyName || 'Unknown Company',
+            position: interview.position,
+            interviewType: interview.type as any || 'other',
+            interviewDate: interview.date as any,
+            interviewTime: interview.time || '00:00',
+            applicationId: interview.applicationId,
+            interviewId: interview.id,
+            hoursUntil: hoursUntilInterview,
+          });
+          // Show subtle warning for imminent interviews
+          notify.warning(`Interview in 1 hour at ${interview.companyName}`);
+        } catch (error) {
+          console.error('Failed to create interview notification:', error);
+        }
       } 
       // Notification for interview in about 3 hours
       else if (hoursUntilInterview <= 3.5 && hoursUntilInterview > 2.8) {
-        toast.info(`${companyInfo} interview in about 3 hours`, {
-          description: `Don't forget your ${interview.type} interview today. Click to prepare.`,
-          duration: 8000,
-          action: {
-            label: 'Prepare',
-            onClick: () => window.location.href = `/upcoming-interviews`
-          }
-        });
+        notifiedInterviews.add(notificationKey);
+        
+        // Create persistent notification only (silent)
+        try {
+          await createInterviewReminderNotification(userId!, {
+            companyName: interview.companyName || 'Unknown Company',
+            position: interview.position,
+            interviewType: interview.type as any || 'other',
+            interviewDate: interview.date as any,
+            interviewTime: interview.time || '00:00',
+            applicationId: interview.applicationId,
+            interviewId: interview.id,
+            hoursUntil: hoursUntilInterview,
+          });
+        } catch (error) {
+          console.error('Failed to create interview notification:', error);
+        }
       }
       // Notification for interview tomorrow
       else if (hoursUntilInterview >= 20 && hoursUntilInterview <= 24) {
-        toast.info(`${companyInfo} interview tomorrow`, {
-          description: `You have a ${interview.type} interview scheduled for tomorrow at ${interviewTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-          duration: 6000,
-          action: {
-            label: 'Prepare',
-            onClick: () => window.location.href = `/upcoming-interviews`
-          }
-        });
+        notifiedInterviews.add(notificationKey);
+        
+        // Create persistent notification only (silent)
+        try {
+          await createInterviewReminderNotification(userId!, {
+            companyName: interview.companyName || 'Unknown Company',
+            position: interview.position,
+            interviewType: interview.type as any || 'other',
+            interviewDate: interview.date as any,
+            interviewTime: interview.time || '00:00',
+            applicationId: interview.applicationId,
+            interviewId: interview.id,
+            hoursUntil: hoursUntilInterview,
+          });
+        } catch (error) {
+          console.error('Failed to create interview notification:', error);
+        }
       }
-    });
+    }
   } catch (error) {
     console.error('Error checking upcoming interviews:', error);
   }

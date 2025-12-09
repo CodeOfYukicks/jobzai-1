@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { sendEmailVerification } from 'firebase/auth';
 
 interface EmailVerificationStepProps {
@@ -23,7 +23,7 @@ export default function EmailVerificationStep({ onBack, userEmail }: EmailVerifi
       await currentUser.reload();
       if (currentUser.emailVerified) {
         setIsVerified(true);
-        toast.success('Email verified successfully!');
+        notify.success('Email verified successfully!');
         setTimeout(() => {
           navigate('/dashboard');
         }, 1500);
@@ -49,9 +49,9 @@ export default function EmailVerificationStep({ onBack, userEmail }: EmailVerifi
         handleCodeInApp: false
       });
       setTimeLeft(60);
-      toast.success('Verification email sent!');
+      notify.success('Verification email sent!');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to send verification email');
+      notify.error(error.message || 'Failed to send verification email');
     }
   };
 

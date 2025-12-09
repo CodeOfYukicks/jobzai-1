@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Sparkles, Check, X, RotateCcw } from 'lucide-react';
 import { getOpenAIInstance } from '../../../lib/openai';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface MotivationStepProps {
   value: string;
@@ -20,7 +20,7 @@ export default function MotivationStep({ value, onNext, onBack, isSubmitting }: 
 
   const improveWithAI = async () => {
     if (!motivation.trim()) {
-      toast.error('Please write something first before improving');
+      notify.error('Please write something first before improving');
       return;
     }
 
@@ -62,13 +62,13 @@ Return only the improved text, nothing else.`
       if (improved) {
         setImprovedText(improved);
         setShowImproved(true);
-        toast.success('Text improved! Review the changes below.');
+        notify.success('Text improved! Review the changes below.');
       } else {
-        toast.error('Failed to improve text. Please try again.');
+        notify.error('Failed to improve text. Please try again.');
       }
     } catch (error) {
       console.error('Error improving text with AI:', error);
-      toast.error('Failed to improve text. Please try again.');
+      notify.error('Failed to improve text. Please try again.');
     } finally {
       setIsImproving(false);
     }
@@ -78,7 +78,7 @@ Return only the improved text, nothing else.`
     setMotivation(improvedText);
     setOriginalText(improvedText);
     setShowImproved(false);
-    toast.success('Improved text applied!');
+    notify.success('Improved text applied!');
   };
 
   const rejectImproved = () => {

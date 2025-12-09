@@ -13,7 +13,7 @@ import {
   HighlightTarget
 } from '../../../types/cvReview';
 import { analyzeCVWithAI } from '../../../services/cvReviewAI';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface AIReviewTabProps {
   cvData: CVData;
@@ -584,7 +584,7 @@ export default function AIReviewTab({
     
     if (!onApplySuggestion) {
       console.error('❌ onApplySuggestion is not defined!');
-      toast.error('Cannot apply - callback not configured');
+      notify.error('Cannot apply - callback not configured');
       return;
     }
     
@@ -599,7 +599,7 @@ export default function AIReviewTab({
     const selectedSuggestions = activeSuggestions.filter(s => selectedIds.has(s.id) && s.isApplicable && s.action.suggestedValue);
     
     if (selectedSuggestions.length === 0) {
-      toast.error('No applicable suggestions selected. Only suggestions with "Ready to apply" can be auto-applied.');
+      notify.error('No applicable suggestions selected. Only suggestions with "Ready to apply" can be auto-applied.');
       return;
     }
     
@@ -611,7 +611,7 @@ export default function AIReviewTab({
     setSelectedIds(new Set());
     setFocusedSuggestionId(null);
     onHighlightSection?.(null);
-    toast.success(`Applied ${selectedSuggestions.length} suggestion${selectedSuggestions.length > 1 ? 's' : ''}!`);
+    notify.success(`Applied ${selectedSuggestions.length} suggestion${selectedSuggestions.length > 1 ? 's' : ''}!`);
   }, [activeSuggestions, selectedIds, onApplySuggestion, onHighlightSection]);
 
   // Ignore selected suggestions

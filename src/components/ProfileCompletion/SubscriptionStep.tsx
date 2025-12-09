@@ -4,7 +4,7 @@ import { Check, CreditCard, Loader2, Crown } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface SubscriptionStepProps {
   onComplete: () => void;
@@ -92,7 +92,7 @@ export default function SubscriptionStep({ onComplete, onBack }: SubscriptionSte
       // For paid plans, validate payment details
       if (selectedPlan !== 'free') {
         if (!paymentDetails.cardNumber || !paymentDetails.expiry || !paymentDetails.cvc || !paymentDetails.name) {
-          toast.error('Please fill in all payment details');
+          notify.error('Please fill in all payment details');
           return;
         }
         // Here you would integrate with your payment processor (e.g., Stripe)
@@ -108,11 +108,11 @@ export default function SubscriptionStep({ onComplete, onBack }: SubscriptionSte
         planSelectedAt: new Date().toISOString(),
       });
 
-      toast.success('Subscription updated successfully!');
+      notify.success('Subscription updated successfully!');
       onComplete();
     } catch (error) {
       console.error('Error processing subscription:', error);
-      toast.error('Failed to process subscription');
+      notify.error('Failed to process subscription');
     } finally {
       setIsProcessing(false);
     }

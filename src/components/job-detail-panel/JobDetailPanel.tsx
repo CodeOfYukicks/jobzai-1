@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, Transition } from '@headlessui/react';
@@ -24,6 +24,9 @@ import {
   FileText,
   StickyNote,
   Target,
+  Send,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isValid } from 'date-fns';
@@ -40,8 +43,12 @@ import { EnhancedJobSummary } from './EnhancedJobSummary';
 import { ResumeLab } from './ResumeLab';
 import { LinkedDocumentsTab } from './LinkedDocumentsTab';
 import { ContactTab } from './ContactTab';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { CompanyLogo } from '../common/CompanyLogo';
+import { ConversationThread } from '../outreach/ConversationThread';
+import { MessageComposer } from '../outreach/MessageComposer';
+import { OutreachMessage } from '../../types/job';
+import { getAuth } from 'firebase/auth';
 
 // Helper function to safely parse dates from Firestore
 const parseDate = (dateValue: any): Date => {
@@ -192,9 +199,151 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
   const [activeTab, setActiveTab] = useState<'overview' | 'contact' | 'interviews' | 'meetings' | 'messages' | 'activity' | 'ai-tools' | 'notes' | 'resume-lab' | 'linked-documents'>(boardType === 'campaigns' ? 'contact' : 'overview');
   const [showAddInterviewForm, setShowAddInterviewForm] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showMessageComposer, setShowMessageComposer] = useState(false);
+  const [replyToMessage, setReplyToMessage] = useState<OutreachMessage | null>(null);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [localMessages, setLocalMessages] = useState<OutreachMessage[]>([]);
+  const [isCheckingReplies, setIsCheckingReplies] = useState(false);
   
   // Campaign mode detection
   const isCampaignMode = boardType === 'campaigns';
+  
+  // Backend URL
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+  // Sync local messages with job prop
+  useEffect(() => {
+    if (job?.conversationHistory) {
+      setLocalMessages(job.conversationHistory);
+    } else {
+      setLocalMessages([]);
+    }
+  }, [job?.conversationHistory]);
+
+  // Function to check for new replies
+  const handleCheckReplies = useCallback(async (isManual = false) => {
+    if (!job?.gmailThreadId || !onUpdate) return;
+
+    setIsCheckingReplies(true);
+    try {
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken();
+      
+      // Fetch the full thread to get all messages
+      const response = await fetch(`${BACKEND_URL}/api/gmail/thread/${job.gmailThreadId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (errorData.needsReconnect) {
+          notify.error('Gmail token expired. Please reconnect Gmail.');
+        } else if (isManual) {
+          notify.error('Failed to check for replies');
+        }
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (!data.success || !data.reply) {
+        if (isManual) {
+          notify.info('No new replies found');
+        }
+        return; // No reply found
+      }
+
+      // Get existing messages to check for duplicates
+      const existingMessages = job.conversationHistory || [];
+      
+      // Create a signature for the new reply to check if it already exists
+      // Use first 100 chars of content + date (without time) as unique identifier
+      const replyDate = data.reply.date ? new Date(data.reply.date).toISOString().split('T')[0] : '';
+      const replySignature = `${data.reply.body.substring(0, 100).trim()}-${replyDate}`;
+      
+      // Check if this reply already exists
+      const replyExists = existingMessages.some(msg => {
+        if (msg.type !== 'received') return false;
+        const msgDate = msg.sentAt ? new Date(msg.sentAt).toISOString().split('T')[0] : '';
+        const msgSignature = `${msg.content.substring(0, 100).trim()}-${msgDate}`;
+        return msgSignature === replySignature;
+      });
+      
+      if (replyExists) {
+        if (isManual) {
+          notify.info('No new replies found');
+        }
+        return; // Reply already exists
+      }
+
+      // Parse the date - API now returns ISO string
+      let replySentAt: string;
+      try {
+        const parsedDate = new Date(data.reply.date);
+        replySentAt = isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
+      } catch {
+        replySentAt = new Date().toISOString();
+      }
+
+      // Add the new reply to conversation history
+      const newReplyMessage: OutreachMessage = {
+        id: crypto.randomUUID(),
+        type: 'received',
+        channel: 'email',
+        subject: data.reply.subject || undefined,
+        content: data.reply.body,
+        sentAt: replySentAt,
+        status: 'replied',
+      };
+
+      // Clean undefined values
+      const cleanedMessage = Object.fromEntries(
+        Object.entries(newReplyMessage).filter(([_, value]) => value !== undefined)
+      ) as OutreachMessage;
+
+      const updatedHistory = [...existingMessages, cleanedMessage];
+
+      // Update local messages immediately
+      setLocalMessages(updatedHistory);
+
+      // Prepare update object, removing undefined values
+      const updates: Partial<JobApplication> = {
+        conversationHistory: updatedHistory,
+        updatedAt: new Date().toISOString(), // Ensure updatedAt is set to trigger onSnapshot
+      };
+
+      // Update status to 'replied' if it's currently 'contacted' or 'targets'
+      if (job.status === 'contacted' || job.status === 'targets') {
+        updates.status = 'replied';
+      }
+
+      const cleanUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([_, value]) => value !== undefined)
+      ) as Partial<JobApplication>;
+
+      await onUpdate(cleanUpdates);
+      notify.success('New reply found and added!');
+    } catch (error: any) {
+      console.error('Error checking replies:', error);
+      // Don't show error on auto-check, only log it
+    } finally {
+      setIsCheckingReplies(false);
+    }
+  }, [job, onUpdate, BACKEND_URL]);
+
+  // Auto-check for replies when Messages tab is opened and job has gmailThreadId
+  useEffect(() => {
+    if (activeTab === 'messages' && isCampaignMode && job?.gmailThreadId && open) {
+      // Check for replies after a short delay to avoid too frequent checks
+      const timer = setTimeout(() => {
+        handleCheckReplies();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, isCampaignMode, job?.gmailThreadId, open, handleCheckReplies]);
 
   // Reset active tab to 'contact' when opening modal for campaigns
   useEffect(() => {
@@ -211,7 +360,155 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
     setShowAddInterviewForm(false);
     setIsEditing(false);
     setEditedJob({});
+    setShowMessageComposer(false);
+    setReplyToMessage(null);
     onClose();
+  };
+
+  const handleQuickSend = async (content: string) => {
+    if (!content.trim() || !onUpdate || !job) return;
+
+    const messageData: Omit<OutreachMessage, 'id'> = {
+      type: 'sent',
+      channel: 'email',
+      subject: replyToMessage?.subject ? `Re: ${replyToMessage.subject.replace(/^Re: /i, '')}` : undefined,
+      content: content.trim(),
+      sentAt: new Date().toISOString(),
+      status: 'sent',
+    };
+
+    const success = await handleSendMessage(messageData);
+    if (success) {
+      // Clear the draft only on success
+      setEditedJob({ ...editedJob, messageDraft: '' });
+    }
+  };
+
+  const handleSendMessage = async (messageData: Omit<OutreachMessage, 'id'>) => {
+    if (!onUpdate || !job) return false;
+
+    setIsSendingMessage(true);
+    
+    // Helper to remove undefined fields (Firestore forbids undefined anywhere)
+    const sanitizeMessage = (msg: OutreachMessage): OutreachMessage => {
+      return Object.fromEntries(
+        Object.entries(msg).filter(([, value]) => value !== undefined)
+      ) as OutreachMessage;
+    };
+
+    // Prepare new message and sanitize
+    const newMessage: OutreachMessage = sanitizeMessage({
+      ...messageData,
+      id: crypto.randomUUID(),
+    });
+
+    try {
+      // If it's an email and we have a gmailThreadId, send via Gmail API
+      if (messageData.channel === 'email' && job.gmailThreadId && messageData.status !== 'draft') {
+        try {
+          const auth = getAuth();
+          const token = await auth.currentUser?.getIdToken();
+          
+          const response = await fetch(`${BACKEND_URL}/api/gmail/thread/${job.gmailThreadId}/reply`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              message: messageData.content
+            })
+          });
+
+          // Check if response is OK before trying to parse JSON
+          if (!response.ok) {
+            // Try to parse error response as JSON, fallback to status text
+            let errorMessage = `Error ${response.status}: ${response.statusText}`;
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.error || errorData.message || errorMessage;
+            } catch (e) {
+              // If response is not JSON (e.g., HTML error page), use status text
+              const text = await response.text();
+              if (response.status === 404) {
+                errorMessage = 'API endpoint not found. Please restart the server.';
+              }
+            }
+            notify.error(errorMessage);
+            return false;
+          }
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            notify.success('Message sent successfully!');
+            // Update gmailThreadId if we got a new one (shouldn't happen for replies, but just in case)
+            if (data.threadId && data.threadId !== job.gmailThreadId) {
+              // This shouldn't happen for replies, but handle it anyway
+            }
+          } else if (data.needsReconnect) {
+            notify.error('Gmail token expired. Please reconnect Gmail.');
+            return false;
+          } else {
+            notify.error(data.error || 'Failed to send email');
+            return false;
+          }
+        } catch (error: any) {
+          console.error('Error sending via Gmail API:', error);
+          
+          // Check if it's a connection error
+          if (error.message?.includes('Failed to fetch') || error.message?.includes('ERR_CONNECTION_REFUSED') || error.name === 'TypeError') {
+            notify.error(`Cannot connect to backend server at ${BACKEND_URL}. Please make sure the server is running.`);
+            return false;
+          }
+          
+          // Other errors
+          notify.error(error.message || 'Failed to send email');
+          return false;
+        }
+      } else if (messageData.channel === 'email' && !job.gmailThreadId) {
+        notify.error('No Gmail thread linked. Cannot send email.');
+        return false;
+      }
+
+      // Add message to conversation history only after successful send/update
+      const updatedHistory = [...(job.conversationHistory || []), newMessage].map(sanitizeMessage);
+
+      // Prepare update object, removing undefined values (Firestore doesn't accept undefined)
+      const updates: Partial<JobApplication> = {
+        conversationHistory: updatedHistory,
+        lastContactedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(), // Ensure updatedAt is set to trigger onSnapshot
+      };
+
+      // Update status if it's a new message (not a draft)
+      if (messageData.status === 'sent' && job.status === 'targets') {
+        updates.status = 'contacted';
+      }
+
+      // Remove any undefined values before sending to Firestore
+      const cleanUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([_, value]) => value !== undefined)
+      ) as Partial<JobApplication>;
+
+      // Update the job application
+      await onUpdate(cleanUpdates);
+
+      setShowMessageComposer(false);
+      setReplyToMessage(null);
+      return true;
+    } catch (error) {
+      console.error('Error sending message:', error);
+      notify.error('Failed to send message');
+      return false;
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  const handleOpenComposer = (replyTo?: OutreachMessage) => {
+    setReplyToMessage(replyTo || null);
+    setShowMessageComposer(true);
   };
 
   const handleSave = async () => {
@@ -238,10 +535,10 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
       await onUpdate(updates);
       setIsEditing(false);
       setEditedJob({});
-      toast.success('Changes saved successfully');
+      notify.success('Changes saved successfully');
     } catch (error) {
       console.error('Error saving:', error);
-      toast.error('Failed to save changes');
+      notify.error('Failed to save changes');
     } finally {
       setIsSaving(false);
     }
@@ -287,7 +584,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
       // Don't show toast here - parent component will show modal or toast as appropriate
     } catch (error) {
       console.error('Error adding interview:', error);
-      toast.error('Failed to schedule interview');
+      notify.error('Failed to schedule interview');
     }
   };
 
@@ -592,68 +889,94 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
 
                           {/* Messages Tab - Campaign Mode */}
                           {activeTab === 'messages' && isCampaignMode && (
-                            <div className="space-y-6">
+                            <div className="flex flex-col h-full space-y-6">
                               <div className="flex items-center justify-between px-1">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                   Conversation History
                                   <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#2b2a2c] text-xs font-medium text-gray-600 dark:text-gray-400">
-                                    {job.conversationHistory?.length || 0}
+                                    {localMessages.length > 0 ? localMessages.length : (job.conversationHistory?.length || 0)}
                                   </span>
                                 </h3>
-                                <button
-                                  onClick={() => {
-                                    // TODO: Open message composer modal
-                                    toast.info('Message composer coming soon!');
-                                  }}
-                                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] rounded-xl hover:opacity-90 transition-all shadow-lg shadow-[#8B5CF6]/20"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                  New Message
-                                </button>
+                                {job.gmailThreadId && (
+                                  <button
+                                    onClick={() => handleCheckReplies(true)}
+                                    disabled={isCheckingReplies}
+                                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#3d3c3e] rounded-xl hover:bg-gray-200 dark:hover:bg-[#4a494b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isCheckingReplies ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Checking...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <RefreshCw className="w-4 h-4" />
+                                        Check Replies
+                                      </>
+                                    )}
+                                  </button>
+                                )}
                               </div>
 
-                              {job.conversationHistory && job.conversationHistory.length > 0 ? (
-                                <div className="space-y-4">
-                                  {job.conversationHistory.map((message) => (
-                                    <motion.div
-                                      key={message.id}
-                                      initial={{ opacity: 0, y: 10 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      className={`flex gap-3 ${message.type === 'sent' ? 'flex-row-reverse' : ''}`}
-                                    >
-                                      <div className={`
-                                        max-w-[70%] rounded-2xl px-4 py-3
-                                        ${message.type === 'sent' 
-                                          ? 'bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] text-white rounded-tr-md' 
-                                          : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-900 dark:text-white rounded-tl-md'
+                              <div className="flex-1 flex flex-col bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-100 dark:border-[#3d3c3e] shadow-sm overflow-hidden">
+                                <div className="flex-1 overflow-y-auto p-6">
+                                  <ConversationThread
+                                    messages={localMessages.length > 0 ? localMessages : (job.conversationHistory || [])}
+                                    contactName={job.contactName || job.companyName || 'Contact'}
+                                    contactInitials={(job.contactName || job.companyName || 'U')
+                                      .split(' ')
+                                      .map(n => n[0])
+                                      .join('')
+                                      .toUpperCase()
+                                      .slice(0, 2)}
+                                    onReply={(message) => handleOpenComposer(message)}
+                                  />
+                                </div>
+
+                                {/* Message Input Area */}
+                                <div className="border-t border-gray-200 dark:border-[#3d3c3e] p-4 bg-gray-50 dark:bg-[#242325]">
+                                  <div className="flex items-end gap-3">
+                                    <div className="flex-1">
+                                      <textarea
+                                        value={editedJob.messageDraft || ''}
+                                        onChange={(e) => setEditedJob({ ...editedJob, messageDraft: e.target.value })}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            if (editedJob.messageDraft?.trim()) {
+                                              handleQuickSend(editedJob.messageDraft);
+                                            }
+                                          }
+                                        }}
+                                        placeholder={`Type a message to ${job.contactName || job.companyName || 'contact'}...`}
+                                        rows={3}
+                                        className="w-full px-4 py-3 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#8B5CF6]/20 focus:border-[#8B5CF6] transition-all resize-none"
+                                      />
+                                    </div>
+                                    <button
+                                      onClick={() => {
+                                        if (editedJob.messageDraft?.trim()) {
+                                          handleQuickSend(editedJob.messageDraft);
                                         }
-                                      `}>
-                                        {message.subject && (
-                                          <p className={`text-xs font-semibold mb-2 pb-2 border-b ${
-                                            message.type === 'sent' ? 'border-white/20' : 'border-gray-200 dark:border-[#4a494b]'
-                                          }`}>
-                                            {message.subject}
-                                          </p>
-                                        )}
-                                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                                        <div className={`mt-2 text-xs ${message.type === 'sent' ? 'text-white/70' : 'text-gray-500'}`}>
-                                          {new Date(message.sentAt).toLocaleDateString()}
+                                      }}
+                                      disabled={!editedJob.messageDraft?.trim() || isSendingMessage}
+                                      className="px-6 py-3 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white rounded-xl hover:opacity-90 transition-all shadow-lg shadow-[#8B5CF6]/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium"
+                                    >
+                                      {isSendingMessage ? (
+                                        <>
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                          Sending...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Send className="w-4 h-4" />
+                                          Send
+                                        </>
+                                      )}
+                                    </button>
                                         </div>
                                       </div>
-                                    </motion.div>
-                                  ))}
                                 </div>
-                              ) : (
-                                <div className="flex flex-col items-center justify-center py-12 text-center">
-                                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#8B5CF6]/10 to-[#EC4899]/10 flex items-center justify-center mb-4">
-                                    <FileText className="w-8 h-8 text-[#8B5CF6]" />
-                                  </div>
-                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No messages yet</h3>
-                                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
-                                    Start logging your conversation with this contact to keep track of your outreach.
-                                  </p>
-                                </div>
-                              )}
                             </div>
                           )}
 
@@ -698,7 +1021,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
                                         if (!onUpdate || !job) return;
                                         const updatedInterviews = job.interviews?.filter(i => i.id !== interviewId) || [];
                                         await onUpdate({ interviews: updatedInterviews });
-                                        toast.success('Meeting removed');
+                                        notify.success('Meeting removed');
                                       }}
                                     />
                                   ))}
@@ -768,10 +1091,10 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
                                               interviews: updatedInterviews,
                                             });
                                             
-                                            toast.success('Interview deleted successfully');
+                                            notify.success('Interview deleted successfully');
                                           } catch (error) {
                                             console.error('Error deleting interview:', error);
-                                            toast.error('Failed to delete interview');
+                                            notify.error('Failed to delete interview');
                                           }
                                         }}
                                       />
@@ -1048,6 +1371,22 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
           )}
         </AnimatePresence>,
         document.body
+      )}
+
+      {/* Message Composer Modal */}
+      {isCampaignMode && (
+        <MessageComposer
+          isOpen={showMessageComposer}
+          onClose={() => {
+            setShowMessageComposer(false);
+            setReplyToMessage(null);
+          }}
+          onSend={handleSendMessage}
+          contactName={job.contactName || job.companyName || 'Contact'}
+          companyName={job.companyName || ''}
+          defaultChannel="email"
+          replyTo={replyToMessage || undefined}
+        />
       )}
     </>
   );

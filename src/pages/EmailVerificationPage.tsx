@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, RefreshCw, Loader2, CheckCircle2, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { sendEmailVerification } from 'firebase/auth';
 import { forceLightMode } from '../lib/theme';
 
@@ -41,7 +41,7 @@ export default function EmailVerificationPage() {
         await currentUser.reload();
         if (currentUser.emailVerified && !isVerified) {
           setIsVerified(true);
-          toast.success('Email verified successfully!');
+          notify.success('Email verified successfully!');
           setTimeout(() => {
             navigate('/complete-profile');
           }, 2000);
@@ -73,14 +73,14 @@ export default function EmailVerificationPage() {
     // Vérifications préalables
     if (!currentUser) {
       console.error('No current user found');
-      toast.error('No user found. Please log in again.');
+      notify.error('No user found. Please log in again.');
       navigate('/login');
       return;
     }
 
     if (timeLeft > 0) {
       console.log('Timer still active, cannot resend yet');
-      toast.info(`Please wait ${timeLeft} seconds before resending`);
+      notify.info(`Please wait ${timeLeft} seconds before resending`);
       return;
     }
 
@@ -95,7 +95,7 @@ export default function EmailVerificationPage() {
       if (currentUser.emailVerified) {
         console.log('Email already verified');
         setIsVerified(true);
-        toast.success('Your email is already verified!');
+        notify.success('Your email is already verified!');
         setTimeout(() => {
           navigate('/complete-profile');
         }, 1500);
@@ -117,7 +117,7 @@ export default function EmailVerificationPage() {
       
       console.log('Verification email sent successfully');
       setTimeLeft(60);
-      toast.success('Verification email sent! Please check your inbox and spam folder.', {
+      notify.success('Verification email sent! Please check your inbox and spam folder.', {
         duration: 5000,
         description: 'If you don\'t see it, check your spam/junk folder'
       });
@@ -143,7 +143,7 @@ export default function EmailVerificationPage() {
         errorMessage = error.message;
       }
       
-      toast.error(errorMessage);
+      notify.error(errorMessage);
     } finally {
       setIsResending(false);
     }

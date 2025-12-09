@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Clock, FileEdit, Briefcase, Linkedin, Mail, Target, Copy, Check } from 'lucide-react';
 import type { ActionPlan48H } from '../../types/premiumATS';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface ActionPlan48HProps {
   actionPlan: ActionPlan48H;
@@ -48,7 +48,7 @@ function MessageCard({ title, message, icon }: { title: string; message: string;
   const handleCopy = () => {
     navigator.clipboard.writeText(message);
     setCopied(true);
-    toast.success('Message copied to clipboard!');
+    notify.success('Message copied to clipboard!');
     setTimeout(() => setCopied(false), 2000);
   };
 

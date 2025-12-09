@@ -11,7 +11,7 @@ import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { JobDetailPanel } from './JobDetailPanel';
 import { JobApplication } from '../../types/job';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 // Example 1: Simple Kanban Board Integration
 export function KanbanBoardExample() {
@@ -68,10 +68,10 @@ export function KanbanBoardExample() {
       // Update selected job
       setSelectedJob(prev => prev ? { ...prev, ...updates } : null);
 
-      toast.success('Job updated successfully');
+      notify.success('Job updated successfully');
     } catch (error) {
       console.error('Error updating job:', error);
-      toast.error('Failed to update job');
+      notify.error('Failed to update job');
     }
   };
 
@@ -86,12 +86,12 @@ export function KanbanBoardExample() {
       // Update local state
       setJobs(prevJobs => prevJobs.filter(job => job.id !== selectedJob.id));
 
-      toast.success('Job deleted successfully');
+      notify.success('Job deleted successfully');
       setIsPanelOpen(false);
       setSelectedJob(null);
     } catch (error) {
       console.error('Error deleting job:', error);
-      toast.error('Failed to delete job');
+      notify.error('Failed to delete job');
     }
   };
 
@@ -159,10 +159,10 @@ export function CalendarViewExample() {
       });
 
       setSelectedJob(prev => prev ? { ...prev, ...updates } : null);
-      toast.success('Job updated successfully');
+      notify.success('Job updated successfully');
     } catch (error) {
       console.error('Error updating job:', error);
-      toast.error('Failed to update job');
+      notify.error('Failed to update job');
     }
   };
 
@@ -172,12 +172,12 @@ export function CalendarViewExample() {
     try {
       const jobRef = doc(db, 'users', currentUser.uid, 'applications', selectedJob.id);
       await deleteDoc(jobRef);
-      toast.success('Job deleted successfully');
+      notify.success('Job deleted successfully');
       setIsPanelOpen(false);
       setSelectedJob(null);
     } catch (error) {
       console.error('Error deleting job:', error);
-      toast.error('Failed to delete job');
+      notify.error('Failed to delete job');
     }
   };
 
@@ -229,10 +229,10 @@ export function TableViewExample() {
       );
 
       setSelectedJob(prev => prev ? { ...prev, ...updates } : null);
-      toast.success('Job updated successfully');
+      notify.success('Job updated successfully');
     } catch (error) {
       console.error('Error updating job:', error);
-      toast.error('Failed to update job');
+      notify.error('Failed to update job');
     }
   };
 
@@ -243,12 +243,12 @@ export function TableViewExample() {
       const jobRef = doc(db, 'users', currentUser.uid, 'applications', selectedJob.id);
       await deleteDoc(jobRef);
       setJobs(prevJobs => prevJobs.filter(job => job.id !== selectedJob.id));
-      toast.success('Job deleted successfully');
+      notify.success('Job deleted successfully');
       setIsPanelOpen(false);
       setSelectedJob(null);
     } catch (error) {
       console.error('Error deleting job:', error);
-      toast.error('Failed to delete job');
+      notify.error('Failed to delete job');
     }
   };
 

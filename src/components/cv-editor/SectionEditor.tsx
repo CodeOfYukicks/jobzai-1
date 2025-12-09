@@ -8,7 +8,7 @@ import {
 import { CVSection, CVExperience, CVEducation, CVSkill, CVCertification, CVProject, CVLanguage } from '../../types/cvEditor';
 import { generateId } from '../../lib/cvEditorUtils';
 import { rewriteSection } from '../../lib/cvSectionAI';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import DiffView from './DiffView';
 import {
   ExperienceInlineForm,
@@ -80,7 +80,7 @@ export default function SectionEditor({
 
   const handleAIAction = async (action: string) => {
     if (!jobContext) {
-      toast.error('Job context not available. Please load from ATS analysis.');
+      notify.error('Job context not available. Please load from ATS analysis.');
       return;
     }
 
@@ -147,10 +147,10 @@ export default function SectionEditor({
 
       setAiSuggestion(improvedContent);
       setShowDiff(true);
-      toast.success('AI suggestion generated! Review and apply changes.');
+      notify.success('AI suggestion generated! Review and apply changes.');
     } catch (error) {
       console.error('AI action error:', error);
-      toast.error('Failed to generate AI suggestion. Please try again.');
+      notify.error('Failed to generate AI suggestion. Please try again.');
     } finally {
       setIsProcessingAI(false);
       setCurrentAction('');
@@ -212,7 +212,7 @@ export default function SectionEditor({
       
       setAiSuggestion(null);
       setShowDiff(false);
-      toast.success('AI suggestion applied!');
+      notify.success('AI suggestion applied!');
     };
 
     if (showDiff && originalContent && aiSuggestion) {
@@ -488,7 +488,7 @@ export default function SectionEditor({
                       experiences: data.experiences.filter((e: CVExperience) => e.id !== inlineEditingId)
                     });
                     closeInlineForm();
-                    toast.success('Experience deleted');
+                    notify.success('Experience deleted');
                   }}
                   jobContext={jobContext}
                   fullCV={fullCV}
@@ -610,7 +610,7 @@ export default function SectionEditor({
                       education: data.education.filter((e: CVEducation) => e.id !== inlineEditingId)
                     });
                     closeInlineForm();
-                    toast.success('Education deleted');
+                    notify.success('Education deleted');
                   }}
                 />
               </motion.div>
@@ -767,7 +767,7 @@ export default function SectionEditor({
                       certifications: data.certifications.filter((c: CVCertification) => c.id !== inlineEditingId)
                     });
                     closeInlineForm();
-                    toast.success('Certification deleted');
+                    notify.success('Certification deleted');
                   }}
                 />
               </motion.div>
@@ -888,7 +888,7 @@ export default function SectionEditor({
                       projects: data.projects.filter((p: CVProject) => p.id !== inlineEditingId)
                     });
                     closeInlineForm();
-                    toast.success('Project deleted');
+                    notify.success('Project deleted');
                   }}
                   jobContext={jobContext}
                   fullCV={fullCV}
@@ -1020,7 +1020,7 @@ export default function SectionEditor({
                       languages: data.languages.filter((l: CVLanguage) => l.id !== inlineEditingId)
                     });
                     closeInlineForm();
-                    toast.success('Language deleted');
+                    notify.success('Language deleted');
                   }}
                 />
               </motion.div>

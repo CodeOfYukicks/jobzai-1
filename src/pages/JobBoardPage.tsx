@@ -13,7 +13,7 @@ import { FilterState, Job } from '../types/job-board';
 import { GoogleLoader } from '../components/ui/GoogleLoader';
 import { useScrollCollapse } from '../hooks/useScrollCollapse';
 import { useJobInteractions } from '../hooks/useJobInteractions';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { parseSearchQuery, toSearchAPIParams } from '../lib/searchParser';
 import '../components/job-board/premium-search.css';
 
@@ -149,7 +149,7 @@ export default function JobBoardPage() {
 	// Load Matched Jobs (For You mode)
 	const loadMatchedJobs = useCallback(async () => {
 		if (!currentUser?.uid) {
-			toast.error('Please sign in to see personalized job matches');
+			notify.error('Please sign in to see personalized job matches');
 			return;
 		}
 
@@ -166,7 +166,7 @@ export default function JobBoardPage() {
 			if (data.profileIncomplete) {
 				setProfileIncomplete(true);
 				setJobs([]);
-				toast.info('Complete your profile to see personalized job matches', {
+				notify.info('Complete your profile to see personalized job matches', {
 					action: {
 						label: 'Go to Profile',
 						onClick: () => window.location.href = '/profile'
@@ -192,7 +192,7 @@ export default function JobBoardPage() {
 		} catch (err) {
 			console.error('Error loading matched jobs:', err);
 			setError('Failed to load matched jobs');
-			toast.error('Failed to load personalized matches');
+			notify.error('Failed to load personalized matches');
 		} finally {
 			setLoading(false);
 			setInitialLoading(false);
@@ -564,7 +564,7 @@ export default function JobBoardPage() {
 													source: mode === 'matches' ? 'for_you' : 'explore',
 													matchScore: job.matchScore
 												});
-												toast.success('Job hidden from your feed');
+												notify.success('Job hidden from your feed');
 											}}
 										/>
 									))}

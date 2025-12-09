@@ -12,7 +12,7 @@ import {
   Target,
   X
 } from 'lucide-react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface SuggestedAddition {
   bullet: string;
@@ -303,7 +303,7 @@ export default function SuggestedAdditionsPanel({
   const handleCopy = (id: string, text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
-    toast.success('Copied to clipboard!');
+    notify.success('Copied to clipboard!');
     setTimeout(() => setCopiedId(null), 2000);
   };
 

@@ -14,7 +14,7 @@ import {
   doc, collection, query, orderBy,
   addDoc, serverTimestamp, deleteDoc, onSnapshot, updateDoc
 } from 'firebase/firestore';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { db } from '../lib/firebase';
 import { pdfToImages } from '../lib/pdfToImages';
 import { extractCVTextAndTags, CVExtractionResult } from '../lib/cvTextExtraction';
@@ -115,7 +115,7 @@ export default function CVOptimizerPage() {
       },
       (error) => {
         console.error('Error loading optimized CVs:', error);
-        toast.error('Unable to load optimized CVs');
+        notify.error('Unable to load optimized CVs');
       }
     );
 
@@ -139,11 +139,11 @@ export default function CVOptimizerPage() {
         cvToSave
       );
 
-      toast.success('Optimized resume saved!');
+      notify.success('Optimized resume saved!');
       return docRef.id;
     } catch (error) {
       console.error('Error saving optimized CV:', error);
-      toast.error('Unable to save optimized CV');
+      notify.error('Unable to save optimized CV');
       return null;
     }
   };
@@ -183,11 +183,11 @@ export default function CVOptimizerPage() {
     try {
       await deleteDoc(doc(db, 'users', currentUser.uid, 'optimizedCVs', cvId));
       setOptimizedCVs(prev => prev.filter(cv => cv.id !== cvId));
-      toast.success('Optimized resume deleted');
+      notify.success('Optimized resume deleted');
       setDeleteConfirmModal({ isOpen: false, cvId: null, cvTitle: '' });
     } catch (error) {
       console.error('Error deleting optimized CV:', error);
-      toast.error('Unable to delete optimized CV');
+      notify.error('Unable to delete optimized CV');
     }
   };
 
@@ -210,7 +210,7 @@ export default function CVOptimizerPage() {
       });
     } catch (e) {
       console.error('Error duplicating optimized CV', e);
-      toast.error('Unable to duplicate resume');
+      notify.error('Unable to duplicate resume');
     }
   };
 
@@ -376,7 +376,7 @@ export default function CVOptimizerPage() {
         progress: 100
       });
 
-      toast.success('✅ CV analyzed successfully!');
+      notify.success('✅ CV analyzed successfully!');
 
     } catch (error: any) {
       console.error('❌ CV processing failed:', error);
@@ -387,7 +387,7 @@ export default function CVOptimizerPage() {
         error: error.message || 'Unknown error occurred'
       });
 
-      toast.error(`Failed to analyze CV: ${error.message || 'Unknown error'}`);
+      notify.error(`Failed to analyze CV: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -405,13 +405,13 @@ export default function CVOptimizerPage() {
     }
 
     if (fileToProcess.type !== 'application/pdf') {
-      toast.error('Please upload a PDF file');
+      notify.error('Please upload a PDF file');
       return;
     }
 
     // IMMEDIATE FEEDBACK: Update state right away
     setCvFile(fileToProcess);
-    toast.success('📄 Resume uploaded successfully!');
+    notify.success('📄 Resume uploaded successfully!');
 
     // BACKGROUND PROCESSING: Start async processing without blocking UI
     // Fire-and-forget - user can continue interacting with the form
@@ -812,19 +812,19 @@ export default function CVOptimizerPage() {
   // Generate optimized CV
   const handleGenerate = async () => {
     if (!cvFile) {
-      toast.error('Please select a resume');
+      notify.error('Please select a resume');
       return;
     }
 
     // Validation: In AI mode, URL is required. In manual mode, all fields are required.
     if (jobInputMode === 'ai') {
       if (!formData.jobUrl || !formData.jobUrl.trim()) {
-        toast.error('Please enter a job posting URL');
+        notify.error('Please enter a job posting URL');
         return;
       }
     } else {
       if (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim()) {
-        toast.error('Please fill in all job information fields');
+        notify.error('Please fill in all job information fields');
         return;
       }
     }
@@ -1518,7 +1518,7 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
         } catch (saveError: any) {
           console.error('❌ Failed to save structured cvData:', saveError);
           // Don't throw - navigation should still happen even if save fails
-          toast.warning('CV optimized but failed to save structured data. You can still edit the resume.');
+          notify.warning('CV optimized but failed to save structured data. You can still edit the resume.');
         }
 
         navigate(`/cv-optimizer/${savedId}`);
@@ -1538,11 +1538,11 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
       setCurrentStep(1);
 
       setIsLoading(false);
-      toast.success('Optimized resume generated successfully!');
+      notify.success('Optimized resume generated successfully!');
     } catch (error: any) {
       console.error('Error generating optimized CV:', error);
       setIsLoading(false);
-      toast.error(`Optimization error: ${error.message || 'Unknown error'}`);
+      notify.error(`Optimization error: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -2342,13 +2342,13 @@ CRITICAL: Always distinguish between company (employer) and client (end client/p
                           if (jobInputMode === 'ai') {
                             // In AI mode, only URL is required
                             if (!formData.jobUrl || !formData.jobUrl.trim()) {
-                              toast.error('Please enter a job posting URL');
+                              notify.error('Please enter a job posting URL');
                               return;
                             }
                           } else {
                             // In manual mode, all fields are required
                             if (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim()) {
-                              toast.error('Please fill in all job information fields');
+                              notify.error('Please fill in all job information fields');
                               return;
                             }
                           }

@@ -4,7 +4,7 @@ import { Upload, FileText, Loader2, Info, Briefcase } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../../lib/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { pdfToImages } from '../../../lib/pdfToImages';
 import { extractCVTextAndTags, ExtractedExperience } from '../../../lib/cvTextExtraction';
 
@@ -45,14 +45,14 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
 
     // Validate file size (5MB limit)
     if (selectedFile.size > 5 * 1024 * 1024) {
-      toast.error('File size must be less than 5MB');
+      notify.error('File size must be less than 5MB');
       return;
     }
 
     // Validate file type
     const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (!allowedTypes.includes(selectedFile.type)) {
-      toast.error('Please upload a PDF or Word document');
+      notify.error('Please upload a PDF or Word document');
       return;
     }
 
@@ -71,7 +71,7 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
 
       // Extract text, tags, and experiences
       try {
-        toast.info('Analyzing your CV...');
+        notify.info('Analyzing your CV...');
         const images = await pdfToImages(selectedFile, 2, 1.5);
         const { text, technologies, skills, experiences } = await extractCVTextAndTags(images);
 
@@ -83,15 +83,15 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
         }
 
         const expCount = experiences?.length || 0;
-        toast.success(`CV analyzed! Found ${technologies.length} technologies, ${skills.length} skills${expCount > 0 ? `, and ${expCount} experiences` : ''}`);
+        notify.success(`CV analyzed! Found ${technologies.length} technologies, ${skills.length} skills${expCount > 0 ? `, and ${expCount} experiences` : ''}`);
       } catch (extractionError) {
         console.error('CV extraction failed:', extractionError);
-        toast.warning('CV uploaded but analysis failed');
+        notify.warning('CV uploaded but analysis failed');
       }
 
     } catch (error) {
       console.error('Error uploading CV:', error);
-      toast.error('Failed to upload CV');
+      notify.error('Failed to upload CV');
       setFile(null);
     } finally {
       setIsUploading(false);

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Copy, Check, Save, RefreshCw, FileText, Maximize2 } from 'lucide-react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { GeneratedEmail } from '../../types/job';
 import NotionEditor from '../notion-editor/NotionEditor';
 import {
@@ -60,10 +60,10 @@ export const GeneratedContentView = ({
     try {
       await navigator.clipboard.writeText(plainText);
       setIsCopied(true);
-      toast.success('Copied to clipboard!');
+      notify.success('Copied to clipboard!');
       setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
-      toast.error('Failed to copy');
+      notify.error('Failed to copy');
     }
   };
 
@@ -73,7 +73,7 @@ export const GeneratedContentView = ({
     const plainText = convertTiptapToText(tiptapContent);
 
     if (!plainText.trim()) {
-      toast.error('No content to save');
+      notify.error('No content to save');
       return;
     }
 
@@ -89,11 +89,11 @@ export const GeneratedContentView = ({
       };
 
       await onSave(newEmail);
-      toast.success('Saved as note!');
+      notify.success('Saved as note!');
       setHasChanges(false);
     } catch (error) {
       console.error('Error saving:', error);
-      toast.error('Failed to save');
+      notify.error('Failed to save');
     } finally {
       setIsSaving(false);
     }

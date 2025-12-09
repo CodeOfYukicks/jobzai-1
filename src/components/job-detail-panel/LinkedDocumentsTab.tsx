@@ -21,7 +21,7 @@ import { WhiteboardDocument, getWhiteboards } from '../../lib/whiteboardDocServi
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import CVPreviewCard from '../resume-builder/CVPreviewCard';
 import NotionPreviewCard from '../notion-editor/NotionPreviewCard';
 import PDFPreviewCard, { ImportedDocument } from '../resume-builder/PDFPreviewCard';
@@ -139,7 +139,7 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
         setWhiteboards(whiteboardsList);
       } catch (error) {
         console.error('Error fetching documents:', error);
-        toast.error('Failed to load documents');
+        notify.error('Failed to load documents');
       } finally {
         setIsLoading(false);
       }
@@ -200,10 +200,10 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
         await onUpdate({
           linkedResumeIds: [...currentLinked, resumeId],
         });
-        toast.success('Resume linked successfully');
+        notify.success('Resume linked successfully');
       } catch (error) {
         console.error('Error linking resume:', error);
-        toast.error('Failed to link resume');
+        notify.error('Failed to link resume');
       }
     },
     [job.linkedResumeIds, onUpdate]
@@ -220,10 +220,10 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
         await onUpdate({
           linkedResumeIds: currentLinked.filter((id) => id !== resumeId),
         });
-        toast.success('Resume unlinked successfully');
+        notify.success('Resume unlinked successfully');
       } catch (error) {
         console.error('Error unlinking resume:', error);
-        toast.error('Failed to unlink resume');
+        notify.error('Failed to unlink resume');
       }
     },
     [job.linkedResumeIds, onUpdate]
@@ -240,10 +240,10 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
         await onUpdate({
           linkedNoteIds: [...currentLinked, noteId],
         });
-        toast.success('Note linked successfully');
+        notify.success('Note linked successfully');
       } catch (error) {
         console.error('Error linking note:', error);
-        toast.error('Failed to link note');
+        notify.error('Failed to link note');
       }
     },
     [job.linkedNoteIds, onUpdate]
@@ -260,10 +260,10 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
         await onUpdate({
           linkedNoteIds: currentLinked.filter((id) => id !== noteId),
         });
-        toast.success('Note unlinked successfully');
+        notify.success('Note unlinked successfully');
       } catch (error) {
         console.error('Error unlinking note:', error);
-        toast.error('Failed to unlink note');
+        notify.error('Failed to unlink note');
       }
     },
     [job.linkedNoteIds, onUpdate]
@@ -280,10 +280,10 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
         await onUpdate({
           linkedDocumentIds: [...currentLinked, documentId],
         });
-        toast.success('PDF document linked successfully');
+        notify.success('PDF document linked successfully');
       } catch (error) {
         console.error('Error linking document:', error);
-        toast.error('Failed to link PDF document');
+        notify.error('Failed to link PDF document');
       }
     },
     [job.linkedDocumentIds, onUpdate]
@@ -300,10 +300,10 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
         await onUpdate({
           linkedDocumentIds: currentLinked.filter((id) => id !== documentId),
         });
-        toast.success('PDF document unlinked successfully');
+        notify.success('PDF document unlinked successfully');
       } catch (error) {
         console.error('Error unlinking document:', error);
-        toast.error('Failed to unlink PDF document');
+        notify.error('Failed to unlink PDF document');
       }
     },
     [job.linkedDocumentIds, onUpdate]
@@ -320,10 +320,10 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
         await onUpdate({
           linkedWhiteboardIds: [...currentLinked, whiteboardId],
         });
-        toast.success('Whiteboard linked successfully');
+        notify.success('Whiteboard linked successfully');
       } catch (error) {
         console.error('Error linking whiteboard:', error);
-        toast.error('Failed to link whiteboard');
+        notify.error('Failed to link whiteboard');
       }
     },
     [job.linkedWhiteboardIds, onUpdate]
@@ -340,10 +340,10 @@ export const LinkedDocumentsTab = ({ job, onUpdate }: LinkedDocumentsTabProps) =
         await onUpdate({
           linkedWhiteboardIds: currentLinked.filter((id) => id !== whiteboardId),
         });
-        toast.success('Whiteboard unlinked successfully');
+        notify.success('Whiteboard unlinked successfully');
       } catch (error) {
         console.error('Error unlinking whiteboard:', error);
-        toast.error('Failed to unlink whiteboard');
+        notify.error('Failed to unlink whiteboard');
       }
     },
     [job.linkedWhiteboardIds, onUpdate]

@@ -1,4 +1,4 @@
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 /**
  * Structure for an extracted professional experience
@@ -273,7 +273,7 @@ export async function extractExperiencesFromText(cvText: string): Promise<CVExpe
       
       if (response.status === 503) {
         errorMessage = '⚠️ OpenAI API key is not configured.';
-        toast.error(errorMessage, { duration: 8000 });
+        notify.error(errorMessage, { duration: 8000 });
         throw new Error(errorMessage);
       }
       
@@ -315,7 +315,7 @@ export async function extractExperiencesFromText(cvText: string): Promise<CVExpe
     }
   } catch (error: unknown) {
     console.error('❌ Experience extraction failed:', error);
-    toast.error(
+    notify.error(
       `Failed to extract experiences: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
     throw error;
@@ -388,7 +388,7 @@ export async function extractExperiencesFromImages(images: string[]): Promise<CV
       
       if (response.status === 503) {
         errorMessage = '⚠️ OpenAI API key is not configured.';
-        toast.error(errorMessage, { duration: 8000 });
+        notify.error(errorMessage, { duration: 8000 });
         throw new Error(errorMessage);
       }
       
@@ -428,7 +428,7 @@ export async function extractExperiencesFromImages(images: string[]): Promise<CV
     }
   } catch (error: unknown) {
     console.error('❌ Experience extraction from images failed:', error);
-    toast.error(
+    notify.error(
       `Failed to extract experiences: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
     throw error;
@@ -880,7 +880,7 @@ export async function extractFullProfileFromText(cvText: string): Promise<CVFull
       
       if (response.status === 503) {
         errorMessage = '⚠️ OpenAI API key is not configured.';
-        toast.error(errorMessage, { duration: 8000 });
+        notify.error(errorMessage, { duration: 8000 });
         throw new Error(errorMessage);
       }
       
@@ -941,7 +941,7 @@ export async function extractFullProfileFromText(cvText: string): Promise<CVFull
     }
   } catch (error: unknown) {
     console.error('❌ Full profile extraction failed:', error);
-    toast.error(
+    notify.error(
       `Failed to extract profile: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
     throw error;

@@ -10,7 +10,7 @@ import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import ScoreDonut from '../components/ats/ScoreDonut';
 
 interface ATSAnalysis {
@@ -357,12 +357,12 @@ export default function ATSAnalysisPage() {
           
           setAnalysis(normalizedAnalysis);
         } else {
-          toast.error('Analysis not found');
+          notify.error('Analysis not found');
           navigate('/cv-analysis');
         }
       } catch (error) {
         console.error('Error fetching analysis:', error);
-        toast.error('Failed to load analysis');
+        notify.error('Failed to load analysis');
         navigate('/cv-analysis');
       } finally {
         setLoading(false);
@@ -428,7 +428,7 @@ export default function ATSAnalysisPage() {
   };
 
   const handleAIAction = (action: string) => {
-    toast.info(`${action} - Coming soon!`);
+    notify.info(`${action} - Coming soon!`);
   };
 
   if (loading) {

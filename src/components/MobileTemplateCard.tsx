@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useSwipeable } from 'react-swipeable';
 import { Heart, Edit, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import EditTemplateModal from './EditTemplateModal';
 import { toggleTemplateFavorite } from '../lib/templates';
 
@@ -31,9 +31,9 @@ export default function MobileTemplateCard({ template, onUpdate, onDelete }: Mob
     try {
       await toggleTemplateFavorite(currentUser.uid, template.id, template.liked);
       onUpdate();
-      toast.success(template.liked ? 'Removed from favorites' : 'Added to favorites');
+      notify.success(template.liked ? 'Removed from favorites' : 'Added to favorites');
     } catch (error) {
-      toast.error('Failed to update favorite status');
+      notify.error('Failed to update favorite status');
     }
   };
 

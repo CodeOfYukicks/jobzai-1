@@ -148,6 +148,7 @@ export interface JobApplication {
   contactCompanyWebsite?: string;       // Campaign: Company website URL
   contactCompanyIndustry?: string;      // Campaign: Company industry
   contactCompanySize?: string;          // Campaign: Company size (startup, smb, enterprise)
+  gmailThreadId?: string;              // Campaign: Gmail thread ID for fetching replies
   salary?: string;
   workType?: string;
   platform?: string;

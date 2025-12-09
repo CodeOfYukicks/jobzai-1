@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { motion } from 'framer-motion';
 import AuthLayout from '../components/AuthLayout';
 import {
@@ -376,7 +376,7 @@ const ProfessionalProfilePage = () => {
         }
       } catch (error) {
         console.error('Error loading user data:', error);
-        toast.error('Failed to load profile data');
+        notify.error('Failed to load profile data');
       }
     };
 
@@ -410,7 +410,7 @@ const ProfessionalProfilePage = () => {
         });
       } catch (error) {
         console.error('Error saving changes:', error);
-        toast.error('Failed to save changes');
+        notify.error('Failed to save changes');
       }
     }, 1000),
     [currentUser]
@@ -439,7 +439,7 @@ const ProfessionalProfilePage = () => {
       // Get fresh cvText from Firestore
       const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
       if (!userDoc.exists()) {
-        toast.error('User data not found');
+        notify.error('User data not found');
         return;
       }
       
@@ -449,7 +449,7 @@ const ProfessionalProfilePage = () => {
       
       // Check if CV exists
       if (!storedCvUrl) {
-        toast.error('No CV found. Please upload your CV first in the Documents section.');
+        notify.error('No CV found. Please upload your CV first in the Documents section.');
         return;
       }
       
@@ -457,7 +457,7 @@ const ProfessionalProfilePage = () => {
       
       // If CV text is missing or too short, re-extract from the CV file
       if (!storedCvText || storedCvText.length < 100) {
-        toast.info('Re-analyzing your CV...');
+        notify.info('Re-analyzing your CV...');
         
         try {
           // Fetch the CV file from storage
@@ -474,7 +474,7 @@ const ProfessionalProfilePage = () => {
           const { text, technologies, skills, experiences } = await extractCVTextAndTags(images);
           
           if (!text || text.length < 50) {
-            toast.error('Could not extract text from CV. Please try uploading a different format.');
+            notify.error('Could not extract text from CV. Please try uploading a different format.');
             setIsImportingCV(false);
             return;
           }
@@ -488,16 +488,16 @@ const ProfessionalProfilePage = () => {
           });
           
           storedCvText = text;
-          toast.success('CV re-analyzed successfully!');
+          notify.success('CV re-analyzed successfully!');
         } catch (extractError) {
           console.error('CV re-extraction failed:', extractError);
-          toast.error('Failed to analyze CV. Please try re-uploading your CV in the Documents section.');
+          notify.error('Failed to analyze CV. Please try re-uploading your CV in the Documents section.');
           setIsImportingCV(false);
           return;
         }
       }
       
-      toast.info('Extracting profile data from your CV...');
+      notify.info('Extracting profile data from your CV...');
       
       // Extract full profile data
       const extractedProfile = await extractFullProfileFromText(storedCvText);
@@ -611,11 +611,11 @@ const ProfessionalProfilePage = () => {
       if (extractedProfile.profileTags?.length) counts.push(`${extractedProfile.profileTags.length} profile tags`);
       if (extractedProfile.summary) counts.push('summary');
       
-      toast.success(`Profile imported! Found ${counts.join(', ')}`);
+      notify.success(`Profile imported! Found ${counts.join(', ')}`);
       
     } catch (error) {
       console.error('CV import failed:', error);
-      toast.error('Failed to import profile from CV');
+      notify.error('Failed to import profile from CV');
     } finally {
       setIsImportingCV(false);
     }

@@ -5,7 +5,7 @@ import {
   ChevronDown, Send, Loader2, Check, X, RefreshCw
 } from 'lucide-react';
 import { rewriteSection } from '../../../lib/cvSectionAI';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface AIEnhancePanelProps {
   sectionType: 'experience' | 'project' | 'summary';
@@ -81,10 +81,10 @@ export default function AIEnhancePanel({
         });
         
         setSuggestion(result);
-        toast.success('AI suggestion ready!');
+        notify.success('AI suggestion ready!');
       } catch (error) {
         console.error('AI enhancement error:', error);
-        toast.error('Failed to generate suggestion');
+        notify.error('Failed to generate suggestion');
       } finally {
         setIsLoading(false);
         setActiveAction(null);
@@ -115,10 +115,10 @@ export default function AIEnhancePanel({
       });
 
       setSuggestion(result);
-      toast.success('AI suggestion ready!');
+      notify.success('AI suggestion ready!');
     } catch (error) {
       console.error('AI enhancement error:', error);
-      toast.error('Failed to generate suggestion');
+      notify.error('Failed to generate suggestion');
     } finally {
       setIsLoading(false);
       setActiveAction(null);
@@ -160,10 +160,10 @@ export default function AIEnhancePanel({
         
         setSuggestion(result);
         setCustomPrompt('');
-        toast.success('AI suggestion ready!');
+        notify.success('AI suggestion ready!');
       } catch (error) {
         console.error('AI custom request error:', error);
-        toast.error('Failed to generate suggestion');
+        notify.error('Failed to generate suggestion');
       } finally {
         setIsLoading(false);
         setActiveAction(null);
@@ -195,10 +195,10 @@ export default function AIEnhancePanel({
 
       setSuggestion(result);
       setCustomPrompt('');
-      toast.success('AI suggestion ready!');
+      notify.success('AI suggestion ready!');
     } catch (error) {
       console.error('AI custom request error:', error);
-      toast.error('Failed to generate suggestion');
+      notify.error('Failed to generate suggestion');
     } finally {
       setIsLoading(false);
       setActiveAction(null);
@@ -210,7 +210,7 @@ export default function AIEnhancePanel({
       onApply(suggestion);
       setSuggestion(null);
       setIsExpanded(false);
-      toast.success('Applied!');
+      notify.success('Applied!');
     }
   };
 
@@ -282,7 +282,7 @@ export default function AIEnhancePanel({
                         type="button"
                         onClick={() => {
                           onResetHistory();
-                          toast.success('Conversation reset');
+                          notify.success('Conversation reset');
                         }}
                         className="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                         title="Clear conversation history"

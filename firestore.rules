@@ -128,6 +128,11 @@ service cloud.firestore {
       match /interviews/{interviewId} {
         allow read, write: if isSignedIn() && isOwner(userId);
       }
+      
+      // Notifications subcollection (for Notification Center)
+      match /notifications/{notificationId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
     }
 
     // Jobs collection

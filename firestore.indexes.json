@@ -134,6 +134,21 @@
       "fields": [
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "backgroundTasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "notificationShown", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [

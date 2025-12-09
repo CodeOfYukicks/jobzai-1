@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { UserData } from '../types';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface InsightsModalProps {
   category: 'timing' | 'salary' | 'keywords' | 'companies' | 'network';
@@ -58,7 +58,7 @@ export default function InsightsModal({ category, title, onClose }: InsightsModa
             ? "Service is busy. Please try again in a few moments."
             : "Unable to generate insights. Please try again."
         );
-        toast.error(error?.message || 'Failed to generate insights');
+        notify.error(error?.message || 'Failed to generate insights');
       } finally {
         setIsLoading(false);
       }

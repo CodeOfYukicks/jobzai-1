@@ -9,7 +9,7 @@ import AuthLayout from '../components/AuthLayout';
 import GenerateTemplateModal from '../components/GenerateTemplateModal';
 import DeleteTemplateDialog from '../components/DeleteTemplateDialog';
 import TemplateEditModal from '../components/TemplateEditModal';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import TemplateCard from '../components/TemplateCard';
 import { useSwipeable } from 'react-swipeable';
 
@@ -149,7 +149,7 @@ export default function EmailTemplatesPage() {
       setTemplates(templatesData);
     } catch (error) {
       console.error('Error fetching templates:', error);
-      toast.error('Failed to refresh templates');
+      notify.error('Failed to refresh templates');
     }
   }, [currentUser]);
 
@@ -185,10 +185,10 @@ export default function EmailTemplatesPage() {
 
     try {
       await deleteDoc(doc(db, 'users', currentUser.uid, 'emailTemplates', template.id));
-      toast.success('Template deleted successfully');
+      notify.success('Template deleted successfully');
     } catch (error) {
       console.error('Error deleting template:', error);
-      toast.error('Failed to delete template');
+      notify.error('Failed to delete template');
     }
   };
 
@@ -199,9 +199,9 @@ export default function EmailTemplatesPage() {
       await updateDoc(templateRef, {
         liked: !template.liked
       });
-      toast.success(template.liked ? 'Removed from favorites' : 'Added to favorites');
+      notify.success(template.liked ? 'Removed from favorites' : 'Added to favorites');
     } catch (error) {
-      toast.error('Failed to update template');
+      notify.error('Failed to update template');
     }
   };
 

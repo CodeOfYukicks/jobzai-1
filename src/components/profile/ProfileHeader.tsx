@@ -6,7 +6,7 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../lib/firebase';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import ProfilePhotoCropper from './ProfilePhotoCropper';
 import CoverPhotoCropper from './CoverPhotoCropper';
 import CoverPhotoGallery from './CoverPhotoGallery';
@@ -136,10 +136,10 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
       if (onUpdate) {
         onUpdate({ profilePhoto: photoUrl });
       }
-      toast.success('Profile photo updated');
+      notify.success('Profile photo updated');
     } catch (error) {
       console.error('Error uploading cropped photo:', error);
-      toast.error('Failed to upload photo');
+      notify.error('Failed to upload photo');
     } finally {
       setIsUploading(false);
       setIsCropperOpen(false);
@@ -171,10 +171,10 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
       if (onUpdate) {
         onUpdate({ coverPhoto: coverUrl });
       }
-      toast.success('Cover photo updated');
+      notify.success('Cover photo updated');
     } catch (error) {
       console.error('Error uploading cropped cover:', error);
-      toast.error('Failed to upload cover photo');
+      notify.error('Failed to upload cover photo');
     } finally {
       setIsUploadingCover(false);
       setIsCoverCropperOpen(false);
@@ -201,7 +201,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
       }
     } catch (error) {
       console.error('Error uploading cover photo:', error);
-      toast.error('Failed to upload cover photo');
+      notify.error('Failed to upload cover photo');
     } finally {
       setIsUploadingCover(false);
     }
@@ -243,10 +243,10 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
       }
 
       setIsEditing(false);
-      toast.success('Profile updated');
+      notify.success('Profile updated');
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      notify.error('Failed to update profile');
     }
   };
 
@@ -629,10 +629,10 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
           await updateDoc(doc(db, 'users', currentUser.uid), { coverPhoto: '' });
           setFormData(prev => ({ ...prev, coverPhoto: '' }));
           if (onUpdate) onUpdate({ coverPhoto: '' });
-          toast.success('Cover photo removed');
+          notify.success('Cover photo removed');
         } catch (error) {
           console.error('Error removing cover:', error);
-          toast.error('Failed to remove cover photo');
+          notify.error('Failed to remove cover photo');
         }
       }}
       currentCover={formData.coverPhoto}

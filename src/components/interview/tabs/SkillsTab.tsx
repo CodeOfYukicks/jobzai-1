@@ -4,7 +4,7 @@ import { Briefcase, Award, MessageSquare, ArrowUp, CheckCircle2, Sparkles, Loade
 import { Interview } from '../../../types/interview';
 import { generateStarStory } from '../../../services/starStoryGenerator';
 import { useAuth } from '../../../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface SkillsTabProps {
   interview: Interview;
@@ -244,7 +244,7 @@ const SkillsTab = memo(function SkillsTab({
   // Handle AI STAR story generation
   const handleGenerateStarStory = async (skill: string) => {
     if (!currentUser?.uid) {
-      toast.error('You must be logged in to generate STAR stories');
+      notify.error('You must be logged in to generate STAR stories');
       return;
     }
 
@@ -277,13 +277,13 @@ const SkillsTab = memo(function SkillsTab({
         };
         
         await addStarStory(skill, storyContent);
-        toast.success(`STAR story generated for ${skill}!`);
+        notify.success(`STAR story generated for ${skill}!`);
       } else if (result.message) {
         setGenerationError(prev => ({ ...prev, [skill]: result.message || '' }));
       } else if (result.error) {
         const errorMessage = result.error;
         setGenerationError(prev => ({ ...prev, [skill]: errorMessage }));
-        toast.error(errorMessage);
+        notify.error(errorMessage);
       } else {
         throw new Error(result.error || 'Failed to generate STAR story');
       }
@@ -291,7 +291,7 @@ const SkillsTab = memo(function SkillsTab({
       console.error('Error generating STAR story:', error);
       const errorMessage = error.message || 'Failed to generate STAR story. Please try again.';
       setGenerationError(prev => ({ ...prev, [skill]: errorMessage }));
-      toast.error(errorMessage);
+      notify.error(errorMessage);
     } finally {
       setGeneratingForSkill(null);
     }

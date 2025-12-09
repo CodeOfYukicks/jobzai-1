@@ -3,7 +3,7 @@ import { Briefcase, Plus, MoreVertical, Edit2, Copy, Trash2, Check, Loader2, Inf
 import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import MonthPicker from '../ui/MonthPicker';
 import { CollapsibleSection, BulletInput, FieldGroup, SectionSkeleton } from '../profile/ui';
 import { CompanyLogo } from '../common/CompanyLogo';
@@ -146,7 +146,7 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
         setTimeout(() => setSaveStatus('idle'), 2000);
       } catch (error) {
         console.error('Auto-save failed:', error);
-        toast.error('Failed to save');
+        notify.error('Failed to save');
         setSaveStatus('idle');
       }
     }, 500),
@@ -237,14 +237,14 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
     const newHistory = [...formData.professionalHistory];
     newHistory.splice(index + 1, 0, duplicated);
     handleChange('professionalHistory', newHistory);
-    toast.success('Experience duplicated');
+    notify.success('Experience duplicated');
     setOpenMenuIndex(null);
   };
 
   const removeExperience = (index: number) => {
     const newHistory = formData.professionalHistory.filter((_, i) => i !== index);
     handleChange('professionalHistory', newHistory);
-    toast.success('Experience removed');
+    notify.success('Experience removed');
     setOpenMenuIndex(null);
   };
 

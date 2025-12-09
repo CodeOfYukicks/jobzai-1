@@ -5,7 +5,7 @@ import { doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { applyTheme, loadThemeFromStorage, forceLightMode, type Theme } from '../lib/theme';
 import { syncUserToBrevo } from '../services/brevo';
 
@@ -209,7 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (finalData?.profileCompleted) {
         setIsProfileCompleted(true);
         navigate('/hub');
-        toast.success('Profile completed successfully!');
+        notify.success('Profile completed successfully!');
       } else {
         // If profileCompleted is not set, try again
         console.warn('Profile completed flag not set, retrying...');
@@ -219,11 +219,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsProfileCompleted(true);
         await new Promise(resolve => setTimeout(resolve, 300));
         navigate('/hub');
-        toast.success('Profile completed successfully!');
+        notify.success('Profile completed successfully!');
       }
     } catch (error) {
       console.error('Error completing profile:', error);
-      toast.error('Failed to complete profile');
+      notify.error('Failed to complete profile');
       throw error;
     }
   };
@@ -344,10 +344,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await firebaseSignOut(auth);
-      toast.success('Successfully signed out');
+      notify.success('Successfully signed out');
     } catch (error) {
       console.error('Sign Out Error:', error);
-      toast.error('Failed to sign out');
+      notify.error('Failed to sign out');
       throw error;
     }
   };

@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Copy, Trash2, Clock, Check, Eye } from 'lucide-react';
 import { GeneratedEmail } from '../../types/job';
 import { useState } from 'react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface GeneratedHistoryModalProps {
   isOpen: boolean;
@@ -50,10 +50,10 @@ export const GeneratedHistoryModal = ({
     try {
       await navigator.clipboard.writeText(content);
       setCopiedId(id);
-      toast.success('Copied to clipboard!');
+      notify.success('Copied to clipboard!');
       setTimeout(() => setCopiedId(null), 2000);
     } catch (error) {
-      toast.error('Failed to copy');
+      notify.error('Failed to copy');
     }
   };
 

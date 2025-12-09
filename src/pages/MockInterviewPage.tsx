@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { collection, query, getDocs, doc, getDoc, addDoc, updateDoc, orderBy, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import AuthLayout from '../components/AuthLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { KanbanBoard } from '../types/job';
@@ -196,7 +196,7 @@ export default function MockInterviewPage() {
         setApplications(apps);
       } catch (error) {
         console.error('Error loading applications:', error);
-        toast.error('Failed to load job applications');
+        notify.error('Failed to load job applications');
       } finally {
         setIsLoadingApplications(false);
       }
@@ -313,7 +313,7 @@ export default function MockInterviewPage() {
           // Warning at 9 minutes (540 seconds)
           if (elapsed >= 540 && !isTimeWarning) {
             setIsTimeWarning(true);
-            toast.warning('1 minute remaining!', { duration: 5000 });
+            notify.warning('1 minute remaining!', { duration: 5000 });
           }
           
           // Auto-conclude at 10 minutes (600 seconds)
@@ -496,7 +496,7 @@ export default function MockInterviewPage() {
       }
     } catch (error) {
       console.error('Error analyzing interview:', error);
-      toast.error('Failed to analyze interview');
+      notify.error('Failed to analyze interview');
     } finally {
       setIsLoadingAnalysis(false);
     }
@@ -531,12 +531,12 @@ export default function MockInterviewPage() {
   // Start interview handler - transitions to preparation phase
   const handleStartInterview = useCallback(() => {
     if (!selectedApplication) {
-      toast.error('Please select a job application first');
+      notify.error('Please select a job application first');
       return;
     }
     
     if (!userProfile) {
-      toast.error('User profile not loaded. Please try again.');
+      notify.error('User profile not loaded. Please try again.');
       return;
     }
     
@@ -547,7 +547,7 @@ export default function MockInterviewPage() {
   // Begin interview handler - actually starts the live interview
   const handleBeginInterview = useCallback(async () => {
     if (!selectedApplication || !userProfile) {
-      toast.error('Missing required data. Please go back and try again.');
+      notify.error('Missing required data. Please go back and try again.');
       setPhase('setup');
       return;
     }
@@ -579,13 +579,13 @@ export default function MockInterviewPage() {
       onError: (err) => {
         console.error('Interview client error:', err);
         setError(err.message);
-        toast.error(err.message);
+        notify.error(err.message);
       },
       onSessionStarted: () => {
-        toast.success('Interview session started');
+        notify.success('Interview session started');
       },
       onSessionEnded: () => {
-        toast.info('Interview session ended');
+        notify.info('Interview session ended');
       },
       onInterviewConcluded: async () => {
         console.log('🏁 Interview concluded (auto), transitioning to results...');
@@ -676,10 +676,10 @@ export default function MockInterviewPage() {
     try {
       await deleteDoc(doc(db, 'users', currentUser.uid, 'mockInterviewSessions', sessionId));
       setPastSessions(prev => prev.filter(s => s.id !== sessionId));
-      toast.success('Session deleted');
+      notify.success('Session deleted');
     } catch (error) {
       console.error('Error deleting session:', error);
-      toast.error('Failed to delete session');
+      notify.error('Failed to delete session');
     }
   }, [currentUser]);
 

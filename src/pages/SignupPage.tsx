@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Loader2, RefreshCw, Eye, EyeOff, Check, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { forceLightMode } from '../lib/theme';
 import FirebaseImage from '../components/FirebaseImage';
 
@@ -62,17 +62,17 @@ export default function SignupPage() {
     e.preventDefault();
     
     if (!firstName || !lastName || !email || !password || !confirmPassword) {
-      toast.error('Please fill in all fields');
+      notify.error('Please fill in all fields');
       return;
     }
 
     if (!isPasswordValid) {
-      toast.error('Password does not meet security requirements');
+      notify.error('Password does not meet security requirements');
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
+      notify.error('Passwords do not match');
       return;
     }
 
@@ -80,10 +80,10 @@ export default function SignupPage() {
       setIsLoading(true);
       await signup(email, password, firstName, lastName);
       setShowVerificationMessage(true);
-      toast.success('Account created! Please check your email to verify your account.');
+      notify.success('Account created! Please check your email to verify your account.');
     } catch (error) {
       console.error('Signup error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create account');
+      notify.error(error instanceof Error ? error.message : 'Failed to create account');
       setShowVerificationMessage(false);
     } finally {
       setIsLoading(false);
@@ -93,10 +93,10 @@ export default function SignupPage() {
   const handleResendVerification = async () => {
     try {
       await resendVerificationEmail();
-      toast.success('Verification email sent!');
+      notify.success('Verification email sent!');
     } catch (error) {
       console.error('Error resending verification:', error);
-      toast.error('Failed to resend verification email');
+      notify.error('Failed to resend verification email');
     }
   };
 
@@ -105,10 +105,10 @@ export default function SignupPage() {
       setIsLoading(true);
       await signInWithGoogle();
       navigate('/hub');
-      toast.success('Successfully signed up with Google!');
+      notify.success('Successfully signed up with Google!');
     } catch (error: any) {
       console.error('Google Sign In Error:', error);
-      toast.error('Failed to sign up with Google');
+      notify.error('Failed to sign up with Google');
     } finally {
       setIsLoading(false);
     }

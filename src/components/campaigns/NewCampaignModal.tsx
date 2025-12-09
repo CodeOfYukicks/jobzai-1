@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowRight, ArrowLeft, Loader2, Rocket } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
@@ -102,18 +102,18 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
     switch (currentStep) {
       case 'targeting':
         if (campaignData.personTitles.length === 0) {
-          toast.error('Please add at least one job title');
+          notify.error('Please add at least one job title');
           return false;
         }
         if (campaignData.personLocations.length === 0) {
-          toast.error('Please select at least one location');
+          notify.error('Please select at least one location');
           return false;
         }
         return true;
       
       case 'gmail':
         if (!campaignData.gmailConnected) {
-          toast.error('Please connect your Gmail account');
+          notify.error('Please connect your Gmail account');
           return false;
         }
         return true;
@@ -189,12 +189,12 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
 
       const docRef = await addDoc(collection(db, 'campaigns'), campaignDoc);
       
-      toast.success('Campaign launched successfully!');
+      notify.success('Campaign launched successfully!');
       onCampaignCreated?.(docRef.id);
       onClose();
     } catch (error) {
       console.error('Error creating campaign:', error);
-      toast.error('Failed to create campaign');
+      notify.error('Failed to create campaign');
     } finally {
       setIsSubmitting(false);
     }

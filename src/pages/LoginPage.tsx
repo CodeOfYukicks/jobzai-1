@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import FirebaseImage from '../components/FirebaseImage';
 import { forceLightMode } from '../lib/theme';
 
@@ -25,7 +25,7 @@ export default function LoginPage() {
     e.preventDefault();
     
     if (!email || !password) {
-      toast.error('Please fill in all fields');
+      notify.error('Please fill in all fields');
       return;
     }
 
@@ -40,34 +40,34 @@ export default function LoginPage() {
       
       switch (error.code) {
         case 'auth/invalid-credential':
-          toast.error('Invalid email or password');
+          notify.error('Invalid email or password');
           break;
         case 'auth/user-not-found':
-          toast.error('No account found with this email');
+          notify.error('No account found with this email');
           break;
         case 'auth/wrong-password':
-          toast.error('Incorrect password');
+          notify.error('Incorrect password');
           break;
         case 'auth/too-many-requests':
-          toast.error('Too many failed attempts. Please try again later');
+          notify.error('Too many failed attempts. Please try again later');
           break;
         default:
           if (error.message === 'Please verify your email before logging in') {
-            toast.error('Please verify your email before logging in', {
+            notify.error('Please verify your email before logging in', {
               action: {
                 label: 'Resend verification',
                 onClick: async () => {
                   try {
                     await resendVerificationEmail();
-                    toast.success('Verification email sent!');
+                    notify.success('Verification email sent!');
                   } catch (err) {
-                    toast.error('Failed to send verification email');
+                    notify.error('Failed to send verification email');
                   }
                 },
               },
             });
           } else {
-            toast.error('Failed to log in. Please try again');
+            notify.error('Failed to log in. Please try again');
           }
       }
     } finally {
@@ -80,10 +80,10 @@ export default function LoginPage() {
       setIsLoading(true);
       await signInWithGoogle();
       navigate('/hub');
-      toast.success('Successfully signed in with Google!');
+      notify.success('Successfully signed in with Google!');
     } catch (error: any) {
       console.error('Google Sign In Error:', error);
-      toast.error('Failed to sign in with Google');
+      notify.error('Failed to sign in with Google');
     } finally {
       setIsLoading(false);
     }
@@ -182,7 +182,7 @@ export default function LoginPage() {
                         }
                       );
                     } else {
-                      toast.error('Please enter your email first');
+                      notify.error('Please enter your email first');
                     }
                   }}
                   className="text-sm font-medium text-gray-900 hover:text-gray-700 transition-colors"

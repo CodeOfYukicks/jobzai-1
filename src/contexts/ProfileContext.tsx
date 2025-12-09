@@ -2,7 +2,7 @@ import { createContext, useContext, useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface ProfileContextType {
   personalInfo: any;

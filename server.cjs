@@ -4655,18 +4655,32 @@ app.get('/api/gmail/thread/:threadId', verifyFirebaseToken, async (req, res) => 
     }
     body = cleanLines.join('\n').trim();
     
-    // Format date
-    let formattedDate = dateHeader;
+    // Use internalDate (Unix timestamp in milliseconds) for reliable date parsing
+    // This is more reliable than parsing the RFC 2822 date header
+    let isoDate;
     try {
-      const date = new Date(dateHeader);
-      formattedDate = date.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch (e) {}
+      if (replyMessage.internalDate) {
+        // internalDate is a Unix timestamp in milliseconds
+        const timestamp = parseInt(replyMessage.internalDate);
+        if (!isNaN(timestamp) && timestamp > 0) {
+          isoDate = new Date(timestamp).toISOString();
+        } else {
+          throw new Error('Invalid internalDate');
+        }
+      } else {
+        // Fallback to dateHeader if internalDate is not available
+        const date = new Date(dateHeader);
+        if (!isNaN(date.getTime())) {
+          isoDate = date.toISOString();
+        } else {
+          throw new Error('Invalid dateHeader');
+        }
+      }
+    } catch (e) {
+      // If both fail, use current date
+      console.warn('Failed to parse date, using current date:', e.message);
+      isoDate = new Date().toISOString();
+    }
     
     res.json({
       success: true,
@@ -4674,7 +4688,7 @@ app.get('/api/gmail/thread/:threadId', verifyFirebaseToken, async (req, res) => 
         from: fromHeader,
         subject: subjectHeader,
         body: body || '(No text content)',
-        date: formattedDate
+        date: isoDate
       }
     });
     

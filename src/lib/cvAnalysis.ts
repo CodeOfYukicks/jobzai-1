@@ -1,6 +1,6 @@
 ﻿import { ref, getStorage, getDownloadURL } from 'firebase/storage';
 import { storage, auth } from './firebase';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 // Configuration pour les validations
 const VALIDATION_CONFIG = {
@@ -109,16 +109,16 @@ export async function fetchCVContent(cvUrl: string) {
 
     // Gestion spécifique des erreurs
     if (error.code === 'storage/object-not-found') {
-      toast.error('CV not found. Please upload your CV first');
+      notify.error('CV not found. Please upload your CV first');
       throw new Error('CV not found');
     }
     
     if (error.code === 'storage/unauthorized') {
-      toast.error('Access denied. Please check your permissions');
+      notify.error('Access denied. Please check your permissions');
       throw new Error('Unauthorized access');
     }
 
-    toast.error('Failed to fetch CV. Please try again');
+    notify.error('Failed to fetch CV. Please try again');
     throw new Error(`Failed to fetch CV: ${error.message}`);
   }
 }
@@ -388,12 +388,12 @@ export async function analyzeCVWithGPT(cvUrl: string, jobDetails: {
     const analysis = await callGptVisionApi(base64CV, jobDetails);
     
     console.log('GPT Vision analysis completed successfully');
-    toast.success('CV analysis completed with advanced AI');
+    notify.success('CV analysis completed with advanced AI');
     
     return analysis;
   } catch (error: any) {
     console.error('Advanced CV analysis error:', error);
-    toast.error('Failed to analyze CV: ' + (error.message || 'Unknown error'));
+    notify.error('Failed to analyze CV: ' + (error.message || 'Unknown error'));
     throw error;
   }
 }

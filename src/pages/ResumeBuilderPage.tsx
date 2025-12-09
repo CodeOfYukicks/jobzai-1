@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { collection, query, getDocs, deleteDoc, doc, orderBy, addDoc, serverTimestamp, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { db, storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { CVData, CVTemplate } from '../types/cvEditor';
 import { generateId } from '../lib/cvEditorUtils';
 import CVPreviewCard from '../components/resume-builder/CVPreviewCard';
@@ -166,7 +166,7 @@ export default function ResumeBuilderPage() {
       setFolders(foldersList);
     } catch (error) {
       console.error('Error fetching folders:', error);
-      toast.error('Failed to load folders');
+      notify.error('Failed to load folders');
     }
   }, [currentUser]);
 
@@ -204,7 +204,7 @@ export default function ResumeBuilderPage() {
       setResumes(resumesList);
     } catch (error) {
       console.error('Error fetching resumes:', error);
-      toast.error('Failed to load resumes');
+      notify.error('Failed to load resumes');
     } finally {
       setIsLoading(false);
     }
@@ -311,7 +311,7 @@ export default function ResumeBuilderPage() {
       });
     } catch (error) {
       console.error('Error saving view preferences:', error);
-      toast.error('Failed to save preferences');
+      notify.error('Failed to save preferences');
     }
   }, [currentUser]);
 
@@ -344,12 +344,12 @@ export default function ResumeBuilderPage() {
   // Create new resume
   const createNewResume = async (name: string, template: CVTemplate, folderId?: string) => {
     if (!currentUser) {
-      toast.error('Please log in to create a resume');
+      notify.error('Please log in to create a resume');
       return;
     }
 
     if (!name.trim()) {
-      toast.error('Please enter a resume name');
+      notify.error('Please enter a resume name');
       return;
     }
 
@@ -374,12 +374,12 @@ export default function ResumeBuilderPage() {
         updatedAt: serverTimestamp()
       });
 
-      toast.success('Resume created!');
+      notify.success('Resume created!');
       setIsCreateModalOpen(false);
       navigate(`/resume-builder/${resumeId}/cv-editor`);
     } catch (error) {
       console.error('Error creating resume:', error);
-      toast.error('Failed to create resume');
+      notify.error('Failed to create resume');
     } finally {
       setIsCreating(false);
     }
@@ -401,10 +401,10 @@ export default function ResumeBuilderPage() {
     try {
       await deleteDoc(doc(db, 'users', currentUser.uid, 'cvs', resumeId));
       setResumes(prev => prev.filter(r => r.id !== resumeId));
-      toast.success('Resume deleted');
+      notify.success('Resume deleted');
     } catch (error) {
       console.error('Error deleting resume:', error);
-      toast.error('Failed to delete resume');
+      notify.error('Failed to delete resume');
     }
   };
 
@@ -427,10 +427,10 @@ export default function ResumeBuilderPage() {
       setResumes(prev => prev.map(r => 
         r.id === resumeId ? { ...r, name: newName } : r
       ));
-      toast.success('Resume renamed');
+      notify.success('Resume renamed');
     } catch (error) {
       console.error('Error renaming resume:', error);
-      toast.error('Failed to rename resume');
+      notify.error('Failed to rename resume');
     }
   };
 
@@ -450,7 +450,7 @@ export default function ResumeBuilderPage() {
       ));
     } catch (error) {
       console.error('Error updating resume tags:', error);
-      toast.error('Failed to update tags');
+      notify.error('Failed to update tags');
     }
   };
 
@@ -481,10 +481,10 @@ export default function ResumeBuilderPage() {
       setFolders(prev => [...prev, createdFolder]);
       setIsFolderModalOpen(false);
       setEditingFolder(null);
-      toast.success('Folder created');
+      notify.success('Folder created');
     } catch (error) {
       console.error('Error creating folder:', error);
-      toast.error('Failed to create folder');
+      notify.error('Failed to create folder');
     } finally {
       setIsSavingFolder(false);
     }
@@ -506,10 +506,10 @@ export default function ResumeBuilderPage() {
       ));
       setIsFolderModalOpen(false);
       setEditingFolder(null);
-      toast.success('Folder updated');
+      notify.success('Folder updated');
     } catch (error) {
       console.error('Error updating folder:', error);
-      toast.error('Failed to update folder');
+      notify.error('Failed to update folder');
     } finally {
       setIsSavingFolder(false);
     }
@@ -537,10 +537,10 @@ export default function ResumeBuilderPage() {
       // Delete folder
       await deleteDoc(doc(db, 'users', currentUser.uid, 'folders', folderId));
       setFolders(prev => prev.filter(f => f.id !== folderId));
-      toast.success('Folder deleted');
+      notify.success('Folder deleted');
     } catch (error) {
       console.error('Error deleting folder:', error);
-      toast.error('Failed to delete folder');
+      notify.error('Failed to delete folder');
     }
   };
 
@@ -570,10 +570,10 @@ export default function ResumeBuilderPage() {
       const folderName = folderId 
         ? folders.find(f => f.id === folderId)?.name || 'folder'
         : 'Uncategorized';
-      toast.success(`Moved "${resume.name}" to ${folderName}`);
+      notify.success(`Moved "${resume.name}" to ${folderName}`);
     } catch (error) {
       console.error('Error moving CV:', error);
-      toast.error('Failed to move resume');
+      notify.error('Failed to move resume');
     }
   };
 
@@ -628,7 +628,7 @@ export default function ResumeBuilderPage() {
         } as ImportedDocument;
       } catch (error) {
         console.error(`Error uploading ${file.name}:`, error);
-        toast.error(`Failed to upload ${file.name}`);
+        notify.error(`Failed to upload ${file.name}`);
         return null;
       }
     });
@@ -638,7 +638,7 @@ export default function ResumeBuilderPage() {
     
     if (successfulUploads.length > 0) {
       setDocuments(prev => [...successfulUploads, ...prev]);
-      toast.success(`${successfulUploads.length} PDF${successfulUploads.length > 1 ? 's' : ''} uploaded successfully`);
+      notify.success(`${successfulUploads.length} PDF${successfulUploads.length > 1 ? 's' : ''} uploaded successfully`);
     }
 
     setIsUploadingPDF(false);
@@ -670,10 +670,10 @@ export default function ResumeBuilderPage() {
       }
 
       setDocuments(prev => prev.filter(d => d.id !== documentId));
-      toast.success('Document deleted');
+      notify.success('Document deleted');
     } catch (error) {
       console.error('Error deleting document:', error);
-      toast.error('Failed to delete document');
+      notify.error('Failed to delete document');
     }
   };
 
@@ -690,7 +690,7 @@ export default function ResumeBuilderPage() {
   // Note management functions
   const handleCreateNote = useCallback(async () => {
     if (!currentUser) {
-      toast.error('Please log in to create a note');
+      notify.error('Please log in to create a note');
       return;
     }
 
@@ -707,13 +707,13 @@ export default function ResumeBuilderPage() {
       });
 
       setNotes(prev => [newNote, ...prev]);
-      toast.success('Note created!');
+      notify.success('Note created!');
       // Scroll to top before navigating to ensure note opens at top of page
       window.scrollTo({ top: 0, behavior: 'instant' });
       navigate(`/notes/${newNote.id}`);
     } catch (error) {
       console.error('Error creating note:', error);
-      toast.error('Failed to create note');
+      notify.error('Failed to create note');
     } finally {
       setIsCreatingNote(false);
     }
@@ -731,10 +731,10 @@ export default function ResumeBuilderPage() {
     try {
       await deleteNoteService(currentUser.uid, noteId);
       setNotes(prev => prev.filter(n => n.id !== noteId));
-      toast.success('Note deleted');
+      notify.success('Note deleted');
     } catch (error) {
       console.error('Error deleting note:', error);
-      toast.error('Failed to delete note');
+      notify.error('Failed to delete note');
     }
   }, [currentUser]);
 
@@ -751,10 +751,10 @@ export default function ResumeBuilderPage() {
       setNotes(prev => prev.map(n => 
         n.id === noteId ? { ...n, title: newTitle } : n
       ));
-      toast.success('Note renamed');
+      notify.success('Note renamed');
     } catch (error) {
       console.error('Error renaming note:', error);
-      toast.error('Failed to rename note');
+      notify.error('Failed to rename note');
     }
   }, [currentUser]);
 
@@ -774,7 +774,7 @@ export default function ResumeBuilderPage() {
       ));
     } catch (error) {
       console.error('Error updating note tags:', error);
-      toast.error('Failed to update tags');
+      notify.error('Failed to update tags');
     }
   }, [currentUser]);
 
@@ -798,10 +798,10 @@ export default function ResumeBuilderPage() {
       const folderName = folderId 
         ? folders.find(f => f.id === folderId)?.name || 'folder'
         : 'Uncategorized';
-      toast.success(`Moved "${note.title}" to ${folderName}`);
+      notify.success(`Moved "${note.title}" to ${folderName}`);
     } catch (error) {
       console.error('Error moving note:', error);
-      toast.error('Failed to move note');
+      notify.error('Failed to move note');
     }
   }, [currentUser, notes, folders]);
 
@@ -827,10 +827,10 @@ export default function ResumeBuilderPage() {
         n.id === noteId ? { ...n, coverImage: coverUrl } : n
       ));
       
-      toast.success('Note cover updated');
+      notify.success('Note cover updated');
     } catch (error) {
       console.error('Error updating note cover:', error);
-      toast.error('Failed to update cover');
+      notify.error('Failed to update cover');
     }
   }, [currentUser]);
 
@@ -860,17 +860,17 @@ export default function ResumeBuilderPage() {
         n.id === noteId ? { ...n, coverImage: undefined } : n
       ));
       
-      toast.success('Note cover removed');
+      notify.success('Note cover removed');
     } catch (error) {
       console.error('Error removing note cover:', error);
-      toast.error('Failed to remove cover');
+      notify.error('Failed to remove cover');
     }
   }, [currentUser, notes]);
 
   // Whiteboard management functions
   const handleCreateWhiteboard = useCallback(async () => {
     if (!currentUser) {
-      toast.error('Please log in to create a whiteboard');
+      notify.error('Please log in to create a whiteboard');
       return;
     }
 
@@ -887,12 +887,12 @@ export default function ResumeBuilderPage() {
       });
 
       setWhiteboards(prev => [newWhiteboard, ...prev]);
-      toast.success('Whiteboard created!');
+      notify.success('Whiteboard created!');
       window.scrollTo({ top: 0, behavior: 'instant' });
       navigate(`/whiteboard/${newWhiteboard.id}`);
     } catch (error) {
       console.error('Error creating whiteboard:', error);
-      toast.error('Failed to create whiteboard');
+      notify.error('Failed to create whiteboard');
     } finally {
       setIsCreatingWhiteboard(false);
     }
@@ -909,10 +909,10 @@ export default function ResumeBuilderPage() {
     try {
       await deleteWhiteboardService(currentUser.uid, whiteboardId);
       setWhiteboards(prev => prev.filter(w => w.id !== whiteboardId));
-      toast.success('Whiteboard deleted');
+      notify.success('Whiteboard deleted');
     } catch (error) {
       console.error('Error deleting whiteboard:', error);
-      toast.error('Failed to delete whiteboard');
+      notify.error('Failed to delete whiteboard');
     }
   }, [currentUser]);
 
@@ -929,10 +929,10 @@ export default function ResumeBuilderPage() {
       setWhiteboards(prev => prev.map(w => 
         w.id === whiteboardId ? { ...w, title: newTitle } : w
       ));
-      toast.success('Whiteboard renamed');
+      notify.success('Whiteboard renamed');
     } catch (error) {
       console.error('Error renaming whiteboard:', error);
-      toast.error('Failed to rename whiteboard');
+      notify.error('Failed to rename whiteboard');
     }
   }, [currentUser]);
 
@@ -952,7 +952,7 @@ export default function ResumeBuilderPage() {
       ));
     } catch (error) {
       console.error('Error updating whiteboard tags:', error);
-      toast.error('Failed to update tags');
+      notify.error('Failed to update tags');
     }
   }, [currentUser]);
 
@@ -976,10 +976,10 @@ export default function ResumeBuilderPage() {
       const folderName = folderId 
         ? folders.find(f => f.id === folderId)?.name || 'folder'
         : 'Uncategorized';
-      toast.success(`Moved "${whiteboard.title}" to ${folderName}`);
+      notify.success(`Moved "${whiteboard.title}" to ${folderName}`);
     } catch (error) {
       console.error('Error moving whiteboard:', error);
-      toast.error('Failed to move whiteboard');
+      notify.error('Failed to move whiteboard');
     }
   }, [currentUser, whiteboards, folders]);
 
@@ -1007,10 +1007,10 @@ export default function ResumeBuilderPage() {
       const folderName = folderId 
         ? folders.find(f => f.id === folderId)?.name || 'folder'
         : 'Uncategorized';
-      toast.success(`Moved "${document.name}" to ${folderName}`);
+      notify.success(`Moved "${document.name}" to ${folderName}`);
     } catch (error) {
       console.error('Error moving document:', error);
-      toast.error('Failed to move document');
+      notify.error('Failed to move document');
     }
   };
 
@@ -1046,7 +1046,7 @@ export default function ResumeBuilderPage() {
         console.log('Saving preferences for', viewType, ':', newPrefs);
         await saveViewPreferences(viewType, newPrefs);
         console.log('Cover saved for', viewType, ':', coverUrl);
-        toast.success('Cover updated');
+        notify.success('Cover updated');
       } else if (typeof selectedFolderId === 'string') {
         // Handle regular folder
         const fileName = `folder_${selectedFolderId}_cover_${timestamp}.jpg`;
@@ -1056,11 +1056,11 @@ export default function ResumeBuilderPage() {
         const coverUrl = await getDownloadURL(folderCoverRef);
         
         await updateFolder(selectedFolderId, { coverPhoto: coverUrl });
-        toast.success('Folder cover updated');
+        notify.success('Folder cover updated');
       }
     } catch (error) {
       console.error('Error updating cover:', error);
-      toast.error('Failed to update cover');
+      notify.error('Failed to update cover');
     } finally {
       setIsUpdatingCover(false);
     }
@@ -1086,7 +1086,7 @@ export default function ResumeBuilderPage() {
         }
         
         await saveViewPreferences(viewType, { ...currentPrefs, coverPhoto: undefined });
-        toast.success('Cover removed');
+        notify.success('Cover removed');
       } else if (typeof selectedFolderId === 'string') {
         // Handle regular folder
         const folder = folders.find(f => f.id === selectedFolderId);
@@ -1101,11 +1101,11 @@ export default function ResumeBuilderPage() {
           console.warn('Could not delete old cover photo from storage', e);
         }
         
-        toast.success('Folder cover removed');
+        notify.success('Folder cover removed');
       }
     } catch (error) {
       console.error('Error removing cover:', error);
-      toast.error('Failed to remove cover');
+      notify.error('Failed to remove cover');
     } finally {
       setIsUpdatingCover(false);
     }
@@ -1119,7 +1119,7 @@ export default function ResumeBuilderPage() {
     const currentPrefs = viewPreferences[viewType];
     
     await saveViewPreferences(viewType, { ...currentPrefs, icon: emoji });
-    toast.success('Emoji updated');
+    notify.success('Emoji updated');
   };
 
   // Filter and sort resumes

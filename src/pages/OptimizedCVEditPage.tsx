@@ -11,7 +11,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { toResumeJson } from '../lib/resumeAdapter';
 import { db } from '../lib/firebase';
 
@@ -1460,22 +1460,22 @@ function OptimizedCVEditPage() {
         updateExperience(id, { description: data.bullets });
         setAiPulseExperience(id);
         setTimeout(() => setAiPulseExperience(null), 1200);
-        toast.success('Inserted AI bullets into experience');
+        notify.success('Inserted AI bullets into experience');
       } else if (kind === 'summary' && typeof data?.summary === 'string') {
         setCvData(prev => prev ? { ...prev, professionalSummary: data.summary } : prev);
         setAiPulseSummary(true);
         setTimeout(() => setAiPulseSummary(false), 1200);
-        toast.success('Inserted AI summary');
+        notify.success('Inserted AI summary');
       } else if (kind === 'education' && id && typeof data?.description === 'string') {
         updateEducation(id, { description: data.description });
         setAiPulseEducation(id);
         setTimeout(() => setAiPulseEducation(null), 1200);
-        toast.success('Inserted AI education description');
+        notify.success('Inserted AI education description');
       } else if (kind === 'skills' && Array.isArray(data?.skills)) {
         setCvData(prev => prev ? { ...prev, skills: data.skills } : prev);
         setAiPulseSkills(true);
         setTimeout(() => setAiPulseSkills(false), 1200);
-        toast.success('Inserted AI skills');
+        notify.success('Inserted AI skills');
       }
     } finally {
       // Replace the message with a non-actionable confirmation note
@@ -1656,12 +1656,12 @@ function OptimizedCVEditPage() {
           }
         } else {
           console.error('❌ CV document not found');
-          toast.error('CV not found');
+          notify.error('CV not found');
           navigate('/cv-optimizer');
         }
       } catch (error: any) {
         console.error('❌ Error loading CV:', error);
-        toast.error('Failed to load CV');
+        notify.error('Failed to load CV');
         navigate('/cv-optimizer');
       } finally {
         setIsLoading(false);
@@ -1863,12 +1863,12 @@ ${jobContent.substring(0, 6000)}
         if (resp.ok && data?.status === 'success' && typeof data.html === 'string') {
           setExternalThemeHtml(data.html);
         } else {
-          toast.error(data?.message || 'Failed to render theme');
+          notify.error(data?.message || 'Failed to render theme');
           setExternalThemeHtml('');
         }
       } catch (e: any) {
         console.error(e);
-        toast.error('Theme render failed');
+        notify.error('Theme render failed');
         setExternalThemeHtml('');
       } finally {
         setIsLoadingTheme(false);
@@ -1948,7 +1948,7 @@ ${jobContent.substring(0, 6000)}
       setTimeout(() => setIsSaved(false), 3000);
     } catch (error: any) {
       console.error('Error saving CV:', error);
-      toast.error('Failed to save changes');
+      notify.error('Failed to save changes');
     } finally {
       setIsSaving(false);
     }
@@ -1979,7 +1979,7 @@ ${jobContent.substring(0, 6000)}
       setCv({ ...cv, optimizedResumeMarkdown: markdown });
     } catch (error: any) {
       console.error('Error saving CV:', error);
-      toast.error('Failed to save changes');
+      notify.error('Failed to save changes');
       setIsSaving(false);
       setIsGlowing(false);
       return;
@@ -2007,7 +2007,7 @@ ${jobContent.substring(0, 6000)}
     if (cvData) {
       setCvData({ ...cvData });
     }
-    toast.success('Section order updated');
+    notify.success('Section order updated');
   };
 
   // Generate personalized ATS tips using AI
@@ -2088,7 +2088,7 @@ Be specific, actionable, and focus on quick wins that will improve the ATS score
       setAtsTips(tips);
     } catch (error) {
       console.error('Error generating ATS tips:', error);
-      toast.error('Failed to generate tips');
+      notify.error('Failed to generate tips');
       setAtsTips([
         'Add more keywords from the job description',
         'Quantify achievements with specific numbers',
@@ -2105,12 +2105,12 @@ Be specific, actionable, and focus on quick wins that will improve the ATS score
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.error('Please upload an image file');
+      notify.error('Please upload an image file');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be less than 5MB');
+      notify.error('Image must be less than 5MB');
       return;
     }
 
@@ -2120,12 +2120,12 @@ Be specific, actionable, and focus on quick wins that will improve the ATS score
       reader.onloadend = () => {
         const base64 = reader.result as string;
         setCvPhoto(base64);
-        toast.success('Photo updated');
+        notify.success('Photo updated');
       };
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Error uploading photo:', error);
-      toast.error('Failed to upload photo');
+      notify.error('Failed to upload photo');
     }
   };
 
@@ -2167,7 +2167,7 @@ Be specific, actionable, and focus on quick wins that will improve the ATS score
           updateFunction = () => {
             // Parse AI response and update experiences
             // This is simplified - you might want more sophisticated parsing
-            toast.success('AI editing applied to experiences');
+            notify.success('AI editing applied to experiences');
           };
           break;
         default:
@@ -2189,7 +2189,7 @@ Be specific, actionable, and focus on quick wins that will improve the ATS score
       const data = await response.json();
       if (data.status === 'success') {
         updateFunction(data.content);
-        toast.success('Content edited with AI!');
+        notify.success('Content edited with AI!');
         setIsAIModalOpen(false);
         setAiPrompt('');
       } else {
@@ -2197,7 +2197,7 @@ Be specific, actionable, and focus on quick wins that will improve the ATS score
       }
     } catch (error: any) {
       console.error('Error editing with AI:', error);
-      toast.error(error.message || 'Failed to edit with AI');
+      notify.error(error.message || 'Failed to edit with AI');
     } finally {
       setIsAIGenerating(false);
     }
@@ -2361,7 +2361,7 @@ RETURN JSON ONLY:
       // No immediate update; user can insert or continue chatting
     } catch (e: any) {
       console.error(e);
-      toast.error(e.message || 'Failed to improve bullets');
+      notify.error(e.message || 'Failed to improve bullets');
       
       // Add error message to chat
       const currentMessages = chatMessages[expId] || [];
@@ -2465,7 +2465,7 @@ Return JSON only:
       // No immediate update; user can insert or continue chatting
     } catch (e: any) {
       console.error(e);
-      toast.error(e.message || 'Failed to improve summary');
+      notify.error(e.message || 'Failed to improve summary');
       
       // Add error message to chat
       const currentMessages = chatMessages['summary'] || [];
@@ -2572,7 +2572,7 @@ Return JSON only:
       // No immediate update; user can insert or continue chatting
     } catch (e: any) {
       console.error(e);
-      toast.error(e.message || 'Failed to improve education');
+      notify.error(e.message || 'Failed to improve education');
       
       // Add error message to chat
       const currentMessages = chatMessages[`education-${eduId}`] || [];
@@ -2705,7 +2705,7 @@ JSON ONLY:
       // No immediate update; user can insert or continue chatting
     } catch (e: any) {
       console.error(e);
-      toast.error(e.message || 'Failed to generate skills');
+      notify.error(e.message || 'Failed to generate skills');
       
       // Add error message to chat
       const currentMessages = chatMessages['skills'] || [];
@@ -2933,7 +2933,7 @@ JSON ONLY:
     if (!cv || !cvData) return;
     
     try {
-      toast.info('Generating PDF...');
+      notify.info('Generating PDF...');
       
       // Dynamically import jsPDF (use doc.html first for better text fidelity)
       const { default: jsPDF } = await import('jspdf');
@@ -2985,10 +2985,10 @@ JSON ONLY:
         pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
         pdf.save(filename);
       }
-      toast.success('PDF generated successfully!');
+      notify.success('PDF generated successfully!');
     } catch (error: any) {
       console.error('Error generating PDF:', error);
-      toast.error('Failed to generate PDF: ' + (error.message || 'Unknown error'));
+      notify.error('Failed to generate PDF: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -2999,11 +2999,11 @@ JSON ONLY:
 
     try {
       await deleteDoc(doc(db, 'users', currentUser.uid, 'optimizedCVs', cv.id));
-      toast.success('Resume deleted');
+      notify.success('Resume deleted');
       navigate('/cv-optimizer');
     } catch (error: any) {
       console.error('Error deleting CV:', error);
-      toast.error('Failed to delete resume');
+      notify.error('Failed to delete resume');
     }
   };
 
@@ -3013,9 +3013,9 @@ JSON ONLY:
     try {
       const markdown = convertCVDataToMarkdown(cvData);
       await navigator.clipboard.writeText(markdown);
-      toast.success('Copied to clipboard!');
+      notify.success('Copied to clipboard!');
     } catch (error) {
-      toast.error('Failed to copy');
+      notify.error('Failed to copy');
     }
   };
 
@@ -3054,7 +3054,7 @@ JSON ONLY:
       });
 
       if (existingVersion) {
-        toast.info(`Switching to existing ${targetLanguageName} version`);
+        notify.info(`Switching to existing ${targetLanguageName} version`);
         navigate(`/cv-optimizer/${existingVersion.id}`);
         return;
       }
@@ -3065,7 +3065,7 @@ JSON ONLY:
 
     setIsDuplicating(true);
     try {
-      toast.info(`Creating ${targetLanguageName} version...`);
+      notify.info(`Creating ${targetLanguageName} version...`);
 
       // Get current CV content - NOW INCLUDES ALL INFORMATION (personal info, etc.)
       const currentMarkdown = convertCVDataToMarkdown(cvData);
@@ -3454,7 +3454,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
       
       console.log('✅ Translated CV saved with ID:', newCvDoc.id);
 
-      toast.success(`${targetLanguageName} version created!`);
+      notify.success(`${targetLanguageName} version created!`);
       
       // Small delay to ensure Firestore write is complete
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -3463,7 +3463,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
       navigate(`/cv-optimizer/${newCvDoc.id}`);
     } catch (error: any) {
       console.error('Error duplicating and translating CV:', error);
-      toast.error(error.message || 'Failed to create translated version');
+      notify.error(error.message || 'Failed to create translated version');
     } finally {
       setIsDuplicating(false);
     }
@@ -4000,7 +4000,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                       value={styling.font}
                       onChange={(e) => {
                         setStyling({ ...styling, font: e.target.value });
-                        toast.success('Font updated');
+                        notify.success('Font updated');
                       }}
                       className="w-full px-4 py-2.5 text-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EB7134] focus:border-[#EB7134] transition-all shadow-sm"
                       style={{ fontFamily: styling.font }}
@@ -5544,7 +5544,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                     onClick={() => {
                       setStyling({ ...styling, template: 'harvard' });
                       setIsTemplateModalOpen(false);
-                      toast.success('Template: Harvard');
+                      notify.success('Template: Harvard');
                     }}
                     className={`group relative rounded-lg overflow-hidden transition-all ${
                       styling.template === 'harvard'
@@ -5605,7 +5605,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                     onClick={() => {
                       setStyling({ ...styling, template: 'modern' });
                       setIsTemplateModalOpen(false);
-                      toast.success('Template: Modern');
+                      notify.success('Template: Modern');
                     }}
                     className={`group relative rounded-lg overflow-hidden transition-all ${
                       styling.template === 'modern'

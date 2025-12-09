@@ -4,7 +4,7 @@ import { FileText, Link, CheckCircle, Upload, X, Loader2 } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../../lib/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { pdfToImages } from '../../../lib/pdfToImages';
 import { extractCVTextAndTags } from '../../../lib/cvTextExtraction';
 
@@ -42,14 +42,14 @@ const FinalizationStep = ({ data, onUpdate }: FinalizationStepProps) => {
 
     // Validate file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('CV must be less than 5MB');
+      notify.error('CV must be less than 5MB');
       return;
     }
 
     // Validate file type
     const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (!allowedTypes.includes(file.type)) {
-      toast.error('Please upload a PDF or Word document');
+      notify.error('Please upload a PDF or Word document');
       return;
     }
 
@@ -64,7 +64,7 @@ const FinalizationStep = ({ data, onUpdate }: FinalizationStepProps) => {
       // Extract text, tags, and experiences
       let extractedData: Record<string, any> = {};
       try {
-        toast.info('Analyzing your CV...');
+        notify.info('Analyzing your CV...');
         const images = await pdfToImages(file, 2, 1.5);
         const { text, technologies, skills, experiences } = await extractCVTextAndTags(images);
 
@@ -80,10 +80,10 @@ const FinalizationStep = ({ data, onUpdate }: FinalizationStepProps) => {
         }
 
         const expCount = experiences?.length || 0;
-        toast.success(`CV analyzed! Found ${technologies.length} technologies, ${skills.length} skills${expCount > 0 ? `, and ${expCount} experiences` : ''}`);
+        notify.success(`CV analyzed! Found ${technologies.length} technologies, ${skills.length} skills${expCount > 0 ? `, and ${expCount} experiences` : ''}`);
       } catch (extractionError) {
         console.error('CV extraction failed:', extractionError);
-        toast.warning('CV uploaded but analysis failed');
+        notify.warning('CV uploaded but analysis failed');
       }
 
       setCvUrl(downloadUrl);
@@ -93,13 +93,13 @@ const FinalizationStep = ({ data, onUpdate }: FinalizationStepProps) => {
         cvName: file.name,
         ...extractedData
       });
-      toast.success('CV uploaded successfully');
+      notify.success('CV uploaded successfully');
     } catch (error: any) {
       console.error('Error uploading CV:', error);
       if (error.code === 'storage/unauthorized') {
-        toast.error('Permission denied. Please try again or contact support.');
+        notify.error('Permission denied. Please try again or contact support.');
       } else {
-        toast.error('Failed to upload CV. Please try again.');
+        notify.error('Failed to upload CV. Please try again.');
       }
     } finally {
       setIsUploading(false);
@@ -140,7 +140,7 @@ const FinalizationStep = ({ data, onUpdate }: FinalizationStepProps) => {
     setCvUrl('');
     setCvName('');
     handleUpdate({ cvUrl: '', cvName: '' });
-    toast.success('CV removed');
+    notify.success('CV removed');
   };
 
   const completionChecklist = [

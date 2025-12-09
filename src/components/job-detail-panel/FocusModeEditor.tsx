@@ -3,7 +3,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Copy, Save, Check, Loader2, FileText, Undo2, Redo2 } from 'lucide-react';
 import { AIChat } from './AIChat';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface FocusModeEditorProps {
   isOpen: boolean;
@@ -86,7 +86,7 @@ export const FocusModeEditor = ({
       isUpdatingFromHistory.current = true;
       setHistoryIndex(historyIndex - 1);
       setContent(contentHistory[historyIndex - 1]);
-      toast.success('Undone');
+      notify.success('Undone');
     }
   };
 
@@ -95,7 +95,7 @@ export const FocusModeEditor = ({
       isUpdatingFromHistory.current = true;
       setHistoryIndex(historyIndex + 1);
       setContent(contentHistory[historyIndex + 1]);
-      toast.success('Redone');
+      notify.success('Redone');
     }
   };
 
@@ -123,12 +123,12 @@ export const FocusModeEditor = ({
     setIsSaving(true);
     try {
       await onSave(content);
-      toast.success('Saved successfully!');
+      notify.success('Saved successfully!');
       setHasUnsavedChanges(false);
       onClose();
     } catch (error) {
       console.error('Error saving:', error);
-      toast.error('Failed to save');
+      notify.error('Failed to save');
     } finally {
       setIsSaving(false);
     }
@@ -138,10 +138,10 @@ export const FocusModeEditor = ({
     try {
       await navigator.clipboard.writeText(content);
       setIsCopied(true);
-      toast.success('Copied to clipboard!');
+      notify.success('Copied to clipboard!');
       setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
-      toast.error('Failed to copy to clipboard');
+      notify.error('Failed to copy to clipboard');
     }
   };
 

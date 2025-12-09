@@ -1,4 +1,4 @@
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 /**
  * Determine API base URL based on environment
@@ -1168,7 +1168,7 @@ export async function analyzeCVWithGPT4Vision(
     }
   } catch (error: unknown) {
     console.error('❌ GPT-4o Vision API call failed:', error);
-    toast.error(
+    notify.error(
       `Failed to analyze CV with GPT-4o Vision: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
     throw error;

@@ -10,7 +10,7 @@ import {
 import { getDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { CVRewrite, PremiumATSAnalysis, AdaptationLevel } from '../types/premiumATS';
 import { generateCVRewrite, translateCV } from '../lib/cvRewriteService';
 import AdaptationLevelModal from '../components/ats-premium/AdaptationLevelModal';
@@ -447,12 +447,12 @@ export default function CVRewritePage() {
             initializeSections(data.cv_rewrite);
           }
         } else {
-          toast.error('Analysis not found');
+          notify.error('Analysis not found');
           navigate('/cv-analysis');
         }
       } catch (error) {
         console.error('Error fetching analysis:', error);
-        toast.error('Failed to load analysis');
+        notify.error('Failed to load analysis');
         navigate('/cv-analysis');
       } finally {
         setLoading(false);
@@ -585,7 +585,7 @@ export default function CVRewritePage() {
     // If initial_cv is empty or missing, use the raw markdown directly
     if (!rewrite?.initial_cv || rewrite.initial_cv.length < 50) {
       console.warn('⚠️ initial_cv is empty or too short, cannot parse CV data');
-      toast.error('CV rewrite data is incomplete. Please regenerate the CV.');
+      notify.error('CV rewrite data is incomplete. Please regenerate the CV.');
       return;
     }
     
@@ -874,7 +874,7 @@ export default function CVRewritePage() {
     if (!analysis) return;
     
     if (!analysis.cvText || !analysis.jobDescription) {
-      toast.error('This analysis is missing required data. Please run a new analysis.', {
+      notify.error('This analysis is missing required data. Please run a new analysis.', {
         duration: 6000
       });
       return;
@@ -888,7 +888,7 @@ export default function CVRewritePage() {
     if (!analysis) return;
     
     if (!analysis.cvText || !analysis.jobDescription) {
-      toast.error('This analysis is missing required data. Please run a new analysis.', {
+      notify.error('This analysis is missing required data. Please run a new analysis.', {
         duration: 6000
       });
       return;
@@ -968,7 +968,7 @@ export default function CVRewritePage() {
       // Afficher les erreurs critiques
       if (!parsingValidation.isValid) {
         console.error('Parsing validation errors:', parsingValidation.errors);
-        toast.error(`CV rewrite has validation errors: ${parsingValidation.errors.join(', ')}`, {
+        notify.error(`CV rewrite has validation errors: ${parsingValidation.errors.join(', ')}`, {
           duration: 8000,
         });
         // Ne pas sauvegarder si erreurs critiques
@@ -978,7 +978,7 @@ export default function CVRewritePage() {
       // Afficher les warnings
       if (parsingValidation.warnings.length > 0) {
         console.warn('Parsing validation warnings:', parsingValidation.warnings);
-        toast.warning(`${parsingValidation.warnings.length} parsing warnings detected. Check console.`, {
+        notify.warning(`${parsingValidation.warnings.length} parsing warnings detected. Check console.`, {
           duration: 6000,
         });
       }
@@ -988,13 +988,13 @@ export default function CVRewritePage() {
         const criticalIssues = qualityReport.issues.filter(i => i.type === 'error' || i.type === 'warning');
         if (criticalIssues.length > 0) {
           console.warn('CV Quality Report:', qualityReport);
-          toast.warning(`CV quality score: ${qualityReport.score}/100. ${criticalIssues.length} issues found.`, {
+          notify.warning(`CV quality score: ${qualityReport.score}/100. ${criticalIssues.length} issues found.`, {
             duration: 6000,
           });
         }
       } else {
         console.log('CV Quality Report:', qualityReport);
-        toast.success(`CV quality score: ${qualityReport.score}/100`, {
+        notify.success(`CV quality score: ${qualityReport.score}/100`, {
           duration: 3000,
         });
       }
@@ -1011,16 +1011,16 @@ export default function CVRewritePage() {
         });
       }
       
-      toast.success('CV rewritten successfully!');
+      notify.success('CV rewritten successfully!');
     } catch (error: any) {
       console.error('Error generating CV rewrite:', error);
       const errorMessage = error.message || 'Unknown error occurred';
       if (errorMessage.includes('API key')) {
-        toast.error('Please run a new ATS analysis to automatically generate CV rewrite.', {
+        notify.error('Please run a new ATS analysis to automatically generate CV rewrite.', {
           duration: 6000
         });
       } else {
-        toast.error(`Failed to generate: ${errorMessage}`);
+        notify.error(`Failed to generate: ${errorMessage}`);
       }
     } finally {
       setIsGenerating(false);
@@ -1103,7 +1103,7 @@ ${cvSections.hobbies ? `## Hobbies & Interests\n${cvSections.hobbies}` : ''}
         });
       });
       
-      toast.success('Section reordered');
+      notify.success('Section reordered');
     }
   };
 
@@ -1134,7 +1134,7 @@ ${cvSections.hobbies ? `## Hobbies & Interests\n${cvSections.hobbies}` : ''}
       }
     });
     
-    toast.success('Experience reordered');
+    notify.success('Experience reordered');
   };
 
   // Handle drag end for educations - Optimisé pour éviter le freeze
@@ -1164,7 +1164,7 @@ ${cvSections.hobbies ? `## Hobbies & Interests\n${cvSections.hobbies}` : ''}
       }
     });
     
-    toast.success('Education reordered');
+    notify.success('Education reordered');
   };
 
   // Handle drag end for skills - Optimisé pour éviter le freeze
@@ -1194,7 +1194,7 @@ ${cvSections.hobbies ? `## Hobbies & Interests\n${cvSections.hobbies}` : ''}
       }
     });
     
-    toast.success('Skill reordered');
+    notify.success('Skill reordered');
   };
 
   const handlePersonalFieldChange = (
@@ -1215,9 +1215,9 @@ ${cvSections.hobbies ? `## Hobbies & Interests\n${cvSections.hobbies}` : ''}
       const content = flattenSectionContent(cvSections);
       doc.text(content, 20, 20, { maxWidth: 170 });
       doc.save(`${analysis?.jobTitle}_${analysis?.company}_CV.pdf`);
-      toast.success('PDF downloaded!');
+      notify.success('PDF downloaded!');
     } catch (error) {
-      toast.error('Failed to download PDF');
+      notify.error('Failed to download PDF');
     }
   };
 
@@ -1227,10 +1227,10 @@ ${cvSections.hobbies ? `## Hobbies & Interests\n${cvSections.hobbies}` : ''}
       const content = flattenSectionContent(cvSections);
       await navigator.clipboard.writeText(content);
       setIsCopied(true);
-      toast.success('Copied to clipboard!');
+      notify.success('Copied to clipboard!');
       setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
-      toast.error('Failed to copy');
+      notify.error('Failed to copy');
     }
   };
 
@@ -1243,10 +1243,10 @@ ${cvSections.hobbies ? `## Hobbies & Interests\n${cvSections.hobbies}` : ''}
       await translateCV(content, targetLang);
       
       // TODO: Split translated content back into sections
-      toast.success(`Translated to ${targetLang === 'en' ? 'English' : 'French'}!`);
+      notify.success(`Translated to ${targetLang === 'en' ? 'English' : 'French'}!`);
       setCurrentLanguage(targetLang);
     } catch (error: any) {
-      toast.error(error.message || 'Translation failed', { duration: 5000 });
+      notify.error(error.message || 'Translation failed', { duration: 5000 });
     } finally {
       setIsTranslating(false);
     }

@@ -4,7 +4,7 @@ import { ArrowLeft, Send, Loader2, Briefcase, FileText, Settings, Target, ArrowR
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { TemplateSelector } from '../components/TemplateSelector';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../lib/firebase';
@@ -149,7 +149,7 @@ export default function CampaignPreview({ onBack }: CampaignPreviewProps) {
     } else if (currentStep === 'template') {
       if (!formData.templateId) {
         // This error will be handled visually rather than in a specific field
-        toast.error('Please select an email template');
+        notify.error('Please select an email template');
         return false;
       }
     }
@@ -212,11 +212,11 @@ export default function CampaignPreview({ onBack }: CampaignPreviewProps) {
       const campaignsCollection = collection(db, 'users', currentUser.uid, 'campaigns');
       await addDoc(campaignsCollection, campaignData);
 
-      toast.success('Campaign created successfully!');
+      notify.success('Campaign created successfully!');
       onBack();
     } catch (error) {
       console.error('Error creating campaign:', error);
-      toast.error('Failed to create campaign');
+      notify.error('Failed to create campaign');
     } finally {
       setIsCreating(false);
     }

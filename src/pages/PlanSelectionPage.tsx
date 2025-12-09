@@ -5,7 +5,7 @@ import { Check, Loader2, Sparkles, X } from 'lucide-react';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { recordCreditHistory } from '../lib/creditHistory';
 import { redirectToStripeCheckout } from '../services/stripe';
 
@@ -66,7 +66,7 @@ export default function PlanSelectionPage() {
 
   const handlePlanSelect = async (planId: string) => {
     if (!currentUser) {
-      toast.error('Please sign in to select a plan');
+      notify.error('Please sign in to select a plan');
       return;
     }
 
@@ -118,15 +118,15 @@ export default function PlanSelectionPage() {
           // User will be redirected to Stripe Checkout
         } catch (error: any) {
           console.error('Error initiating checkout:', error);
-          toast.error(error.message || 'Failed to initiate payment. Please try again.');
+          notify.error(error.message || 'Failed to initiate payment. Please try again.');
         }
       } else {
-        toast.success(`${plan.name} plan activated successfully!`);
+        notify.success(`${plan.name} plan activated successfully!`);
         navigate('/dashboard');
       }
     } catch (error) {
       console.error('Error selecting plan:', error);
-      toast.error('Failed to select plan. Please try again.');
+      notify.error('Failed to select plan. Please try again.');
     } finally {
       setIsLoading(false);
     }

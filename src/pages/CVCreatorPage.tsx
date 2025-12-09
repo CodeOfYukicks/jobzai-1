@@ -16,7 +16,7 @@ import {
   doc, collection, addDoc, updateDoc, getDoc, deleteDoc,
   serverTimestamp, onSnapshot, query, orderBy
 } from 'firebase/firestore';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { db } from '../lib/firebase';
 
 // CV Data Structure
@@ -170,7 +170,7 @@ export default function CVCreatorPage() {
   // Save CV to Firestore
   const saveCV = async () => {
     if (!currentUser) {
-      toast.error('Please log in to save your CV');
+      notify.error('Please log in to save your CV');
       return;
     }
 
@@ -187,7 +187,7 @@ export default function CVCreatorPage() {
       if (cvData.id) {
         // Update existing CV
         await updateDoc(doc(db, 'users', currentUser.uid, 'cvs', cvData.id), cvToSave);
-        toast.success('CV saved successfully!');
+        notify.success('CV saved successfully!');
       } else {
         // Create new CV
         const docRef = await addDoc(collection(db, 'users', currentUser.uid, 'cvs'), {
@@ -195,13 +195,13 @@ export default function CVCreatorPage() {
           createdAt: serverTimestamp(),
         });
         setCvData({ ...cvData, id: docRef.id });
-        toast.success('CV created and saved!');
+        notify.success('CV created and saved!');
       }
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 3000);
     } catch (error) {
       console.error('Error saving CV:', error);
-      toast.error('Failed to save CV');
+      notify.error('Failed to save CV');
     } finally {
       setIsSaving(false);
     }
@@ -306,7 +306,7 @@ export default function CVCreatorPage() {
       const data = await response.json();
       if (data.status === 'success') {
         updateSection(aiEditingSection, { content: data.content });
-        toast.success('Content edited with AI!');
+        notify.success('Content edited with AI!');
         setIsAIModalOpen(false);
         setAiPrompt('');
       } else {
@@ -314,7 +314,7 @@ export default function CVCreatorPage() {
       }
     } catch (error: any) {
       console.error('Error editing with AI:', error);
-      toast.error(error.message || 'Failed to edit with AI');
+      notify.error(error.message || 'Failed to edit with AI');
     } finally {
       setIsAIGenerating(false);
     }
@@ -322,7 +322,7 @@ export default function CVCreatorPage() {
 
   // Generate PDF
   const generatePDF = async () => {
-    toast.info('PDF generation coming soon...');
+    notify.info('PDF generation coming soon...');
     // TODO: Implement PDF generation using jsPDF or similar
   };
 
@@ -335,12 +335,12 @@ export default function CVCreatorPage() {
       sections: cvData.sections.map(s => ({ ...s, id: `${s.id}-copy-${Date.now()}` })),
     };
     setCvData(newCV);
-    toast.success('CV duplicated!');
+    notify.success('CV duplicated!');
   };
 
   // Translate CV
   const translateCV = async (targetLanguage: string) => {
-    toast.info(`Translation to ${targetLanguage} coming soon...`);
+    notify.info(`Translation to ${targetLanguage} coming soon...`);
     // TODO: Implement translation using OpenAI or DeepL API
   };
 
@@ -774,7 +774,7 @@ export default function CVCreatorPage() {
                       rows={6}
                     />
                     <button
-                      onClick={() => toast.info('Adaptation feature coming soon...')}
+                      onClick={() => notify.info('Adaptation feature coming soon...')}
                       className="w-full px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
                     >
                       <Sparkles className="w-4 h-4" />

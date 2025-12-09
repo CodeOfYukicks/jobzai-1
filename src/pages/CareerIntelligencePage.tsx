@@ -9,7 +9,7 @@ import ProfileTagsCloud from '../components/career-intelligence/ProfileTagsCloud
 import InsightCard from '../components/career-intelligence/InsightCard';
 import InsightDetailPanel from '../components/career-intelligence/InsightDetailPanel';
 import { generateCareerInsights, CareerInsightsData } from '../services/careerIntelligence';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { getDoc, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
@@ -74,7 +74,7 @@ export default function CareerIntelligencePage() {
         }
       } catch (error) {
         console.error('Error loading user data:', error);
-        toast.error('Failed to load your profile');
+        notify.error('Failed to load your profile');
       } finally {
         setIsLoading(false);
       }
@@ -114,10 +114,10 @@ export default function CareerIntelligencePage() {
       // Save to Firestore
       await saveInsightsToFirestore(result);
       
-      toast.success('Insights generated and saved');
+      notify.success('Insights generated and saved');
     } catch (error) {
       console.error('Error generating insights:', error);
-      toast.error('Failed to generate insights');
+      notify.error('Failed to generate insights');
     } finally {
       setIsGenerating(false);
     }
@@ -281,10 +281,10 @@ export default function CareerIntelligencePage() {
       const isDark = await detectCoverBrightness(coverUrl);
       setIsCoverDark(isDark);
       
-      toast.success('Cover updated');
+      notify.success('Cover updated');
     } catch (error) {
       console.error('Error updating cover:', error);
-      toast.error('Failed to update cover');
+      notify.error('Failed to update cover');
     } finally {
       setIsUpdatingCover(false);
     }
@@ -328,10 +328,10 @@ export default function CareerIntelligencePage() {
 
       setCoverPhoto(null);
       setIsCoverDark(null);
-      toast.success('Cover removed');
+      notify.success('Cover removed');
     } catch (error) {
       console.error('Error removing cover:', error);
-      toast.error('Failed to remove cover');
+      notify.error('Failed to remove cover');
     } finally {
       setIsUpdatingCover(false);
     }

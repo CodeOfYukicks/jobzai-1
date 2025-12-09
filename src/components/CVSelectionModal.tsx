@@ -15,7 +15,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface CVSelectionModalProps {
   isOpen: boolean;
@@ -64,7 +64,7 @@ export default function CVSelectionModal({
         setSavedCVs(mockCVs);
       } catch (error) {
         console.error('Error fetching saved CVs:', error);
-        toast.error('Failed to load your saved CVs');
+        notify.error('Failed to load your saved CVs');
       } finally {
         setIsLoading(false);
       }
@@ -116,7 +116,7 @@ export default function CVSelectionModal({
       setPreviewUrl(null);
     }
     
-    toast.success('Resume selected successfully');
+    notify.success('Resume selected successfully');
   };
 
   const handleDragEnter = (e: React.DragEvent) => {
@@ -159,7 +159,7 @@ export default function CVSelectionModal({
 
   const handleSubmit = async () => {
     if (!selectedFile && !previewUrl) {
-      toast.error('Please select a CV to continue');
+      notify.error('Please select a CV to continue');
       return;
     }
     
@@ -202,7 +202,7 @@ export default function CVSelectionModal({
             lastUpdated: new Date().toISOString()
           });
           
-          toast.success('CV uploaded successfully');
+          notify.success('CV uploaded successfully');
           onCVSelected(selectedFile);
         } else {
           // Just pass the file object if not uploading
@@ -210,7 +210,7 @@ export default function CVSelectionModal({
         }
       } catch (error) {
         console.error('Error uploading CV:', error);
-        toast.error('Failed to upload CV. Please try again.');
+        notify.error('Failed to upload CV. Please try again.');
       } finally {
         setIsLoading(false);
         onClose();
@@ -285,7 +285,7 @@ export default function CVSelectionModal({
                 <button
                   type="button"
                   className="ml-2 text-gray-400 hover:text-gray-500"
-                  onClick={() => toast.info(
+                  onClick={() => notify.info(
                     "Content validation helps ensure that you've uploaded a proper CV and job description. " +
                     "If you're having issues with legitimate files being rejected, you can temporarily disable validation.",
                     { duration: 8000 }

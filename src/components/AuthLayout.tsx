@@ -5,12 +5,14 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import '../styles/navigation.css';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import SidebarLink from './SidebarLink';
 import TopBar from './TopBar';
 import { loadThemeFromStorage, applyTheme, type Theme } from '../lib/theme';
+import { useGlobalSearch } from '../hooks/useGlobalSearch';
+import { CommandPalette } from './GlobalSearch';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -143,6 +145,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const [credits, setCredits] = useState(0);
   const [userPlan, setUserPlan] = useState<'free' | 'standard' | 'premium'>('free');
   const { currentUser, logout } = useAuth();
+  
+  // Global Search
+  const globalSearch = useGlobalSearch();
   const [logoUrlLight, setLogoUrlLight] = useState<string>('');
   const [logoUrlDark, setLogoUrlDark] = useState<string>('');
   const [isHovered, setIsHovered] = useState<string | null>(null);
@@ -342,10 +347,10 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     try {
       await logout();
       navigate('/login');
-      toast.success('Signed out successfully');
+      notify.success('Signed out successfully');
     } catch (error) {
       console.error('Error signing out:', error);
-      toast.error('Failed to sign out');
+      notify.error('Failed to sign out');
     }
   };
 
@@ -409,6 +414,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           sidebarWidth={currentSidebarWidth}
           profileCompletion={profileCompletion}
           onSignOut={handleSignOut}
+          onOpenSearch={globalSearch.openSearch}
         />
       </div>
 
@@ -759,6 +765,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           <div className="flex items-center gap-1.5">
             <button
               aria-label="Search"
+              onClick={globalSearch.openSearch}
               className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] active:scale-95 transition"
             >
               <Search className="h-5 w-5" />
@@ -817,6 +824,21 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       {/* MobileNavigation disabled for now - will revisit responsive mode later */}
       {/* {location.pathname !== '/applications' && <MobileNavigation />} */}
       
+      {/* Global Search Command Palette */}
+      <CommandPalette
+        isOpen={globalSearch.isOpen}
+        query={globalSearch.query}
+        results={globalSearch.results}
+        isLoading={globalSearch.isLoading}
+        selectedIndex={globalSearch.selectedIndex}
+        recentSearches={globalSearch.recentSearches}
+        sidebarWidth={currentSidebarWidth}
+        onClose={globalSearch.closeSearch}
+        onQueryChange={globalSearch.setQuery}
+        onSelectResult={globalSearch.selectResult}
+        onClearRecent={globalSearch.clearRecent}
+        setSelectedIndex={globalSearch.setSelectedIndex}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import * as pdfjsLib from 'pdfjs-dist';
 
 /**
@@ -156,7 +156,7 @@ export async function analyzeCVWithClaude(
     }
   } catch (error: unknown) {
     console.error('Claude API call failed:', error);
-    toast.error(`Failed to analyze CV with Claude: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    notify.error(`Failed to analyze CV with Claude: ${error instanceof Error ? error.message : 'Unknown error'}`);
     throw error;
   }
 }

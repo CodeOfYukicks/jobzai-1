@@ -11,7 +11,7 @@ import {
   Loader2,
   ChevronRight,
 } from 'lucide-react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { rewriteTextWithAI } from '../../lib/emailTemplates';
 
 interface NotesAIPopoverProps {
@@ -154,13 +154,13 @@ export default function NotesAIPopover({
       toast.dismiss(loadingToast);
 
       // Show success
-      toast.success(`Text ${action.label.toLowerCase()}ed!`);
+      notify.success(`Text ${action.label.toLowerCase()}ed!`);
 
       // Apply rewritten text
       onRewrite(rewrittenText);
     } catch (error) {
       console.error('Error rewriting text:', error);
-      toast.error('Failed to rewrite text. Please try again.');
+      notify.error('Failed to rewrite text. Please try again.');
     } finally {
       setProcessing(null);
     }

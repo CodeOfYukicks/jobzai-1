@@ -50,14 +50,14 @@ import {
   Settings,
   FolderKanban,
 } from 'lucide-react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import AuthLayout from '../components/AuthLayout';
 import PageHeader from '../components/PageHeader';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { extractJobInfo, DetailedJobInfo } from '../lib/jobExtractor';
 import DatePicker from '../components/ui/DatePicker';
-import { JobApplication, Interview, StatusChange, AutomationSettings, defaultAutomationSettings, KanbanBoard, BOARD_COLORS, BOARD_TYPE_COLUMNS, JOB_COLUMN_LABELS, CAMPAIGN_COLUMN_LABELS, CAMPAIGN_COLUMN_COLORS, BoardType, RelationshipGoal, WarmthLevel, OutreachChannel, RELATIONSHIP_GOAL_LABELS, WARMTH_LEVEL_LABELS, OUTREACH_CHANNEL_CONFIG, MEETING_TYPE_LABELS, MeetingType } from '../types/job';
+import { JobApplication, Interview, StatusChange, AutomationSettings, defaultAutomationSettings, KanbanBoard, BOARD_COLORS, BOARD_TYPE_COLUMNS, JOB_COLUMN_LABELS, CAMPAIGN_COLUMN_LABELS, BoardType, RelationshipGoal, WarmthLevel, OutreachChannel, RELATIONSHIP_GOAL_LABELS, WARMTH_LEVEL_LABELS, OUTREACH_CHANNEL_CONFIG, MEETING_TYPE_LABELS, MeetingType } from '../types/job';
 import { ApplicationList } from '../components/application/ApplicationList';
 import { JobDetailPanel } from '../components/job-detail-panel';
 import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
@@ -260,6 +260,9 @@ export default function JobApplicationsPage() {
     loadAutomationSettings();
   }, [currentUser]);
 
+  // Note: Gmail reply checking is now handled globally in useGmailReplyChecker hook (App.tsx)
+  // This runs in the background on all pages, not just JobApplicationsPage
+
   // Load boards from Firestore and create default if needed
   useEffect(() => {
     if (!currentUser) return;
@@ -323,10 +326,10 @@ export default function JobApplicationsPage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
-      toast.success('Board created successfully!');
+      notify.success('Board created successfully!');
     } catch (error) {
       console.error('Error creating board:', error);
-      toast.error('Failed to create board');
+      notify.error('Failed to create board');
       throw error;
     }
   };
@@ -345,10 +348,10 @@ export default function JobApplicationsPage() {
         ...cleanBoardData,
         updatedAt: serverTimestamp(),
       });
-      toast.success('Board updated successfully!');
+      notify.success('Board updated successfully!');
     } catch (error) {
       console.error('Error updating board:', error);
-      toast.error('Failed to update board');
+      notify.error('Failed to update board');
       throw error;
     }
   };
@@ -380,10 +383,10 @@ export default function JobApplicationsPage() {
         setCurrentBoardId(defaultBoard?.id || null);
       }
 
-      toast.success('Board deleted successfully!');
+      notify.success('Board deleted successfully!');
     } catch (error) {
       console.error('Error deleting board:', error);
-      toast.error('Failed to delete board');
+      notify.error('Failed to delete board');
       throw error;
     }
   };
@@ -403,10 +406,10 @@ export default function JobApplicationsPage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
-      toast.success('Board duplicated successfully!');
+      notify.success('Board duplicated successfully!');
     } catch (error) {
       console.error('Error duplicating board:', error);
-      toast.error('Failed to duplicate board');
+      notify.error('Failed to duplicate board');
     }
   };
 
@@ -421,12 +424,12 @@ export default function JobApplicationsPage() {
       });
       
       const targetBoard = boards.find(b => b.id === targetBoardId);
-      toast.success(`Moved to ${targetBoard?.name || 'board'}`);
+      notify.success(`Moved to ${targetBoard?.name || 'board'}`);
       setShowMoveToBoardModal(false);
       setApplicationToMove(null);
     } catch (error) {
       console.error('Error moving application:', error);
-      toast.error('Failed to move application');
+      notify.error('Failed to move application');
       throw error;
     }
   };
@@ -441,10 +444,10 @@ export default function JobApplicationsPage() {
         automationSettings: settings,
       });
       setAutomationSettings(settings);
-      toast.success('Automation settings saved');
+      notify.success('Automation settings saved');
     } catch (error) {
       console.error('Error saving automation settings:', error);
-      toast.error('Failed to save automation settings');
+      notify.error('Failed to save automation settings');
       throw error;
     }
   };
@@ -485,17 +488,17 @@ export default function JobApplicationsPage() {
         });
 
         // Show toast for each update
-        toast.info(`${app.companyName} - ${app.position}: ${update.reason}`, {
+        notify.info(`${app.companyName} - ${app.position}: ${update.reason}`, {
           duration: 4000,
         });
       }
 
       if (updates.length > 0) {
-        toast.success(`${updates.length} automation${updates.length > 1 ? 's' : ''} applied`);
+        notify.success(`${updates.length} automation${updates.length > 1 ? 's' : ''} applied`);
       }
     } catch (error) {
       console.error('Error applying automations:', error);
-      toast.error('Failed to apply automations');
+      notify.error('Failed to apply automations');
     }
   }, [currentUser, applications, automationSettings]);
 
@@ -797,7 +800,7 @@ export default function JobApplicationsPage() {
           coverPhoto: coverUrl,
           updatedAt: serverTimestamp(),
         });
-        toast.success('Board cover updated');
+        notify.success('Board cover updated');
       } else {
         // Update global page cover in Firestore
       const userRef = doc(db, 'users', currentUser.uid);
@@ -817,7 +820,7 @@ export default function JobApplicationsPage() {
       });
 
       setCoverPhoto(coverUrl);
-        toast.success('Cover updated');
+        notify.success('Cover updated');
       }
       
       // Detect brightness of new cover
@@ -825,7 +828,7 @@ export default function JobApplicationsPage() {
       setIsCoverDark(isDark);
     } catch (error) {
       console.error('Error updating cover:', error);
-      toast.error('Failed to update cover');
+      notify.error('Failed to update cover');
     } finally {
       setIsUpdatingCover(false);
     }
@@ -862,7 +865,7 @@ export default function JobApplicationsPage() {
           coverPhoto: null,
           updatedAt: serverTimestamp(),
         });
-        toast.success('Board cover removed');
+        notify.success('Board cover removed');
       } else {
         // Remove global page cover from Firestore
       const userRef = doc(db, 'users', currentUser.uid);
@@ -882,13 +885,13 @@ export default function JobApplicationsPage() {
       });
 
       setCoverPhoto(null);
-      toast.success('Cover removed');
+      notify.success('Cover removed');
       }
       
       setIsCoverDark(null);
     } catch (error) {
       console.error('Error removing cover:', error);
-      toast.error('Failed to remove cover');
+      notify.error('Failed to remove cover');
     } finally {
       setIsUpdatingCover(false);
     }
@@ -897,12 +900,12 @@ export default function JobApplicationsPage() {
   // Fonction pour extraire les informations depuis l'URL avec AI
   const handleExtractJobInfo = async () => {
     if (!formData.url || !formData.url.trim()) {
-      toast.error('Please enter a job URL first');
+      notify.error('Please enter a job URL first');
       return;
     }
 
     setIsAnalyzingJob(true);
-    toast.info('Analyzing job posting...', { duration: 2000 });
+    notify.info('Analyzing job posting...', { duration: 2000 });
 
     try {
       const jobUrl = formData.url.trim();
@@ -955,10 +958,10 @@ export default function JobApplicationsPage() {
       }));
 
       setShowFullForm(true);
-      toast.success('Job information extracted successfully!');
+      notify.success('Job information extracted successfully!');
     } catch (error) {
       console.error('Error extracting job info:', error);
-      toast.error(`Failed to extract job information: ${error instanceof Error ? error.message : 'Unknown error'}. Please fill in the fields manually.`);
+      notify.error(`Failed to extract job information: ${error instanceof Error ? error.message : 'Unknown error'}. Please fill in the fields manually.`);
     } finally {
       setIsAnalyzingJob(false);
     }
@@ -966,12 +969,12 @@ export default function JobApplicationsPage() {
 
   const handleCreateApplication = async () => {
     if (!currentUser) {
-      toast.error('You must be logged in');
+      notify.error('You must be logged in');
       return;
     }
 
     if (!eventType) {
-      toast.error('Please select an event type first');
+      notify.error('Please select an event type first');
       return;
     }
 
@@ -1034,12 +1037,12 @@ export default function JobApplicationsPage() {
         // Vérification des champs requis - different for jobs vs campaigns
         if (currentBoardType === 'campaigns') {
           if (!newApplication.companyName || !newApplication.contactName || !newApplication.appliedDate) {
-            toast.error('Please fill in Company Name, Contact Name and Contact Date');
+            notify.error('Please fill in Company Name, Contact Name and Contact Date');
             return;
           }
         } else {
           if (!newApplication.companyName || !newApplication.position || !newApplication.location || !newApplication.appliedDate) {
-            toast.error('Please fill in all required fields');
+            notify.error('Please fill in all required fields');
             return;
           }
         }
@@ -1072,7 +1075,7 @@ export default function JobApplicationsPage() {
           interviewDate: new Date().toISOString().split('T')[0],
         });
 
-        toast.success('Application created successfully');
+        notify.success('Application created successfully');
       } else {
         // Pour un entretien, vérifier si une candidature existe déjà
         let existingApplication: any = null;
@@ -1136,7 +1139,7 @@ export default function JobApplicationsPage() {
 
         // Vérification des champs requis pour l'interview
         if (!formData.companyName || !formData.position || !formData.interviewDate) {
-          toast.error('Please fill in all required fields');
+          notify.error('Please fill in all required fields');
           return;
         }
 
@@ -1196,7 +1199,7 @@ export default function JobApplicationsPage() {
                 notes: 'Interview scheduled from job applications page'
               }]
           });
-          toast.success('Interview added successfully');
+          notify.success('Interview added successfully');
         }
 
         // Si la création réussit, on ferme le modal et réinitialise le formulaire
@@ -1223,7 +1226,7 @@ export default function JobApplicationsPage() {
       }
     } catch (error) {
       console.error('Error creating application/interview:', error);
-      toast.error('Failed to create: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      notify.error('Failed to create: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -1239,10 +1242,10 @@ export default function JobApplicationsPage() {
       });
 
       setEditModal({ show: false });
-      toast.success('Application updated successfully');
+      notify.success('Application updated successfully');
     } catch (error) {
       console.error('Error updating application:', error);
-      toast.error('Failed to update application');
+      notify.error('Failed to update application');
     }
   };
 
@@ -1264,7 +1267,7 @@ export default function JobApplicationsPage() {
       setDeleteModal({ show: false });
 
       // Show success toast
-      toast.success('Application deleted successfully');
+      notify.success('Application deleted successfully');
 
       // Close timeline modal if it's open for the deleted application
       if (timelineModal && selectedApplication?.id === deleteModal.application.id) {
@@ -1273,7 +1276,7 @@ export default function JobApplicationsPage() {
       }
     } catch (error) {
       console.error('Error deleting application:', error);
-      toast.error('Failed to delete application');
+      notify.error('Failed to delete application');
 
       // If there was an error, revert the optimistic update
       // by refreshing the applications from Firestore
@@ -1300,7 +1303,7 @@ export default function JobApplicationsPage() {
     try {
       // Valider les champs requis
       if (!newInterview.date || !newInterview.time) {
-        toast.error('Please fill in date and time');
+        notify.error('Please fill in date and time');
         return;
       }
 
@@ -1357,11 +1360,11 @@ export default function JobApplicationsPage() {
         setPendingMoveApplication(updatedApplication);
         setShowMoveToInterviewPrompt(true);
       } else {
-        toast.success('Interview added successfully!');
+        notify.success('Interview added successfully!');
       }
     } catch (error) {
       console.error('Error adding interview:', error);
-      toast.error('Failed to add interview');
+      notify.error('Failed to add interview');
     }
   };
 
@@ -1410,10 +1413,10 @@ export default function JobApplicationsPage() {
       // Close modal and show success
       setShowMoveToInterviewPrompt(false);
       setPendingMoveApplication(null);
-      toast.success('Application moved to Interview column');
+      notify.success('Application moved to Interview column');
     } catch (error) {
       console.error('Error moving application to interview:', error);
-      toast.error('Failed to move application');
+      notify.error('Failed to move application');
     }
   };
 
@@ -1881,7 +1884,7 @@ export default function JobApplicationsPage() {
         // For now, the order is maintained in memory during the session
       } catch (error) {
         console.error('Error reordering application:', error);
-        toast.error('Failed to reorder application');
+        notify.error('Failed to reorder application');
       }
       return;
     }
@@ -1960,10 +1963,23 @@ export default function JobApplicationsPage() {
         fireConfetti();
       }
 
-      toast.success(`Application moved to ${newStatus}`);
+      // Create persistent notification for important status changes
+      const importantStatuses = ['offer', 'interviewing', 'rejected', 'opportunity'];
+      if (importantStatuses.includes(newStatus)) {
+        notify.statusChange({
+          companyName: app.companyName,
+          position: app.position,
+          previousStatus: oldStatus,
+          newStatus: newStatus,
+          applicationId: app.id,
+          showToast: false, // Already showing micro-feedback
+        });
+      }
+
+      notify.success(`Application moved to ${newStatus}`);
     } catch (error) {
       console.error('Error updating application status:', error);
-      toast.error('Failed to update application status');
+      notify.error('Failed to update application status');
       // Retour à l'état précédent en cas d'erreur
       setApplications(prev => [...prev]);
     }
@@ -2949,7 +2965,7 @@ END:VCALENDAR`;
                         setEditingBoard(null);
                         setShowBoardSettingsModal(true);
                       }}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl shadow-md bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-lg border border-[#9fc015] transition-all duration-200"
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-md border border-[#9fc015] transition-all duration-200"
                     >
                       <Plus className="w-4 h-4" />
                       <span>New Board</span>
@@ -2999,7 +3015,7 @@ END:VCALENDAR`;
                   setShowLookupDropdown(false);
                   setNewApplicationModal(true);
                 }}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl shadow-md bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-lg border border-[#9fc015] transition-all duration-200"
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-md border border-[#9fc015] transition-all duration-200"
               >
                 <Plus className="w-4 h-4" />
                 <span>{currentBoardType === 'campaigns' ? 'Add Contact' : 'Add Application'}</span>
@@ -3340,8 +3356,8 @@ END:VCALENDAR`;
                       const visibleColumns = columnOrder.filter(col => col !== 'archived');
                       const statusCount = filteredApplications.filter(a => getEffectiveStatus(a.status) === status).length;
                       const isLastColumn = columnIndex === visibleColumns.length - 1;
-                      // Get column color for campaigns
-                      const columnColor = currentBoardType === 'campaigns' ? CAMPAIGN_COLUMN_COLORS[status] : undefined;
+                      // Use same color for all columns (like job applications board)
+                      const columnColor = undefined;
 
                       return (
                         <div key={status} className="flex items-stretch h-full">
@@ -5860,7 +5876,7 @@ END:VCALENDAR`;
                               <button
                                 onClick={() => {
                                   if (!newInterview.date || !newInterview.time) {
-                                    toast.error('Please fill in date and time');
+                                    notify.error('Please fill in date and time');
                                     return;
                                   }
                                   const interview: Interview = {
@@ -5885,7 +5901,7 @@ END:VCALENDAR`;
                                     location: '',
                                     notes: ''
                                   });
-                                  toast.success('Interview added!');
+                                  notify.success('Interview added!');
                                 }}
                                 className="flex-1 px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-lg transition-all shadow-sm hover:shadow-md"
                               >
@@ -6162,14 +6178,14 @@ END:VCALENDAR`;
               } else {
                 // Don't show toast for every update (only for user-initiated saves)
                 if (!updates.interviews) {
-                  toast.success('Application updated successfully');
+                  notify.success('Application updated successfully');
                 } else if (!shouldPromptMove) {
-                  toast.success('Interview scheduled successfully!');
+                  notify.success('Interview scheduled successfully!');
                 }
               }
             } catch (error) {
               console.error('Error updating application:', error);
-              toast.error('Failed to update application');
+              notify.error('Failed to update application');
             }
           }}
           onDelete={async () => {
@@ -6180,12 +6196,12 @@ END:VCALENDAR`;
               await deleteDoc(applicationRef);
 
               setApplications(prev => prev.filter(app => app.id !== selectedApplication.id));
-              toast.success('Application deleted successfully');
+              notify.success('Application deleted successfully');
               setTimelineModal(false);
               setSelectedApplication(null);
             } catch (error) {
               console.error('Error deleting application:', error);
-              toast.error('Failed to delete application');
+              notify.error('Failed to delete application');
             }
           }}
         />

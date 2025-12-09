@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FileEdit, Copy, Check, ChevronDown, ChevronRight, TrendingUp } from 'lucide-react';
 import type { CVFixes } from '../../types/premiumATS';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface CVFixesPanelProps {
   cvFixes: CVFixes;
@@ -21,7 +21,7 @@ function FixSection({ title, items, icon, defaultOpen = false }: FixSectionProps
   const handleCopy = (text: string, index: number) => {
     navigator.clipboard.writeText(text);
     setCopiedIndex(index);
-    toast.success('Copied to clipboard!');
+    notify.success('Copied to clipboard!');
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 

@@ -22,11 +22,35 @@ interface ConversationThreadProps {
   onReply?: (message: OutreachMessage) => void;
 }
 
+// Helper to validate and fix date
+const fixDate = (dateStr: string): Date => {
+  try {
+    let date = parseISO(dateStr);
+    
+    // Check if date is valid
+    if (!isValid(date)) {
+      return new Date(); // Return current date if invalid
+    }
+    
+    // Check if year is wrong (before 2020) - likely corrupted data
+    const year = date.getFullYear();
+    if (year < 2020) {
+      // Fix the year to current year
+      const currentYear = new Date().getFullYear();
+      date = new Date(date);
+      date.setFullYear(currentYear);
+    }
+    
+    return date;
+  } catch {
+    return new Date();
+  }
+};
+
 // Helper to format date intelligently
 const formatMessageDate = (dateStr: string): string => {
   try {
-    const date = parseISO(dateStr);
-    if (!isValid(date)) return dateStr;
+    const date = fixDate(dateStr);
     
     if (isToday(date)) {
       return `Today at ${format(date, 'HH:mm')}`;
@@ -150,6 +174,16 @@ const MessageBubble = ({
             {formatMessageDate(message.sentAt)}
           </span>
           {isSent && <StatusIcon status={message.status} />}
+          {!isSent && onReply && (
+            <button
+              onClick={() => onReply(message)}
+              className="text-[10px] text-[#8B5CF6] hover:text-[#7C3AED] font-medium flex items-center gap-1 transition-colors"
+              title="Reply to this message"
+            >
+              <Reply className="w-3 h-3" />
+              Reply
+            </button>
+          )}
         </div>
       </div>
     </motion.div>
@@ -198,9 +232,17 @@ export function ConversationThread({
     return <EmptyState />;
   }
   
-  // Group messages by date
-  const groupedMessages = messages.reduce((groups, message) => {
-    const date = message.sentAt.split('T')[0];
+  // Sort messages by date (oldest first), fixing any incorrect dates
+  const sortedMessages = [...messages].sort((a, b) => {
+    const dateA = fixDate(a.sentAt);
+    const dateB = fixDate(b.sentAt);
+    return dateA.getTime() - dateB.getTime();
+  });
+
+  // Group messages by date (using fixed dates)
+  const groupedMessages = sortedMessages.reduce((groups, message) => {
+    const fixedDate = fixDate(message.sentAt);
+    const date = format(fixedDate, 'yyyy-MM-dd'); // Use consistent date format
     if (!groups[date]) {
       groups[date] = [];
     }
@@ -208,24 +250,31 @@ export function ConversationThread({
     return groups;
   }, {} as Record<string, OutreachMessage[]>);
   
+  // Sort dates chronologically
+  const sortedDates = Object.keys(groupedMessages).sort((a, b) => {
+    return new Date(a).getTime() - new Date(b).getTime();
+  });
+
   return (
     <div 
       ref={scrollRef}
       className="flex-1 overflow-y-auto px-4 py-4 space-y-6"
     >
       <AnimatePresence mode="popLayout">
-        {Object.entries(groupedMessages).map(([date, msgs]) => (
+        {sortedDates.map((date) => {
+          const msgs = groupedMessages[date];
+          return (
           <div key={date} className="space-y-4">
             {/* Date separator */}
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-gray-200 dark:bg-[#3d3c3e]" />
               <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
-                {isToday(parseISO(date)) 
-                  ? 'Today' 
-                  : isYesterday(parseISO(date))
-                    ? 'Yesterday'
-                    : format(parseISO(date), 'MMMM d, yyyy')
-                }
+                {(() => {
+                  const parsedDate = new Date(date);
+                  if (isToday(parsedDate)) return 'Today';
+                  if (isYesterday(parsedDate)) return 'Yesterday';
+                  return format(parsedDate, 'MMMM d, yyyy');
+                })()}
               </span>
               <div className="flex-1 h-px bg-gray-200 dark:bg-[#3d3c3e]" />
             </div>
@@ -241,7 +290,8 @@ export function ConversationThread({
               />
             ))}
           </div>
-        ))}
+          );
+        })}
       </AnimatePresence>
     </div>
   );

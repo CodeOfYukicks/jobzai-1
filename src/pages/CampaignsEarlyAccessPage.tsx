@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { syncUserToBrevo } from '../services/brevo';
@@ -55,7 +55,7 @@ export default function CampaignsEarlyAccessPage() {
 
   const handleSubmit = async () => {
     if (!currentUser?.email) {
-      toast.error('You must be logged in to request early access');
+      notify.error('You must be logged in to request early access');
       return;
     }
 
@@ -105,14 +105,14 @@ export default function CampaignsEarlyAccessPage() {
       }
 
       if (isAlreadyInList) {
-        toast.info('You\'re already on the early access list!');
+        notify.info('You\'re already on the early access list!');
       } else {
-        toast.success('You\'ve been added to the early access list!');
+        notify.success('You\'ve been added to the early access list!');
       }
       setIsSubmitted(true);
     } catch (error) {
       console.error('Error submitting early access request:', error);
-      toast.error('Failed to submit request. Please try again.');
+      notify.error('Failed to submit request. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

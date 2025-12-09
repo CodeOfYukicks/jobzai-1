@@ -7,7 +7,7 @@ import { KeywordsCard } from '../components/KeywordsCard';
 import { Loader2 } from 'lucide-react';
 import { generatePersonalizedInsights } from '../lib/recommendations';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { analyzeCVWithGPT, testCVAnalysis } from '../lib/cvAnalysis';
@@ -33,7 +33,7 @@ export default function RecommendationsPage() {
       },
       (error) => {
         console.error('Error fetching user data:', error);
-        toast.error('Failed to load user data');
+        notify.error('Failed to load user data');
       }
     );
 
@@ -61,7 +61,7 @@ export default function RecommendationsPage() {
 
   const handleTestAnalysis = async () => {
     if (!userData?.cvUrl) {
-      toast.error('Please upload a CV first');
+      notify.error('Please upload a CV first');
       return;
     }
 
@@ -70,15 +70,15 @@ export default function RecommendationsPage() {
       const result = await testCVAnalysis(userData.cvUrl);
       
       if (result.success) {
-        toast.success(result.message);
+        notify.success(result.message);
         console.log('Test details:', result.details);
       } else {
-        toast.error(result.message);
+        notify.error(result.message);
         console.error('Test failed:', result.error);
       }
 
     } catch (error: any) {
-      toast.error('Test failed: ' + error.message);
+      notify.error('Test failed: ' + error.message);
     } finally {
       setIsAnalyzing(false);
     }

@@ -4,7 +4,7 @@ import { MoreVertical, Heart, FolderOpen, Edit, Trash2 } from 'lucide-react';
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import EditTemplateModal from './EditTemplateModal';
 
 interface EmailTemplate {
@@ -149,11 +149,11 @@ export default function TemplateListItem({ template, onToggleLike, onMoveToFolde
                 ...updatedTemplate,
                 updatedAt: serverTimestamp()
               });
-              toast.success('Template updated successfully');
+              notify.success('Template updated successfully');
               setShowEditModal(false);
             } catch (error) {
               console.error('Error updating template:', error);
-              toast.error('Failed to update template');
+              notify.error('Failed to update template');
             }
           }}
         />

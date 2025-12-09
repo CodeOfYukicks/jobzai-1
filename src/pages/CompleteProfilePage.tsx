@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import ProfileBreadcrumbs from '../components/ProfileCompletion/ProfileBreadcrumbs';
@@ -59,7 +59,7 @@ export default function CompleteProfilePage() {
         });
       } catch (error) {
         console.error('Error updating profile:', error);
-        toast.error('Failed to save progress');
+        notify.error('Failed to save progress');
         return;
       }
     }
@@ -88,7 +88,7 @@ export default function CompleteProfilePage() {
       navigate('/dashboard'); // Navigate after successful completion
     } catch (error) {
       console.error('Error completing profile:', error);
-      toast.error('Failed to complete profile');
+      notify.error('Failed to complete profile');
     }
   };
 

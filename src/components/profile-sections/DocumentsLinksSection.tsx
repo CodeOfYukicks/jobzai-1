@@ -3,7 +3,7 @@ import { FileText, Link as LinkIcon, Github, Linkedin, Upload, X, ExternalLink, 
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { db } from '../../lib/firebase';
 import { pdfToImages } from '../../lib/pdfToImages';
 import { extractCVTextAndTags } from '../../lib/cvTextExtraction';
@@ -70,13 +70,13 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
     if (!file || !currentUser) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('CV must be less than 5MB');
+      notify.error('CV must be less than 5MB');
       return;
     }
 
     const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (!allowedTypes.includes(file.type)) {
-      toast.error('Please upload a PDF or Word document');
+      notify.error('Please upload a PDF or Word document');
       return;
     }
 
@@ -88,7 +88,7 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
 
       let extractedData: Record<string, any> = {};
       try {
-        toast.info('Analyzing your CV...');
+        notify.info('Analyzing your CV...');
         const images = await pdfToImages(file, 2, 1.5);
         const { text, technologies, skills, experiences } = await extractCVTextAndTags(images);
 
@@ -113,10 +113,10 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
         }
 
         const expCount = experiences?.length || 0;
-        toast.success(`CV analyzed! Found ${technologies.length} technologies, ${skills.length} skills${expCount > 0 ? `, and ${expCount} experiences` : ''}`);
+        notify.success(`CV analyzed! Found ${technologies.length} technologies, ${skills.length} skills${expCount > 0 ? `, and ${expCount} experiences` : ''}`);
       } catch (extractionError) {
         console.error('CV extraction failed:', extractionError);
-        toast.warning('CV uploaded but analysis failed');
+        notify.warning('CV uploaded but analysis failed');
       }
 
       const newFormData = {
@@ -127,13 +127,13 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
       };
       setFormData(newFormData);
       onUpdate(newFormData);
-      toast.success('CV uploaded successfully');
+      notify.success('CV uploaded successfully');
     } catch (error: any) {
       console.error('Error uploading CV:', error);
       if (error.code === 'storage/unauthorized') {
-        toast.error('Permission denied. Please try again or contact support.');
+        notify.error('Permission denied. Please try again or contact support.');
       } else {
-        toast.error('Failed to upload CV. Please try again.');
+        notify.error('Failed to upload CV. Please try again.');
       }
     } finally {
       setIsUploading(false);
@@ -237,7 +237,7 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
                     cvTechnologies: [],
                     cvSkills: []
                   });
-                  toast.success('CV removed');
+                  notify.success('CV removed');
                 }}
                 className="p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
               >

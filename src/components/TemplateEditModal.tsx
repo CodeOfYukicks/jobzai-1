@@ -4,7 +4,7 @@ import { X, Eye, EyeOff, Save, Sparkles, ArrowLeft, Tag as TagIcon } from 'lucid
 import { doc, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import MergeFieldSelector from './MergeFieldSelector';
 import TemplatePreview from './TemplatePreview';
 import TemplateEditMobile from './mobile/TemplateEditMobile';
@@ -127,7 +127,7 @@ export default function TemplateEditModal({
       setEditedTemplate(prev => ({ ...prev, content: newContent }));
       
       toast.dismiss();
-      toast.success(`Text rewritten in ${tone} tone`);
+      notify.success(`Text rewritten in ${tone} tone`);
       
       // Reset selection state
       setIsTextSelected(false);
@@ -136,7 +136,7 @@ export default function TemplateEditModal({
     } catch (error) {
       console.error('Error rewriting text:', error);
       toast.dismiss();
-      toast.error('Failed to rewrite text. Please try again.');
+      notify.error('Failed to rewrite text. Please try again.');
     }
   };
 
@@ -218,11 +218,11 @@ export default function TemplateEditModal({
         if (onSave) onSave(docRef.id);
       }
 
-      toast.success(`Template ${template ? 'updated' : 'created'} successfully!`);
+      notify.success(`Template ${template ? 'updated' : 'created'} successfully!`);
       onClose();
     } catch (error) {
       console.error('Error saving template:', error);
-      toast.error(`Failed to ${template ? 'update' : 'create'} template`);
+      notify.error(`Failed to ${template ? 'update' : 'create'} template`);
     } finally {
       setIsSaving(false);
     }

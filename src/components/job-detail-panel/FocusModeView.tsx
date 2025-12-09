@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Copy, Check, Save, RefreshCw } from 'lucide-react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { GeneratedEmail } from '../../types/job';
 import NotionEditor from '../notion-editor/NotionEditor';
 import {
@@ -51,10 +51,10 @@ export const FocusModeView = ({
     try {
       await navigator.clipboard.writeText(plainText);
       setIsCopied(true);
-      toast.success('Copied to clipboard!');
+      notify.success('Copied to clipboard!');
       setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
-      toast.error('Failed to copy');
+      notify.error('Failed to copy');
     }
   };
 
@@ -64,7 +64,7 @@ export const FocusModeView = ({
     const plainText = convertTiptapToText(content);
 
     if (!plainText.trim()) {
-      toast.error('No content to save');
+      notify.error('No content to save');
       return;
     }
 
@@ -79,10 +79,10 @@ export const FocusModeView = ({
       };
 
       await onSave(newEmail);
-      toast.success('Saved as note!');
+      notify.success('Saved as note!');
     } catch (error) {
       console.error('Error saving:', error);
-      toast.error('Failed to save');
+      notify.error('Failed to save');
     } finally {
       setIsSaving(false);
     }

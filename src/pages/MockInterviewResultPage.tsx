@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import AuthLayout from '../components/AuthLayout';
 import { motion } from 'framer-motion';
 import {
@@ -84,12 +84,12 @@ export default function MockInterviewResultPage() {
             createdAt: data.createdAt,
           });
         } else {
-          toast.error('Session not found');
+          notify.error('Session not found');
           navigate('/mock-interview');
         }
       } catch (error) {
         console.error('Error loading session:', error);
-        toast.error('Failed to load session');
+        notify.error('Failed to load session');
         navigate('/mock-interview');
       } finally {
         setIsLoading(false);
@@ -158,11 +158,11 @@ export default function MockInterviewResultPage() {
     try {
       setIsDeleting(true);
       await deleteDoc(doc(db, 'users', currentUser.uid, 'mockInterviewSessions', sessionId));
-      toast.success('Session deleted');
+      notify.success('Session deleted');
       navigate('/mock-interview');
     } catch (error) {
       console.error('Error deleting session:', error);
-      toast.error('Failed to delete session');
+      notify.error('Failed to delete session');
     } finally {
       setIsDeleting(false);
     }

@@ -4,7 +4,7 @@ import { collection, query, getDocs, getDoc, addDoc, doc, updateDoc, serverTimes
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import {
   CalendarTopbar,
   CalendarGrid,
@@ -145,6 +145,7 @@ export default function CalendarView() {
             boardName: board.name,
             boardIcon: board.icon,
             boardColor: board.color,
+            boardType: board.boardType || 'jobs',
           } : null;
           
           // Add application/wishlist date as event
@@ -201,7 +202,7 @@ export default function CalendarView() {
         setEvents(newEvents);
       } catch (error) {
         console.error('Error fetching calendar data:', error);
-        toast.error('Failed to load calendar data');
+        notify.error('Failed to load calendar data');
       } finally {
         setIsLoading(false);
       }
@@ -254,7 +255,7 @@ export default function CalendarView() {
           )
         );
         
-        toast.success('Application date updated');
+        notify.success('Application date updated');
       } else {
         const [applicationId, interviewIndex] = eventId.replace('int-', '').split('-');
         const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
@@ -270,7 +271,7 @@ export default function CalendarView() {
         });
         
         if (!currentApplication || !currentApplication.interviews) {
-          toast.error('Interview not found');
+          notify.error('Interview not found');
           return;
         }
         
@@ -278,7 +279,7 @@ export default function CalendarView() {
         const interview = currentApplication.interviews[interviewIndexNum];
         
         if (!interview) {
-          toast.error('Interview not found');
+          notify.error('Interview not found');
           return;
         }
         
@@ -307,11 +308,11 @@ export default function CalendarView() {
           )
         );
         
-        toast.success('Interview date updated');
+        notify.success('Interview date updated');
       }
     } catch (error) {
       console.error('Error updating event:', error);
-      toast.error('Failed to update event');
+      notify.error('Failed to update event');
     }
   };
   
@@ -371,10 +372,10 @@ export default function CalendarView() {
         )
       );
       
-      toast.success('Interview duration updated');
+      notify.success('Interview duration updated');
     } catch (error) {
       console.error('Error resizing event:', error);
-      toast.error('Failed to update interview duration');
+      notify.error('Failed to update interview duration');
     }
   };
 
@@ -477,7 +478,7 @@ export default function CalendarView() {
         };
         
         setEvents((prev) => [...prev, newEvent]);
-        toast.success('Job application added successfully');
+        notify.success('Job application added successfully');
       } else {
         let existingApplication: any = null;
         let applicationId: string;
@@ -623,11 +624,11 @@ export default function CalendarView() {
         };
         
         setEvents((prev) => [...prev, newInterviewEvent]);
-        toast.success('Interview added successfully');
+        notify.success('Interview added successfully');
       }
     } catch (error) {
       console.error('Error adding event:', error);
-      toast.error('Failed to add event');
+      notify.error('Failed to add event');
       throw error;
     }
   };

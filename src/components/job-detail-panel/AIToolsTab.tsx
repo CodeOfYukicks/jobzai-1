@@ -10,7 +10,7 @@ import { EmailGenerator } from './EmailGenerator';
 import { GenerationLoadingScreen } from './GenerationLoadingScreen';
 import { GeneratedHistoryModal } from './GeneratedHistoryModal';
 import { GeneratedContentView } from './GeneratedContentView';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { createNote } from '../../lib/notionDocService';
 import { convertTextToTiptapContent } from '../../lib/textToTiptap';
 
@@ -89,10 +89,10 @@ export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
         linkedNoteIds: updatedLinkedNoteIds,
       });
 
-      toast.success('Saved as note! You can access it from your Documents page.');
+      notify.success('Saved as note! You can access it from your Documents page.');
     } catch (error) {
       console.error('Error saving note:', error);
-      toast.error('Failed to save as note');
+      notify.error('Failed to save as note');
       throw error;
     }
   };

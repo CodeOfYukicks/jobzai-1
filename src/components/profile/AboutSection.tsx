@@ -4,7 +4,7 @@ import { FileText, Edit2, X, Loader2, Sparkles, Check, RotateCcw } from 'lucide-
 import { useAuth } from '../../contexts/AuthContext';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { getOpenAIInstance } from '../../lib/openai';
 import ProfileSectionCard from './ProfileSectionCard';
 
@@ -70,7 +70,7 @@ const AboutSection = ({ onUpdate }: AboutSectionProps) => {
 
   const improveWithAI = async () => {
     if (!summary.trim()) {
-      toast.error('Please write something first before improving');
+      notify.error('Please write something first before improving');
       return;
     }
 
@@ -112,13 +112,13 @@ Return only the improved text, nothing else.`
       if (improved) {
         setImprovedText(improved);
         setShowImproved(true);
-        toast.success('Text improved! Review the changes below.');
+        notify.success('Text improved! Review the changes below.');
       } else {
-        toast.error('Failed to improve text. Please try again.');
+        notify.error('Failed to improve text. Please try again.');
       }
     } catch (error) {
       console.error('Error improving text with AI:', error);
-      toast.error('Failed to improve text. Please try again.');
+      notify.error('Failed to improve text. Please try again.');
     } finally {
       setIsImproving(false);
     }
@@ -129,7 +129,7 @@ Return only the improved text, nothing else.`
     setOriginalText(improvedText);
     setShowImproved(false);
     setImprovedText('');
-    toast.success('Improved text applied!');
+    notify.success('Improved text applied!');
   };
 
   const rejectImproved = () => {
@@ -160,10 +160,10 @@ Return only the improved text, nothing else.`
       }
 
       setIsEditing(false);
-      toast.success('About section updated');
+      notify.success('About section updated');
     } catch (error) {
       console.error('Error updating about:', error);
-      toast.error('Failed to update about section');
+      notify.error('Failed to update about section');
     }
   };
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Wand2, MessageSquare, Sparkles, X } from 'lucide-react';
 import { rewriteTextWithAI } from '../lib/emailTemplates';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface TextHighlightPopoverProps {
   position: { x: number, y: number } | null;
@@ -55,7 +55,7 @@ export default function TextHighlightPopover({
       onRewrite(rewrittenText, toneId);
     } catch (error) {
       console.error('Error rewriting text:', error);
-      toast.error('Failed to rewrite text. Please try again.');
+      notify.error('Failed to rewrite text. Please try again.');
     } finally {
       setIsProcessing(null);
       onClose();

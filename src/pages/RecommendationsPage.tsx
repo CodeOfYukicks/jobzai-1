@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useRecommendations, getStateKey } from '../contexts/RecommendationsContext';
 import { useRecommendationsLoading } from '../contexts/RecommendationsLoadingContext';
 import { fetchCompleteUserData, CompleteUserData } from '../lib/userDataFetcher';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import LoadingStartModal from '../components/recommendations/LoadingStartModal';
 
 // Import new section components
@@ -62,7 +62,7 @@ export default function RecommendationsPage() {
         setRecommendationError(type, response.error);
         // Error toast only for critical failures
         if (showNotification) {
-          toast.error(`Failed to generate ${RECOMMENDATION_NAMES[type]}: ${response.error}`);
+          notify.error(`Failed to generate ${RECOMMENDATION_NAMES[type]}: ${response.error}`);
         }
       } else {
         setRecommendationData(type, response.data);
@@ -77,7 +77,7 @@ export default function RecommendationsPage() {
       console.error(`Error generating ${type} recommendation:`, error);
       setRecommendationError(type, 'Failed to generate recommendation. Please try again.');
       if (showNotification) {
-        toast.error(`Failed to generate ${RECOMMENDATION_NAMES[type]}. Please try again.`);
+        notify.error(`Failed to generate ${RECOMMENDATION_NAMES[type]}. Please try again.`);
       }
     } finally {
       setRecommendationLoading(type, false);
@@ -122,7 +122,7 @@ export default function RecommendationsPage() {
     stopLoading();
     
     // Show completion toast
-    toast.success('All recommendations are ready! 🎉', {
+    notify.success('All recommendations are ready! 🎉', {
       duration: 5000,
     });
   };
@@ -188,7 +188,7 @@ export default function RecommendationsPage() {
             stopLoading();
             
             // Show completion toast
-            toast.success('All recommendations are ready! 🎉', {
+            notify.success('All recommendations are ready! 🎉', {
               duration: 5000,
             });
           }

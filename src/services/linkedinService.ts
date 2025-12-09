@@ -1,7 +1,7 @@
 import { parseLinkedInPdf, mapLinkedInToProfile, ParsedLinkedInProfile } from '../lib/linkedinPdfParser';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 /**
  * LinkedIn Integration Service
@@ -124,7 +124,7 @@ export async function importFromLinkedInPdf(
       lastUpdated: new Date().toISOString()
     });
     
-    toast.success('LinkedIn profile imported successfully!');
+    notify.success('LinkedIn profile imported successfully!');
     
     return {
       success: true,
@@ -132,7 +132,7 @@ export async function importFromLinkedInPdf(
     };
   } catch (error: any) {
     console.error('LinkedIn PDF import error:', error);
-    toast.error(error.message || 'Failed to import LinkedIn profile');
+    notify.error(error.message || 'Failed to import LinkedIn profile');
     
     return {
       success: false,

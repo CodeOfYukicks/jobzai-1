@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { notify } from '../lib/notify';
 import {
   Mission,
   MissionStats,
@@ -507,6 +508,13 @@ export function useDailyMissions(): UseDailyMissionsReturn {
                   const prevProgress = prevMissionsRef.current.get(mission.id) || 0;
                   if (mission.status === 'completed' && prevProgress < mission.target) {
                     setCompletedMissionId(mission.id);
+                    // Create notification for completed mission
+                    notify.achievement({
+                      missionName: mission.title,
+                      missionId: mission.id,
+                      xpEarned: DAILY_MISSIONS_CONFIG.find(c => c.type === mission.type)?.xp || 25,
+                      showToast: true,
+                    });
                   }
                 });
               }

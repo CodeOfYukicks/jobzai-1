@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { queryPerplexity } from '../lib/perplexity';
 
 // Answer type for structured answers
@@ -31,12 +31,12 @@ export const fetchJobPostContent = async (url: string): Promise<string | null> =
     if (response.data.status === 'success') {
       return response.data.content;
     } else {
-      toast.error('Failed to fetch job post content');
+      notify.error('Failed to fetch job post content');
       return null;
     }
   } catch (error) {
     console.error('Error fetching job post content:', error);
-    toast.error('Error fetching job post: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    notify.error('Error fetching job post: ' + (error instanceof Error ? error.message : 'Unknown error'));
     return null;
   }
 };

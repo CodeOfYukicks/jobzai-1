@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { Loader2 } from 'lucide-react';
 import { getDoc, doc } from 'firebase/firestore';
 
@@ -16,23 +16,23 @@ export default function GoogleAuthButton() {
     setIsLoading(true);
     try {
       await signInWithGoogle();
-      toast.success('Successfully signed in with Google!');
+      notify.success('Successfully signed in with Google!');
       navigate('/hub');
     } catch (error: any) {
       console.error('Google auth error:', error);
       
       switch (error.code) {
         case 'auth/popup-closed-by-user':
-          toast.error('Sign in cancelled');
+          notify.error('Sign in cancelled');
           break;
         case 'auth/popup-blocked':
-          toast.error('Please allow popups for this website');
+          notify.error('Please allow popups for this website');
           break;
         case 'auth/account-exists-with-different-credential':
-          toast.error('An account already exists with this email');
+          notify.error('An account already exists with this email');
           break;
         default:
-          toast.error('Failed to sign in with Google');
+          notify.error('Failed to sign in with Google');
       }
     } finally {
       setIsLoading(false);

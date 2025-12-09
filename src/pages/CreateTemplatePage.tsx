@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { EMAIL_GOALS, type EmailGoal } from '../lib/constants/emailGoals';
@@ -53,12 +53,12 @@ export default function CreateTemplatePage() {
 
   const handleSave = async () => {
     if (!currentUser) {
-      toast.error('You must be logged in to save templates');
+      notify.error('You must be logged in to save templates');
       return;
     }
 
     if (!template.name || !template.subject || !template.content) {
-      toast.error('Please fill in all required fields');
+      notify.error('Please fill in all required fields');
       return;
     }
 
@@ -81,11 +81,11 @@ export default function CreateTemplatePage() {
       const templatesRef = collection(db, 'users', currentUser.uid, 'emailTemplates');
       await addDoc(templatesRef, templateData);
 
-      toast.success('Template saved successfully!');
+      notify.success('Template saved successfully!');
       navigate('/email-templates');
     } catch (error) {
       console.error('Error saving template:', error);
-      toast.error('Failed to save template. Please try again.');
+      notify.error('Failed to save template. Please try again.');
     } finally {
       setIsLoading(false);
     }

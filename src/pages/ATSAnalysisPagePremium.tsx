@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { motion, AnimatePresence } from 'framer-motion';
 import AuthLayout from '../components/AuthLayout';
 import { CompanyLogo } from '../components/common/CompanyLogo';
@@ -407,12 +407,12 @@ export default function ATSAnalysisPagePremium() {
           setIsCalculatingScore(false);
           setSidebarTab(hasValidCV ? 'cv' : 'summary'); // Set tab once based on CV existence
         } else {
-          toast.error('Analysis not found');
+          notify.error('Analysis not found');
           navigate('/cv-analysis');
         }
       } catch (error) {
         console.error('Error fetching analysis:', error);
-        toast.error('Failed to load analysis');
+        notify.error('Failed to load analysis');
         navigate('/cv-analysis');
       } finally {
         setLoading(false);
@@ -484,7 +484,7 @@ export default function ATSAnalysisPagePremium() {
               if (data.cv_rewrite && data.cv_rewrite_generated_at) {
                 setCvRewrite(data.cv_rewrite);
                 setSidebarTab('cv');
-                toast.success('🎉 Optimized CV generated successfully!', { duration: 5000 });
+                notify.success('🎉 Optimized CV generated successfully!', { duration: 5000 });
               }
             }
           }
@@ -546,7 +546,7 @@ export default function ATSAnalysisPagePremium() {
             // Task failed
             setIsGeneratingCV(false);
             setActiveBackgroundTask(null);
-            toast.error(task.error || 'La génération du CV a échoué', { duration: 6000 });
+            notify.error(task.error || 'La génération du CV a échoué', { duration: 6000 });
           } else {
             // Update progress
             setGenerationProgress(task.progress || 0);
@@ -729,19 +729,19 @@ export default function ATSAnalysisPagePremium() {
   // Generate CV Rewrite with AI - Now uses background tasks for persistence
   const handleGenerateCVRewrite = async (adaptationLevel: AdaptationLevel = 'balanced') => {
     if (!analysis || !id || !currentUser) {
-      toast.error('Analysis data not available');
+      notify.error('Analysis data not available');
       return;
     }
 
     if (!analysis.cvText) {
-      toast.error('CV text is missing. Please run a new analysis to enable CV Rewrite.', {
+      notify.error('CV text is missing. Please run a new analysis to enable CV Rewrite.', {
         duration: 5000
       });
       return;
     }
 
     if (!analysis.jobDescription) {
-      toast.error('Job description is missing. Please run a new analysis with job details.', {
+      notify.error('Job description is missing. Please run a new analysis with job details.', {
         duration: 5000
       });
       return;
@@ -750,7 +750,7 @@ export default function ATSAnalysisPagePremium() {
     // Check if there's already an active task for this analysis
     const existingTask = await getActiveTaskForAnalysis(currentUser.uid, id, 'cv_rewrite');
     if (existingTask) {
-      toast.info('Une génération est déjà en cours pour cette analyse', {
+      notify.info('Une génération est déjà en cours pour cette analyse', {
         duration: 3000
       });
       setSidebarTab('cv');
@@ -850,7 +850,7 @@ export default function ATSAnalysisPagePremium() {
         errorMessage = error.message;
       }
 
-      toast.error(errorMessage, { duration: 6000 });
+      notify.error(errorMessage, { duration: 6000 });
       setIsGeneratingCV(false);
     }
   };

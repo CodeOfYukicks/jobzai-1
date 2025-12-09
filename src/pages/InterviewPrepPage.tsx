@@ -5,7 +5,7 @@ import { ref, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import AuthLayout from '../components/AuthLayout';
 import { analyzeJobPost, JobPostAnalysisResult } from '../services/jobPostAnalyzer';
 import { queryPerplexity } from '../lib/perplexity';
@@ -502,7 +502,7 @@ export default function InterviewPrepPage() {
             console.error('❌ Could not play sound:', error);
             console.error('Error details:', error.message);
             // Try to show user-friendly error
-            toast.error('Could not play sound. Please check your browser audio settings.');
+            notify.error('Could not play sound. Please check your browser audio settings.');
           });
       }
     } catch (error: any) {
@@ -512,11 +512,11 @@ export default function InterviewPrepPage() {
       
       // Show user-friendly error
       if (error?.code === 'storage/object-not-found') {
-        toast.error('Sound file not found in Firebase Storage');
+        notify.error('Sound file not found in Firebase Storage');
       } else if (error?.code === 'storage/unauthorized') {
-        toast.error('Unauthorized access to sound file');
+        notify.error('Unauthorized access to sound file');
       } else {
-        toast.error('Could not load sound file');
+        notify.error('Could not load sound file');
       }
     }
   };
@@ -689,9 +689,9 @@ export default function InterviewPrepPage() {
       const updated = exists ? prev.filter((item) => item !== rawQuestion) : [...prev, rawQuestion];
       localStorage.setItem('savedQuestions', JSON.stringify(updated));
       if (exists) {
-        toast.info('Question removed from saved list');
+        notify.info('Question removed from saved list');
       } else {
-        toast.success('Question saved');
+        notify.success('Question saved');
       }
       return updated;
     });
@@ -719,7 +719,7 @@ export default function InterviewPrepPage() {
       [newNoteId]: { width: 250, height: 200 }
     }));
     updateInterviewNotes(updatedNotes);
-    toast.success('Note created from question');
+    notify.success('Note created from question');
   };
 
   const handleToggleSuggestionVisibility = (questionId: number) => {
@@ -826,7 +826,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
     // Save to Firebase
     await saveNoteDocuments(updatedDocs, newDoc.id);
     
-    toast.success('Company update saved to Notes');
+    notify.success('Company update saved to Notes');
   };
 
   // Filter notes by color
@@ -843,7 +843,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
   useEffect(() => {
     const fetchData = async () => {
       if (!currentUser || !applicationId || !interviewId) {
-        toast.error('Missing required information');
+        notify.error('Missing required information');
         navigate('/applications');
         return;
       }
@@ -885,16 +885,16 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
             const urlToUse = navigationState?.jobUrl || interviewData.jobPostUrl || appData.url || '';
             setJobUrl(urlToUse);
           } else {
-            toast.error('Interview not found');
+            notify.error('Interview not found');
             navigate('/applications');
           }
         } else {
-          toast.error('Application not found');
+          notify.error('Application not found');
           navigate('/applications');
         }
       } catch (error) {
         console.error('Error fetching data:', error);
-        toast.error('Error loading data');
+        notify.error('Error loading data');
       } finally {
         setIsLoading(false);
       }
@@ -1143,7 +1143,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
     if (!currentUser || !application || !interview || !applicationId) return;
 
     if (!jobUrl) {
-      toast.error('Please enter a job post URL');
+      notify.error('Please enter a job post URL');
       return;
     }
 
@@ -1214,7 +1214,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
 
       // Check if there's an error
       if (analysisResult.error) {
-        toast.error(analysisResult.error);
+        notify.error(analysisResult.error);
         setIsAnalyzing(false);
         setAnalyzingProgress(0);
         return;
@@ -1229,7 +1229,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
         analysisResult.positionDetails;
 
       if (!hasData) {
-        toast.error('No data was extracted from the job posting. Please try again or check the URL.');
+        notify.error('No data was extracted from the job posting. Please try again or check the URL.');
         setIsAnalyzing(false);
         setAnalyzingProgress(0);
         return;
@@ -1252,7 +1252,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
       const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
 
       if (interviewIndex === -1) {
-        toast.error('Could not find interview to update');
+        notify.error('Could not find interview to update');
         setIsAnalyzing(false);
         return;
       }
@@ -1297,10 +1297,10 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
       // Small delay to show 100% before closing
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      toast.success('Job post analyzed successfully! All sections have been updated.');
+      notify.success('Job post analyzed successfully! All sections have been updated.');
     } catch (error) {
       console.error('Error analyzing job post:', error);
-      toast.error('Failed to analyze job post: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      notify.error('Failed to analyze job post: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsAnalyzing(false);
       setAnalyzingProgress(0);
@@ -1339,10 +1339,10 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
       setStatusMenuOpen(false);
 
       // Show success message
-      toast.success(`Interview status updated to ${newStatus}`);
+      notify.success(`Interview status updated to ${newStatus}`);
     } catch (error) {
       console.error('Error updating interview status:', error);
-      toast.error('Failed to update interview status');
+      notify.error('Failed to update interview status');
     }
   };
 
@@ -1358,7 +1358,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
       const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
 
       if (interviewIndex === -1) {
-        toast.error('Could not find interview to update');
+        notify.error('Could not find interview to update');
         return;
       }
 
@@ -1383,10 +1383,10 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
       });
 
       // Provide subtle feedback
-      toast.success('Skill rating updated', { duration: 1500 });
+      notify.success('Skill rating updated', { duration: 1500 });
     } catch (error) {
       console.error('Error updating skill rating:', error);
-      toast.error('Failed to save skill rating');
+      notify.error('Failed to save skill rating');
     }
   };
 
@@ -1526,9 +1526,9 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
       try {
         await saveChatHistory(newMessages);
       } catch (saveError) {
-        toast.error('Failed to save chat history');
+        notify.error('Failed to save chat history');
       }
-      toast.error('Failed to send message: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      notify.error('Failed to send message: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsSending(false);
     }
@@ -1672,7 +1672,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
         updatedAt: serverTimestamp()
       }).catch(error => {
         console.error('Error updating notes:', error);
-        toast.error('Failed to update notes');
+        notify.error('Failed to update notes');
       });
 
       // Update the interview object without affecting notePositions or other state
@@ -1715,11 +1715,11 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
           return prev;
         });
 
-        toast.success('Notes saved successfully');
+        notify.success('Notes saved successfully');
       }
     } catch (error) {
       console.error('Error saving notes:', error);
-      toast.error('Failed to save notes');
+      notify.error('Failed to save notes');
     } finally {
       setIsSavingNotes(false);
     }
@@ -1820,13 +1820,13 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
       // Use the helper function to update the interview
       updateInterviewNotes(updatedNotes);
 
-      toast.success(activeNote ? 'Note updated successfully' : 'Note created successfully');
+      notify.success(activeNote ? 'Note updated successfully' : 'Note created successfully');
 
       // Close the modal
       setIsNoteModalOpen(false);
     } catch (error) {
       console.error('Error saving note:', error);
-      toast.error('Failed to save note');
+      notify.error('Failed to save note');
     }
   };
 
@@ -1843,7 +1843,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
         return updatedNotes;
       });
 
-      toast.success('Note deleted successfully');
+      notify.success('Note deleted successfully');
 
       // If the note modal is open and this note is being edited, close it
       if (isNoteModalOpen && activeNote && activeNote.id === noteId) {
@@ -1852,13 +1852,13 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
       }
     } catch (error) {
       console.error('Error deleting note:', error);
-      toast.error('Failed to delete note');
+      notify.error('Failed to delete note');
     }
   }, [currentUser, application, interview, applicationId, isNoteModalOpen, activeNote]);
 
   const regenerateQuestions = async () => {
     if (!currentUser || !application || !interview || !interview.jobPostUrl || !applicationId) {
-      toast.error('No job post URL available for generating new questions');
+      notify.error('No job post URL available for generating new questions');
       return;
     }
 
@@ -1963,7 +1963,7 @@ Make sure each answer is completely unique and specific to its question - no gen
         // Extract and clean the JSON from the response
         const contentFromAPI = response?.text || '';
         if (!contentFromAPI) {
-          toast.error('Empty response from GPT-4o API');
+          notify.error('Empty response from GPT-4o API');
           return;
         }
 
@@ -1976,7 +1976,7 @@ Make sure each answer is completely unique and specific to its question - no gen
 
           // Check if there's JSON-looking content
           if (!/\{[\s\S]*\}/.test(content) && !/```json/.test(content)) {
-            toast.error('Unexpected response format from Perplexity API');
+            notify.error('Unexpected response format from Perplexity API');
             return;
           }
 
@@ -2031,7 +2031,7 @@ Make sure each answer is completely unique and specific to its question - no gen
               if (questionsGuess.length > 0) {
                 newQuestionsData = { questions: questionsGuess };
               } else {
-                toast.error('Failed to parse questions from API response');
+                notify.error('Failed to parse questions from API response');
                 return;
               }
             }
@@ -2467,7 +2467,7 @@ Make sure each answer is completely unique and specific to its question - no gen
           const interviewIndex = application.interviews?.findIndex(i => i.id === interview.id) ?? -1;
 
           if (interviewIndex === -1) {
-            toast.error('Could not find interview to update');
+            notify.error('Could not find interview to update');
             return;
           }
 
@@ -2505,17 +2505,17 @@ Make sure each answer is completely unique and specific to its question - no gen
           // Small delay to show 100% before closing
           await new Promise(resolve => setTimeout(resolve, 300));
 
-          toast.success('New interview questions generated successfully!');
+          notify.success('New interview questions generated successfully!');
         } catch (parseError) {
           console.error('Error parsing questions JSON:', parseError);
-          toast.error('Failed to parse questions from API response: ' + (parseError instanceof Error ? parseError.message : 'Unknown error'));
+          notify.error('Failed to parse questions from API response: ' + (parseError instanceof Error ? parseError.message : 'Unknown error'));
         }
       } else {
-        toast.error('Failed to generate new questions');
+        notify.error('Failed to generate new questions');
       }
     } catch (error) {
       console.error('Error generating new questions:', error);
-      toast.error('Failed to generate new questions: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      notify.error('Failed to generate new questions: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsRegeneratingQuestions(false);
       setRegeneratingProgress(0);
@@ -2861,7 +2861,7 @@ Generate exactly ${count} questions.
           updatedAt: serverTimestamp()
         }).catch(error => {
           console.error('Error saving note positions:', error);
-          toast.error('Failed to save note positions');
+          notify.error('Failed to save note positions');
         });
       }
     } else if (dragStartPos) {
@@ -3433,7 +3433,7 @@ Return ONLY a JSON array of 6 question strings, no other text. Example format:
       return questions.slice(0, 6);
     } catch (error) {
       console.error('Error generating questions:', error);
-      toast.error('Failed to generate questions');
+      notify.error('Failed to generate questions');
       return [];
     } finally {
       setIsGeneratingQuestions(false);
@@ -3488,7 +3488,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
       return pitch;
     } catch (error) {
       console.error('Error generating pitch:', error);
-      toast.error('Failed to generate elevator pitch');
+      notify.error('Failed to generate elevator pitch');
       return '';
     } finally {
       setIsGeneratingPitch(false);
@@ -3759,7 +3759,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
     // Save to Firebase
     await saveNoteDocuments(updatedDocs, newDoc.id);
     
-    toast.success('STAR story exported to Notes');
+    notify.success('STAR story exported to Notes');
   };
 
   const exportStoryToStickyWhiteboard = async (skill: string, storyId: string) => {
@@ -3892,7 +3892,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
       setIsNotesExpanded(true);
     }
 
-    toast.success('STAR story exported to Sticky Notes Whiteboard');
+    notify.success('STAR story exported to Sticky Notes Whiteboard');
   };
 
   const exportStoryToTldrawWhiteboard = async (skill: string, storyId: string) => {
@@ -3900,7 +3900,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
     if (!story) return;
 
     if (!tldrawWhiteboardRef.current) {
-      toast.error('Whiteboard is not ready. Please wait a moment and try again.');
+      notify.error('Whiteboard is not ready. Please wait a moment and try again.');
       return;
     }
 
@@ -3910,10 +3910,10 @@ Return ONLY the pitch text, no explanations or formatting.`;
         action: story.action || '',
         result: story.result || ''
       });
-      toast.success('STAR story exported to TldrawWhiteboard');
+      notify.success('STAR story exported to TldrawWhiteboard');
     } catch (error) {
       console.error('Error exporting to TldrawWhiteboard:', error);
-      toast.error('Failed to export to whiteboard');
+      notify.error('Failed to export to whiteboard');
     }
   };
 
@@ -4090,9 +4090,9 @@ Return ONLY the pitch text, no explanations or formatting.`;
               await saveChatHistory([]);
               setChatMessages([]);
               setMessage('');
-              toast.success('Chat cleared');
+              notify.success('Chat cleared');
             } catch (error) {
-              toast.error('Failed to clear chat');
+              notify.error('Failed to clear chat');
             }
           } else {
             setChatMessages([]);
@@ -6124,9 +6124,9 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                     await saveChatHistory([]);
                                     setChatMessages([]);
                                     setMessage('');
-                                    toast.success('Chat cleared');
+                                    notify.success('Chat cleared');
                                   } catch (error) {
-                                    toast.error('Failed to clear chat');
+                                    notify.error('Failed to clear chat');
                                   }
                                 } else {
                                   setChatMessages([]);

@@ -12,7 +12,7 @@ import {
   Link as LinkIcon,
   Code,
 } from 'lucide-react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface NotesToolbarProps {
   editor: Editor;
@@ -68,7 +68,7 @@ export default function NotesToolbar({ editor }: NotesToolbarProps) {
 
     // Update link
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-    toast.success('Link added');
+    notify.success('Link added');
   };
 
   return (

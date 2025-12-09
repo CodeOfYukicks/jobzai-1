@@ -4,7 +4,7 @@ import { Check, CreditCard, Loader2, Crown, Gift, Zap, Sparkles, ArrowRight, Che
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { recordCreditHistory } from '../../../lib/creditHistory';
 import { redirectToStripeCheckout } from '../../../services/stripe';
 
@@ -170,7 +170,7 @@ export default function SubscriptionStep({ onComplete, onBack, profileData }: Su
           return;
         } catch (error: any) {
           console.error('Error redirecting to Stripe Checkout:', error);
-          toast.error(error.message || 'Failed to initiate payment. Please try again.');
+          notify.error(error.message || 'Failed to initiate payment. Please try again.');
           setIsProcessing(false);
           return;
         }
@@ -200,11 +200,11 @@ export default function SubscriptionStep({ onComplete, onBack, profileData }: Su
         );
       }
 
-      toast.success('Subscription updated successfully!');
+      notify.success('Subscription updated successfully!');
       onComplete();
     } catch (error) {
       console.error('Error processing subscription:', error);
-      toast.error('Failed to process subscription');
+      notify.error('Failed to process subscription');
     } finally {
       setIsProcessing(false);
     }

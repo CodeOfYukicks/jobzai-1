@@ -9,7 +9,7 @@ import DeleteCampaignModal from '../components/DeleteCampaignModal';
 import { CampaignFilters, type CampaignFilters as FiltersType } from '../components/CampaignFilters';
 import CampaignPreview from './CampaignPreview';
 import CampaignDetailsModal from '../components/CampaignDetailsModal';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { httpsCallable } from 'firebase/functions';
 import CampaignCard from '../components/CampaignCard';
 import axios from 'axios';
@@ -137,10 +137,10 @@ export default function CampaignsPage() {
 
     try {
       await deleteDoc(doc(db, 'users', currentUser.uid, 'campaigns', deleteModal.campaign.id));
-      toast.success('Campaign deleted successfully');
+      notify.success('Campaign deleted successfully');
     } catch (error) {
       console.error('Error deleting campaign:', error);
-      toast.error('Failed to delete campaign');
+      notify.error('Failed to delete campaign');
     }
   };
 
@@ -184,7 +184,7 @@ export default function CampaignsPage() {
     setStartModal({ show: false });
     
     if (!currentUser) {
-      toast.error("Please login first");
+      notify.error("Please login first");
       return;
     }
 
@@ -196,7 +196,7 @@ export default function CampaignsPage() {
       const userSnap = await getDoc(userRef);
       
       if (!userSnap.exists()) {
-        toast.error("User data not found");
+        notify.error("User data not found");
         toast.dismiss(toastId);
         return;
       }
@@ -211,7 +211,7 @@ export default function CampaignsPage() {
       const campaignSnap = await getDoc(campaignRef);
       
       if (!campaignSnap.exists()) {
-        toast.error("Campaign not found");
+        notify.error("Campaign not found");
         toast.dismiss(toastId);
         return;
       }
@@ -220,21 +220,21 @@ export default function CampaignsPage() {
 
       // Vérifier si la campagne existe et a des crédits assignés
       if (!campaignData?.credits) {
-        toast.error("Campaign credits not specified");
+        notify.error("Campaign credits not specified");
         toast.dismiss(toastId);
         return;
       }
 
       // Vérifier si l'utilisateur a assez de crédits
       if (currentCredits < campaignData.credits) {
-        toast.error(`Insufficient credits. You need ${campaignData.credits} credits but only have ${currentCredits}`);
+        notify.error(`Insufficient credits. You need ${campaignData.credits} credits but only have ${currentCredits}`);
         toast.dismiss(toastId);
         return;
       }
 
       // Vérifier que le template existe
       if (!campaignData.templateId) {
-        toast.error("Email template not specified");
+        notify.error("Email template not specified");
         toast.dismiss(toastId);
         return;
       }
@@ -244,7 +244,7 @@ export default function CampaignsPage() {
       const templateSnap = await getDoc(templateRef);
       
       if (!templateSnap.exists()) {
-        toast.error("Email template not found");
+        notify.error("Email template not found");
         toast.dismiss(toastId);
         return;
       }
@@ -304,10 +304,10 @@ export default function CampaignsPage() {
         creditsDeducted: true // Marquer que les crédits ont été déduits
       });
 
-      toast.success(`Campaign started successfully! ${campaignData.credits} credits deducted from your balance.`);
+      notify.success(`Campaign started successfully! ${campaignData.credits} credits deducted from your balance.`);
     } catch (error) {
       console.error("Error starting campaign:", error);
-      toast.error("Failed to start campaign");
+      notify.error("Failed to start campaign");
     } finally {
       toast.dismiss(toastId);
     }

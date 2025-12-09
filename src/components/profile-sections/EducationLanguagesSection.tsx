@@ -3,7 +3,7 @@ import { GraduationCap, Languages, Plus, X, Edit2, MoreVertical, Copy, Trash2 } 
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { motion, AnimatePresence } from 'framer-motion';
 import MonthPicker from '../ui/MonthPicker';
 import { 
@@ -58,7 +58,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
         setTimeout(() => setSaveStatus('idle'), 2000);
       } catch (error) {
         console.error('Auto-save failed:', error);
-        toast.error('Failed to save');
+        notify.error('Failed to save');
         setSaveStatus('idle');
       }
     }, 500),
@@ -157,14 +157,14 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
     const newEducations = [...formData.educations];
     newEducations.splice(index + 1, 0, duplicated);
     handleChange('educations', newEducations);
-    toast.success('Education duplicated');
+    notify.success('Education duplicated');
     setOpenEducationMenuIndex(null);
   };
 
   const removeEducation = (index: number) => {
     const newEducations = formData.educations.filter((_, i) => i !== index);
     handleChange('educations', newEducations);
-    toast.success('Education removed');
+    notify.success('Education removed');
     setOpenEducationMenuIndex(null);
   };
 

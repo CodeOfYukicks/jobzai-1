@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Edit, Trash2, ChevronLeft, ChevronRight, Undo2, Mail, Sparkles, Clock, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import EditTemplateModal from './EditTemplateModal';
 import { toggleTemplateFavorite } from '../lib/templates';
 
@@ -40,9 +40,9 @@ export default function TemplateCard({ template, onUpdate, onDelete, isMobile }:
     try {
       await toggleTemplateFavorite(currentUser.uid, template.id, template.liked);
       onUpdate();
-      toast.success(template.liked ? 'Removed from favorites' : 'Added to favorites');
+      notify.success(template.liked ? 'Removed from favorites' : 'Added to favorites');
     } catch (error) {
-      toast.error('Failed to update favorite status');
+      notify.error('Failed to update favorite status');
     } finally {
       setIsUpdating(false);
     }

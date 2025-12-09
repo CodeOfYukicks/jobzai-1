@@ -14,12 +14,11 @@ import {
   Briefcase,
   ArrowRight,
   Plus,
-  Target,
   CalendarDays,
   Bell,
   MapPin,
   Heart,
-  Layout,
+  Send,
 } from 'lucide-react';
 import { CalendarEvent } from './types';
 import { CompanyLogo } from '../common/CompanyLogo';
@@ -73,6 +72,21 @@ const getInterviewTypeInfo = (type: string) => {
   }
 };
 
+// Get status label for campaigns
+const getCampaignStatusLabel = (status: string): string => {
+  const labels: Record<string, string> = {
+    targets: 'Target',
+    contacted: 'Contacted',
+    follow_up: 'Follow-up',
+    replied: 'Replied',
+    meeting: 'Meeting',
+    opportunity: 'Opportunity',
+    no_response: 'No Response',
+    closed: 'Closed',
+  };
+  return labels[status] || 'Outreach';
+};
+
 const UpcomingEventCard = ({
   event,
   isUrgent,
@@ -87,13 +101,27 @@ const UpcomingEventCard = ({
   const isWishlist = event.type === 'wishlist';
   const resource = event.resource || {};
   const interview = isInterview ? resource.interview : null;
-  const companyName = resource?.companyName || 'Company';
-  const position = resource?.position || 'Position';
   
   // Board info
   const boardName = resource?.boardName;
   const boardIcon = resource?.boardIcon;
   const boardColor = resource?.boardColor;
+  const boardType = resource?.boardType || 'jobs';
+  
+  // Determine if this is a campaign (outreach) card
+  const isCampaign = boardType === 'campaigns';
+  
+  // For campaigns: show contact name as primary, company as secondary
+  // For jobs: show company name as primary, position as secondary
+  const contactName = resource?.contactName;
+  const companyName = resource?.companyName || 'Company';
+  const position = resource?.position || 'Position';
+  const contactRole = resource?.contactRole;
+  
+  const primaryName = isCampaign && contactName ? contactName : companyName;
+  const secondaryInfo = isCampaign 
+    ? (contactRole || companyName || position)
+    : position;
 
   const typeInfo = isInterview
     ? getInterviewTypeInfo(interview?.type || 'other')
@@ -103,11 +131,17 @@ const UpcomingEventCard = ({
           label: 'Wishlist',
           dotColor: 'bg-pink-500',
         }
-      : {
-          icon: <Briefcase className="w-3.5 h-3.5" />,
-          label: 'Application',
-          dotColor: 'bg-blue-500',
-        };
+      : isCampaign
+        ? {
+            icon: <Send className="w-3.5 h-3.5" />,
+            label: getCampaignStatusLabel(resource?.status),
+            dotColor: 'bg-cyan-500',
+          }
+        : {
+            icon: <Briefcase className="w-3.5 h-3.5" />,
+            label: 'Application',
+            dotColor: 'bg-blue-500',
+          };
 
   const handlePrepare = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -144,9 +178,19 @@ const UpcomingEventCard = ({
       )}
 
       <div className="flex items-start gap-3">
-        {/* Company Logo */}
+        {/* Logo / Avatar */}
         <div className="flex-shrink-0">
-          <CompanyLogo companyName={companyName} size="md" />
+          {isCampaign && contactName ? (
+            // Show person avatar for campaigns
+            <div 
+              className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold text-sm"
+              style={{ backgroundColor: boardColor || '#06B6D4' }}
+            >
+              {contactName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+            </div>
+          ) : (
+            <CompanyLogo companyName={companyName} size="md" />
+          )}
         </div>
 
         {/* Content */}
@@ -154,9 +198,9 @@ const UpcomingEventCard = ({
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <h4 className="font-medium text-sm text-gray-900 dark:text-white truncate">
-                {companyName}
+                {primaryName}
               </h4>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{position}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{secondaryInfo}</p>
             </div>
             <span className="flex-shrink-0 flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-400">
               <span className={`w-1.5 h-1.5 rounded-full ${typeInfo.dotColor}`} />

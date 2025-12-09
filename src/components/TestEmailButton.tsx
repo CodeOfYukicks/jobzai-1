@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { Loader2 } from 'lucide-react';
 
 interface TestEmailButtonProps {
@@ -12,7 +12,7 @@ export default function TestEmailButton({ email, onSuccess }: TestEmailButtonPro
 
   const handleTestEmail = async () => {
     if (!email) {
-      toast.error('Veuillez entrer une adresse email');
+      notify.error('Veuillez entrer une adresse email');
       return;
     }
 
@@ -30,11 +30,11 @@ export default function TestEmailButton({ email, onSuccess }: TestEmailButtonPro
 
       if (!response.ok) throw new Error(data.message || 'Failed to send test email');
 
-      toast.success('Email test envoy├® avec succ├¿s !');
+      notify.success('Email test envoy├® avec succ├¿s !');
       onSuccess?.(data.result);
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Erreur lors de l\'envoi de l\'email test');
+      notify.error('Erreur lors de l\'envoi de l\'email test');
     } finally {
       setIsSending(false);
     }

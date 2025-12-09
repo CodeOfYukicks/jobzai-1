@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Sparkles, Loader2, Wand2, MessageSquare, Check } from 'lucide-react';
 import { ChatMessage } from '../../types/job';
 import { sendChatMessage, quickActions, findSection, replaceSection } from '../../lib/aiChatAssistant';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 
 interface AIChatProps {
   documentContent: string;
@@ -80,17 +80,17 @@ export const AIChat = ({ documentContent, documentType, onApplyText }: AIChatPro
         console.log('After replacement, length:', finalContent.length);
         
         const sectionName = metadata.targetSection.replace(/_/g, ' ');
-        toast.success(`Replaced ${sectionName} in editor!`);
+        notify.success(`Replaced ${sectionName} in editor!`);
       } else {
         console.warn('Section not found, using full replacement');
         // If section not found, fall back to full replacement
         finalContent = content;
-        toast.info('Section not found, applied as full replacement');
+        notify.info('Section not found, applied as full replacement');
       }
     } else {
       // Full document replacement
       finalContent = content;
-      toast.success('Applied to editor!');
+      notify.success('Applied to editor!');
     }
     
     onApplyText(finalContent);
@@ -120,7 +120,7 @@ export const AIChat = ({ documentContent, documentType, onApplyText }: AIChatPro
       });
 
       if (response.error) {
-        toast.error(response.errorMessage || 'Failed to get AI response');
+        notify.error(response.errorMessage || 'Failed to get AI response');
         return;
       }
 
@@ -141,7 +141,7 @@ export const AIChat = ({ documentContent, documentType, onApplyText }: AIChatPro
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message');
+      notify.error('Failed to send message');
     } finally {
       setIsSending(false);
     }

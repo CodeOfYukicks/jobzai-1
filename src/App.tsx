@@ -65,6 +65,9 @@ import CampaignsAutoPage from './pages/CampaignsAutoPage';
 import { initNotificationService } from './services/notificationService';
 import { useBackgroundTasks } from './hooks/useBackgroundTasks';
 import { resumePendingTasks } from './services/cvRewriteWorker';
+import { useGmailReplyChecker } from './hooks/useGmailReplyChecker';
+import { NotificationProvider } from './contexts/NotificationContext';
+import { MicroFeedback } from './components/ui/MicroFeedback';
 
 const queryClient = new QueryClient();
 
@@ -114,6 +117,9 @@ function AppContent() {
 
   // Initialize background task monitoring
   useBackgroundTasks();
+  
+  // Global Gmail reply checker - runs in background on all pages
+  useGmailReplyChecker();
   
   return (
     <>
@@ -241,7 +247,10 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <ToastInitializer />
-        <AppContent />
+        <NotificationProvider>
+          <AppContent />
+          <MicroFeedback />
+        </NotificationProvider>
       </ToastProvider>
     </QueryClientProvider>
   );

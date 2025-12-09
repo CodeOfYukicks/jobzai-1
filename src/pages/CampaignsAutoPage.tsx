@@ -48,7 +48,7 @@ import {
   BadgeCheck,
   FolderKanban
 } from 'lucide-react';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { getDoc, doc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
@@ -85,6 +85,7 @@ interface CampaignRecipient {
   openedAt: any;
   repliedAt: any;
   createdAt: any;
+  gmailThreadId?: string;
 }
 
 interface Campaign {
@@ -301,7 +302,7 @@ export default function CampaignsAutoPage() {
       setIsLoading(false);
     }, (error) => {
       console.error('Error loading campaigns:', error);
-      toast.error('Failed to load campaigns');
+      notify.error('Failed to load campaigns');
       setIsLoading(false);
     });
 
@@ -501,10 +502,10 @@ export default function CampaignsAutoPage() {
       const isDark = await detectCoverBrightness(coverUrl);
       setIsCoverDark(isDark);
       
-      toast.success('Cover updated');
+      notify.success('Cover updated');
     } catch (error) {
       console.error('Error updating cover:', error);
-      toast.error('Failed to update cover');
+      notify.error('Failed to update cover');
     } finally {
       setIsUpdatingCover(false);
     }
@@ -542,10 +543,10 @@ export default function CampaignsAutoPage() {
 
       setCoverPhoto(null);
       setIsCoverDark(null);
-      toast.success('Cover removed');
+      notify.success('Cover removed');
     } catch (error) {
       console.error('Error removing cover:', error);
-      toast.error('Failed to remove cover');
+      notify.error('Failed to remove cover');
     } finally {
       setIsUpdatingCover(false);
     }
@@ -555,19 +556,19 @@ export default function CampaignsAutoPage() {
   const handleSearchApollo = useCallback(async (campaignId: string, targeting: ApolloTargeting) => {
     setIsSearchingApollo(true);
     try {
-      toast.info('Searching Apollo for contacts...');
+      notify.info('Searching Apollo for contacts...');
       
       const result = await searchApolloContacts(campaignId, targeting, 100);
       
       if (result.success) {
-        toast.success(`Found ${result.contactsFound} contacts! (${result.totalAvailable} available)`);
+        notify.success(`Found ${result.contactsFound} contacts!`);
         setSelectedCampaignId(campaignId);
       } else {
-        toast.error('No contacts found. Try adjusting your targeting.');
+        notify.warning('No contacts found');
       }
     } catch (error: any) {
       console.error('Apollo search error:', error);
-      toast.error(error.message || 'Failed to search Apollo');
+      notify.error(error.message || 'Failed to search Apollo');
     } finally {
       setIsSearchingApollo(false);
     }
@@ -613,10 +614,10 @@ export default function CampaignsAutoPage() {
       }
       
       setDeleteCampaignModal({ show: false });
-      toast.success('Campaign deleted successfully');
+      notify.success('Campaign deleted');
     } catch (error) {
       console.error('Error deleting campaign:', error);
-      toast.error('Failed to delete campaign');
+      notify.error('Failed to delete campaign');
     }
   }, [deleteCampaignModal.campaign, selectedCampaignId]);
 
@@ -628,10 +629,10 @@ export default function CampaignsAutoPage() {
         updatedAt: new Date()
       });
       setEditingCampaignId(null);
-      toast.success('Campaign renamed');
+      notify.success('Campaign renamed');
     } catch (error) {
       console.error('Error updating campaign name:', error);
-      toast.error('Failed to rename campaign');
+      notify.error('Failed to rename campaign');
     }
   }, []);
 
@@ -676,13 +677,13 @@ export default function CampaignsAutoPage() {
       
       if (data.success) {
         setEmailProgress({ generated: data.generated, total: data.total });
-        toast.success(`Generated ${data.generated} emails!`);
+        notify.success(`Generated ${data.generated} emails!`);
       } else {
-        toast.error(data.error || 'Failed to generate emails');
+        notify.error(data.error || 'Failed to generate emails');
       }
     } catch (error) {
       console.error('❌ Error generating emails:', error);
-      toast.error('Failed to generate emails');
+      notify.error('Failed to generate emails');
     } finally {
       setIsGeneratingEmails(false);
       setEmailProgress(null);
@@ -695,7 +696,7 @@ export default function CampaignsAutoPage() {
     
     // Check if Gmail is connected
     if (!selectedCampaign?.gmail?.connected) {
-      toast.error('Please connect Gmail first in campaign settings');
+      notify.error('Please connect Gmail first');
       return;
     }
     
@@ -719,16 +720,16 @@ export default function CampaignsAutoPage() {
       if (data.success) {
         setSendProgress({ sent: data.sent, remaining: data.remaining });
         if (data.sent > 0) {
-          toast.success(`Sent ${data.sent} emails! ${data.remaining} remaining.`);
+          notify.success(`Sent ${data.sent} emails!`);
         } else {
-          toast.info(data.message || 'No emails to send');
+          notify.info(data.message || 'No emails to send');
         }
       } else {
-        toast.error(data.error || 'Failed to send emails');
+        notify.error(data.error || 'Failed to send emails');
       }
     } catch (error) {
       console.error('Error sending emails:', error);
-      toast.error('Failed to send emails');
+      notify.error('Failed to send emails');
     } finally {
       setIsSendingEmails(false);
       setSendProgress(null);
@@ -760,13 +761,13 @@ export default function CampaignsAutoPage() {
       if (data.success && data.reply) {
         setReplyContent(data.reply);
       } else if (data.needsReconnect) {
-        toast.error('Gmail token expired. Please reconnect Gmail in a new campaign.');
+        notify.error('Gmail token expired');
       } else {
-        toast.error(data.message || 'Could not load reply');
+        notify.error(data.message || 'Could not load reply');
       }
     } catch (error) {
       console.error('Error loading reply:', error);
-      toast.error('Failed to load reply');
+      notify.error('Failed to load reply');
     } finally {
       setIsLoadingReply(false);
     }
@@ -807,26 +808,26 @@ export default function CampaignsAutoPage() {
             errorMessage = 'API endpoint not found. Please restart the server.';
           }
         }
-        toast.error(errorMessage);
+        notify.error(errorMessage);
         return;
       }
       
       const data = await response.json();
       
       if (data.success) {
-        toast.success('Reply sent successfully!');
+        notify.success('Reply sent!');
         setReplyMessage('');
         // Optionally close the modal or keep it open
         // setReplyPreviewRecipient(null);
         // setReplyContent(null);
       } else if (data.needsReconnect) {
-        toast.error('Gmail token expired. Please reconnect Gmail in a new campaign.');
+        notify.error('Gmail token expired');
       } else {
-        toast.error(data.error || 'Failed to send reply');
+        notify.error(data.error || 'Failed to send reply');
       }
     } catch (error: any) {
       console.error('Error sending reply:', error);
-      toast.error(error.message || 'Failed to send reply');
+      notify.error(error.message || 'Failed to send reply');
     } finally {
       setIsSendingReply(false);
     }
@@ -854,16 +855,16 @@ export default function CampaignsAutoPage() {
       
       if (data.success) {
         if (data.repliesFound > 0) {
-          toast.success(`Found ${data.repliesFound} new replies!`);
+          notify.success(`Found ${data.repliesFound} new replies!`);
         } else {
-          toast.info('No new replies found');
+          notify.info('No new replies');
         }
       } else {
-        toast.error(data.error || 'Failed to check replies');
+        notify.error(data.error || 'Failed to check replies');
       }
     } catch (error) {
       console.error('Error checking replies:', error);
-      toast.error('Failed to check replies');
+      notify.error('Failed to check replies');
     } finally {
       setIsCheckingReplies(false);
     }
@@ -886,9 +887,69 @@ export default function CampaignsAutoPage() {
       const existingApplications = await getDocs(q);
 
       if (!existingApplications.empty) {
-        toast.error('This contact is already in your outreach board');
+        notify.warning('Contact already in board');
         setIsAddingToBoard(false);
         return;
+      }
+
+      // Build conversation history from campaign data
+      const conversationHistory: any[] = [];
+      
+      // Add initial sent message if available
+      if (recipient.emailContent && recipient.sentAt) {
+        const sentAtDate = recipient.sentAt?.toDate 
+          ? recipient.sentAt.toDate().toISOString() 
+          : (recipient.sentAt instanceof Date 
+              ? recipient.sentAt.toISOString() 
+              : new Date().toISOString());
+        
+        conversationHistory.push({
+          id: crypto.randomUUID(),
+          type: 'sent',
+          channel: 'email',
+          subject: recipient.emailSubject || undefined,
+          content: recipient.emailContent,
+          sentAt: sentAtDate,
+          status: recipient.status === 'replied' ? 'replied' : (recipient.status === 'opened' ? 'opened' : 'sent'),
+        });
+      }
+
+      // If recipient has replied, fetch the reply from Gmail
+      if (recipient.status === 'replied' && recipient.gmailThreadId) {
+        try {
+          const auth = getAuth();
+          const token = await auth.currentUser?.getIdToken();
+          
+          const response = await fetch(`${BACKEND_URL}/api/gmail/thread/${recipient.gmailThreadId}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          const data = await response.json();
+          
+          if (data.success && data.reply) {
+            const repliedAtDate = recipient.repliedAt?.toDate 
+              ? recipient.repliedAt.toDate().toISOString() 
+              : (recipient.repliedAt instanceof Date 
+                  ? recipient.repliedAt.toISOString() 
+                  : new Date().toISOString());
+            
+            conversationHistory.push({
+              id: crypto.randomUUID(),
+              type: 'received',
+              channel: 'email',
+              subject: data.reply.subject || undefined,
+              content: data.reply.body,
+              sentAt: repliedAtDate,
+              status: 'replied',
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching reply content:', error);
+          // Continue without the reply content - user can see it later
+        }
       }
 
       // Create application/contact entry
@@ -896,7 +957,7 @@ export default function CampaignsAutoPage() {
         companyName: recipient.company || '',
         position: recipient.title || '',
         location: recipient.location || '',
-        status: 'targets', // Default status for new outreach contacts
+        status: recipient.status === 'replied' ? 'replied' : (recipient.status === 'sent' || recipient.status === 'opened' ? 'contacted' : 'targets'),
         appliedDate: new Date().toISOString().split('T')[0],
         contactName: recipient.fullName || '',
         contactEmail: recipient.email || '',
@@ -904,6 +965,8 @@ export default function CampaignsAutoPage() {
         contactLinkedIn: recipient.linkedinUrl || '',
         outreachChannel: 'email' as const,
         lastContactedAt: recipient.sentAt?.toDate ? recipient.sentAt.toDate().toISOString() : new Date().toISOString(),
+        conversationHistory: conversationHistory.length > 0 ? conversationHistory : undefined,
+        gmailThreadId: recipient.gmailThreadId || undefined,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         boardId: boardId,
@@ -911,13 +974,13 @@ export default function CampaignsAutoPage() {
       };
 
       await addDoc(applicationsRef, contactApplication);
-      toast.success('Contact added to outreach board');
+      notify.success('Contact added to board');
       setShowBoardSelector(false);
       setSelectedRecipientForBoard(null);
       setOpenMenuRecipientId(null);
     } catch (error) {
       console.error('Error adding contact to board:', error);
-      toast.error('Failed to add contact to board');
+      notify.error('Failed to add contact');
     } finally {
       setIsAddingToBoard(false);
     }
@@ -926,7 +989,7 @@ export default function CampaignsAutoPage() {
   // Handle add to board click
   const handleAddToBoard = (recipient: CampaignRecipient) => {
     if (!currentUser) {
-      toast.error('Please log in to add contacts to your board');
+      notify.error('Please log in first');
       return;
     }
 
@@ -1019,10 +1082,10 @@ export default function CampaignsAutoPage() {
     try {
       await navigator.clipboard.writeText(email);
       setCopiedEmail(email);
-      toast.success('Email copied!');
+      notify.copied('Email copied!');
       setTimeout(() => setCopiedEmail(null), 2000);
     } catch (error) {
-      toast.error('Failed to copy email');
+      notify.error('Failed to copy');
     }
   }, []);
 

@@ -38,7 +38,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, updateDoc, collection, query, orderBy, limit, getDocs, addDoc, where, Timestamp } from 'firebase/firestore';
 import { updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { db } from '../lib/firebase';
-import { toast } from '@/contexts/ToastContext';
+import { notify } from '@/lib/notify';
 import { applyTheme, loadThemeFromStorage, type Theme } from '../lib/theme';
 import { syncUserToBrevo } from '../services/brevo';
 
@@ -531,7 +531,7 @@ export default function SettingsPage() {
         await loadActivities();
       } catch (error) {
         console.error('Error loading settings:', error);
-        toast.error('Failed to load settings');
+        notify.error('Failed to load settings');
       } finally {
         setIsLoading(false);
       }
@@ -651,10 +651,10 @@ export default function SettingsPage() {
         ...updates,
         settingsUpdatedAt: new Date().toISOString(),
       });
-      toast.success('Settings saved');
+      notify.success('Settings saved');
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast.error('Failed to save settings');
+      notify.error('Failed to save settings');
     } finally {
       setIsSaving(false);
     }
@@ -662,7 +662,7 @@ export default function SettingsPage() {
 
   const handleEmailUpdate = async () => {
     if (!currentUser || !currentPassword) {
-      toast.error('Please enter your current password');
+      notify.error('Please enter your current password');
       return;
     }
 
@@ -673,16 +673,16 @@ export default function SettingsPage() {
       await updateEmail(currentUser, email);
       await saveSettings({ email });
       await logActivity('email_change', { new_email: email });
-      toast.success('Email updated successfully');
+      notify.success('Email updated successfully');
       setCurrentPassword('');
     } catch (error: any) {
       console.error('Error updating email:', error);
       if (error.code === 'auth/wrong-password') {
-        toast.error('Incorrect password');
+        notify.error('Incorrect password');
       } else if (error.code === 'auth/email-already-in-use') {
-        toast.error('Email already in use');
+        notify.error('Email already in use');
       } else {
-        toast.error('Failed to update email');
+        notify.error('Failed to update email');
       }
     } finally {
       setIsSaving(false);
@@ -732,23 +732,23 @@ export default function SettingsPage() {
 
   const handlePasswordUpdate = async () => {
     if (!currentUser) {
-      toast.error('You must be logged in');
+      notify.error('You must be logged in');
       return;
     }
 
     const requirements = validatePasswordRequirements(newPassword);
     if (!requirements.valid) {
-      toast.error('Password does not meet requirements');
+      notify.error('Password does not meet requirements');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error('Passwords do not match');
+      notify.error('Passwords do not match');
       return;
     }
 
     if (newPassword === currentPassword) {
-      toast.error('New password must be different');
+      notify.error('New password must be different');
       return;
     }
 
@@ -758,17 +758,17 @@ export default function SettingsPage() {
       await reauthenticateWithCredential(currentUser, credential);
       await updatePassword(currentUser, newPassword);
       await logActivity('password_change');
-      toast.success('Password updated successfully');
+      notify.success('Password updated successfully');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error: any) {
       console.error('Error updating password:', error);
       if (error.code === 'auth/wrong-password') {
-        toast.error('Incorrect current password');
+        notify.error('Incorrect current password');
         setPasswordErrors(prev => ({ ...prev, current: 'Incorrect password' }));
       } else {
-        toast.error('Failed to update password');
+        notify.error('Failed to update password');
       }
     } finally {
       setIsSaving(false);
@@ -810,7 +810,7 @@ export default function SettingsPage() {
     if (!currentUser) return;
 
     try {
-      toast.info('Preparing your data export...');
+      notify.info('Preparing your data export...');
       const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
       const exportData = {
         exportedAt: new Date().toISOString(),
@@ -828,16 +828,16 @@ export default function SettingsPage() {
       URL.revokeObjectURL(url);
 
       await logActivity('export_data');
-      toast.success('Data exported successfully');
+      notify.success('Data exported successfully');
     } catch (error) {
       console.error('Error exporting data:', error);
-      toast.error('Failed to export data');
+      notify.error('Failed to export data');
     }
   };
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== 'DELETE') {
-      toast.error('Please type DELETE to confirm');
+      notify.error('Please type DELETE to confirm');
       return;
     }
 
@@ -845,13 +845,13 @@ export default function SettingsPage() {
 
     try {
       setIsSaving(true);
-      toast.info('Deleting your account...');
-      toast.error('Account deletion requires support assistance. Please contact support@jobz.ai');
+      notify.info('Deleting your account...');
+      notify.error('Account deletion requires support assistance. Please contact support@jobz.ai');
       setShowDeleteModal(false);
       setDeleteConfirmText('');
     } catch (error) {
       console.error('Error deleting account:', error);
-      toast.error('Failed to delete account');
+      notify.error('Failed to delete account');
     } finally {
       setIsSaving(false);
     }
