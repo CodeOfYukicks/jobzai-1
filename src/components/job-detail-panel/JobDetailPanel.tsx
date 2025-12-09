@@ -47,6 +47,7 @@ import { notify } from '@/lib/notify';
 import { CompanyLogo } from '../common/CompanyLogo';
 import { ConversationThread } from '../outreach/ConversationThread';
 import { MessageComposer } from '../outreach/MessageComposer';
+import { PremiumChatComposer } from '../outreach/PremiumChatComposer';
 import { OutreachMessage } from '../../types/job';
 import { getAuth } from 'firebase/auth';
 
@@ -933,50 +934,22 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
                                   />
                                 </div>
 
-                                {/* Message Input Area */}
-                                <div className="border-t border-gray-200 dark:border-[#3d3c3e] p-4 bg-gray-50 dark:bg-[#242325]">
-                                  <div className="flex items-end gap-3">
-                                    <div className="flex-1">
-                                      <textarea
-                                        value={editedJob.messageDraft || ''}
-                                        onChange={(e) => setEditedJob({ ...editedJob, messageDraft: e.target.value })}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault();
-                                            if (editedJob.messageDraft?.trim()) {
-                                              handleQuickSend(editedJob.messageDraft);
-                                            }
-                                          }
-                                        }}
-                                        placeholder={`Type a message to ${job.contactName || job.companyName || 'contact'}...`}
-                                        rows={3}
-                                        className="w-full px-4 py-3 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#8B5CF6]/20 focus:border-[#8B5CF6] transition-all resize-none"
-                                      />
-                                    </div>
-                                    <button
-                                      onClick={() => {
-                                        if (editedJob.messageDraft?.trim()) {
-                                          handleQuickSend(editedJob.messageDraft);
-                                        }
-                                      }}
-                                      disabled={!editedJob.messageDraft?.trim() || isSendingMessage}
-                                      className="px-6 py-3 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white rounded-xl hover:opacity-90 transition-all shadow-lg shadow-[#8B5CF6]/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium"
-                                    >
-                                      {isSendingMessage ? (
-                                        <>
-                                          <Loader2 className="w-4 h-4 animate-spin" />
-                                          Sending...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Send className="w-4 h-4" />
-                                          Send
-                                        </>
-                                      )}
-                                    </button>
-                                        </div>
-                                      </div>
+                                {/* Premium Message Composer with AI */}
+                                <div className="border-t border-gray-200 dark:border-[#3d3c3e] p-4 bg-gray-50/50 dark:bg-[#1e1e22]/50">
+                                  <PremiumChatComposer
+                                    conversationHistory={localMessages.length > 0 ? localMessages : (job.conversationHistory || [])}
+                                    contactContext={{
+                                      contactName: job.contactName || job.companyName || 'Contact',
+                                      contactRole: job.contactRole,
+                                      companyName: job.companyName || '',
+                                      relationshipGoal: job.relationshipGoal,
+                                      warmthLevel: job.warmthLevel,
+                                    }}
+                                    onSend={handleQuickSend}
+                                    isSending={isSendingMessage}
+                                  />
                                 </div>
+                              </div>
                             </div>
                           )}
 

@@ -10,4 +10,5 @@ export { RelationshipGoalSelector, RelationshipGoalBadge } from './RelationshipG
 export { OutreachContactHeader } from './OutreachContactHeader';
 export { ConversationThread } from './ConversationThread';
 export { MessageComposer } from './MessageComposer';
+export { PremiumChatComposer } from './PremiumChatComposer';
 
