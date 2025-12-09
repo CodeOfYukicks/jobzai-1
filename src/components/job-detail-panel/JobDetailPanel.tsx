@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, Transition } from '@headlessui/react';
@@ -195,6 +195,15 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
   
   // Campaign mode detection
   const isCampaignMode = boardType === 'campaigns';
+
+  // Reset active tab to 'contact' when opening modal for campaigns
+  useEffect(() => {
+    if (open && boardType === 'campaigns') {
+      setActiveTab('contact');
+    } else if (open && boardType === 'jobs') {
+      setActiveTab('overview');
+    }
+  }, [open, boardType]);
 
   if (!job) return null;
 
@@ -431,6 +440,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
                             status={job.status}
                             isEditing={isEditing}
                             onChange={(newStatus) => setEditedJob({ ...editedJob, status: newStatus })}
+                            boardType={boardType}
                           />
                         </div>
                       </div>

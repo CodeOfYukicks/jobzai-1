@@ -45,10 +45,11 @@ import {
   Globe,
   Minus,
   Square,
-  BadgeCheck
+  BadgeCheck,
+  FolderKanban
 } from 'lucide-react';
 import { toast } from '@/contexts/ToastContext';
-import { getDoc, doc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
+import { getDoc, doc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
@@ -57,6 +58,8 @@ import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
 import NewCampaignModal from '../components/campaigns/NewCampaignModal';
 import { searchApolloContacts, type ApolloTargeting } from '../lib/apolloService';
 import { CompanyLogo } from '../components/common/CompanyLogo';
+import SelectBoardModal from '../components/boards/SelectBoardModal';
+import { KanbanBoard } from '../types/job';
 
 type RecipientStatus = 'pending' | 'email_generated' | 'email_ready' | 'sent' | 'opened' | 'replied';
 
@@ -193,10 +196,20 @@ export default function CampaignsAutoPage() {
   // Email preview modal
   const [emailPreviewRecipient, setEmailPreviewRecipient] = useState<CampaignRecipient | null>(null);
 
+  // Board selection states
+  const [boards, setBoards] = useState<KanbanBoard[]>([]);
+  const [showBoardSelector, setShowBoardSelector] = useState(false);
+  const [selectedRecipientForBoard, setSelectedRecipientForBoard] = useState<CampaignRecipient | null>(null);
+  const [isAddingToBoard, setIsAddingToBoard] = useState(false);
+  const [openMenuRecipientId, setOpenMenuRecipientId] = useState<string | null>(null);
+  const menuRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
   // Reply preview modal
   const [replyPreviewRecipient, setReplyPreviewRecipient] = useState<CampaignRecipient | null>(null);
   const [replyContent, setReplyContent] = useState<{ from: string; subject: string; body: string; date: string } | null>(null);
   const [isLoadingReply, setIsLoadingReply] = useState(false);
+  const [replyMessage, setReplyMessage] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
 
   // Selection state for premium multi-select
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -324,6 +337,39 @@ export default function CampaignsAutoPage() {
 
     return () => unsubscribe();
   }, [selectedCampaignId]);
+
+  // Load campaign boards (outreach boards)
+  useEffect(() => {
+    const fetchBoards = async () => {
+      if (!currentUser) {
+        setBoards([]);
+        return;
+      }
+
+      try {
+        const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
+        const boardsQuery = query(boardsRef, orderBy('createdAt', 'asc'));
+        const snapshot = await getDocs(boardsQuery);
+        
+        const allBoards = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as KanbanBoard[];
+
+        // Filter for campaign-type boards only
+        const campaignBoards = allBoards.filter(board => 
+          board.boardType === 'campaigns'
+        );
+
+        setBoards(campaignBoards);
+      } catch (error) {
+        console.error('Error fetching boards:', error);
+        setBoards([]);
+      }
+    };
+
+    fetchBoards();
+  }, [currentUser]);
         
         // Load cover photo preference
   useEffect(() => {
@@ -696,6 +742,7 @@ export default function CampaignsAutoPage() {
     setReplyPreviewRecipient(recipient);
     setIsLoadingReply(true);
     setReplyContent(null);
+    setReplyMessage('');
     
     try {
       const auth = getAuth();
@@ -724,6 +771,66 @@ export default function CampaignsAutoPage() {
       setIsLoadingReply(false);
     }
   }, [BACKEND_URL]);
+
+  // Handle send reply
+  const handleSendReply = useCallback(async () => {
+    if (!replyPreviewRecipient?.gmailThreadId || !replyMessage.trim()) return;
+    
+    setIsSendingReply(true);
+    
+    try {
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken();
+      
+      const response = await fetch(`${BACKEND_URL}/api/gmail/thread/${replyPreviewRecipient.gmailThreadId}/reply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          message: replyMessage.trim()
+        })
+      });
+      
+      // Check if response is OK before trying to parse JSON
+      if (!response.ok) {
+        // Try to parse error response as JSON, fallback to status text
+        let errorMessage = `Error ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (e) {
+          // If response is not JSON (e.g., HTML error page), use status text
+          const text = await response.text();
+          if (response.status === 404) {
+            errorMessage = 'API endpoint not found. Please restart the server.';
+          }
+        }
+        toast.error(errorMessage);
+        return;
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success('Reply sent successfully!');
+        setReplyMessage('');
+        // Optionally close the modal or keep it open
+        // setReplyPreviewRecipient(null);
+        // setReplyContent(null);
+      } else if (data.needsReconnect) {
+        toast.error('Gmail token expired. Please reconnect Gmail in a new campaign.');
+      } else {
+        toast.error(data.error || 'Failed to send reply');
+      }
+    } catch (error: any) {
+      console.error('Error sending reply:', error);
+      toast.error(error.message || 'Failed to send reply');
+    } finally {
+      setIsSendingReply(false);
+    }
+  }, [replyPreviewRecipient, replyMessage, BACKEND_URL]);
 
   // Handle check for replies
   const handleCheckReplies = useCallback(async () => {
@@ -761,6 +868,108 @@ export default function CampaignsAutoPage() {
       setIsCheckingReplies(false);
     }
   }, [selectedCampaignId, currentUser, BACKEND_URL]);
+
+  // Add contact to board
+  const addContactToBoard = async (recipient: CampaignRecipient, boardId?: string) => {
+    if (!currentUser || !recipient) return;
+
+    try {
+      setIsAddingToBoard(true);
+
+      // Check if this contact already exists in user's applications
+      const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
+      const q = query(
+        applicationsRef,
+        where('contactEmail', '==', recipient.email),
+        where('companyName', '==', recipient.company)
+      );
+      const existingApplications = await getDocs(q);
+
+      if (!existingApplications.empty) {
+        toast.error('This contact is already in your outreach board');
+        setIsAddingToBoard(false);
+        return;
+      }
+
+      // Create application/contact entry
+      const contactApplication = {
+        companyName: recipient.company || '',
+        position: recipient.title || '',
+        location: recipient.location || '',
+        status: 'targets', // Default status for new outreach contacts
+        appliedDate: new Date().toISOString().split('T')[0],
+        contactName: recipient.fullName || '',
+        contactEmail: recipient.email || '',
+        contactRole: recipient.title || '',
+        contactLinkedIn: recipient.linkedinUrl || '',
+        outreachChannel: 'email' as const,
+        lastContactedAt: recipient.sentAt?.toDate ? recipient.sentAt.toDate().toISOString() : new Date().toISOString(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        boardId: boardId,
+        boardType: 'campaigns' as const,
+      };
+
+      await addDoc(applicationsRef, contactApplication);
+      toast.success('Contact added to outreach board');
+      setShowBoardSelector(false);
+      setSelectedRecipientForBoard(null);
+      setOpenMenuRecipientId(null);
+    } catch (error) {
+      console.error('Error adding contact to board:', error);
+      toast.error('Failed to add contact to board');
+    } finally {
+      setIsAddingToBoard(false);
+    }
+  };
+
+  // Handle add to board click
+  const handleAddToBoard = (recipient: CampaignRecipient) => {
+    if (!currentUser) {
+      toast.error('Please log in to add contacts to your board');
+      return;
+    }
+
+    setSelectedRecipientForBoard(recipient);
+
+    // If user has multiple campaign boards, show selection modal
+    if (boards.length > 1) {
+      setShowBoardSelector(true);
+      return;
+    }
+
+    // If user has exactly one board or no boards, add directly
+    const targetBoardId = boards.length === 1 ? boards[0].id : undefined;
+    addContactToBoard(recipient, targetBoardId);
+  };
+
+  // Handle board selection from modal
+  const handleBoardSelected = async (boardId: string) => {
+    if (selectedRecipientForBoard) {
+      await addContactToBoard(selectedRecipientForBoard, boardId);
+    }
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      menuRefs.current.forEach((menuRef, recipientId) => {
+        if (menuRef && !menuRef.contains(event.target as Node)) {
+          if (openMenuRecipientId === recipientId) {
+            setOpenMenuRecipientId(null);
+          }
+        }
+      });
+    };
+
+    if (openMenuRecipientId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openMenuRecipientId]);
 
   // Filter recipients based on search query
   const filteredRecipients = searchQuery.trim() 
@@ -1405,20 +1614,24 @@ export default function CampaignsAutoPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.3 }}
-            className="flex-1 min-h-0 mx-6 border border-gray-200/80 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col 
-              bg-white dark:bg-[#0a0a0a] shadow-sm dark:shadow-2xl dark:shadow-black/20"
+            className="flex-1 min-h-0 mx-6 border border-gray-200/60 dark:border-white/[0.06] rounded-2xl overflow-hidden flex flex-col 
+              bg-white dark:bg-[#111111] shadow-lg dark:shadow-2xl dark:shadow-black/40 backdrop-blur-sm"
             style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" }}
           >
-            <div className="flex-1 min-h-0 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-white/10 scrollbar-track-transparent">
+            <div className="flex-1 min-h-0 overflow-auto scrollbar-thin scrollbar-thumb-gray-300/50 dark:scrollbar-thumb-white/[0.12] 
+              scrollbar-track-transparent hover:scrollbar-thumb-gray-400/70 dark:hover:scrollbar-thumb-white/[0.18] transition-colors">
               <table ref={tableRef} className="w-full border-collapse table-fixed">
                 {/* Premium Header with Glassmorphism */}
                 <thead className="sticky top-0 z-20">
-                  <tr className="border-b border-gray-200 dark:border-white/[0.06]">
+                  <tr className="border-b border-gray-200/80 dark:border-white/[0.05] bg-gradient-to-b from-white via-white to-gray-50/50 
+                    dark:from-[#111111] dark:via-[#111111] dark:to-[#0d0d0d] backdrop-blur-md">
                     {/* Checkbox Column Header */}
                     <th 
                       style={{ width: `${columnWidths.checkbox}%` }} 
-                      className="px-3 py-3.5 bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
-                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04]"
+                      className="px-3 py-3.5 bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
+                        transition-colors duration-200"
                     >
                       <div className="flex items-center justify-center">
                         <button
@@ -1443,32 +1656,40 @@ export default function CampaignsAutoPage() {
                     {/* Contact Header */}
                     <th 
                       style={{ width: `${columnWidths.contact}%` }} 
-                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
-                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.02] transition-colors"
+                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
+                        cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
+                        active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
                       onClick={() => handleSort('contact')}
                     >
                       <div className="flex items-center gap-2">
-                        <User className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</span>
-                        <div className={`transition-all duration-200 ${sortColumn === 'contact' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                        <User className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400" />
+                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Contact</span>
+                        <div className={`transition-all duration-200 ${sortColumn === 'contact' ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'}`}>
                           {sortColumn === 'contact' && sortDirection === 'desc' ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
+                            <ChevronDown className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
                           ) : (
-                            <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
+                            <ChevronUp className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
                           )}
                         </div>
                       </div>
                       <div 
                         onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'contact'); }}
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize 
+                          bg-transparent hover:bg-violet-400/40 dark:hover:bg-violet-500/50 
+                          active:bg-violet-500 dark:active:bg-violet-400 transition-all duration-200"
                       />
                     </th>
                     
                     {/* Title Header */}
                     <th 
                       style={{ width: `${columnWidths.title}%` }} 
-                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
-                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.02] transition-colors"
+                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
+                        cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
+                        active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
                       onClick={() => handleSort('title')}
                     >
                       <div className="flex items-center gap-2">
@@ -1491,8 +1712,11 @@ export default function CampaignsAutoPage() {
                     {/* Company Header */}
                     <th 
                       style={{ width: `${columnWidths.company}%` }} 
-                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
-                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.02] transition-colors"
+                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
+                        cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
+                        active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
                       onClick={() => handleSort('company')}
                     >
                       <div className="flex items-center gap-2">
@@ -1515,8 +1739,11 @@ export default function CampaignsAutoPage() {
                     {/* Location Header */}
                     <th 
                       style={{ width: `${columnWidths.location}%` }} 
-                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
-                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.02] transition-colors"
+                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
+                        cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
+                        active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
                       onClick={() => handleSort('location')}
                     >
                       <div className="flex items-center gap-2">
@@ -1539,8 +1766,11 @@ export default function CampaignsAutoPage() {
                     {/* Email Header */}
                     <th 
                       style={{ width: `${columnWidths.email}%` }} 
-                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
-                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.02] transition-colors"
+                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
+                        cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
+                        active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
                       onClick={() => handleSort('email')}
                     >
                       <div className="flex items-center gap-2">
@@ -1563,8 +1793,10 @@ export default function CampaignsAutoPage() {
                     {/* LinkedIn Header */}
                     <th 
                       style={{ width: `${columnWidths.linkedin}%` }} 
-                      className="relative px-4 py-3.5 text-left bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
-                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04]"
+                      className="relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
+                        transition-colors duration-200"
                     >
                       <div className="flex items-center gap-2">
                         <Linkedin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
@@ -1579,8 +1811,11 @@ export default function CampaignsAutoPage() {
                     {/* Status Header */}
                     <th 
                       style={{ width: `${columnWidths.status}%` }} 
-                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] 
-                        backdrop-blur-xl border-r border-gray-100 dark:border-white/[0.04] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.02] transition-colors"
+                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
+                        cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
+                        active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
                       onClick={() => handleSort('status')}
                     >
                       <div className="flex items-center gap-2">
@@ -1603,7 +1838,9 @@ export default function CampaignsAutoPage() {
                     {/* Actions Header */}
                     <th 
                       style={{ width: `${columnWidths.actions}%` }} 
-                      className="px-4 py-3.5 text-center bg-gradient-to-b from-gray-50 to-gray-100/80 dark:from-[#141414] dark:to-[#0f0f0f] backdrop-blur-xl"
+                      className="px-4 py-3.5 text-center bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        backdrop-blur-md transition-colors duration-200"
                     >
                       <div className="flex items-center justify-center gap-2">
                         <Zap className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
@@ -1613,49 +1850,49 @@ export default function CampaignsAutoPage() {
                   </tr>
                 </thead>
                 
-                <tbody className="divide-y divide-gray-50 dark:divide-white/[0.02]">
+                <tbody className="divide-y divide-gray-100/50 dark:divide-white/[0.03]">
                   {/* Loading State with Premium Skeleton */}
                   {isLoadingRecipients ? (
                     Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="animate-pulse">
-                        <td className="px-3 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
+                        <td className="px-3 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
                           <div className="flex items-center justify-center">
-                            <div className="w-4 h-4 rounded bg-gray-200 dark:bg-white/[0.05]" />
+                            <div className="w-4 h-4 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
+                        <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-white/[0.08] dark:to-white/[0.04]" />
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200/60 to-gray-300/40 dark:from-white/[0.08] dark:to-white/[0.04]" />
                             <div className="flex-1 space-y-2">
-                              <div className="h-3.5 bg-gray-200 dark:bg-white/[0.05] rounded-full w-24" />
+                              <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-24" />
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
-                          <div className="h-3.5 bg-gray-200 dark:bg-white/[0.05] rounded-full w-32" />
+                        <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
+                          <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-32" />
                         </td>
-                        <td className="px-4 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
+                        <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
                           <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded bg-gray-200 dark:bg-white/[0.05]" />
-                            <div className="h-3.5 bg-gray-200 dark:bg-white/[0.05] rounded-full w-20" />
+                            <div className="w-5 h-5 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
+                            <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-20" />
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
-                          <div className="h-3.5 bg-gray-200 dark:bg-white/[0.05] rounded-full w-28" />
+                        <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
+                          <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-28" />
                         </td>
-                        <td className="px-4 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
-                          <div className="h-3.5 bg-gray-200 dark:bg-white/[0.05] rounded-full w-36" />
+                        <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
+                          <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-36" />
                         </td>
-                        <td className="px-4 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
-                          <div className="w-6 h-6 rounded bg-gray-200 dark:bg-white/[0.05]" />
+                        <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
+                          <div className="w-6 h-6 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
                         </td>
-                        <td className="px-4 py-3.5 border-r border-gray-50 dark:border-white/[0.02]">
-                          <div className="h-6 bg-gray-200 dark:bg-white/[0.05] rounded-full w-16" />
+                        <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
+                          <div className="h-6 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-16" />
                         </td>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center justify-center gap-1">
-                            <div className="w-7 h-7 rounded bg-gray-200 dark:bg-white/[0.05]" />
-                            <div className="w-7 h-7 rounded bg-gray-200 dark:bg-white/[0.05]" />
+                            <div className="w-7 h-7 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
+                            <div className="w-7 h-7 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
                           </div>
                         </td>
                       </tr>
@@ -1709,19 +1946,20 @@ export default function CampaignsAutoPage() {
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.2, delay: 0.015 * Math.min(index, 20) }}
-                        className={`group relative transition-all duration-150 ease-out
+                        className={`group relative transition-all duration-200 ease-out
                           ${selectedRows.has(recipient.id) 
-                            ? 'bg-violet-50/50 dark:bg-violet-500/[0.06]' 
+                            ? 'bg-violet-50/60 dark:bg-violet-500/[0.08] border-l-violet-500 dark:border-l-violet-400' 
                             : index % 2 === 0 
-                              ? 'bg-white dark:bg-transparent' 
-                              : 'bg-gray-50/30 dark:bg-white/[0.01]'
+                              ? 'bg-white dark:bg-[#111111]' 
+                              : 'bg-gray-50/40 dark:bg-[#0f0f0f]'
                           }
-                          hover:bg-gray-100/70 dark:hover:bg-white/[0.03] 
-                          hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)]
-                          border-l-[3px] ${getStatusBorderColor(recipient.status)}`}
+                          hover:bg-gray-50/90 dark:hover:bg-white/[0.02] 
+                          hover:shadow-[0_1px_3px_-1px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_1px_3px_-1px_rgba(0,0,0,0.4)]
+                          active:bg-gray-100/80 dark:active:bg-white/[0.03]
+                          border-l-[3px] ${selectedRows.has(recipient.id) ? '' : getStatusBorderColor(recipient.status)}`}
                       >
                         {/* Checkbox Cell */}
-                        <td className="px-3 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
+                        <td className="px-3 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
                           <div className="flex items-center justify-center">
                             <button
                               onClick={() => handleSelectRow(recipient.id)}
@@ -1745,7 +1983,7 @@ export default function CampaignsAutoPage() {
                         </td>
                         
                         {/* Contact Cell with Avatar */}
-                        <td className="px-4 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
+                        <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
                           <div className="flex items-center gap-3">
                             {/* Premium Avatar */}
                             <div className="relative flex-shrink-0">
@@ -1766,38 +2004,38 @@ export default function CampaignsAutoPage() {
                                 </div>
                               )}
                             </div>
-                            <span className="text-[13px] font-medium text-gray-900 dark:text-gray-100 truncate 
-                              group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors cursor-default">
+                            <span className="text-[13px] font-medium text-gray-900 dark:text-gray-50 truncate 
+                              group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors cursor-default">
                               {recipient.fullName}
                             </span>
                           </div>
                         </td>
                         
                         {/* Title Cell */}
-                        <td className="px-4 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
-                          <span className="text-[13px] text-gray-600 dark:text-gray-400 truncate block">
-                            {recipient.title || <span className="text-gray-300 dark:text-gray-600">—</span>}
+                        <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
+                          <span className="text-[13px] text-gray-700 dark:text-gray-300 truncate block">
+                            {recipient.title || <span className="text-gray-300 dark:text-gray-600/60">—</span>}
                           </span>
                         </td>
                         
                         {/* Company Cell with Logo */}
-                        <td className="px-4 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
+                        <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
                           <div className="flex items-center gap-2.5">
                             {recipient.company && (
                               <CompanyLogo companyName={recipient.company} size="sm" />
                             )}
-                            <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200 truncate">
+                            <span className="text-[13px] font-medium text-gray-800 dark:text-gray-100 truncate">
                               {recipient.company || <span className="text-gray-300 dark:text-gray-600 font-normal">—</span>}
                             </span>
                           </div>
                         </td>
                         
                         {/* Location Cell */}
-                        <td className="px-4 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
+                        <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
                           {recipient.location ? (
                             <div className="flex items-center gap-1.5">
-                              <Globe className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                              <span className="text-[13px] text-gray-600 dark:text-gray-400 truncate">
+                              <Globe className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 flex-shrink-0" />
+                              <span className="text-[13px] text-gray-700 dark:text-gray-300 truncate">
                                 {recipient.location}
                               </span>
                             </div>
@@ -1807,12 +2045,12 @@ export default function CampaignsAutoPage() {
                         </td>
                         
                         {/* Email Cell with Copy */}
-                        <td className="px-4 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
+                        <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
                           {recipient.email && !recipient.email.includes('not_unlocked') ? (
                             <div className="flex items-center gap-2 group/email">
                               <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                <BadgeCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
-                                <span className="text-[13px] text-gray-600 dark:text-gray-400 truncate">
+                                <BadgeCheck className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
+                                <span className="text-[13px] text-gray-700 dark:text-gray-300 truncate">
                                   {recipient.email}
                                 </span>
                               </div>
@@ -1838,7 +2076,7 @@ export default function CampaignsAutoPage() {
                         </td>
                         
                         {/* LinkedIn Cell */}
-                        <td className="px-4 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
+                        <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
                           {recipient.linkedinUrl ? (
                             <a
                               href={recipient.linkedinUrl}
@@ -1859,7 +2097,7 @@ export default function CampaignsAutoPage() {
                         </td>
                         
                         {/* Status Cell with Premium Badge */}
-                        <td className="px-4 py-3 border-r border-gray-100/50 dark:border-white/[0.02]">
+                        <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold
                             ${recipient.status === 'replied' 
                               ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200/50 dark:ring-emerald-500/20' 
@@ -1891,8 +2129,8 @@ export default function CampaignsAutoPage() {
                               disabled={!recipient.emailGenerated}
                               className={`p-1.5 rounded-lg transition-all duration-200 ${
                                 recipient.emailGenerated 
-                                  ? 'text-gray-400 dark:text-gray-500 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 hover:shadow-sm'
-                                  : 'text-gray-200 dark:text-gray-700 cursor-not-allowed'
+                                  ? 'text-gray-400 dark:text-gray-500 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50/80 dark:hover:bg-violet-500/15 hover:shadow-sm hover:scale-105 active:scale-95'
+                                  : 'text-gray-200 dark:text-gray-700/50 cursor-not-allowed opacity-50'
                               }`}
                               title={recipient.emailGenerated ? "View email" : "Email not generated yet"}
                             >
@@ -1903,21 +2141,50 @@ export default function CampaignsAutoPage() {
                               disabled={recipient.status !== 'replied'}
                               className={`p-1.5 rounded-lg transition-all duration-200 ${
                                 recipient.status === 'replied'
-                                  ? 'text-emerald-500 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:shadow-sm'
-                                  : 'text-gray-200 dark:text-gray-700 cursor-not-allowed'
+                                  ? 'text-emerald-500 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-emerald-50/80 dark:hover:bg-emerald-500/15 hover:shadow-sm hover:scale-105 active:scale-95'
+                                  : 'text-gray-200 dark:text-gray-700/50 cursor-not-allowed opacity-50'
                               }`}
                               title={recipient.status === 'replied' ? "View reply" : "No reply yet"}
                             >
                               <Reply className="w-4 h-4" />
                             </button>
-                            <button
-                              className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 
-                                hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-all duration-200 
-                                opacity-0 group-hover:opacity-100"
-                              title="More options"
-                            >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </button>
+                            <div className="relative" ref={(el) => {
+                              if (el) menuRefs.current.set(recipient.id, el);
+                            }}>
+                              <button
+                                onClick={() => setOpenMenuRecipientId(openMenuRecipientId === recipient.id ? null : recipient.id)}
+                                className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 
+                                  hover:bg-gray-100/80 dark:hover:bg-white/[0.08] active:bg-gray-200/60 dark:active:bg-white/[0.12]
+                                  transition-all duration-200 hover:scale-105 active:scale-95
+                                  opacity-0 group-hover:opacity-100"
+                                title="More options"
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </button>
+                              
+                              {/* Dropdown Menu */}
+                              {openMenuRecipientId === recipient.id && (
+                                <motion.div
+                                  initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                                  exit={{ opacity: 0, scale: 0.95, y: -5 }}
+                                  transition={{ duration: 0.15 }}
+                                  className="absolute right-0 top-full mt-1 z-50 w-48 bg-white dark:bg-[#1a1a1a] 
+                                    rounded-xl shadow-xl dark:shadow-2xl border border-gray-200/80 dark:border-white/[0.08] 
+                                    py-1.5 backdrop-blur-sm"
+                                >
+                                  <button
+                                    onClick={() => handleAddToBoard(recipient)}
+                                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 
+                                      hover:bg-gray-50 dark:hover:bg-white/[0.05] active:bg-gray-100 dark:active:bg-white/[0.08]
+                                      transition-all duration-150"
+                                  >
+                                    <FolderKanban className="w-4 h-4" />
+                                    <span>Add to Board</span>
+                                  </button>
+                                </motion.div>
+                              )}
+                            </div>
                           </div>
                         </td>
                       </motion.tr>
@@ -1929,21 +2196,23 @@ export default function CampaignsAutoPage() {
             
             {/* Premium Table Footer */}
             {sortedRecipients.length > 0 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-white/[0.04] 
-                bg-gradient-to-b from-gray-50/50 to-white dark:from-[#0f0f0f] dark:to-[#0a0a0a]">
-                <div className="text-[12px] text-gray-500 dark:text-gray-500">
-                  Showing <span className="font-semibold text-gray-700 dark:text-gray-300">{sortedRecipients.length}</span> of <span className="font-semibold text-gray-700 dark:text-gray-300">{recipients.length}</span> contacts
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200/60 dark:border-white/[0.04] 
+                bg-gradient-to-b from-gray-50/30 via-white to-white dark:from-[#0f0f0f] dark:via-[#0d0d0d] dark:to-[#111111]">
+                <div className="text-[12px] text-gray-500 dark:text-gray-400">
+                  Showing <span className="font-semibold text-gray-700 dark:text-gray-200">{sortedRecipients.length}</span> of <span className="font-semibold text-gray-700 dark:text-gray-200">{recipients.length}</span> contacts
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 
-                    hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  <button className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 
+                    hover:bg-gray-100/80 dark:hover:bg-white/[0.06] active:bg-gray-200/60 dark:active:bg-white/[0.08]
+                    transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                     disabled
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <span className="text-[12px] text-gray-500 dark:text-gray-500 px-2">Page 1 of 1</span>
-                  <button className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 
-                    hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  <span className="text-[12px] text-gray-500 dark:text-gray-400 px-2">Page 1 of 1</span>
+                  <button className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 
+                    hover:bg-gray-100/80 dark:hover:bg-white/[0.06] active:bg-gray-200/60 dark:active:bg-white/[0.08]
+                    transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                     disabled
                   >
                     <ChevronRight className="w-4 h-4" />
@@ -2160,6 +2429,7 @@ export default function CampaignsAutoPage() {
             onClick={() => {
               setReplyPreviewRecipient(null);
               setReplyContent(null);
+              setReplyMessage('');
             }}
           >
             <motion.div
@@ -2189,6 +2459,7 @@ export default function CampaignsAutoPage() {
                   onClick={() => {
                     setReplyPreviewRecipient(null);
                     setReplyContent(null);
+                    setReplyMessage('');
                   }}
                   className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2b2a2c] transition-colors"
                 >
@@ -2251,17 +2522,60 @@ export default function CampaignsAutoPage() {
                 )}
               </div>
 
+              {/* Reply Compose Section */}
+              {replyContent && (
+                <div className="px-6 py-4 border-t border-gray-200 dark:border-[#3d3c3e] bg-gray-50/50 dark:bg-white/[0.02]">
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                    Your Reply
+                  </label>
+                  <textarea
+                    value={replyMessage}
+                    onChange={(e) => setReplyMessage(e.target.value)}
+                    placeholder="Type your reply here..."
+                    rows={4}
+                    className="w-full px-4 py-3 text-sm bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
+                      rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400
+                      text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                      resize-none transition-all duration-200"
+                  />
+                </div>
+              )}
+
               {/* Footer */}
-              <div className="px-6 py-4 border-t border-gray-200 dark:border-[#3d3c3e] flex justify-end">
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-[#3d3c3e] flex justify-end gap-3">
                 <button
                   onClick={() => {
                     setReplyPreviewRecipient(null);
                     setReplyContent(null);
+                    setReplyMessage('');
                   }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2b2a2c] rounded-lg transition-colors"
                 >
                   Close
                 </button>
+                {replyContent && (
+                  <button
+                    onClick={handleSendReply}
+                    disabled={isSendingReply || !replyMessage.trim()}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors inline-flex items-center gap-2
+                      ${replyMessage.trim() && !isSendingReply
+                        ? 'text-white bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700'
+                        : 'text-gray-400 dark:text-gray-600 bg-gray-100 dark:bg-white/[0.05] cursor-not-allowed'
+                      }`}
+                  >
+                    {isSendingReply ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        Send Reply
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </motion.div>
           </motion.div>
@@ -2392,6 +2706,20 @@ export default function CampaignsAutoPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Board Selection Modal */}
+      <SelectBoardModal
+        isOpen={showBoardSelector}
+        onClose={() => {
+          setShowBoardSelector(false);
+          setSelectedRecipientForBoard(null);
+        }}
+        onSelect={handleBoardSelected}
+        boards={boards}
+        jobTitle={selectedRecipientForBoard?.title || 'Contact'}
+        companyName={selectedRecipientForBoard?.company || ''}
+        isLoading={isAddingToBoard}
+      />
     </AuthLayout>
   );
 }

@@ -4684,6 +4684,160 @@ app.get('/api/gmail/thread/:threadId', verifyFirebaseToken, async (req, res) => 
   }
 });
 
+// Send reply to Gmail thread
+app.post('/api/gmail/thread/:threadId/reply', verifyFirebaseToken, async (req, res) => {
+  const { threadId } = req.params;
+  const { message } = req.body;
+  const userId = req.user.uid;
+  
+  console.log(`📤 Sending reply to thread ${threadId}`);
+  
+  if (!message || !message.trim()) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+  
+  try {
+    const db = admin.firestore();
+    
+    // Get Gmail tokens and refresh if needed
+    let accessToken;
+    try {
+      accessToken = await refreshGmailToken(userId);
+    } catch (refreshError) {
+      console.error('Token refresh failed:', refreshError.message);
+      return res.status(401).json({ 
+        error: 'Gmail token expired', 
+        message: refreshError.message,
+        needsReconnect: true 
+      });
+    }
+    
+    const gmailTokenDoc = await db.collection('gmailTokens').doc(userId).get();
+    const gmailTokens = gmailTokenDoc.data();
+    const senderEmail = gmailTokens.email;
+    
+    if (!accessToken) {
+      return res.status(400).json({ error: 'Gmail access token missing. Please reconnect Gmail.' });
+    }
+    
+    // Fetch thread to get the original message details
+    const threadResponse = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=full`,
+      {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      }
+    );
+    
+    if (!threadResponse.ok) {
+      const errorText = await threadResponse.text();
+      console.error('Gmail API error:', errorText);
+      
+      if (threadResponse.status === 401) {
+        return res.status(401).json({ 
+          error: 'Gmail token expired', 
+          message: 'Please reconnect Gmail to refresh your access token',
+          needsReconnect: true 
+        });
+      }
+      return res.status(500).json({ error: 'Failed to fetch thread' });
+    }
+    
+    const threadData = await threadResponse.json();
+    
+    if (!threadData.messages || threadData.messages.length === 0) {
+      return res.status(404).json({ error: 'Thread not found' });
+    }
+    
+    // Get the last message in the thread to reply to
+    const lastMessage = threadData.messages[threadData.messages.length - 1];
+    const headers = lastMessage.payload?.headers || [];
+    
+    // Find recipient email (To header from last message, or From if replying)
+    const toHeader = headers.find(h => h.name.toLowerCase() === 'from')?.value || '';
+    const subjectHeader = headers.find(h => h.name.toLowerCase() === 'subject')?.value || '';
+    const messageIdHeader = headers.find(h => h.name.toLowerCase() === 'message-id')?.value || '';
+    
+    // Extract email from "Name <email@example.com>" format
+    const toEmail = toHeader.match(/<([^>]+)>/) ? toHeader.match(/<([^>]+)>/)[1] : toHeader;
+    
+    // Create reply subject (add Re: if not already present)
+    let replySubject = subjectHeader;
+    if (!replySubject.toLowerCase().startsWith('re:')) {
+      replySubject = `Re: ${replySubject}`;
+    }
+    
+    // Create raw email for reply
+    const htmlBody = message
+      .replace(/\n/g, '<br>')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/&lt;br&gt;/g, '<br>');
+    
+    // Build email headers
+    const emailHeaders = [
+      `From: ${senderEmail}`,
+      `To: ${toEmail}`,
+      `Subject: ${replySubject}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/html; charset=UTF-8'
+    ];
+    
+    // Add In-Reply-To and References headers if Message-ID is available
+    if (messageIdHeader) {
+      emailHeaders.push(`In-Reply-To: ${messageIdHeader}`);
+      emailHeaders.push(`References: ${messageIdHeader}`);
+    }
+    
+    emailHeaders.push(''); // Empty line before body
+    
+    const email = [
+      ...emailHeaders,
+      htmlBody
+    ].join('\r\n');
+    
+    // Base64url encode
+    const rawEmail = Buffer.from(email)
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+    
+    // Send reply via Gmail API (using threadId to keep it in the same thread)
+    const sendResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        raw: rawEmail,
+        threadId: threadId
+      })
+    });
+    
+    if (!sendResponse.ok) {
+      const errorData = await sendResponse.json();
+      console.error('Gmail send error:', errorData);
+      throw new Error(errorData.error?.message || 'Gmail API error');
+    }
+    
+    const sendData = await sendResponse.json();
+    
+    console.log(`✅ Reply sent successfully: ${sendData.id}`);
+    
+    res.json({
+      success: true,
+      messageId: sendData.id,
+      threadId: sendData.threadId
+    });
+    
+  } catch (error) {
+    console.error('Error sending reply:', error);
+    res.status(500).json({ error: 'Failed to send reply', details: error.message });
+  }
+});
+
 // En production, pour toutes les autres routes, servir index.html
 // Cela permet à React Router de gérer les routes côté client
 if (isProduction) {

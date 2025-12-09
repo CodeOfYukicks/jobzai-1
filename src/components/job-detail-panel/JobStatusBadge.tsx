@@ -7,17 +7,25 @@ import {
     Archive,
     AlertCircle,
     TrendingUp,
-    ChevronDown
+    ChevronDown,
+    Target,
+    Mail,
+    MessageSquare,
+    Calendar,
+    Sparkles,
+    Ban
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { BoardType } from '../../types/job';
 
 interface JobStatusBadgeProps {
-    status: 'wishlist' | 'applied' | 'interview' | 'offer' | 'rejected' | 'archived' | 'pending_decision';
+    status: 'wishlist' | 'applied' | 'interview' | 'offer' | 'rejected' | 'archived' | 'pending_decision' | 'targets' | 'contacted' | 'follow_up' | 'replied' | 'meeting' | 'opportunity' | 'no_response' | 'closed';
     isEditing?: boolean;
     onChange?: (status: any) => void;
+    boardType?: BoardType;
 }
 
-const statusConfig = {
+const jobStatusConfig = {
     wishlist: {
         label: 'Wishlist',
         icon: Circle,
@@ -69,11 +77,89 @@ const statusConfig = {
     },
 };
 
-export const JobStatusBadge = ({ status, isEditing, onChange }: JobStatusBadgeProps) => {
+const campaignStatusConfig = {
+    targets: {
+        label: 'Targets',
+        icon: Target,
+        color: 'text-purple-600 dark:text-purple-400',
+        bg: 'bg-purple-100 dark:bg-purple-900/40',
+        border: 'border-purple-200 dark:border-purple-800'
+    },
+    contacted: {
+        label: 'Contacted',
+        icon: Mail,
+        color: 'text-blue-600 dark:text-blue-400',
+        bg: 'bg-blue-100 dark:bg-blue-900/40',
+        border: 'border-blue-200 dark:border-blue-800'
+    },
+    follow_up: {
+        label: 'Follow-up',
+        icon: Clock,
+        color: 'text-amber-600 dark:text-amber-400',
+        bg: 'bg-amber-100 dark:bg-amber-900/40',
+        border: 'border-amber-200 dark:border-amber-800'
+    },
+    replied: {
+        label: 'Replied',
+        icon: MessageSquare,
+        color: 'text-cyan-600 dark:text-cyan-400',
+        bg: 'bg-cyan-100 dark:bg-cyan-900/40',
+        border: 'border-cyan-200 dark:border-cyan-800'
+    },
+    meeting: {
+        label: 'Meeting',
+        icon: Calendar,
+        color: 'text-indigo-600 dark:text-indigo-400',
+        bg: 'bg-indigo-100 dark:bg-indigo-900/40',
+        border: 'border-indigo-200 dark:border-indigo-800'
+    },
+    opportunity: {
+        label: 'Opportunity',
+        icon: Sparkles,
+        color: 'text-green-600 dark:text-green-400',
+        bg: 'bg-green-100 dark:bg-green-900/40',
+        border: 'border-green-200 dark:border-green-800'
+    },
+    no_response: {
+        label: 'No Response',
+        icon: Ban,
+        color: 'text-gray-600 dark:text-gray-400',
+        bg: 'bg-gray-100 dark:bg-gray-800',
+        border: 'border-gray-200 dark:border-gray-700'
+    },
+    closed: {
+        label: 'Closed',
+        icon: Archive,
+        color: 'text-gray-600 dark:text-gray-400',
+        bg: 'bg-gray-100 dark:bg-[#2b2a2c]',
+        border: 'border-gray-200 dark:border-[#3d3c3e]'
+    },
+};
+
+const statusConfig = { ...jobStatusConfig, ...campaignStatusConfig };
+
+export const JobStatusBadge = ({ status, isEditing, onChange, boardType = 'jobs' }: JobStatusBadgeProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const config = statusConfig[status] || statusConfig.applied;
+    
+    // Get the appropriate config based on board type
+    const getConfig = () => {
+        if (boardType === 'campaigns') {
+            return campaignStatusConfig[status as keyof typeof campaignStatusConfig] || campaignStatusConfig.targets;
+        }
+        return jobStatusConfig[status as keyof typeof jobStatusConfig] || jobStatusConfig.applied;
+    };
+    
+    const config = getConfig();
     const Icon = config.icon;
+    
+    // Get available statuses based on board type
+    const getAvailableStatuses = () => {
+        if (boardType === 'campaigns') {
+            return Object.keys(campaignStatusConfig) as Array<keyof typeof campaignStatusConfig>;
+        }
+        return Object.keys(jobStatusConfig) as Array<keyof typeof jobStatusConfig>;
+    };
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -106,8 +192,10 @@ export const JobStatusBadge = ({ status, isEditing, onChange }: JobStatusBadgePr
                             exit={{ opacity: 0, y: 5, scale: 0.95 }}
                             className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-[#2b2a2c] rounded-xl shadow-xl border border-gray-200 dark:border-[#3d3c3e] py-1 z-50 overflow-hidden"
                         >
-                            {(Object.keys(statusConfig) as Array<keyof typeof statusConfig>).map((key) => {
-                                const optionConfig = statusConfig[key];
+                            {getAvailableStatuses().map((key) => {
+                                const optionConfig = boardType === 'campaigns' 
+                                    ? campaignStatusConfig[key]
+                                    : jobStatusConfig[key];
                                 const OptionIcon = optionConfig.icon;
                                 return (
                                     <button

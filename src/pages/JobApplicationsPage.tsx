@@ -57,7 +57,7 @@ import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { extractJobInfo, DetailedJobInfo } from '../lib/jobExtractor';
 import DatePicker from '../components/ui/DatePicker';
-import { JobApplication, Interview, StatusChange, AutomationSettings, defaultAutomationSettings, KanbanBoard, BOARD_COLORS, BOARD_TYPE_COLUMNS, JOB_COLUMN_LABELS, CAMPAIGN_COLUMN_LABELS, CAMPAIGN_COLUMN_COLORS, BoardType, RelationshipGoal, WarmthLevel, OutreachChannel, RELATIONSHIP_GOAL_LABELS, WARMTH_LEVEL_LABELS, OUTREACH_CHANNEL_CONFIG } from '../types/job';
+import { JobApplication, Interview, StatusChange, AutomationSettings, defaultAutomationSettings, KanbanBoard, BOARD_COLORS, BOARD_TYPE_COLUMNS, JOB_COLUMN_LABELS, CAMPAIGN_COLUMN_LABELS, CAMPAIGN_COLUMN_COLORS, BoardType, RelationshipGoal, WarmthLevel, OutreachChannel, RELATIONSHIP_GOAL_LABELS, WARMTH_LEVEL_LABELS, OUTREACH_CHANNEL_CONFIG, MEETING_TYPE_LABELS, MeetingType } from '../types/job';
 import { ApplicationList } from '../components/application/ApplicationList';
 import { JobDetailPanel } from '../components/job-detail-panel';
 import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
@@ -127,7 +127,7 @@ export default function JobApplicationsPage() {
   const [hasInterviews, setHasInterviews] = useState<'all' | 'with' | 'without' | 'upcoming'>('all');
 
   // Sorting
-  const [sortBy, setSortBy] = useState<'appliedDate' | 'updatedAt' | 'companyName' | 'position' | 'interviewCount'>('appliedDate');
+  const [sortBy, setSortBy] = useState<'appliedDate' | 'updatedAt' | 'companyName' | 'position' | 'interviewCount' | 'lastContactedAt' | 'contactName' | 'meetingCount'>('appliedDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   // Track manual order per status (Map<status, string[]> where array contains application IDs in order)
   const [manualOrder, setManualOrder] = useState<Map<string, string[]>>(new Map());
@@ -175,6 +175,10 @@ export default function JobApplicationsPage() {
 
   // Get effective cover photo (board cover takes priority when in a board)
   const currentBoard = boards.find(b => b.id === currentBoardId);
+  
+  // Get current board type (defaults to 'jobs')
+  const currentBoardType: BoardType = currentBoard?.boardType || 'jobs';
+  
   const effectiveCoverPhoto = view !== 'boards' && currentBoard?.coverPhoto 
     ? currentBoard.coverPhoto 
     : coverPhoto;
@@ -1413,8 +1417,24 @@ export default function JobApplicationsPage() {
     }
   };
 
-  // Get unique companies for company filter
-  const uniqueCompanies = Array.from(new Set(applications.map(app => app.companyName))).sort();
+  // Get applications for current board only (for filters)
+  const currentBoardApplications = useMemo(() => {
+    if (!currentBoardId || view === 'boards') {
+      return applications;
+    }
+    const defaultBoard = boards.find(b => b.isDefault);
+    return applications.filter(app => {
+      if (!app.boardId) {
+        return defaultBoard?.id === currentBoardId;
+      }
+      return app.boardId === currentBoardId;
+    });
+  }, [applications, currentBoardId, boards, view]);
+
+  // Get unique companies for company filter (only from current board)
+  const uniqueCompanies = useMemo(() => {
+    return Array.from(new Set(currentBoardApplications.map(app => app.companyName))).sort();
+  }, [currentBoardApplications]);
 
   // Main filter function that combines all filters
   const applyFilters = (apps: JobApplication[]): JobApplication[] => {
@@ -1446,7 +1466,7 @@ export default function JobApplicationsPage() {
       filtered = filtered.filter(app => selectedCompanies.includes(app.companyName));
     }
 
-    // Date filter (applied date)
+    // Date filter (applied date for jobs, lastContactedAt for campaigns)
     if (dateFilter !== 'all') {
       const now = new Date();
       const filterDate = new Date();
@@ -1467,7 +1487,10 @@ export default function JobApplicationsPage() {
         case 'custom':
           if (customDateRange) {
             filtered = filtered.filter(app => {
-              const appDate = new Date(app.appliedDate);
+              const dateField = currentBoardType === 'campaigns' 
+                ? (app.lastContactedAt || app.appliedDate) 
+                : app.appliedDate;
+              const appDate = new Date(dateField);
               const startDate = new Date(customDateRange.start);
               const endDate = new Date(customDateRange.end);
               return appDate >= startDate && appDate <= endDate;
@@ -1479,7 +1502,10 @@ export default function JobApplicationsPage() {
 
       if (dateFilter !== 'custom' || !customDateRange) {
         filtered = filtered.filter(app => {
-          const appDate = new Date(app.appliedDate);
+          const dateField = currentBoardType === 'campaigns' 
+            ? (app.lastContactedAt || app.appliedDate) 
+            : app.appliedDate;
+          const appDate = new Date(dateField);
           return appDate >= filterDate;
         });
       }
@@ -1508,8 +1534,28 @@ export default function JobApplicationsPage() {
       });
     }
 
-    // Interview filters
+    // Interview/Meeting filters (interviews for jobs, meetings for campaigns)
     if (hasInterviews !== 'all') {
+      if (currentBoardType === 'campaigns') {
+        // For campaigns, use meetings
+        if (hasInterviews === 'with') {
+          filtered = filtered.filter(app => app.meetings && app.meetings.length > 0);
+        } else if (hasInterviews === 'without') {
+          filtered = filtered.filter(app => !app.meetings || app.meetings.length === 0);
+        } else if (hasInterviews === 'upcoming') {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          filtered = filtered.filter(app => {
+            if (!app.meetings || app.meetings.length === 0) return false;
+            return app.meetings.some(meeting => {
+              const meetingDate = new Date(meeting.date);
+              meetingDate.setHours(0, 0, 0, 0);
+              return meetingDate >= today && meeting.status === 'scheduled';
+            });
+          });
+        }
+      } else {
+        // For jobs, use interviews
       if (hasInterviews === 'with') {
         filtered = filtered.filter(app => app.interviews && app.interviews.length > 0);
       } else if (hasInterviews === 'without') {
@@ -1525,32 +1571,57 @@ export default function JobApplicationsPage() {
             return interviewDate >= today && interview.status === 'scheduled';
           });
         });
+        }
       }
     }
 
-    // Interview type filter
+    // Interview/Meeting type filter
     if (interviewTypes.length > 0) {
+      if (currentBoardType === 'campaigns') {
+        filtered = filtered.filter(app => {
+          if (!app.meetings || app.meetings.length === 0) return false;
+          return app.meetings.some(meeting => interviewTypes.includes(meeting.type));
+        });
+      } else {
       filtered = filtered.filter(app => {
         if (!app.interviews || app.interviews.length === 0) return false;
         return app.interviews.some(interview => interviewTypes.includes(interview.type));
       });
+      }
     }
 
-    // Interview status filter
+    // Interview/Meeting status filter
     if (interviewStatus.length > 0) {
+      if (currentBoardType === 'campaigns') {
+        filtered = filtered.filter(app => {
+          if (!app.meetings || app.meetings.length === 0) return false;
+          return app.meetings.some(meeting => interviewStatus.includes(meeting.status));
+        });
+      } else {
       filtered = filtered.filter(app => {
         if (!app.interviews || app.interviews.length === 0) return false;
         return app.interviews.some(interview => interviewStatus.includes(interview.status));
       });
+      }
     }
 
-    // Upcoming interviews days filter
+    // Upcoming interviews/meetings days filter
     if (upcomingInterviewsDays !== null) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const futureDate = new Date(today);
       futureDate.setDate(today.getDate() + upcomingInterviewsDays);
 
+      if (currentBoardType === 'campaigns') {
+        filtered = filtered.filter(app => {
+          if (!app.meetings || app.meetings.length === 0) return false;
+          return app.meetings.some(meeting => {
+            const meetingDate = new Date(meeting.date);
+            meetingDate.setHours(0, 0, 0, 0);
+            return meetingDate >= today && meetingDate <= futureDate && meeting.status === 'scheduled';
+          });
+        });
+      } else {
       filtered = filtered.filter(app => {
         if (!app.interviews || app.interviews.length === 0) return false;
         return app.interviews.some(interview => {
@@ -1559,6 +1630,7 @@ export default function JobApplicationsPage() {
           return interviewDate >= today && interviewDate <= futureDate && interview.status === 'scheduled';
         });
       });
+      }
     }
 
     // Group by status to apply manual order per status
@@ -1599,6 +1671,11 @@ export default function JobApplicationsPage() {
             case 'appliedDate':
               comparison = new Date(a.appliedDate).getTime() - new Date(b.appliedDate).getTime();
               break;
+            case 'lastContactedAt':
+              const aLastContact = a.lastContactedAt ? new Date(a.lastContactedAt).getTime() : new Date(a.appliedDate).getTime();
+              const bLastContact = b.lastContactedAt ? new Date(b.lastContactedAt).getTime() : new Date(b.appliedDate).getTime();
+              comparison = aLastContact - bLastContact;
+              break;
             case 'updatedAt':
               const aUpdated = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
               const bUpdated = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(b.createdAt).getTime();
@@ -1610,10 +1687,19 @@ export default function JobApplicationsPage() {
             case 'position':
               comparison = a.position.localeCompare(b.position);
               break;
+            case 'contactName':
+              const aContact = (a.contactName || '').localeCompare(b.contactName || '');
+              comparison = aContact;
+              break;
             case 'interviewCount':
               const aCount = a.interviews?.length || 0;
               const bCount = b.interviews?.length || 0;
               comparison = aCount - bCount;
+              break;
+            case 'meetingCount':
+              const aMeetingCount = a.meetings?.length || 0;
+              const bMeetingCount = b.meetings?.length || 0;
+              comparison = aMeetingCount - bMeetingCount;
               break;
           }
           return sortOrder === 'asc' ? comparison : -comparison;
@@ -1628,6 +1714,11 @@ export default function JobApplicationsPage() {
             case 'appliedDate':
               comparison = new Date(a.appliedDate).getTime() - new Date(b.appliedDate).getTime();
               break;
+            case 'lastContactedAt':
+              const aLastContact = a.lastContactedAt ? new Date(a.lastContactedAt).getTime() : new Date(a.appliedDate).getTime();
+              const bLastContact = b.lastContactedAt ? new Date(b.lastContactedAt).getTime() : new Date(b.appliedDate).getTime();
+              comparison = aLastContact - bLastContact;
+              break;
             case 'updatedAt':
               const aUpdated = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
               const bUpdated = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(b.createdAt).getTime();
@@ -1639,10 +1730,19 @@ export default function JobApplicationsPage() {
             case 'position':
               comparison = a.position.localeCompare(b.position);
               break;
+            case 'contactName':
+              const aContact = (a.contactName || '').localeCompare(b.contactName || '');
+              comparison = aContact;
+              break;
             case 'interviewCount':
               const aCount = a.interviews?.length || 0;
               const bCount = b.interviews?.length || 0;
               comparison = aCount - bCount;
+              break;
+            case 'meetingCount':
+              const aMeetingCount = a.meetings?.length || 0;
+              const bMeetingCount = b.meetings?.length || 0;
+              comparison = aMeetingCount - bMeetingCount;
               break;
           }
           return sortOrder === 'asc' ? comparison : -comparison;
@@ -1879,7 +1979,7 @@ export default function JobApplicationsPage() {
     if (interviewStatus.length > 0) count++;
     if (hasInterviews !== 'all') count++;
     if (selectedCompanies.length > 0) count++;
-    if (sortBy !== 'appliedDate' || sortOrder !== 'desc') count++;
+    if ((currentBoardType === 'campaigns' ? sortBy !== 'lastContactedAt' : sortBy !== 'appliedDate') || sortOrder !== 'desc') count++;
     return count;
   };
 
@@ -1894,12 +1994,15 @@ export default function JobApplicationsPage() {
     setHasInterviews('all');
     setSelectedCompanies([]);
     setCompanySearchQuery('');
-    setSortBy('appliedDate');
+    setSortBy(currentBoardType === 'campaigns' ? 'lastContactedAt' : 'appliedDate');
     setSortOrder('desc');
   };
 
-  // Get current board type (defaults to 'jobs')
-  const currentBoardType: BoardType = currentBoard?.boardType || 'jobs';
+  // Reset sort when board type changes
+  useEffect(() => {
+    setSortBy(currentBoardType === 'campaigns' ? 'lastContactedAt' : 'appliedDate');
+    setSortOrder('desc');
+  }, [currentBoardType]);
   
   // Get column order based on board type
   const columnOrder = [...BOARD_TYPE_COLUMNS[currentBoardType]];
@@ -3020,7 +3123,7 @@ END:VCALENDAR`;
                     }`}
                 >
                   <Users className="w-4 h-4" />
-                  <span>Interviews</span>
+                  <span>{currentBoardType === 'campaigns' ? 'Meetings' : 'Interviews'}</span>
                   {hasInterviews !== 'all' || interviewTypes.length > 0 || interviewStatus.length > 0 || upcomingInterviewsDays !== null ? (
                     <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-semibold bg-purple-600 dark:bg-purple-500 text-white">
                       {[hasInterviews !== 'all' ? 1 : 0, interviewTypes.length, interviewStatus.length, upcomingInterviewsDays !== null ? 1 : 0].reduce((a, b) => a + b, 0)}
@@ -3050,14 +3153,14 @@ END:VCALENDAR`;
                 <button
                   onClick={() => setOpenFilterModal(openFilterModal === 'sort' ? null : 'sort')}
                         className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          sortBy !== 'appliedDate' || sortOrder !== 'desc'
+                          (currentBoardType === 'campaigns' ? sortBy !== 'lastContactedAt' : sortBy !== 'appliedDate') || sortOrder !== 'desc'
                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
                       : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
                     }`}
                 >
                   <Filter className="w-4 h-4" />
                   <span>Sort</span>
-                  {sortBy !== 'appliedDate' || sortOrder !== 'desc' ? (
+                  {(currentBoardType === 'campaigns' ? sortBy !== 'lastContactedAt' : sortBy !== 'appliedDate') || sortOrder !== 'desc' ? (
                           <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-semibold bg-purple-600 dark:bg-purple-500 text-white">
                       1
                     </span>
@@ -3127,7 +3230,7 @@ END:VCALENDAR`;
                 )}
                 {hasInterviews !== 'all' && (
                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                    Interviews: {hasInterviews === 'with' ? 'With' : hasInterviews === 'without' ? 'Without' : 'Upcoming'}
+                    {currentBoardType === 'campaigns' ? 'Meetings' : 'Interviews'}: {hasInterviews === 'with' ? 'With' : hasInterviews === 'without' ? 'Without' : 'Upcoming'}
                     <button
                       onClick={() => setHasInterviews('all')}
                       className="ml-1 hover:opacity-70"
@@ -3136,12 +3239,19 @@ END:VCALENDAR`;
                     </button>
                   </span>
                 )}
-                {(sortBy !== 'appliedDate' || sortOrder !== 'desc') && (
+                {((currentBoardType === 'campaigns' ? sortBy !== 'lastContactedAt' : sortBy !== 'appliedDate') || sortOrder !== 'desc') && (
                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                    Sort: {sortBy === 'appliedDate' ? 'Applied Date' : sortBy === 'updatedAt' ? 'Updated' : sortBy === 'companyName' ? 'Company' : sortBy === 'position' ? 'Position' : 'Interviews'} ({sortOrder === 'asc' ? 'Asc' : 'Desc'})
+                    Sort: {sortBy === 'appliedDate' ? 'Applied Date' : 
+                      sortBy === 'lastContactedAt' ? 'Last Contacted' :
+                      sortBy === 'updatedAt' ? 'Updated' : 
+                      sortBy === 'companyName' ? 'Company' : 
+                      sortBy === 'position' ? 'Position' : 
+                      sortBy === 'contactName' ? 'Contact Name' :
+                      sortBy === 'interviewCount' ? 'Interviews' :
+                      sortBy === 'meetingCount' ? 'Meetings' : 'Other'} ({sortOrder === 'asc' ? 'Asc' : 'Desc'})
                     <button
                       onClick={() => {
-                        setSortBy('appliedDate');
+                        setSortBy(currentBoardType === 'campaigns' ? 'lastContactedAt' : 'appliedDate');
                         setSortOrder('desc');
                       }}
                       className="ml-1 hover:opacity-70"
@@ -4011,7 +4121,9 @@ END:VCALENDAR`;
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Applied Date</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                      {currentBoardType === 'campaigns' ? 'Last Contacted Date' : 'Applied Date'}
+                    </label>
                     <div className="space-y-2">
                       {['all', '7d', '30d', '3m', '6m', 'custom'].map((option) => (
                         <label key={option} className="flex items-center gap-3 cursor-pointer">
@@ -4127,7 +4239,9 @@ END:VCALENDAR`;
                 className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto"
               >
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Filter by Interviews</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Filter by {currentBoardType === 'campaigns' ? 'Meetings' : 'Interviews'}
+                  </h3>
                   <button
                     onClick={() => setOpenFilterModal(null)}
                     className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -4138,7 +4252,9 @@ END:VCALENDAR`;
 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">Interview Presence</label>
+                    <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">
+                      {currentBoardType === 'campaigns' ? 'Meeting Presence' : 'Interview Presence'}
+                    </label>
                     <div className="space-y-2">
                       {['all', 'with', 'without', 'upcoming'].map((option) => (
                         <label key={option} className="flex items-center gap-3 cursor-pointer">
@@ -4151,10 +4267,10 @@ END:VCALENDAR`;
                             className="w-4 h-4 text-purple-600"
                           />
                           <span className="text-sm text-gray-700 dark:text-gray-300">
-                            {option === 'all' ? 'All applications' :
-                              option === 'with' ? 'With interviews' :
-                                option === 'without' ? 'Without interviews' :
-                                  'Upcoming interviews only'}
+                            {option === 'all' ? `All ${currentBoardType === 'campaigns' ? 'contacts' : 'applications'}` :
+                              option === 'with' ? `With ${currentBoardType === 'campaigns' ? 'meetings' : 'interviews'}` :
+                              option === 'without' ? `Without ${currentBoardType === 'campaigns' ? 'meetings' : 'interviews'}` :
+                                `Upcoming ${currentBoardType === 'campaigns' ? 'meetings' : 'interviews'} only`}
                           </span>
                         </label>
                       ))}
@@ -4162,9 +4278,14 @@ END:VCALENDAR`;
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">Interview Types</label>
+                    <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">
+                      {currentBoardType === 'campaigns' ? 'Meeting Types' : 'Interview Types'}
+                    </label>
                     <div className="space-y-2">
-                      {['technical', 'hr', 'manager', 'final', 'other'].map((type) => (
+                      {(currentBoardType === 'campaigns' 
+                        ? (['coffee_chat', 'call', 'video_call', 'in_person', 'other'] as MeetingType[])
+                        : ['technical', 'hr', 'manager', 'final', 'other']
+                      ).map((type) => (
                         <label key={type} className="flex items-center gap-3 cursor-pointer">
                           <input
                             type="checkbox"
@@ -4178,16 +4299,25 @@ END:VCALENDAR`;
                             }}
                             className="w-4 h-4 text-purple-600 rounded"
                           />
-                          <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">{type}</span>
+                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                            {currentBoardType === 'campaigns' && type in MEETING_TYPE_LABELS
+                              ? MEETING_TYPE_LABELS[type as MeetingType]
+                              : type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ')}
+                          </span>
                         </label>
                       ))}
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">Interview Status</label>
+                    <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">
+                      {currentBoardType === 'campaigns' ? 'Meeting Status' : 'Interview Status'}
+                    </label>
                     <div className="space-y-2">
-                      {['scheduled', 'completed', 'cancelled'].map((status) => (
+                      {(currentBoardType === 'campaigns' 
+                        ? ['scheduled', 'completed', 'cancelled', 'rescheduled']
+                        : ['scheduled', 'completed', 'cancelled']
+                      ).map((status) => (
                         <label key={status} className="flex items-center gap-3 cursor-pointer">
                           <input
                             type="checkbox"
@@ -4208,7 +4338,9 @@ END:VCALENDAR`;
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">Upcoming Interviews</label>
+                    <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">
+                      Upcoming {currentBoardType === 'campaigns' ? 'Meetings' : 'Interviews'}
+                    </label>
                     <div className="space-y-2">
                       {[null, 7, 14, 30].map((days) => (
                         <label key={days || 'all'} className="flex items-center gap-3 cursor-pointer">
@@ -4292,7 +4424,7 @@ END:VCALENDAR`;
                     {uniqueCompanies
                       .filter(company => company.toLowerCase().includes(companySearchQuery.toLowerCase()))
                       .map((company) => {
-                        const count = applications.filter(app => app.companyName === company).length;
+                        const count = currentBoardApplications.filter(app => app.companyName === company).length;
                         return (
                           <label key={company} className="flex items-center justify-between gap-3 cursor-pointer p-2 hover:bg-gray-50 dark:hover:bg-[#3d3c3e] rounded-lg">
                             <div className="flex items-center gap-3">
@@ -4310,7 +4442,9 @@ END:VCALENDAR`;
                               />
                               <span className="text-sm text-gray-700 dark:text-gray-300">{company}</span>
                             </div>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">{count} {count === 1 ? 'application' : 'applications'}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {count} {count === 1 ? (currentBoardType === 'campaigns' ? 'contact' : 'application') : (currentBoardType === 'campaigns' ? 'contacts' : 'applications')}
+                            </span>
                           </label>
                         );
                       })}
@@ -4377,7 +4511,9 @@ END:VCALENDAR`;
                 className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 w-full max-w-md shadow-xl"
               >
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sort Applications</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Sort {currentBoardType === 'campaigns' ? 'Contacts' : 'Applications'}
+                  </h3>
                   <button
                     onClick={() => setOpenFilterModal(null)}
                     className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -4390,13 +4526,19 @@ END:VCALENDAR`;
                   <div>
                     <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">Sort By</label>
                     <div className="space-y-2">
-                      {[
+                      {(currentBoardType === 'campaigns' ? [
+                        { value: 'lastContactedAt', label: 'Last Contacted Date' },
+                        { value: 'updatedAt', label: 'Last Updated' },
+                        { value: 'companyName', label: 'Company Name' },
+                        { value: 'contactName', label: 'Contact Name' },
+                        { value: 'meetingCount', label: 'Number of Meetings' }
+                      ] : [
                         { value: 'appliedDate', label: 'Applied Date' },
                         { value: 'updatedAt', label: 'Last Updated' },
                         { value: 'companyName', label: 'Company Name' },
                         { value: 'position', label: 'Position' },
                         { value: 'interviewCount', label: 'Number of Interviews' }
-                      ].map((option) => (
+                      ]).map((option) => (
                         <label key={option.value} className="flex items-center gap-3 cursor-pointer">
                           <input
                             type="radio"
@@ -4437,7 +4579,7 @@ END:VCALENDAR`;
                 <div className="mt-6 flex justify-end gap-3">
                   <button
                     onClick={() => {
-                      setSortBy('appliedDate');
+                      setSortBy(currentBoardType === 'campaigns' ? 'lastContactedAt' : 'appliedDate');
                       setSortOrder('desc');
                     }}
                     className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg"

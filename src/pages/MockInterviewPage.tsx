@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from '@/contexts/ToastContext';
 import AuthLayout from '../components/AuthLayout';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { KanbanBoard } from '../types/job';
 import {
   Mic,
   Play,
@@ -149,12 +150,36 @@ export default function MockInterviewPage() {
       
       try {
         setIsLoadingApplications(true);
+        
+        // First, load boards to identify campaign boards
+        const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
+        const boardsSnapshot = await getDocs(query(boardsRef));
+        const campaignBoardIds = new Set<string>();
+        
+        boardsSnapshot.forEach((doc) => {
+          const board = { id: doc.id, ...doc.data() } as KanbanBoard;
+          if (board.boardType === 'campaigns') {
+            campaignBoardIds.add(board.id);
+          }
+        });
+        
+        // Then load applications
         const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
         const snapshot = await getDocs(query(applicationsRef));
         
         const apps: JobApplication[] = [];
         snapshot.forEach((doc) => {
           const data = doc.data();
+          
+          // Skip applications that belong to campaign boards
+          // Check if application has boardType: 'campaigns' or boardId pointing to a campaign board
+          const isCampaignApp = data.boardType === 'campaigns' || 
+                                (data.boardId && campaignBoardIds.has(data.boardId));
+          
+          if (isCampaignApp) {
+            return; // Skip this application
+          }
+          
           apps.push({
             id: doc.id,
             companyName: data.companyName || 'Unknown Company',
@@ -1295,12 +1320,12 @@ export default function MockInterviewPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Orb Section - Center */}
-        <div className="flex-1 flex items-center justify-center p-6 lg:p-0">
+        <div className="flex-1 flex items-center justify-center p-6 lg:p-0 overflow-visible">
           <motion.div
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="flex flex-col items-center"
+            className="flex flex-col items-center overflow-visible"
           >
             {/* The Orb */}
             <AIOrb 

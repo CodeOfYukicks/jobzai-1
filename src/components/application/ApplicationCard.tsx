@@ -157,46 +157,44 @@ function CampaignCard({
         'rounded-xl border',
         'bg-white/90 dark:bg-[#2b2a2c]/80 backdrop-blur-md',
         'border-gray-200/60 dark:border-[#3d3c3e]/60',
-        'hover:border-[#8B5CF6]/40 dark:hover:border-[#8B5CF6]/30',
-        'shadow-sm hover:shadow-lg hover:shadow-[#8B5CF6]/5 dark:shadow-black/20',
+        'hover:border-gray-300/80 dark:hover:border-[#4a494b]/80',
+        'shadow-sm hover:shadow-lg dark:shadow-black/20',
         'transition-all duration-200',
         'h-full flex flex-col',
-        isDragging ? 'ring-2 ring-[#8B5CF6] ring-offset-0 shadow-xl dark:shadow-[#8B5CF6]/20' : '',
+        isDragging ? 'ring-2 ring-[#635BFF] ring-offset-0 shadow-xl dark:shadow-[#635BFF]/20' : '',
       ].join(' ')}
       role="button"
     >
-      {/* Gradient accent at top */}
-      <div className="absolute top-0 left-0 right-0 h-1 rounded-t-xl bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] opacity-60" />
-      
-      <div className="p-4 flex flex-col flex-1 min-h-0 pt-3">
-        {/* Badges row - Warmth & Inactive */}
-        <div className="flex items-center justify-between mb-3">
-          {app.warmthLevel && warmthColors && (
+      <div className="p-4 flex flex-col flex-1 min-h-0">
+        {/* Inactive Badge */}
+        {isInactive && (
+          <div className="absolute top-2 right-2 z-10">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full border border-amber-200 dark:border-amber-800">
+              {inactiveDays}d inactive
+            </span>
+          </div>
+        )}
+
+        {/* Warmth Badge */}
+        {app.warmthLevel && warmthColors && (
+          <div className="mb-3 flex-shrink-0">
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full ${warmthColors.bg} ${warmthColors.text} border ${warmthColors.border}`}>
               <WarmthIcon level={app.warmthLevel} />
               {WARMTH_LEVEL_LABELS[app.warmthLevel]}
             </span>
-          )}
-          {!app.warmthLevel && <div />}
-          
-          {isInactive && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full border border-amber-200 dark:border-amber-800">
-              {inactiveDays}d inactive
-            </span>
-          )}
-        </div>
+          </div>
+        )}
         
-        {/* Section 1: Contact Avatar + Name + Role */}
+        {/* Section 1: Header - Contact Name avec avatar */}
         <div className="flex items-start gap-3 mb-3 flex-shrink-0">
           {/* Contact Avatar */}
-          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-purple-500/20 flex-shrink-0`}>
+          <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-sm shadow-md border border-gray-100 dark:border-[#3d3c3e] flex-shrink-0`}>
             {initials}
           </div>
-          
           <div className="flex-1 min-w-0">
             <h3
-              className="text-base font-semibold text-gray-900 dark:text-white leading-tight"
-              style={{ display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+              className="text-base font-medium text-gray-900 dark:text-white leading-tight"
+              style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
             >
               {contactName}
             </h3>
@@ -205,48 +203,61 @@ function CampaignCard({
                 {app.contactRole}
               </p>
             )}
-            {/* Company inline */}
-            <div className="flex items-center gap-1.5 mt-1">
-              <CompanyLogo companyName={app.companyName} size="xs" />
-              <span className="text-xs text-gray-500 dark:text-gray-400 truncate">@ {app.companyName}</span>
-            </div>
           </div>
         </div>
-        
-        {/* Section 2: Stats row - Channel, Date, Messages */}
-        <div className="flex flex-wrap items-center gap-2 mb-3 flex-shrink-0">
-          {/* Channel */}
-          {channelConfig && (
-            <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-md bg-gray-100 dark:bg-[#3d3c3e]/50 ${channelConfig.color}`}>
-              <ChannelIcon channel={app.outreachChannel || 'other'} />
-              {channelConfig.label}
-            </span>
-          )}
-          
+
+        {/* Section 2: Métadonnées avec icônes */}
+        <div className="flex flex-wrap items-center gap-3 mb-3 flex-shrink-0">
           {/* Last contact date */}
-          <span className="inline-flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 px-2 py-1 rounded-md bg-gray-100 dark:bg-[#3d3c3e]/50">
-            <Calendar className="w-3 h-3" />
-            {formatShortDate(app.lastContactedAt || app.appliedDate)}
-          </span>
-          
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-4 h-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+            <span className="text-sm text-gray-500 dark:text-gray-400">{formatDate(app.lastContactedAt || app.appliedDate)}</span>
+          </div>
+
+          {/* Channel */}
+          {channelConfig && app.outreachChannel && (
+            <div className="flex items-center gap-1.5">
+              {app.outreachChannel === 'email' && <Mail className="w-4 h-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />}
+              {app.outreachChannel === 'linkedin' && <Linkedin className="w-4 h-4 text-[#0A66C2] flex-shrink-0" />}
+              {(app.outreachChannel === 'phone' || app.outreachChannel === 'cold_call') && <Phone className="w-4 h-4 text-orange-500 dark:text-orange-400 flex-shrink-0" />}
+              {app.outreachChannel === 'referral' && <Users className="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />}
+              {app.outreachChannel === 'event' && <Calendar className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />}
+              {app.outreachChannel === 'in_person' && <User className="w-4 h-4 text-indigo-500 dark:text-indigo-400 flex-shrink-0" />}
+              {!['email', 'linkedin', 'phone', 'cold_call', 'referral', 'event', 'in_person'].includes(app.outreachChannel) && <Send className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />}
+              <span className="text-sm text-gray-500 dark:text-gray-400">{channelConfig.label}</span>
+            </div>
+          )}
+
           {/* Message count */}
           {messageCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-purple-600 dark:text-purple-400 px-2 py-1 rounded-md bg-purple-50 dark:bg-purple-900/20">
-              <MessageSquare className="w-3 h-3" />
-              {messageCount}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <MessageSquare className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {messageCount} {messageCount === 1 ? 'message' : 'messages'}
+              </span>
+            </div>
           )}
-          
+
           {/* Meeting count */}
           {meetingCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded-md bg-indigo-50 dark:bg-indigo-900/20">
-              <Users className="w-3 h-3" />
-              {meetingCount}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {meetingCount} {meetingCount === 1 ? 'meeting' : 'meetings'}
+              </span>
+            </div>
           )}
         </div>
-        
-        {/* Section 3: Contact info pills */}
+
+        {/* Section 3: Entreprise */}
+        <div className="mb-3 flex-shrink-0">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-gray-100/80 dark:bg-[#3d3c3e]/50 border border-gray-200 dark:border-[#3d3c3e]">
+            <CompanyLogo companyName={app.companyName} size="md" />
+            <span className="text-sm font-normal text-gray-600 dark:text-gray-400">{app.companyName}</span>
+          </div>
+        </div>
+
+        {/* Section 4: Contact info pills */}
         {(app.contactEmail || app.contactLinkedIn) && (
           <div className="flex flex-wrap items-center gap-1.5 mb-3 flex-shrink-0">
             {app.contactEmail && (
@@ -266,13 +277,13 @@ function CampaignCard({
         
         {/* Spacer to push footer to bottom */}
         <div className="flex-1"></div>
-        
-        {/* Section 4: Follow-up & Actions */}
+
+        {/* Section 5: Footer avec actions */}
         <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50 flex-shrink-0">
           {/* Follow-up reminder */}
           {app.nextFollowUpDate && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-400">
-              <Clock className="w-3 h-3" />
+            <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+              <Clock className="w-3.5 h-3.5" />
               Follow-up: {formatShortDate(app.nextFollowUpDate)}
             </span>
           )}
@@ -286,7 +297,7 @@ function CampaignCard({
                   e.stopPropagation();
                   onMoveToBoard();
                 }}
-                className="p-1.5 rounded-md hover:bg-[#8B5CF6]/10 text-gray-500 dark:text-gray-400 hover:text-[#8B5CF6] dark:hover:text-[#a78bfa] transition-colors"
+                className="p-1.5 rounded-md hover:bg-[#635BFF]/10 text-gray-500 dark:text-gray-400 hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors"
                 aria-label="Move to another board"
                 title="Move to board"
               >

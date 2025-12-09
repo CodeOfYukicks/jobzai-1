@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
+import styled from 'styled-components';
 
 export type OrbState = 'idle' | 'listening' | 'speaking';
 
@@ -10,283 +10,262 @@ interface AIOrbProps {
 }
 
 export function AIOrb({ state, audioLevel = 0, className = '' }: AIOrbProps) {
-  // Calculate dynamic values based on state and audio level
-  const config = useMemo(() => {
-    const baseScale = 1 + audioLevel * 0.15;
-    
+  // Calculate color palette based on state
+  const colorPalette = useMemo(() => {
     switch (state) {
       case 'speaking':
         return {
-          coreDuration: 0.8 + (1 - audioLevel) * 0.4,
-          glowIntensity: 0.6 + audioLevel * 0.4,
-          pulseScale: baseScale * 1.1,
-          ringOpacity: 0.4 + audioLevel * 0.3,
-          particleCount: 8,
-          primaryColor: 'rgb(139, 92, 246)', // violet-500
-          secondaryColor: 'rgb(167, 139, 250)', // violet-400
-          glowColor: 'rgba(139, 92, 246, 0.5)',
+          blob1: '#a78bfa', // violet-400
+          blob2: '#8b5cf6', // violet-500
+          blob3: '#7c3aed', // violet-600
+          blob4: '#6366f1', // indigo-500
         };
       case 'listening':
         return {
-          coreDuration: 1.5,
-          glowIntensity: 0.4 + audioLevel * 0.3,
-          pulseScale: baseScale * 1.05,
-          ringOpacity: 0.3 + audioLevel * 0.2,
-          particleCount: 0,
-          primaryColor: 'rgb(6, 182, 212)', // cyan-500
-          secondaryColor: 'rgb(103, 232, 249)', // cyan-300
-          glowColor: 'rgba(6, 182, 212, 0.4)',
+          blob1: '#67e8f9', // cyan-300
+          blob2: '#06b6d4', // cyan-500
+          blob3: '#0891b2', // cyan-600
+          blob4: '#22d3ee', // cyan-400
         };
       default: // idle
         return {
-          coreDuration: 3,
-          glowIntensity: 0.2,
-          pulseScale: 1.02,
-          ringOpacity: 0.15,
-          particleCount: 0,
-          primaryColor: 'rgb(139, 92, 246)', // violet-500
-          secondaryColor: 'rgb(99, 102, 241)', // indigo-500
-          glowColor: 'rgba(139, 92, 246, 0.25)',
+          blob1: '#8b5cf6', // violet-500
+          blob2: '#6366f1', // indigo-500
+          blob3: '#7c3aed', // violet-600
+          blob4: '#a78bfa', // violet-400
         };
     }
-  }, [state, audioLevel]);
+  }, [state]);
+
+  // Calculate animation speed based on audio level
+  const animationSpeed = useMemo(() => {
+    const baseSpeed = 30;
+    // Faster animation when audio level is higher (min 20s, max 30s)
+    return Math.max(20, baseSpeed - (audioLevel * 10));
+  }, [audioLevel]);
+
+  // Calculate breath intensity based on audio level
+  const breathIntensity = useMemo(() => {
+    // Scale from 1.05 (idle) to 1.15 (high audio)
+    return 1.05 + (audioLevel * 0.1);
+  }, [audioLevel]);
+
+  // Calculate blob animation speeds based on audio level
+  const blobSpeeds = useMemo(() => {
+    const baseSpeed1 = 7;
+    const baseSpeed2 = 9;
+    const baseSpeed3 = 11;
+    const baseSpeed4 = 13;
+    // Faster animations when audio level is higher
+    return {
+      speed1: Math.max(4, baseSpeed1 - (audioLevel * 2)),
+      speed2: Math.max(5, baseSpeed2 - (audioLevel * 2.5)),
+      speed3: Math.max(6, baseSpeed3 - (audioLevel * 3)),
+      speed4: Math.max(7, baseSpeed4 - (audioLevel * 3.5)),
+    };
+  }, [audioLevel]);
 
   return (
-    <div className={`relative flex items-center justify-center ${className}`}>
-      {/* Outer ambient glow */}
-      <motion.div
-        className="absolute rounded-full"
+    <StyledWrapper 
+      className={className}
         style={{
-          width: '200%',
-          height: '200%',
-          background: `radial-gradient(circle, ${config.glowColor} 0%, transparent 70%)`,
-          filter: 'blur(40px)',
-        }}
-        animate={{
-          scale: [1, config.pulseScale, 1],
-          opacity: [config.glowIntensity * 0.5, config.glowIntensity, config.glowIntensity * 0.5],
-        }}
-        transition={{
-          duration: config.coreDuration,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-      />
-
-      {/* Outer ring 3 */}
-      <motion.div
-        className="absolute rounded-full"
-        style={{
-          width: '160%',
-          height: '160%',
-          border: `1px solid ${config.primaryColor}`,
-          opacity: config.ringOpacity * 0.3,
-        }}
-        animate={{
-          scale: [1, 1.05, 1],
-          opacity: [config.ringOpacity * 0.2, config.ringOpacity * 0.4, config.ringOpacity * 0.2],
-        }}
-        transition={{
-          duration: config.coreDuration * 1.2,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-      />
-
-      {/* Outer ring 2 */}
-      <motion.div
-        className="absolute rounded-full"
-        style={{
-          width: '140%',
-          height: '140%',
-          border: `1px solid ${config.secondaryColor}`,
-          opacity: config.ringOpacity * 0.5,
-        }}
-        animate={{
-          scale: [1, 1.08, 1],
-          opacity: [config.ringOpacity * 0.3, config.ringOpacity * 0.6, config.ringOpacity * 0.3],
-        }}
-        transition={{
-          duration: config.coreDuration,
-          repeat: Infinity,
-          ease: 'easeInOut',
-          delay: 0.1,
-        }}
-      />
-
-      {/* Outer ring 1 - main pulse ring */}
-      <motion.div
-        className="absolute rounded-full"
-        style={{
-          width: '120%',
-          height: '120%',
-          border: `2px solid ${config.primaryColor}`,
-          boxShadow: `0 0 20px ${config.glowColor}, inset 0 0 20px ${config.glowColor}`,
-        }}
-        animate={{
-          scale: [1, config.pulseScale, 1],
-          opacity: [config.ringOpacity, config.ringOpacity * 1.5, config.ringOpacity],
-        }}
-        transition={{
-          duration: config.coreDuration,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-      />
-
-      {/* Inner glow layer */}
-      <motion.div
-        className="absolute rounded-full"
-        style={{
-          width: '110%',
-          height: '110%',
-          background: `radial-gradient(circle, ${config.glowColor} 0%, transparent 70%)`,
-          filter: 'blur(15px)',
-        }}
-        animate={{
-          scale: [0.9, 1.1, 0.9],
-          opacity: [0.3, 0.6, 0.3],
-        }}
-        transition={{
-          duration: config.coreDuration * 0.8,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-      />
-
-      {/* Core orb */}
-      <motion.div
-        className="relative rounded-full overflow-hidden"
-        style={{
-          width: '100%',
-          height: '100%',
-          background: `
-            radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, transparent 40%),
-            radial-gradient(circle at 70% 70%, rgba(0,0,0,0.3) 0%, transparent 40%),
-            linear-gradient(135deg, ${config.primaryColor} 0%, ${config.secondaryColor} 50%, ${config.primaryColor} 100%)
-          `,
-          boxShadow: `
-            0 0 40px ${config.glowColor},
-            0 0 80px ${config.glowColor},
-            inset 0 0 40px rgba(255,255,255,0.1),
-            inset 0 -20px 40px rgba(0,0,0,0.2)
-          `,
-        }}
-        animate={{
-          scale: [1, config.pulseScale * 0.98, 1],
-        }}
-        transition={{
-          duration: config.coreDuration,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-      >
-        {/* Glass highlight */}
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%)',
-          }}
-        />
-        
-        {/* Animated shine */}
-        <motion.div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: 'linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.2) 50%, transparent 60%)',
-          }}
-          animate={{
-            x: ['-100%', '100%'],
-          }}
-          transition={{
-            duration: config.coreDuration * 2,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        />
-
-        {/* Inner pulse for speaking */}
-        {state === 'speaking' && (
-          <motion.div
-            className="absolute inset-0 rounded-full"
-            style={{
-              background: `radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%)`,
-            }}
-            animate={{
-              scale: [0.8, 1.2, 0.8],
-              opacity: [0.3, 0.6, 0.3],
-            }}
-            transition={{
-              duration: 0.5 + (1 - audioLevel) * 0.3,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          />
-        )}
-      </motion.div>
-
-      {/* Floating particles for speaking state */}
-      {state === 'speaking' && config.particleCount > 0 && (
-        <>
-          {Array.from({ length: config.particleCount }).map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute rounded-full"
-              style={{
-                width: 4 + Math.random() * 4,
-                height: 4 + Math.random() * 4,
-                background: config.primaryColor,
-                filter: 'blur(1px)',
-              }}
-              initial={{
-                x: 0,
-                y: 0,
-                opacity: 0,
-                scale: 0,
-              }}
-              animate={{
-                x: [0, Math.cos((i * 360 / config.particleCount) * Math.PI / 180) * 100],
-                y: [0, Math.sin((i * 360 / config.particleCount) * Math.PI / 180) * 100],
-                opacity: [0, 0.8, 0],
-                scale: [0, 1, 0.5],
-              }}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                delay: i * 0.15,
-                ease: 'easeOut',
-              }}
-            />
-          ))}
-        </>
-      )}
-
-      {/* Rotating ring for listening */}
-      {state === 'listening' && (
-        <motion.div
-          className="absolute rounded-full"
-          style={{
-            width: '130%',
-            height: '130%',
-            border: '2px solid transparent',
-            borderTopColor: config.primaryColor,
-            borderRightColor: `${config.primaryColor}50`,
-          }}
-          animate={{
-            rotate: 360,
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: 'linear',
-          }}
-        />
-      )}
+        '--blob-1': colorPalette.blob1,
+        '--blob-2': colorPalette.blob2,
+        '--blob-3': colorPalette.blob3,
+        '--blob-4': colorPalette.blob4,
+        '--animation-speed': `${animationSpeed}s`,
+        '--breath-scale': breathIntensity,
+        '--blob-speed-1': `${blobSpeeds.speed1}s`,
+        '--blob-speed-2': `${blobSpeeds.speed2}s`,
+        '--blob-speed-3': `${blobSpeeds.speed3}s`,
+        '--blob-speed-4': `${blobSpeeds.speed4}s`,
+      } as React.CSSProperties}
+    >
+      <div className="container palette">
+        <div className="orb-glass">
+          <div className="blobs">
+            <svg viewBox="0 0 1200 1200">
+              <g className="blob blob-1">
+                <path d="M 100 600 q 0 -500, 500 -500 t 500 500 t -500 500 T 100 600 z" />
+              </g>
+              <g className="blob blob-2">
+                <path d="M 100 600 q 0 -400, 500 -500 t 400 500 t -500 500 T 100 600 z" />
+              </g>
+              <g className="blob blob-3">
+                <path d="M 100 600 q -50 -400, 500 -500 t 450 550 t -500 500 T 100 600 z" />
+              </g>
+              <g className="blob blob-4">
+                <path d="M 150 600 q 0 -650, 500 -500 t 500 580 t -500 500 T 150 600 z" />
+              </g>
+            </svg>
+          </div>
+        </div>
     </div>
+    </StyledWrapper>
   );
 }
 
+const StyledWrapper = styled.div`
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .palette {
+    --blob-1: #ff007b;
+    --blob-2: #00faff;
+    --blob-3: #ff00ff;
+    --blob-4: #00ff9d;
+  }
+
+  .container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: visible;
+  }
+
+  .orb-glass {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(2.5rem) saturate(250%);
+    -webkit-backdrop-filter: blur(2.5rem) saturate(250%);
+    box-shadow:
+      inset 0 0 80px rgba(255, 255, 255, 0.06),
+      0 0 120px rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: orbBreath 10s infinite ease-in-out;
+    overflow: visible;
+  }
+
+  @keyframes orbBreath {
+    0%,
+    100% {
+      transform: scale(1);
+      box-shadow:
+        inset 0 0 80px rgba(255, 255, 255, 0.06),
+        0 0 120px rgba(255, 255, 255, 0.15);
+    }
+    50% {
+      transform: scale(var(--breath-scale, 1.05));
+      box-shadow:
+        inset 0 0 120px rgba(255, 255, 255, 0.1),
+        0 0 180px rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  .blobs {
+    width: 90%;
+    height: 90%;
+    position: relative;
+    overflow: visible;
+  }
+  
+  .blobs svg {
+    width: 100%;
+    height: 100%;
+    mix-blend-mode: screen;
+    overflow: visible;
+  }
+
+  .blob {
+    animation:
+      rotate var(--animation-speed, 30s) infinite alternate ease-in-out,
+      blobPulse 4s infinite ease-in-out;
+    transform-origin: 50% 50%;
+    opacity: 0.7;
+  }
+  
+  .blob path {
+    transform-origin: 50% 50%;
+    transform: scale(0.8);
+  }
+
+  .blob-1 path {
+    fill: var(--blob-1);
+    filter: blur(2rem) drop-shadow(0 0 25px var(--blob-1));
+    animation: blobScale1 var(--blob-speed-1, 7s) infinite alternate ease-in-out;
+  }
+  
+  .blob-2 path {
+    fill: var(--blob-2);
+    filter: blur(1.5rem) drop-shadow(0 0 25px var(--blob-2));
+    animation: blobScale2 var(--blob-speed-2, 9s) infinite alternate ease-in-out;
+  }
+  
+  .blob-3 path {
+    fill: var(--blob-3);
+    filter: blur(1.2rem) drop-shadow(0 0 30px var(--blob-3));
+    animation: blobScale3 var(--blob-speed-3, 11s) infinite alternate ease-in-out;
+  }
+  
+  .blob-4 path {
+    fill: var(--blob-4);
+    filter: blur(5rem) drop-shadow(0 0 50px var(--blob-4));
+    animation: blobScale4 var(--blob-speed-4, 13s) infinite alternate ease-in-out;
+  }
+
+  @keyframes blobScale1 {
+    0% {
+      transform: scale(0.8);
+    }
+    100% {
+      transform: scale(1.1);
+    }
+  }
+
+  @keyframes blobScale2 {
+    0% {
+      transform: scale(0.75);
+    }
+    100% {
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes blobScale3 {
+    0% {
+      transform: scale(0.72);
+    }
+    100% {
+      transform: scale(1.0);
+    }
+  }
+
+  @keyframes blobScale4 {
+    0% {
+      transform: scale(0.5);
+    }
+    100% {
+      transform: scale(0.7);
+    }
+  }
+
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  @keyframes blobPulse {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+  }
+`;
+
 export default AIOrb;
-
-
-
