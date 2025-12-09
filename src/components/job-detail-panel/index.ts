@@ -11,3 +11,4 @@ export { AIToolsTab } from './AIToolsTab';
 export { EmailGenerator } from './EmailGenerator';
 export { AIToolCard } from './AIToolCard';
 export { CompactHistoryList } from './CompactHistoryList';
+export { ContactTab } from './ContactTab';

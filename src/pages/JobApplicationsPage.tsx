@@ -12,6 +12,8 @@ import {
   Calendar as CalIcon,
   Check,
   CheckCircle,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Code,
   Download,
@@ -55,7 +57,7 @@ import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { extractJobInfo, DetailedJobInfo } from '../lib/jobExtractor';
 import DatePicker from '../components/ui/DatePicker';
-import { JobApplication, Interview, StatusChange, AutomationSettings, defaultAutomationSettings, KanbanBoard, BOARD_COLORS, BOARD_TYPE_COLUMNS, JOB_COLUMN_LABELS, CAMPAIGN_COLUMN_LABELS, CAMPAIGN_COLUMN_COLORS, BoardType } from '../types/job';
+import { JobApplication, Interview, StatusChange, AutomationSettings, defaultAutomationSettings, KanbanBoard, BOARD_COLORS, BOARD_TYPE_COLUMNS, JOB_COLUMN_LABELS, CAMPAIGN_COLUMN_LABELS, CAMPAIGN_COLUMN_COLORS, BoardType, RelationshipGoal, WarmthLevel, OutreachChannel, RELATIONSHIP_GOAL_LABELS, WARMTH_LEVEL_LABELS, OUTREACH_CHANNEL_CONFIG } from '../types/job';
 import { ApplicationList } from '../components/application/ApplicationList';
 import { JobDetailPanel } from '../components/job-detail-panel';
 import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
@@ -63,6 +65,8 @@ import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
 import AutomationSettingsModal from '../components/application/AutomationSettingsModal';
 import { checkAndApplyAutomations, isApplicationInactive, getInactiveDays } from '../lib/automationEngine';
 import { BoardSettingsModal, BoardsOverview, MoveToBoardModal } from '../components/boards';
+import { RelationshipGoalSelector } from '../components/outreach';
+import { WarmthIndicator } from '../components/outreach';
 
 export default function JobApplicationsPage() {
   const { currentUser } = useAuth();
@@ -140,6 +144,7 @@ export default function JobApplicationsPage() {
 
   // New Application Form State
   const [showFullForm, setShowFullForm] = useState(false);
+  const [wizardStep, setWizardStep] = useState<1 | 2>(1); // For campaign wizard: 1 = Contact, 2 = Strategy
 
   // Cover photo states
   const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
@@ -1012,6 +1017,11 @@ export default function JobApplicationsPage() {
             contactLinkedIn: formData.contactLinkedIn || '',
             outreachChannel: formData.outreachChannel || 'email',
             messageSent: formData.messageSent || '',
+            relationshipGoal: formData.relationshipGoal || 'networking',
+            warmthLevel: formData.warmthLevel || 'cold',
+            lastContactedAt: formData.appliedDate || new Date().toISOString().split('T')[0],
+            conversationHistory: [],
+            meetings: [],
           }),
           // Associate with current board
           ...(currentBoardId && { boardId: currentBoardId }),
@@ -2877,7 +2887,9 @@ END:VCALENDAR`;
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
-                  setEventType(null);
+                  // For campaigns, skip selection and go directly to outreach form
+                  setEventType(currentBoardType === 'campaigns' ? 'application' : null);
+                  setWizardStep(1);
                   setLookupSelectedApplication(null);
                   setLinkedApplicationId(null);
                   setLookupSearchQuery('');
@@ -2887,7 +2899,7 @@ END:VCALENDAR`;
                         className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl shadow-md bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-lg border border-[#9fc015] transition-all duration-200"
               >
                 <Plus className="w-4 h-4" />
-                <span>Add Application</span>
+                <span>{currentBoardType === 'campaigns' ? 'Add Contact' : 'Add Application'}</span>
               </motion.button>
 
               {/* Settings Button */}
@@ -3250,6 +3262,7 @@ END:VCALENDAR`;
                                   whileTap={{ scale: 0.98 }}
                                   onClick={() => {
                                     setEventType('application');
+                                    setWizardStep(1);
                                     setLookupSelectedApplication(null);
                                     setLinkedApplicationId(null);
                                     setLookupSearchQuery('');
@@ -3355,7 +3368,8 @@ END:VCALENDAR`;
                   </p>
                   <button
                     onClick={() => {
-                      setEventType(null);
+                      setEventType(currentBoardType === 'campaigns' ? 'application' : null);
+                      setWizardStep(1);
                       setLookupSelectedApplication(null);
                       setLinkedApplicationId(null);
                       setLookupSearchQuery('');
@@ -3365,7 +3379,7 @@ END:VCALENDAR`;
                     className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
                   >
                     <PlusCircle className="h-4 w-4" />
-                    <span>Add Your First Application</span>
+                    <span>{currentBoardType === 'campaigns' ? 'Add Your First Contact' : 'Add Your First Application'}</span>
                   </button>
                 </div>
               ) : (
@@ -4524,8 +4538,8 @@ END:VCALENDAR`;
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6">
                   <form onSubmit={(e) => { e.preventDefault(); handleCreateApplication(); }} className="space-y-6">
-                    {/* Selection Cards */}
-                    {!eventType && (
+                    {/* Selection Cards - Only for Jobs board, Campaigns go directly to form */}
+                    {!eventType && currentBoardType !== 'campaigns' && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <motion.button
                           type="button"
@@ -4534,23 +4548,20 @@ END:VCALENDAR`;
                           onClick={() => {
                             setEventType('application');
                             setShowFullForm(false);
+                            setWizardStep(1);
                           }}
                           className="group relative p-6 rounded-2xl border border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] hover:bg-white dark:hover:bg-[#3d3c3e] hover:shadow-lg hover:border-transparent transition-all text-left"
                         >
                           <div className="flex flex-col items-start gap-4">
                             <div className="p-3.5 rounded-xl bg-white dark:bg-[#252525] shadow-sm group-hover:scale-110 transition-transform duration-300">
-                              {currentBoardType === 'campaigns' ? (
-                                <Send className="w-6 h-6 text-gray-900 dark:text-white" />
-                              ) : (
                                 <Briefcase className="w-6 h-6 text-gray-900 dark:text-white" />
-                              )}
                             </div>
                             <div>
                               <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">
-                                {currentBoardType === 'campaigns' ? 'Outreach' : 'Job Application'}
+                                Job Application
                               </h3>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {currentBoardType === 'campaigns' ? 'Add a new contact to reach out' : 'Track a new job application'}
+                                Track a new job application
                               </p>
                             </div>
                           </div>
@@ -4562,7 +4573,7 @@ END:VCALENDAR`;
                           whileTap={{ scale: 0.98 }}
                           onClick={() => {
                             setEventType('interview');
-                            setShowFullForm(true); // Interviews always show full form
+                            setShowFullForm(true);
                           }}
                           className="group relative p-6 rounded-2xl border border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] hover:bg-white dark:hover:bg-[#3d3c3e] hover:shadow-lg hover:border-transparent transition-all text-left"
                         >
@@ -4572,10 +4583,10 @@ END:VCALENDAR`;
                             </div>
                             <div>
                               <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">
-                                {currentBoardType === 'campaigns' ? 'Meeting' : 'Interview'}
+                                Interview
                               </h3>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {currentBoardType === 'campaigns' ? 'Schedule a meeting' : 'Schedule an interview'}
+                                Schedule an interview
                               </p>
                             </div>
                           </div>
@@ -4586,7 +4597,8 @@ END:VCALENDAR`;
                     {/* Form Content */}
                     {eventType && (
                       <>
-                        {/* Switcher - Minimalist */}
+                        {/* Switcher - Only for Jobs board (Campaigns go directly to outreach) */}
+                        {currentBoardType !== 'campaigns' && (
                         <div className="relative p-1 bg-gray-100 dark:bg-[#2b2a2c] rounded-xl">
                           <div className="flex items-center relative">
                             {/* Sliding pill indicator */}
@@ -4604,7 +4616,7 @@ END:VCALENDAR`;
                               }}
                             />
                             
-                            {/* Application/Outreach button */}
+                              {/* Application button */}
                             <button
                               type="button"
                               onClick={() => {
@@ -4614,31 +4626,24 @@ END:VCALENDAR`;
                                 setLookupSearchQuery('');
                                 setShowLookupDropdown(false);
                                 setShowFullForm(false);
+                                  setWizardStep(1);
                               }}
                               className="relative z-10 flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150"
                             >
-                              {currentBoardType === 'campaigns' ? (
-                                <Send className={`w-4 h-4 transition-colors duration-150 ${
-                                  eventType === 'application' 
-                                    ? 'text-gray-900 dark:text-white' 
-                                    : 'text-gray-400 dark:text-gray-500'
-                                }`} />
-                              ) : (
                                 <Briefcase className={`w-4 h-4 transition-colors duration-150 ${
                                   eventType === 'application' 
                                     ? 'text-gray-900 dark:text-white' 
                                     : 'text-gray-400 dark:text-gray-500'
                                 }`} />
-                              )}
                               <span className={eventType === 'application' 
                                 ? 'text-gray-900 dark:text-white' 
                                 : 'text-gray-500 dark:text-gray-400'
                               }>
-                                {currentBoardType === 'campaigns' ? 'Outreach' : 'Application'}
+                                  Application
                               </span>
                             </button>
                             
-                            {/* Interview/Meeting button */}
+                              {/* Interview button */}
                             <button
                               type="button"
                               onClick={() => {
@@ -4656,11 +4661,12 @@ END:VCALENDAR`;
                                 ? 'text-gray-900 dark:text-white' 
                                 : 'text-gray-500 dark:text-gray-400'
                               }>
-                                {currentBoardType === 'campaigns' ? 'Meeting' : 'Interview'}
+                                  Interview
                               </span>
                             </button>
                           </div>
                         </div>
+                        )}
 
                         {/* Job URL (Application only - Jobs board) */}
                         {eventType === 'application' && currentBoardType === 'jobs' && (
@@ -4707,36 +4713,289 @@ END:VCALENDAR`;
                           </div>
                         )}
 
-                        {/* Campaigns: Quick add fields at the top */}
-                        {eventType === 'application' && currentBoardType === 'campaigns' && !showFullForm && (
-                          <div className="space-y-4">
+                        {/* Campaigns: Wizard-based Outreach Form */}
+                        {eventType === 'application' && currentBoardType === 'campaigns' && (
+                          <div className="space-y-6">
+                            {/* Wizard Step Indicator */}
+                            <div className="flex items-center justify-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => setWizardStep(1)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
+                                  wizardStep === 1
+                                    ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-lg shadow-[#8B5CF6]/25'
+                                    : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
+                                }`}
+                              >
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                  wizardStep === 1 ? 'bg-white/20' : 'bg-gray-200 dark:bg-[#2b2a2c]'
+                                }`}>
+                                  1
+                                </div>
+                                <span className="font-medium text-sm">Contact</span>
+                              </button>
+                              
+                              <div className="w-8 h-0.5 bg-gray-200 dark:bg-[#3d3c3e]" />
+                              
+                              <button
+                                type="button"
+                                onClick={() => formData.contactName && formData.companyName && setWizardStep(2)}
+                                disabled={!formData.contactName || !formData.companyName}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
+                                  wizardStep === 2
+                                    ? 'bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] text-white shadow-lg shadow-[#EC4899]/25'
+                                    : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#4a494b] disabled:opacity-50 disabled:cursor-not-allowed'
+                                }`}
+                              >
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                  wizardStep === 2 ? 'bg-white/20' : 'bg-gray-200 dark:bg-[#2b2a2c]'
+                                }`}>
+                                  2
+                                </div>
+                                <span className="font-medium text-sm">Strategy</span>
+                              </button>
+                            </div>
+
+                            {/* Contact Preview Card */}
+                            {(formData.contactName || formData.companyName) && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="p-4 rounded-2xl bg-gradient-to-br from-[#8B5CF6]/5 to-[#EC4899]/5 border border-[#8B5CF6]/20 dark:border-[#8B5CF6]/10"
+                              >
+                                <div className="flex items-center gap-4">
+                                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-purple-500/30">
+                                    {(formData.contactName || 'N').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-bold text-gray-900 dark:text-white truncate text-lg">
+                                      {formData.contactName || 'Contact Name'}
+                                    </h4>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                                      {formData.contactRole || 'Role'} @ {formData.companyName || 'Company'}
+                                    </p>
+                                  </div>
+                                  {formData.warmthLevel && (
+                                    <WarmthIndicator level={formData.warmthLevel as WarmthLevel} size="md" />
+                                  )}
+                                </div>
+                              </motion.div>
+                            )}
+
+                            {/* Step 1: Contact Information */}
+                            <AnimatePresence mode="wait">
+                              {wizardStep === 1 && (
+                                <motion.div
+                                  key="step1"
+                                  initial={{ opacity: 0, x: -20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: -20 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="space-y-4"
+                                >
+                                  <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                Company Name <span className="text-red-500">*</span>
+                                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                        Contact Name <span className="text-red-500">*</span>
                               </label>
                               <input
                                 type="text"
                                 required
-                                value={formData.companyName || ''}
-                                onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-                                className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
-                                placeholder="e.g. Google, Spotify..."
+                                        value={formData.contactName || ''}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-white dark:bg-[#242325] border-2 border-gray-200 dark:border-[#3d3c3e] focus:border-[#8B5CF6] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all"
+                                        placeholder="John Doe"
                                 autoFocus
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                Contact Name <span className="text-red-500">*</span>
+                                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                        Role/Title <span className="text-red-500">*</span>
                               </label>
                               <input
                                 type="text"
                                 required
-                                value={formData.contactName || ''}
-                                onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
-                                className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
-                                placeholder="e.g. John Doe"
+                                        value={formData.contactRole || ''}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, contactRole: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-white dark:bg-[#242325] border-2 border-gray-200 dark:border-[#3d3c3e] focus:border-[#8B5CF6] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all"
+                                        placeholder="Head of Engineering"
                               />
                             </div>
+                                  </div>
+                                  
+                                  <div>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                      Company <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      required
+                                      value={formData.companyName || ''}
+                                      onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                                      className="w-full px-4 py-3 bg-white dark:bg-[#242325] border-2 border-gray-200 dark:border-[#3d3c3e] focus:border-[#8B5CF6] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all"
+                                      placeholder="Google, Spotify..."
+                                    />
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                        Email
+                                      </label>
+                                      <input
+                                        type="email"
+                                        value={formData.contactEmail || ''}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, contactEmail: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-white dark:bg-[#242325] border-2 border-gray-200 dark:border-[#3d3c3e] focus:border-[#8B5CF6] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all"
+                                        placeholder="john@company.com"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                        LinkedIn
+                                      </label>
+                                      <input
+                                        type="url"
+                                        value={formData.contactLinkedIn || ''}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, contactLinkedIn: e.target.value }))}
+                                        className="w-full px-4 py-3 bg-white dark:bg-[#242325] border-2 border-gray-200 dark:border-[#3d3c3e] focus:border-[#8B5CF6] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all"
+                                        placeholder="linkedin.com/in/johndoe"
+                                      />
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              )}
+
+                              {/* Step 2: Outreach Strategy */}
+                              {wizardStep === 2 && (
+                                <motion.div
+                                  key="step2"
+                                  initial={{ opacity: 0, x: 20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: 20 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="space-y-5"
+                                >
+                                  {/* Relationship Goal */}
+                                  <div>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                                      Relationship Goal
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-3">
+                                      {[
+                                        { value: 'networking', label: 'Networking', icon: '🤝', color: 'from-blue-500 to-indigo-500' },
+                                        { value: 'prospecting', label: 'Prospecting', icon: '🎯', color: 'from-purple-500 to-pink-500' },
+                                        { value: 'referral', label: 'Referral', icon: '⭐', color: 'from-amber-500 to-orange-500' },
+                                      ].map((goal) => (
+                                        <motion.button
+                                          key={goal.value}
+                                          type="button"
+                                          whileHover={{ scale: 1.02 }}
+                                          whileTap={{ scale: 0.98 }}
+                                          onClick={() => setFormData(prev => ({ ...prev, relationshipGoal: goal.value as RelationshipGoal }))}
+                                          className={`p-4 rounded-2xl border-2 transition-all text-center ${
+                                            formData.relationshipGoal === goal.value
+                                              ? `bg-gradient-to-br ${goal.color} border-transparent text-white shadow-lg`
+                                              : 'bg-white dark:bg-[#242325] border-gray-200 dark:border-[#3d3c3e] hover:border-[#8B5CF6]/50'
+                                          }`}
+                                        >
+                                          <span className="text-2xl block mb-1">{goal.icon}</span>
+                                          <span className="text-xs font-bold">{goal.label}</span>
+                                        </motion.button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Warmth Level */}
+                                  <div>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                                      Relationship Warmth
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-3">
+                                      {[
+                                        { value: 'cold', label: 'Cold', icon: '❄️', color: 'from-slate-400 to-slate-500' },
+                                        { value: 'warm', label: 'Warm', icon: '🌤️', color: 'from-amber-400 to-orange-500' },
+                                        { value: 'hot', label: 'Hot', icon: '🔥', color: 'from-red-500 to-rose-600' },
+                                      ].map((warmth) => (
+                                        <motion.button
+                                          key={warmth.value}
+                                          type="button"
+                                          whileHover={{ scale: 1.02 }}
+                                          whileTap={{ scale: 0.98 }}
+                                          onClick={() => setFormData(prev => ({ ...prev, warmthLevel: warmth.value as WarmthLevel }))}
+                                          className={`p-4 rounded-2xl border-2 transition-all text-center ${
+                                            formData.warmthLevel === warmth.value
+                                              ? `bg-gradient-to-br ${warmth.color} border-transparent text-white shadow-lg`
+                                              : 'bg-white dark:bg-[#242325] border-gray-200 dark:border-[#3d3c3e] hover:border-[#8B5CF6]/50'
+                                          }`}
+                                        >
+                                          <span className="text-2xl block mb-1">{warmth.icon}</span>
+                                          <span className="text-xs font-bold">{warmth.label}</span>
+                                        </motion.button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Outreach Channel */}
+                                  <div>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                                      Outreach Channel
+                                    </label>
+                                    <div className="grid grid-cols-6 gap-2">
+                                      {[
+                                        { value: 'email', icon: '✉️' },
+                                        { value: 'linkedin', icon: '💼' },
+                                        { value: 'referral', icon: '🤝' },
+                                        { value: 'event', icon: '🎤' },
+                                        { value: 'cold_call', icon: '📞' },
+                                        { value: 'other', icon: '📋' },
+                                      ].map((channel) => (
+                                        <button
+                                          key={channel.value}
+                                          type="button"
+                                          onClick={() => setFormData(prev => ({ ...prev, outreachChannel: channel.value as OutreachChannel }))}
+                                          className={`p-3 rounded-xl border-2 transition-all text-center ${
+                                            formData.outreachChannel === channel.value
+                                              ? 'bg-[#8B5CF6]/10 border-[#8B5CF6] shadow-sm'
+                                              : 'bg-white dark:bg-[#242325] border-gray-200 dark:border-[#3d3c3e] hover:border-[#8B5CF6]/50'
+                                          }`}
+                                        >
+                                          <span className="text-xl">{channel.icon}</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Contact Date */}
+                                  <div>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                      Contact Date <span className="text-red-500">*</span>
+                                    </label>
+                                    <DatePicker
+                                      value={formData.appliedDate || ''}
+                                      onChange={(value) => setFormData(prev => ({ ...prev, appliedDate: value }))}
+                                      placeholder="Select date"
+                                      required
+                                      className="w-full"
+                                    />
+                                  </div>
+
+                                  {/* Initial Message */}
+                                  <div>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                      Initial Message (optional)
+                                    </label>
+                                    <textarea
+                                      value={formData.messageSent || ''}
+                                      onChange={(e) => setFormData(prev => ({ ...prev, messageSent: e.target.value }))}
+                                      rows={3}
+                                      className="w-full px-4 py-3 bg-white dark:bg-[#242325] border-2 border-gray-200 dark:border-[#3d3c3e] focus:border-[#8B5CF6] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all resize-none"
+                                      placeholder="Draft or summary of your outreach message..."
+                                    />
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         )}
 
@@ -4892,7 +5151,7 @@ END:VCALENDAR`;
                         )}
 
                         <AnimatePresence>
-                          {((eventType === 'application' && showFullForm) || (eventType === 'interview' && lookupSelectedApplication !== null)) && (
+                          {((eventType === 'application' && showFullForm && currentBoardType !== 'campaigns') || (eventType === 'interview' && lookupSelectedApplication !== null)) && (
                             <motion.div
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: 'auto' }}
@@ -4900,7 +5159,7 @@ END:VCALENDAR`;
                               className="space-y-6 overflow-hidden"
                             >
                               {/* Main Fields - Jobs Board */}
-                              {eventType === 'application' && currentBoardType === 'jobs' && (
+                              {eventType === 'application' && (
                                 <div className="grid grid-cols-1 gap-5">
                                   <div>
                                     <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
@@ -4946,136 +5205,12 @@ END:VCALENDAR`;
                                 </div>
                               )}
 
-                              {/* Main Fields - Campaigns Board */}
-                              {eventType === 'application' && currentBoardType === 'campaigns' && (
-                                <div className="grid grid-cols-1 gap-5">
+                              {/* Date & Time Grid - For Jobs only (Campaigns use wizard) */}
+                              <div className={eventType === 'application' && currentBoardType !== 'campaigns' ? '' : eventType === 'interview' ? 'grid grid-cols-2 gap-5' : 'hidden'}>
+                                {eventType === 'application' && currentBoardType !== 'campaigns' ? (
                                   <div>
                                     <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                      Company Name <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                      type="text"
-                                      required
-                                      value={formData.companyName || ''}
-                                      onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
-                                      placeholder="e.g. Google, Spotify..."
-                                    />
-                                  </div>
-
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                        Contact Name <span className="text-red-500">*</span>
-                                      </label>
-                                      <input
-                                        type="text"
-                                        required
-                                        value={formData.contactName || ''}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
-                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
-                                        placeholder="e.g. John Doe"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                        Contact Role
-                                      </label>
-                                      <input
-                                        type="text"
-                                        value={formData.contactRole || ''}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, contactRole: e.target.value }))}
-                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
-                                        placeholder="e.g. Head of Engineering"
-                                      />
-                                    </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                        Contact Email
-                                      </label>
-                                      <input
-                                        type="email"
-                                        value={formData.contactEmail || ''}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, contactEmail: e.target.value }))}
-                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
-                                        placeholder="john@company.com"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                        LinkedIn Profile
-                                      </label>
-                                      <input
-                                        type="url"
-                                        value={formData.contactLinkedIn || ''}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, contactLinkedIn: e.target.value }))}
-                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
-                                        placeholder="linkedin.com/in/..."
-                                      />
-                                    </div>
-                                  </div>
-
-                                  <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                      Outreach Channel <span className="text-red-500">*</span>
-                                    </label>
-                                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                                      {[
-                                        { value: 'email', label: 'Email', icon: '✉️' },
-                                        { value: 'linkedin', label: 'LinkedIn', icon: '💼' },
-                                        { value: 'referral', label: 'Referral', icon: '🤝' },
-                                        { value: 'event', label: 'Event', icon: '🎤' },
-                                        { value: 'cold_call', label: 'Call', icon: '📞' },
-                                        { value: 'other', label: 'Other', icon: '📋' },
-                                      ].map((channel) => (
-                                        <button
-                                          key={channel.value}
-                                          type="button"
-                                          onClick={() => setFormData(prev => ({ ...prev, outreachChannel: channel.value as any }))}
-                                          className={`p-2.5 rounded-xl border-2 transition-all text-center ${
-                                            formData.outreachChannel === channel.value
-                                              ? 'bg-purple-50 dark:bg-purple-900/30 border-purple-500 dark:border-purple-400'
-                                              : 'bg-gray-50 dark:bg-[#242325] border-transparent hover:border-gray-300 dark:hover:border-gray-600'
-                                          }`}
-                                        >
-                                          <span className="text-lg block mb-0.5">{channel.icon}</span>
-                                          <span className={`text-[10px] font-medium ${
-                                            formData.outreachChannel === channel.value
-                                              ? 'text-purple-700 dark:text-purple-300'
-                                              : 'text-gray-600 dark:text-gray-400'
-                                          }`}>{channel.label}</span>
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-
-                                  <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                      Message Sent
-                                    </label>
-                                    <textarea
-                                      value={formData.messageSent || ''}
-                                      onChange={(e) => setFormData(prev => ({ ...prev, messageSent: e.target.value }))}
-                                      rows={3}
-                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none"
-                                      placeholder="Summary of your outreach message..."
-                                    />
-                                  </div>
-
-                                  {/* Hidden position field for campaigns - use contact role as position for display */}
-                                  <input type="hidden" value={formData.contactRole || 'Outreach'} />
-                                </div>
-                              )}
-
-                              {/* Date & Time Grid */}
-                              <div className={eventType === 'application' ? '' : 'grid grid-cols-2 gap-5'}>
-                                {eventType === 'application' ? (
-                                  <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                      {currentBoardType === 'campaigns' ? 'Contact Date' : 'Applied Date'} <span className="text-red-500">*</span>
+                                      Applied Date <span className="text-red-500">*</span>
                                     </label>
                                     <DatePicker
                                       value={formData.appliedDate || ''}
@@ -5086,7 +5221,7 @@ END:VCALENDAR`;
                                       buttonClassName="!bg-gray-50 dark:!bg-[#1A1A1A] !border-transparent focus:!bg-white dark:focus:!bg-[#1A1A1A] !rounded-xl !text-sm !text-gray-900 dark:!text-white !py-3 focus:!ring-2 focus:!ring-purple-500/20 focus:!border-purple-500 !shadow-none"
                                     />
                                   </div>
-                                ) : (
+                                ) : eventType === 'interview' ? (
                                   <>
                                     <div>
                                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
@@ -5116,7 +5251,7 @@ END:VCALENDAR`;
                                       </div>
                                     </div>
                                   </>
-                                )}
+                                ) : null}
                               </div>
 
                               {/* Interview specific extras */}
@@ -5245,24 +5380,69 @@ END:VCALENDAR`;
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-gray-100 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] flex justify-end gap-3 z-10">
+                <div className="p-6 border-t border-gray-100 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] flex justify-between items-center z-10">
+                  {/* Left side */}
+                  <div>
+                    {eventType === 'application' && currentBoardType === 'campaigns' && wizardStep === 2 && (
+                      <button
+                        type="button"
+                        onClick={() => setWizardStep(1)}
+                        className="px-5 py-2.5 text-sm font-medium text-[#8B5CF6] hover:bg-[#8B5CF6]/10 rounded-xl transition-colors flex items-center gap-2"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Back
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Right side */}
+                  <div className="flex gap-3">
                   <button
                     type="button"
                     onClick={() => {
                       setEventType(null);
                       setNewApplicationModal(false);
                       setShowFullForm(false);
+                        setWizardStep(1);
                     }}
                     className="px-6 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A] rounded-xl transition-colors"
                   >
                     Cancel
                   </button>
+                    
+                    {/* Campaigns Wizard: Next button on step 1 */}
+                    {eventType === 'application' && currentBoardType === 'campaigns' && wizardStep === 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setWizardStep(2)}
+                        disabled={!formData.contactName || !formData.companyName}
+                        className="px-6 py-2.5 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-[#8B5CF6]/25 flex items-center gap-2"
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    )}
+                    
+                    {/* Campaigns Wizard: Add Contact on step 2 */}
+                    {eventType === 'application' && currentBoardType === 'campaigns' && wizardStep === 2 && (
+                      <button
+                        type="button"
+                        onClick={handleCreateApplication}
+                        disabled={!formData.companyName || !formData.contactName || !formData.appliedDate}
+                        className="px-6 py-2.5 bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] text-white rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-[#EC4899]/25 flex items-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Contact
+                      </button>
+                    )}
+
+                    {/* Jobs board or Interview */}
+                    {(eventType === 'interview' || (eventType === 'application' && currentBoardType !== 'campaigns')) && (
                   <button
                     type="button"
                     onClick={handleCreateApplication}
                     disabled={
                       !eventType || 
-                      (eventType === 'application' && currentBoardType === 'campaigns' && (!formData.companyName || !formData.contactName || !formData.appliedDate)) ||
                       (eventType === 'application' && currentBoardType !== 'campaigns' && (!formData.companyName || !formData.position || !formData.location || !formData.appliedDate)) ||
                       (eventType === 'interview' && (!linkedApplicationId || !formData.interviewDate))
                     }
@@ -5276,10 +5456,12 @@ END:VCALENDAR`;
                     ) : (
                       <>
                         <Plus className="w-4 h-4" />
-                        Add Event
+                            {currentBoardType === 'campaigns' ? 'Schedule Meeting' : 'Add Interview'}
                       </>
                     )}
                   </button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             </motion.div>
@@ -5777,6 +5959,7 @@ END:VCALENDAR`;
         <JobDetailPanel
           job={selectedApplication}
           open={timelineModal}
+          boardType={currentBoardType}
           onClose={() => {
             setTimelineModal(false);
             setShowAddInterviewForm(false);

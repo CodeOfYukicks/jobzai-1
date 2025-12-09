@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isValid } from 'date-fns';
-import { JobApplication, Interview, StatusChange } from '../../types/job';
+import { JobApplication, Interview, StatusChange, BoardType } from '../../types/job';
 import { JobStatusBadge } from './JobStatusBadge';
 import { PropertyRow } from './PropertyRow';
 import { SectionCard } from './SectionCard';
@@ -39,6 +39,7 @@ import { NotesTab } from './NotesTab';
 import { EnhancedJobSummary } from './EnhancedJobSummary';
 import { ResumeLab } from './ResumeLab';
 import { LinkedDocumentsTab } from './LinkedDocumentsTab';
+import { ContactTab } from './ContactTab';
 import { toast } from '@/contexts/ToastContext';
 import { CompanyLogo } from '../common/CompanyLogo';
 
@@ -85,9 +86,11 @@ interface JobDetailPanelProps {
   onClose: () => void;
   onUpdate?: (updatedJob: Partial<JobApplication>) => Promise<void>;
   onDelete?: () => Promise<void>;
+  boardType?: BoardType;
 }
 
-const statusConfig = {
+const statusConfig: Record<string, { icon: any; color: string; bg: string; border: string }> = {
+  // Job Application statuses
   applied: {
     icon: Circle,
     color: 'text-blue-500 dark:text-blue-400',
@@ -130,17 +133,68 @@ const statusConfig = {
     bg: 'bg-purple-50 dark:bg-purple-900/20',
     border: 'border-purple-200 dark:border-purple-800/50'
   },
+  // Campaign/Outreach statuses
+  targets: {
+    icon: Target,
+    color: 'text-violet-500 dark:text-violet-400',
+    bg: 'bg-violet-50 dark:bg-violet-900/20',
+    border: 'border-violet-200 dark:border-violet-800/50'
+  },
+  contacted: {
+    icon: Circle,
+    color: 'text-blue-500 dark:text-blue-400',
+    bg: 'bg-blue-50 dark:bg-blue-900/20',
+    border: 'border-blue-200 dark:border-blue-800/50'
+  },
+  follow_up: {
+    icon: AlertCircle,
+    color: 'text-amber-500 dark:text-amber-400',
+    bg: 'bg-amber-50 dark:bg-amber-900/20',
+    border: 'border-amber-200 dark:border-amber-800/50'
+  },
+  replied: {
+    icon: CheckCircle2,
+    color: 'text-cyan-500 dark:text-cyan-400',
+    bg: 'bg-cyan-50 dark:bg-cyan-900/20',
+    border: 'border-cyan-200 dark:border-cyan-800/50'
+  },
+  meeting: {
+    icon: Calendar,
+    color: 'text-indigo-500 dark:text-indigo-400',
+    bg: 'bg-indigo-50 dark:bg-indigo-900/20',
+    border: 'border-indigo-200 dark:border-indigo-800/50'
+  },
+  opportunity: {
+    icon: CheckCircle2,
+    color: 'text-emerald-500 dark:text-emerald-400',
+    bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+    border: 'border-emerald-200 dark:border-emerald-800/50'
+  },
+  no_response: {
+    icon: XCircle,
+    color: 'text-gray-500 dark:text-gray-400',
+    bg: 'bg-gray-50 dark:bg-gray-800/50',
+    border: 'border-gray-200 dark:border-gray-700/50'
+  },
+  closed: {
+    icon: Archive,
+    color: 'text-gray-600 dark:text-gray-500',
+    bg: 'bg-gray-100 dark:bg-gray-800/70',
+    border: 'border-gray-300 dark:border-gray-600/50'
+  },
 };
 
-export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDetailPanelProps) => {
+export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardType = 'jobs' }: JobDetailPanelProps) => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [editedJob, setEditedJob] = useState<Partial<JobApplication>>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'interviews' | 'activity' | 'ai-tools' | 'notes' | 'resume-lab' | 'linked-documents'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'contact' | 'interviews' | 'meetings' | 'messages' | 'activity' | 'ai-tools' | 'notes' | 'resume-lab' | 'linked-documents'>(boardType === 'campaigns' ? 'contact' : 'overview');
   const [showAddInterviewForm, setShowAddInterviewForm] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  // Logo states removed - now using CompanyLogo component
+  
+  // Campaign mode detection
+  const isCampaignMode = boardType === 'campaigns';
 
   if (!job) return null;
 
@@ -228,7 +282,14 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
     }
   };
 
-  const currentStatus = statusConfig[job.status];
+  // Get status config with fallback for unknown statuses
+  const defaultStatus = {
+    icon: Circle,
+    color: 'text-gray-500 dark:text-gray-400',
+    bg: 'bg-gray-50 dark:bg-gray-800/50',
+    border: 'border-gray-200 dark:border-gray-700/50'
+  };
+  const currentStatus = statusConfig[job.status] || defaultStatus;
   const StatusIcon = currentStatus.icon;
 
   return (
@@ -268,24 +329,40 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0 pr-8">
                             <div className="flex items-center gap-3 mb-3">
-                              {/* Company Logo */}
+                              {/* Company Logo or Contact Avatar */}
+                              {isCampaignMode ? (
+                                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg`}>
+                                  {(job.contactName || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                </div>
+                              ) : (
                               <CompanyLogo
                                 companyName={job.companyName}
                                 size="lg"
                                 className={`rounded-xl ${currentStatus.bg} ${currentStatus.border} border`}
                                 showInitials={true}
                               />
+                              )}
                               <Dialog.Title className="text-2xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
-                                {job.position}
+                                {isCampaignMode ? (job.contactName || 'Unknown Contact') : job.position}
                               </Dialog.Title>
                             </div>
                             <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
+                              {isCampaignMode ? (
+                                <>
+                                  <span className="text-lg font-medium">{job.contactRole || 'No role'}</span>
+                                  <span className="text-gray-400 dark:text-gray-600">@</span>
+                                  <span className="font-medium">{job.companyName}</span>
+                                </>
+                              ) : (
+                                <>
                               <span className="text-lg font-medium">{job.companyName}</span>
                               <span className="text-gray-400 dark:text-gray-600">•</span>
                               <div className="flex items-center gap-1.5">
                                 <MapPin className="w-4 h-4" />
                                 <span>{job.location}</span>
                               </div>
+                                </>
+                              )}
                             </div>
                           </div>
 
@@ -360,15 +437,24 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
 
                       {/* Tabs */}
                       <div className="px-8 flex gap-6 border-t border-gray-100 dark:border-[#3d3c3e] bg-white dark:bg-[#242325] overflow-x-auto">
-                        {([
+                        {(isCampaignMode ? [
+                          // Campaign-specific tabs
+                          { id: 'contact', label: 'Contact', icon: null, badge: null },
+                          { id: 'messages', label: 'Messages', icon: null, badge: job.conversationHistory?.length || 0 },
+                          { id: 'meetings', label: 'Meetings', icon: null, badge: (job.meetings?.length || job.interviews?.length) || 0 },
+                          { id: 'activity', label: 'Timeline', icon: null, badge: null },
+                          { id: 'notes', label: 'Notes', icon: StickyNote, badge: job.stickyNotes?.length || 0 },
+                          { id: 'ai-tools', label: 'Compose', icon: Sparkles, badge: null },
+                        ] : [
+                          // Jobs-specific tabs
                           { id: 'overview', label: 'Overview', icon: null, badge: null },
-                          { id: 'interviews', label: 'Interviews', icon: null, badge: null },
+                          { id: 'interviews', label: 'Interviews', icon: null, badge: job.interviews?.length || 0 },
                           { id: 'activity', label: 'Activity', icon: null, badge: null },
                           { id: 'notes', label: 'Notes', icon: StickyNote, badge: job.stickyNotes?.length || 0 },
                           { id: 'ai-tools', label: 'Document Studio', icon: Sparkles, badge: null },
                           { id: 'resume-lab', label: 'Resume Lab', icon: Target, badge: (job.cvAnalysisIds?.length || (job.cvAnalysisId ? 1 : 0)) || 'link' },
                           { id: 'linked-documents', label: 'Linked Documents', icon: FileText, badge: ((job.linkedResumeIds?.length || 0) + (job.linkedNoteIds?.length || 0) + (job.linkedDocumentIds?.length || 0) + (job.linkedWhiteboardIds?.length || 0)) > 0 ? ((job.linkedResumeIds?.length || 0) + (job.linkedNoteIds?.length || 0) + (job.linkedDocumentIds?.length || 0) + (job.linkedWhiteboardIds?.length || 0)) : null },
-                        ] as const).map((tab) => (
+                        ]).map((tab) => (
                           <button
                             key={tab.id}
                             onClick={() => {
@@ -484,8 +570,144 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete }: JobDe
                             </div>
                           )}
 
+                          {/* Contact Tab - Campaign Mode */}
+                          {activeTab === 'contact' && isCampaignMode && (
+                            <ContactTab
+                              job={job}
+                              isEditing={isEditing}
+                              editedJob={editedJob}
+                              onEdit={(updates) => setEditedJob({ ...editedJob, ...updates })}
+                            />
+                          )}
 
-                          {activeTab === 'interviews' && (
+                          {/* Messages Tab - Campaign Mode */}
+                          {activeTab === 'messages' && isCampaignMode && (
+                            <div className="space-y-6">
+                              <div className="flex items-center justify-between px-1">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                  Conversation History
+                                  <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#2b2a2c] text-xs font-medium text-gray-600 dark:text-gray-400">
+                                    {job.conversationHistory?.length || 0}
+                                  </span>
+                                </h3>
+                                <button
+                                  onClick={() => {
+                                    // TODO: Open message composer modal
+                                    toast.info('Message composer coming soon!');
+                                  }}
+                                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] rounded-xl hover:opacity-90 transition-all shadow-lg shadow-[#8B5CF6]/20"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  New Message
+                                </button>
+                              </div>
+
+                              {job.conversationHistory && job.conversationHistory.length > 0 ? (
+                                <div className="space-y-4">
+                                  {job.conversationHistory.map((message) => (
+                                    <motion.div
+                                      key={message.id}
+                                      initial={{ opacity: 0, y: 10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      className={`flex gap-3 ${message.type === 'sent' ? 'flex-row-reverse' : ''}`}
+                                    >
+                                      <div className={`
+                                        max-w-[70%] rounded-2xl px-4 py-3
+                                        ${message.type === 'sent' 
+                                          ? 'bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] text-white rounded-tr-md' 
+                                          : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-900 dark:text-white rounded-tl-md'
+                                        }
+                                      `}>
+                                        {message.subject && (
+                                          <p className={`text-xs font-semibold mb-2 pb-2 border-b ${
+                                            message.type === 'sent' ? 'border-white/20' : 'border-gray-200 dark:border-[#4a494b]'
+                                          }`}>
+                                            {message.subject}
+                                          </p>
+                                        )}
+                                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                        <div className={`mt-2 text-xs ${message.type === 'sent' ? 'text-white/70' : 'text-gray-500'}`}>
+                                          {new Date(message.sentAt).toLocaleDateString()}
+                                        </div>
+                                      </div>
+                                    </motion.div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#8B5CF6]/10 to-[#EC4899]/10 flex items-center justify-center mb-4">
+                                    <FileText className="w-8 h-8 text-[#8B5CF6]" />
+                                  </div>
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No messages yet</h3>
+                                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+                                    Start logging your conversation with this contact to keep track of your outreach.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Meetings Tab - Campaign Mode */}
+                          {activeTab === 'meetings' && isCampaignMode && (
+                            <div className="space-y-6">
+                              <div className="flex items-center justify-between px-1">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                  Meetings
+                                  <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#2b2a2c] text-xs font-medium text-gray-600 dark:text-gray-400">
+                                    {(job.meetings?.length || job.interviews?.length) || 0}
+                                  </span>
+                                </h3>
+                                {!showAddInterviewForm && (
+                                  <button
+                                    onClick={() => setShowAddInterviewForm(true)}
+                                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-lg shadow-gray-900/20 dark:shadow-none"
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                    Schedule Meeting
+                                  </button>
+                                )}
+                              </div>
+
+                              <AnimatePresence>
+                                {showAddInterviewForm && (
+                                  <AddInterviewForm
+                                    onAdd={handleAddInterview}
+                                    onCancel={() => setShowAddInterviewForm(false)}
+                                  />
+                                )}
+                              </AnimatePresence>
+
+                              {(job.meetings || job.interviews) && (job.meetings?.length || job.interviews?.length) ? (
+                                <div className="grid gap-3">
+                                  {(job.interviews || []).map((interview) => (
+                                    <InterviewCard
+                                      key={interview.id}
+                                      interview={interview}
+                                      jobApplication={job}
+                                      onDelete={async (interviewId) => {
+                                        if (!onUpdate || !job) return;
+                                        const updatedInterviews = job.interviews?.filter(i => i.id !== interviewId) || [];
+                                        await onUpdate({ interviews: updatedInterviews });
+                                        toast.success('Meeting removed');
+                                      }}
+                                    />
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 flex items-center justify-center mb-4">
+                                    <Calendar className="w-8 h-8 text-purple-500" />
+                                  </div>
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No meetings yet</h3>
+                                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+                                    Schedule a coffee chat, call, or meeting to advance this relationship.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {activeTab === 'interviews' && !isCampaignMode && (
                             <div className="space-y-6">
                               {/* Add Interview Form */}
                               <AnimatePresence>

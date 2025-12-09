@@ -9,6 +9,50 @@ export interface Interview {
   location?: string;
 }
 
+// ==========================================
+// OUTREACH CAMPAIGN TYPES
+// ==========================================
+
+// Relationship goal for outreach campaigns
+export type RelationshipGoal = 'networking' | 'prospecting' | 'referral';
+
+// Warmth level of the relationship
+export type WarmthLevel = 'cold' | 'warm' | 'hot';
+
+// Meeting types for campaigns (replaces interview types)
+export type MeetingType = 'coffee_chat' | 'call' | 'video_call' | 'in_person' | 'other';
+
+// Outreach message status
+export type OutreachMessageStatus = 'draft' | 'sent' | 'delivered' | 'opened' | 'replied';
+
+// Outreach channel types (extended)
+export type OutreachChannel = 'email' | 'linkedin' | 'referral' | 'event' | 'cold_call' | 'twitter' | 'phone' | 'in_person' | 'other';
+
+// Message in conversation history
+export interface OutreachMessage {
+  id: string;
+  type: 'sent' | 'received';
+  channel: OutreachChannel;
+  subject?: string;
+  content: string;
+  sentAt: string;
+  status?: OutreachMessageStatus;
+}
+
+// Meeting for campaigns (similar to Interview but with campaign vocabulary)
+export interface Meeting {
+  id: string;
+  date: string;
+  time: string;
+  type: MeetingType;
+  attendees?: string[];
+  status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
+  notes?: string;
+  location?: string;
+  agenda?: string;
+  outcome?: string;  // What was the result of the meeting
+}
+
 export interface StatusChange {
   status:
   // Job Application statuses
@@ -90,8 +134,20 @@ export interface JobApplication {
   contactPhone?: string;
   contactRole?: string;           // Campaign: Contact's job title (e.g., "Head of Engineering")
   contactLinkedIn?: string;       // Campaign: Contact's LinkedIn URL
-  outreachChannel?: 'email' | 'linkedin' | 'referral' | 'event' | 'cold_call' | 'other';  // Campaign: How you reached out
+  outreachChannel?: OutreachChannel;  // Campaign: How you reached out
   messageSent?: string;           // Campaign: Summary of the outreach message
+  
+  // Enhanced Campaign/Outreach fields
+  relationshipGoal?: RelationshipGoal;  // Campaign: Goal of the outreach (networking, prospecting, referral)
+  warmthLevel?: WarmthLevel;            // Campaign: Current relationship warmth (cold, warm, hot)
+  lastContactedAt?: string;             // Campaign: Date of last contact
+  nextFollowUpDate?: string;            // Campaign: Scheduled follow-up date
+  conversationHistory?: OutreachMessage[];  // Campaign: Full conversation history
+  meetings?: Meeting[];                 // Campaign: Scheduled/completed meetings
+  contactBio?: string;                  // Campaign: Short bio or notes about the contact
+  contactCompanyWebsite?: string;       // Campaign: Company website URL
+  contactCompanyIndustry?: string;      // Campaign: Company industry
+  contactCompanySize?: string;          // Campaign: Company size (startup, smb, enterprise)
   salary?: string;
   workType?: string;
   platform?: string;
@@ -295,5 +351,66 @@ export const CAMPAIGN_COLUMN_COLORS: Record<string, string> = {
   closed: '#374151',       // Dark Gray
 };
 
+// ==========================================
+// OUTREACH CAMPAIGN LABELS & COLORS
+// ==========================================
 
+// Relationship goal labels
+export const RELATIONSHIP_GOAL_LABELS: Record<RelationshipGoal, string> = {
+  networking: 'Networking',
+  prospecting: 'Prospecting',
+  referral: 'Referral',
+};
+
+// Relationship goal colors
+export const RELATIONSHIP_GOAL_COLORS: Record<RelationshipGoal, { bg: string; text: string; border: string }> = {
+  networking: { bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-200 dark:border-blue-800' },
+  prospecting: { bg: 'bg-purple-50 dark:bg-purple-900/20', text: 'text-purple-600 dark:text-purple-400', border: 'border-purple-200 dark:border-purple-800' },
+  referral: { bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-600 dark:text-green-400', border: 'border-green-200 dark:border-green-800' },
+};
+
+// Warmth level labels
+export const WARMTH_LEVEL_LABELS: Record<WarmthLevel, string> = {
+  cold: 'Cold',
+  warm: 'Warm',
+  hot: 'Hot',
+};
+
+// Warmth level colors
+export const WARMTH_LEVEL_COLORS: Record<WarmthLevel, { bg: string; text: string; border: string; icon: string }> = {
+  cold: { bg: 'bg-slate-100 dark:bg-slate-800/50', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-200 dark:border-slate-700', icon: '❄️' },
+  warm: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-800', icon: '🌤️' },
+  hot: { bg: 'bg-red-50 dark:bg-red-900/20', text: 'text-red-600 dark:text-red-400', border: 'border-red-200 dark:border-red-800', icon: '🔥' },
+};
+
+// Outreach channel labels and icons
+export const OUTREACH_CHANNEL_CONFIG: Record<OutreachChannel, { label: string; icon: string; color: string }> = {
+  email: { label: 'Email', icon: 'Mail', color: 'text-blue-500' },
+  linkedin: { label: 'LinkedIn', icon: 'Linkedin', color: 'text-[#0A66C2]' },
+  referral: { label: 'Referral', icon: 'Users', color: 'text-green-500' },
+  event: { label: 'Event', icon: 'Calendar', color: 'text-purple-500' },
+  cold_call: { label: 'Cold Call', icon: 'Phone', color: 'text-orange-500' },
+  twitter: { label: 'Twitter/X', icon: 'Twitter', color: 'text-sky-500' },
+  phone: { label: 'Phone', icon: 'Phone', color: 'text-emerald-500' },
+  in_person: { label: 'In Person', icon: 'User', color: 'text-indigo-500' },
+  other: { label: 'Other', icon: 'MessageSquare', color: 'text-gray-500' },
+};
+
+// Meeting type labels
+export const MEETING_TYPE_LABELS: Record<MeetingType, string> = {
+  coffee_chat: 'Coffee Chat',
+  call: 'Phone Call',
+  video_call: 'Video Call',
+  in_person: 'In Person',
+  other: 'Other',
+};
+
+// Meeting type colors
+export const MEETING_TYPE_COLORS: Record<MeetingType, { bg: string; text: string }> = {
+  coffee_chat: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400' },
+  call: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400' },
+  video_call: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400' },
+  in_person: { bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-400' },
+  other: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-700 dark:text-gray-400' },
+};
 
