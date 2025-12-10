@@ -4836,7 +4836,8 @@ app.post('/api/campaigns/generate-variant', verifyFirebaseToken, async (req, res
 
 CONTEXTE: ${goalContext[outreachGoal]}
 
-RÈGLES:
+RÈGLES STRICTES:
+- COMMENCER par mentionner LinkedIn (ex: "J'ai vu votre profil sur LinkedIn")
 - Maximum 1-2 phrases courtes
 - Utilise les champs de fusion: {{firstName}}, {{company}}, {{position}}
 - ${toneInstructions[tone]}
@@ -4847,11 +4848,12 @@ RÈGLES:
 Variantes existantes à éviter:
 ${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'Aucune'}
 
-Génère UNIQUEMENT l'accroche, sans explications.` : `Generate ONE opening hook for a professional outreach email.
+Génère UNIQUEMENT l'accroche commençant par LinkedIn, sans explications.` : `Generate ONE opening hook for a professional outreach email.
 
 CONTEXT: ${goalContext[outreachGoal]}
 
-RULES:
+STRICT RULES:
+- START by mentioning LinkedIn (e.g., "I came across your profile on LinkedIn")
 - Maximum 1-2 short sentences
 - Use merge fields: {{firstName}}, {{company}}, {{position}}
 - ${toneInstructions[tone]}
@@ -4862,7 +4864,7 @@ RULES:
 Existing variants to avoid:
 ${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'None'}
 
-Generate ONLY the hook, no explanations.`;
+Generate ONLY the hook starting with LinkedIn mention, no explanations.`;
     } else if (type === 'body') {
       // Build sender context from actual profile data
       const senderContext = [];
@@ -4926,9 +4928,17 @@ STRICT RULES:
 - ${toneInstructions[tone]}
 - Stay factual and professional
 
-EXAMPLES:
-- "I'm a backend developer and the projects at {{company}} really interest me."
-- "I've got 5 years in data science and looking to connect with experts."
+EXAMPLES FOR JOB SEARCH:
+- "I'm a backend developer actively looking for new opportunities at {{company}}."
+- "I have 5 years in data science and I'm exploring new roles in your field."
+
+EXAMPLES FOR INTERNSHIP:
+- "I'm finishing my degree and actively seeking an internship at {{company}}."
+- "I'm a student looking for an internship opportunity in your team."
+
+EXAMPLES FOR NETWORKING:
+- "I'm a developer interested in {{company}}'s approach to tech."
+- "I'd love to learn from {{position}}s about their experience."
 
 FORBIDDEN:
 - Third person
@@ -5046,7 +5056,7 @@ Generate ONLY the CTA with signature, no explanations.`;
 
 // Generate email templates with merge fields
 app.post('/api/campaigns/generate-templates', verifyFirebaseToken, async (req, res) => {
-  const { tone = 'casual', language = 'en', keyPoints = '', count = 3 } = req.body;
+  const { tone = 'casual', language = 'en', keyPoints = '', outreachGoal = 'job', count = 3 } = req.body;
   const userId = req.user.uid;
   
   console.log(`📝 Generating ${count} email templates`);
@@ -5087,7 +5097,33 @@ app.post('/api/campaigns/generate-templates', verifyFirebaseToken, async (req, r
         : 'Direct and confident tone, straight to the point without being arrogant.'
     };
     
-    const systemPrompt = language === 'fr' ? `Tu es un expert en rédaction d'emails de candidature spontanée.
+    const goalContext = {
+      job: language === 'fr'
+        ? 'Recherche active d\'opportunités professionnelles'
+        : 'Actively looking for new job opportunities',
+      internship: language === 'fr'
+        ? 'Recherche active d\'un stage'
+        : 'Actively seeking an internship',
+      networking: language === 'fr'
+        ? 'Cherche à établir des contacts professionnels'
+        : 'Looking to build professional connections'
+    };
+
+    const goalInstructions = {
+      job: language === 'fr'
+        ? 'Mentionner que tu cherches de nouvelles opportunités'
+        : 'Mention looking for new opportunities',
+      internship: language === 'fr'
+        ? 'Mentionner que tu cherches un stage'
+        : 'Mention seeking an internship',
+      networking: language === 'fr'
+        ? 'Pas de recherche active, juste échanger'
+        : 'Not actively looking, just want to connect'
+    };
+
+    const systemPrompt = language === 'fr' ? `Tu es un expert en rédaction d'emails de networking professionnel.
+
+CONTEXTE: ${goalContext[outreachGoal]}
 
 OBJECTIF: Créer ${count} templates d'emails DIFFÉRENTS avec des champs de fusion.
 
@@ -5098,23 +5134,27 @@ CHAMPS DE FUSION DISPONIBLES:
 - {{position}} - Poste du destinataire
 - {{location}} - Localisation
 
-RÈGLES:
-1. Maximum 4-6 lignes de contenu par email
-2. Phrases courtes et variées
-3. JAMAIS de mots comme "passionné", "opportunité incroyable"
-4. Demande une DISCUSSION, pas un job
-5. UTILISE les champs de fusion pour personnaliser
-6. Chaque template doit avoir une approche DIFFÉRENTE
+RÈGLES IMPORTANTES:
+1. TOUJOURS commencer par mentionner LinkedIn (ex: "J'ai vu votre profil sur LinkedIn")
+2. Maximum 4-5 lignes de contenu
+3. ${goalInstructions[outreachGoal]}
+4. Phrases courtes et directes
+5. JAMAIS "passionné", "opportunité incroyable"
+6. UTILISE les champs de fusion pour personnaliser
+7. Chaque template doit avoir une approche DIFFÉRENTE
+8. Demande juste un échange rapide
 
 TON: ${toneInstructions[tone]}
 
 Format pour CHAQUE template:
 TEMPLATE [numéro]
-SUBJECT: [objet avec champs de fusion si pertinent]
+SUBJECT: [objet court avec champs de fusion]
 ---
-[corps avec champs de fusion]
+[corps commençant par mention LinkedIn + champs de fusion]
 
-Génère ${count} templates maintenant.` : `You are an expert at writing spontaneous outreach emails.
+Génère ${count} templates maintenant.` : `You are an expert at writing professional networking emails.
+
+CONTEXT: ${goalContext[outreachGoal]}
 
 GOAL: Create ${count} DIFFERENT email templates with merge fields.
 
@@ -5125,21 +5165,23 @@ AVAILABLE MERGE FIELDS:
 - {{position}} - Recipient's position
 - {{location}} - Location
 
-RULES:
-1. Maximum 4-6 lines of content per email
-2. Short, varied sentences
-3. NEVER use "passionate", "amazing opportunity"
-4. Ask for a CONVERSATION, not a job
-5. USE merge fields to personalize
-6. Each template must have a DIFFERENT approach
+IMPORTANT RULES:
+1. ALWAYS start by mentioning LinkedIn (e.g., "I came across your profile on LinkedIn")
+2. Maximum 4-5 lines of content
+3. ${goalInstructions[outreachGoal]}
+4. Short, direct sentences
+5. NEVER use "passionate", "amazing opportunity"
+6. USE merge fields to personalize
+7. Each template must have a DIFFERENT approach
+8. Just ask for a brief chat
 
 TONE: ${toneInstructions[tone]}
 
 Format for EACH template:
 TEMPLATE [number]
-SUBJECT: [subject with merge fields if relevant]
+SUBJECT: [short subject with merge fields]
 ---
-[body with merge fields]
+[body starting with LinkedIn mention + merge fields]
 
 Generate ${count} templates now.`;
 
@@ -5287,7 +5329,8 @@ app.post('/api/campaigns/:campaignId/generate-emails', verifyFirebaseToken, asyn
             recipient,
             tone,
             language,
-            userProfile
+            userProfile,
+            campaignData.outreachGoal || 'job'
           ));
         }
         
@@ -5433,7 +5476,7 @@ function buildUserContext(userProfile, targeting) {
 }
 
 // Helper function to generate email for a single recipient
-async function generateEmailForRecipient(userContext, recipient, tone, language, userProfile) {
+async function generateEmailForRecipient(userContext, recipient, tone, language, userProfile, outreachGoal = 'job') {
   const toneInstructions = {
     casual: language === 'fr' 
       ? 'Ton décontracté et amical, comme un message LinkedIn entre professionnels.'
@@ -5446,16 +5489,44 @@ async function generateEmailForRecipient(userContext, recipient, tone, language,
       : 'Direct and confident tone, straight to the point without being arrogant.'
   };
   
-  const systemPrompt = language === 'fr' ? `Tu es un expert en rédaction d'emails de candidature spontanée.
+  const goalContext = {
+    job: language === 'fr'
+      ? 'Recherche active de nouvelles opportunités professionnelles'
+      : 'Actively looking for new job opportunities',
+    internship: language === 'fr'
+      ? 'Recherche active d\'un stage'
+      : 'Actively seeking an internship',
+    networking: language === 'fr'
+      ? 'Cherche à établir des contacts professionnels'
+      : 'Looking to build professional connections'
+  };
 
-OBJECTIF: Écrire un email court et percutant pour demander un échange informel.
+  const goalInstructions = {
+    job: language === 'fr'
+      ? 'Mentionner que tu cherches de nouvelles opportunités'
+      : 'Mention that you\'re looking for new opportunities',
+    internship: language === 'fr'
+      ? 'Mentionner que tu cherches un stage'
+      : 'Mention that you\'re seeking an internship',
+    networking: language === 'fr'
+      ? 'Pas de recherche active, juste échanger'
+      : 'Not actively looking, just want to connect'
+  };
+  
+  const systemPrompt = language === 'fr' ? `Tu es un expert en rédaction d'emails de networking professionnel.
 
-RÈGLES:
-1. Maximum 4-6 lignes de contenu
-2. Phrases courtes et variées
-3. JAMAIS de mots comme "passionné", "opportunité incroyable"
-4. Demande une DISCUSSION, pas un job
-5. Personnalise avec le nom de l'entreprise et le poste du contact
+CONTEXTE: ${goalContext[outreachGoal]}
+
+OBJECTIF: Écrire un email court et professionnel.
+
+RÈGLES IMPORTANTES:
+1. COMMENCER par mentionner LinkedIn (ex: "J'ai vu votre profil sur LinkedIn")
+2. Maximum 4-5 lignes de contenu
+3. ${goalInstructions[outreachGoal]}
+4. Phrases courtes et directes
+5. JAMAIS "passionné", "opportunité incroyable"
+6. Personnalise avec l'entreprise et le poste
+7. Demande juste un échange rapide
 
 TON: ${toneInstructions[tone]}
 
@@ -5466,18 +5537,22 @@ DESTINATAIRE:
 - Poste: ${recipient.title || 'leur poste'}
 
 Format: 
-SUBJECT: [objet court, max 6 mots]
+SUBJECT: [objet court]
 ---
-[corps de l'email avec signature prénom]` : `You are an expert at writing spontaneous outreach emails.
+[email commençant par LinkedIn + signature prénom]` : `You are an expert at writing professional networking emails.
 
-GOAL: Write a short, punchy email asking for an informal chat.
+CONTEXT: ${goalContext[outreachGoal]}
 
-RULES:
-1. Maximum 4-6 lines of content
-2. Short, varied sentences
-3. NEVER use "passionate", "amazing opportunity"
-4. Ask for a CONVERSATION, not a job
-5. Personalize with company name and contact's position
+GOAL: Write a short, professional email.
+
+IMPORTANT RULES:
+1. START by mentioning LinkedIn (e.g., "I came across your profile on LinkedIn")
+2. Maximum 4-5 lines of content
+3. ${goalInstructions[outreachGoal]}
+4. Short, direct sentences
+5. NEVER use "passionate", "amazing opportunity"
+6. Personalize with company and position
+7. Just ask for a brief chat
 
 TONE: ${toneInstructions[tone]}
 
@@ -5488,9 +5563,9 @@ RECIPIENT:
 - Position: ${recipient.title || 'their role'}
 
 Format:
-SUBJECT: [short subject, max 6 words]
+SUBJECT: [short subject]
 ---
-[email body with first name signature]`;
+[email starting with LinkedIn mention + first name signature]`;
 
   const openaiClient = await getOpenAIClient();
   const completion = await openaiClient.chat.completions.create({

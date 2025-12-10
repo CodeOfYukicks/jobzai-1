@@ -186,7 +186,85 @@ export default function EmailGenerationModeStep({ data, onUpdate }: EmailGenerat
             )}
             {selectedMode === 'auto' && (
               <>
-                <strong>Next step:</strong> Launch directly! AI will generate unique emails for each contact automatically.
+                <strong>Next step:</strong> Choose your outreach goal, then launch! AI will generate unique emails for each contact.
+              </>
+            )}
+          </p>
+        </motion.div>
+      )}
+
+      {/* Auto Mode Goal Selector */}
+      {selectedMode === 'auto' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-3"
+        >
+          <label className="block text-[11px] font-medium text-gray-500 dark:text-white/50 uppercase tracking-wider">
+            Outreach Goal
+          </label>
+          <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-white/[0.04] rounded-lg">
+            <button
+              type="button"
+              onClick={() => onUpdate({ outreachGoal: 'job' })}
+              className={`
+                flex-1 px-4 py-2 rounded-md text-[12px] font-semibold transition-all duration-200
+                ${data.outreachGoal === 'job'
+                  ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }
+              `}
+            >
+              Job Search
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => onUpdate({ outreachGoal: 'internship' })}
+              className={`
+                flex-1 px-4 py-2 rounded-md text-[12px] font-semibold transition-all duration-200
+                ${data.outreachGoal === 'internship'
+                  ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }
+              `}
+            >
+              Internship
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => onUpdate({ outreachGoal: 'networking' })}
+              className={`
+                flex-1 px-4 py-2 rounded-md text-[12px] font-semibold transition-all duration-200
+                ${data.outreachGoal === 'networking'
+                  ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }
+              `}
+            >
+              Networking
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Existing closing div */}
+      {selectedMode && selectedMode !== 'auto' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-3 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20"
+        >
+          <p className="text-[11px] text-blue-800 dark:text-blue-300">
+            {selectedMode === 'template' && (
+              <>
+                <strong>Next step:</strong> Choose your outreach goal and generate AI templates.
+              </>
+            )}
+            {selectedMode === 'abtest' && (
+              <>
+                <strong>Next step:</strong> Choose your goal and create multiple variants to test.
               </>
             )}
           </p>

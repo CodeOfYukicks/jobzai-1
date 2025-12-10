@@ -27,11 +27,20 @@ export default function TemplateGenerationStep({ data, onUpdate, campaignId }: T
   const [isEditing, setIsEditing] = useState(false);
   const [editedSubject, setEditedSubject] = useState('');
   const [editedBody, setEditedBody] = useState('');
+  const [outreachGoal, setOutreachGoal] = useState<'job' | 'internship' | 'networking'>(
+    data.outreachGoal || 'job'
+  );
   
   const subjectInputRef = useRef<HTMLInputElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+  // Update outreach goal in campaign data
+  const handleOutreachGoalChange = (goal: 'job' | 'internship' | 'networking') => {
+    setOutreachGoal(goal);
+    onUpdate({ outreachGoal: goal });
+  };
 
   // Insert merge field at cursor position
   const insertMergeFieldInSubject = (fieldName: string) => {
@@ -98,9 +107,10 @@ export default function TemplateGenerationStep({ data, onUpdate, campaignId }: T
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          tone: data.emailTone,
-          language: data.language,
+          tone: data.emailTone || 'casual',
+          language: data.language || 'en',
           keyPoints: data.keyPoints || '',
+          outreachGoal: outreachGoal,
           count: 3
         })
       });
@@ -188,67 +198,53 @@ export default function TemplateGenerationStep({ data, onUpdate, campaignId }: T
         </p>
       </div>
 
-      {/* Email Preferences Section */}
-      <div className="p-5 rounded-xl bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.08]">
-        <div className="flex items-center gap-2 mb-4">
-          <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-            Email Preferences
-          </h4>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Tone Selection */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Tone
-            </label>
-            <select
-              value={data.emailTone}
-              onChange={(e) => onUpdate({ emailTone: e.target.value as EmailTone })}
-              className="w-full px-3 py-2 text-sm bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08]
-                rounded-lg focus:outline-none focus:ring-2 focus:ring-[#b7e219]/20 focus:border-[#b7e219]
-                text-gray-900 dark:text-white"
-            >
-              <option value="casual">Casual & Friendly</option>
-              <option value="professional">Professional & Warm</option>
-              <option value="bold">Direct & Confident</option>
-            </select>
-          </div>
-
-          {/* Language Selection */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Language
-            </label>
-            <select
-              value={data.language}
-              onChange={(e) => onUpdate({ language: e.target.value as 'en' | 'fr' })}
-              className="w-full px-3 py-2 text-sm bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08]
-                rounded-lg focus:outline-none focus:ring-2 focus:ring-[#b7e219]/20 focus:border-[#b7e219]
-                text-gray-900 dark:text-white"
-            >
-              <option value="en">English</option>
-              <option value="fr">Français</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Key Points */}
-        <div className="mt-4">
-          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Key Points (Optional)
-          </label>
-          <textarea
-            value={data.keyPoints || ''}
-            onChange={(e) => onUpdate({ keyPoints: e.target.value })}
-            placeholder="Mention specific skills, achievements, or reasons for reaching out..."
-            rows={2}
-            className="w-full px-3 py-2 text-sm bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08]
-              rounded-lg focus:outline-none focus:ring-2 focus:ring-[#b7e219]/20 focus:border-[#b7e219]
-              text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/40
-              resize-none"
-          />
+      {/* Outreach Goal Filter */}
+      <div>
+        <label className="block text-[11px] font-medium text-gray-500 dark:text-white/50 uppercase tracking-wider mb-2">
+          Outreach Goal
+        </label>
+        <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-white/[0.04] rounded-lg">
+          <button
+            type="button"
+            onClick={() => handleOutreachGoalChange('job')}
+            className={`
+              flex-1 px-4 py-2 rounded-md text-[12px] font-semibold transition-all duration-200
+              ${outreachGoal === 'job'
+                ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }
+            `}
+          >
+            Job Search
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => handleOutreachGoalChange('internship')}
+            className={`
+              flex-1 px-4 py-2 rounded-md text-[12px] font-semibold transition-all duration-200
+              ${outreachGoal === 'internship'
+                ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }
+            `}
+          >
+            Internship
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => handleOutreachGoalChange('networking')}
+            className={`
+              flex-1 px-4 py-2 rounded-md text-[12px] font-semibold transition-all duration-200
+              ${outreachGoal === 'networking'
+                ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }
+            `}
+          >
+            Networking
+          </button>
         </div>
       </div>
 

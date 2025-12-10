@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowRight, ArrowLeft, Loader2, Rocket } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -141,6 +141,13 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
     attachCV: false,
     cvAttachment: undefined
   });
+
+  // When mode changes to auto, ensure outreachGoal is set
+  useEffect(() => {
+    if (campaignData.emailGenerationMode === 'auto' && !campaignData.outreachGoal) {
+      updateCampaignData({ outreachGoal: 'job' });
+    }
+  }, [campaignData.emailGenerationMode]);
 
   // Get dynamic steps based on generation mode
   const getSteps = (): Step[] => {
