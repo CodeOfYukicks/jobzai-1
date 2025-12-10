@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { collection, doc, getDoc, updateDoc, serverTimestamp, query, getDocs, orderBy } from 'firebase/firestore';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
+import { useAssistantPageData } from '../hooks/useAssistantPageData';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { notify } from '@/lib/notify';
@@ -4021,6 +4022,41 @@ Return ONLY the pitch text, no explanations or formatting.`;
       }
     }
   };
+
+  // Register page data with AI Assistant
+  const interviewPrepSummary = useMemo(() => {
+    if (!application || !interview) return null;
+    
+    const preparation = interview.preparation;
+    const questions = preparation?.questions || [];
+    
+    return {
+      company: application.companyName,
+      position: application.position,
+      interviewType: interview.type,
+      interviewDate: interview.date,
+      interviewTime: interview.time,
+      status: interview.status,
+      preparation: preparation ? {
+        companyInfo: preparation.companyInfo?.substring(0, 500),
+        roleOverview: preparation.roleOverview?.substring(0, 500),
+        keyRequirements: preparation.keyRequirements?.slice(0, 5),
+        questionsCount: questions.length,
+        sampleQuestions: questions.slice(0, 5).map((q: any) => 
+          typeof q === 'string' ? q : q.text || q.question
+        ),
+      } : null,
+      skillRatings: Object.entries(skillRatings).map(([skill, rating]) => ({ skill, rating })),
+      checklistProgress: {
+        completed: checklist.filter(c => c.completed).length,
+        total: checklist.length,
+      },
+      hasNotes: stickyNotes.length > 0 || !!freeFormNotes,
+      chatMessagesCount: chatMessages.length,
+    };
+  }, [application, interview, skillRatings, checklist, stickyNotes, freeFormNotes, chatMessages.length]);
+
+  useAssistantPageData('interviewPrep', interviewPrepSummary, !!application && !!interview);
 
   if (isLoading) {
     return (

@@ -67,6 +67,7 @@ import { checkAndApplyAutomations, isApplicationInactive, getInactiveDays } from
 import { BoardSettingsModal, BoardsOverview, MoveToBoardModal, DeleteBoardModal } from '../components/boards';
 import { RelationshipGoalSelector } from '../components/outreach';
 import { WarmthIndicator } from '../components/outreach';
+import { useAssistantPageData, summarizeApplications } from '../hooks/useAssistantPageData';
 
 export default function JobApplicationsPage() {
   const { currentUser } = useAuth();
@@ -1776,6 +1777,137 @@ export default function JobApplicationsPage() {
   };
 
   const filteredApplications = applyFilters(applications);
+
+  // Register page data with AI Assistant - Enhanced with actionable insights
+  const applicationsSummary = useMemo(() => {
+    const byStatus: Record<string, number> = {};
+    const byCompany: Record<string, number> = {};
+    const now = new Date();
+    
+    applications.forEach(app => {
+      const status = app.status || 'unknown';
+      byStatus[status] = (byStatus[status] || 0) + 1;
+      
+      const company = app.companyName || 'Unknown';
+      byCompany[company] = (byCompany[company] || 0) + 1;
+    });
+
+    // Calculate days since application for each app
+    const getAppAge = (app: JobApplication) => {
+      const appDate = new Date(app.appliedDate || app.createdAt || now);
+      return Math.floor((now.getTime() - appDate.getTime()) / (1000 * 60 * 60 * 24));
+    };
+
+    // Find stale applications (7+ days, still in applied/pending status)
+    const staleApplications = applications
+      .filter(app => {
+        const age = getAppAge(app);
+        return age >= 7 && ['applied', 'pending', 'submitted'].includes(app.status || '');
+      })
+      .sort((a, b) => getAppAge(b) - getAppAge(a))
+      .slice(0, 5)
+      .map(app => ({
+        company: app.companyName,
+        position: app.position,
+        daysSinceApplied: getAppAge(app),
+        appliedDate: app.appliedDate,
+      }));
+
+    // Hot opportunities (interviewing, offer stages)
+    const hotOpportunities = applications
+      .filter(app => ['interviewing', 'interview', 'offer', 'offered', 'final_round'].includes(app.status || ''))
+      .map(app => ({
+        company: app.companyName,
+        position: app.position,
+        status: app.status,
+        nextInterview: app.interviews?.find(i => i.status === 'scheduled')?.date,
+      }));
+
+    // Applications needing follow-up (10-14 days old, no response)
+    const needsFollowUp = applications
+      .filter(app => {
+        const age = getAppAge(app);
+        return age >= 10 && age <= 21 && ['applied', 'pending', 'submitted'].includes(app.status || '');
+      })
+      .slice(0, 3)
+      .map(app => ({
+        company: app.companyName,
+        position: app.position,
+        daysSinceApplied: getAppAge(app),
+        suggestion: `Send a follow-up email to ${app.companyName}`,
+      }));
+
+    // Recent wins (offers, interviews in last 7 days)
+    const recentWins = applications
+      .filter(app => {
+        const age = getAppAge(app);
+        return age <= 7 && ['interviewing', 'interview', 'offer', 'offered'].includes(app.status || '');
+      })
+      .map(app => ({
+        company: app.companyName,
+        status: app.status,
+        type: app.status?.includes('offer') ? 'offer' : 'interview',
+      }));
+
+    return {
+      total: applications.length,
+      byStatus,
+      // Actionable insights
+      insights: {
+        staleApplicationsCount: staleApplications.length,
+        staleApplications: staleApplications,
+        hotOpportunitiesCount: hotOpportunities.length,
+        hotOpportunities: hotOpportunities,
+        needsFollowUp: needsFollowUp,
+        recentWins: recentWins,
+        responseRate: applications.length > 0 
+          ? Math.round((applications.filter(a => !['applied', 'pending', 'submitted', 'rejected'].includes(a.status || '')).length / applications.length) * 100)
+          : 0,
+      },
+      // Recent applications for reference
+      recentApplications: applications
+        .sort((a, b) => new Date(b.appliedDate || b.createdAt || 0).getTime() - new Date(a.appliedDate || a.createdAt || 0).getTime())
+        .slice(0, 10)
+        .map(app => ({
+          company: app.companyName,
+          position: app.position,
+          status: app.status,
+          appliedDate: app.appliedDate,
+          daysSinceApplied: getAppAge(app),
+          hasInterviews: (app.interviews?.length || 0) > 0,
+        })),
+      interviewsScheduled: applications.filter(app => 
+        app.interviews?.some(i => i.status === 'scheduled')
+      ).length,
+    };
+  }, [applications]);
+
+  // Register with AI Assistant
+  useAssistantPageData('applications', applicationsSummary, applications.length > 0);
+
+  // Also register selected application details if one is selected
+  const selectedAppSummary = useMemo(() => {
+    if (!selectedApplication) return null;
+    return {
+      company: selectedApplication.companyName,
+      position: selectedApplication.position,
+      status: selectedApplication.status,
+      appliedDate: selectedApplication.appliedDate,
+      location: selectedApplication.location,
+      description: selectedApplication.description,
+      notes: selectedApplication.notes,
+      interviews: selectedApplication.interviews?.map(i => ({
+        type: i.type,
+        date: i.date,
+        time: i.time,
+        status: i.status,
+      })),
+      contactName: selectedApplication.contactName,
+      contactEmail: selectedApplication.contactEmail,
+    };
+  }, [selectedApplication]);
+
+  useAssistantPageData('selectedApplication', selectedAppSummary, !!selectedApplication);
 
   // Track mouse position during drag for auto-scroll
   const mousePositionRef = useRef<{ x: number; y: number } | null>(null);

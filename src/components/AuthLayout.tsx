@@ -391,6 +391,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   // Pages that should not be wrapped in a white card so they inherit the layout background
   const isPlainBackground = location.pathname === '/recommendations' || location.pathname === '/recommendations-legacy';
 
+  // Pages that have their own full-page background (need to override AuthLayout background)
+  const hasOwnBackground = location.pathname.startsWith('/ats-analysis/') && !location.pathname.endsWith('/cv-editor');
+
   // Sidebar width values
   const sidebarExpandedWidth = 256; // 16rem = 256px
   const sidebarCollapsedWidth = 72; // ~4.5rem
@@ -787,7 +790,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
       {/* Main content */}
       <div 
-        className={`flex flex-col flex-1 min-h-0 overflow-x-hidden ${isBuilderMode ? 'bg-white dark:bg-[#2b2a2c]' : ''}`}
+        className={`flex flex-col flex-1 min-h-0 overflow-x-hidden ${isBuilderMode ? 'bg-white dark:bg-[#2b2a2c]' : ''} ${hasOwnBackground ? 'bg-gray-50 dark:bg-[#333234]' : ''}`}
       >
         {/* Desktop: spacer for fixed top bar */}
         <div 

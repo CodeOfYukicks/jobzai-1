@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Fragment, useCallback } from 'react';
+import { useState, useEffect, useRef, Fragment, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,6 +24,7 @@ import { JobApplication } from '../types/job';
 import { getDownloadURL, ref, getStorage, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
 import { notify } from '@/lib/notify';
 import { db, storage, auth } from '../lib/firebase';
+import { useAssistantPageData } from '../hooks/useAssistantPageData';
 import PrivateRoute from '../components/PrivateRoute';
 import * as pdfjsLib from 'pdfjs-dist';
 import { pdfjs } from 'react-pdf';
@@ -7838,6 +7839,87 @@ URL to visit: ${jobUrl}
   }, []);
 
   const filteredAnalyses = filteredAndSortedAnalyses();
+
+  // Register page data with AI Assistant - Enhanced with actionable insights
+  const cvAnalysisSummary = useMemo(() => {
+    const selectedAnalysis = analyses.find(a => a.id === formData.jobTitle);
+    
+    // Calculate average score across analyses
+    const avgScore = analyses.length > 0 
+      ? Math.round(analyses.reduce((sum, a) => sum + (a.matchScore || 0), 0) / analyses.length)
+      : null;
+    
+    // Find best and worst performing analyses
+    const sortedByScore = [...analyses].sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+    const bestMatch = sortedByScore[0];
+    const worstMatch = sortedByScore[sortedByScore.length - 1];
+    
+    // Extract common weak areas across analyses
+    const allWeakAreas: string[] = [];
+    analyses.forEach(a => {
+      if (a.weakAreas) allWeakAreas.push(...a.weakAreas);
+    });
+    const weakAreaCounts = allWeakAreas.reduce((acc, area) => {
+      acc[area] = (acc[area] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    const topWeakAreas = Object.entries(weakAreaCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([area]) => area);
+
+    // Generate quick win suggestions
+    const quickWins: string[] = [];
+    if (avgScore && avgScore < 70) {
+      quickWins.push('Add more quantifiable achievements (numbers, percentages)');
+    }
+    if (topWeakAreas.includes('keywords')) {
+      quickWins.push('Add industry-specific keywords to your CV');
+    }
+    if (topWeakAreas.includes('experience')) {
+      quickWins.push('Expand on your work experience descriptions');
+    }
+
+    return {
+      totalAnalyses: analyses.length,
+      // Performance overview
+      performance: {
+        averageScore: avgScore,
+        bestMatch: bestMatch ? {
+          jobTitle: bestMatch.jobTitle,
+          company: bestMatch.company,
+          score: bestMatch.matchScore,
+        } : null,
+        worstMatch: worstMatch && analyses.length > 1 ? {
+          jobTitle: worstMatch.jobTitle,
+          company: worstMatch.company,
+          score: worstMatch.matchScore,
+        } : null,
+      },
+      // Actionable insights
+      insights: {
+        topWeakAreas,
+        quickWins,
+        improvementPriority: topWeakAreas[0] || 'Keep optimizing your CV',
+      },
+      recentAnalyses: analyses.slice(0, 8).map(a => ({
+        jobTitle: a.jobTitle,
+        company: a.company,
+        matchScore: a.matchScore,
+        date: a.date,
+        keyFindings: a.keyFindings?.slice(0, 3),
+      })),
+      currentForm: formData.jobTitle || formData.company ? {
+        jobTitle: formData.jobTitle,
+        company: formData.company,
+        hasJobDescription: !!formData.jobDescription,
+      } : null,
+      selectedCV: userCV?.name || (cvFile ? cvFile.name : null),
+      isAnalyzing: isLoading,
+    };
+  }, [analyses, formData, userCV, cvFile, isLoading]);
+
+  useAssistantPageData('cvAnalysis', cvAnalysisSummary, analyses.length > 0 || !!formData.jobTitle);
 
   return (
     <AuthLayout>

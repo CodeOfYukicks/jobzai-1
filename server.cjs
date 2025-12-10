@@ -727,6 +727,477 @@ app.post('/api/chatgpt', async (req, res) => {
 });
 
 // ============================================
+// AI Assistant Chat Endpoint
+// Context-aware chatbot for job search assistance
+// ============================================
+app.post('/api/assistant', async (req, res) => {
+  try {
+    console.log('🤖 AI Assistant endpoint called');
+    
+    // Get API key from Firestore or environment variables
+    let apiKey;
+    try {
+      apiKey = await getOpenAIApiKey();
+    } catch (keyError) {
+      console.error('❌ Error retrieving API key:', keyError);
+      return res.status(500).json({
+        status: 'error',
+        message: `Failed to retrieve API key: ${keyError.message}`
+      });
+    }
+
+    if (!apiKey) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key is missing.'
+      });
+    }
+
+    const { message, pageContext, userContext, conversationHistory, userId, pageData } = req.body;
+
+    if (!message) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Message is required'
+      });
+    }
+
+    console.log(`📍 Page context: ${pageContext?.pageName || 'Unknown'}`);
+    console.log(`👤 User: ${userContext?.firstName || 'Unknown'}`);
+    console.log(`📊 Page data keys: ${pageData ? Object.keys(pageData).join(', ') : 'None'}`);
+
+    // Build system prompt with context and page data
+    const systemPrompt = buildAssistantSystemPrompt(pageContext, userContext, pageData);
+
+    // Build messages array
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt
+      }
+    ];
+
+    // Add conversation history if provided
+    if (conversationHistory && Array.isArray(conversationHistory)) {
+      for (const msg of conversationHistory.slice(-10)) { // Last 10 messages for context
+        messages.push({
+          role: msg.role,
+          content: msg.content
+        });
+      }
+    }
+
+    // Add current user message
+    messages.push({
+      role: "user",
+      content: message
+    });
+
+    console.log('📡 Sending request to OpenAI for assistant response (streaming)...');
+
+    // Set headers for SSE streaming FIRST
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    // Use https module for reliable streaming in Node.js
+    const https = require('https');
+    
+    const postData = JSON.stringify({
+      model: 'gpt-4o',
+      messages: messages,
+      max_tokens: 2000,
+      temperature: 0.7,
+      stream: true
+    });
+
+    const options = {
+      hostname: 'api.openai.com',
+      port: 443,
+      path: '/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+
+    let buffer = '';
+    let fullContent = '';
+
+    const openaiReq = https.request(options, (openaiRes) => {
+      if (openaiRes.statusCode !== 200) {
+        console.error('❌ OpenAI API error status:', openaiRes.statusCode);
+        res.write(`data: ${JSON.stringify({ error: 'OpenAI API error' })}\n\n`);
+        res.end();
+        return;
+      }
+
+      openaiRes.on('data', (chunk) => {
+        buffer += chunk.toString();
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine.startsWith('data: ')) {
+            const data = trimmedLine.slice(6);
+            if (data === '[DONE]') {
+              continue;
+            }
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) {
+                fullContent += content;
+                res.write(`data: ${JSON.stringify({ content })}\n\n`);
+              }
+            } catch (e) {
+              // Skip invalid JSON
+            }
+          }
+        }
+      });
+
+      openaiRes.on('end', () => {
+        res.write('data: [DONE]\n\n');
+        res.end();
+        console.log('✅ AI Assistant response completed (streamed)');
+        console.log(`   Response length: ${fullContent.length} chars`);
+      });
+
+      openaiRes.on('error', (err) => {
+        console.error('❌ OpenAI stream error:', err);
+        res.end();
+      });
+    });
+
+    openaiReq.on('error', (err) => {
+      console.error('❌ OpenAI request error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ status: 'error', message: err.message });
+      } else {
+        res.end();
+      }
+    });
+
+    openaiReq.write(postData);
+    openaiReq.end();
+    return;
+
+  } catch (error) {
+    console.error('❌ AI Assistant error:', error);
+    
+    if (res.headersSent) {
+      res.end();
+      return;
+    }
+    
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'An error occurred'
+    });
+  }
+});
+
+// Page-specific AI expertise configurations
+const PAGE_EXPERTISE = {
+  'Dashboard': {
+    role: 'Career Progress Analyst',
+    focus: 'metrics, trends, priorities, action planning',
+    personality: 'Motivating coach who celebrates wins and guides next steps',
+    behaviors: [
+      'Start responses by acknowledging their progress or current situation',
+      'Always suggest 1-2 specific next actions based on their data',
+      'Celebrate milestones (interviews scheduled, offers, response rates)',
+      'If metrics are low, be encouraging and suggest improvements',
+      'Reference specific numbers from their dashboard'
+    ],
+    dataUsage: 'Use totalApplications, responseRate, upcomingInterviews to give specific advice',
+    exampleResponses: [
+      'With 15 applications and a 20% response rate, you\'re doing well! Focus on...',
+      'You have 2 interviews coming up - let\'s prepare for [Company Name]',
+      'Your activity dropped this week. Let\'s get back on track with...'
+    ]
+  },
+  'Job Applications': {
+    role: 'Application Strategy Expert',
+    focus: 'tracking, follow-ups, prioritization, status management',
+    personality: 'Organized strategist who keeps everything on track',
+    behaviors: [
+      'ALWAYS reference specific company names from their applications',
+      'Proactively mention applications that need follow-up (7+ days old)',
+      'Prioritize responses about interviews and offers',
+      'Suggest follow-up timing based on application dates',
+      'Help draft follow-up emails with specific company context'
+    ],
+    dataUsage: 'Reference companyName, position, status, appliedDate for each application',
+    exampleResponses: [
+      'Your Google application from 10 days ago hasn\'t had a response - time to follow up!',
+      'You have 3 applications in "interviewing" status: Meta, Apple, and Netflix',
+      'Let me draft a follow-up email for your Stripe application...'
+    ]
+  },
+  'Job Board': {
+    role: 'Job Match Analyst',
+    focus: 'job fit analysis, salary insights, company research, application strategy',
+    personality: 'Sharp analyst who evaluates opportunities objectively',
+    behaviors: [
+      'When a job is selected, analyze fit against user profile',
+      'Highlight matching and missing skills explicitly',
+      'Provide salary context when available',
+      'Suggest how to address skill gaps in applications',
+      'Be honest about poor matches but suggest alternatives'
+    ],
+    dataUsage: 'Compare selectedJob details against user skills and experience',
+    exampleResponses: [
+      'This Senior Engineer role at Stripe matches 7/10 of your skills. Gap: Kubernetes',
+      'The salary range ($150-180k) is above market for your experience - great opportunity!',
+      'This role requires 5+ years but you have 3. Here\'s how to position yourself...'
+    ]
+  },
+  'Resume Lab': {
+    role: 'CV Optimization Specialist',
+    focus: 'ATS optimization, content improvement, achievement highlighting',
+    personality: 'Detail-oriented editor who elevates your professional story',
+    behaviors: [
+      'Reference specific sections and scores from their CV analysis',
+      'Give concrete rewrite suggestions, not vague advice',
+      'Focus on quantifiable improvements',
+      'Suggest keywords based on their target industry',
+      'Prioritize quick wins that improve ATS scores'
+    ],
+    dataUsage: 'Use analysis scores, weak sections, and improvement suggestions',
+    exampleResponses: [
+      'Your experience section scored 65%. Add metrics: "Increased sales by X%"',
+      'Missing keywords for your industry: Agile, CI/CD, Microservices',
+      'Quick win: Your summary is 150 words. Trim to 80 for better impact'
+    ]
+  },
+  'CV Optimizer': {
+    role: 'ATS & Resume Expert',
+    focus: 'keyword optimization, formatting, recruiter appeal',
+    personality: 'Technical expert who knows what passes ATS systems',
+    behaviors: [
+      'Provide specific keyword recommendations',
+      'Explain ATS-friendly formatting',
+      'Suggest section restructuring when needed',
+      'Give before/after examples for improvements'
+    ],
+    dataUsage: 'Reference CV content and optimization suggestions',
+    exampleResponses: [
+      'Add these missing keywords to pass ATS: React, TypeScript, AWS',
+      'Your bullet points are too long. Aim for 1-2 lines each',
+      'Move your skills section above experience - recruiters scan top-to-bottom'
+    ]
+  },
+  'Upcoming Interviews': {
+    role: 'Interview Preparation Coach',
+    focus: 'company research, question prep, confidence building',
+    personality: 'Supportive coach who builds confidence and readiness',
+    behaviors: [
+      'Reference the specific company and role for upcoming interviews',
+      'Provide company-specific research and talking points',
+      'Suggest questions to ask the interviewer',
+      'Help prepare STAR stories relevant to the role',
+      'Address nervousness with practical techniques'
+    ],
+    dataUsage: 'Use interview company, role, date, and type information',
+    exampleResponses: [
+      'Your Meta interview is in 3 days. Let\'s prep behavioral questions',
+      'For your Google Systems Design interview, focus on scalability patterns',
+      'Questions to ask at Stripe: "How does the team handle on-call?"'
+    ]
+  },
+  'Mock Interview': {
+    role: 'Interview Performance Coach',
+    focus: 'practice, feedback, improvement, confidence',
+    personality: 'Encouraging trainer who gives constructive feedback',
+    behaviors: [
+      'Offer to run practice questions',
+      'Give specific feedback on answer structure',
+      'Suggest STAR method improvements',
+      'Build confidence while being honest about areas to improve'
+    ],
+    dataUsage: 'Reference practice session context and performance',
+    exampleResponses: [
+      'Let\'s practice: "Tell me about a time you handled conflict"',
+      'Good answer structure! Add more specific metrics for impact',
+      'Your answer was 3 minutes - aim for 2 minutes for behavioral questions'
+    ]
+  },
+  'AutoPilot Campaigns': {
+    role: 'Outreach Campaign Strategist',
+    focus: 'automation, targeting, messaging, conversion optimization',
+    personality: 'Growth hacker who optimizes for results',
+    behaviors: [
+      'Reference specific campaign metrics and performance',
+      'Suggest A/B test ideas for messages',
+      'Help identify high-potential target companies',
+      'Optimize follow-up sequences'
+    ],
+    dataUsage: 'Use campaign stats, response rates, and target information',
+    exampleResponses: [
+      'Your "Tech Startups" campaign has 15% response rate - above average!',
+      'Try personalizing the first line with company news for better results',
+      'These 5 companies in your targets haven\'t been contacted yet'
+    ]
+  },
+  'Professional Profile': {
+    role: 'Personal Branding Expert',
+    focus: 'profile optimization, professional story, skill positioning',
+    personality: 'Brand strategist who helps you stand out',
+    behaviors: [
+      'Help craft compelling professional narratives',
+      'Suggest skill additions based on industry trends',
+      'Optimize headline and summary for searchability',
+      'Align profile with target role requirements'
+    ],
+    dataUsage: 'Reference current profile data and suggest improvements',
+    exampleResponses: [
+      'Your headline could be stronger. Try: "Senior Engineer | React & Node.js | Fintech"',
+      'Add these trending skills: AI/ML, Cloud Architecture',
+      'Your summary doesn\'t mention your target role. Let\'s fix that'
+    ]
+  }
+};
+
+// Default expertise for pages not explicitly defined
+const DEFAULT_EXPERTISE = {
+  role: 'Career Assistant',
+  focus: 'job search guidance, career advice, platform help',
+  personality: 'Helpful guide who supports your job search journey',
+  behaviors: [
+    'Provide helpful, actionable advice',
+    'Reference available data when relevant',
+    'Be encouraging and supportive'
+  ],
+  dataUsage: 'Use any available context to personalize responses',
+  exampleResponses: []
+};
+
+// Helper function to build system prompt for AI Assistant
+function buildAssistantSystemPrompt(pageContext, userContext, pageData) {
+  const pageName = pageContext?.pageName || 'Jobz.ai';
+  const pageDescription = pageContext?.pageDescription || 'AI-powered job search platform';
+  const firstName = userContext?.firstName || 'there';
+  const currentJobTitle = userContext?.currentJobTitle || '';
+  const industry = userContext?.industry || '';
+  const skills = userContext?.skills?.slice(0, 10).join(', ') || '';
+  const yearsOfExperience = userContext?.yearsOfExperience || '';
+
+  // Get page-specific expertise
+  const expertise = PAGE_EXPERTISE[pageName] || DEFAULT_EXPERTISE;
+
+  // Format page data if available - make it more readable
+  let pageDataSection = '';
+  if (pageData && Object.keys(pageData).length > 0) {
+    pageDataSection = `\n## YOUR DATA ACCESS (USE THIS!)\nYou have access to the user's actual data. ALWAYS reference this data specifically:\n\n`;
+    
+    for (const [key, value] of Object.entries(pageData)) {
+      if (value !== null && value !== undefined) {
+        pageDataSection += `### ${formatPageDataKey(key)}\n\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\`\n\n`;
+      }
+    }
+    
+    pageDataSection += `**IMPORTANT**: Reference specific items from this data (company names, dates, scores, etc.) - never give generic advice when you have specific data!\n\n`;
+  }
+
+  // Build behavior rules string
+  const behaviorRules = expertise.behaviors.map((b, i) => `${i + 1}. ${b}`).join('\n');
+  
+  // Build example responses if available
+  let examplesSection = '';
+  if (expertise.exampleResponses && expertise.exampleResponses.length > 0) {
+    examplesSection = `\n## RESPONSE STYLE EXAMPLES\nYour responses should feel like these examples:\n${expertise.exampleResponses.map(e => `- "${e}"`).join('\n')}\n`;
+  }
+
+  return `# You are ${firstName}'s ${expertise.role} on Jobz.ai
+
+## YOUR IDENTITY
+You are NOT a generic AI assistant. You are a specialized **${expertise.role}** built specifically for this page.
+Your focus: **${expertise.focus}**
+Your personality: **${expertise.personality}**
+
+## USER CONTEXT
+- **Name**: ${firstName}
+${currentJobTitle ? `- **Current Role**: ${currentJobTitle}` : ''}
+${industry ? `- **Industry**: ${industry}` : ''}
+${skills ? `- **Key Skills**: ${skills}` : ''}
+${yearsOfExperience ? `- **Experience**: ${yearsOfExperience} years` : ''}
+
+## CURRENT PAGE: ${pageName}
+${pageDescription}
+${pageDataSection}
+## YOUR BEHAVIOR RULES (FOLLOW STRICTLY)
+${behaviorRules}
+
+## DATA USAGE
+${expertise.dataUsage}
+${examplesSection}
+## RESPONSE FORMAT
+1. Keep responses concise but specific (2-4 short paragraphs max)
+2. Use markdown: **bold** for emphasis, bullet points for lists
+3. ALWAYS reference specific data points (names, numbers, dates)
+4. End with a clear next action or question when appropriate
+5. Never say "I don't have access to your data" - you DO have access above
+
+## INTERACTIVE RECORD CARDS (IMPORTANT!)
+When referencing specific records from the user's data, use this special markup syntax to create clickable cards:
+
+**Syntax:** \`[[type:id:title:subtitle]]\`
+
+**Available types and when to use them:**
+- \`application\` - Job applications. Use when mentioning a specific application.
+  Example: \`[[application:abc123:Google:Software Engineer - Applied 5 days ago]]\`
+  
+- \`job\` - Job listings from the job board. Use when discussing a specific job.
+  Example: \`[[job:xyz789:Senior Developer at Stripe:$150k-180k · Remote]]\`
+  
+- \`interview\` - Scheduled interviews. Use when mentioning upcoming interviews.
+  Example: \`[[interview:int456:Meta Technical Interview:Dec 15 at 2:00 PM]]\`
+  
+- \`note\` - User's notes. Use when referencing a specific note.
+  Example: \`[[note:note789:Interview Prep Notes:Last edited 2 days ago]]\`
+  
+- \`cv\` - CV analyses. Use when discussing a specific CV analysis.
+  Example: \`[[cv:cv123:Google CV Analysis:Score: 78%]]\`
+
+**RULES for using record cards:**
+1. ALWAYS use cards when referencing specific items from the page data
+2. Extract the actual ID from the data when available (look for "id" fields)
+3. Title should be the main identifier (company name, job title, note title)
+4. Subtitle should provide context (status, date, score, etc.)
+5. Place cards on their own line for best display
+6. If you don't have an ID, use the company/title name as the ID
+
+**Example usage in a response:**
+"You should follow up on your Google application:
+
+[[application:app_123:Google:Software Engineer - 12 days ago]]
+
+This one has been waiting the longest. I can help you draft a follow-up email!"
+
+## CRITICAL RULES
+- NEVER give generic advice when you have specific data
+- ALWAYS mention specific company names, dates, or metrics from the data
+- USE RECORD CARDS when referencing specific applications, jobs, interviews, notes, or CV analyses
+- If data shows issues (stale applications, low scores), address them proactively
+- Sound like an expert who knows their situation, not a generic chatbot
+- Be conversational but professional - like a smart colleague, not a robot`;
+}
+
+// Helper to format page data keys for display
+function formatPageDataKey(key) {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, str => str.toUpperCase())
+    .replace(/([a-z])([A-Z])/g, '$1 $2');
+}
+
+// ============================================
 // OpenAI Realtime API Session Endpoint
 // Creates an ephemeral client secret for WebSocket connection
 // Used by the Mock Interview Live feature

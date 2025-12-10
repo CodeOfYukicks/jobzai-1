@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 import { useNavigate } from 'react-router-dom';
@@ -53,6 +53,7 @@ import { getDoc, doc, updateDoc, deleteDoc, collection, query, where, orderBy, o
 import { getAuth } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
+import { useAssistantPageData } from '../hooks/useAssistantPageData';
 import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
 import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
 import NewCampaignModal from '../components/campaigns/NewCampaignModal';
@@ -1161,6 +1162,42 @@ export default function CampaignsAutoPage() {
         return 'border-l-gray-300 dark:border-l-gray-600';
     }
   };
+
+  // Register page data with AI Assistant
+  const campaignsSummary = useMemo(() => {
+    const selectedCampaign = campaigns.find(c => c.id === selectedCampaignId);
+    return {
+      totalCampaigns: campaigns.length,
+      selectedCampaign: selectedCampaign ? {
+        name: selectedCampaign.name,
+        status: selectedCampaign.status,
+        stats: selectedCampaign.stats,
+        targeting: {
+          jobTitles: selectedCampaign.targeting?.jobTitles,
+          locations: selectedCampaign.targeting?.locations,
+          industries: selectedCampaign.targeting?.industries,
+        },
+      } : null,
+      recipients: {
+        total: recipients.length,
+        byStatus: {
+          pending: recipients.filter(r => r.status === 'pending').length,
+          emailGenerated: recipients.filter(r => r.status === 'email_generated' || r.status === 'email_ready').length,
+          sent: recipients.filter(r => r.status === 'sent').length,
+          opened: recipients.filter(r => r.status === 'opened').length,
+          replied: recipients.filter(r => r.status === 'replied').length,
+        },
+        sampleRecipients: recipients.slice(0, 5).map(r => ({
+          name: r.fullName,
+          title: r.title,
+          company: r.company,
+          status: r.status,
+        })),
+      },
+    };
+  }, [campaigns, selectedCampaignId, recipients]);
+
+  useAssistantPageData('campaigns', campaignsSummary, campaigns.length > 0);
 
   if (isLoading) {
     return (

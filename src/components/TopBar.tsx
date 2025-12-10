@@ -4,6 +4,7 @@ import { Search, Sparkles, Command, User, Settings, CreditCard, LogOut, ChevronR
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeSwitch from './ThemeSwitch';
 import { NotificationCenter } from './NotificationCenter';
+import { useAssistant } from '../contexts/AssistantContext';
 
 interface TopBarProps {
   profilePhoto: string;
@@ -33,6 +34,7 @@ export default function TopBar({
   const navigate = useNavigate();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const { openAssistant } = useAssistant();
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -89,6 +91,7 @@ export default function TopBar({
 
           {/* Assistant Button */}
           <button
+            onClick={openAssistant}
             className="flex items-center gap-1.5 h-8 px-3 rounded-lg
               bg-gray-900 dark:bg-white
               border border-gray-900 dark:border-white

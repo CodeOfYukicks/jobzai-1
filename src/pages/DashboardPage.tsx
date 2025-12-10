@@ -24,6 +24,7 @@ import {
   RadialBar, CartesianGrid, FunnelChart, Funnel, LabelList
 } from 'recharts';
 import { Link } from 'react-router-dom';
+import { useAssistantPageData } from '../hooks/useAssistantPageData';
 
 // Interview interface
 interface Interview {
@@ -634,6 +635,92 @@ export default function DashboardPage() {
   }, [stats.historicalData]);
   const applicationsData = formatChartData(stats.historicalData, 'applications');
   const performanceData = formatChartData(stats.historicalData, 'responses');
+
+  // Register dashboard data with AI Assistant - Enhanced with actionable insights
+  const dashboardSummary = useMemo(() => {
+    const totalApps = stats.totalApplications || 0;
+    const pending = stats.pendingApplications || 0;
+    const successful = stats.successfulApplications || 0;
+    const rejected = stats.rejectedApplications || 0;
+    const responseRate = totalApps > 0 ? Math.round(((successful + rejected) / totalApps) * 100) : 0;
+    
+    // Calculate activity trend
+    const thisWeek = stats.activitiesThisWeek || 0;
+    const lastWeek = stats.activitiesLastWeek || 0;
+    const activityTrend = lastWeek > 0 
+      ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) 
+      : (thisWeek > 0 ? 100 : 0);
+
+    // Generate action items based on data
+    const actionItems: string[] = [];
+    if (pending > 5) {
+      actionItems.push(`You have ${pending} pending applications - consider following up on older ones`);
+    }
+    if (upcomingInterviews.length > 0) {
+      actionItems.push(`${upcomingInterviews.length} upcoming interview${upcomingInterviews.length > 1 ? 's' : ''} - time to prepare!`);
+    }
+    if (thisWeek < lastWeek) {
+      actionItems.push('Activity dropped this week - try to apply to more jobs');
+    }
+    if (responseRate < 20 && totalApps > 5) {
+      actionItems.push('Low response rate - consider optimizing your CV or targeting different roles');
+    }
+    if (stats.credits && stats.credits < 10) {
+      actionItems.push('Running low on credits - consider upgrading your plan');
+    }
+
+    // Identify wins to celebrate
+    const wins: string[] = [];
+    if (successful > 0) {
+      wins.push(`${successful} successful application${successful > 1 ? 's' : ''}!`);
+    }
+    if (activityTrend > 20) {
+      wins.push(`Activity up ${activityTrend}% from last week!`);
+    }
+    if (responseRate > 30) {
+      wins.push(`Great response rate of ${responseRate}%!`);
+    }
+
+    return {
+      totalApplications: totalApps,
+      applicationsByStatus: {
+        pending,
+        successful,
+        rejected,
+      },
+      credits: stats.credits,
+      plan: userData?.plan || 'free',
+      interviewStats: {
+        total: stats.totalInterviews || 0,
+        upcoming: upcomingInterviews.length,
+        nextInterview: upcomingInterviews[0] ? {
+          company: upcomingInterviews[0].companyName,
+          date: upcomingInterviews[0].date,
+          type: upcomingInterviews[0].type,
+        } : null,
+      },
+      // Key metrics
+      metrics: {
+        responseRate,
+        successRate: stats.successRate || 0,
+        activityTrend,
+        applicationsThisWeek: thisWeek,
+      },
+      // Actionable insights
+      insights: {
+        actionItems,
+        wins,
+        priority: actionItems.length > 0 ? actionItems[0] : 'Keep up the good work!',
+      },
+      recentApplications: recentApplications.slice(0, 5).map(app => ({
+        company: app.companyName,
+        position: app.position,
+        status: app.status,
+      })),
+    };
+  }, [stats, userData?.plan, upcomingInterviews, recentApplications]);
+
+  useAssistantPageData('dashboardStats', dashboardSummary, !isLoading);
 
   if (isLoading) {
     return (

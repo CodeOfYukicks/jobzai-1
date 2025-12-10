@@ -16,6 +16,7 @@ import { useJobInteractions } from '../hooks/useJobInteractions';
 import { notify } from '@/lib/notify';
 import { parseSearchQuery, toSearchAPIParams } from '../lib/searchParser';
 import '../components/job-board/premium-search.css';
+import { useAssistantPageData } from '../hooks/useAssistantPageData';
 
 function timeAgo(date: Date): string {
 	const diffMs = Date.now() - date.getTime();
@@ -432,6 +433,82 @@ export default function JobBoardPage() {
 	};
 
 	const displayedJobs = jobs.slice(0, visibleCount);
+
+	// Register page data with AI Assistant - Enhanced with insights
+	const jobBoardSummary = useMemo(() => {
+		// Calculate insights from job listings
+		const remoteJobs = displayedJobs.filter(j => j.remote?.toLowerCase().includes('remote')).length;
+		const highMatchJobs = displayedJobs.filter(j => (j.matchScore || 0) >= 80).length;
+		const companiesSet = new Set(displayedJobs.map(j => j.company));
+		
+		return {
+			totalJobs: jobs.length,
+			mode: mode,
+			searchQuery: debouncedSearch || null,
+			activeFilters: {
+				employmentType: filters.employmentType,
+				workLocation: filters.workLocation,
+				experienceLevel: filters.experienceLevel,
+				datePosted: filters.datePosted,
+			},
+			// Actionable insights
+			insights: {
+				remoteJobsCount: remoteJobs,
+				remotePercentage: jobs.length > 0 ? Math.round((remoteJobs / displayedJobs.length) * 100) : 0,
+				highMatchCount: highMatchJobs,
+				uniqueCompanies: companiesSet.size,
+				topMatchingJobs: displayedJobs
+					.filter(j => j.matchScore)
+					.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
+					.slice(0, 3)
+					.map(j => ({ title: j.title, company: j.company, matchScore: j.matchScore })),
+			},
+			recentListings: displayedJobs.slice(0, 8).map(job => ({
+				title: job.title,
+				company: job.company,
+				location: job.location,
+				type: job.type,
+				remote: job.remote,
+				matchScore: job.matchScore,
+				salaryRange: job.salaryRange,
+			})),
+		};
+	}, [jobs.length, mode, debouncedSearch, filters, displayedJobs]);
+
+	useAssistantPageData('jobListings', jobBoardSummary, jobs.length > 0);
+
+	// Register selected job details with analysis insights
+	const selectedJobSummary = useMemo(() => {
+		if (!selectedJob) return null;
+		
+		// Extract key requirements from description
+		const description = selectedJob.description || '';
+		const yearsMatch = description.match(/(\d+)\+?\s*years?/i);
+		const extractedYears = yearsMatch ? parseInt(yearsMatch[1]) : null;
+		
+		return {
+			title: selectedJob.title,
+			company: selectedJob.company,
+			location: selectedJob.location,
+			type: selectedJob.type,
+			seniority: selectedJob.seniority,
+			salaryRange: selectedJob.salaryRange,
+			remote: selectedJob.remote,
+			description: selectedJob.description?.substring(0, 1500),
+			requiredSkills: selectedJob.tags || selectedJob.skills || [],
+			matchScore: selectedJob.matchScore,
+			matchDetails: selectedJob.matchDetails,
+			// AI insights
+			analysis: {
+				estimatedExperienceRequired: extractedYears,
+				isRemoteFriendly: selectedJob.remote?.toLowerCase().includes('remote') || false,
+				hasSalaryInfo: !!selectedJob.salaryRange,
+				keyRequirements: selectedJob.tags?.slice(0, 8) || [],
+			}
+		};
+	}, [selectedJob]);
+
+	useAssistantPageData('selectedJob', selectedJobSummary, !!selectedJob);
 
 	return (
 		<AuthLayout>

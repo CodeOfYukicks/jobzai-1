@@ -37,6 +37,7 @@ import { notify } from '@/lib/notify';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { db, storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { useAssistantPageData } from '../hooks/useAssistantPageData';
 
 // Common emojis for quick selection
 const commonEmojis = [
@@ -895,6 +896,33 @@ export default function NotionEditorPage() {
     setSelectedFolderId(folderId);
     navigate('/resume-builder');
   };
+
+  // Register note data with AI Assistant
+  const noteSummary = useMemo(() => {
+    if (!note) return null;
+    
+    // Extract plain text from content structure
+    const extractText = (content: any): string => {
+      if (!content) return '';
+      if (typeof content === 'string') return content;
+      if (Array.isArray(content)) return content.map(extractText).join(' ');
+      if (content.text) return content.text;
+      if (content.content) return extractText(content.content);
+      return '';
+    };
+    
+    const plainText = extractText(note.content);
+    
+    return {
+      title: note.title || 'Untitled',
+      content: plainText.substring(0, 3000), // First 3000 chars for context
+      wordCount: plainText.split(/\s+/).filter(Boolean).length,
+      hasUnsavedChanges,
+      lastSaved: lastSaved?.toISOString(),
+    };
+  }, [note, hasUnsavedChanges, lastSaved]);
+
+  useAssistantPageData('currentNote', noteSummary, !!note);
 
   if (isLoading) {
     return (

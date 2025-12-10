@@ -8,21 +8,16 @@ interface JobSummaryPanelProps {
 }
 
 export default function JobSummaryPanel({ jobSummary, compact = false }: JobSummaryPanelProps) {
-  // Compact version for sidebar - Notion Style
+  // Compact version for sidebar - Ultra minimal
   if (compact) {
     return (
-      <div className="space-y-5">
-        {/* Role & Mission - Clean Card */}
-        <div className="rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-6 h-6 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-              <Target className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" />
-            </div>
-            <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Role
-            </h4>
-          </div>
-          <p className="text-sm text-gray-900 dark:text-white leading-relaxed font-medium mb-2">
+      <div className="space-y-6">
+        {/* Role & Mission */}
+        <div>
+          <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+            Role
+          </h4>
+          <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">
             {jobSummary.role}
           </p>
           <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
@@ -32,60 +27,60 @@ export default function JobSummaryPanel({ jobSummary, compact = false }: JobSumm
 
         {/* Key Responsibilities */}
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500"></span>
-            <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Key Responsibilities
-            </h4>
-          </div>
+          <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+            Key Responsibilities
+          </h4>
           <ul className="space-y-2">
-            {jobSummary.key_responsibilities.map((resp, index) => (
-              <li key={index} className="flex items-start gap-2.5">
-                <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0 mt-1.5"></span>
+            {jobSummary.key_responsibilities.slice(0, 5).map((resp, index) => (
+              <li key={index} className="flex items-start gap-2">
+                <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0 mt-1.5" />
                 <span className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
                   {resp}
                 </span>
               </li>
             ))}
+            {jobSummary.key_responsibilities.length > 5 && (
+              <li className="text-xs text-gray-400 dark:text-gray-500 pl-3">
+                +{jobSummary.key_responsibilities.length - 5} more
+              </li>
+            )}
           </ul>
         </div>
 
         {/* Core Requirements */}
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500"></span>
-            <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Core Requirements
-            </h4>
-          </div>
+          <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+            Core Requirements
+          </h4>
           <ul className="space-y-2">
-            {jobSummary.core_requirements.map((req, index) => (
-              <li key={index} className="flex items-start gap-2.5">
-                <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0 mt-1.5"></span>
+            {jobSummary.core_requirements.slice(0, 5).map((req, index) => (
+              <li key={index} className="flex items-start gap-2">
+                <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0 mt-1.5" />
                 <span className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
                   {req}
                 </span>
               </li>
             ))}
+            {jobSummary.core_requirements.length > 5 && (
+              <li className="text-xs text-gray-400 dark:text-gray-500 pl-3">
+                +{jobSummary.core_requirements.length - 5} more
+              </li>
+            )}
           </ul>
         </div>
 
         {/* Hidden Expectations */}
         {jobSummary.hidden_expectations.length > 0 && (
-          <div className="rounded-lg bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-6 h-6 rounded-md bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                <Eye className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <h4 className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-                Hidden Expectations
-              </h4>
-            </div>
+          <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+            <h4 className="text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <Eye className="w-3 h-3" />
+              Hidden Expectations
+            </h4>
             <ul className="space-y-2">
               {jobSummary.hidden_expectations.map((expectation, index) => (
-                <li key={index} className="flex items-start gap-2.5">
-                  <span className="w-1 h-1 rounded-full bg-amber-400 dark:bg-amber-500 flex-shrink-0 mt-1.5"></span>
-                  <span className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                <li key={index} className="flex items-start gap-2">
+                  <span className="w-1 h-1 rounded-full bg-amber-400 dark:bg-amber-500 flex-shrink-0 mt-1.5" />
+                  <span className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
                     {expectation}
                   </span>
                 </li>

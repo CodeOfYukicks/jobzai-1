@@ -3,11 +3,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useRecommendationsLoading } from './contexts/RecommendationsLoadingContext';
 import { useAuth } from './contexts/AuthContext';
+import { AssistantProvider } from './contexts/AssistantContext';
 import BackgroundLoadingNotification from './components/recommendations/BackgroundLoadingNotification';
 import LoadingStartModal from './components/recommendations/LoadingStartModal';
 import PageLoader from './components/PageLoader';
 import { ToastProvider } from './contexts/ToastContext';
 import ToastInitializer from './components/ToastInitializer';
+import { AIAssistantModal } from './components/assistant';
 
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
@@ -248,8 +250,11 @@ export default function App() {
       <ToastProvider>
         <ToastInitializer />
         <NotificationProvider>
-          <AppContent />
-          <MicroFeedback />
+          <AssistantProvider>
+            <AppContent />
+            <AIAssistantModal />
+            <MicroFeedback />
+          </AssistantProvider>
         </NotificationProvider>
       </ToastProvider>
     </QueryClientProvider>
