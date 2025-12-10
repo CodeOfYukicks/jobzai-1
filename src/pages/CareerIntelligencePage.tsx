@@ -6,7 +6,7 @@ import { fetchCompleteUserData, CompleteUserData } from '../lib/userDataFetcher'
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, RefreshCw, Image, Camera, X, Loader2 } from 'lucide-react';
 import ProfileTagsCloud from '../components/career-intelligence/ProfileTagsCloud';
-import InsightCard from '../components/career-intelligence/InsightCard';
+import BentoInsightCard from '../components/career-intelligence/BentoInsightCard';
 import InsightDetailPanel from '../components/career-intelligence/InsightDetailPanel';
 import { generateCareerInsights, CareerInsightsData } from '../services/careerIntelligence';
 import { notify } from '@/lib/notify';
@@ -569,139 +569,134 @@ export default function CareerIntelligencePage() {
             )}
           </AnimatePresence>
 
-          {/* Insight Cards - 3x3 Grid Layout */}
+          {/* Insight Cards - 3x3 Bento Grid Layout */}
           {insights && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="space-y-6"
+              className="relative"
             >
-              {/* Row 1 - 3 cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Next Move Card */}
+              {/* Subtle dot pattern background */}
+              <div className="absolute inset-0 -z-10 opacity-30 dark:opacity-20">
+                <div 
+                  className="absolute inset-0" 
+                  style={{
+                    backgroundImage: `radial-gradient(circle, rgba(99, 102, 241, 0.15) 1px, transparent 1px)`,
+                    backgroundSize: '24px 24px'
+                  }}
+                />
+              </div>
+
+              {/* Bento Grid - 3 cards per row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {/* Row 1 */}
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.1 }}
                 >
-              <InsightCard
-                id="next-move"
-                title="Your Next Move"
-                summary={insights.nextMove?.summary || 'Discover your best career opportunities'}
-                metric={insights.nextMove?.opportunityCount ? `${insights.nextMove.opportunityCount} opportunities` : undefined}
+                  <BentoInsightCard
+                    id="next-move"
+                    title="Your Next Move"
+                    summary={insights.nextMove?.summary || 'Discover your best career opportunities'}
                     onClick={() => handleOpenInsight('next-move')}
-                isLoading={isGenerating}
+                    isLoading={isGenerating}
                     data={insights.nextMove}
                   />
                 </motion.div>
 
-                {/* Skills Card */}
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.15 }}
                 >
-              <InsightCard
-                id="skills"
-                title="Skills to Master"
-                summary={insights.skills?.summary || 'Key skills to boost your career'}
-                metric={insights.skills?.criticalCount ? `${insights.skills.criticalCount} critical skills` : undefined}
+                  <BentoInsightCard
+                    id="skills"
+                    title="Skills to Master"
+                    summary={insights.skills?.summary || 'Key skills to boost your career'}
                     onClick={() => handleOpenInsight('skills')}
                     isLoading={isGenerating}
                     data={insights.skills}
                   />
                 </motion.div>
 
-                {/* Market Position Card */}
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.2 }}
                 >
-                  <InsightCard
+                  <BentoInsightCard
                     id="market-position"
                     title="Market Position"
                     summary={insights.marketPosition?.summary || 'How you compare to other candidates'}
-                    metric={insights.marketPosition?.marketFitScore ? `${insights.marketPosition.marketFitScore}% fit` : undefined}
                     onClick={() => handleOpenInsight('market-position')}
                     isLoading={isGenerating}
                     data={insights.marketPosition}
                   />
                 </motion.div>
-              </div>
 
-              {/* Row 2 - 3 cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Interview Readiness Card */}
+                {/* Row 2 */}
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.25 }}
                 >
-                  <InsightCard
+                  <BentoInsightCard
                     id="interview-readiness"
                     title="Interview Prep"
                     summary={insights.interviewReadiness?.summary || 'Get ready for your interviews'}
-                    metric={insights.interviewReadiness?.readinessScore ? `${insights.interviewReadiness.readinessScore}% ready` : undefined}
                     onClick={() => handleOpenInsight('interview-readiness')}
                     isLoading={isGenerating}
                     data={insights.interviewReadiness}
                   />
                 </motion.div>
 
-                {/* Network Insights Card */}
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.3 }}
                 >
-                  <InsightCard
+                  <BentoInsightCard
                     id="network-insights"
                     title="Network Power"
                     summary={insights.networkInsights?.summary || 'Leverage your professional network'}
-                    metric={insights.networkInsights?.connectionScore ? `${insights.networkInsights.connectionScore}% potential` : undefined}
                     onClick={() => handleOpenInsight('network-insights')}
                     isLoading={isGenerating}
                     data={insights.networkInsights}
                   />
                 </motion.div>
 
-                {/* Timeline Card */}
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.35 }}
                 >
-                  <InsightCard
+                  <BentoInsightCard
                     id="timeline"
                     title="Your Timeline"
                     summary={insights.timeline?.summary || 'Your path to your career goal'}
-                    metric={insights.timeline?.estimatedTimeToGoal || undefined}
                     onClick={() => handleOpenInsight('timeline')}
-                isLoading={isGenerating}
+                    isLoading={isGenerating}
                     data={insights.timeline}
                   />
                 </motion.div>
-              </div>
 
-              {/* Row 3 - Action Plan full width */}
-              <div className="grid grid-cols-1 gap-6">
+                {/* Row 3 - Action Plan full width */}
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.4 }}
-                  className="w-full"
+                  className="md:col-span-2 lg:col-span-3"
                 >
-              <InsightCard
-                id="action-plan"
-                title="Your Action Plan"
-                summary={insights.actionPlan?.summary || 'Actionable steps for this week'}
-                metric={insights.actionPlan?.actionCount ? `${insights.actionPlan.actionCount} actions` : undefined}
+                  <BentoInsightCard
+                    id="action-plan"
+                    title="Your Action Plan"
+                    summary={insights.actionPlan?.summary || 'Actionable steps for this week'}
                     onClick={() => handleOpenInsight('action-plan')}
-                isLoading={isGenerating}
+                    isLoading={isGenerating}
                     data={insights.actionPlan}
-                    className="min-h-[200px]"
+                    className="min-h-[220px]"
                   />
                 </motion.div>
               </div>
