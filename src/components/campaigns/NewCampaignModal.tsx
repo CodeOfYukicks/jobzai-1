@@ -356,23 +356,26 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
         onClick={onClose}
       >
         {/* Backdrop */}
-        <div className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-black/70 dark:bg-black/85 backdrop-blur-md" />
         
         {/* Modal */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          initial={{ opacity: 0, scale: 0.98, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          exit={{ opacity: 0, scale: 0.98, y: 20 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-2xl max-h-[90vh] 
+          className="relative 
+            w-full h-full 
+            sm:h-auto sm:max-h-[92vh] sm:rounded-2xl
+            md:max-w-5xl
             bg-white dark:bg-[#0a0a0a] 
-            rounded-xl border border-gray-200 dark:border-white/10 
+            sm:border border-gray-200 dark:border-white/10 
             shadow-2xl shadow-black/20 dark:shadow-black/50 
             flex flex-col"
         >
           {/* Header */}
-          <div className="flex-shrink-0 px-6 py-5 border-b border-gray-100 dark:border-white/[0.08]">
+          <div className="flex-shrink-0 px-8 py-6 border-b border-gray-100 dark:border-white/[0.08]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 {/* Back button */}
@@ -397,11 +400,11 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                     value={campaignData.name}
                     onChange={(e) => updateCampaignData({ name: e.target.value })}
                     placeholder="Untitled Campaign"
-                    className="w-full text-[15px] font-medium text-gray-900 dark:text-white tracking-tight 
+                    className="w-full text-[14px] font-medium text-gray-900 dark:text-white tracking-tight 
                       bg-transparent border-none outline-none focus:ring-0 p-0
                       placeholder-gray-400 dark:placeholder-white/30"
                   />
-                  <p className="text-[13px] text-gray-500 dark:text-white/40 mt-0.5">
+                  <p className="text-[12px] text-gray-500 dark:text-white/40 mt-0.5">
                     {STEP_CONFIG[currentStep].subtitle}
                   </p>
                 </div>
@@ -444,7 +447,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="p-6"
+                className="p-8"
               >
                 {currentStep === 'targeting' && (
                   <TargetingStep
@@ -488,11 +491,11 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
           </div>
 
           {/* Footer */}
-          <div className="flex-shrink-0 px-6 py-4 border-t border-gray-100 dark:border-white/[0.08] 
+          <div className="flex-shrink-0 px-8 py-5 border-t border-gray-100 dark:border-white/[0.08] 
             bg-gray-50/50 dark:bg-white/[0.02]">
             <div className="flex items-center justify-between">
               {/* Step info */}
-              <span className="text-[13px] text-gray-400 dark:text-white/30 font-medium">
+              <span className="text-[11px] text-gray-400 dark:text-white/30 font-medium uppercase tracking-wide">
                 Step {currentStepIndex + 1} of {steps.length}
               </span>
 
@@ -510,7 +513,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                 <button
                   onClick={handleNext}
                   disabled={!canProceed() || isSubmitting}
-                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-medium
+                  className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-[12px] font-semibold
                     transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed
                     ${currentStepIndex === steps.length - 1
                       ? 'bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] border border-[#9fc015] shadow-sm'

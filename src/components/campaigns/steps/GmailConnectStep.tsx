@@ -28,14 +28,14 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
   }, [isConnected, email, onUpdate]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="mb-8">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+      <div className="text-center">
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
           Connect your Gmail
         </h3>
-        <p className="text-[14px] text-gray-500 dark:text-white/50 leading-relaxed">
-          Authorize Jobz.ai to send emails on your behalf. Your credentials are encrypted and secure.
+        <p className="text-[12px] text-gray-500 dark:text-white/50">
+          Authorize Jobz.ai to send emails on your behalf
         </p>
       </div>
 
@@ -57,7 +57,7 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
           }} />
         </div>
 
-        <div className="relative p-6">
+        <div className="relative p-5">
           {isConnected ? (
             // Connected State
             <div className="space-y-4">
@@ -67,8 +67,8 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
                     <Check className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div>
-                    <p className="text-[14px] font-medium text-gray-900 dark:text-white">Gmail Connected</p>
-                    <p className="text-[13px] text-gray-500 dark:text-white/50">{email}</p>
+                    <p className="text-[13px] font-medium text-gray-900 dark:text-white">Gmail Connected</p>
+                    <p className="text-[11px] text-gray-500 dark:text-white/50">{email}</p>
                   </div>
                 </div>
                 
@@ -94,15 +94,15 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
             </div>
           ) : (
             // Not Connected State
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
                   flex items-center justify-center">
                   <Mail className="w-6 h-6 text-gray-400 dark:text-white/40" />
                 </div>
                 <div>
-                  <p className="text-[14px] font-medium text-gray-900 dark:text-white">No Gmail account connected</p>
-                  <p className="text-[13px] text-gray-500 dark:text-white/40">Click below to authorize access</p>
+                  <p className="text-[13px] font-medium text-gray-900 dark:text-white">No Gmail account connected</p>
+                  <p className="text-[11px] text-gray-500 dark:text-white/40">Click below to authorize access</p>
                 </div>
               </div>
 
@@ -124,8 +124,8 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
               <button
                 onClick={connect}
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-3 px-6 py-4 
-                  bg-gray-900 dark:bg-white text-white dark:text-black rounded-lg font-medium text-[14px]
+                className="w-full flex items-center justify-center gap-3 px-6 py-3.5 
+                  bg-gray-900 dark:bg-white text-white dark:text-black rounded-lg font-semibold text-[13px]
                   hover:bg-gray-800 dark:hover:bg-white/90 transition-all duration-150
                   disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -165,12 +165,12 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
       </motion.div>
 
       {/* Benefits */}
-      <div className="space-y-3">
-        <p className="text-[12px] text-gray-400 dark:text-white/30 uppercase tracking-wider font-medium">
+      <div className="space-y-2">
+        <p className="text-[11px] text-gray-400 dark:text-white/30 uppercase tracking-wider font-medium">
           Why connect Gmail?
         </p>
         
-        <div className="grid gap-3">
+        <div className="grid grid-cols-3 gap-2">
           {[
             {
               icon: Zap,
@@ -193,15 +193,13 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="flex items-start gap-3 p-3 rounded-lg 
+              className="flex flex-col items-center gap-2 p-3 rounded-lg text-center
                 bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.04]"
             >
-              <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.04] flex items-center justify-center flex-shrink-0">
-                <benefit.icon className="w-4 h-4 text-gray-500 dark:text-white/40" />
-              </div>
+              <benefit.icon className="w-5 h-5 text-gray-500 dark:text-white/40" />
               <div>
-                <p className="text-[13px] font-medium text-gray-700 dark:text-white/80">{benefit.title}</p>
-                <p className="text-[12px] text-gray-500 dark:text-white/40">{benefit.description}</p>
+                <p className="text-[11px] font-semibold text-gray-700 dark:text-white/80">{benefit.title}</p>
+                <p className="text-[10px] text-gray-500 dark:text-white/40 mt-0.5">{benefit.description}</p>
               </div>
             </motion.div>
           ))}
@@ -209,15 +207,12 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
       </div>
 
       {/* Security Notice */}
-      <div className="flex items-start gap-3 p-4 rounded-lg 
+      <div className="flex items-start gap-2 p-3 rounded-lg 
         bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.04]">
-        <Shield className="w-4 h-4 text-gray-400 dark:text-white/30 flex-shrink-0 mt-0.5" />
-        <div>
-          <p className="text-[12px] text-gray-500 dark:text-white/50 leading-relaxed">
-            We only request permissions to send emails. We never read your inbox or access 
-            personal data. You can revoke access anytime from your Google account settings.
-          </p>
-        </div>
+        <Shield className="w-3.5 h-3.5 text-gray-400 dark:text-white/30 flex-shrink-0 mt-0.5" />
+        <p className="text-[10px] text-gray-500 dark:text-white/50 leading-relaxed">
+          We only request send permissions. You can revoke access anytime.
+        </p>
       </div>
     </div>
   );

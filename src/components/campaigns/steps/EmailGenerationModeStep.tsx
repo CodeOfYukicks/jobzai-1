@@ -66,19 +66,19 @@ export default function EmailGenerationModeStep({ data, onUpdate }: EmailGenerat
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="text-center">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+      <div className="text-center mb-2">
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
           Choose Your Email Generation Mode
         </h3>
-        <p className="text-sm text-gray-500 dark:text-white/60">
+        <p className="text-[12px] text-gray-500 dark:text-white/60">
           Select how you want to create emails for your campaign
         </p>
       </div>
 
       {/* Mode Cards */}
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-3">
         {modes.map((mode, index) => {
           const Icon = mode.icon;
           const isSelected = selectedMode === mode.id;
@@ -91,7 +91,7 @@ export default function EmailGenerationModeStep({ data, onUpdate }: EmailGenerat
               transition={{ duration: 0.3, delay: index * 0.1 }}
               onClick={() => handleSelectMode(mode.id)}
               className={`
-                relative w-full text-left p-5 rounded-xl border-2 transition-all duration-200
+                relative w-full text-left p-4 rounded-xl border-2 transition-all duration-200
                 ${isSelected
                   ? 'border-[#b7e219] bg-[#b7e219]/5 dark:bg-[#b7e219]/10 shadow-lg'
                   : 'border-gray-200 dark:border-white/[0.08] hover:border-[#b7e219]/50 dark:hover:border-[#b7e219]/50 bg-white dark:bg-[#1a1a1a]'
@@ -120,22 +120,22 @@ export default function EmailGenerationModeStep({ data, onUpdate }: EmailGenerat
                 </motion.div>
               )}
 
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3">
                 {/* Icon */}
                 <div className={`
-                  w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0
+                  w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0
                   ${isSelected
                     ? 'bg-[#b7e219] text-gray-900'
                     : 'bg-gray-100 dark:bg-white/[0.05] text-gray-600 dark:text-gray-400'
                   }
                 `}>
-                  <Icon className="w-6 h-6" />
+                  <Icon className="w-5 h-5" />
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 min-w-0 pt-1">
+                <div className="flex-1 min-w-0">
                   <h4 className={`
-                    text-base font-semibold mb-1
+                    text-[14px] font-semibold mb-0.5
                     ${isSelected
                       ? 'text-gray-900 dark:text-white'
                       : 'text-gray-800 dark:text-gray-200'
@@ -143,14 +143,14 @@ export default function EmailGenerationModeStep({ data, onUpdate }: EmailGenerat
                   `}>
                     {mode.title}
                   </h4>
-                  <p className="text-sm text-gray-600 dark:text-white/60 mb-3">
+                  <p className="text-[11px] text-gray-600 dark:text-white/60 mb-2">
                     {mode.description}
                   </p>
 
                   {/* Features */}
-                  <ul className="space-y-1.5">
+                  <ul className="space-y-1">
                     {mode.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-xs text-gray-500 dark:text-white/50">
+                      <li key={idx} className="flex items-start gap-1.5 text-[10px] text-gray-500 dark:text-white/50">
                         <div className={`
                           w-1 h-1 rounded-full mt-1.5 flex-shrink-0
                           ${isSelected ? 'bg-[#b7e219]' : 'bg-gray-400 dark:bg-white/30'}
@@ -171,9 +171,9 @@ export default function EmailGenerationModeStep({ data, onUpdate }: EmailGenerat
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20"
+          className="p-3 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20"
         >
-          <p className="text-sm text-blue-800 dark:text-blue-300">
+          <p className="text-[11px] text-blue-800 dark:text-blue-300">
             {selectedMode === 'template' && (
               <>
                 <strong>Next step:</strong> Configure your email preferences (tone, language) and generate AI templates.
