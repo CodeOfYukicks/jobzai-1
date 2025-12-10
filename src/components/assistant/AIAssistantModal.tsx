@@ -9,6 +9,9 @@ import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { Link, useLocation } from 'react-router-dom';
 
+// Pages where the assistant should NOT have a backdrop (to allow interaction with content)
+const PAGES_WITHOUT_BACKDROP = ['/notes'];
+
 interface AIAssistantModalProps {
   className?: string;
 }
@@ -190,8 +193,15 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
     }
   }, [isOpen]);
 
-  // Close on click outside
+  // Close on click outside (disabled on Notes page to allow interaction)
   useEffect(() => {
+    // Don't close on click outside if we're on a page without backdrop
+    const isPageWithoutBackdrop = PAGES_WITHOUT_BACKDROP.some(path => location.pathname.startsWith(path));
+    
+    if (isPageWithoutBackdrop) {
+      return; // Skip this effect on pages without backdrop
+    }
+
     const handleClickOutside = (event: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         closeAssistant();
@@ -205,7 +215,7 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, closeAssistant]);
+  }, [isOpen, closeAssistant, location.pathname]);
 
   // Close on Escape key
   useEffect(() => {
@@ -243,19 +253,24 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
     deleteConversation(conversationId);
   };
 
+  // Check if current page should have backdrop
+  const shouldShowBackdrop = !PAGES_WITHOUT_BACKDROP.some(path => location.pathname.startsWith(path));
+
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop - Below TopBar */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={closeAssistant}
-            className="fixed top-12 left-0 right-0 bottom-0 bg-black/10 dark:bg-black/30 z-50"
-          />
+          {/* Backdrop - Below TopBar (only on pages that need it) */}
+          {shouldShowBackdrop && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={closeAssistant}
+              className="fixed top-12 left-0 right-0 bottom-0 bg-black/10 dark:bg-black/30 z-50"
+            />
+          )}
 
           {/* Fixed Right Panel - Below TopBar */}
           <motion.div
@@ -271,7 +286,7 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
             className={`fixed top-12 right-0 w-[440px] h-[calc(100vh-48px)]
               bg-white dark:bg-[#1e1e1f] 
               shadow-2xl border-l border-gray-200/80 dark:border-[#2d2d2e]
-              flex flex-col overflow-hidden z-50 ${className}`}
+              flex flex-col overflow-hidden ${shouldShowBackdrop ? 'z-50' : 'z-40'} ${className}`}
           >
             {/* Header */}
             <div className="flex-shrink-0 px-8 pt-8 pb-6">

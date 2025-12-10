@@ -4,12 +4,14 @@ import { useEffect } from 'react';
 import { useRecommendationsLoading } from './contexts/RecommendationsLoadingContext';
 import { useAuth } from './contexts/AuthContext';
 import { AssistantProvider } from './contexts/AssistantContext';
+import { TourProvider } from './contexts/TourContext';
 import BackgroundLoadingNotification from './components/recommendations/BackgroundLoadingNotification';
 import LoadingStartModal from './components/recommendations/LoadingStartModal';
 import PageLoader from './components/PageLoader';
 import { ToastProvider } from './contexts/ToastContext';
 import ToastInitializer from './components/ToastInitializer';
 import { AIAssistantModal } from './components/assistant';
+import { TourOverlay } from './components/tour';
 
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
@@ -251,9 +253,12 @@ export default function App() {
         <ToastInitializer />
         <NotificationProvider>
           <AssistantProvider>
-            <AppContent />
-            <AIAssistantModal />
-            <MicroFeedback />
+            <TourProvider>
+              <AppContent />
+              <AIAssistantModal />
+              <TourOverlay />
+              <MicroFeedback />
+            </TourProvider>
           </AssistantProvider>
         </NotificationProvider>
       </ToastProvider>

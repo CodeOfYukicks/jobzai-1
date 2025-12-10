@@ -43,40 +43,102 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
     }
   }
 
-  // Applications dynamic actions
-  if (pathname === '/applications' && pageData.applications) {
+  // Applications dynamic actions - Board-specific
+  if (pathname === '/applications') {
+    const board = pageData.currentBoard;
     const apps = pageData.applications;
     
-    // Suggest follow-up for stale applications
-    if (apps.insights?.needsFollowUp?.length > 0) {
-      const firstStale = apps.insights.needsFollowUp[0];
+    // Board-specific actions
+    if (board && board.boardName && board.boardName !== 'All Boards Overview') {
+      const boardName = board.boardName;
+      const totalOnBoard = board.totalApplicationsOnBoard || 0;
+      const statusCounts = board.applicationsByStatus || {};
+      const recentApps = board.recentOnBoard || [];
+      
+      // Show board-specific summary action
+      if (totalOnBoard > 0) {
+        const interviewCount = statusCounts['interview'] || statusCounts['Interview'] || 0;
+        const appliedCount = statusCounts['applied'] || statusCounts['Applied'] || 0;
+        
+        if (interviewCount > 0) {
+          dynamicActions.push({
+            label: `${interviewCount} interview${interviewCount > 1 ? 's' : ''} on "${boardName}"`,
+            prompt: `I have ${interviewCount} application(s) in interview stage on my "${boardName}" board. Give me a summary and tips for each interview.`,
+            isDynamic: true,
+            priority: 1,
+          });
+        }
+        
+        // Board health check
+        dynamicActions.push({
+          label: `Analyze "${boardName}" board`,
+          prompt: `Analyze my "${boardName}" board. I have ${totalOnBoard} applications total. Status breakdown: ${Object.entries(statusCounts).map(([s, c]) => `${s}: ${c}`).join(', ')}. What should I focus on?`,
+          isDynamic: true,
+          priority: 2,
+        });
+        
+        // Suggest action based on most recent application
+        if (recentApps.length > 0) {
+          const recent = recentApps[0];
+          dynamicActions.push({
+            label: `${recent.company}: what's next?`,
+            prompt: `My ${recent.company} application for "${recent.position}" is in "${recent.status}" status on my "${boardName}" board. What should I do next?`,
+            isDynamic: true,
+            priority: 3,
+          });
+        }
+      } else {
+        // Empty board
+        dynamicActions.push({
+          label: `Get started with "${boardName}"`,
+          prompt: `My "${boardName}" board is empty. Help me organize and add applications to this board effectively.`,
+          isDynamic: true,
+          priority: 1,
+        });
+      }
+    } else if (board?.viewMode === 'boards') {
+      // All boards overview mode
       dynamicActions.push({
-        label: `Follow up on ${firstStale.company}`,
-        prompt: `Help me write a follow-up email for my ${firstStale.company} application. It's been ${firstStale.daysSinceApplied} days since I applied.`,
+        label: `Compare my ${board.totalBoards || 0} boards`,
+        prompt: `I have ${board.totalBoards || 0} boards. Compare them and tell me which board needs more attention.`,
         isDynamic: true,
         priority: 1,
       });
     }
     
-    // Hot opportunities
-    if (apps.insights?.hotOpportunities?.length > 0) {
-      const hot = apps.insights.hotOpportunities[0];
-      dynamicActions.push({
-        label: `${hot.company}: ${hot.status} - what's next?`,
-        prompt: `My ${hot.company} application is in "${hot.status}" status. What should I do next to maximize my chances?`,
-        isDynamic: true,
-        priority: 2,
-      });
-    }
-    
-    // Low response rate advice
-    if (apps.insights?.responseRate < 20 && apps.total > 5) {
-      dynamicActions.push({
-        label: `Improve my ${apps.insights.responseRate}% response rate`,
-        prompt: `My application response rate is only ${apps.insights.responseRate}%. Analyze my recent applications and suggest how I can improve.`,
-        isDynamic: true,
-        priority: 3,
-      });
+    // Fallback to general applications insights if no board context
+    if (dynamicActions.length === 0 && apps) {
+      // Suggest follow-up for stale applications
+      if (apps.insights?.needsFollowUp?.length > 0) {
+        const firstStale = apps.insights.needsFollowUp[0];
+        dynamicActions.push({
+          label: `Follow up on ${firstStale.company}`,
+          prompt: `Help me write a follow-up email for my ${firstStale.company} application. It's been ${firstStale.daysSinceApplied} days since I applied.`,
+          isDynamic: true,
+          priority: 1,
+        });
+      }
+      
+      // Hot opportunities
+      if (apps.insights?.hotOpportunities?.length > 0) {
+        const hot = apps.insights.hotOpportunities[0];
+        dynamicActions.push({
+          label: `${hot.company}: ${hot.status} - what's next?`,
+          prompt: `My ${hot.company} application is in "${hot.status}" status. What should I do next to maximize my chances?`,
+          isDynamic: true,
+          priority: 2,
+        });
+      }
+      
+      // Low response rate advice
+      if (apps.insights?.responseRate < 20 && apps.total > 5) {
+        dynamicActions.push({
+          label: `Improve my ${apps.insights.responseRate}% response rate`,
+          prompt: `My application response rate is only ${apps.insights.responseRate}%. Analyze my recent applications and suggest how I can improve.`,
+          isDynamic: true,
+          priority: 3,
+        });
+      }
     }
   }
 

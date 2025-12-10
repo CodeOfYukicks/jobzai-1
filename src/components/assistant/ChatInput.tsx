@@ -30,6 +30,7 @@ export default function ChatInput({ placeholder = 'Ask me anything...' }: ChatIn
     pendingMessage,
     setPendingMessage,
     pageData,
+    messages, // Get conversation history
   } = useAssistant();
   
   const { currentUser, userData } = useAuth();
@@ -127,6 +128,14 @@ export default function ChatInput({ placeholder = 'Ask me anything...' }: ChatIn
         yearsOfExperience: profile?.yearsOfExperience,
       };
 
+      // Build conversation history for context (last 10 messages to avoid token limits)
+      const conversationHistory = messages
+        .slice(-10) // Keep last 10 messages for context
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        }));
+
       const response = await fetch('/api/assistant', {
         method: 'POST',
         headers: {
@@ -134,6 +143,7 @@ export default function ChatInput({ placeholder = 'Ask me anything...' }: ChatIn
         },
         body: JSON.stringify({
           message: trimmedInput,
+          conversationHistory, // Include conversation history
           pageContext: {
             pathname: location.pathname,
             pageName: currentPageContext?.pageName,
@@ -210,7 +220,7 @@ export default function ChatInput({ placeholder = 'Ask me anything...' }: ChatIn
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, currentUser, addMessage, setIsLoading, profile, userData, location.pathname, currentPageContext, updateMessage, pageData]);
+  }, [isLoading, currentUser, addMessage, setIsLoading, profile, userData, location.pathname, currentPageContext, updateMessage, pageData, messages]);
 
   // Handle pending messages from QuickActions
   useEffect(() => {

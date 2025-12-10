@@ -407,17 +407,21 @@ Be warm but professional. Keep the conclusion brief (30 seconds max). Do NOT ask
     console.log('📝 Job context:', this.jobContext?.companyName, '-', this.jobContext?.position);
     console.log('📝 User profile:', this.userProfile?.firstName, this.userProfile?.lastName);
     
-    // Update session with instructions only
-    // Note: input_audio_transcription causes session.update to fail silently
+    // Send session.update with configuration
+    // IMPORTANT: 'type: realtime' is REQUIRED or the API will reject the update!
+    // NOTE: input_audio_transcription is NOT supported by this API version (causes unknown_parameter error)
+    // User transcription must be handled differently or may not be available
     const sessionUpdate = {
       type: 'session.update',
       session: {
-        type: 'realtime',  // REQUIRED
+        type: 'realtime',  // REQUIRED - API rejects without this
         instructions: instructions,
       },
     };
     
-    console.log('📤 Sending session.update with instructions (length: ' + instructions.length + ' chars)');
+    console.log('📤 Sending session.update with:');
+    console.log('   - type: realtime (required)');
+    console.log('   - instructions: ' + instructions.length + ' chars');
     this.sendEvent(sessionUpdate as ClientEvent);
     
     console.log('⏳ Waiting for session.updated confirmation before starting interview...');
@@ -1109,8 +1113,17 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         break;
         
       case 'session.updated':
-        console.log('✅ Session updated successfully! Interviewer persona is now active.');
-        console.log('📝 Session config applied - starting interview...');
+        console.log('✅ Session updated successfully!');
+        // Log the session config to see what was actually applied
+        const session = (event as any).session;
+        if (session) {
+          console.log('📝 Session config:', {
+            hasInstructions: !!session.instructions,
+            instructionsLength: session.instructions?.length || 0,
+            inputAudioTranscription: session.input_audio_transcription,
+            turnDetection: session.turn_detection?.type,
+          });
+        }
         // NOW trigger the greeting since session is confirmed configured
         this.triggerInitialGreeting();
         break;
@@ -1200,9 +1213,35 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         }
         break;
         
+      case 'conversation.item.input_audio_transcription.delta':
+        // User's speech transcription streaming delta
+        const transcriptDelta = (event as any).delta || (event as any).transcript;
+        console.log('📝 User transcription delta:', transcriptDelta);
+        if (transcriptDelta) {
+          const itemId = (event as any).item_id || this.currentUserItemId;
+          if (itemId) {
+            const existingIndex = this.transcript.findIndex(e => e.id === itemId);
+            if (existingIndex === -1) {
+              // Create new entry
+              this.addTranscriptEntry({
+                id: itemId,
+                role: 'user',
+                text: transcriptDelta,
+                timestamp: Date.now(),
+                isComplete: false,
+              });
+            } else {
+              // Append to existing entry
+              this.transcript[existingIndex].text += transcriptDelta;
+              this.config.onTranscriptUpdate?.([...this.transcript]);
+            }
+          }
+        }
+        break;
+        
       case 'conversation.item.input_audio_transcription.completed':
         // User's speech was transcribed - NOW create the entry with text
-        console.log('📝 User transcription:', event.transcript);
+        console.log('📝 User transcription COMPLETED:', event.transcript);
         if (event.transcript && event.transcript.trim()) {
           // Create or update entry with actual transcript
           const existingIndex = this.transcript.findIndex(e => e.id === event.item_id);
@@ -1216,13 +1255,24 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
               isComplete: true,
             });
           } else {
-            // Update existing entry
-            this.updateTranscriptEntry(event.item_id, { 
-              text: event.transcript,
-              isComplete: true,
-            });
+            // Update existing entry with final transcript
+            this.transcript[existingIndex].text = event.transcript;  // Replace with final
+            this.transcript[existingIndex].isComplete = true;
+            this.config.onTranscriptUpdate?.([...this.transcript]);
           }
         }
+        break;
+        
+      case 'conversation.item.input_audio_transcription.failed':
+        // User's speech transcription failed - log for debugging
+        const transcriptionError = (event as any).error;
+        console.error('❌ User transcription failed:', transcriptionError);
+        console.error('   Item ID:', event.item_id);
+        console.error('   Error type:', transcriptionError?.type);
+        console.error('   Error code:', transcriptionError?.code);
+        console.error('   Error message:', transcriptionError?.message);
+        // Don't show error to user - transcription failure is not critical
+        // The interview can continue, we just won't have the user's text
         break;
         
       case 'response.created':
@@ -1453,6 +1503,13 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         // Log unknown events for debugging with more detail
         const eventData = event as any;
         console.log('📨 Unhandled event:', event.type);
+        
+        // SPECIAL: Log any event related to transcription for debugging
+        if (event.type.includes('transcription') || event.type.includes('transcript')) {
+          console.log('🎯 TRANSCRIPTION-RELATED EVENT DETECTED:', event.type);
+          console.log('   Full event data:', JSON.stringify(eventData, null, 2));
+        }
+        
         // Check if this event has audio data
         // GUARDED: Only play if NOT interrupted and has a valid response_id
         if (eventData.delta && typeof eventData.delta === 'string' && eventData.delta.length > 100) {

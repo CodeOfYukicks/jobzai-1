@@ -6617,6 +6617,7 @@ URL to visit: ${jobUrl}
 
         {/* Upload New CV Option */}
         <div
+          data-tour="cv-upload"
           className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200 ${cvFile && !usingSavedCV
             ? 'border-[#635BFF] dark:border-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#5249e6]/20'
             : 'border-gray-300 dark:border-[#3d3c3e] hover:border-purple-400 dark:hover:border-purple-500 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
@@ -7552,6 +7553,7 @@ URL to visit: ${jobUrl}
                   Job Description
                 </label>
                 <textarea
+                  data-tour="job-description"
                   value={formData.jobDescription}
                   onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
                     className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF] transition-all h-36 resize-none"
@@ -7842,8 +7844,6 @@ URL to visit: ${jobUrl}
 
   // Register page data with AI Assistant - Enhanced with actionable insights
   const cvAnalysisSummary = useMemo(() => {
-    const selectedAnalysis = analyses.find(a => a.id === formData.jobTitle);
-    
     // Calculate average score across analyses
     const avgScore = analyses.length > 0 
       ? Math.round(analyses.reduce((sum, a) => sum + (a.matchScore || 0), 0) / analyses.length)
@@ -7880,17 +7880,28 @@ URL to visit: ${jobUrl}
       quickWins.push('Expand on your work experience descriptions');
     }
 
+    // Determine the current view mode based on state
+    const isCreatingNewAnalysis = isModalOpen;
+    const currentWizardStep = isCreatingNewAnalysis ? currentStep : null;
+    const wizardStepName = currentWizardStep ? ['Select CV', 'Job Details', 'Review'][currentWizardStep - 1] : null;
+
     return {
+      // Page context
+      pagePath: '/cv-analysis',
+      viewMode: isCreatingNewAnalysis ? 'creating-analysis' : 'analysis-list',
+      wizardStep: wizardStepName,
       totalAnalyses: analyses.length,
       // Performance overview
       performance: {
         averageScore: avgScore,
         bestMatch: bestMatch ? {
+          id: bestMatch.id,
           jobTitle: bestMatch.jobTitle,
           company: bestMatch.company,
           score: bestMatch.matchScore,
         } : null,
         worstMatch: worstMatch && analyses.length > 1 ? {
+          id: worstMatch.id,
           jobTitle: worstMatch.jobTitle,
           company: worstMatch.company,
           score: worstMatch.matchScore,
@@ -7903,6 +7914,7 @@ URL to visit: ${jobUrl}
         improvementPriority: topWeakAreas[0] || 'Keep optimizing your CV',
       },
       recentAnalyses: analyses.slice(0, 8).map(a => ({
+        id: a.id,
         jobTitle: a.jobTitle,
         company: a.company,
         matchScore: a.matchScore,
@@ -7917,7 +7929,7 @@ URL to visit: ${jobUrl}
       selectedCV: userCV?.name || (cvFile ? cvFile.name : null),
       isAnalyzing: isLoading,
     };
-  }, [analyses, formData, userCV, cvFile, isLoading]);
+  }, [analyses, formData, userCV, cvFile, isLoading, isModalOpen, currentStep]);
 
   useAssistantPageData('cvAnalysis', cvAnalysisSummary, analyses.length > 0 || !!formData.jobTitle);
 
@@ -8331,6 +8343,7 @@ URL to visit: ${jobUrl}
                 </button>
 
                 <button
+                  data-tour="analyze-button"
                   onClick={() => {
                     if (currentStep < steps.length) {
                       if (currentStep === 2) {

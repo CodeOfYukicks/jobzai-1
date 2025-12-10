@@ -38,6 +38,7 @@ import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { db, storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAssistantPageData } from '../hooks/useAssistantPageData';
+import { useAssistant } from '../contexts/AssistantContext';
 
 // Common emojis for quick selection
 const commonEmojis = [
@@ -49,6 +50,7 @@ export default function NotionEditorPage() {
   const { noteId: urlNoteId } = useParams<{ noteId: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { registerNoteEditor, unregisterNoteEditor, isOpen: isAssistantOpen } = useAssistant();
 
   // Active note ID - can differ from URL during soft navigation
   const [activeNoteId, setActiveNoteId] = useState<string | undefined>(urlNoteId);
@@ -485,6 +487,17 @@ export default function NotionEditorPage() {
     },
     []
   );
+
+  // Register note editor with AI Assistant on mount
+  useEffect(() => {
+    registerNoteEditor({
+      onContentChange: handleContentChange,
+    });
+
+    return () => {
+      unregisterNoteEditor();
+    };
+  }, [registerNoteEditor, unregisterNoteEditor, handleContentChange]);
 
   // Handle title change
   const handleTitleChange = useCallback(
@@ -953,7 +966,7 @@ export default function NotionEditorPage() {
 
   return (
     <AuthLayout>
-      <div className="flex h-full">
+      <div className={`flex h-full transition-all duration-300 ${isAssistantOpen ? 'mr-[440px]' : 'mr-0'}`}>
         {/* Sidebar */}
         <FolderSidebar
           folders={folders}

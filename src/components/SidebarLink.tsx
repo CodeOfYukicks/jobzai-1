@@ -13,6 +13,18 @@ interface SidebarLinkProps {
   isSubmenuItem?: boolean;
 }
 
+// Map hrefs to tour identifiers for guided tours
+const hrefToTourId: Record<string, string> = {
+  '/cv-analysis': 'resume-lab-link',
+  '/resume-builder': 'resume-builder-link',
+  '/applications': 'applications-link',
+  '/mock-interview': 'mock-interview-link',
+  '/jobs': 'job-board-link',
+  '/dashboard': 'dashboard-link',
+  '/recommendations': 'recommendations-link',
+  '/calendar': 'calendar-link',
+};
+
 export default function SidebarLink({
   name,
   href,
@@ -38,6 +50,8 @@ export default function SidebarLink({
       : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
     }`;
 
+  const tourId = hrefToTourId[href];
+
   return (
     <Link
       to={href}
@@ -45,6 +59,7 @@ export default function SidebarLink({
       onMouseLeave={onMouseLeave}
       className={baseClasses}
       title={isCollapsed ? name : undefined}
+      data-tour={tourId}
     >
       {/* Hover Effect */}
       {isHovered === name && (

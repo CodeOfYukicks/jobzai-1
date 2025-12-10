@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -33,6 +33,7 @@ import ModernProfessional from '../components/cv-editor/templates/ModernProfessi
 import ExecutiveClassic from '../components/cv-editor/templates/ExecutiveClassic';
 import TechMinimalist from '../components/cv-editor/templates/TechMinimalist';
 import CreativeBalance from '../components/cv-editor/templates/CreativeBalance';
+import { useAssistantPageData } from '../hooks/useAssistantPageData';
 
 // Initial empty CV data structure
 const initialCVData: CVData = {
@@ -1086,6 +1087,53 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
       setIsTranslating(false);
     }
   };
+
+  // Register editor context with AI Assistant
+  const editorContextSummary = useMemo(() => {
+    const enabledSections = cvData.sections?.filter(s => s.enabled) || [];
+    const experienceCount = cvData.experiences?.length || 0;
+    const educationCount = cvData.education?.length || 0;
+    const skillsCount = cvData.skills?.length || 0;
+
+    return {
+      pagePath: isResumeBuilder ? `/resume-builder/${id}/cv-editor` : `/ats-analysis/${id}/cv-editor`,
+      viewMode: 'cv-editor',
+      analysisId: id,
+      isResumeBuilder,
+      resumeName: resumeName || 'Untitled Resume',
+      template,
+      hasUnsavedChanges: isDirty,
+      isSaving,
+      // CV content summary
+      cvSummary: {
+        fullName: `${cvData.personalInfo?.firstName || ''} ${cvData.personalInfo?.lastName || ''}`.trim() || null,
+        title: cvData.personalInfo?.title || null,
+        hasSummary: !!cvData.summary && cvData.summary.length > 10,
+        experienceCount,
+        educationCount,
+        skillsCount,
+        certificationsCount: cvData.certifications?.length || 0,
+        projectsCount: cvData.projects?.length || 0,
+        languagesCount: cvData.languages?.length || 0,
+      },
+      enabledSections: enabledSections.map(s => s.title),
+      // Job context if available
+      jobContext: jobContext ? {
+        company: jobContext.company,
+        jobTitle: jobContext.jobTitle,
+        hasJobDescription: !!jobContext.jobDescription,
+        keywordsCount: jobContext.keywords?.length || 0,
+      } : null,
+      // Editing state
+      activeSection: activeSectionTarget?.section || null,
+      zoom,
+      showPreview,
+      isTranslating,
+      isAnalyzing,
+    };
+  }, [cvData, template, resumeName, isDirty, isSaving, jobContext, activeSectionTarget, zoom, showPreview, isTranslating, isAnalyzing, id, isResumeBuilder]);
+
+  useAssistantPageData('cvEditor', editorContextSummary, true);
 
   return (
     <AuthLayout>

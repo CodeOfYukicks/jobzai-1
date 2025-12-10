@@ -87,6 +87,12 @@ interface CampaignRecipient {
   repliedAt: any;
   createdAt: any;
   gmailThreadId?: string;
+  variantId?: string;
+  variantConfig?: {
+    hookIndex: number;
+    bodyIndex: number;
+    ctaIndex: number;
+  };
 }
 
 interface Campaign {
@@ -103,6 +109,16 @@ interface Campaign {
     length: string;
     keyPoints: string | null;
     language: string;
+  };
+  emailGenerationMode?: 'template' | 'abtest' | 'auto';
+  template?: {
+    subject: string;
+    body: string;
+  };
+  abTestVariants?: {
+    hooks: string[];
+    bodies: string[];
+    ctas: string[];
   };
   stats: {
     contactsFound: number;
@@ -1341,12 +1357,12 @@ export default function CampaignsAutoPage() {
                   onClick={() => setIsNewCampaignModalOpen(true)}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg shadow-sm hover:shadow transition-all duration-200
+                  className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200
                     ${coverPhoto 
                       ? (isCoverDark 
-                        ? 'text-white bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30'
-                        : 'text-gray-900 dark:text-white bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-sm border border-gray-200 dark:border-[#3d3c3e] hover:bg-white dark:hover:bg-[#2b2a2c]')
-                      : 'text-gray-700 dark:text-gray-200 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
+                        ? 'text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015]'
+                        : 'text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015]')
+                      : 'text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] dark:bg-[#b7e219] dark:hover:bg-[#a5cb17]'
                     }`}
                 >
                   <Sparkles className="w-4 h-4" />
@@ -2404,7 +2420,7 @@ export default function CampaignsAutoPage() {
                 </p>
               <button 
                 onClick={() => setIsNewCampaignModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
               >
                   <Sparkles className="w-4 h-4" />
                   <span>New Campaign</span>

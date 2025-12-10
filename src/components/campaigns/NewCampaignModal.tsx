@@ -9,13 +9,17 @@ import { db } from '../../lib/firebase';
 // Steps
 import TargetingStep from './steps/TargetingStep';
 import GmailConnectStep from './steps/GmailConnectStep';
-import EmailPreferencesStep from './steps/EmailPreferencesStep';
+import EmailGenerationModeStep from './steps/EmailGenerationModeStep';
+import TemplateGenerationStep from './steps/TemplateGenerationStep';
+import ABTestingStep from './steps/ABTestingStep';
+import CVAttachmentStep from './steps/CVAttachmentStep';
 
 // Types
 export type EmailTone = 'casual' | 'professional' | 'bold';
 export type EmailLength = 'short' | 'medium' | 'detailed';
 export type Seniority = 'entry' | 'senior' | 'manager' | 'director' | 'vp' | 'c_suite';
 export type CompanySize = '1-10' | '11-50' | '51-200' | '201-500' | '501-1000' | '1001-5000' | '5001+';
+export type GenerationMode = 'template' | 'abtest' | 'auto';
 
 export interface CampaignData {
   // Campaign name
@@ -38,6 +42,35 @@ export interface CampaignData {
   emailLength: EmailLength;
   keyPoints?: string;
   language: 'en' | 'fr';
+  
+  // Step 4: Generation Mode
+  emailGenerationMode?: GenerationMode;
+  
+  // For template mode
+  selectedTemplate?: {
+    id: string;
+    subject: string;
+    body: string;
+  };
+  
+  // For A/B testing mode
+  abTestConfig?: {
+    hooks: string[];
+    bodies: string[];
+    ctas: string[];
+  };
+  
+  // Outreach goal (for A/B testing context)
+  outreachGoal?: 'job' | 'internship' | 'networking';
+  
+  // CV Attachment
+  attachCV?: boolean;
+  cvAttachment?: {
+    id: string;
+    name: string;
+    url: string;
+    source: 'main' | 'resume-builder';
+  };
 }
 
 interface NewCampaignModalProps {
@@ -46,8 +79,7 @@ interface NewCampaignModalProps {
   onCampaignCreated?: (campaignId: string) => void;
 }
 
-type Step = 'targeting' | 'gmail' | 'preferences';
-const STEPS: Step[] = ['targeting', 'gmail', 'preferences'];
+type Step = 'targeting' | 'gmail' | 'mode' | 'template' | 'abtest' | 'cvAttachment';
 
 const STEP_CONFIG = {
   targeting: {
@@ -60,10 +92,25 @@ const STEP_CONFIG = {
     subtitle: 'Authorize email sending',
     number: 2
   },
-  preferences: {
-    title: 'Email Style',
-    subtitle: 'Set your outreach preferences',
+  mode: {
+    title: 'Generation Mode',
+    subtitle: 'Choose how to create emails',
     number: 3
+  },
+  template: {
+    title: 'Email Templates',
+    subtitle: 'AI-generated templates with preferences',
+    number: 4
+  },
+  abtest: {
+    title: 'A/B Testing',
+    subtitle: 'Create email variants with preferences',
+    number: 4
+  },
+  cvAttachment: {
+    title: 'CV Attachment',
+    subtitle: 'Attach your resume (optional)',
+    number: 5
   }
 };
 
@@ -71,6 +118,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
   const { currentUser } = useAuth();
   const [currentStep, setCurrentStep] = useState<Step>('targeting');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [campaignId, setCampaignId] = useState<string | null>(null);
   
   const [campaignData, setCampaignData] = useState<CampaignData>({
     name: '',
@@ -85,12 +133,33 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
     emailTone: 'casual',
     emailLength: 'short',
     keyPoints: '',
-    language: 'en'
+    language: 'en',
+    emailGenerationMode: undefined,
+    selectedTemplate: undefined,
+    abTestConfig: { hooks: [''], bodies: [''], ctas: [''] },
+    outreachGoal: 'job',
+    attachCV: false,
+    cvAttachment: undefined
   });
 
-  // Progress calculation
-  const currentStepIndex = STEPS.indexOf(currentStep);
-  const progress = ((currentStepIndex + 1) / STEPS.length) * 100;
+  // Get dynamic steps based on generation mode
+  const getSteps = (): Step[] => {
+    const baseSteps: Step[] = ['targeting', 'gmail', 'mode'];
+    
+    if (campaignData.emailGenerationMode === 'template') {
+      return [...baseSteps, 'template', 'cvAttachment'];
+    } else if (campaignData.emailGenerationMode === 'abtest') {
+      return [...baseSteps, 'abtest', 'cvAttachment'];
+    } else if (campaignData.emailGenerationMode === 'auto') {
+      return [...baseSteps, 'cvAttachment'];
+    }
+    
+    return baseSteps;
+  };
+
+  const steps = getSteps();
+  const currentStepIndex = steps.indexOf(currentStep);
+  const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
   // Update campaign data
   const updateCampaignData = useCallback((updates: Partial<CampaignData>) => {
@@ -118,8 +187,29 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
         }
         return true;
       
-      case 'preferences':
-        // Email preferences are always valid (have defaults)
+      case 'mode':
+        if (!campaignData.emailGenerationMode) {
+          notify.error('Please select an email generation mode');
+          return false;
+        }
+        return true;
+      
+      case 'template':
+        if (!campaignData.selectedTemplate) {
+          notify.error('Please select or generate a template');
+          return false;
+        }
+        return true;
+      
+      case 'abtest':
+        const config = campaignData.abTestConfig;
+        if (!config || 
+            !config.hooks.some(h => h.trim()) ||
+            !config.bodies.some(b => b.trim()) ||
+            !config.ctas.some(c => c.trim())) {
+          notify.error('Please add at least one variant for each section');
+          return false;
+        }
         return true;
       
       default:
@@ -132,8 +222,8 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
     if (!validateCurrentStep()) return;
     
     const nextIndex = currentStepIndex + 1;
-    if (nextIndex < STEPS.length) {
-      setCurrentStep(STEPS[nextIndex]);
+    if (nextIndex < steps.length) {
+      setCurrentStep(steps[nextIndex]);
     } else {
       handleLaunchCampaign();
     }
@@ -143,7 +233,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
     if (currentStepIndex === 0) {
       onClose();
     } else {
-      setCurrentStep(STEPS[currentStepIndex - 1]);
+      setCurrentStep(steps[currentStepIndex - 1]);
     }
   };
 
@@ -153,7 +243,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
     
     setIsSubmitting(true);
     try {
-      const campaignDoc = {
+      const campaignDoc: any = {
         userId: currentUser.uid,
         name: campaignData.name.trim() || null,
         status: 'pending', // Pending until Apollo fetches contacts
@@ -175,6 +265,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
           keyPoints: campaignData.keyPoints || null,
           language: campaignData.language
         },
+        emailGenerationMode: campaignData.emailGenerationMode || 'auto',
         stats: {
           contactsFound: 0,
           emailsGenerated: 0,
@@ -186,6 +277,34 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
+
+      // Add template if in template mode
+      if (campaignData.emailGenerationMode === 'template' && campaignData.selectedTemplate) {
+        campaignDoc.template = {
+          subject: campaignData.selectedTemplate.subject,
+          body: campaignData.selectedTemplate.body
+        };
+      }
+
+      // Add A/B test config if in abtest mode
+      if (campaignData.emailGenerationMode === 'abtest' && campaignData.abTestConfig) {
+        campaignDoc.abTestVariants = {
+          hooks: campaignData.abTestConfig.hooks.filter(h => h.trim()),
+          bodies: campaignData.abTestConfig.bodies.filter(b => b.trim()),
+          ctas: campaignData.abTestConfig.ctas.filter(c => c.trim())
+        };
+      }
+
+      // Add CV attachment if enabled
+      if (campaignData.attachCV && campaignData.cvAttachment) {
+        campaignDoc.attachCV = true;
+        campaignDoc.cvAttachment = {
+          id: campaignData.cvAttachment.id,
+          name: campaignData.cvAttachment.name,
+          url: campaignData.cvAttachment.url,
+          source: campaignData.cvAttachment.source
+        };
+      }
 
       const docRef = await addDoc(collection(db, 'campaigns'), campaignDoc);
       
@@ -207,8 +326,19 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
         return campaignData.personTitles.length > 0 && campaignData.personLocations.length > 0;
       case 'gmail':
         return campaignData.gmailConnected;
-      case 'preferences':
-        return true; // Preferences have defaults, always valid
+      case 'mode':
+        return !!campaignData.emailGenerationMode;
+      case 'template':
+        return !!campaignData.selectedTemplate;
+      case 'abtest':
+        const config = campaignData.abTestConfig;
+        return !!(config && 
+          config.hooks.some(h => h.trim()) &&
+          config.bodies.some(b => b.trim()) &&
+          config.ctas.some(c => c.trim()));
+      case 'cvAttachment':
+        // CV attachment is optional, always valid
+        return true;
       default:
         return false;
     }
@@ -279,14 +409,14 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
 
               {/* Step indicator */}
               <div className="flex items-center gap-2">
-                {STEPS.map((step, idx) => (
+                {steps.map((step, idx) => (
                   <div
                     key={step}
                     className={`h-2 rounded-full transition-all duration-300 ${
                       idx < currentStepIndex
-                        ? 'w-2 bg-gray-900 dark:bg-white'
+                        ? 'w-2 bg-[#b7e219]'
                         : idx === currentStepIndex
-                        ? 'w-6 bg-gray-900 dark:bg-white'
+                        ? 'w-6 bg-[#b7e219]'
                         : 'w-2 bg-gray-200 dark:bg-white/20'
                     }`}
                   />
@@ -298,7 +428,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
           {/* Progress bar */}
           <div className="h-[2px] bg-gray-100 dark:bg-white/[0.06] flex-shrink-0">
             <motion.div
-              className="h-full bg-gray-900 dark:bg-white"
+              className="h-full bg-[#b7e219]"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
@@ -328,8 +458,27 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                     onUpdate={updateCampaignData}
                   />
                 )}
-                {currentStep === 'preferences' && (
-                  <EmailPreferencesStep
+                {currentStep === 'mode' && (
+                  <EmailGenerationModeStep
+                    data={campaignData}
+                    onUpdate={updateCampaignData}
+                  />
+                )}
+                {currentStep === 'template' && (
+                  <TemplateGenerationStep
+                    data={campaignData}
+                    onUpdate={updateCampaignData}
+                    campaignId={campaignId}
+                  />
+                )}
+                {currentStep === 'abtest' && (
+                  <ABTestingStep
+                    data={campaignData}
+                    onUpdate={updateCampaignData}
+                  />
+                )}
+                {currentStep === 'cvAttachment' && (
+                  <CVAttachmentStep
                     data={campaignData}
                     onUpdate={updateCampaignData}
                   />
@@ -344,7 +493,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
             <div className="flex items-center justify-between">
               {/* Step info */}
               <span className="text-[13px] text-gray-400 dark:text-white/30 font-medium">
-                Step {currentStepIndex + 1} of {STEPS.length}
+                Step {currentStepIndex + 1} of {steps.length}
               </span>
 
               {/* Actions */}
@@ -363,8 +512,8 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                   disabled={!canProceed() || isSubmitting}
                   className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-medium
                     transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed
-                    ${currentStepIndex === STEPS.length - 1
-                      ? 'bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-white/90'
+                    ${currentStepIndex === steps.length - 1
+                      ? 'bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] border border-[#9fc015] shadow-sm'
                       : 'bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-white/15 border border-gray-200 dark:border-white/10'
                     }`}
                 >
@@ -373,7 +522,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                       <Loader2 className="w-4 h-4 animate-spin" />
                       <span>Launching...</span>
                     </>
-                  ) : currentStepIndex === STEPS.length - 1 ? (
+                  ) : currentStepIndex === steps.length - 1 ? (
                     <>
                       <Rocket className="w-4 h-4" />
                       <span>Launch Campaign</span>

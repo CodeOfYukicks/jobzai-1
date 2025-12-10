@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import ATSAnalysisPage from './ATSAnalysisPage';
 import ATSAnalysisPagePremium from './ATSAnalysisPagePremium';
+import { useAssistantPageData } from '../hooks/useAssistantPageData';
 
 /**
  * Smart Router for ATS Analysis
@@ -15,6 +16,7 @@ export default function ATSAnalysisRouter() {
   const { id } = useParams<{ id: string }>();
   const { currentUser } = useAuth();
   const [analysisType, setAnalysisType] = useState<'premium' | 'legacy' | 'loading' | 'error'>('loading');
+  const [analysisData, setAnalysisData] = useState<any>(null);
 
   useEffect(() => {
     const detectAnalysisType = async () => {
@@ -33,6 +35,7 @@ export default function ATSAnalysisRouter() {
         }
 
         const data = analysisDoc.data();
+        setAnalysisData(data); // Store for AI context
         
         // Detect if it's a premium analysis
         // Premium analyses have these fields: type='premium', match_scores, job_summary, etc.
@@ -51,6 +54,39 @@ export default function ATSAnalysisRouter() {
 
     detectAnalysisType();
   }, [id, currentUser]);
+
+  // Register analysis detail context with AI Assistant
+  const analysisDetailSummary = useMemo(() => {
+    if (!analysisData || !id) return null;
+
+    return {
+      pagePath: `/ats-analysis/${id}`,
+      viewMode: 'analysis-detail',
+      analysisId: id,
+      isPremiumAnalysis: analysisType === 'premium',
+      company: analysisData.company || analysisData.job_company,
+      jobTitle: analysisData.jobTitle || analysisData.job_title,
+      matchScore: analysisData.matchScore || analysisData.match_scores?.overall,
+      date: analysisData.date || analysisData.created_at,
+      // Key insights for AI context
+      keyFindings: analysisData.keyFindings || analysisData.key_findings || [],
+      skillsMatch: analysisData.skillsMatch ? {
+        matchingCount: analysisData.skillsMatch.matching?.length || 0,
+        missingCount: analysisData.skillsMatch.missing?.length || 0,
+        topMatching: analysisData.skillsMatch.matching?.slice(0, 5).map((s: any) => s.name || s),
+        topMissing: analysisData.skillsMatch.missing?.slice(0, 5).map((s: any) => s.name || s),
+      } : null,
+      categoryScores: analysisData.categoryScores || analysisData.category_scores,
+      executiveSummary: analysisData.executiveSummary?.substring(0, 500) || analysisData.executive_summary?.substring(0, 500),
+      recommendations: analysisData.recommendations?.slice(0, 3).map((r: any) => ({
+        title: r.title,
+        priority: r.priority,
+      })),
+      atsScore: analysisData.atsOptimization?.score || analysisData.ats_score,
+    };
+  }, [analysisData, id, analysisType]);
+
+  useAssistantPageData('analysisDetail', analysisDetailSummary, !!analysisData);
 
   // Loading state
   if (analysisType === 'loading') {

@@ -66,6 +66,13 @@ interface AssistantContextType {
   createNewConversation: () => void;
   switchConversation: (conversationId: string) => void;
   deleteConversation: (conversationId: string) => void;
+  // Note editor integration
+  noteEditorCallbacks: {
+    onContentChange?: (content: any) => void;
+  } | null;
+  registerNoteEditor: (callbacks: { onContentChange: (content: any) => void }) => void;
+  unregisterNoteEditor: () => void;
+  applyNoteEdit: ((content: string) => Promise<void>) | null;
 }
 
 const AssistantContext = createContext<AssistantContextType | undefined>(undefined);
@@ -126,6 +133,11 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   // Use ref for page data to avoid re-renders when data changes
   const pageDataRef = useRef<PageData>({});
   const [pageData, setPageData] = useState<PageData>({});
+  
+  // Note editor integration
+  const [noteEditorCallbacks, setNoteEditorCallbacks] = useState<{
+    onContentChange?: (content: any) => void;
+  } | null>(null);
 
   // Save conversations to localStorage whenever they change
   useEffect(() => {
@@ -251,6 +263,31 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     setPageData({});
   }, []);
 
+  // Note editor registration
+  const registerNoteEditor = useCallback((callbacks: { onContentChange: (content: any) => void }) => {
+    setNoteEditorCallbacks(callbacks);
+  }, []);
+
+  const unregisterNoteEditor = useCallback(() => {
+    setNoteEditorCallbacks(null);
+  }, []);
+
+  // Apply note edit function
+  const applyNoteEdit = useCallback(async (content: string) => {
+    if (!noteEditorCallbacks?.onContentChange) {
+      console.warn('No note editor registered');
+      return;
+    }
+
+    try {
+      // Call the registered editor's content change handler
+      await noteEditorCallbacks.onContentChange(content);
+    } catch (error) {
+      console.error('Error applying note edit:', error);
+      throw error;
+    }
+  }, [noteEditorCallbacks]);
+
   const value: AssistantContextType = {
     isOpen,
     openAssistant,
@@ -275,6 +312,10 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     createNewConversation,
     switchConversation,
     deleteConversation,
+    noteEditorCallbacks,
+    registerNoteEditor,
+    unregisterNoteEditor,
+    applyNoteEdit,
   };
 
   return (

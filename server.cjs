@@ -902,6 +902,393 @@ app.post('/api/assistant', async (req, res) => {
   }
 });
 
+// ============================================
+// PRODUCT KNOWLEDGE BASE
+// Comprehensive documentation of Jobz.ai features
+// ============================================
+const PRODUCT_KNOWLEDGE = {
+  // Platform Overview
+  overview: {
+    name: 'Jobz.ai',
+    description: 'Plateforme de recherche d\'emploi propulsée par l\'IA qui aide les candidats à trouver, postuler et décrocher leur emploi idéal.',
+    tagline: 'Révolutionnez votre recherche d\'emploi avec l\'IA',
+    mainSections: ['APPLY (Postuler)', 'TRACK (Suivre)', 'PREPARE (Préparer)', 'IMPROVE (S\'améliorer)'],
+  },
+
+  // ============================================
+  // APPLY SECTION FEATURES
+  // ============================================
+  features: {
+    jobBoard: {
+      name: 'Job Board',
+      path: '/jobs',
+      section: 'APPLY',
+      description: 'Explorez des milliers d\'offres d\'emploi avec des filtres avancés et un matching IA.',
+      whatItDoes: [
+        'Affiche les offres d\'emploi les plus récentes et pertinentes',
+        'Filtre par localisation, type de contrat, niveau d\'expérience, salaire',
+        'Mode "For You" qui utilise l\'IA pour matcher avec votre profil',
+        'Sauvegarde des offres favorites',
+        'Score de compatibilité automatique avec votre CV',
+      ],
+      howToUse: [
+        'Allez dans "Job Board" dans le menu de gauche (section Apply)',
+        'Utilisez la barre de recherche pour chercher par mot-clé ou entreprise',
+        'Appliquez des filtres (Remote, Full-time, etc.) pour affiner',
+        'Cliquez sur une offre pour voir les détails',
+        'Utilisez "Save" pour garder une offre en favoris',
+        'Cliquez sur "Apply" pour postuler directement ou ajouter à vos candidatures',
+      ],
+      tips: [
+        'Activez le mode "For You" pour voir les jobs qui matchent votre profil',
+        'Vérifiez le score de match avant de postuler - visez 70%+',
+        'Sauvegardez les offres intéressantes et revenez-y quand votre CV est optimisé',
+      ],
+    },
+
+    autopilot: {
+      name: 'AutoPilot / Campaigns',
+      path: '/campaigns',
+      section: 'APPLY',
+      description: 'Automatisez vos campagnes de candidature avec des séquences d\'emails personnalisées.',
+      whatItDoes: [
+        'Crée des campagnes d\'outreach automatisées vers les recruteurs',
+        'Gère des séquences d\'emails de suivi automatiques',
+        'Personnalise les messages avec les données de l\'entreprise',
+        'Suit les taux d\'ouverture et de réponse',
+        'Planifie les envois au moment optimal',
+      ],
+      howToUse: [
+        'Allez dans "AutoPilot" ou "Campaigns" dans le menu',
+        'Cliquez sur "Nouvelle campagne" ou "Create Campaign"',
+        'Définissez votre cible : industries, postes, entreprises',
+        'Créez votre séquence d\'emails (premier contact + follow-ups)',
+        'Ajoutez vos contacts ou importez une liste',
+        'Configurez le timing des envois',
+        'Lancez la campagne et suivez les résultats',
+      ],
+      tips: [
+        'Commencez petit : testez avec 10-20 contacts avant d\'élargir',
+        'Personnalisez le premier email avec des détails spécifiques à l\'entreprise',
+        'Attendez 3-5 jours entre chaque relance',
+        'Analysez les taux de réponse pour améliorer vos messages',
+      ],
+    },
+
+    resumeLab: {
+      name: 'Resume Lab',
+      path: '/cv-analysis',
+      section: 'APPLY',
+      description: 'Analysez votre CV contre une offre d\'emploi et obtenez un score de match détaillé.',
+      whatItDoes: [
+        'Compare votre CV à une description de poste spécifique',
+        'Calcule un score de compatibilité (0-100%)',
+        'Identifie vos forces qui matchent avec l\'offre',
+        'Détecte les lacunes et compétences manquantes',
+        'Suggère des améliorations concrètes pour votre CV',
+        'Génère une version optimisée de votre CV',
+        'Crée un plan d\'action 48h pour améliorer votre candidature',
+      ],
+      howToUse: [
+        'Allez dans "Resume Lab" dans le menu',
+        'Uploadez votre CV (PDF ou Word)',
+        'Collez l\'URL ou le texte de l\'offre d\'emploi ciblée',
+        'Cliquez sur "Analyser"',
+        'Consultez votre score et les sections détaillées',
+        'Utilisez les suggestions pour améliorer votre CV',
+        'Téléchargez la version optimisée si disponible',
+      ],
+      tips: [
+        'Analysez votre CV pour chaque offre importante - un CV générique score moins bien',
+        'Concentrez-vous sur les "Quick Wins" - corrections rapides à fort impact',
+        'Visez un score de 75%+ avant de postuler',
+        'Gardez les analyses pour référence future',
+      ],
+    },
+
+    // ============================================
+    // TRACK SECTION FEATURES
+    // ============================================
+    applicationTracking: {
+      name: 'Application Tracking',
+      path: '/applications',
+      section: 'TRACK',
+      description: 'Tableau Kanban pour suivre toutes vos candidatures et leur progression.',
+      whatItDoes: [
+        'Affiche toutes vos candidatures dans un tableau Kanban visuel',
+        'Organise par statut : Applied, Interviewing, Offer, Rejected, etc.',
+        'Stocke les détails de chaque candidature (entreprise, poste, contact)',
+        'Permet d\'ajouter des notes et des rappels',
+        'Suit les entretiens programmés',
+        'Calcule vos statistiques de réponse',
+      ],
+      howToUse: [
+        'Allez dans "Application Tracking" dans le menu',
+        'Cliquez sur "+ Add Application" pour ajouter une candidature',
+        'Remplissez : entreprise, poste, date, lien de l\'offre',
+        'Glissez-déposez les cartes pour changer le statut',
+        'Cliquez sur une carte pour voir/éditer les détails',
+        'Ajoutez des notes pour chaque étape du processus',
+      ],
+      tips: [
+        'Ajoutez chaque candidature immédiatement après avoir postulé',
+        'Utilisez les notes pour garder trace de vos interactions',
+        'Mettez à jour les statuts régulièrement pour des stats précises',
+        'Programmez des rappels de suivi pour les candidatures sans réponse après 7 jours',
+      ],
+    },
+
+    calendar: {
+      name: 'Calendar',
+      path: '/calendar',
+      section: 'TRACK',
+      description: 'Vue calendrier de vos entretiens et deadlines importantes.',
+      whatItDoes: [
+        'Affiche tous vos entretiens programmés',
+        'Montre les deadlines de candidature',
+        'Vue jour, semaine ou mois',
+        'Synchronisation avec vos candidatures',
+      ],
+      howToUse: [
+        'Allez dans "Calendar" dans le menu',
+        'Naviguez avec les flèches ou le sélecteur de date',
+        'Cliquez sur un événement pour voir les détails',
+        'Les entretiens ajoutés dans vos candidatures apparaissent automatiquement',
+      ],
+      tips: [
+        'Vérifiez votre calendrier chaque matin',
+        'Préparez vos entretiens 24h à l\'avance minimum',
+      ],
+    },
+
+    // ============================================
+    // PREPARE SECTION FEATURES
+    // ============================================
+    interviewHub: {
+      name: 'Interview Hub',
+      path: '/upcoming-interviews',
+      section: 'PREPARE',
+      description: 'Centre de préparation pour vos entretiens à venir.',
+      whatItDoes: [
+        'Liste tous vos entretiens programmés',
+        'Affiche les détails de chaque entretien (entreprise, poste, type, date)',
+        'Permet d\'ajouter des notes de préparation',
+        'Fournit des informations sur l\'entreprise',
+        'Donne accès aux outils de préparation',
+      ],
+      howToUse: [
+        'Allez dans "Interview Hub" dans le menu',
+        'Visualisez vos prochains entretiens',
+        'Cliquez sur un entretien pour accéder à la préparation détaillée',
+        'Ajoutez des notes, questions à poser, points à mentionner',
+        'Lancez un Mock Interview pour vous entraîner',
+      ],
+      tips: [
+        'Préparez chaque entretien au moins 24h à l\'avance',
+        'Notez 3-5 questions à poser au recruteur',
+        'Relisez la description du poste avant l\'entretien',
+      ],
+    },
+
+    mockInterview: {
+      name: 'Mock Interview',
+      path: '/mock-interview',
+      section: 'PREPARE',
+      description: 'Entraînez-vous avec une IA qui simule un vrai entretien.',
+      whatItDoes: [
+        'Simule un entretien d\'embauche réaliste avec une IA',
+        'Pose des questions adaptées au poste et à l\'entreprise',
+        'Analyse vos réponses en temps réel',
+        'Donne du feedback détaillé sur le contenu et la structure',
+        'Suggère des améliorations concrètes',
+        'Permet de s\'entraîner aux questions comportementales (STAR)',
+      ],
+      howToUse: [
+        'Allez dans "Mock Interview" dans le menu',
+        'Sélectionnez le type d\'entretien (technique, RH, comportemental)',
+        'Optionnel : liez à une candidature spécifique pour un contexte personnalisé',
+        'Lancez l\'interview',
+        'Répondez aux questions comme en vrai entretien',
+        'Recevez votre feedback et score à la fin',
+      ],
+      tips: [
+        'Entraînez-vous à voix haute, pas juste dans votre tête',
+        'Utilisez la méthode STAR pour les questions comportementales',
+        'Faites au moins 2-3 mock interviews avant un vrai entretien',
+        'Revoyez le feedback et retravaillez vos points faibles',
+      ],
+    },
+
+    documentManager: {
+      name: 'Document Manager',
+      path: '/resume-builder',
+      section: 'PREPARE',
+      description: 'Créez et gérez vos notes, documents et templates.',
+      whatItDoes: [
+        'Créer des notes de préparation',
+        'Stocker des documents importants',
+        'Organiser par dossiers',
+        'Éditeur de texte riche avec formatage',
+        'Recherche dans tous vos documents',
+      ],
+      howToUse: [
+        'Allez dans "Document Manager" dans le menu',
+        'Cliquez sur "New Note" pour créer une note',
+        'Organisez avec des dossiers si besoin',
+        'Utilisez la barre d\'outils pour formater',
+        'Vos documents sont sauvegardés automatiquement',
+      ],
+      tips: [
+        'Créez une note par entreprise avec vos recherches',
+        'Gardez un fichier "Questions fréquentes" avec vos meilleures réponses',
+        'Notez les feedbacks reçus après chaque entretien',
+      ],
+    },
+
+    // ============================================
+    // IMPROVE SECTION FEATURES
+    // ============================================
+    professionalProfile: {
+      name: 'Professional Profile',
+      path: '/professional-profile',
+      section: 'IMPROVE',
+      description: 'Gérez votre profil professionnel utilisé par l\'IA pour personnaliser les recommandations.',
+      whatItDoes: [
+        'Stocke vos informations professionnelles',
+        'Définit vos compétences et expertises',
+        'Configure vos préférences de recherche (salaire, localisation, remote)',
+        'Permet à l\'IA de mieux vous comprendre',
+        'Améliore le matching avec les offres',
+      ],
+      howToUse: [
+        'Allez dans "Professional Profile" dans le menu',
+        'Complétez chaque section : expérience, compétences, formation',
+        'Définissez vos critères de recherche idéaux',
+        'Ajoutez vos soft skills et centres d\'intérêt professionnels',
+        'Mettez à jour régulièrement quand vos objectifs évoluent',
+      ],
+      tips: [
+        'Un profil complet = de meilleures recommandations',
+        'Soyez précis sur vos compétences techniques',
+        'Mettez des fourchettes de salaire réalistes',
+      ],
+    },
+
+    recommendations: {
+      name: 'Recommendations',
+      path: '/recommendations',
+      section: 'IMPROVE',
+      description: 'Conseils personnalisés générés par l\'IA pour améliorer votre recherche.',
+      whatItDoes: [
+        'Analyse votre activité et vos résultats',
+        'Génère des conseils personnalisés',
+        'Suggère des actions prioritaires',
+        'Recommande des compétences à développer',
+        'Identifie des opportunités basées sur votre profil',
+      ],
+      howToUse: [
+        'Allez dans "Recommendations" dans le menu',
+        'Consultez les conseils générés pour vous',
+        'Cliquez sur une recommandation pour plus de détails',
+        'Marquez les actions comme complétées',
+      ],
+      tips: [
+        'Vérifiez les recommandations chaque semaine',
+        'Priorisez les actions à fort impact',
+        'Un profil plus complet = des recommandations plus pertinentes',
+      ],
+    },
+
+    dashboard: {
+      name: 'Dashboard',
+      path: '/dashboard',
+      section: 'IMPROVE',
+      description: 'Vue d\'ensemble de votre activité et de vos métriques de recherche d\'emploi.',
+      whatItDoes: [
+        'Affiche vos statistiques clés (candidatures, taux de réponse, entretiens)',
+        'Montre votre activité récente',
+        'Visualise votre progression dans le temps',
+        'Liste vos prochains entretiens',
+        'Résume vos candidatures par statut',
+      ],
+      howToUse: [
+        'C\'est votre page d\'accueil après connexion',
+        'Consultez vos métriques en haut de page',
+        'Vérifiez les actions urgentes',
+        'Cliquez sur les éléments pour plus de détails',
+      ],
+      tips: [
+        'Commencez chaque session par le Dashboard pour un aperçu rapide',
+        'Visez un minimum de 5-10 candidatures par semaine',
+        'Suivez votre taux de réponse pour ajuster votre approche',
+      ],
+    },
+
+    emailTemplates: {
+      name: 'Email Templates',
+      path: '/email-templates',
+      section: 'TOOLS',
+      description: 'Créez et gérez vos modèles d\'emails pour les candidatures et relances.',
+      whatItDoes: [
+        'Stocke vos modèles d\'emails réutilisables',
+        'Permet de créer des templates personnalisables',
+        'Variables dynamiques pour personnalisation automatique',
+        'Templates pour différents contextes (candidature, relance, remerciement)',
+      ],
+      howToUse: [
+        'Allez dans "Email Templates" dans le menu',
+        'Cliquez sur "Create Template" pour un nouveau modèle',
+        'Utilisez les variables comme {company}, {position}, {contact}',
+        'Sauvegardez et réutilisez dans vos campagnes',
+      ],
+      tips: [
+        'Créez des templates pour chaque situation : candidature spontanée, réponse à offre, relance, remerciement',
+        'Testez vos templates avant de les utiliser en masse',
+        'Personnalisez toujours le premier paragraphe',
+      ],
+    },
+  },
+
+  // ============================================
+  // NAVIGATION GUIDE
+  // ============================================
+  navigation: {
+    sidebar: {
+      apply: ['Job Board', 'AutoPilot', 'Campaigns', 'Resume Lab'],
+      track: ['Application Tracking', 'Calendar'],
+      prepare: ['Interview Hub', 'Mock Interview', 'Document Manager'],
+      improve: ['Professional Profile', 'Recommendations', 'Dashboard'],
+    },
+    shortcuts: {
+      'rechercher des offres': '/jobs',
+      'mes candidatures': '/applications',
+      'analyser mon cv': '/cv-analysis',
+      'préparer un entretien': '/upcoming-interviews',
+      'mock interview': '/mock-interview',
+      'mes notes': '/resume-builder',
+      'mon profil': '/professional-profile',
+      'statistiques': '/dashboard',
+      'campagnes': '/campaigns',
+      'templates email': '/email-templates',
+      'paramètres': '/settings',
+      'abonnement': '/billing',
+    },
+  },
+
+  // ============================================
+  // COMMON QUESTIONS
+  // ============================================
+  faq: {
+    'comment postuler': 'Allez dans Job Board, trouvez une offre, cliquez dessus puis sur "Apply". Vous pouvez aussi ajouter manuellement une candidature dans Application Tracking.',
+    'comment améliorer mon cv': 'Utilisez Resume Lab pour analyser votre CV contre une offre spécifique. Suivez les suggestions d\'amélioration et téléchargez la version optimisée.',
+    'comment suivre mes candidatures': 'Toutes vos candidatures sont dans Application Tracking. Utilisez le tableau Kanban pour visualiser et mettre à jour les statuts.',
+    'comment me préparer à un entretien': 'Allez dans Interview Hub pour voir vos entretiens à venir, puis utilisez Mock Interview pour vous entraîner.',
+    'comment fonctionne le matching': 'L\'IA compare votre profil et CV avec les offres d\'emploi. Plus votre profil est complet, meilleur est le matching.',
+    'combien de crédits par action': 'L\'analyse CV et les messages IA consomment 1 crédit. Les utilisateurs Premium ont des crédits illimités.',
+    'comment créer une campagne': 'Allez dans AutoPilot/Campaigns, créez une nouvelle campagne, définissez votre cible et vos messages, puis lancez.',
+  },
+};
+
 // Page-specific AI expertise configurations
 const PAGE_EXPERTISE = {
   'Dashboard': {
@@ -1028,6 +1415,25 @@ const PAGE_EXPERTISE = {
       'Your answer was 3 minutes - aim for 2 minutes for behavioral questions'
     ]
   },
+  'Notes': {
+    role: 'Note Enhancement Assistant',
+    focus: 'content improvement, structure, clarity, actionable insights',
+    personality: 'Thoughtful editor who helps organize and enhance ideas',
+    behaviors: [
+      'When user asks to "improve", "rewrite", "enhance", "fix", or "make it better", ALWAYS use [[EDIT_NOTE:replace:...]] markup with the improved content',
+      'When user asks to "add", "insert", "include", or "expand", use [[EDIT_NOTE:insert:...]] markup',
+      'Reference the current note title and content when giving suggestions',
+      'Explain what changes you made in bullet points BEFORE the markup',
+      'Keep the user\'s voice and style - enhance, don\'t transform completely',
+      'ALWAYS propose direct edits using EDIT_NOTE markup when user wants content changes'
+    ],
+    dataUsage: 'Use currentNote title, content, wordCount to provide specific suggestions',
+    exampleResponses: [
+      'I\'ve restructured your "Interview Prep" note with clear sections:\n\n**Changes:**\n- Added section headers\n- Organized by topic\n- Expanded key points\n\n[[EDIT_NOTE:replace:...improved content...]]',
+      'I can expand your summary section with more details about your achievements',
+      'Here\'s a more polished version with better structure:\n\n[[EDIT_NOTE:replace:...]]'
+    ]
+  },
   'AutoPilot Campaigns': {
     role: 'Outreach Campaign Strategist',
     focus: 'automation, targeting, messaging, conversion optimization',
@@ -1078,6 +1484,80 @@ const DEFAULT_EXPERTISE = {
   exampleResponses: []
 };
 
+// Helper function to build product knowledge section for the prompt
+function buildProductKnowledgeSection() {
+  const features = PRODUCT_KNOWLEDGE.features;
+  const nav = PRODUCT_KNOWLEDGE.navigation;
+  const faq = PRODUCT_KNOWLEDGE.faq;
+  
+  let section = `
+## JOBZ.AI PRODUCT KNOWLEDGE (USE THIS TO HELP USERS!)
+
+You are an expert on Jobz.ai. When users ask about features, navigation, or how to do things, provide SPECIFIC, HELPFUL answers.
+
+### MAIN FEATURES
+
+**APPLY Section (Postuler):**
+- **Job Board** (/jobs): ${features.jobBoard.description}
+- **AutoPilot/Campaigns** (/campaigns): ${features.autopilot.description}
+- **Resume Lab** (/cv-analysis): ${features.resumeLab.description}
+
+**TRACK Section (Suivre):**
+- **Application Tracking** (/applications): ${features.applicationTracking.description}
+- **Calendar** (/calendar): ${features.calendar.description}
+
+**PREPARE Section (Préparer):**
+- **Interview Hub** (/upcoming-interviews): ${features.interviewHub.description}
+- **Mock Interview** (/mock-interview): ${features.mockInterview.description}
+- **Document Manager** (/resume-builder): ${features.documentManager.description}
+
+**IMPROVE Section (S'améliorer):**
+- **Professional Profile** (/professional-profile): ${features.professionalProfile.description}
+- **Recommendations** (/recommendations): ${features.recommendations.description}
+- **Dashboard** (/dashboard): ${features.dashboard.description}
+
+### QUICK ANSWERS (FAQ)
+${Object.entries(faq).map(([q, a]) => `- "${q}": ${a}`).join('\n')}
+
+### HOW TO GUIDE USERS
+When users ask "how do I...?" or "where is...?" or "what is...?":
+1. Give a CLEAR, STEP-BY-STEP answer
+2. Include the exact menu path (e.g., "Go to Job Board in the left menu, Apply section")
+3. Provide 1-2 practical tips
+4. If relevant, mention related features they might find useful
+
+### EXAMPLE RESPONSES FOR PRODUCT QUESTIONS
+
+**User: "Comment créer une campagne?"**
+Response:
+"Pour créer une campagne AutoPilot :
+
+1. Allez dans **AutoPilot** (menu gauche, section 'Apply')
+2. Cliquez sur **'Nouvelle campagne'**
+3. Définissez votre cible (industrie, postes, entreprises)
+4. Créez votre séquence d'emails
+5. Lancez la campagne
+
+💡 **Astuce** : Commencez avec 10-20 contacts pour tester vos messages avant d'élargir."
+
+**User: "C'est quoi Resume Lab?"**
+Response:
+"**Resume Lab** est votre outil d'analyse de CV intelligent.
+
+Il compare votre CV à une offre d'emploi spécifique et vous donne :
+- Un **score de compatibilité** (0-100%)
+- Vos **forces** qui matchent avec l'offre
+- Les **lacunes** à combler
+- Des **suggestions concrètes** d'amélioration
+
+👉 Pour l'utiliser : Menu > Resume Lab > Uploadez votre CV > Collez l'offre > Analysez
+
+C'est l'idéal avant de postuler à une offre importante !"
+
+`;
+  return section;
+}
+
 // Helper function to build system prompt for AI Assistant
 function buildAssistantSystemPrompt(pageContext, userContext, pageData) {
   const pageName = pageContext?.pageName || 'Jobz.ai';
@@ -1090,6 +1570,9 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData) {
 
   // Get page-specific expertise
   const expertise = PAGE_EXPERTISE[pageName] || DEFAULT_EXPERTISE;
+  
+  // Build product knowledge section
+  const productKnowledge = buildProductKnowledgeSection();
 
   // Format page data if available - make it more readable
   let pageDataSection = '';
@@ -1180,13 +1663,119 @@ When referencing specific records from the user's data, use this special markup 
 
 This one has been waiting the longest. I can help you draft a follow-up email!"
 
+## INTERACTIVE GUIDED TOURS (VERY IMPORTANT!)
+When a user asks HOW to do something on the platform (a step-by-step process question), you can trigger an interactive guided tour that will walk them through the UI step-by-step.
+
+**Available tours and their triggers:**
+- \`[[START_TOUR:create-cv]]\` - Guide to CREATE a CV from scratch in Resume Builder
+  Trigger when: User asks "how do I create a CV?", "how to make a resume from scratch?", "can I create a CV here?", "how does resume builder work?", "je veux créer un CV"
+  
+- \`[[START_TOUR:analyze-cv]]\` - Guide to ANALYZE an existing CV in Resume Lab
+  Trigger when: User asks "how do I analyze my CV?", "check my resume score", "how to use Resume Lab?", "analyze my CV against a job", "what's my CV score?"
+  
+- \`[[START_TOUR:track-applications]]\` - Guide to track job applications
+  Trigger when: User asks "how do I track applications?", "how to add an application?", "show me the application board"
+  
+- \`[[START_TOUR:prepare-interview]]\` - Guide to prepare for interviews with Mock Interview
+  Trigger when: User asks "how to prepare for an interview?", "how does mock interview work?", "practice interview questions"
+
+**IMPORTANT - DISTINGUISH BETWEEN CREATE vs ANALYZE:**
+- "Create CV", "make resume", "build CV from scratch" → use \`[[START_TOUR:create-cv]]\` (goes to Resume Builder)
+- "Analyze CV", "check score", "compare to job", "ATS score" → use \`[[START_TOUR:analyze-cv]]\` (goes to Resume Lab)
+
+**RULES for triggering tours:**
+1. Only trigger tours when the user is clearly asking HOW to do something (process questions)
+2. Before triggering, give a brief 1-2 sentence explanation of what the tour will show
+3. Place the tour trigger markup on its own line at the END of your message
+4. Only use ONE tour per response
+5. Don't trigger tours for simple information questions (use text explanations instead)
+6. ALWAYS respond in ENGLISH
+
+**Example response with tour trigger:**
+"Great question! Resume Builder lets you create professional resumes from scratch using our templates. Let me guide you step by step!
+
+[[START_TOUR:create-cv]]"
+
+**When NOT to trigger tours:**
+- User just wants information (not a how-to)
+- User is asking about features conceptually
+- User is on mobile (tours work best on desktop)
+- User seems to already know how to use the feature
+
+## DIRECT NOTE EDITING (NOTES PAGE ONLY!)
+When the user is on the **Notes** page and asks you to edit, improve, or rewrite their note content, you can propose direct edits that they can apply with one click.
+
+**Syntax:** \`[[EDIT_NOTE:action:content]]\`
+
+**Available actions:**
+- \`insert\` - Insert text at the current cursor position
+- \`replace\` - Replace the entire note content with new content
+
+**CRITICAL - When to use EDIT_NOTE (YOU MUST USE THIS!):**
+- User says: "improve my note" → ALWAYS use \`[[EDIT_NOTE:replace:...]]\`
+- User says: "make it better" → ALWAYS use \`[[EDIT_NOTE:replace:...]]\`
+- User says: "rewrite this" → ALWAYS use \`[[EDIT_NOTE:replace:...]]\`
+- User says: "enhance this" → ALWAYS use \`[[EDIT_NOTE:replace:...]]\`
+- User says: "fix this" → ALWAYS use \`[[EDIT_NOTE:replace:...]]\`
+- User says: "add a section" → Use \`[[EDIT_NOTE:insert:...]]\`
+- User says: "expand on this" → Use \`[[EDIT_NOTE:insert:...]]\`
+- User says: "include more details" → Use \`[[EDIT_NOTE:insert:...]]\`
+
+**YOU MUST use the markup when the user wants content changes! Don't just describe changes - provide the actual markup!**
+
+**RULES for note editing:**
+1. ONLY use on the Notes page (check pageName === 'Notes')
+2. Always explain WHAT you're changing and WHY before the markup
+3. Show a preview of the key changes in bullet points
+4. Use \`replace\` for complete rewrites, \`insert\` for additions
+5. Keep the user's voice and style - enhance, don't transform
+6. Preserve important information - only improve clarity and structure
+7. **MANDATORY**: Include the full improved content in the markup, not just a description
+
+**Example response with note edit:**
+"I've improved your interview prep notes by adding structure and expanding on key points:
+
+**Changes made:**
+- Added clear section headers
+- Expanded technical questions with example answers
+- Added a "Questions to Ask" section
+
+[[EDIT_NOTE:replace:# Interview Preparation - Meta
+
+## Technical Questions
+- System Design: How would you design Instagram's feed?
+  - Focus on: Scalability, caching, data modeling
+  - Key points: Discuss CAP theorem, eventual consistency
+
+## Behavioral Questions  
+- Tell me about a time you led a project
+  - Use STAR method
+  - Highlight: Led 5-person team, delivered 2 weeks early
+
+## Questions to Ask Them
+- What's the team's approach to code reviews?
+- How do you measure success for this role?
+- What are the biggest challenges facing the team?]]
+
+Click 'Replace' to apply these improvements!"
+
+**When NOT to use EDIT_NOTE:**
+- User is just asking questions about their note (use text response)
+- User wants to discuss the note, not edit it
+- The note content is not available in pageData
+- User is not on the Notes page
+
 ## CRITICAL RULES
 - NEVER give generic advice when you have specific data
 - ALWAYS mention specific company names, dates, or metrics from the data
 - USE RECORD CARDS when referencing specific applications, jobs, interviews, notes, or CV analyses
+- USE GUIDED TOURS when users ask HOW to do step-by-step processes
+- USE EDIT_NOTE when users want to improve their note content (Notes page only)
 - If data shows issues (stale applications, low scores), address them proactively
 - Sound like an expert who knows their situation, not a generic chatbot
-- Be conversational but professional - like a smart colleague, not a robot`;
+- Be conversational but professional - like a smart colleague, not a robot
+- When users ask about Jobz.ai features, ALWAYS give specific step-by-step guidance using the product knowledge below
+${productKnowledge}`;
 }
 
 // Helper to format page data keys for display
@@ -1235,8 +1824,9 @@ app.post('/api/openai-realtime-session', async (req, res) => {
     console.log('📡 Creating OpenAI Realtime client secret via GA API...');
     
     // Use /v1/realtime/client_secrets for GA API
-    // Note: GA API doesn't support input_audio_transcription configuration
-    // Voice and other config must be done via session.update after connection
+    // Note: This endpoint only creates a client secret, it does NOT accept session config
+    // All session config (instructions, input_audio_transcription, etc.) must be done 
+    // via session.update AFTER the WebSocket connection is established
     const sessionResponse = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
       method: 'POST',
       headers: {
@@ -4201,7 +4791,417 @@ app.post('/api/apollo/enrich', verifyFirebaseToken, async (req, res) => {
 // CAMPAIGN EMAIL SYSTEM
 // ============================================================================
 
+// Generate a single variant for A/B testing
+app.post('/api/campaigns/generate-variant', verifyFirebaseToken, async (req, res) => {
+  const { type, tone = 'casual', language = 'en', outreachGoal = 'job', existingVariants = [] } = req.body;
+  const userId = req.user.uid;
+  
+  console.log(`🧪 Generating ${type} variant for ${outreachGoal}`);
+  
+  try {
+    const db = admin.firestore();
+    
+    // Get user profile for context
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userProfile = userDoc.exists ? userDoc.data() : {};
+    
+    const toneInstructions = {
+      casual: language === 'fr' 
+        ? 'Ton décontracté et amical'
+        : 'Casual and friendly tone',
+      professional: language === 'fr'
+        ? 'Ton professionnel mais chaleureux'
+        : 'Professional but warm tone',
+      bold: language === 'fr'
+        ? 'Ton direct et confiant'
+        : 'Direct and confident tone'
+    };
+    
+    const goalContext = {
+      job: language === 'fr'
+        ? 'Recherche active d\'un poste'
+        : 'Actively looking for a job position',
+      internship: language === 'fr'
+        ? 'Recherche active d\'un stage'
+        : 'Seeking an internship opportunity',
+      networking: language === 'fr'
+        ? 'Cherche à établir un contact professionnel, pas de recherche active'
+        : 'Looking to connect professionally, not actively job searching'
+    };
+    
+    let systemPrompt = '';
+    
+    if (type === 'hook') {
+      systemPrompt = language === 'fr' ? `Génère UNE phrase d'accroche pour un email professionnel.
+
+CONTEXTE: ${goalContext[outreachGoal]}
+
+RÈGLES:
+- Maximum 1-2 phrases courtes
+- Utilise les champs de fusion: {{firstName}}, {{company}}, {{position}}
+- ${toneInstructions[tone]}
+- DIFFÉRENT des variantes existantes
+- Pas de mots comme "passionné", "opportunité incroyable"
+- Adapte le message au contexte: ${outreachGoal === 'job' ? 'recherche emploi' : outreachGoal === 'internship' ? 'recherche stage' : 'simple networking'}
+
+Variantes existantes à éviter:
+${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'Aucune'}
+
+Génère UNIQUEMENT l'accroche, sans explications.` : `Generate ONE opening hook for a professional outreach email.
+
+CONTEXT: ${goalContext[outreachGoal]}
+
+RULES:
+- Maximum 1-2 short sentences
+- Use merge fields: {{firstName}}, {{company}}, {{position}}
+- ${toneInstructions[tone]}
+- DIFFERENT from existing variants
+- No words like "passionate", "amazing opportunity"
+- Adapt message to context: ${outreachGoal === 'job' ? 'job search' : outreachGoal === 'internship' ? 'internship search' : 'networking only'}
+
+Existing variants to avoid:
+${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'None'}
+
+Generate ONLY the hook, no explanations.`;
+    } else if (type === 'body') {
+      // Build sender context from actual profile data
+      const senderContext = [];
+      if (userProfile.currentPosition) {
+        senderContext.push(`Current role: ${userProfile.currentPosition}`);
+      }
+      if (userProfile.yearsOfExperience) {
+        senderContext.push(`${userProfile.yearsOfExperience} years of experience`);
+      }
+      if (userProfile.skills && userProfile.skills.length > 0) {
+        senderContext.push(`Skills: ${userProfile.skills.slice(0, 3).join(', ')}`);
+      }
+      if (userProfile.professionalHistory && userProfile.professionalHistory.length > 0) {
+        const recent = userProfile.professionalHistory[0];
+        senderContext.push(`Recent: ${recent.title} at ${recent.company}`);
+      }
+      
+      const contextStr = senderContext.length > 0 ? `\n\nSENDER INFO:\n${senderContext.join('\n')}` : '';
+      
+      systemPrompt = language === 'fr' ? `Génère UN corps d'email court pour un email professionnel.
+
+CONTEXTE: 
+- Ce corps vient APRÈS une accroche et AVANT un call-to-action
+- But: ${goalContext[outreachGoal]}
+
+RÈGLES STRICTES:
+- MAXIMUM 2 phrases courtes
+- Parle à la PREMIÈRE PERSONNE ("Je", jamais "Il" ou un nom)
+- Commence par "Je" ou "J'ai" (PAS de salutation)
+- EXPLIQUE ton background/intérêt pour ${outreachGoal === 'job' ? 'un poste' : outreachGoal === 'internship' ? 'un stage' : 'échanger'}
+- PAS de question, PAS de demande de meeting
+- Utilise {{company}} ou {{position}} si pertinent
+- ${toneInstructions[tone]}
+- Reste factuel et professionnel
+
+EXEMPLES selon le contexte:
+${outreachGoal === 'job' ? '- "Je suis dev backend avec 5 ans d\'expérience et {{company}} m\'intéresse pour son travail en tech."\n- "J\'ai développé des apps scalables et je cherche des opportunités chez {{company}}."' : ''}
+${outreachGoal === 'internship' ? '- "Je termine mes études en informatique et {{company}} serait idéal pour mon stage."\n- "Je cherche un stage en développement et vos projets m\'intéressent vraiment."' : ''}
+${outreachGoal === 'networking' ? '- "Je suis dev backend et j\'aimerais échanger avec des {{position}} sur leur expérience."\n- "Je m\'intéresse au secteur de {{company}} et j\'aimerais en apprendre plus."' : ''}
+
+INTERDIT:
+- Parler à la 3e personne
+- Poser une question
+- Demander quoi que ce soit
+- Mots pompeux ("extensive expertise", "greatly benefit", "innovative")${contextStr}
+
+Variantes existantes à éviter:
+${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'Aucune'}
+
+Génère 2 phrases. Explique juste ton intérêt/background pour ${outreachGoal}.` : `Generate ONE short email body for a professional outreach email.
+
+CONTEXT: This body comes AFTER an opening hook and BEFORE a call-to-action.
+
+STRICT RULES:
+- MAXIMUM 2 short sentences
+- Speak in FIRST PERSON ("I", never third person or a name)
+- Start with "I" or "I'm" (NO greeting)
+- EXPLAIN WHY you're reaching out (interest in company, relevant background)
+- NO questions, NO meeting requests
+- Use {{company}} or {{position}} if relevant
+- ${toneInstructions[tone]}
+- Stay factual and professional
+
+EXAMPLES:
+- "I'm a backend developer and the projects at {{company}} really interest me."
+- "I've got 5 years in data science and looking to connect with experts."
+
+FORBIDDEN:
+- Third person
+- Asking questions ("Would you...", "Are you...")
+- Requesting anything
+- Pompous words ("extensive expertise", "greatly benefit", "innovative")${contextStr}
+
+Existing variants to avoid:
+${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'None'}
+
+Generate 2 sentences. Just explain your interest/background.`;
+    } else if (type === 'cta') {
+      const ctaGuidelines = {
+        job: language === 'fr'
+          ? 'Demande un échange pour discuter d\'opportunités'
+          : 'Ask for a chat to discuss opportunities',
+        internship: language === 'fr'
+          ? 'Demande un échange pour parler du stage'
+          : 'Ask for a chat to discuss the internship',
+        networking: language === 'fr'
+          ? 'Demande juste un échange informel, pas de recherche active'
+          : 'Just ask for an informal chat, not actively looking'
+      };
+      
+      systemPrompt = language === 'fr' ? `Génère UN call-to-action pour un email professionnel.
+
+CONTEXTE: ${goalContext[outreachGoal]}
+
+RÈGLES:
+- Maximum 1-2 phrases + signature
+- ${toneInstructions[tone]}
+- DIFFÉRENT des variantes existantes
+- ${ctaGuidelines[outreachGoal]}
+- Signe avec ${userProfile.firstName || 'le prénom'}
+
+Variantes existantes à éviter:
+${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'Aucune'}
+
+Génère UNIQUEMENT le CTA avec signature, sans explications.` : `Generate ONE call-to-action for a professional outreach email.
+
+CONTEXT: ${goalContext[outreachGoal]}
+
+RULES:
+- Maximum 1-2 sentences + signature
+- ${toneInstructions[tone]}
+- DIFFERENT from existing variants
+- ${ctaGuidelines[outreachGoal]}
+- Sign with ${userProfile.firstName || 'first name'}
+
+Existing variants to avoid:
+${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'None'}
+
+Generate ONLY the CTA with signature, no explanations.`;
+    }
+    
+    const openaiClient = await getOpenAIClient();
+    
+    // More explicit user prompt to ensure only the specific part is generated
+    let userPrompt = '';
+    if (type === 'hook') {
+      userPrompt = language === 'fr' 
+        ? `Génère SEULEMENT une accroche (1-2 phrases). PAS de corps d'email, PAS de signature, PAS de sujet. Juste l'accroche d'ouverture avec merge fields.`
+        : `Generate ONLY an opening hook (1-2 sentences). NO email body, NO signature, NO subject. Just the opening hook with merge fields.`;
+    } else if (type === 'body') {
+      userPrompt = language === 'fr'
+        ? `Génère 2 PHRASES MAX. Première personne ("Je"). Explique POURQUOI tu contactes. PAS de question. PAS de demande. Juste ton intérêt/background.`
+        : `Generate 2 SENTENCES MAX. First person ("I"). Explain WHY you're reaching out. NO question. NO ask. Just your interest/background.`;
+    } else if (type === 'cta') {
+      const ctaExamples = {
+        job: language === 'fr'
+          ? 'Ex: "Seriez-vous disponible pour un échange rapide cette semaine?\\n\\nCordialement,\\nAlex"'
+          : 'Ex: "Would you have time for a quick call this week?\\n\\nBest,\\nAlex"',
+        internship: language === 'fr'
+          ? 'Ex: "Pourriez-vous me parler de vos programmes de stage?\\n\\nMerci,\\nAlex"'
+          : 'Ex: "Could we chat about your internship programs?\\n\\nThanks,\\nAlex"',
+        networking: language === 'fr'
+          ? 'Ex: "J\'aimerais échanger sur votre parcours, seriez-vous dispo?\\n\\nBien à vous,\\nAlex"'
+          : 'Ex: "I\'d love to learn about your journey. Free for a chat?\\n\\nCheers,\\nAlex"'
+      };
+      
+      userPrompt = language === 'fr'
+        ? `Génère un CTA pour ${outreachGoal === 'job' ? 'recherche emploi' : outreachGoal === 'internship' ? 'recherche stage' : 'networking'}. ${ctaExamples[outreachGoal]}. PAS d'accroche, PAS de corps. Juste CTA + signature.`
+        : `Generate CTA for ${outreachGoal === 'job' ? 'job search' : outreachGoal === 'internship' ? 'internship search' : 'networking'}. ${ctaExamples[outreachGoal]}. NO hook, NO body. Just CTA + signature.`;
+    }
+    
+    const completion = await openaiClient.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.9,
+      max_tokens: 150
+    });
+    
+    let variant = completion.choices[0]?.message?.content?.trim() || '';
+    
+    // Clean up any unwanted prefixes or suffixes
+    variant = variant
+      .replace(/^(Hook|Body|CTA|Opening|Accroche|Corps):\s*/i, '')
+      .replace(/^["'`]/g, '')
+      .replace(/["'`]$/g, '')
+      .trim();
+    
+    res.json({
+      success: true,
+      variant
+    });
+    
+  } catch (error) {
+    console.error('❌ Variant generation error:', error);
+    res.status(500).json({ error: 'Failed to generate variant', details: error.message });
+  }
+});
+
+// Generate email templates with merge fields
+app.post('/api/campaigns/generate-templates', verifyFirebaseToken, async (req, res) => {
+  const { tone = 'casual', language = 'en', keyPoints = '', count = 3 } = req.body;
+  const userId = req.user.uid;
+  
+  console.log(`📝 Generating ${count} email templates`);
+  
+  try {
+    const db = admin.firestore();
+    
+    // Get user profile for context
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userProfile = userDoc.exists ? userDoc.data() : {};
+    
+    // Build user context
+    const userContext = [];
+    if (userProfile.firstName) {
+      userContext.push(`Sender: ${userProfile.firstName}${userProfile.lastName ? ' ' + userProfile.lastName : ''}`);
+    }
+    if (userProfile.currentPosition) {
+      userContext.push(`Current role: ${userProfile.currentPosition}`);
+    }
+    if (userProfile.yearsOfExperience) {
+      userContext.push(`Experience: ${userProfile.yearsOfExperience} years`);
+    }
+    if (keyPoints) {
+      userContext.push(`Key points to mention: ${keyPoints}`);
+    }
+    
+    const contextStr = userContext.join('\n');
+    
+    const toneInstructions = {
+      casual: language === 'fr' 
+        ? 'Ton décontracté et amical, comme un message LinkedIn entre professionnels.'
+        : 'Casual and friendly tone, like a LinkedIn message between professionals.',
+      professional: language === 'fr'
+        ? 'Ton professionnel mais chaleureux, pas corporate ou robotique.'
+        : 'Professional but warm tone, not corporate or robotic.',
+      bold: language === 'fr'
+        ? 'Ton direct et confiant, qui va droit au but sans être arrogant.'
+        : 'Direct and confident tone, straight to the point without being arrogant.'
+    };
+    
+    const systemPrompt = language === 'fr' ? `Tu es un expert en rédaction d'emails de candidature spontanée.
+
+OBJECTIF: Créer ${count} templates d'emails DIFFÉRENTS avec des champs de fusion.
+
+CHAMPS DE FUSION DISPONIBLES:
+- {{firstName}} - Prénom du destinataire
+- {{lastName}} - Nom du destinataire
+- {{company}} - Nom de l'entreprise
+- {{position}} - Poste du destinataire
+- {{location}} - Localisation
+
+RÈGLES:
+1. Maximum 4-6 lignes de contenu par email
+2. Phrases courtes et variées
+3. JAMAIS de mots comme "passionné", "opportunité incroyable"
+4. Demande une DISCUSSION, pas un job
+5. UTILISE les champs de fusion pour personnaliser
+6. Chaque template doit avoir une approche DIFFÉRENTE
+
+TON: ${toneInstructions[tone]}
+
+Format pour CHAQUE template:
+TEMPLATE [numéro]
+SUBJECT: [objet avec champs de fusion si pertinent]
+---
+[corps avec champs de fusion]
+
+Génère ${count} templates maintenant.` : `You are an expert at writing spontaneous outreach emails.
+
+GOAL: Create ${count} DIFFERENT email templates with merge fields.
+
+AVAILABLE MERGE FIELDS:
+- {{firstName}} - Recipient's first name
+- {{lastName}} - Recipient's last name
+- {{company}} - Company name
+- {{position}} - Recipient's position
+- {{location}} - Location
+
+RULES:
+1. Maximum 4-6 lines of content per email
+2. Short, varied sentences
+3. NEVER use "passionate", "amazing opportunity"
+4. Ask for a CONVERSATION, not a job
+5. USE merge fields to personalize
+6. Each template must have a DIFFERENT approach
+
+TONE: ${toneInstructions[tone]}
+
+Format for EACH template:
+TEMPLATE [number]
+SUBJECT: [subject with merge fields if relevant]
+---
+[body with merge fields]
+
+Generate ${count} templates now.`;
+
+    const openaiClient = await getOpenAIClient();
+    const completion = await openaiClient.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `SENDER CONTEXT:\n${contextStr}\n\nGenerate ${count} different email templates with merge fields.` }
+      ],
+      temperature: 0.9,
+      max_tokens: 1500
+    });
+    
+    const content = completion.choices[0]?.message?.content || '';
+    
+    // Parse templates
+    const templateBlocks = content.split(/TEMPLATE\s+\d+/i).filter(block => block.trim());
+    const templates = [];
+    
+    for (let i = 0; i < Math.min(templateBlocks.length, count); i++) {
+      const block = templateBlocks[i];
+      const subjectMatch = block.match(/SUBJECT:\s*(.+)/i);
+      const subject = subjectMatch ? subjectMatch[1].trim() : `Quick question about {{company}}`;
+      
+      const bodyMatch = block.split(/---+/);
+      const body = bodyMatch.length > 1 ? bodyMatch[1].trim() : block.replace(/SUBJECT:.+/i, '').trim();
+      
+      templates.push({
+        id: `template-${Date.now()}-${i}`,
+        subject,
+        body
+      });
+    }
+    
+    // If we didn't get enough templates, add defaults
+    while (templates.length < count) {
+      const idx = templates.length;
+      templates.push({
+        id: `template-${Date.now()}-${idx}`,
+        subject: language === 'fr' 
+          ? `Question rapide concernant {{company}}`
+          : `Quick question about {{company}}`,
+        body: language === 'fr'
+          ? `Bonjour {{firstName}},\n\nJe suis ${userProfile.firstName || '[Votre nom]'} et je m'intéresse beaucoup à {{company}}.\n\nSeriez-vous disponible pour un échange rapide sur votre expérience en tant que {{position}} ?\n\nMerci,\n${userProfile.firstName || '[Votre nom]'}`
+          : `Hi {{firstName}},\n\nI'm ${userProfile.firstName || '[Your name]'} and I'm really interested in {{company}}.\n\nWould you be open to a quick chat about your experience as {{position}}?\n\nThanks,\n${userProfile.firstName || '[Your name]'}`
+      });
+    }
+    
+    res.json({
+      success: true,
+      templates: templates.slice(0, count)
+    });
+    
+  } catch (error) {
+    console.error('❌ Template generation error:', error);
+    res.status(500).json({ error: 'Failed to generate templates', details: error.message });
+  }
+});
+
 // Generate personalized emails for all recipients in a campaign
+// Supports 3 modes: auto (AI per contact), template (merge fields), abtest (variant combinations)
 app.post('/api/campaigns/:campaignId/generate-emails', verifyFirebaseToken, async (req, res) => {
   console.log('🔥 GENERATE EMAILS ENDPOINT HIT');
   console.log('Request params:', req.params);
@@ -4235,7 +5235,6 @@ app.post('/api/campaigns/:campaignId/generate-emails', verifyFirebaseToken, asyn
     const userProfile = userDoc.exists ? userDoc.data() : {};
     
     // Get all recipients without generated emails
-    // Note: We get ALL recipients and filter in code because Firestore can't query for missing fields
     console.log(`📂 Getting recipients from campaigns/${campaignId}/recipients`);
     const allRecipientsSnapshot = await campaignRef.collection('recipients').get();
     console.log(`📂 Found ${allRecipientsSnapshot.size} total recipients in collection`);
@@ -4245,18 +5244,7 @@ app.post('/api/campaigns/:campaignId/generate-emails', verifyFirebaseToken, asyn
       return res.json({ success: true, generated: 0, message: 'No recipients in campaign' });
     }
     
-    // Log first recipient for debugging
-    if (allRecipientsSnapshot.docs.length > 0) {
-      const firstDoc = allRecipientsSnapshot.docs[0].data();
-      console.log('📋 First recipient sample:', {
-        fullName: firstDoc.fullName,
-        email: firstDoc.email,
-        emailGenerated: firstDoc.emailGenerated,
-        status: firstDoc.status
-      });
-    }
-    
-    // Filter to only those without generated emails (emailGenerated is false or doesn't exist)
+    // Filter to only those without generated emails
     const recipientDocs = allRecipientsSnapshot.docs.filter(doc => {
       const data = doc.data();
       return data.emailGenerated !== true;
@@ -4268,9 +5256,11 @@ app.post('/api/campaigns/:campaignId/generate-emails', verifyFirebaseToken, asyn
       return res.json({ success: true, generated: 0, message: 'All emails already generated' });
     }
     
-    console.log(`📧 Found ${recipientDocs.length} recipients needing email generation`);
+    // Determine generation mode
+    const mode = campaignData.emailGenerationMode || 'auto';
+    console.log(`📧 Using generation mode: ${mode}`);
     
-    // Build user context for AI prompt
+    // Build user context for AI prompt (used in auto mode)
     const userContext = buildUserContext(userProfile, campaignData.targeting);
     
     // Generate emails for each recipient
@@ -4282,24 +5272,42 @@ app.post('/api/campaigns/:campaignId/generate-emails', verifyFirebaseToken, asyn
       const recipient = recipientDoc.data();
       
       try {
-        // Generate personalized email using OpenAI
-        const { subject, body } = await generateEmailForRecipient(
-          userContext,
-          recipient,
-          tone,
-          language,
-          userProfile
-        );
+        let subject, body, variantConfig;
+        
+        if (mode === 'template' && campaignData.template) {
+          // Template mode: Replace merge fields
+          ({ subject, body } = replaceMergeFields(campaignData.template, recipient));
+        } else if (mode === 'abtest' && campaignData.abTestVariants) {
+          // A/B Testing mode: Randomly combine hook + body + cta
+          ({ subject, body, variantConfig } = generateABTestEmail(campaignData.abTestVariants, recipient));
+        } else {
+          // Auto mode: AI generates unique email per contact
+          ({ subject, body } = await generateEmailForRecipient(
+            userContext,
+            recipient,
+            tone,
+            language,
+            userProfile
+          ));
+        }
         
         // Update recipient with generated email
-        await recipientDoc.ref.update({
+        const updateData = {
           emailSubject: subject,
           emailContent: body,
           emailGenerated: true,
           emailTone: tone,
           status: 'email_generated',
           generatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
+        };
+        
+        // Add variant config for A/B testing
+        if (variantConfig) {
+          updateData.variantConfig = variantConfig;
+          updateData.variantId = `${variantConfig.hookIndex}-${variantConfig.bodyIndex}-${variantConfig.ctaIndex}`;
+        }
+        
+        await recipientDoc.ref.update(updateData);
         
         results.push({ id: recipientDoc.id, success: true, subject });
         successCount++;
@@ -4311,8 +5319,10 @@ app.post('/api/campaigns/:campaignId/generate-emails', verifyFirebaseToken, asyn
         errorCount++;
       }
       
-      // Small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Small delay to avoid rate limiting (only for auto mode with AI)
+      if (mode === 'auto') {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
     }
     
     // Update campaign stats
@@ -4327,6 +5337,7 @@ app.post('/api/campaigns/:campaignId/generate-emails', verifyFirebaseToken, asyn
       generated: successCount,
       failed: errorCount,
       total: recipientDocs.length,
+      mode,
       results
     });
     
@@ -4335,6 +5346,58 @@ app.post('/api/campaigns/:campaignId/generate-emails', verifyFirebaseToken, asyn
     res.status(500).json({ error: 'Failed to generate emails', details: error.message });
   }
 });
+
+// Helper function to replace merge fields in template
+function replaceMergeFields(template, recipient) {
+  let subject = template.subject || '';
+  let body = template.body || '';
+  
+  const replacements = {
+    '{{firstName}}': recipient.firstName || '',
+    '{{lastName}}': recipient.lastName || '',
+    '{{company}}': recipient.company || '',
+    '{{position}}': recipient.title || '',
+    '{{location}}': recipient.location || ''
+  };
+  
+  for (const [field, value] of Object.entries(replacements)) {
+    subject = subject.replace(new RegExp(field, 'g'), value);
+    body = body.replace(new RegExp(field, 'g'), value);
+  }
+  
+  return { subject, body };
+}
+
+// Helper function to generate A/B test email
+function generateABTestEmail(variants, recipient) {
+  const { hooks = [], bodies = [], ctas = [] } = variants;
+  
+  // Randomly select one from each category
+  const hookIndex = Math.floor(Math.random() * hooks.length);
+  const bodyIndex = Math.floor(Math.random() * bodies.length);
+  const ctaIndex = Math.floor(Math.random() * ctas.length);
+  
+  const hook = hooks[hookIndex] || '';
+  const body = bodies[bodyIndex] || '';
+  const cta = ctas[ctaIndex] || '';
+  
+  // Combine and replace merge fields
+  const fullBody = `${hook}\n\n${body}\n\n${cta}`;
+  const { subject, body: processedBody } = replaceMergeFields(
+    { subject: `Quick question about {{company}}`, body: fullBody },
+    recipient
+  );
+  
+  return {
+    subject,
+    body: processedBody,
+    variantConfig: {
+      hookIndex,
+      bodyIndex,
+      ctaIndex
+    }
+  };
+}
 
 // Helper function to build user context for AI
 function buildUserContext(userProfile, targeting) {
@@ -4508,6 +5571,13 @@ app.post('/api/campaigns/:campaignId/send-emails', verifyFirebaseToken, async (r
       return res.json({ success: true, sent: 0, message: 'No emails to send' });
     }
     
+    // Get user profile for sender name
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userProfile = userDoc.exists ? userDoc.data() : {};
+    const senderName = userProfile.firstName && userProfile.lastName
+      ? `${userProfile.firstName} ${userProfile.lastName}`
+      : userProfile.firstName || senderEmail.split('@')[0];
+    
     const results = [];
     let successCount = 0;
     let errorCount = 0;
@@ -4531,13 +5601,45 @@ app.post('/api/campaigns/:campaignId/send-emails', verifyFirebaseToken, async (r
         // Build email with tracking pixel
         const emailBody = `${recipient.emailContent}\n\n${trackingPixel}`;
         
+        // Check if campaign has CV attachment
+        let cvAttachmentData = null;
+        if (campaignData.attachCV && campaignData.cvAttachment) {
+          try {
+            // Download CV from URL
+            const cvResponse = await fetch(campaignData.cvAttachment.url);
+            if (cvResponse.ok) {
+              const cvBuffer = await cvResponse.arrayBuffer();
+              cvAttachmentData = {
+                filename: campaignData.cvAttachment.name.endsWith('.pdf') 
+                  ? campaignData.cvAttachment.name 
+                  : `${campaignData.cvAttachment.name}.pdf`,
+                mimeType: 'application/pdf',
+                data: Buffer.from(cvBuffer).toString('base64')
+              };
+            }
+          } catch (cvError) {
+            console.warn(`  ⚠️ Could not attach CV for ${recipient.fullName}:`, cvError.message);
+            // Continue without attachment
+          }
+        }
+        
         // Create raw email in RFC 2822 format
-        const rawEmail = createRawEmail({
-          from: senderEmail,
-          to: recipient.email,
-          subject: recipient.emailSubject,
-          body: emailBody
-        });
+        const rawEmail = cvAttachmentData
+          ? createRawEmailWithAttachment({
+              from: senderEmail,
+              fromName: senderName,
+              to: recipient.email,
+              subject: recipient.emailSubject,
+              body: emailBody,
+              attachment: cvAttachmentData
+            })
+          : createRawEmail({
+              from: senderEmail,
+              fromName: senderName,
+              to: recipient.email,
+              subject: recipient.emailSubject,
+              body: emailBody
+            });
         
         // Send via Gmail API
         const sendResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
@@ -4614,20 +5716,66 @@ app.post('/api/campaigns/:campaignId/send-emails', verifyFirebaseToken, async (r
 });
 
 // Helper function to create RFC 2822 raw email for Gmail API
-function createRawEmail({ from, to, subject, body }) {
+function createRawEmail({ from, fromName, to, subject, body }) {
   // Create HTML email with proper formatting
   const htmlBody = body
     .replace(/\n/g, '<br>')
     .replace(/(<img[^>]*>)/g, '$1'); // Keep image tags intact
   
+  // Format: "FirstName LastName <email@domain.com>"
+  const fromHeader = fromName ? `${fromName} <${from}>` : from;
+  
   const email = [
-    `From: ${from}`,
+    `From: ${fromHeader}`,
     `To: ${to}`,
     `Subject: ${subject}`,
     'MIME-Version: 1.0',
     'Content-Type: text/html; charset=UTF-8',
     '',
     htmlBody
+  ].join('\r\n');
+  
+  // Base64url encode
+  return Buffer.from(email)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+// Helper function to create email with PDF attachment
+function createRawEmailWithAttachment({ from, fromName, to, subject, body, attachment }) {
+  const boundary = `----boundary_${Date.now()}`;
+  
+  // Create HTML body with proper formatting
+  const htmlBody = body
+    .replace(/\n/g, '<br>')
+    .replace(/(<img[^>]*>)/g, '$1');
+  
+  // Format: "FirstName LastName <email@domain.com>"
+  const fromHeader = fromName ? `${fromName} <${from}>` : from;
+  
+  const email = [
+    `From: ${fromHeader}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: 7bit',
+    '',
+    htmlBody,
+    '',
+    `--${boundary}`,
+    `Content-Type: ${attachment.mimeType}; name="${attachment.filename}"`,
+    'Content-Transfer-Encoding: base64',
+    `Content-Disposition: attachment; filename="${attachment.filename}"`,
+    '',
+    attachment.data,
+    '',
+    `--${boundary}--`
   ].join('\r\n');
   
   // Base64url encode

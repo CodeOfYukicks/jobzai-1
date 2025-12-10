@@ -1439,6 +1439,7 @@ export default function ResumeBuilderPage() {
                 <span>New Board</span>
               </button>
               <button
+                  data-tour="new-resume-button"
                   onClick={openCreateModal}
                   disabled={isCreating}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
@@ -1753,6 +1754,7 @@ export default function ResumeBuilderPage() {
                       Resume Name
                     </label>
                     <input
+                      data-tour="resume-name-input"
                       type="text"
                       value={newResumeName}
                       onChange={(e) => setNewResumeName(e.target.value)}
@@ -1786,7 +1788,7 @@ export default function ResumeBuilderPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div data-tour="template-selection" className="grid grid-cols-2 gap-3">
                       {templates.map((template) => (
                         <motion.button
                           key={template.value}
