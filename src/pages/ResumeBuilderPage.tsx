@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
+import { useAssistant } from '../contexts/AssistantContext';
 import { collection, query, getDocs, deleteDoc, doc, orderBy, addDoc, serverTimestamp, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { db, storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
@@ -95,6 +96,7 @@ const initialCVData: CVData = {
 
 export default function ResumeBuilderPage() {
   const { currentUser } = useAuth();
+  const { isOpen: isAssistantOpen } = useAssistant();
   const navigate = useNavigate();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -111,6 +113,7 @@ export default function ResumeBuilderPage() {
   const [isSavingFolder, setIsSavingFolder] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<SelectedFolderType>('all');
   const [isUpdatingCover, setIsUpdatingCover] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
   // PDF Documents state
   const [documents, setDocuments] = useState<ImportedDocument[]>([]);
@@ -325,6 +328,16 @@ export default function ResumeBuilderPage() {
       fetchViewPreferences();
     }
   }, [currentUser, fetchFolders, fetchResumes, fetchDocuments, fetchNotes, fetchWhiteboards, fetchViewPreferences]);
+
+  // Auto-collapse sidebar when assistant opens to make more space (only once)
+  const prevAssistantOpenRef = useRef(isAssistantOpen);
+  useEffect(() => {
+    // Only collapse when assistant transitions from closed to open
+    if (isAssistantOpen && !prevAssistantOpenRef.current && !isSidebarCollapsed) {
+      setIsSidebarCollapsed(true);
+    }
+    prevAssistantOpenRef.current = isAssistantOpen;
+  }, [isAssistantOpen]);
 
   // Templates available
   const templates: { value: CVTemplate; label: string; description: string }[] = [
@@ -1354,7 +1367,7 @@ export default function ResumeBuilderPage() {
         <div className="absolute -bottom-8 left-20 w-96 h-96 bg-pink-300/20 dark:bg-pink-600/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl animate-blob animation-delay-4000" />
       </div>
 
-      <div className="flex h-full">
+      <div className={`flex h-full transition-all duration-300 ${isAssistantOpen ? 'mr-[440px]' : 'mr-0'}`}>
         {/* Sidebar */}
         <FolderSidebar
           folders={folders}
@@ -1370,6 +1383,8 @@ export default function ResumeBuilderPage() {
           folderCounts={folderCounts}
           uncategorizedCount={totalUncategorized}
           totalCount={totalItems}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           groupedResumes={grouped}
           groupedDocuments={groupedDocs}
           groupedNotes={groupedNotes}

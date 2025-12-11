@@ -1333,14 +1333,14 @@ export default function CampaignsAutoPage() {
             </div>
 
             {/* Header Content */}
-            <div className="relative z-10 px-4 sm:px-6 pt-6 pb-3 flex flex-col gap-2">
+            <div className="relative z-10 px-4 sm:px-6 pt-6 pb-4 flex flex-col gap-4">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="flex items-center justify-between"
+                className="flex items-start justify-between gap-4"
               >
-                <div>
+                <div className="flex-1">
                   <h1 className={`text-2xl font-bold ${coverPhoto 
                     ? 'text-white drop-shadow-2xl'
                     : 'text-gray-900 dark:text-white'
@@ -1369,6 +1369,207 @@ export default function CampaignsAutoPage() {
                   <span>New Campaign</span>
                 </motion.button>
               </motion.div>
+
+              {/* Campaign Selector + Stats in Header */}
+              {campaigns.length > 0 && (
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  {/* Campaign Dropdown */}
+                  <div className="relative flex-shrink-0">
+                    <button
+                      onClick={() => setIsCampaignDropdownOpen(!isCampaignDropdownOpen)}
+                      className={`flex items-center gap-3 px-4 py-2.5 ${
+                        coverPhoto
+                          ? 'bg-white/95 dark:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 hover:bg-white dark:hover:bg-black/60'
+                          : 'bg-white dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] hover:bg-gray-50 dark:hover:bg-white/[0.05] hover:border-gray-300 dark:hover:border-white/[0.12]'
+                      } rounded-xl transition-all duration-200 min-w-[200px]`}
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                        <Zap className="w-3.5 h-3.5 text-white" />
+                      </div>
+                      <div className="flex flex-col items-start flex-1 min-w-0">
+                        <span className={`text-[10px] uppercase tracking-wider ${
+                          coverPhoto ? 'text-gray-700 dark:text-gray-400' : 'text-gray-500 dark:text-gray-500'
+                        }`}>Campaign</span>
+                        <span className={`text-[13px] font-semibold truncate max-w-[160px] ${
+                          coverPhoto ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-gray-100'
+                        }`}>
+                          {selectedCampaign 
+                            ? (selectedCampaign.name || `Campaign ${campaigns.indexOf(selectedCampaign) + 1}`)
+                            : 'Select Campaign'}
+                        </span>
+                      </div>
+                      <ChevronDown className={`w-4 h-4 ${
+                        coverPhoto ? 'text-gray-600 dark:text-gray-400' : 'text-gray-400 dark:text-gray-500'
+                      } transition-transform duration-200 flex-shrink-0 ${isCampaignDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    <AnimatePresence>
+                      {isCampaignDropdownOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute z-50 mt-2 w-80 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08] rounded-xl shadow-xl dark:shadow-2xl overflow-hidden backdrop-blur-xl"
+                        >
+                          {campaigns.map((campaign, index) => (
+                            <div
+                              key={campaign.id}
+                              className={`group flex items-center gap-2 px-4 py-3 transition-all duration-150
+                                ${selectedCampaignId === campaign.id 
+                                  ? 'bg-gray-50 dark:bg-white/[0.06]' 
+                                  : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'
+                                }`}
+                            >
+                              {editingCampaignId === campaign.id ? (
+                                <div className="flex-1 flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={editingCampaignName}
+                                    onChange={(e) => setEditingCampaignName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        handleUpdateCampaignName(campaign.id, editingCampaignName);
+                                      } else if (e.key === 'Escape') {
+                                        setEditingCampaignId(null);
+                                      }
+                                    }}
+                                    autoFocus
+                                    className="flex-1 px-2.5 py-1.5 text-sm bg-white dark:bg-white/[0.05] border border-gray-300 dark:border-white/[0.1] rounded-lg 
+                                      focus:outline-none focus:border-gray-400 dark:focus:border-white/[0.2] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                                    placeholder="Campaign name..."
+                                  />
+                                  <button
+                                    onClick={() => handleUpdateCampaignName(campaign.id, editingCampaignName)}
+                                    className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                                  >
+                                    <Check className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingCampaignId(null)}
+                                    className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.05]"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedCampaignId(campaign.id);
+                                      setIsCampaignDropdownOpen(false);
+                                    }}
+                                    className="flex-1 flex items-center gap-3 text-left min-w-0"
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[13px] font-medium text-gray-900 dark:text-gray-100 truncate">
+                                        {campaign.name || `Campaign ${index + 1}`}
+                                      </p>
+                                      <p className="text-[11px] text-gray-500 truncate mt-0.5">
+                                        {campaign.targeting?.personTitles?.slice(0, 2).join(', ') || 'No targeting'}
+                                        {(campaign.targeting?.personTitles?.length || 0) > 2 && ` +${campaign.targeting.personTitles.length - 2}`}
+                                      </p>
+                                    </div>
+                                    <div className="text-right flex-shrink-0">
+                                      <p className="text-[12px] font-medium text-gray-700 dark:text-gray-300 tabular-nums">
+                                        {campaign.stats?.contactsFound || 0}
+                                      </p>
+                                      <p className="text-[10px] text-gray-500 uppercase tracking-wide">
+                                        contacts
+                                      </p>
+                                    </div>
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingCampaignId(campaign.id);
+                                      setEditingCampaignName(campaign.name || `Campaign ${index + 1}`);
+                                    }}
+                                    className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]
+                                      opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                                    title="Rename campaign"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDeleteCampaignModal({ show: true, campaign });
+                                      setIsCampaignDropdownOpen(false);
+                                    }}
+                                    className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10
+                                      opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                                    title="Delete campaign"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Compact Stats Cards - Aligned Right */}
+                  <div className="flex items-center gap-2 flex-wrap ml-auto">
+                    {/* Contacts */}
+                    <div className={`flex items-center gap-2 px-3 py-2 ${
+                      coverPhoto
+                        ? 'bg-white/95 dark:bg-white/[0.12] backdrop-blur-md border border-white/30 dark:border-white/20'
+                        : 'bg-white dark:bg-white/[0.08] border border-gray-200/60 dark:border-white/[0.12]'
+                    } rounded-lg shadow-sm dark:shadow-none`}>
+                      <Users className={`w-3.5 h-3.5 ${coverPhoto ? 'text-gray-600 dark:text-gray-300' : 'text-gray-600 dark:text-gray-300'}`} />
+                      <span className={`text-base font-bold tabular-nums ${coverPhoto ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}>{stats.contactsFound}</span>
+                      <span className={`text-[10px] uppercase tracking-wider ${coverPhoto ? 'text-gray-600 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>Contacts</span>
+                    </div>
+
+                    {/* Generated */}
+                    <div className={`flex items-center gap-2 px-3 py-2 ${
+                      coverPhoto
+                        ? 'bg-purple-100/95 dark:bg-purple-500/25 backdrop-blur-md border border-purple-300/50 dark:border-purple-400/40'
+                        : 'bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-500/[0.15] dark:to-indigo-500/[0.12] border border-purple-200/60 dark:border-purple-400/30'
+                    } rounded-lg shadow-sm dark:shadow-none`}>
+                      <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-300" />
+                      <span className="text-base font-bold text-purple-700 dark:text-purple-200 tabular-nums">{stats.emailsGenerated}</span>
+                      <span className="text-[10px] text-purple-600/70 dark:text-purple-300/80 uppercase tracking-wider">Generated</span>
+                    </div>
+
+                    {/* Sent */}
+                    <div className={`flex items-center gap-2 px-3 py-2 ${
+                      coverPhoto
+                        ? 'bg-amber-100/95 dark:bg-amber-500/25 backdrop-blur-md border border-amber-300/50 dark:border-amber-400/40'
+                        : 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-500/[0.15] dark:to-orange-500/[0.12] border border-amber-200/60 dark:border-amber-400/30'
+                    } rounded-lg shadow-sm dark:shadow-none`}>
+                      <Send className="w-3.5 h-3.5 text-amber-600 dark:text-amber-300" />
+                      <span className="text-base font-bold text-amber-700 dark:text-amber-200 tabular-nums">{stats.emailsSent}</span>
+                      <span className="text-[10px] text-amber-600/70 dark:text-amber-300/80 uppercase tracking-wider">Sent</span>
+                    </div>
+
+                    {/* Opened */}
+                    <div className={`flex items-center gap-2 px-3 py-2 ${
+                      coverPhoto
+                        ? 'bg-blue-100/95 dark:bg-blue-500/25 backdrop-blur-md border border-blue-300/50 dark:border-blue-400/40'
+                        : 'bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-500/[0.15] dark:to-cyan-500/[0.12] border border-blue-200/60 dark:border-blue-400/30'
+                    } rounded-lg shadow-sm dark:shadow-none`}>
+                      <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-blue-300" />
+                      <span className="text-base font-bold text-blue-700 dark:text-blue-200 tabular-nums">{stats.opened}</span>
+                      <span className="text-[10px] text-blue-600/70 dark:text-blue-300/80 uppercase tracking-wider">Opened</span>
+                    </div>
+
+                    {/* Replied */}
+                    <div className={`flex items-center gap-2 px-3 py-2 ${
+                      coverPhoto
+                        ? 'bg-emerald-100/95 dark:bg-emerald-500/25 backdrop-blur-md border border-emerald-300/50 dark:border-emerald-400/40'
+                        : 'bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/[0.15] dark:to-teal-500/[0.12] border border-emerald-200/60 dark:border-emerald-400/30'
+                    } rounded-lg shadow-sm dark:shadow-none`}>
+                      <Reply className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" />
+                      <span className="text-base font-bold text-emerald-700 dark:text-emerald-200 tabular-nums">{stats.replied}</span>
+                      <span className="text-[10px] text-emerald-600/70 dark:text-emerald-300/80 uppercase tracking-wider">Replied</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Hidden File Input */}
@@ -1383,207 +1584,15 @@ export default function CampaignsAutoPage() {
         </div>
 
         {/* Main Content */}
-        <div className="px-0 pt-6 pb-6 flex-1 min-h-0 flex flex-col overflow-hidden">
-          {/* Premium Header Section */}
+        <div className="px-0 pt-4 pb-6 flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Search + Targeting Tags + Dev Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="mb-5 px-6"
+            className="mb-4 px-6"
           >
-            {/* Top Row: Campaign Selector + Stats Cards */}
-            <div className="flex items-stretch justify-between gap-6 mb-4">
-              {/* Left: Campaign Dropdown */}
-              {campaigns.length > 0 && (
-                <div className="relative flex-shrink-0">
-                  <button
-                    onClick={() => setIsCampaignDropdownOpen(!isCampaignDropdownOpen)}
-                    className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] rounded-xl 
-                      hover:bg-gray-50 dark:hover:bg-white/[0.05] hover:border-gray-300 dark:hover:border-white/[0.12] transition-all duration-200 h-full min-w-[200px]"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                      <Zap className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="flex flex-col items-start flex-1 min-w-0">
-                      <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-500">Campaign</span>
-                      <span className="text-[14px] font-semibold text-gray-900 dark:text-gray-100 truncate max-w-[180px]">
-                        {selectedCampaign 
-                          ? (selectedCampaign.name || `Campaign ${campaigns.indexOf(selectedCampaign) + 1}`)
-                          : 'Select Campaign'}
-                      </span>
-                    </div>
-                    <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 flex-shrink-0 ${isCampaignDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  
-                  <AnimatePresence>
-                    {isCampaignDropdownOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="absolute z-50 mt-2 w-80 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08] rounded-xl shadow-xl dark:shadow-2xl overflow-hidden backdrop-blur-xl"
-                      >
-                        {campaigns.map((campaign, index) => (
-                          <div
-                            key={campaign.id}
-                            className={`group flex items-center gap-2 px-4 py-3 transition-all duration-150
-                              ${selectedCampaignId === campaign.id 
-                                ? 'bg-gray-50 dark:bg-white/[0.06]' 
-                                : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'
-                              }`}
-                          >
-                            {editingCampaignId === campaign.id ? (
-                              <div className="flex-1 flex items-center gap-2">
-                                <input
-                                  type="text"
-                                  value={editingCampaignName}
-                                  onChange={(e) => setEditingCampaignName(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      handleUpdateCampaignName(campaign.id, editingCampaignName);
-                                    } else if (e.key === 'Escape') {
-                                      setEditingCampaignId(null);
-                                    }
-                                  }}
-                                  autoFocus
-                                  className="flex-1 px-2.5 py-1.5 text-sm bg-white dark:bg-white/[0.05] border border-gray-300 dark:border-white/[0.1] rounded-lg 
-                                    focus:outline-none focus:border-gray-400 dark:focus:border-white/[0.2] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                                  placeholder="Campaign name..."
-                                />
-                                <button
-                                  onClick={() => handleUpdateCampaignName(campaign.id, editingCampaignName)}
-                                  className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
-                                >
-                                  <Check className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => setEditingCampaignId(null)}
-                                  className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.05]"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              </div>
-                            ) : (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setSelectedCampaignId(campaign.id);
-                                    setIsCampaignDropdownOpen(false);
-                                  }}
-                                  className="flex-1 flex items-center gap-3 text-left min-w-0"
-                                >
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-[13px] font-medium text-gray-900 dark:text-gray-100 truncate">
-                                      {campaign.name || `Campaign ${index + 1}`}
-                                    </p>
-                                    <p className="text-[11px] text-gray-500 truncate mt-0.5">
-                                      {campaign.targeting?.personTitles?.slice(0, 2).join(', ') || 'No targeting'}
-                                      {(campaign.targeting?.personTitles?.length || 0) > 2 && ` +${campaign.targeting.personTitles.length - 2}`}
-                                    </p>
-                                  </div>
-                                  <div className="text-right flex-shrink-0">
-                                    <p className="text-[12px] font-medium text-gray-700 dark:text-gray-300 tabular-nums">
-                                      {campaign.stats?.contactsFound || 0}
-                                    </p>
-                                    <p className="text-[10px] text-gray-500 uppercase tracking-wide">
-                                      contacts
-                                    </p>
-                                  </div>
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingCampaignId(campaign.id);
-                                    setEditingCampaignName(campaign.name || `Campaign ${index + 1}`);
-                                  }}
-                                  className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]
-                                    opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                                  title="Rename campaign"
-                                >
-                                  <Pencil className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDeleteCampaignModal({ show: true, campaign });
-                                    setIsCampaignDropdownOpen(false);
-                                  }}
-                                  className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10
-                                    opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                                  title="Delete campaign"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
-
-              {/* Right: Premium Stats Cards */}
-              <div className="flex items-center gap-2 flex-1 justify-end">
-                {/* Contacts */}
-                <div className="group flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-white/[0.02] border border-gray-200/60 dark:border-white/[0.06] rounded-xl hover:border-gray-300 dark:hover:border-white/[0.1] transition-all min-w-[100px]">
-                  <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/[0.05] flex items-center justify-center">
-                    <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xl font-bold text-gray-900 dark:text-white tabular-nums leading-tight">{stats.contactsFound}</span>
-                    <span className="text-[10px] text-gray-500 dark:text-gray-500 uppercase tracking-wider">Contacts</span>
-                  </div>
-                </div>
-
-                {/* Generated */}
-                <div className="group flex items-center gap-3 px-4 py-2.5 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-500/[0.08] dark:to-indigo-500/[0.05] border border-purple-200/60 dark:border-purple-500/20 rounded-xl hover:border-purple-300 dark:hover:border-purple-500/30 transition-all min-w-[100px]">
-                  <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xl font-bold text-purple-700 dark:text-purple-400 tabular-nums leading-tight">{stats.emailsGenerated}</span>
-                    <span className="text-[10px] text-purple-600/70 dark:text-purple-400/60 uppercase tracking-wider">Generated</span>
-                  </div>
-                </div>
-
-                {/* Sent */}
-                <div className="group flex items-center gap-3 px-4 py-2.5 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-500/[0.08] dark:to-orange-500/[0.05] border border-amber-200/60 dark:border-amber-500/20 rounded-xl hover:border-amber-300 dark:hover:border-amber-500/30 transition-all min-w-[100px]">
-                  <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
-                    <Send className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xl font-bold text-amber-700 dark:text-amber-400 tabular-nums leading-tight">{stats.emailsSent}</span>
-                    <span className="text-[10px] text-amber-600/70 dark:text-amber-400/60 uppercase tracking-wider">Sent</span>
-                  </div>
-                </div>
-
-                {/* Opened */}
-                <div className="group flex items-center gap-3 px-4 py-2.5 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-500/[0.08] dark:to-cyan-500/[0.05] border border-blue-200/60 dark:border-blue-500/20 rounded-xl hover:border-blue-300 dark:hover:border-blue-500/30 transition-all min-w-[100px]">
-                  <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
-                    <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xl font-bold text-blue-700 dark:text-blue-400 tabular-nums leading-tight">{stats.opened}</span>
-                    <span className="text-[10px] text-blue-600/70 dark:text-blue-400/60 uppercase tracking-wider">Opened</span>
-                  </div>
-                </div>
-
-                {/* Replied */}
-                <div className="group flex items-center gap-3 px-4 py-2.5 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/[0.08] dark:to-teal-500/[0.05] border border-emerald-200/60 dark:border-emerald-500/20 rounded-xl hover:border-emerald-300 dark:hover:border-emerald-500/30 transition-all min-w-[100px]">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
-                    <Reply className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums leading-tight">{stats.replied}</span>
-                    <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/60 uppercase tracking-wider">Replied</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Row: Search + Targeting Tags + Dev Buttons */}
+            {/* Search + Targeting Tags + Dev Buttons */}
             {selectedCampaign && (
               <div className="flex items-center gap-3 p-3 bg-gray-50/50 dark:bg-white/[0.02] rounded-xl border border-gray-100 dark:border-white/[0.04]">
                 {/* Search Bar */}
@@ -1731,7 +1740,7 @@ export default function CampaignsAutoPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.3 }}
             className="flex-1 min-h-0 mx-6 border border-gray-200/60 dark:border-white/[0.06] rounded-2xl overflow-hidden flex flex-col 
-              bg-white dark:bg-[#111111] shadow-lg dark:shadow-2xl dark:shadow-black/40 backdrop-blur-sm"
+              bg-white dark:bg-[#2b2a2c] shadow-lg dark:shadow-2xl dark:shadow-black/40 backdrop-blur-sm"
             style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" }}
           >
             <div className="flex-1 min-h-0 overflow-auto scrollbar-thin scrollbar-thumb-gray-300/50 dark:scrollbar-thumb-white/[0.12] 
@@ -1740,12 +1749,12 @@ export default function CampaignsAutoPage() {
                 {/* Premium Header with Glassmorphism */}
                 <thead className="sticky top-0 z-20">
                   <tr className="border-b border-gray-200/80 dark:border-white/[0.05] bg-gradient-to-b from-white via-white to-gray-50/50 
-                    dark:from-[#111111] dark:via-[#111111] dark:to-[#0d0d0d] backdrop-blur-md">
+                    dark:from-[#2b2a2c] dark:via-[#2b2a2c] dark:to-[#2a2829] backdrop-blur-md">
                     {/* Checkbox Column Header */}
                     <th 
                       style={{ width: `${columnWidths.checkbox}%` }} 
                       className="px-3 py-3.5 bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
                         transition-colors duration-200"
                     >
@@ -1773,7 +1782,7 @@ export default function CampaignsAutoPage() {
                     <th 
                       style={{ width: `${columnWidths.contact}%` }} 
                       className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
                         cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
                         active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
@@ -1802,7 +1811,7 @@ export default function CampaignsAutoPage() {
                     <th 
                       style={{ width: `${columnWidths.title}%` }} 
                       className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
                         cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
                         active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
@@ -1829,7 +1838,7 @@ export default function CampaignsAutoPage() {
                     <th 
                       style={{ width: `${columnWidths.company}%` }} 
                       className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
                         cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
                         active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
@@ -1856,7 +1865,7 @@ export default function CampaignsAutoPage() {
                     <th 
                       style={{ width: `${columnWidths.location}%` }} 
                       className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
                         cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
                         active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
@@ -1883,7 +1892,7 @@ export default function CampaignsAutoPage() {
                     <th 
                       style={{ width: `${columnWidths.email}%` }} 
                       className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
                         cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
                         active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
@@ -1910,7 +1919,7 @@ export default function CampaignsAutoPage() {
                     <th 
                       style={{ width: `${columnWidths.linkedin}%` }} 
                       className="relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
                         transition-colors duration-200"
                     >
@@ -1928,7 +1937,7 @@ export default function CampaignsAutoPage() {
                     <th 
                       style={{ width: `${columnWidths.status}%` }} 
                       className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
                         cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
                         active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
@@ -1955,7 +1964,7 @@ export default function CampaignsAutoPage() {
                     <th 
                       style={{ width: `${columnWidths.actions}%` }} 
                       className="px-4 py-3.5 text-center bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#111111] dark:via-[#0f0f0f] dark:to-[#0d0d0d]
+                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md transition-colors duration-200"
                     >
                       <div className="flex items-center justify-center gap-2">
@@ -2066,8 +2075,8 @@ export default function CampaignsAutoPage() {
                           ${selectedRows.has(recipient.id) 
                             ? 'bg-violet-50/60 dark:bg-violet-500/[0.08] border-l-violet-500 dark:border-l-violet-400' 
                             : index % 2 === 0 
-                              ? 'bg-white dark:bg-[#111111]' 
-                              : 'bg-gray-50/40 dark:bg-[#0f0f0f]'
+                              ? 'bg-white dark:bg-[#2b2a2c]' 
+                              : 'bg-gray-50/40 dark:bg-[#2a2829]'
                           }
                           hover:bg-gray-50/90 dark:hover:bg-white/[0.02] 
                           hover:shadow-[0_1px_3px_-1px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_1px_3px_-1px_rgba(0,0,0,0.4)]
@@ -2313,7 +2322,7 @@ export default function CampaignsAutoPage() {
             {/* Premium Table Footer */}
             {sortedRecipients.length > 0 && (
               <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200/60 dark:border-white/[0.04] 
-                bg-gradient-to-b from-gray-50/30 via-white to-white dark:from-[#0f0f0f] dark:via-[#0d0d0d] dark:to-[#111111]">
+                bg-gradient-to-b from-gray-50/30 via-white to-white dark:from-[#2a2829] dark:via-[#2a2829] dark:to-[#2b2a2c]">
                 <div className="text-[12px] text-gray-500 dark:text-gray-400">
                   Showing <span className="font-semibold text-gray-700 dark:text-gray-200">{sortedRecipients.length}</span> of <span className="font-semibold text-gray-700 dark:text-gray-200">{recipients.length}</span> contacts
                 </div>
@@ -2839,4 +2848,5 @@ export default function CampaignsAutoPage() {
     </AuthLayout>
   );
 }
+
 

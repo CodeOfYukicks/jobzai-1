@@ -553,7 +553,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
                 whileTap={{ scale: 0.98 }}
                 onClick={onImportCV}
                 disabled={isImportingCV}
-                className="flex items-center gap-2 px-4 py-2 bg-[#635BFF] dark:bg-[#a5a0ff] text-white text-sm font-semibold rounded-full hover:bg-[#5249e6] dark:hover:bg-[#7c75ff] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isImportingCV ? (
                   <>
@@ -562,7 +562,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
                   </>
                 ) : (
                   <>
-                    <FileText className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4" />
                     <span>Import from CV</span>
                   </>
                 )}

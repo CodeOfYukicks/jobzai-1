@@ -435,6 +435,16 @@ export default function NotionEditorPage() {
     fetchData();
   }, [currentUser, activeNoteId, navigate, fetchFolders, fetchResumes, fetchDocuments, fetchAllNotes]);
 
+  // Auto-collapse sidebar when assistant opens to make more space (only once)
+  const prevAssistantOpenRef = useRef(isAssistantOpen);
+  useEffect(() => {
+    // Only collapse when assistant transitions from closed to open
+    if (isAssistantOpen && !prevAssistantOpenRef.current && !isSidebarCollapsed) {
+      setIsSidebarCollapsed(true);
+    }
+    prevAssistantOpenRef.current = isAssistantOpen;
+  }, [isAssistantOpen, isSidebarCollapsed]);
+
   // Helper to check if content contains mention embeds
   const hasMentionEmbeds = (content: any): boolean => {
     if (!content || !content.content) return false;

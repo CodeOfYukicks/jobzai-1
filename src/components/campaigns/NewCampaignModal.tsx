@@ -363,7 +363,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
         onClick={onClose}
       >
         {/* Backdrop */}
-        <div className="absolute inset-0 bg-black/70 dark:bg-black/85 backdrop-blur-md" />
+        <div className="absolute inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-md" />
         
         {/* Modal */}
         <motion.div
@@ -376,8 +376,8 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
             w-full h-full 
             sm:h-auto sm:max-h-[92vh] sm:rounded-2xl
             md:max-w-5xl
-            bg-white dark:bg-[#0a0a0a] 
-            sm:border border-gray-200 dark:border-white/10 
+            bg-white dark:bg-[#2b2a2c] 
+            sm:border border-gray-200 dark:border-white/[0.08] 
             shadow-2xl shadow-black/20 dark:shadow-black/50 
             flex flex-col"
         >

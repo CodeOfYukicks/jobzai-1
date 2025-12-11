@@ -7413,7 +7413,7 @@ URL to visit: ${jobUrl}
           className="space-y-4"
         >
           {/* Mode Toggle */}
-          <div className="flex items-center gap-1.5 p-1 bg-gray-100/50 dark:bg-[#2b2a2c]/30 backdrop-blur-sm rounded-lg border border-gray-200/50 dark:border-[#3d3c3e]/50">
+          <div data-tour="job-input-mode" className="flex items-center gap-1.5 p-1 bg-gray-100/50 dark:bg-[#2b2a2c]/30 backdrop-blur-sm rounded-lg border border-gray-200/50 dark:border-[#3d3c3e]/50">
             <button
               onClick={() => {
                 setJobInputMode('ai');
@@ -8057,6 +8057,7 @@ URL to visit: ${jobUrl}
 
                 {/* New Analysis Button right */}
                 <motion.button
+                  data-tour="start-analysis-button"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
             onClick={() => {
@@ -8343,7 +8344,7 @@ URL to visit: ${jobUrl}
                 </button>
 
                 <button
-                  data-tour="analyze-button"
+                  data-tour={currentStep === steps.length ? "analyze-button" : "continue-button"}
                   onClick={() => {
                     if (currentStep < steps.length) {
                       if (currentStep === 2) {
