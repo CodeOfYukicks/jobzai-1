@@ -3674,7 +3674,7 @@ END:VCALENDAR`;
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
-                  className="relative overflow-hidden bg-gradient-to-br from-white via-white to-violet-50/50 dark:from-[#1a1a1d] dark:via-[#1a1a1d] dark:to-violet-950/20 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-12"
+                  className="relative overflow-hidden bg-gradient-to-br from-white via-white to-violet-50/50 dark:from-[#2b2a2c] dark:via-[#2b2a2c] dark:to-violet-950/20 rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-12"
                 >
                   {/* Decorative background elements */}
                   <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -3765,12 +3765,12 @@ END:VCALENDAR`;
                         <TrendingUp className="w-3.5 h-3.5" />
                         <span>Track trends</span>
                 </div>
-                      <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+                      <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-[#4a494b]" />
                       <div className="flex items-center gap-1.5">
                         <PieChart className="w-3.5 h-3.5" />
                         <span>Visual insights</span>
                       </div>
-                      <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+                      <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-[#4a494b]" />
                       <div className="flex items-center gap-1.5">
                         <Target className="w-3.5 h-3.5" />
                         <span>Find patterns</span>
@@ -3836,7 +3836,7 @@ END:VCALENDAR`;
                               stroke="currentColor"
                               strokeWidth={strokeWidth}
                               fill="none"
-                              className="text-gray-100 dark:text-gray-800"
+                              className="text-gray-100 dark:text-[#3d3c3e]"
                             />
                             <motion.circle
                               cx={size / 2}
@@ -3946,10 +3946,10 @@ END:VCALENDAR`;
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.1 * i, ease: [0.23, 1, 0.32, 1] }}
-                            className="group relative overflow-hidden bg-white dark:bg-[#1a1a1d] rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500 hover:-translate-y-1"
+                            className="group relative overflow-hidden bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500 hover:-translate-y-1"
                           >
                             {/* Subtle gradient background */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-gray-50/80 via-white to-gray-50/50 dark:from-gray-900/50 dark:via-[#1a1a1d] dark:to-gray-900/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <div className="absolute inset-0 bg-gradient-to-br from-gray-50/80 via-white to-gray-50/50 dark:from-[#3d3c3e]/50 dark:via-[#2b2a2c] dark:to-[#3d3c3e]/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                             
                             {/* Accent stripe */}
                             <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${colorConfig.gradient} opacity-80`} />
@@ -3994,7 +3994,7 @@ END:VCALENDAR`;
                               </div>
                               
                               {/* Trend indicator */}
-                              <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800/60 flex items-center justify-between">
+                              <div className="mt-5 pt-4 border-t border-gray-100 dark:border-[#3d3c3e]/50 flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                             {metric.trend !== 0 ? (
                               <>
@@ -4026,7 +4026,7 @@ END:VCALENDAR`;
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: 0.3, ease: [0.23, 1, 0.32, 1] }}
-                      className="lg:col-span-7 group relative overflow-hidden bg-white dark:bg-[#1a1a1d] rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
+                      className="lg:col-span-7 group relative overflow-hidden bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
                     >
                       {/* Subtle pattern background */}
                       <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }} />
@@ -4070,7 +4070,7 @@ END:VCALENDAR`;
                                     </span>
                                   </div>
                                 </div>
-                                  <div className="relative h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                  <div className="relative h-2 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
                                   <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${widthPercentage}%` }}
@@ -4086,7 +4086,7 @@ END:VCALENDAR`;
                         </div>
                       ) : (
                           <div className="text-center py-10">
-                            <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-3">
+                            <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center mx-auto mb-3">
                               <Briefcase className="w-5 h-5 text-gray-400" />
                             </div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">No industry data yet</p>
@@ -4101,7 +4101,7 @@ END:VCALENDAR`;
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: 0.4, ease: [0.23, 1, 0.32, 1] }}
-                      className="lg:col-span-5 group relative overflow-hidden bg-white dark:bg-[#1a1a1d] rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
+                      className="lg:col-span-5 group relative overflow-hidden bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
                     >
                       <div className="relative">
                         <div className="flex items-center justify-between mb-6">
@@ -4129,7 +4129,7 @@ END:VCALENDAR`;
                                   initial={{ opacity: 0, scale: 0.8 }}
                                   animate={{ opacity: 1, scale: 1 }}
                                     transition={{ duration: 0.3, delay: 0.5 + 0.05 * i }}
-                                    className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-300 hover:scale-105 cursor-default"
+                                    className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-300 hover:scale-105 cursor-default dark:border-[#3d3c3e]"
                                     style={{
                                       backgroundColor: `rgba(59, 130, 246, ${intensity * 0.15})`,
                                       borderColor: `rgba(59, 130, 246, ${intensity * 0.3})`,
@@ -4144,14 +4144,14 @@ END:VCALENDAR`;
                           </div>
                             
                             {/* Mini bar chart */}
-                            <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                            <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-[#3d3c3e]">
                               {getTechnologyDistribution().slice(0, 3).map((item, i) => {
                               const maxCount = getTechnologyDistribution()[0]?.count || 1;
                               const widthPercentage = (item.count / maxCount) * 100;
                               return (
                                   <div key={item.tech} className="flex items-center gap-3">
                                     <span className="text-xs text-gray-600 dark:text-gray-400 w-20 truncate">{item.tech}</span>
-                                    <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                    <div className="flex-1 h-1.5 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
                                     <motion.div
                                       initial={{ width: 0 }}
                                       animate={{ width: `${widthPercentage}%` }}
@@ -4159,7 +4159,7 @@ END:VCALENDAR`;
                                       className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
                                     />
                                   </div>
-                                    <span className="text-xs text-gray-400 tabular-nums w-6 text-right">{item.count}</span>
+                                    <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums w-6 text-right">{item.count}</span>
                                 </div>
                               );
                             })}
@@ -4167,8 +4167,8 @@ END:VCALENDAR`;
                           </div>
                         ) : (
                           <div className="text-center py-10">
-                            <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-3">
-                              <Code className="w-5 h-5 text-gray-400" />
+                            <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center mx-auto mb-3">
+                              <Code className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                             </div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">No technology data yet</p>
                         </div>
@@ -4181,7 +4181,7 @@ END:VCALENDAR`;
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: 0.5, ease: [0.23, 1, 0.32, 1] }}
-                      className="lg:col-span-6 group relative overflow-hidden bg-white dark:bg-[#1a1a1d] rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
+                      className="lg:col-span-6 group relative overflow-hidden bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
                     >
                       <div className="relative">
                         <div className="flex items-center justify-between mb-6">
@@ -4205,13 +4205,13 @@ END:VCALENDAR`;
                                   initial={{ opacity: 0, scale: 0.95 }}
                                   animate={{ opacity: 1, scale: 1 }}
                                   transition={{ duration: 0.4, delay: 0.6 + 0.08 * i }}
-                                  className="p-4 rounded-xl bg-gray-50/80 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800/50 hover:border-gray-200 dark:hover:border-gray-700 transition-all duration-300"
+                                  className="p-4 rounded-xl bg-gray-50/80 dark:bg-[#3d3c3e]/30 border border-gray-100 dark:border-[#3d3c3e]/50 hover:border-gray-200 dark:hover:border-[#4a494b] transition-all duration-300"
                                 >
                                   <div className="flex items-center justify-between mb-3">
                                     <span className="text-sm font-medium text-gray-900 dark:text-white">{item.seniority}</span>
                                     <span className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">{percentage.toFixed(0)}%</span>
                                   </div>
-                                  <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                  <div className="h-1.5 bg-gray-200 dark:bg-[#4a494b] rounded-full overflow-hidden">
                                   <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${percentage}%` }}
@@ -4220,7 +4220,7 @@ END:VCALENDAR`;
                                   />
                                 </div>
                                   <div className="flex items-center justify-between mt-2">
-                                    <span className="text-xs text-gray-500">{item.count} total</span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">{item.count} total</span>
                                     <span className="text-xs font-medium text-cyan-600 dark:text-cyan-400">{item.interviewRate.toFixed(0)}% success</span>
                               </div>
                                 </motion.div>
@@ -4240,7 +4240,7 @@ END:VCALENDAR`;
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: 0.6, ease: [0.23, 1, 0.32, 1] }}
-                      className="lg:col-span-6 group relative overflow-hidden bg-white dark:bg-[#1a1a1d] rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
+                      className="lg:col-span-6 group relative overflow-hidden bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
                     >
                       <div className="relative">
                         <div className="flex items-center justify-between mb-6">
@@ -4263,14 +4263,14 @@ END:VCALENDAR`;
                                   initial={{ opacity: 0, x: -10 }}
                                   animate={{ opacity: 1, x: 0 }}
                                   transition={{ duration: 0.4, delay: 0.7 + 0.08 * i }}
-                                  className="flex items-center gap-4 p-3 rounded-xl bg-gray-50/80 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800/50 hover:border-emerald-200 dark:hover:border-emerald-800/50 transition-all duration-300 group/item"
+                                  className="flex items-center gap-4 p-3 rounded-xl bg-gray-50/80 dark:bg-[#3d3c3e]/30 border border-gray-100 dark:border-[#3d3c3e]/50 hover:border-emerald-200 dark:hover:border-emerald-800/50 transition-all duration-300 group/item"
                                 >
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between mb-2">
                                       <span className="text-sm font-medium text-gray-900 dark:text-white">{item.type}</span>
                                       <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{item.count}</span>
                                   </div>
-                                    <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div className="h-1.5 bg-gray-200 dark:bg-[#4a494b] rounded-full overflow-hidden">
                                   <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${widthPercentage}%` }}
@@ -4303,7 +4303,7 @@ END:VCALENDAR`;
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: 0.7, ease: [0.23, 1, 0.32, 1] }}
-                      className="lg:col-span-8 group relative overflow-hidden bg-white dark:bg-[#1a1a1d] rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
+                      className="lg:col-span-8 group relative overflow-hidden bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
                     >
                       {/* Decorative gradient */}
                       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-indigo-500/5 to-transparent rounded-full -translate-y-1/2 translate-x-1/2" />
@@ -4337,14 +4337,14 @@ END:VCALENDAR`;
                                         initial={{ opacity: 0, x: -10 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ duration: 0.3, delay: 0.8 + 0.1 * i }}
-                                        className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-gray-50 to-gray-50/50 dark:from-gray-900/50 dark:to-gray-900/30 border border-gray-100 dark:border-gray-800/50 hover:border-indigo-200 dark:hover:border-indigo-800/50 transition-all duration-300"
+                                        className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-gray-50 to-gray-50/50 dark:from-[#3d3c3e]/50 dark:to-[#3d3c3e]/30 border border-gray-100 dark:border-[#3d3c3e]/50 hover:border-indigo-200 dark:hover:border-indigo-800/50 transition-all duration-300"
                                       >
                                         <div className="flex items-center gap-3">
                                           <span className="text-lg">{icons[item.type] || '📍'}</span>
                                     <span className="text-sm font-medium text-gray-900 dark:text-white">{item.type}</span>
                                   </div>
                                         <div className="flex items-center gap-3">
-                                          <span className="text-xs text-gray-400 tabular-nums">{item.count}</span>
+                                          <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">{item.count}</span>
                                           <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 tabular-nums bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1 rounded-md">
                                             {item.interviewRate.toFixed(0)}%
                                     </span>
@@ -4367,13 +4367,13 @@ END:VCALENDAR`;
                                       transition={{ duration: 0.3, delay: 0.8 + 0.1 * i }}
                                       className="flex items-center gap-3"
                                     >
-                                      <span className="text-xs font-bold text-gray-300 dark:text-gray-600 w-4 tabular-nums">
+                                      <span className="text-xs font-bold text-gray-300 dark:text-gray-500 w-4 tabular-nums">
                                         {i + 1}
                                       </span>
-                                      <div className="flex-1 flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800/50">
+                                      <div className="flex-1 flex items-center justify-between py-2 border-b border-gray-100 dark:border-[#3d3c3e]/50">
                                         <span className="text-sm text-gray-700 dark:text-gray-300">{item.location}</span>
                                   <div className="flex items-center gap-3">
-                                          <span className="text-xs text-gray-400 tabular-nums">{item.count}</span>
+                                          <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">{item.count}</span>
                                           <span className="text-xs font-semibold text-violet-600 dark:text-violet-400 tabular-nums">
                                       {item.interviewRate.toFixed(0)}%
                                     </span>
@@ -4394,7 +4394,7 @@ END:VCALENDAR`;
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: 0.8, ease: [0.23, 1, 0.32, 1] }}
-                      className="lg:col-span-4 group relative overflow-hidden bg-gradient-to-br from-violet-50 via-white to-indigo-50 dark:from-violet-950/30 dark:via-[#1a1a1d] dark:to-indigo-950/30 rounded-2xl border border-violet-200/60 dark:border-violet-800/30 p-6"
+                      className="lg:col-span-4 group relative overflow-hidden bg-gradient-to-br from-violet-50 via-white to-indigo-50 dark:from-violet-950/30 dark:via-[#2b2a2c] dark:to-indigo-950/30 rounded-2xl border border-violet-200/60 dark:border-violet-800/30 p-6"
                     >
                       {/* Decorative elements */}
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-violet-500/10 to-transparent rounded-full" />
@@ -4446,7 +4446,7 @@ END:VCALENDAR`;
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.4, delay: 0.9 + 0.1 * i }}
-                                    className="p-4 rounded-xl bg-white/70 dark:bg-gray-900/50 backdrop-blur-sm border border-white dark:border-gray-800/50 shadow-sm"
+                                    className="p-4 rounded-xl bg-white/70 dark:bg-[#3d3c3e]/50 backdrop-blur-sm border border-white dark:border-[#3d3c3e]/50 shadow-sm"
                                   >
                                     <div className="flex items-start justify-between">
                                       <div className="flex-1">
@@ -4471,7 +4471,7 @@ END:VCALENDAR`;
                                     {patterns.topTechnologies.slice(0, 5).map((tech) => (
                                 <span
                                   key={tech.tech}
-                                        className="px-2 py-1 text-xs font-medium rounded-md bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+                                        className="px-2 py-1 text-xs font-medium rounded-md bg-white dark:bg-[#3d3c3e]/80 border border-gray-200 dark:border-[#4a494b] text-gray-700 dark:text-gray-300"
                                 >
                                   {tech.tech}
                                 </span>
@@ -4493,7 +4493,7 @@ END:VCALENDAR`;
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: 0.9, ease: [0.23, 1, 0.32, 1] }}
-                      className="lg:col-span-8 group relative overflow-hidden bg-white dark:bg-[#1a1a1d] rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
+                      className="lg:col-span-8 group relative overflow-hidden bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
                     >
                       {/* Grid pattern background */}
                       <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
@@ -4544,7 +4544,7 @@ END:VCALENDAR`;
                             {/* Horizontal grid lines */}
                             <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
                               {[0, 1, 2, 3].map(i => (
-                                <div key={i} className="border-b border-gray-100 dark:border-gray-800/50 border-dashed" />
+                                <div key={i} className="border-b border-gray-100 dark:border-[#4a494b]/50 border-dashed" />
                               ))}
                             </div>
                             
@@ -4580,13 +4580,13 @@ END:VCALENDAR`;
                                 <div key={month} className="flex-1 flex flex-col items-center gap-2 group/bar relative">
                                   {/* Tooltip on hover */}
                                   <div className="absolute bottom-full mb-2 opacity-0 group-hover/bar:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                                    <div className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs px-2 py-1 rounded-lg shadow-lg whitespace-nowrap">
+                                    <div className="bg-gray-900 dark:bg-[#3d3c3e] text-white dark:text-white text-xs px-2 py-1 rounded-lg shadow-lg whitespace-nowrap">
                                       <span className="font-semibold">{total}</span> total
                                     </div>
                                   </div>
                                   
                                   {/* Bar container */}
-                                  <div className="w-full max-w-12 h-36 flex flex-col-reverse items-center relative rounded-t-lg overflow-hidden bg-gray-50 dark:bg-gray-900/50">
+                                  <div className="w-full max-w-12 h-36 flex flex-col-reverse items-center relative rounded-t-lg overflow-hidden bg-gray-50 dark:bg-[#3d3c3e]/50">
                               {segments.map((segment, j) => {
                                       const segmentHeight = total > 0 ? (segment.count / total) * heightPercent : 0;
                                       return segment.count > 0 ? (
@@ -4692,7 +4692,7 @@ END:VCALENDAR`;
                             className={`flex-1 relative overflow-hidden bg-gradient-to-br ${metric.bgColor} rounded-2xl border ${metric.borderColor} p-5 hover:shadow-lg transition-all duration-300`}
                           >
                             {/* Decorative circle */}
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-white/50 dark:from-gray-800/30 to-transparent rounded-full -translate-y-1/2 translate-x-1/2" />
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-white/50 dark:from-[#3d3c3e]/30 to-transparent rounded-full -translate-y-1/2 translate-x-1/2" />
                             
                             <div className="relative flex items-start justify-between">
                           <div>

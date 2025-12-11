@@ -1703,12 +1703,13 @@ When a user asks HOW to do something on the platform (a step-by-step process que
 
 For CV Analysis:
 "I'll guide you through analyzing your CV against a job posting! This is a 7-step interactive process where you'll:
-1. Click to start a new analysis
-2. Choose your CV (upload new, use saved, or from Resume Builder)
-3. Select how to provide job details (AI extraction from URL, manual entry, or saved jobs)
-4. Enter the job information
-5. Review and confirm
-6. Get your detailed ATS analysis with scores and recommendations!
+1. Navigate to Resume Lab
+2. Start a new analysis (opens a modal)
+3. See the analysis modal
+4. Select your CV (upload, saved, or from Resume Builder)
+5. Provide job details (AI extraction, manual, or saved jobs)
+6. Click Continue to review
+7. Launch the analysis and get your results!
 
 Let's get started!
 
@@ -6066,6 +6067,32 @@ app.post('/api/campaigns/:campaignId/check-replies', verifyFirebaseToken, async 
               status: 'replied',
               repliedAt: admin.firestore.FieldValue.serverTimestamp()
             });
+            
+            // Create notification for campaign reply
+            try {
+              const userNotificationsRef = db.collection('users').doc(userId).collection('notifications');
+              await userNotificationsRef.add({
+                type: 'campaign_reply',
+                title: 'Campaign Reply Received',
+                message: `${recipient.fullName || recipient.email}${recipient.company ? ` from ${recipient.company}` : ''} replied to your campaign`,
+                icon: 'mail',
+                actionUrl: `/campaigns-auto?campaign=${campaignId}&recipient=${recipientDoc.id}`,
+                actionLabel: 'View Reply',
+                metadata: {
+                  contactName: recipient.fullName || recipient.email,
+                  contactEmail: recipient.email,
+                  companyName: recipient.company,
+                  campaignId: campaignId,
+                  recipientId: recipientDoc.id,
+                },
+                read: false,
+                priority: 'high',
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              });
+              console.log(`  🔔 Notification created for reply from ${recipient.fullName}`);
+            } catch (notifError) {
+              console.error(`  ⚠️ Failed to create notification:`, notifError.message);
+            }
             
             repliesFound++;
             results.push({ id: recipientDoc.id, name: recipient.fullName, replied: true });

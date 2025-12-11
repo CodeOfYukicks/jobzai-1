@@ -27,6 +27,8 @@ import {
   createEmailReplyNotification,
   createStatusChangeNotification,
   createAchievementNotification,
+  createCardAddedNotification,
+  createCampaignReplyNotification,
   CreateNotificationInput 
 } from '@/services/notificationCenterService';
 
@@ -195,6 +197,7 @@ export const notify = {
     campaignId?: string;
     recipientId?: string;
     threadId?: string;
+    applicationId?: string;
     showToast?: boolean;
   }) => {
     if (!currentUserId) return;
@@ -252,6 +255,52 @@ export const notify = {
       }
     } catch (error) {
       console.error('Failed to create achievement notification:', error);
+    }
+  },
+
+  /**
+   * Card added to board - goes to Notification Center
+   */
+  cardAdded: async (options: {
+    contactName: string;
+    companyName?: string;
+    boardName: string;
+    boardId: string;
+    applicationId: string;
+    showToast?: boolean;
+  }) => {
+    if (!currentUserId) return;
+
+    try {
+      await createCardAddedNotification(currentUserId, options);
+      if (options.showToast) {
+        showMicroFeedback('success', `Added to ${options.boardName}`, 2000);
+      }
+    } catch (error) {
+      console.error('Failed to create card added notification:', error);
+    }
+  },
+
+  /**
+   * Campaign reply received - goes to Notification Center
+   */
+  campaignReply: async (options: {
+    contactName: string;
+    contactEmail?: string;
+    companyName?: string;
+    campaignId: string;
+    recipientId: string;
+    showToast?: boolean;
+  }) => {
+    if (!currentUserId) return;
+
+    try {
+      await createCampaignReplyNotification(currentUserId, options);
+      if (options.showToast) {
+        showMicroFeedback('success', `Reply from ${options.contactName}`, 2000);
+      }
+    } catch (error) {
+      console.error('Failed to create campaign reply notification:', error);
     }
   },
 };

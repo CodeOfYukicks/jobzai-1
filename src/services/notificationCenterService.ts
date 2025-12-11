@@ -31,7 +31,9 @@ export type NotificationType =
   | 'email_reply'
   | 'interview_reminder'
   | 'status_change'
-  | 'achievement';
+  | 'achievement'
+  | 'card_added'
+  | 'campaign_reply';
 
 export type NotificationPriority = 'high' | 'medium' | 'low';
 
@@ -48,6 +50,7 @@ export interface NotificationMetadata {
   contactEmail?: string;
   companyName?: string;
   threadId?: string;
+  applicationId?: string;
   
   // Interview reminder
   interviewId?: string;
@@ -66,6 +69,10 @@ export interface NotificationMetadata {
   missionId?: string;
   missionName?: string;
   xpEarned?: number;
+  
+  // Card added to board
+  boardId?: string;
+  boardName?: string;
 }
 
 export interface AppNotification {
@@ -104,8 +111,10 @@ function getDefaultPriority(type: NotificationType): NotificationPriority {
   switch (type) {
     case 'task_complete':
     case 'email_reply':
+    case 'campaign_reply':
       return 'high';
     case 'interview_reminder':
+    case 'card_added':
       return 'medium';
     case 'status_change':
     case 'achievement':
@@ -123,6 +132,7 @@ function getDefaultIcon(type: NotificationType): string {
     case 'task_complete':
       return 'check-circle';
     case 'email_reply':
+    case 'campaign_reply':
       return 'mail';
     case 'interview_reminder':
       return 'calendar';
@@ -130,6 +140,8 @@ function getDefaultIcon(type: NotificationType): string {
       return 'refresh-cw';
     case 'achievement':
       return 'trophy';
+    case 'card_added':
+      return 'square-kanban';
     default:
       return 'bell';
   }
@@ -350,13 +362,23 @@ export async function createEmailReplyNotification(
     campaignId?: string;
     recipientId?: string;
     threadId?: string;
+    applicationId?: string;
   }
 ): Promise<string> {
+  // Determine action URL based on where the reply came from
+  let actionUrl = '/applications';
+  if (options.campaignId) {
+    actionUrl = `/campaigns-auto`;
+  } else if (options.applicationId) {
+    // Link directly to the application card in board view
+    actionUrl = `/applications`;
+  }
+  
   return createNotification(userId, {
     type: 'email_reply',
     title: 'New Reply Received',
     message: `${options.contactName}${options.companyName ? ` from ${options.companyName}` : ''} replied to your email`,
-    actionUrl: options.campaignId ? `/campaigns-auto` : '/applications',
+    actionUrl,
     actionLabel: 'View Reply',
     metadata: {
       contactName: options.contactName,
@@ -365,6 +387,7 @@ export async function createEmailReplyNotification(
       campaignId: options.campaignId,
       recipientId: options.recipientId,
       threadId: options.threadId,
+      applicationId: options.applicationId,
     },
   });
 }
@@ -487,6 +510,64 @@ export async function createAchievementNotification(
       missionId: options.missionId,
       missionName: options.missionName,
       xpEarned: options.xpEarned,
+    },
+  });
+}
+
+/**
+ * Create a card added to board notification
+ */
+export async function createCardAddedNotification(
+  userId: string,
+  options: {
+    contactName: string;
+    companyName?: string;
+    boardName: string;
+    boardId: string;
+    applicationId: string;
+  }
+): Promise<string> {
+  return createNotification(userId, {
+    type: 'card_added',
+    title: 'Card Added to Board',
+    message: `${options.contactName}${options.companyName ? ` from ${options.companyName}` : ''} was added to "${options.boardName}"`,
+    actionUrl: `/board/${options.boardId}`,
+    actionLabel: 'View Board',
+    metadata: {
+      contactName: options.contactName,
+      companyName: options.companyName,
+      boardName: options.boardName,
+      boardId: options.boardId,
+      applicationId: options.applicationId,
+    },
+  });
+}
+
+/**
+ * Create a campaign reply notification
+ */
+export async function createCampaignReplyNotification(
+  userId: string,
+  options: {
+    contactName: string;
+    contactEmail?: string;
+    companyName?: string;
+    campaignId: string;
+    recipientId: string;
+  }
+): Promise<string> {
+  return createNotification(userId, {
+    type: 'campaign_reply',
+    title: 'Campaign Reply Received',
+    message: `${options.contactName}${options.companyName ? ` from ${options.companyName}` : ''} replied to your campaign`,
+    actionUrl: `/campaigns-auto?campaign=${options.campaignId}&recipient=${options.recipientId}`,
+    actionLabel: 'View Reply',
+    metadata: {
+      contactName: options.contactName,
+      contactEmail: options.contactEmail,
+      companyName: options.companyName,
+      campaignId: options.campaignId,
+      recipientId: options.recipientId,
     },
   });
 }

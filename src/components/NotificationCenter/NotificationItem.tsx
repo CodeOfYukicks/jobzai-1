@@ -15,6 +15,7 @@ import {
   X,
   ChevronRight,
   Clock,
+  SquareKanban,
 } from 'lucide-react';
 import { AppNotification } from '../../services/notificationCenterService';
 
@@ -49,6 +50,13 @@ const getIconAndColor = (type: AppNotification['type']) => {
         iconColor: 'text-emerald-600 dark:text-emerald-400',
         accentColor: 'border-l-emerald-500',
       };
+    case 'campaign_reply':
+      return {
+        icon: Mail,
+        bgColor: 'bg-cyan-100 dark:bg-cyan-500/20',
+        iconColor: 'text-cyan-600 dark:text-cyan-400',
+        accentColor: 'border-l-cyan-500',
+      };
     case 'interview_reminder':
       return {
         icon: Calendar,
@@ -69,6 +77,13 @@ const getIconAndColor = (type: AppNotification['type']) => {
         bgColor: 'bg-rose-100 dark:bg-rose-500/20',
         iconColor: 'text-rose-600 dark:text-rose-400',
         accentColor: 'border-l-rose-500',
+      };
+    case 'card_added':
+      return {
+        icon: SquareKanban,
+        bgColor: 'bg-indigo-100 dark:bg-indigo-500/20',
+        iconColor: 'text-indigo-600 dark:text-indigo-400',
+        accentColor: 'border-l-indigo-500',
       };
     default:
       return {

@@ -153,6 +153,7 @@ export function useGmailReplyChecker() {
               contactEmail: app.contactEmail,
               companyName: app.companyName,
               threadId: app.gmailThreadId,
+              applicationId: app.id,
               showToast: true,
             });
           } catch (error) {

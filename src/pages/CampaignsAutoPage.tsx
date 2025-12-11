@@ -990,7 +990,28 @@ export default function CampaignsAutoPage() {
         boardType: 'campaigns' as const,
       };
 
-      await addDoc(applicationsRef, contactApplication);
+      const newAppDoc = await addDoc(applicationsRef, contactApplication);
+      
+      // Get board name for notification
+      let targetBoardName = 'Default Board';
+      if (boardId) {
+        const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
+        const boardDoc = await getDoc(doc(boardsRef, boardId));
+        if (boardDoc.exists()) {
+          targetBoardName = boardDoc.data().name || 'Board';
+        }
+      }
+      
+      // Create notification for card added
+      await notify.cardAdded({
+        contactName: recipient.fullName || recipient.email || 'Contact',
+        companyName: recipient.company,
+        boardName: targetBoardName,
+        boardId: boardId || '',
+        applicationId: newAppDoc.id,
+        showToast: false, // Silent notification (only in notification center)
+      });
+      
       notify.success('Contact added to board');
       setShowBoardSelector(false);
       setSelectedRecipientForBoard(null);
