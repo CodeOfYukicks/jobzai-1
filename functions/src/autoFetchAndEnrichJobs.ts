@@ -19,6 +19,15 @@ import { ATS_SOURCES } from './config';
 import { fetchGreenhouse, fetchLever, fetchSmartRecruiters, fetchAshby } from './utils/atsFetchers';
 import { cleanDescription } from './utils/cleanDescription';
 import { NormalizedATSJob, ATSProviderConfig } from './types';
+import { 
+    extractExperienceLevel, 
+    extractEmploymentType, 
+    extractWorkLocation,
+    extractIndustryTags,
+    extractTechnologyTags,
+    extractSkillTags,
+    JobDoc 
+} from './utils/jobEnrichment';
 
 const REGION = 'us-central1';
 
@@ -32,89 +41,8 @@ function hashString(input: string): string {
 	return Math.abs(hash).toString(36);
 }
 
-/**
- * Helper to escape regex special characters
- */
 function escapeRegExp(str: string): string {
 	return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/**
- * Extract experience level with priority system
- */
-function extractExperienceLevel(title: string, description: string): string[] {
-	const text = `${title || ''} ${description || ''}`.toLowerCase();
-	const titleLower = (title || '').toLowerCase();
-
-	if (/\b(lead|principal|staff engineer|staff software|architect|director|vp|head of|chief|cto|ceo|founding)\b/i.test(text)) {
-		return ['lead'];
-	}
-	if (/\b(senior|sr\.|sr\s|expérimenté)\b/i.test(titleLower) ||
-		(/\b(senior|sr\.|sr\s)\b/i.test(text) && /\b(5\+|5-|6\+|7\+|8\+|10\+)\s*years?\b/i.test(text))) {
-		return ['senior'];
-	}
-	if (/\b(mid|mid-level|intermediate|confirmé|medior)\b/i.test(text) ||
-		/\b(2-5|3-5|3-7|4-6)\s*years?\b/i.test(text)) {
-		return ['mid'];
-	}
-	if (/\b(entry|entry-level|junior|jr\.|jr\s|graduate|débutant|associate)\b/i.test(text) ||
-		/\b(0-2|0-1|1-2|1-3)\s*years?\b/i.test(text)) {
-		return ['entry'];
-	}
-	if (/\b(intern|internship|stage|apprenti|alternance)\b/i.test(titleLower) ||
-		(/\b(intern|internship|stage)\b/i.test(text) && /\b(student|université|university|école|school)\b/i.test(text))) {
-		return ['internship'];
-	}
-	return ['mid'];
-}
-
-/**
- * Extract employment type with conflict resolution
- */
-function extractEmploymentType(title: string, description: string, experienceLevel: string[]): string[] {
-	const text = `${title || ''} ${description || ''}`.toLowerCase();
-	const titleLower = (title || '').toLowerCase();
-	let types: string[] = [];
-
-	if (/\b(full.?time|permanent|cdi|fulltime)\b/i.test(text)) types.push('full-time');
-	if (/\b(part.?time|temps partiel|parttime)\b/i.test(text)) types.push('part-time');
-	if (/\b(contract(or)?|freelance|consultant|cdd|fixed.?term|temporary)\b/i.test(text)) types.push('contract');
-	if (/\b(intern|internship|stage|alternance|apprenticeship|apprenti)\b/i.test(text)) types.push('internship');
-
-	// CRITICAL: Remove internship if conflicts with seniority
-	if (types.includes('internship')) {
-		if (/\b(senior|lead|principal|staff|director|manager|head of|vp|chief)\b/i.test(titleLower)) {
-			types = types.filter(t => t !== 'internship');
-		}
-		if (experienceLevel.includes('senior') || experienceLevel.includes('lead')) {
-			types = types.filter(t => t !== 'internship');
-		}
-	}
-
-	if (types.length === 0) types.push('full-time');
-	return [...new Set(types)];
-}
-
-/**
- * Extract work location
- */
-function extractWorkLocation(title: string, description: string, location: string): string[] {
-	const text = `${title || ''} ${description || ''} ${location || ''}`.toLowerCase();
-	const locations: string[] = [];
-
-	if (/\b(remote|work from home|wfh|distributed|télétravail|telecommute)\b/i.test(text)) {
-		locations.push('remote');
-	}
-	if (/\b(hybrid|flex)\b/i.test(text) ||
-		(locations.includes('remote') && /\b(office|on.?site)\b/i.test(text))) {
-		locations.push('hybrid');
-	}
-	if (/\b(on.?site|onsite|in.?office|au bureau|in.?person)\b/i.test(text) ||
-		(!locations.includes('remote') && !locations.includes('hybrid') && location)) {
-		locations.push('on-site');
-	}
-	if (locations.length === 0) locations.push('on-site');
-	return locations;
 }
 
 /**
@@ -244,16 +172,25 @@ async function processSource(source: ATSProviderConfig, db: admin.firestore.Fire
 
 				const ref = db.collection('jobs').doc(docId);
 
-				// Clean description (HTML → Markdown)
-				const cleanedDescription = cleanDescription(j.description || '');
+			// Clean description (HTML → Markdown)
+			const cleanedDescription = cleanDescription(j.description || '');
 
-				// Extract tags with v2.2 logic
-				const experienceLevels = extractExperienceLevel(j.title, cleanedDescription);
-				const employmentTypes = extractEmploymentType(j.title, cleanedDescription, experienceLevels);
-				const workLocations = extractWorkLocation(j.title, cleanedDescription, j.location);
-				const industries = extractIndustries(j.title, cleanedDescription, j.company);
-				const technologies = extractTechnologies(j.title, cleanedDescription);
-				const skills = extractSkills(j.title, cleanedDescription);
+			// Create a temporary JobDoc for enrichment functions
+			const tempJob: JobDoc = {
+				id: docId,
+				title: j.title,
+				description: cleanedDescription,
+				location: j.location,
+				company: j.company,
+			};
+
+			// Extract tags with v4.1 logic (improved strict detection)
+			const experienceLevels = extractExperienceLevel(tempJob);
+			const employmentTypes = extractEmploymentType(tempJob, experienceLevels);
+			const workLocations = extractWorkLocation(tempJob);
+			const industries = extractIndustryTags(tempJob);
+			const technologies = extractTechnologyTags(tempJob);
+			const skills = extractSkillTags(tempJob);
 
 				const jobData = {
 					title: j.title || '',
@@ -267,22 +204,22 @@ async function processSource(source: ATSProviderConfig, db: admin.firestore.Fire
 					externalId: j.externalId,
 					postedAt: j.postedAt ? admin.firestore.Timestamp.fromDate(new Date(j.postedAt)) : admin.firestore.FieldValue.serverTimestamp(),
 					
-					// Enriched tags (v2.2)
-					employmentTypes,
-					workLocations,
-					experienceLevels,
-					industries,
-					technologies,
-					
-					// Legacy fields for backwards compatibility
-					type: employmentTypes[0] || 'full-time',
-					remote: workLocations.includes('remote') ? 'remote' : workLocations[0] || 'on-site',
-					seniority: experienceLevels[0] || 'mid',
-					
-					// Metadata
-					enrichedAt: admin.firestore.FieldValue.serverTimestamp(),
-					enrichedVersion: '2.2',
-				};
+				// Enriched tags (v4.1 - strict remote & contract detection)
+				employmentTypes,
+				workLocations,
+				experienceLevels,
+				industries,
+				technologies,
+				
+				// Legacy fields for backwards compatibility
+				type: employmentTypes[0] || 'full-time',
+				remote: workLocations.includes('remote') ? 'remote' : workLocations[0] || 'on-site',
+				seniority: experienceLevels[0] || 'mid',
+				
+				// Metadata
+				enrichedAt: admin.firestore.FieldValue.serverTimestamp(),
+				enrichedVersion: '4.1',
+			};
 
 				batch.set(ref, jobData, { merge: true });
 				written++;

@@ -37,6 +37,13 @@ export interface PageData {
   [key: string]: any;
 }
 
+// Pending rewrite data
+export interface PendingRewrite {
+  originalText: string;
+  rewrittenText: string;
+  actionType: string;
+}
+
 // Storage key for persisting conversations
 const STORAGE_KEY = 'jobzai_assistant_conversations';
 
@@ -73,6 +80,13 @@ interface AssistantContextType {
   registerNoteEditor: (callbacks: { onContentChange: (content: any) => void }) => void;
   unregisterNoteEditor: () => void;
   applyNoteEdit: ((content: string) => Promise<void>) | null;
+  // Rewrite workflow
+  rewriteInProgress: boolean;
+  setRewriteInProgress: (inProgress: boolean) => void;
+  pendingRewrite: PendingRewrite | null;
+  setPendingRewrite: (rewrite: PendingRewrite | null) => void;
+  applyRewrite: () => Promise<void>;
+  rejectRewrite: () => void;
 }
 
 const AssistantContext = createContext<AssistantContextType | undefined>(undefined);
@@ -138,6 +152,10 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const [noteEditorCallbacks, setNoteEditorCallbacks] = useState<{
     onContentChange?: (content: any) => void;
   } | null>(null);
+  
+  // Rewrite workflow state
+  const [rewriteInProgress, setRewriteInProgress] = useState(false);
+  const [pendingRewrite, setPendingRewrite] = useState<PendingRewrite | null>(null);
 
   // Save conversations to localStorage whenever they change
   useEffect(() => {
@@ -288,6 +306,31 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     }
   }, [noteEditorCallbacks]);
 
+  // Apply rewrite function
+  const applyRewrite = useCallback(async () => {
+    if (!pendingRewrite || !noteEditorCallbacks?.onContentChange) {
+      console.warn('No pending rewrite or note editor registered');
+      return;
+    }
+
+    try {
+      setRewriteInProgress(true);
+      await noteEditorCallbacks.onContentChange(pendingRewrite.rewrittenText);
+      setPendingRewrite(null);
+    } catch (error) {
+      console.error('Error applying rewrite:', error);
+      throw error;
+    } finally {
+      setRewriteInProgress(false);
+    }
+  }, [pendingRewrite, noteEditorCallbacks]);
+
+  // Reject rewrite function
+  const rejectRewrite = useCallback(() => {
+    setPendingRewrite(null);
+    setRewriteInProgress(false);
+  }, []);
+
   const value: AssistantContextType = {
     isOpen,
     openAssistant,
@@ -316,6 +359,12 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     registerNoteEditor,
     unregisterNoteEditor,
     applyNoteEdit,
+    rewriteInProgress,
+    setRewriteInProgress,
+    pendingRewrite,
+    setPendingRewrite,
+    applyRewrite,
+    rejectRewrite,
   };
 
   return (

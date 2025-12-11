@@ -62,13 +62,24 @@ const PAGE_CONTEXTS: Record<string, PageContextConfig> = {
       { label: 'ATS score tips', prompt: 'How can I improve my CV\'s ATS compatibility score?' },
     ],
   },
-  '/cv-analysis': {
-    pageName: 'Resume Lab',
-    pageDescription: 'Deep analysis and enhancement of your resume',
+  '/ats-analysis': {
+    pageName: 'CV Analysis Detail',
+    pageDescription: 'Detailed view of a specific CV analysis with recommendations',
     quickActions: [
-      { label: 'Deep CV analysis', prompt: 'Perform a deep analysis of my CV strengths and weaknesses' },
-      { label: 'Highlight achievements', prompt: 'Help me better highlight my achievements in my CV' },
-      { label: 'Formatting advice', prompt: 'Give me advice on CV formatting and structure' },
+      { label: 'Missing skills', prompt: 'What skills am I missing for this specific job? List them all.' },
+      { label: 'Top recommendations', prompt: 'What are the top priority recommendations I should implement for this analysis?' },
+      { label: 'Explain my scores', prompt: 'Explain my category scores and how I can improve each one' },
+      { label: 'Compare to my other analyses', prompt: 'How does this analysis compare to my other CV analyses?' },
+    ],
+  },
+  '/cv-analysis': {
+    pageName: 'CV Analysis',
+    pageDescription: 'Overview of all your CV analyses and performance trends',
+    quickActions: [
+      { label: 'Compare my analyses', prompt: 'Compare my CV analyses and show me which roles I match best with' },
+      { label: 'Identify patterns', prompt: 'What patterns do you see across all my CV analyses? What should I improve?' },
+      { label: 'Which analysis to prioritize?', prompt: 'Based on my scores, which job applications should I prioritize?' },
+      { label: 'Industry trends', prompt: 'Show me how I perform across different industries based on my analyses' },
     ],
   },
   '/cv-creator': {
@@ -179,11 +190,26 @@ export function usePageContext() {
     let config = PAGE_CONTEXTS[pathname];
     
     if (!config) {
-      // Try prefix matching for dynamic routes like /cv-optimizer/:id
-      for (const [route, ctx] of Object.entries(PAGE_CONTEXTS)) {
-        if (pathname.startsWith(route) && route !== '/') {
-          config = ctx;
-          break;
+      // Special handling for CV editor routes (e.g., /ats-analysis/:id/cv-editor)
+      if (pathname.includes('/cv-editor')) {
+        config = {
+          pageName: 'CV Editor',
+          pageDescription: 'Edit and tailor your CV for a specific job',
+          quickActions: [
+            { label: 'Add keywords', prompt: 'What keywords should I add to my CV for this specific job?' },
+            { label: 'Improve my summary', prompt: 'Help me improve my professional summary for this job' },
+            { label: 'Tailor my experience', prompt: 'How should I tailor my work experience section for this job?' },
+            { label: 'Address gaps', prompt: 'How can I address the identified gaps in my CV for this role?' },
+          ],
+        };
+      }
+      // Try prefix matching for dynamic routes like /cv-optimizer/:id or /ats-analysis/:id
+      else {
+        for (const [route, ctx] of Object.entries(PAGE_CONTEXTS)) {
+          if (pathname.startsWith(route) && route !== '/') {
+            config = ctx;
+            break;
+          }
         }
       }
     }
@@ -216,6 +242,16 @@ export function getQuickActionsForPage(pathname: string): QuickAction[] {
   let config = PAGE_CONTEXTS[pathname];
   
   if (!config) {
+    // Special handling for CV editor routes
+    if (pathname.includes('/cv-editor')) {
+      return [
+        { label: 'Add keywords', prompt: 'What keywords should I add to my CV for this specific job?' },
+        { label: 'Improve my summary', prompt: 'Help me improve my professional summary for this job' },
+        { label: 'Tailor my experience', prompt: 'How should I tailor my work experience section for this job?' },
+        { label: 'Address gaps', prompt: 'How can I address the identified gaps in my CV for this role?' },
+      ];
+    }
+    
     for (const [route, ctx] of Object.entries(PAGE_CONTEXTS)) {
       if (pathname.startsWith(route) && route !== '/') {
         config = ctx;

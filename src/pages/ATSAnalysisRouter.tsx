@@ -59,6 +59,56 @@ export default function ATSAnalysisRouter() {
   const analysisDetailSummary = useMemo(() => {
     if (!analysisData || !id) return null;
 
+    // Extract all matching and missing skills (not just top 5)
+    const allMatchingSkills = analysisData.skillsMatch?.matching?.map((s: any) => s.name || s) || [];
+    const allMissingSkills = analysisData.skillsMatch?.missing?.map((s: any) => s.name || s) || [];
+
+    // Extract all recommendations with full details
+    const allRecommendations = analysisData.recommendations?.map((r: any) => ({
+      title: r.title,
+      description: r.description,
+      priority: r.priority,
+      category: r.category,
+      impact: r.impact,
+    })) || [];
+
+    // Premium analysis specific fields
+    const premiumFields = analysisType === 'premium' ? {
+      // Job summary from premium analysis
+      jobSummary: analysisData.job_summary ? {
+        company: analysisData.job_summary.company,
+        title: analysisData.job_summary.title,
+        location: analysisData.job_summary.location,
+        type: analysisData.job_summary.type,
+        experience: analysisData.job_summary.experience,
+        description: analysisData.job_summary.description?.substring(0, 1000), // Limit description
+        keyResponsibilities: analysisData.job_summary.key_responsibilities?.slice(0, 10) || [],
+        requiredQualifications: analysisData.job_summary.required_qualifications?.slice(0, 10) || [],
+        preferredQualifications: analysisData.job_summary.preferred_qualifications?.slice(0, 10) || [],
+        benefits: analysisData.job_summary.benefits?.slice(0, 10) || [],
+      } : null,
+      // Premium match scores breakdown
+      matchScores: analysisData.match_scores ? {
+        overall: analysisData.match_scores.overall,
+        skills: analysisData.match_scores.skills,
+        experience: analysisData.match_scores.experience,
+        education: analysisData.match_scores.education,
+        keywords: analysisData.match_scores.keywords,
+      } : null,
+      // Category scores detailed
+      categoryScoresDetailed: analysisData.category_scores || null,
+      // Has CV rewrite
+      hasCVRewrite: !!(analysisData.cv_rewrite || analysisData.cv_rewrite_generated_at),
+    } : {};
+
+    // ATS optimization details
+    const atsOptimization = analysisData.atsOptimization || analysisData.ats_optimization ? {
+      score: analysisData.atsOptimization?.score || analysisData.ats_optimization?.score,
+      feedback: analysisData.atsOptimization?.feedback || analysisData.ats_optimization?.feedback || [],
+      strengths: analysisData.atsOptimization?.strengths || analysisData.ats_optimization?.strengths || [],
+      improvements: analysisData.atsOptimization?.improvements || analysisData.ats_optimization?.improvements || [],
+    } : null;
+
     return {
       pagePath: `/ats-analysis/${id}`,
       viewMode: 'analysis-detail',
@@ -70,19 +120,30 @@ export default function ATSAnalysisRouter() {
       date: analysisData.date || analysisData.created_at,
       // Key insights for AI context
       keyFindings: analysisData.keyFindings || analysisData.key_findings || [],
-      skillsMatch: analysisData.skillsMatch ? {
-        matchingCount: analysisData.skillsMatch.matching?.length || 0,
-        missingCount: analysisData.skillsMatch.missing?.length || 0,
-        topMatching: analysisData.skillsMatch.matching?.slice(0, 5).map((s: any) => s.name || s),
-        topMissing: analysisData.skillsMatch.missing?.slice(0, 5).map((s: any) => s.name || s),
-      } : null,
+      // Complete skills information
+      skillsMatch: {
+        matchingCount: allMatchingSkills.length,
+        missingCount: allMissingSkills.length,
+        allMatchingSkills, // All matching skills, not just top 5
+        allMissingSkills, // All missing skills, not just top 5
+        topMatching: allMatchingSkills.slice(0, 10), // Top 10 for quick reference
+        topMissing: allMissingSkills.slice(0, 10), // Top 10 for quick reference
+      },
+      // Complete category scores
       categoryScores: analysisData.categoryScores || analysisData.category_scores,
-      executiveSummary: analysisData.executiveSummary?.substring(0, 500) || analysisData.executive_summary?.substring(0, 500),
-      recommendations: analysisData.recommendations?.slice(0, 3).map((r: any) => ({
-        title: r.title,
-        priority: r.priority,
-      })),
+      // Full executive summary
+      executiveSummary: analysisData.executiveSummary || analysisData.executive_summary,
+      // All recommendations with details
+      recommendations: allRecommendations,
+      topRecommendations: allRecommendations.slice(0, 5), // Top 5 for quick reference
+      // ATS optimization details
+      atsOptimization,
       atsScore: analysisData.atsOptimization?.score || analysisData.ats_score,
+      // Premium analysis fields
+      ...premiumFields,
+      // Legacy fields
+      weakAreas: analysisData.weakAreas || [],
+      strengths: analysisData.strengths || [],
     };
   }, [analysisData, id, analysisType]);
 

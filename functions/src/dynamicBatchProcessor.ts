@@ -23,68 +23,19 @@ import {
 } from './utils/atsFetchers';
 import { cleanDescription } from './utils/cleanDescription';
 import { NormalizedATSJob, ATSProviderConfig } from './types';
+import { 
+    extractExperienceLevel, 
+    extractEmploymentType, 
+    extractWorkLocation,
+    extractTechnologyTags,
+    JobDoc 
+} from './utils/jobEnrichment';
 
 const REGION = 'us-central1';
 
 // ============================================
-// Tag Extraction Functions (v2.2)
+// Utility Functions
 // ============================================
-
-function extractExperienceLevel(title: string, description: string): string[] {
-	const text = `${title} ${description}`.toLowerCase();
-	const titleLower = title.toLowerCase();
-
-	if (/\b(lead|principal|staff engineer|architect|director|vp|head of|chief|cto|founding)\b/i.test(text)) return ['lead'];
-	if (/\b(senior|sr\.|sr\s)\b/i.test(titleLower)) return ['senior'];
-	if (/\b(mid|intermediate|confirmé)\b/i.test(text)) return ['mid'];
-	if (/\b(entry|junior|jr\.|graduate)\b/i.test(text)) return ['entry'];
-	if (/\b(intern|internship|stage)\b/i.test(titleLower)) return ['internship'];
-	return ['mid'];
-}
-
-function extractEmploymentType(title: string, description: string, experienceLevel: string[]): string[] {
-	const text = `${title} ${description}`.toLowerCase();
-	const titleLower = title.toLowerCase();
-	let types: string[] = [];
-
-	if (/\b(full.?time|permanent|cdi)\b/i.test(text)) types.push('full-time');
-	if (/\b(part.?time)\b/i.test(text)) types.push('part-time');
-	if (/\b(contract|freelance)\b/i.test(text)) types.push('contract');
-	if (/\b(intern|internship|stage)\b/i.test(text)) types.push('internship');
-
-	if (types.includes('internship') && (experienceLevel.includes('senior') || experienceLevel.includes('lead'))) {
-		types = types.filter(t => t !== 'internship');
-	}
-
-	if (types.length === 0) types.push('full-time');
-	return [...new Set(types)];
-}
-
-function extractWorkLocation(title: string, description: string, location: string): string[] {
-	const text = `${title} ${description} ${location}`.toLowerCase();
-	const locations: string[] = [];
-
-	if (/\b(remote|work from home|wfh)\b/i.test(text)) locations.push('remote');
-	if (/\bhybrid\b/i.test(text)) locations.push('hybrid');
-	if (/\b(on.?site|office)\b/i.test(text) || location) locations.push('on-site');
-	if (locations.length === 0) locations.push('on-site');
-	
-	return locations;
-}
-
-function extractTechnologies(title: string, description: string): string[] {
-	const text = `${title} ${description}`.toLowerCase();
-	const technologies: string[] = [];
-	
-	const techs = ['python', 'javascript', 'typescript', 'java', 'go', 'rust', 'react', 'vue', 'angular', 'node.js', 'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'postgresql', 'mongodb'];
-	techs.forEach(tech => {
-		if (new RegExp(`\\b${tech.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)) {
-			technologies.push(tech);
-		}
-	});
-	
-	return [...new Set(technologies)];
-}
 
 function hashString(input: string): string {
 	let hash = 0;
@@ -146,11 +97,21 @@ async function processCompany(
 					? `${j.ats}_${cleanExternalId}`
 					: `${j.ats}_${hashString([j.title, j.company, j.applyUrl].join('|'))}`;
 
-				const cleanedDesc = cleanDescription(j.description || '');
-				const experienceLevels = extractExperienceLevel(j.title, cleanedDesc);
-				const employmentTypes = extractEmploymentType(j.title, cleanedDesc, experienceLevels);
-				const workLocations = extractWorkLocation(j.title, cleanedDesc, j.location);
-				const technologies = extractTechnologies(j.title, cleanedDesc);
+			const cleanedDesc = cleanDescription(j.description || '');
+			
+			// Create a temporary JobDoc for enrichment functions
+			const tempJob: JobDoc = {
+				id: docId,
+				title: j.title,
+				description: cleanedDesc,
+				location: j.location,
+				company: j.company,
+			};
+			
+			const experienceLevels = extractExperienceLevel(tempJob);
+			const employmentTypes = extractEmploymentType(tempJob, experienceLevels);
+			const workLocations = extractWorkLocation(tempJob);
+			const technologies = extractTechnologyTags(tempJob);
 
 				batch.set(db.collection('jobs').doc(docId), {
 					title: j.title || '',
@@ -171,10 +132,10 @@ async function processCompany(
 					technologies,
 					type: employmentTypes[0] || 'full-time',
 					remote: workLocations.includes('remote') ? 'remote' : 'on-site',
-					seniority: experienceLevels[0] || 'mid',
-					enrichedAt: admin.firestore.FieldValue.serverTimestamp(),
-					enrichedVersion: '2.2',
-				}, { merge: true });
+				seniority: experienceLevels[0] || 'mid',
+				enrichedAt: admin.firestore.FieldValue.serverTimestamp(),
+				enrichedVersion: '4.1',
+			}, { merge: true });
 				written++;
 			}
 

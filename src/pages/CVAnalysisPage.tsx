@@ -7885,6 +7885,57 @@ URL to visit: ${jobUrl}
     const currentWizardStep = isCreatingNewAnalysis ? currentStep : null;
     const wizardStepName = currentWizardStep ? ['Select CV', 'Job Details', 'Review'][currentWizardStep - 1] : null;
 
+    // Categorize analyses by score
+    const highScoreAnalyses = analyses.filter(a => (a.matchScore || 0) >= 80);
+    const mediumScoreAnalyses = analyses.filter(a => (a.matchScore || 0) >= 60 && (a.matchScore || 0) < 80);
+    const lowScoreAnalyses = analyses.filter(a => (a.matchScore || 0) < 60);
+
+    // Get industry/company trends
+    const companiesAnalyzed = [...new Set(analyses.map(a => a.company).filter(Boolean))];
+    const industriesMap: Record<string, number> = {};
+    analyses.forEach(a => {
+      if (a.industry) {
+        industriesMap[a.industry] = (industriesMap[a.industry] || 0) + 1;
+      }
+    });
+    const topIndustries = Object.entries(industriesMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([industry, count]) => ({ industry, count }));
+
+    // Detailed list of ALL analyses (limited to top 20 to avoid payload overload)
+    const detailedAnalyses = analyses.slice(0, 20).map(a => {
+      // Categorize score
+      let scoreCategory: 'high' | 'medium' | 'low';
+      if ((a.matchScore || 0) >= 80) scoreCategory = 'high';
+      else if ((a.matchScore || 0) >= 60) scoreCategory = 'medium';
+      else scoreCategory = 'low';
+
+      return {
+        id: a.id,
+        jobTitle: a.jobTitle,
+        company: a.company,
+        matchScore: a.matchScore,
+        scoreCategory,
+        date: a.date,
+        // Premium analysis fields
+        isPremium: a.type === 'premium' || !!a.match_scores,
+        // Key findings (top 5 for context)
+        keyFindings: a.keyFindings?.slice(0, 5) || a.key_findings?.slice(0, 5) || [],
+        // Category scores if available
+        categoryScores: a.categoryScores || a.category_scores || null,
+        // Skills information
+        skillsMatchCount: a.skillsMatch?.matching?.length || 0,
+        skillsMissingCount: a.skillsMatch?.missing?.length || 0,
+        topMatchingSkills: a.skillsMatch?.matching?.slice(0, 5).map((s: any) => s.name || s) || [],
+        topMissingSkills: a.skillsMatch?.missing?.slice(0, 5).map((s: any) => s.name || s) || [],
+        // ATS score if available
+        atsScore: a.atsOptimization?.score || a.ats_score || null,
+        // Has CV rewrite generated
+        hasCVRewrite: !!(a.cv_rewrite || a.cvRewrite),
+      };
+    });
+
     return {
       // Page context
       pagePath: '/cv-analysis',
@@ -7907,12 +7958,27 @@ URL to visit: ${jobUrl}
           score: worstMatch.matchScore,
         } : null,
       },
+      // Score distribution
+      scoreDistribution: {
+        high: highScoreAnalyses.length,
+        medium: mediumScoreAnalyses.length,
+        low: lowScoreAnalyses.length,
+      },
+      // Industry/company trends
+      trends: {
+        companiesAnalyzed: companiesAnalyzed.slice(0, 10),
+        topIndustries,
+        totalCompanies: companiesAnalyzed.length,
+      },
       // Actionable insights
       insights: {
         topWeakAreas,
         quickWins,
         improvementPriority: topWeakAreas[0] || 'Keep optimizing your CV',
       },
+      // Detailed list of analyses (up to 20)
+      allAnalyses: detailedAnalyses,
+      // Legacy field for backward compatibility
       recentAnalyses: analyses.slice(0, 8).map(a => ({
         id: a.id,
         jobTitle: a.jobTitle,

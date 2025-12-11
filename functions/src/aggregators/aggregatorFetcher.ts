@@ -11,53 +11,20 @@ import { onRequest } from 'firebase-functions/v2/https';
 import { fetchRemoteOK, fetchWeWorkRemotely, fetchAdzuna } from './jobAggregators';
 import { cleanDescription } from '../utils/cleanDescription';
 import { NormalizedATSJob } from '../types';
+import { 
+    extractExperienceLevel, 
+    extractEmploymentType, 
+    extractTechnologyTags,
+    JobDoc 
+} from '../utils/jobEnrichment';
 
 const REGION = 'us-central1';
 
 // ============================================
-// Tag Extraction (v2.2)
+// Utility Functions
 // ============================================
 
-function extractExperienceLevel(title: string, description: string): string[] {
-	const text = `${title} ${description}`.toLowerCase();
-	const titleLower = title.toLowerCase();
-
-	if (/\b(lead|principal|staff|architect|director|vp|head of|chief|cto)\b/i.test(text)) return ['lead'];
-	if (/\b(senior|sr\.)\b/i.test(titleLower)) return ['senior'];
-	if (/\b(mid|intermediate)\b/i.test(text)) return ['mid'];
-	if (/\b(entry|junior|jr\.)\b/i.test(text)) return ['entry'];
-	if (/\b(intern|internship)\b/i.test(titleLower)) return ['internship'];
-	return ['mid'];
-}
-
-function extractEmploymentType(title: string, description: string): string[] {
-	const text = `${title} ${description}`.toLowerCase();
-	let types: string[] = [];
-
-	if (/\b(full.?time|permanent)\b/i.test(text)) types.push('full-time');
-	if (/\b(part.?time)\b/i.test(text)) types.push('part-time');
-	if (/\b(contract|freelance)\b/i.test(text)) types.push('contract');
-	if (/\b(intern|internship)\b/i.test(text)) types.push('internship');
-
-	if (types.length === 0) types.push('full-time');
-	return types;
-}
-
-function extractTechnologies(title: string, description: string): string[] {
-	const text = `${title} ${description}`.toLowerCase();
-	const technologies: string[] = [];
-	
-	const techs = ['python', 'javascript', 'typescript', 'react', 'node.js', 'aws', 'docker', 'kubernetes', 'go', 'rust', 'java'];
-	techs.forEach(tech => {
-		if (new RegExp(`\\b${tech.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)) {
-			technologies.push(tech);
-		}
-	});
-	
-	return technologies;
-}
-
-function hashString(input: string): string {
+function hashString(input: string): string{
 	let hash = 0;
 	for (let i = 0; i < input.length; i++) {
 		hash = ((hash << 5) - hash) + input.charCodeAt(i);
@@ -93,11 +60,21 @@ async function processAggregatorJobs(
 					? `${j.ats}_${cleanExternalId}`
 					: `${j.ats}_${hashString([j.title, j.company, j.applyUrl].join('|'))}`;
 				
-				const ref = db.collection('jobs').doc(docId);
-				const cleanedDesc = cleanDescription(j.description || '');
-				const experienceLevels = extractExperienceLevel(j.title, cleanedDesc);
-				const employmentTypes = extractEmploymentType(j.title, cleanedDesc);
-				const technologies = extractTechnologies(j.title, cleanedDesc);
+			const ref = db.collection('jobs').doc(docId);
+			const cleanedDesc = cleanDescription(j.description || '');
+			
+			// Create a temporary JobDoc for enrichment functions
+			const tempJob: JobDoc = {
+				id: docId,
+				title: j.title,
+				description: cleanedDesc,
+				location: j.location || 'Remote',
+				company: j.company,
+			};
+			
+			const experienceLevels = extractExperienceLevel(tempJob);
+			const employmentTypes = extractEmploymentType(tempJob, experienceLevels);
+			const technologies = extractTechnologyTags(tempJob);
 				
 				batch.set(ref, {
 					title: j.title || '',
@@ -124,11 +101,11 @@ async function processAggregatorJobs(
 					remote: 'remote',
 					seniority: experienceLevels[0] || 'mid',
 					
-					// Metadata
-					enrichedAt: admin.firestore.FieldValue.serverTimestamp(),
-					enrichedVersion: '2.2',
-					source,
-				}, { merge: true });
+				// Metadata
+				enrichedAt: admin.firestore.FieldValue.serverTimestamp(),
+				enrichedVersion: '4.1',
+				source,
+			}, { merge: true });
 				
 				written++;
 			} catch (e: any) {

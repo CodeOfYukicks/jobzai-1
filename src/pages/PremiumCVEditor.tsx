@@ -1095,6 +1095,72 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
     const educationCount = cvData.education?.length || 0;
     const skillsCount = cvData.skills?.length || 0;
 
+    // CV content preview - extract key content for AI context
+    const cvContentPreview = {
+      // Professional summary (first 200 chars)
+      summary: cvData.summary ? cvData.summary.substring(0, 200) + (cvData.summary.length > 200 ? '...' : '') : null,
+      // Top 3 work experiences
+      topExperiences: cvData.experiences?.slice(0, 3).map(exp => ({
+        title: exp.title,
+        company: exp.company,
+        duration: `${exp.startDate} - ${exp.current ? 'Present' : exp.endDate}`,
+        location: exp.location,
+        descriptionPreview: exp.description ? exp.description.substring(0, 150) + (exp.description.length > 150 ? '...' : '') : null,
+        highlightsCount: exp.highlights?.length || 0,
+        topHighlights: exp.highlights?.slice(0, 3) || [],
+      })) || [],
+      // Recent education
+      recentEducation: cvData.education?.slice(0, 2).map(edu => ({
+        degree: edu.degree,
+        institution: edu.institution,
+        field: edu.field,
+        graduationDate: edu.graduationDate,
+        gpa: edu.gpa,
+      })) || [],
+      // Top 10 skills
+      topSkills: cvData.skills?.slice(0, 10).map(skill => ({
+        name: skill.name,
+        level: skill.level,
+        category: skill.category,
+      })) || [],
+      // Certifications
+      certifications: cvData.certifications?.map(cert => ({
+        name: cert.name,
+        issuer: cert.issuer,
+        date: cert.date,
+      })) || [],
+      // Projects (if any)
+      projects: cvData.projects?.slice(0, 2).map(proj => ({
+        name: proj.name,
+        description: proj.description ? proj.description.substring(0, 100) : null,
+        technologies: proj.technologies?.slice(0, 5) || [],
+      })) || [],
+      // Languages
+      languages: cvData.languages?.map(lang => ({
+        name: lang.name,
+        level: lang.level,
+      })) || [],
+    };
+
+    // Complete job context for AI
+    const completeJobContext = jobContext ? {
+      company: jobContext.company,
+      jobTitle: jobContext.jobTitle,
+      // Full job description (limited to 2000 chars to avoid payload overload)
+      jobDescription: jobContext.jobDescription 
+        ? jobContext.jobDescription.substring(0, 2000) + (jobContext.jobDescription.length > 2000 ? '...' : '')
+        : null,
+      // All keywords
+      keywords: jobContext.keywords || [],
+      keywordsCount: jobContext.keywords?.length || 0,
+      // Strengths identified
+      strengths: jobContext.strengths || [],
+      strengthsCount: jobContext.strengths?.length || 0,
+      // Gaps to address
+      gaps: jobContext.gaps || [],
+      gapsCount: jobContext.gaps?.length || 0,
+    } : null;
+
     return {
       pagePath: isResumeBuilder ? `/resume-builder/${id}/cv-editor` : `/ats-analysis/${id}/cv-editor`,
       viewMode: 'cv-editor',
@@ -1104,10 +1170,13 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
       template,
       hasUnsavedChanges: isDirty,
       isSaving,
-      // CV content summary
+      // CV content summary (metadata)
       cvSummary: {
         fullName: `${cvData.personalInfo?.firstName || ''} ${cvData.personalInfo?.lastName || ''}`.trim() || null,
         title: cvData.personalInfo?.title || null,
+        email: cvData.personalInfo?.email || null,
+        phone: cvData.personalInfo?.phone || null,
+        location: cvData.personalInfo?.location || null,
         hasSummary: !!cvData.summary && cvData.summary.length > 10,
         experienceCount,
         educationCount,
@@ -1116,14 +1185,11 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
         projectsCount: cvData.projects?.length || 0,
         languagesCount: cvData.languages?.length || 0,
       },
+      // CV content preview (actual content excerpts)
+      cvContent: cvContentPreview,
       enabledSections: enabledSections.map(s => s.title),
-      // Job context if available
-      jobContext: jobContext ? {
-        company: jobContext.company,
-        jobTitle: jobContext.jobTitle,
-        hasJobDescription: !!jobContext.jobDescription,
-        keywordsCount: jobContext.keywords?.length || 0,
-      } : null,
+      // Complete job context
+      jobContext: completeJobContext,
       // Editing state
       activeSection: activeSectionTarget?.section || null,
       zoom,

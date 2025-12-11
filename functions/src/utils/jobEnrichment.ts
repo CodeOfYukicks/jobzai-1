@@ -715,27 +715,87 @@ function extractSkillTags(job: JobDoc): string[] {
 /**
  * Analyze job title and description to extract employment type
  * Must be called AFTER extractExperienceLevel for proper conflict resolution
+ * V4.1: Enhanced with contextual patterns to avoid false positives
  */
 function extractEmploymentType(job: JobDoc, experienceLevel?: string[]): string[] {
     const text = `${job.title || ''} ${job.description || ''} ${job.summary || ''}`.toLowerCase();
     const title = (job.title || '').toLowerCase();
     let types: string[] = [];
 
-    // Use word boundaries to avoid false matches
-    if (/\b(full.?time|permanent|cdi|fulltime)\b/i.test(text)) {
+    // FALSE POSITIVE PATTERNS for "contract" - NOT employment type
+    const contractFalsePositives = [
+        /\b(sign(ing)?|execute|review|manage|draft|negotiate|agreement|under)\s+(a|the|your)?\s?contract/i,
+        /\bcontract\s+(negotiation|management|agreement|terms|clause|law|compliance|administration)/i,
+        /\b(employment|service|legal|customer|client|vendor)\s+contract/i,
+        /\byou will contract with/i,
+    ];
+
+    // Check if "contract" appears in a false positive context
+    const hasContractFalsePositive = contractFalsePositives.some(pattern => pattern.test(text));
+
+    // FULL-TIME PATTERNS - explicit mentions
+    const fullTimePatterns = [
+        /\b(full.?time|fulltime|full time)\s?(position|role|job|employment|opportunity)?/i,
+        /\b(permanent|cdi|permanent position|permanent role)\b/i,
+    ];
+
+    // PART-TIME PATTERNS
+    const partTimePatterns = [
+        /\b(part.?time|parttime|part time|temps partiel)\s?(position|role|job)?/i,
+    ];
+
+    // CONTRACT PATTERNS - contextual (employment type)
+    const contractPatterns = [
+        /\b(contract|contractor)\s+(position|role|job|work|employment|opportunity)/i,
+        /\b(\d+)[\s-]?(month|year|week)\s+contract/i,
+        /\bcontract\s+(duration|length|term):/i,
+        /\b(freelance|freelancer|independent contractor)\b/i,
+        /\b(consultant|consulting)\s+(position|role|contract)/i,
+        /\b(cdd|fixed.?term|temporary|temp)\s+(position|role|contract)?/i,
+        /\bcontractor\b/i,  // "contractor" alone is usually employment type
+    ];
+
+    // INTERNSHIP PATTERNS - strict
+    const internshipPatterns = [
+        /\b(intern|internship|stage|stagiaire)\s+(position|role|opportunity)?/i,
+        /\b(alternance|apprenticeship|apprenti|apprentice)\b/i,
+    ];
+
+    // Check internship in title or with student context
+    const hasInternshipInTitle = /\b(intern|internship|stage|alternance|apprenti)\b/i.test(title);
+    const hasStudentContext = /\b(student|university|école|university|college|graduate)\b/i.test(text);
+
+    // DETECTION LOGIC with priority
+
+    // 1. Check FULL-TIME (high priority if explicit)
+    if (fullTimePatterns.some(pattern => pattern.test(text))) {
         types.push('full-time');
     }
-    if (/\b(part.?time|temps partiel|parttime)\b/i.test(text)) {
+
+    // 2. Check PART-TIME
+    if (partTimePatterns.some(pattern => pattern.test(text))) {
         types.push('part-time');
     }
-    if (/\b(contract(or)?|freelance|consultant|cdd|fixed.?term|temporary)\b/i.test(text)) {
-        types.push('contract');
+
+    // 3. Check CONTRACT (but avoid false positives)
+    if (!hasContractFalsePositive) {
+        const hasContractPattern = contractPatterns.some(pattern => pattern.test(text));
+        // Also check for simple "contract" in title (usually means employment type)
+        const hasContractInTitle = /\bcontract\b/i.test(title);
+        
+        if (hasContractPattern || hasContractInTitle) {
+            types.push('contract');
+        }
     }
-    if (/\b(intern|internship|stage|alternance|apprenticeship|apprenti)\b/i.test(text)) {
+
+    // 4. Check INTERNSHIP (strict)
+    if (hasInternshipInTitle || (internshipPatterns.some(pattern => pattern.test(text)) && hasStudentContext)) {
         types.push('internship');
     }
 
-    // ENHANCED CONFLICT RESOLUTION: Remove "internship" if it conflicts with seniority
+    // ENHANCED CONFLICT RESOLUTION
+
+    // Remove "internship" if it conflicts with seniority
     if (types.includes('internship')) {
         // Check title for senior/lead keywords
         if (/\b(senior|lead|principal|staff|director|manager|head of|vp|chief)\b/i.test(title)) {
@@ -747,7 +807,22 @@ function extractEmploymentType(job: JobDoc, experienceLevel?: string[]): string[
         }
     }
 
-    // Default to full-time if nothing detected
+    // Remove conflicts between full-time and contract
+    // If both are detected, prioritize the one in the title or more specific context
+    if (types.includes('full-time') && types.includes('contract')) {
+        // Check which appears in title
+        const fullTimeInTitle = /\bfull.?time\b/i.test(title);
+        const contractInTitle = /\bcontract\b/i.test(title);
+        
+        if (fullTimeInTitle && !contractInTitle) {
+            types = types.filter(t => t !== 'contract');
+        } else if (contractInTitle && !fullTimeInTitle) {
+            types = types.filter(t => t !== 'full-time');
+        }
+        // If both in title or neither, keep both (rare case)
+    }
+
+    // Default to full-time if nothing detected (conservative)
     if (types.length === 0) {
         types.push('full-time');
     }
@@ -757,27 +832,117 @@ function extractEmploymentType(job: JobDoc, experienceLevel?: string[]): string[
 
 /**
  * Extract work location type (remote, on-site, hybrid)
+ * V4.1: STRICT detection to avoid false positives
  */
 function extractWorkLocation(job: JobDoc): string[] {
-    const text = `${job.title || ''} ${job.description || ''} ${job.summary || ''} ${job.remote || ''} ${job.remotePolicy || ''} ${job.location || ''}`.toLowerCase();
+    const title = (job.title || '').toLowerCase();
+    const description = (job.description || '').toLowerCase();
+    const summary = (job.summary || '').toLowerCase();
+    const remoteField = (job.remote || '').toLowerCase();
+    const remotePolicy = (job.remotePolicy || '').toLowerCase();
+    const location = (job.location || '').toLowerCase();
+    
+    const text = `${title} ${description} ${summary} ${remoteField} ${remotePolicy} ${location}`;
     const locations: string[] = [];
 
-    // Use word boundaries to avoid matching "remove", "remotely"
-    if (/\b(remote|work from home|wfh|distributed|télétravail|telecommute)\b/i.test(text)) {
-        locations.push('remote');
-    }
+    // NEGATIVE CONTEXT PATTERNS - if these are present, NOT remote
+    const negativePatterns = [
+        /\b(not remote|no remote|office.?based|office.?only|on.?site only|must be (in|at) (the )?office|required (in|at) (the )?office)\b/i,
+        /\b(in.?office position|in.?person only|no work from home|relocation required)\b/i,
+        /\b(must (be )?relocate|based in (the )?office)\b/i,
+    ];
 
-    if (/\b(hybrid|flex)\b/i.test(text) || 
-        (locations.includes('remote') && /\b(office|on.?site)\b/i.test(text))) {
+    const hasNegativeContext = negativePatterns.some(pattern => pattern.test(text));
+
+    // STRONG REMOTE SIGNALS - explicit and unambiguous
+    const strongRemotePatterns = [
+        /\b(100% remote|fully remote|completely remote|remote.?first|remote.?only|all remote)\b/i,
+        /\b(work from (home|anywhere)|wfh|distributed team|remote team|virtual team)\b/i,
+        /\b(permanent(ly)? remote|always remote)\b/i,
+    ];
+
+    // MODERATE REMOTE SIGNALS - clear but need context check
+    const moderateRemotePatterns = [
+        /\b(remote position|remote role|remote job|remote work|remote opportunity)\b/i,
+        /\b(télétravail|telecommute|home.?based)\b/i,
+    ];
+
+    // HYBRID EXPLICIT PATTERNS
+    const hybridPatterns = [
+        /\b(hybrid|flexible work|flex work)\b/i,
+        /\b(\d+\s?(days?|x)\s?(per|a|\/)\s?week\s?(in|at|from)\s?(the )?office)\b/i,
+        /\b(office\s?\+\s?remote|remote\s?\+\s?office)\b/i,
+        /\b(partially remote|part.?time remote|some office time)\b/i,
+    ];
+
+    // ON-SITE INDICATORS
+    const onSitePatterns = [
+        /\b(on.?site|onsite|in.?office|au bureau|in.?person)\b/i,
+    ];
+
+    // Check for explicit hybrid first
+    const isExplicitHybrid = hybridPatterns.some(pattern => pattern.test(text));
+    
+    if (isExplicitHybrid) {
         locations.push('hybrid');
+        // Don't mark as remote if it's hybrid
+        return locations;
     }
 
-    if (/\b(on.?site|onsite|in.?office|au bureau|in.?person)\b/i.test(text) ||
-        (!locations.includes('remote') && !locations.includes('hybrid') && job.location)) {
+    // Check for strong remote signals in title (highest priority)
+    const hasTitleRemote = strongRemotePatterns.some(pattern => pattern.test(title)) ||
+                          moderateRemotePatterns.some(pattern => pattern.test(title));
+    
+    if (hasTitleRemote && !hasNegativeContext) {
+        // Check if there's a requirement for office days (would make it hybrid)
+        if (/\b(must|required|need|should).{0,30}(\d+\s?days?\s?in\s?office)\b/i.test(text)) {
+            locations.push('hybrid');
+        } else {
+            locations.push('remote');
+        }
+    } 
+    // Check for strong remote signals in description/fields
+    else if (!hasNegativeContext) {
+        const hasStrongRemote = strongRemotePatterns.some(pattern => pattern.test(text));
+        const hasModerateRemote = moderateRemotePatterns.some(pattern => pattern.test(text));
+        
+        if (hasStrongRemote) {
+            // Strong signal = remote (unless office days mentioned)
+            if (/\b(\d+\s?days?\s?(in|at)\s?office)\b/i.test(text)) {
+                locations.push('hybrid');
+            } else {
+                locations.push('remote');
+            }
+        } else if (hasModerateRemote) {
+            // Moderate signal needs more verification
+            // Check if there's ALSO mention of office/on-site
+            const hasOfficeMention = onSitePatterns.some(pattern => pattern.test(text));
+            
+            if (hasOfficeMention) {
+                // Both remote and office mentioned without explicit "hybrid" = likely hybrid
+                locations.push('hybrid');
+            } else {
+                locations.push('remote');
+            }
+        }
+    }
+
+    // Check for on-site indicators
+    const hasOnSite = onSitePatterns.some(pattern => pattern.test(text));
+    
+    if (hasOnSite && locations.length === 0) {
         locations.push('on-site');
     }
 
-    // Default to on-site if nothing detected
+    // If we have a specific physical location and no remote indicators, it's on-site
+    if (locations.length === 0 && location && location.length > 0) {
+        // Check if location looks like a real place (city, country) not just "remote"
+        if (!/\b(remote|anywhere|worldwide|global)\b/i.test(location)) {
+            locations.push('on-site');
+        }
+    }
+
+    // Default to on-site if nothing detected (conservative approach)
     if (locations.length === 0) {
         locations.push('on-site');
     }
@@ -923,7 +1088,7 @@ export async function enrichJob(jobId: string): Promise<void> {
 
         // Metadata
         enrichedAt: admin.firestore.FieldValue.serverTimestamp(),
-        enrichedVersion: '4.0', // Version 4.0: Added roleFunction, languageRequirements, enrichmentQuality
+        enrichedVersion: '4.1', // Version 4.1: Strict remote detection & improved contract classification
     };
 
     await jobRef.update(updates);
@@ -948,7 +1113,7 @@ export async function enrichAllJobs(batchSize: number = 100, forceReenrich: bool
     let skippedCount = 0;
     let lastDoc: any = null;
 
-    console.log('🚀 Starting job enrichment V4.0...');
+    console.log('🚀 Starting job enrichment V4.1...');
     console.log(`   Force re-enrich: ${forceReenrich}`);
     console.log('');
 
@@ -974,8 +1139,8 @@ export async function enrichAllJobs(batchSize: number = 100, forceReenrich: bool
         snapshot.docs.forEach(doc => {
             const jobData = doc.data() as JobDoc;
 
-            // Skip if already enriched with V4.0 (unless force re-enrich)
-            if (!forceReenrich && jobData.enrichedVersion === '4.0') {
+            // Skip if already enriched with V4.1 (unless force re-enrich)
+            if (!forceReenrich && jobData.enrichedVersion === '4.1') {
                 skippedCount++;
                 return;
             }
@@ -1015,7 +1180,7 @@ export async function enrichAllJobs(batchSize: number = 100, forceReenrich: bool
                 remote: workLocations.includes('remote') ? 'remote' : workLocations[0] || 'on-site',
                 seniority: experienceLevels[0] || 'mid',
                 enrichedAt: admin.firestore.FieldValue.serverTimestamp(),
-                enrichedVersion: '4.0',
+                enrichedVersion: '4.1',
             };
 
             batch.update(doc.ref, updates);
@@ -1023,12 +1188,12 @@ export async function enrichAllJobs(batchSize: number = 100, forceReenrich: bool
         });
 
         await batch.commit();
-        console.log(`✅ Processed ${processedCount} jobs, skipped ${skippedCount} (already V4.0)`);
+        console.log(`✅ Processed ${processedCount} jobs, skipped ${skippedCount} (already V4.1)`);
 
         lastDoc = snapshot.docs[snapshot.docs.length - 1];
     }
 
-    console.log(`\n🎉 Job enrichment V4.0 complete!`);
+    console.log(`\n🎉 Job enrichment V4.1 complete!`);
     console.log(`   Processed: ${processedCount} jobs`);
     console.log(`   Skipped: ${skippedCount} jobs`);
 }
@@ -1052,3 +1217,4 @@ export {
 
 // Export types
 export { JobDoc, RoleFunction };
+
