@@ -1,7 +1,13 @@
 /**
  * DailyMotivation Component
  * Displays a daily motivational quote with lime green card design
- * Fetches from Quotable API with localStorage caching
+ * 
+ * Features:
+ * - Attempts to fetch from Quotable API
+ * - Falls back to 184 curated quotes if API fails
+ * - Caches API failures for 24 hours to prevent console errors
+ * - Daily quote caching with localStorage
+ * - Click to refresh for new quote
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -205,9 +211,34 @@ const FALLBACK_QUOTES: Omit<QuoteData, 'dateKey'>[] = [
 ];
 
 const STORAGE_KEY = 'dailyMotivation';
+const API_FAILURE_KEY = 'dailyMotivation_apiFailure';
+const API_RETRY_DELAY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 function getTodayKey(): string {
   return new Date().toISOString().split('T')[0];
+}
+
+function shouldSkipAPI(): boolean {
+  try {
+    const lastFailure = localStorage.getItem(API_FAILURE_KEY);
+    if (lastFailure) {
+      const failureTime = parseInt(lastFailure, 10);
+      const now = Date.now();
+      // Skip API if it failed within the last 24 hours
+      return now - failureTime < API_RETRY_DELAY;
+    }
+  } catch (e) {
+    // Ignore localStorage errors
+  }
+  return false;
+}
+
+function markAPIFailure(): void {
+  try {
+    localStorage.setItem(API_FAILURE_KEY, Date.now().toString());
+  } catch (e) {
+    // Ignore localStorage errors
+  }
 }
 
 function getRandomFallbackQuote(forceRandom = false): Omit<QuoteData, 'dateKey'> {
@@ -249,44 +280,60 @@ export default function DailyMotivation() {
       }
     }
 
-    try {
-      setIsRefreshing(forceRefresh);
-      
-      // Fetch from Quotable API
-      const response = await fetch('https://api.quotable.io/random?maxLength=120');
-      
-      if (!response.ok) {
-        throw new Error('API request failed');
-      }
-      
-      const data = await response.json();
-      const newQuote: QuoteData = {
-        content: data.content,
-        author: data.author,
-        dateKey: todayKey,
-      };
-      
-      // Cache in localStorage
+    setIsRefreshing(forceRefresh);
+    
+    // Skip API if it recently failed to avoid console errors
+    const skipAPI = shouldSkipAPI();
+    
+    if (!skipAPI) {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(newQuote));
-      } catch (e) {
-        // Ignore localStorage errors
+        // Fetch from Quotable API with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        const response = await fetch('https://api.quotable.io/random?maxLength=120', {
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error('API request failed');
+        }
+        
+        const data = await response.json();
+        const newQuote: QuoteData = {
+          content: data.content,
+          author: data.author,
+          dateKey: todayKey,
+        };
+        
+        // Cache in localStorage
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(newQuote));
+        } catch (e) {
+          // Ignore localStorage errors
+        }
+        
+        setQuote(newQuote);
+        setLoading(false);
+        setIsRefreshing(false);
+        return;
+      } catch (error) {
+        // Mark API as failed to prevent future attempts for 24 hours
+        markAPIFailure();
       }
-      
-      setQuote(newQuote);
-    } catch (error) {
-      console.error('Failed to fetch quote:', error);
-      // Use fallback quote
-      const fallback = getRandomFallbackQuote(forceRefresh);
-      const fallbackQuote: QuoteData = {
-        ...fallback,
-        dateKey: todayKey,
-      };
-      setQuote(fallbackQuote);
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
     }
+    
+    // Use fallback quote (either because API was skipped or failed)
+    const fallback = getRandomFallbackQuote(forceRefresh);
+    const fallbackQuote: QuoteData = {
+      ...fallback,
+      dateKey: todayKey,
+    };
+    setQuote(fallbackQuote);
+    setLoading(false);
+    setIsRefreshing(false);
   }, []);
 
   useEffect(() => {

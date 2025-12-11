@@ -4,6 +4,10 @@ import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 import {
   Heading1,
   Heading2,
@@ -14,13 +18,17 @@ import {
   Code,
   Minus,
   Type,
+  Table,
 } from 'lucide-react';
 
 import BubbleMenuBar from './menus/BubbleMenuBar';
+import TableBubbleMenu from './menus/TableBubbleMenu';
 import MentionEmbed, { MentionEmbedData } from './extensions/MentionEmbed';
+import EnhancedTable from './extensions/EnhancedTable';
 import MentionMenu from './MentionMenu';
 import MentionDetailModal from './MentionDetailModal';
 import { MentionSearchResult, searchResultToEmbedData } from '../../lib/mentionSearchService';
+import NotesAIPopover from '../interview/NotesAIPopover';
 
 import './notion-editor.css';
 
@@ -66,6 +74,12 @@ const NotionEditor = ({
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailModalData, setDetailModalData] = useState<MentionEmbedData | null>(null);
 
+  // AI Popover state
+  const [showAIPopover, setShowAIPopover] = useState(false);
+  const [aiPopoverPosition, setAIPopoverPosition] = useState({ x: 0, y: 0 });
+  const [selectedText, setSelectedText] = useState('');
+  const [selectionTimeout, setSelectionTimeout] = useState<NodeJS.Timeout | null>(null);
+
   // Ref for tracking active menu for keyboard handling
   const activeMenuRef = useRef<'slash' | 'mention' | null>(null);
 
@@ -82,7 +96,35 @@ const NotionEditor = ({
         emptyEditorClass: 'is-editor-empty',
         emptyNodeClass: 'is-empty',
       }),
+      BubbleMenuExtension,
       MentionEmbed,
+      EnhancedTable.configure({
+        resizable: true,
+        allowTableNodeSelection: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            columnType: {
+              default: 'text',
+              parseHTML: element => element.getAttribute('data-column-type'),
+              renderHTML: attributes => ({
+                'data-column-type': attributes.columnType,
+              }),
+            },
+            cellValue: {
+              default: null,
+              parseHTML: element => element.getAttribute('data-cell-value'),
+              renderHTML: attributes => ({
+                'data-cell-value': attributes.cellValue,
+              }),
+            },
+          };
+        },
+      }),
     ],
     content: content || {
       type: 'doc',
@@ -133,6 +175,41 @@ const NotionEditor = ({
         setMentionSelectionPos(null);
         activeMenuRef.current = null;
       }
+    },
+    onSelectionUpdate: ({ editor }) => {
+      // Clear any existing timeout
+      if (selectionTimeout) {
+        clearTimeout(selectionTimeout);
+      }
+
+      // Wait for selection to stabilize (after mouseup)
+      const timeout = setTimeout(() => {
+        const { from, to } = editor.state.selection;
+        const text = editor.state.doc.textBetween(from, to, ' ');
+        
+        // Only show if text is selected and has minimum length
+        if (text.trim().length > 5) {
+          setSelectedText(text);
+          
+          // Get selection coordinates
+          const { view } = editor;
+          const start = view.coordsAtPos(from);
+          const end = view.coordsAtPos(to);
+          
+          // Position popover above selection
+          setAIPopoverPosition({
+            x: (start.left + end.right) / 2,
+            y: start.top - 10,
+          });
+          
+          setShowAIPopover(true);
+        } else {
+          setShowAIPopover(false);
+          setSelectedText('');
+        }
+      }, 150); // Delay ensures user finished selecting
+      
+      setSelectionTimeout(timeout);
     },
     editorProps: {
       attributes: {
@@ -237,6 +314,12 @@ const NotionEditor = ({
       description: 'Visually divide sections',
       icon: <Minus className="w-5 h-5" />,
       command: () => editor.chain().focus().setHorizontalRule().run(),
+    },
+    {
+      title: 'Table',
+      description: 'Insert a table with advanced features',
+      icon: <Table className="w-5 h-5" />,
+      command: () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
     },
   ] : [];
 
@@ -462,6 +545,18 @@ const NotionEditor = ({
     }
   }, [showSlashMenu]);
 
+  // Handle AI rewrite
+  const handleAIRewrite = useCallback((rewrittenText: string) => {
+    if (!editor) return;
+    
+    // Replace selected text with AI-rewritten version
+    const { from, to } = editor.state.selection;
+    editor.chain().focus().deleteRange({ from, to }).insertContent(rewrittenText).run();
+    
+    setShowAIPopover(false);
+    setSelectedText('');
+  }, [editor]);
+
   if (!editor) {
     return null;
   }
@@ -469,6 +564,7 @@ const NotionEditor = ({
   return (
     <div ref={editorContainerRef} className="notion-editor relative">
       <BubbleMenuBar editor={editor} />
+      <TableBubbleMenu editor={editor} />
       <EditorContent editor={editor} />
       
       {/* Slash Command Menu - Using Portal for better positioning */}
@@ -555,6 +651,19 @@ const NotionEditor = ({
         onClose={() => setShowDetailModal(false)}
         data={detailModalData}
       />
+
+      {/* AI Popover */}
+      {showAIPopover && selectedText && (
+        <NotesAIPopover
+          position={aiPopoverPosition}
+          selectedText={selectedText}
+          onClose={() => {
+            setShowAIPopover(false);
+            setSelectedText('');
+          }}
+          onRewrite={handleAIRewrite}
+        />
+      )}
     </div>
   );
 };

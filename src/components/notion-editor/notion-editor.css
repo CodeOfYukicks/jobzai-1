@@ -100,7 +100,171 @@
     px-1.5 py-0.5 rounded text-sm font-mono;
 }
 
-/* Table styles */
+/* Table styles - Enhanced for Notion-like tables */
+.notion-editor-content table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+.notion-editor-content th,
+.notion-editor-content td {
+  min-width: 100px;
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  vertical-align: top;
+  position: relative;
+  background-color: white;
+}
+
+.dark .notion-editor-content th,
+.dark .notion-editor-content td {
+  border-color: #374151;
+  background-color: transparent;
+}
+
+/* Header styles */
+.notion-editor-content th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  text-align: left;
+}
+
+.dark .notion-editor-content th {
+  background-color: #1f2937;
+}
+
+/* Cell type indicators */
+.notion-editor-content td[data-column-type="number"] {
+  text-align: right;
+}
+
+.notion-editor-content td[data-column-type="checkbox"] {
+  text-align: center;
+}
+
+/* Selected cell/row/column */
+.notion-editor-content .selectedCell {
+  background-color: #dbeafe;
+}
+
+.dark .notion-editor-content .selectedCell {
+  background-color: #1e3a8a;
+}
+
+/* Resize handle */
+.notion-editor-content .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #3b82f6;
+  cursor: col-resize;
+  opacity: 0;
+  z-index: 10;
+}
+
+.notion-editor-content th:hover .column-resize-handle {
+  opacity: 1;
+}
+
+/* Sort indicator */
+.notion-editor-content .sort-indicator {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Filter badge */
+.notion-editor-content .filter-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  background-color: #dbeafe;
+  border-radius: 4px;
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+.dark .notion-editor-content .filter-badge {
+  background-color: #1e3a8a;
+}
+
+/* Table cell content wrapper */
+.notion-editor-content td > div,
+.notion-editor-content th > div {
+  min-height: 20px;
+}
+
+/* Table hover effects */
+.notion-editor-content table:hover {
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.1);
+}
+
+/* Cell editing state */
+.notion-editor-content td:focus-within,
+.notion-editor-content th:focus-within {
+  background-color: rgba(139, 92, 246, 0.05);
+  outline: 2px solid rgba(139, 92, 246, 0.3);
+  outline-offset: -2px;
+}
+
+.dark .notion-editor-content td:focus-within,
+.dark .notion-editor-content th:focus-within {
+  background-color: rgba(139, 92, 246, 0.1);
+}
+
+/* Empty table cell placeholder */
+.notion-editor-content td:empty::before,
+.notion-editor-content th:empty::before {
+  content: '';
+  display: inline-block;
+  width: 100%;
+  height: 20px;
+}
+
+/* Table wrapper for scroll */
+.notion-editor-content .tableWrapper {
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+/* Grip for column resize */
+.notion-editor-content .grip-column {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  background-color: transparent;
+  transition: background-color 0.2s;
+}
+
+.notion-editor-content .grip-column:hover,
+.notion-editor-content .grip-column.active {
+  background-color: #3b82f6;
+}
+
+/* Row hover effect */
+.notion-editor-content tr:hover {
+  background-color: rgba(0, 0, 0, 0.01);
+}
+
+.dark .notion-editor-content tr:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Prevent text selection during resize */
+.notion-editor-content.resizing {
+  user-select: none;
+}
+
+/* Old table styles for backwards compatibility */
 .notion-editor-content .notion-table {
   @apply w-full my-4 border-collapse;
 }
