@@ -128,6 +128,70 @@ async function getPerplexityApiKey() {
   return null;
 }
 
+// Function to get Anthropic API key from Firestore
+async function getAnthropicApiKey() {
+  try {
+    console.log('🔑 Attempting to retrieve Anthropic API key from Firestore...');
+    const settingsDoc = await admin.firestore().collection('settings').doc('anthropic').get();
+
+    if (settingsDoc.exists) {
+      const data = settingsDoc.data();
+      const apiKey = data?.apiKey || data?.api_key;
+      if (apiKey) {
+        console.log('✅ Anthropic API key retrieved from Firestore (first 10 chars):', apiKey.substring(0, 10) + '...');
+        return apiKey;
+      } else {
+        console.warn('⚠️  Document exists but apiKey field is missing. Available fields:', Object.keys(data || {}));
+      }
+    } else {
+      console.warn('⚠️  Document settings/anthropic does not exist in Firestore');
+    }
+  } catch (error) {
+    console.error('❌ Failed to retrieve Anthropic API key from Firestore:', error.message);
+  }
+
+  // Fallback to environment variable
+  if (process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY) {
+    const apiKey = process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
+    console.log('Using Anthropic API key from environment variable');
+    return apiKey;
+  }
+
+  return null;
+}
+
+// Function to get Gemini API key from Firestore
+async function getGeminiApiKey() {
+  try {
+    console.log('🔑 Attempting to retrieve Gemini API key from Firestore...');
+    const settingsDoc = await admin.firestore().collection('settings').doc('gemini').get();
+
+    if (settingsDoc.exists) {
+      const data = settingsDoc.data();
+      const apiKey = data?.apiKey || data?.api_key;
+      if (apiKey) {
+        console.log('✅ Gemini API key retrieved from Firestore (first 10 chars):', apiKey.substring(0, 10) + '...');
+        return apiKey;
+      } else {
+        console.warn('⚠️  Document exists but apiKey field is missing. Available fields:', Object.keys(data || {}));
+      }
+    } else {
+      console.warn('⚠️  Document settings/gemini does not exist in Firestore');
+    }
+  } catch (error) {
+    console.error('❌ Failed to retrieve Gemini API key from Firestore:', error.message);
+  }
+
+  // Fallback to environment variable
+  if (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY) {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+    console.log('Using Gemini API key from environment variable');
+    return apiKey;
+  }
+
+  return null;
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -727,33 +791,265 @@ app.post('/api/chatgpt', async (req, res) => {
 });
 
 // ============================================
+// Helper functions for AI Assistant with different providers
+// ============================================
+
+/**
+ * Call Claude (Anthropic) API with streaming
+ */
+async function callClaudeAssistant(messages, systemPrompt, apiKey, res) {
+  const https = require('https');
+  
+  // Convert messages format for Claude API
+  const claudeMessages = messages.filter(msg => msg.role !== 'system').map(msg => ({
+    role: msg.role === 'assistant' ? 'assistant' : 'user',
+    content: msg.content
+  }));
+
+  const postData = JSON.stringify({
+    model: 'claude-sonnet-4.5',
+    max_tokens: 2000,
+    temperature: 0.7,
+    system: systemPrompt,
+    messages: claudeMessages,
+    stream: true
+  });
+
+  const options = {
+    hostname: 'api.anthropic.com',
+    port: 443,
+    path: '/v1/messages',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'Content-Length': Buffer.byteLength(postData)
+    }
+  };
+
+  let buffer = '';
+  let fullContent = '';
+
+  const claudeReq = https.request(options, (claudeRes) => {
+    if (claudeRes.statusCode !== 200) {
+      console.error('❌ Claude API error status:', claudeRes.statusCode);
+      res.write(`data: ${JSON.stringify({ error: 'Claude API error' })}\n\n`);
+      res.end();
+      return;
+    }
+
+    claudeRes.on('data', (chunk) => {
+      buffer += chunk.toString();
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine.startsWith('data: ')) {
+          const data = trimmedLine.slice(6);
+          if (data === '[DONE]') {
+            continue;
+          }
+          try {
+            const parsed = JSON.parse(data);
+            // Claude streaming format
+            if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+              const content = parsed.delta.text;
+              fullContent += content;
+              res.write(`data: ${JSON.stringify({ content })}\n\n`);
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+    });
+
+    claudeRes.on('end', () => {
+      res.write('data: [DONE]\n\n');
+      res.end();
+      console.log('✅ Claude Assistant response completed (streamed)');
+      console.log(`   Response length: ${fullContent.length} chars`);
+    });
+
+    claudeRes.on('error', (err) => {
+      console.error('❌ Claude stream error:', err);
+      res.end();
+    });
+  });
+
+  claudeReq.on('error', (err) => {
+    console.error('❌ Claude request error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ status: 'error', message: err.message });
+    } else {
+      res.end();
+    }
+  });
+
+  claudeReq.write(postData);
+  claudeReq.end();
+}
+
+/**
+ * Call Gemini (Google) API with streaming
+ */
+async function callGeminiAssistant(messages, systemPrompt, apiKey, res) {
+  const https = require('https');
+  
+  // Convert messages format for Gemini API
+  const geminiContents = [];
+  
+  // Add system prompt as first user message
+  if (systemPrompt) {
+    geminiContents.push({
+      role: 'user',
+      parts: [{ text: systemPrompt }]
+    });
+    geminiContents.push({
+      role: 'model',
+      parts: [{ text: 'Understood. I will assist you accordingly.' }]
+    });
+  }
+  
+  // Add conversation messages
+  messages.filter(msg => msg.role !== 'system').forEach(msg => {
+    geminiContents.push({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    });
+  });
+
+  const postData = JSON.stringify({
+    contents: geminiContents,
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 2000
+    }
+  });
+
+  const options = {
+    hostname: 'generativelanguage.googleapis.com',
+    port: 443,
+    path: `/v1beta/models/gemini-3:streamGenerateContent?key=${apiKey}&alt=sse`,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(postData)
+    }
+  };
+
+  let buffer = '';
+  let fullContent = '';
+
+  const geminiReq = https.request(options, (geminiRes) => {
+    if (geminiRes.statusCode !== 200) {
+      console.error('❌ Gemini API error status:', geminiRes.statusCode);
+      res.write(`data: ${JSON.stringify({ error: 'Gemini API error' })}\n\n`);
+      res.end();
+      return;
+    }
+
+    geminiRes.on('data', (chunk) => {
+      buffer += chunk.toString();
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine.startsWith('data: ')) {
+          const data = trimmedLine.slice(6);
+          if (data === '[DONE]') {
+            continue;
+          }
+          try {
+            const parsed = JSON.parse(data);
+            // Gemini streaming format
+            if (parsed.candidates?.[0]?.content?.parts?.[0]?.text) {
+              const content = parsed.candidates[0].content.parts[0].text;
+              fullContent += content;
+              res.write(`data: ${JSON.stringify({ content })}\n\n`);
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+    });
+
+    geminiRes.on('end', () => {
+      res.write('data: [DONE]\n\n');
+      res.end();
+      console.log('✅ Gemini Assistant response completed (streamed)');
+      console.log(`   Response length: ${fullContent.length} chars`);
+    });
+
+    geminiRes.on('error', (err) => {
+      console.error('❌ Gemini stream error:', err);
+      res.end();
+    });
+  });
+
+  geminiReq.on('error', (err) => {
+    console.error('❌ Gemini request error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ status: 'error', message: err.message });
+    } else {
+      res.end();
+    }
+  });
+
+  geminiReq.write(postData);
+  geminiReq.end();
+}
+
+// ============================================
 // AI Assistant Chat Endpoint
 // Context-aware chatbot for job search assistance
 // ============================================
 app.post('/api/assistant', async (req, res) => {
   try {
+    console.log('\n🤖 ════════════════════════════════════════════════════════');
     console.log('🤖 AI Assistant endpoint called');
     
-    // Get API key from Firestore or environment variables
+    const { message, aiProvider = 'openai', pageContext, userContext, conversationHistory, userId, pageData, selectedContextItems } = req.body;
+
+    console.log('🤖 ┌─────────────────────────────────────────────────────┐');
+    console.log(`🤖 │ AI Provider: ${aiProvider.toUpperCase().padEnd(39)} │`);
+    console.log(`🤖 │ User: ${(userContext?.firstName || 'Unknown').padEnd(44)} │`);
+    console.log(`🤖 │ Message: ${(message.substring(0, 40) + '...').padEnd(41)} │`);
+    console.log('🤖 └─────────────────────────────────────────────────────┘');
+    
+    // Get appropriate API key based on provider
     let apiKey;
     try {
-      apiKey = await getOpenAIApiKey();
+      switch (aiProvider) {
+        case 'anthropic':
+          apiKey = await getAnthropicApiKey();
+          break;
+        case 'gemini':
+          apiKey = await getGeminiApiKey();
+          break;
+        case 'openai':
+        default:
+          apiKey = await getOpenAIApiKey();
+          break;
+      }
     } catch (keyError) {
       console.error('❌ Error retrieving API key:', keyError);
       return res.status(500).json({
         status: 'error',
-        message: `Failed to retrieve API key: ${keyError.message}`
+        message: `Failed to retrieve API key for ${aiProvider}: ${keyError.message}`
       });
     }
 
     if (!apiKey) {
       return res.status(500).json({
         status: 'error',
-        message: 'OpenAI API key is missing.'
+        message: `${aiProvider.toUpperCase()} API key is missing. Please configure it in Firestore (settings/${aiProvider}).`
       });
     }
-
-    const { message, pageContext, userContext, conversationHistory, userId, pageData, selectedContextItems } = req.body;
 
     if (!message) {
       return res.status(400).json({
@@ -794,7 +1090,8 @@ app.post('/api/assistant', async (req, res) => {
       content: message
     });
 
-    console.log('📡 Sending request to OpenAI for assistant response (streaming)...');
+    console.log(`📡 Sending request to ${aiProvider.toUpperCase()} for assistant response (streaming)...`);
+    console.log('🤖 ════════════════════════════════════════════════════════\n');
 
     // Set headers for SSE streaming FIRST
     res.setHeader('Content-Type', 'text/event-stream');
@@ -802,91 +1099,107 @@ app.post('/api/assistant', async (req, res) => {
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
 
-    // Use https module for reliable streaming in Node.js
-    const https = require('https');
-    
-    const postData = JSON.stringify({
-      model: 'gpt-4o',
-      messages: messages,
-      max_tokens: 2000,
-      temperature: 0.7,
-      stream: true
-    });
-
-    const options = {
-      hostname: 'api.openai.com',
-      port: 443,
-      path: '/v1/chat/completions',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Length': Buffer.byteLength(postData)
-      }
-    };
-
-    let buffer = '';
-    let fullContent = '';
-
-    const openaiReq = https.request(options, (openaiRes) => {
-      if (openaiRes.statusCode !== 200) {
-        console.error('❌ OpenAI API error status:', openaiRes.statusCode);
-        res.write(`data: ${JSON.stringify({ error: 'OpenAI API error' })}\n\n`);
-        res.end();
+    // Route to appropriate AI provider
+    switch (aiProvider) {
+      case 'anthropic':
+        console.log('🧠 [ANTHROPIC] Calling Claude Sonnet 4.5...');
+        await callClaudeAssistant(messages, systemPrompt, apiKey, res);
         return;
-      }
+      
+      case 'gemini':
+        console.log('⚡ [GEMINI] Calling Gemini 3...');
+        await callGeminiAssistant(messages, systemPrompt, apiKey, res);
+        return;
+      
+      case 'openai':
+      default:
+        console.log('✨ [OPENAI] Calling GPT-5.2...');
+        // Use https module for reliable streaming in Node.js
+        const https = require('https');
+        
+        const postData = JSON.stringify({
+          model: 'gpt-5.2',
+          messages: messages,
+          max_tokens: 2000,
+          temperature: 0.7,
+          stream: true
+        });
 
-      openaiRes.on('data', (chunk) => {
-        buffer += chunk.toString();
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          const trimmedLine = line.trim();
-          if (trimmedLine.startsWith('data: ')) {
-            const data = trimmedLine.slice(6);
-            if (data === '[DONE]') {
-              continue;
-            }
-            try {
-              const parsed = JSON.parse(data);
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                fullContent += content;
-                res.write(`data: ${JSON.stringify({ content })}\n\n`);
-              }
-            } catch (e) {
-              // Skip invalid JSON
-            }
+        const options = {
+          hostname: 'api.openai.com',
+          port: 443,
+          path: '/v1/chat/completions',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Length': Buffer.byteLength(postData)
           }
-        }
-      });
+        };
 
-      openaiRes.on('end', () => {
-        res.write('data: [DONE]\n\n');
-        res.end();
-        console.log('✅ AI Assistant response completed (streamed)');
-        console.log(`   Response length: ${fullContent.length} chars`);
-      });
+        let buffer = '';
+        let fullContent = '';
 
-      openaiRes.on('error', (err) => {
-        console.error('❌ OpenAI stream error:', err);
-        res.end();
-      });
-    });
+        const openaiReq = https.request(options, (openaiRes) => {
+          if (openaiRes.statusCode !== 200) {
+            console.error('❌ OpenAI API error status:', openaiRes.statusCode);
+            res.write(`data: ${JSON.stringify({ error: 'OpenAI API error' })}\n\n`);
+            res.end();
+            return;
+          }
 
-    openaiReq.on('error', (err) => {
-      console.error('❌ OpenAI request error:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ status: 'error', message: err.message });
-      } else {
-        res.end();
-      }
-    });
+          openaiRes.on('data', (chunk) => {
+            buffer += chunk.toString();
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
 
-    openaiReq.write(postData);
-    openaiReq.end();
-    return;
+            for (const line of lines) {
+              const trimmedLine = line.trim();
+              if (trimmedLine.startsWith('data: ')) {
+                const data = trimmedLine.slice(6);
+                if (data === '[DONE]') {
+                  continue;
+                }
+                try {
+                  const parsed = JSON.parse(data);
+                  const content = parsed.choices?.[0]?.delta?.content;
+                  if (content) {
+                    fullContent += content;
+                    res.write(`data: ${JSON.stringify({ content })}\n\n`);
+                  }
+                } catch (e) {
+                  // Skip invalid JSON
+                }
+              }
+            }
+          });
+
+          openaiRes.on('end', () => {
+            res.write('data: [DONE]\n\n');
+            res.end();
+            console.log('✅ OpenAI Assistant response completed (streamed)');
+            console.log(`   Response length: ${fullContent.length} chars`);
+          });
+
+          openaiRes.on('error', (err) => {
+            console.error('❌ OpenAI stream error:', err);
+            res.end();
+          });
+        });
+
+        openaiReq.on('error', (err) => {
+          console.error('❌ OpenAI request error:', err);
+          if (!res.headersSent) {
+            res.status(500).json({ status: 'error', message: err.message });
+          } else {
+            res.end();
+          }
+        });
+
+        openaiReq.write(postData);
+        openaiReq.end();
+        return;
+    }
 
   } catch (error) {
     console.error('❌ AI Assistant error:', error);

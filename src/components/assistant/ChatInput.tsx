@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect, KeyboardEvent, useCallback } from 'react';
-import { Send, Square, AtSign, Globe, Pencil, X, Loader2, Clock, Briefcase, FileText, BarChart3, Calendar, UserCircle, LayoutDashboard, StickyNote, Palette, FileIcon, Settings, CreditCard, Mic, User, FileSearch, Lightbulb, Send as SendIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect, KeyboardEvent, useCallback } from 'react';
+import { Send, Square, AtSign, Globe, Pencil, X, Loader2, Clock, Briefcase, FileText, BarChart3, Calendar, UserCircle, LayoutDashboard, StickyNote, Palette, FileIcon, Settings, CreditCard, Mic, User, FileSearch, Lightbulb, Send as SendIcon, Sparkles, Brain, Zap, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAssistant } from '../../contexts/AssistantContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { doc, updateDoc, getDoc, collection, getDocs, limit, query } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, collection, getDocs, limit, query, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { recordCreditHistory } from '../../lib/creditHistory';
 import { notify } from '../../lib/notify';
@@ -41,6 +41,17 @@ interface SelectedContextItem {
 
 const CREDIT_COST = 1;
 const SEARCH_DEBOUNCE_MS = 200;
+
+// AI Provider types
+type AIProvider = 'openai' | 'anthropic' | 'gemini';
+
+interface AIProviderOption {
+  id: AIProvider;
+  name: string;
+  model: string;
+  icon: React.ReactNode;
+  color: string;
+}
 
 // Icon mapping for context items
 const getContextIcon = (type: SearchResultType, iconName?: string) => {
@@ -115,9 +126,13 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
   const [searchResults, setSearchResults] = useState<GlobalSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [showAISelector, setShowAISelector] = useState(false);
+  const [selectedAIProvider, setSelectedAIProvider] = useState<AIProvider>('openai');
+  const [isLoadingAIPreference, setIsLoadingAIPreference] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const aiSelectorRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -137,6 +152,69 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
   const { currentUser, userData } = useAuth();
   const { profile } = useUserProfile();
 
+  // AI Provider options with company logos
+  const aiProviders: AIProviderOption[] = [
+    {
+      id: 'openai',
+      name: 'GPT-5.2',
+      model: 'gpt-5.2',
+      icon: (
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/>
+        </svg>
+      ),
+      color: '#10a37f'
+    },
+    {
+      id: 'anthropic',
+      name: 'Claude Sonnet 4.5',
+      model: 'claude-sonnet-4.5',
+      icon: (
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.2 2L22 21.7h-4.6l-1-3.6h-5.5l-1 3.6H5.3L10 2h7.2zm-1.3 5.3l-1.9 7.1h3.9l-2-7.1z"/>
+        </svg>
+      ),
+      color: '#d97757'
+    },
+    {
+      id: 'gemini',
+      name: 'Gemini 3',
+      model: 'gemini-3',
+      icon: (
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      ),
+      color: '#4285f4'
+    }
+  ];
+
+  // Load AI preference from Firestore
+  useEffect(() => {
+    const loadAIPreference = async () => {
+      if (!currentUser) {
+        setIsLoadingAIPreference(false);
+        return;
+      }
+      
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userRef);
+        
+        if (userDoc.exists() && userDoc.data()?.assistantAIProvider) {
+          setSelectedAIProvider(userDoc.data().assistantAIProvider as AIProvider);
+        }
+      } catch (error) {
+        console.error('Error loading AI preference:', error);
+        // Silently fail and use default
+      } finally {
+        setIsLoadingAIPreference(false);
+      }
+    };
+    
+    loadAIPreference();
+  }, [currentUser]);
+
   // Close context menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -145,6 +223,9 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
         setContextSearch('');
         setSearchResults([]);
         setSelectedIndex(0);
+      }
+      if (aiSelectorRef.current && !aiSelectorRef.current.contains(event.target as Node)) {
+        setShowAISelector(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -331,6 +412,27 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
     setSelectedContexts(prev => prev.filter(ctx => !(ctx.id === contextId && ctx.type === contextType)));
   };
 
+  // Save AI preference to Firestore
+  const saveAIPreference = async (provider: AIProvider) => {
+    if (!currentUser) return;
+    
+    try {
+      const providerName = aiProviders.find(p => p.id === provider)?.name;
+      console.log(`🤖 [AI SELECTOR] User selected: ${providerName} (${provider})`);
+      
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, { assistantAIProvider: provider });
+      setSelectedAIProvider(provider);
+      setShowAISelector(false);
+      
+      console.log(`✅ [AI SELECTOR] Preference saved to Firestore: ${provider}`);
+      notify.success(`Switched to ${providerName}`);
+    } catch (error) {
+      console.error('❌ [AI SELECTOR] Error saving AI preference:', error);
+      notify.error('Failed to save AI preference');
+    }
+  };
+
   // Handle keyboard navigation in search results
   const handleSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
@@ -462,6 +564,14 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
 
       // Debug: log context items being sent
       console.log('📎 Sending context items to API:', contextItems);
+      
+      const providerInfo = aiProviders.find(p => p.id === selectedAIProvider);
+      console.log('🤖 ════════════════════════════════════════════════════════');
+      console.log('🤖 [REQUEST] Using AI Provider:', providerInfo?.name);
+      console.log('🤖 [REQUEST] Provider ID:', selectedAIProvider);
+      console.log('🤖 [REQUEST] Model:', providerInfo?.model);
+      console.log('🤖 [REQUEST] Message:', trimmedInput.substring(0, 50) + '...');
+      console.log('🤖 ════════════════════════════════════════════════════════');
 
       const response = await fetch('/api/assistant', {
         method: 'POST',
@@ -470,6 +580,7 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
         },
         body: JSON.stringify({
           message: trimmedInput,
+          aiProvider: selectedAIProvider, // Include selected AI provider
           conversationHistory, // Include conversation history
           pageContext: {
             pathname: location.pathname,
@@ -532,6 +643,7 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
         }
         
         // Mark streaming as complete
+        console.log(`✅ [RESPONSE] Received ${fullContent.length} characters from ${providerInfo?.name}`);
         updateMessage(assistantMessageId, fullContent || 'No response received', false);
       } else {
         // Handle JSON response (fallback)
@@ -794,15 +906,105 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
           
           {/* Left side: Mode selectors */}
           <div className="flex items-center gap-3">
-            {/* Auto mode */}
-            <button className="flex items-center gap-1.5 px-2 py-1 rounded-md
-              text-gray-500 dark:text-gray-400 
-              hover:text-gray-700 dark:hover:text-gray-300
-              hover:bg-gray-100 dark:hover:bg-white/[0.04]
-              transition-colors duration-150 text-sm">
-              <Pencil className="h-3.5 w-3.5" />
-              <span className="font-medium">Auto</span>
-            </button>
+            {/* AI Selector */}
+            <div className="relative" ref={aiSelectorRef}>
+              <button 
+                onClick={() => setShowAISelector(!showAISelector)}
+                disabled={isLoadingAIPreference}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-md
+                  text-gray-500 dark:text-gray-400 
+                  hover:text-gray-700 dark:hover:text-gray-300
+                  hover:bg-gray-100 dark:hover:bg-white/[0.04]
+                  transition-colors duration-150 text-sm disabled:opacity-50">
+                {isLoadingAIPreference ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  React.cloneElement(aiProviders.find(p => p.id === selectedAIProvider)?.icon as React.ReactElement, { 
+                    className: "h-3.5 w-3.5" 
+                  })
+                )}
+                <span className="font-medium">
+                  {aiProviders.find(p => p.id === selectedAIProvider)?.name || 'Auto'}
+                </span>
+              </button>
+
+              {/* AI Selector Modal */}
+              <AnimatePresence>
+                {showAISelector && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute bottom-full left-0 mb-2 w-64
+                      bg-white dark:bg-[#2a2a2c] 
+                      rounded-xl border border-gray-200 dark:border-white/[0.08]
+                      shadow-lg shadow-black/10 dark:shadow-black/30
+                      overflow-hidden z-50"
+                  >
+                    <div className="p-2.5 border-b border-gray-100 dark:border-white/[0.06]">
+                      <h3 className="text-xs font-semibold text-gray-900 dark:text-white">
+                        Select AI Model
+                      </h3>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                        Choose which AI to use for your queries
+                      </p>
+                    </div>
+                    
+                    <div className="p-1.5">
+                      {aiProviders.map((provider) => {
+                        const isSelected = selectedAIProvider === provider.id;
+                        return (
+                          <button
+                            key={provider.id}
+                            onClick={() => saveAIPreference(provider.id)}
+                            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg
+                              transition-all duration-150 text-left
+                              ${isSelected 
+                                ? 'bg-gray-100 dark:bg-white/[0.08] ring-2 ring-gray-900 dark:ring-white/20' 
+                                : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'
+                              }`}
+                          >
+                            <div 
+                              className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0"
+                              style={{ backgroundColor: `${provider.color}15`, color: provider.color }}
+                            >
+                              {provider.icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                                  {provider.name}
+                                </span>
+                                {provider.id === 'openai' && (
+                                  <span className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 uppercase flex-shrink-0">
+                                    NEW
+                                  </span>
+                                )}
+                                {isSelected && (
+                                  <Check className="h-3 w-3 text-gray-900 dark:text-white flex-shrink-0" />
+                                )}
+                              </div>
+                              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                                {provider.id === 'openai' && 'OpenAI\'s most advanced model'}
+                                {provider.id === 'anthropic' && 'Anthropic\'s latest reasoning model'}
+                                {provider.id === 'gemini' && 'Google\'s multimodal AI'}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    <div className="px-2.5 py-1.5 border-t border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-[#242325]/50">
+                      <p className="text-[9px] text-gray-400 dark:text-gray-500">
+                        Your preference is saved across all devices
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* All sources */}
             <button className="flex items-center gap-1.5 px-2 py-1 rounded-md
