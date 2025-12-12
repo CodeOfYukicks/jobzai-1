@@ -645,7 +645,7 @@ export default function DashboardPage() {
                       </Link>
                       
                         <Link
-                        to="/campaigns"
+                        to="/campaigns-auto"
                         className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors group"
                         >
                         <div className="flex items-center gap-3">
@@ -942,8 +942,8 @@ export default function DashboardPage() {
                       Start your first outreach campaign to automatically reach out to potential employers and track your email performance.
                     </p>
                     <Link 
-                      to="/campaigns"
-                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-jobzai-600 hover:bg-jobzai-700 text-white rounded-lg text-sm font-medium transition-colors"
+                      to="/campaigns-auto"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] text-gray-900 rounded-lg text-sm font-medium transition-colors shadow-sm hover:shadow-md"
                     >
                       <Zap className="w-4 h-4" />
                       Create Campaign
