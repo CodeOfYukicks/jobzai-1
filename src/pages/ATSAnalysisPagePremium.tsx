@@ -661,7 +661,7 @@ export default function ATSAnalysisPagePremium() {
 
       {/* Main Content */}
       <div className="min-h-screen lg:pr-[380px]">
-        <div className="px-6 lg:px-8 py-8">
+        <div className="max-w-4xl mx-auto px-6 lg:px-8 py-8">
           
           {/* Header - Minimalist */}
           <header className="mb-8">

@@ -110,26 +110,28 @@ export default function OverviewTab({ analysis }: OverviewTabProps) {
 
       {/* Score Metrics Grid - 4 columns */}
       <section>
-        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-6">
+        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
           Score Breakdown
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          <MetricCard 
-            label="Skills" 
-            value={analysis.match_scores.skills_score}
-          />
-          <MetricCard 
-            label="Experience" 
-            value={analysis.match_scores.experience_score}
-          />
-          <MetricCard 
-            label="Education" 
-            value={analysis.match_scores.education_score}
-          />
-          <MetricCard 
-            label="Industry Fit" 
-            value={analysis.match_scores.industry_fit_score}
-          />
+        <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-200 dark:border-[#3d3c3e] p-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <MetricCard 
+              label="Skills" 
+              value={analysis.match_scores.skills_score}
+            />
+            <MetricCard 
+              label="Experience" 
+              value={analysis.match_scores.experience_score}
+            />
+            <MetricCard 
+              label="Education" 
+              value={analysis.match_scores.education_score}
+            />
+            <MetricCard 
+              label="Industry Fit" 
+              value={analysis.match_scores.industry_fit_score}
+            />
+          </div>
         </div>
       </section>
 
@@ -138,46 +140,48 @@ export default function OverviewTab({ analysis }: OverviewTabProps) {
         <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
           ATS Keywords
         </h2>
-        <div className="flex items-center gap-6">
-          <div className="flex items-baseline gap-2">
-            <span className={`text-4xl font-semibold tabular-nums ${
-              analysis.match_scores.ats_keywords_score >= 70 
-                ? 'text-emerald-600 dark:text-emerald-400' 
-                : 'text-amber-600 dark:text-amber-400'
-            }`}>
-              {analysis.match_scores.ats_keywords_score}%
-            </span>
-            <span className="text-sm text-gray-400 dark:text-gray-500">match</span>
-          </div>
-          <div className="flex-1 h-2 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
-            <div 
-              className={`h-full transition-all duration-700 ${
+        <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-200 dark:border-[#3d3c3e] p-6">
+          <div className="flex items-center gap-6">
+            <div className="flex items-baseline gap-2">
+              <span className={`text-4xl font-semibold tabular-nums ${
                 analysis.match_scores.ats_keywords_score >= 70 
-                  ? 'bg-emerald-500' 
-                  : 'bg-amber-500'
-              }`}
-              style={{ width: `${analysis.match_scores.ats_keywords_score}%` }}
-            />
+                  ? 'text-emerald-600 dark:text-emerald-400' 
+                  : 'text-amber-600 dark:text-amber-400'
+              }`}>
+                {analysis.match_scores.ats_keywords_score}%
+              </span>
+              <span className="text-sm text-gray-400 dark:text-gray-500">match</span>
+            </div>
+            <div className="flex-1 h-2 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
+              <div 
+                className={`h-full transition-all duration-700 ${
+                  analysis.match_scores.ats_keywords_score >= 70 
+                    ? 'bg-emerald-500' 
+                    : 'bg-amber-500'
+                }`}
+                style={{ width: `${analysis.match_scores.ats_keywords_score}%` }}
+              />
+            </div>
           </div>
-        </div>
-        
-        {/* Quick keyword stats */}
-        <div className="mt-4 flex gap-6 text-sm">
-          <span className="text-gray-600 dark:text-gray-400">
-            <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-              {analysis.match_breakdown.keywords.found.length}
-            </span> found
-          </span>
-          <span className="text-gray-600 dark:text-gray-400">
-            <span className="text-rose-600 dark:text-rose-400 font-medium">
-              {analysis.match_breakdown.keywords.priority_missing.length}
-            </span> priority missing
-          </span>
-          <span className="text-gray-600 dark:text-gray-400">
-            <span className="text-gray-500 dark:text-gray-500 font-medium">
-              {analysis.match_breakdown.keywords.missing.length}
-            </span> other missing
-          </span>
+          
+          {/* Quick keyword stats */}
+          <div className="mt-4 flex gap-6 text-sm">
+            <span className="text-gray-600 dark:text-gray-400">
+              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                {analysis.match_breakdown.keywords.found.length}
+              </span> found
+            </span>
+            <span className="text-gray-600 dark:text-gray-400">
+              <span className="text-rose-600 dark:text-rose-400 font-medium">
+                {analysis.match_breakdown.keywords.priority_missing.length}
+              </span> priority missing
+            </span>
+            <span className="text-gray-600 dark:text-gray-400">
+              <span className="text-gray-500 dark:text-gray-500 font-medium">
+                {analysis.match_breakdown.keywords.missing.length}
+              </span> other missing
+            </span>
+          </div>
         </div>
       </section>
 

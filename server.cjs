@@ -1629,15 +1629,18 @@ const PAGE_EXPERTISE = {
     personality: 'Organized strategist who keeps everything on track',
     behaviors: [
       'ALWAYS reference specific company names from their applications',
+      'When analyzing a board, use currentBoard.totalApplicationsOnBoard for the total count - NEVER use recentApplications.length',
       'Proactively mention applications that need follow-up (7+ days old)',
       'Prioritize responses about interviews and offers',
       'Suggest follow-up timing based on application dates',
-      'Help draft follow-up emails with specific company context'
+      'Help draft follow-up emails with specific company context',
+      'If user asks about their board, check currentBoard data FIRST before using applications data'
     ],
-    dataUsage: 'Reference companyName, position, status, appliedDate for each application',
+    dataUsage: 'CRITICAL: Use currentBoard.totalApplicationsOnBoard for board totals. Use currentBoard.applicationsByStatus for status breakdown. Use applications.total only if currentBoard is not available. Reference companyName, position, status, appliedDate for each application. NEVER use recentApplications.length as total - it\'s only a sample!',
     exampleResponses: [
+      'Your "My Applications" board has 70 applications total: 1 Applied, 19 Interview, 1 Pending, 43 Offer, 0 Rejected',
       'Your Google application from 10 days ago hasn\'t had a response - time to follow up!',
-      'You have 3 applications in "interviewing" status: Meta, Apple, and Netflix',
+      'You have 19 applications in "interviewing" status on your board - let\'s prioritize the upcoming interviews',
       'Let me draft a follow-up email for your Stripe application...'
     ]
   },
@@ -2032,13 +2035,82 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData, selected
   if (pageData && Object.keys(pageData).length > 0) {
     pageDataSection = `\n## YOUR DATA ACCESS (USE THIS!)\nYou have access to the user's actual data. ALWAYS reference this data specifically:\n\n`;
     
+    // Special handling for applications page data
+    const hasApplicationsData = pageData.applications || pageData.currentBoard;
+    let applicationsGuidance = '';
+    
+    if (hasApplicationsData) {
+      const board = pageData.currentBoard;
+      const apps = pageData.applications;
+      
+      // Extract totals upfront for clear reference
+      const boardTotal = board?.TOTAL_APPLICATIONS || board?.totalApplicationsOnBoard || 0;
+      const appsTotal = apps?.TOTAL_APPLICATIONS || apps?.total || 0;
+      const statusBreakdown = board?.applicationsByStatus || apps?.byStatus || {};
+      
+      applicationsGuidance = `\n## 🎯 BOARD DATA SUMMARY (USE THESE NUMBERS!) 🎯\n\n`;
+      
+      if (board) {
+        applicationsGuidance += `### ══════════════════════════════════════════════════\n`;
+        applicationsGuidance += `###  BOARD: "${board.boardName || 'Unknown'}"\n`;
+        applicationsGuidance += `###  TOTAL APPLICATIONS: ${boardTotal}\n`;
+        applicationsGuidance += `### ══════════════════════════════════════════════════\n\n`;
+        
+        applicationsGuidance += `**STATUS BREAKDOWN:**\n`;
+        for (const [status, count] of Object.entries(statusBreakdown)) {
+          applicationsGuidance += `- ${status}: ${count} applications\n`;
+        }
+        applicationsGuidance += `\n`;
+      }
+      
+      applicationsGuidance += `**RULES:**\n`;
+      applicationsGuidance += `1. Total applications = ${boardTotal} (use TOTAL_APPLICATIONS or totalApplicationsOnBoard)\n`;
+      applicationsGuidance += `2. For status counts, use applicationsByStatus: ${JSON.stringify(statusBreakdown)}\n`;
+      applicationsGuidance += `3. IGNORE any array named "_samplePreview_DO_NOT_COUNT" - it's just a preview!\n`;
+      applicationsGuidance += `4. NEVER count array lengths to get totals!\n\n`;
+    }
+    
+    // Format page data with special highlighting for board data
     for (const [key, value] of Object.entries(pageData)) {
       if (value !== null && value !== undefined) {
-        pageDataSection += `### ${formatPageDataKey(key)}\n\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\`\n\n`;
+        // Special formatting for currentBoard to highlight TOTAL_APPLICATIONS
+        if (key === 'currentBoard' && (value.TOTAL_APPLICATIONS !== undefined || value.totalApplicationsOnBoard !== undefined)) {
+          const total = value.TOTAL_APPLICATIONS || value.totalApplicationsOnBoard;
+          pageDataSection += `### ${formatPageDataKey(key)}\n`;
+          pageDataSection += `## 📊 TOTAL: ${total} APPLICATIONS ##\n\n`;
+          // Create a cleaned version without the sample array to reduce confusion
+          const cleanedValue = { ...value };
+          if (cleanedValue._samplePreview_DO_NOT_COUNT) {
+            cleanedValue._samplePreview_DO_NOT_COUNT = `[${cleanedValue._samplePreview_DO_NOT_COUNT.length} items - SAMPLE ONLY, use TOTAL_APPLICATIONS=${total} instead]`;
+          }
+          pageDataSection += `\`\`\`json\n${JSON.stringify(cleanedValue, null, 2)}\n\`\`\`\n\n`;
+        } else if (key === 'applications' && (value.TOTAL_APPLICATIONS !== undefined || value.total !== undefined)) {
+          const total = value.TOTAL_APPLICATIONS || value.total;
+          pageDataSection += `### ${formatPageDataKey(key)}\n`;
+          pageDataSection += `## 📊 TOTAL: ${total} APPLICATIONS ##\n\n`;
+          // Create a cleaned version without the sample array
+          const cleanedValue = { ...value };
+          if (cleanedValue._samplePreview_DO_NOT_COUNT) {
+            cleanedValue._samplePreview_DO_NOT_COUNT = `[${cleanedValue._samplePreview_DO_NOT_COUNT.length} items - SAMPLE ONLY, use TOTAL_APPLICATIONS=${total} instead]`;
+          }
+          pageDataSection += `\`\`\`json\n${JSON.stringify(cleanedValue, null, 2)}\n\`\`\`\n\n`;
+        } else {
+          pageDataSection += `### ${formatPageDataKey(key)}\n\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\`\n\n`;
+        }
       }
     }
     
-    pageDataSection += `**IMPORTANT**: Reference specific items from this data (company names, dates, scores, etc.) - never give generic advice when you have specific data!\n\n`;
+    pageDataSection += applicationsGuidance;
+    pageDataSection += `**IMPORTANT**: Reference specific items from this data (company names, dates, scores, etc.) - never give generic advice when you have specific data!\n`;
+    
+    // Add final critical reminder if board data exists
+    const boardTotal = pageData.currentBoard?.TOTAL_APPLICATIONS || pageData.currentBoard?.totalApplicationsOnBoard;
+    if (pageData.currentBoard && boardTotal !== undefined) {
+      pageDataSection += `\n**🚨 ANSWER KEY FOR APPLICATION COUNT QUESTIONS 🚨**\n`;
+      pageDataSection += `Board: "${pageData.currentBoard.boardName}" → Total: **${boardTotal} applications**\n`;
+      pageDataSection += `User asks "combien d'applications?" → Answer: "${boardTotal} candidatures"\n`;
+      pageDataSection += `User asks "how many applications?" → Answer: "${boardTotal} applications"\n\n`;
+    }
   }
 
   // Build behavior rules string
@@ -2050,13 +2122,41 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData, selected
     examplesSection = `\n## RESPONSE STYLE EXAMPLES\nYour responses should feel like these examples:\n${expertise.exampleResponses.map(e => `- "${e}"`).join('\n')}\n`;
   }
 
+  // Build critical board analysis section if on applications page
+  let boardAnalysisRules = '';
+  if (pageData && (pageData.currentBoard || pageData.applications)) {
+    const board = pageData.currentBoard;
+    const apps = pageData.applications;
+    const boardTotal = board?.TOTAL_APPLICATIONS || board?.totalApplicationsOnBoard;
+    const appsTotal = apps?.TOTAL_APPLICATIONS || apps?.total;
+    const hasBoard = board && boardTotal !== undefined;
+    
+    boardAnalysisRules = `\n## 🔢 APPLICATION COUNT REFERENCE (USE THESE EXACT NUMBERS!) 🔢
+
+${hasBoard ? `**BOARD: "${board.boardName || 'Unknown'}"**
+**TOTAL: ${boardTotal} applications** ← This is THE answer when user asks how many!
+
+**By status:** ${JSON.stringify(board.applicationsByStatus || {})}
+
+` : ''}${apps && appsTotal ? `**Applications total: ${appsTotal}**
+**By status:** ${JSON.stringify(apps.byStatus || {})}
+
+` : ''}**RULES:**
+1. "How many applications?" / "Combien d'applications?" → Answer: **${boardTotal || appsTotal || 0}**
+2. Use TOTAL_APPLICATIONS or totalApplicationsOnBoard for counts
+3. Use applicationsByStatus or byStatus for status breakdown
+4. IGNORE _samplePreview_DO_NOT_COUNT arrays - they are just previews!
+
+`;
+  }
+
   return `# You are ${firstName}'s ${expertise.role} on Jobz.ai
 
 ## YOUR IDENTITY
 You are NOT a generic AI assistant. You are a specialized **${expertise.role}** built specifically for this page.
 Your focus: **${expertise.focus}**
 Your personality: **${expertise.personality}**
-
+${boardAnalysisRules}
 ## PROFESSIONAL PROFILE (COMPLETE USER CONTEXT)
 
 ### Basic Information
@@ -2214,6 +2314,19 @@ ${examplesSection}
 3. ALWAYS reference specific data points (names, numbers, dates)
 4. End with a clear next action or question when appropriate
 5. Never say "I don't have access to your data" - you DO have access above
+
+### SPECIAL RULE FOR BOARD QUESTIONS
+**When user asks about their board or number of applications:**
+- **MANDATORY**: Check \`currentBoard.totalApplicationsOnBoard\` FIRST
+- **MANDATORY**: Use that exact number in your response
+- **FORBIDDEN**: Never use \`recentOnBoard.length\`, \`recentApplications.length\`, or count items manually
+- **FORBIDDEN**: Never say "2 applications" if the board has 70 - always use the correct total!
+- **EXAMPLE**: If \`currentBoard.totalApplicationsOnBoard = 70\`, say "70 applications" or "70 candidatures", NOT "2"!
+
+**Response structure for board questions:**
+1. Start with the TOTAL: "Your board has **X applications**" (where X = totalApplicationsOnBoard)
+2. Then break down by status using \`applicationsByStatus\`
+3. Reference specific companies from \`recentOnBoard\` only as examples, not as the total count
 
 ## INTERACTIVE RECORD CARDS (IMPORTANT!)
 When referencing specific records from the user's data, use this special markup syntax to create clickable cards:

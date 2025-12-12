@@ -1780,11 +1780,24 @@ export default function JobApplicationsPage() {
 
   // Register page data with AI Assistant - Enhanced with actionable insights
   const applicationsSummary = useMemo(() => {
+    // Filter applications by current board if a board is selected
+    // NOTE: Applications without boardId belong to the default board!
+    const defaultBoard = boards.find(b => b.isDefault);
+    const relevantApplications = currentBoard 
+      ? applications.filter(app => {
+          if (!app.boardId) {
+            // Applications without boardId belong to the default board
+            return currentBoard.isDefault || defaultBoard?.id === currentBoard.id;
+          }
+          return app.boardId === currentBoard.id;
+        })
+      : applications;
+    
     const byStatus: Record<string, number> = {};
     const byCompany: Record<string, number> = {};
     const now = new Date();
     
-    applications.forEach(app => {
+    relevantApplications.forEach(app => {
       const status = app.status || 'unknown';
       byStatus[status] = (byStatus[status] || 0) + 1;
       
@@ -1799,7 +1812,7 @@ export default function JobApplicationsPage() {
     };
 
     // Find stale applications (7+ days, still in applied/pending status)
-    const staleApplications = applications
+    const staleApplications = relevantApplications
       .filter(app => {
         const age = getAppAge(app);
         return age >= 7 && ['applied', 'pending', 'submitted'].includes(app.status || '');
@@ -1814,7 +1827,7 @@ export default function JobApplicationsPage() {
       }));
 
     // Hot opportunities (interviewing, offer stages)
-    const hotOpportunities = applications
+    const hotOpportunities = relevantApplications
       .filter(app => ['interviewing', 'interview', 'offer', 'offered', 'final_round'].includes(app.status || ''))
       .map(app => ({
         company: app.companyName,
@@ -1824,7 +1837,7 @@ export default function JobApplicationsPage() {
       }));
 
     // Applications needing follow-up (10-14 days old, no response)
-    const needsFollowUp = applications
+    const needsFollowUp = relevantApplications
       .filter(app => {
         const age = getAppAge(app);
         return age >= 10 && age <= 21 && ['applied', 'pending', 'submitted'].includes(app.status || '');
@@ -1838,7 +1851,7 @@ export default function JobApplicationsPage() {
       }));
 
     // Recent wins (offers, interviews in last 7 days)
-    const recentWins = applications
+    const recentWins = relevantApplications
       .filter(app => {
         const age = getAppAge(app);
         return age <= 7 && ['interviewing', 'interview', 'offer', 'offered'].includes(app.status || '');
@@ -1850,9 +1863,11 @@ export default function JobApplicationsPage() {
       }));
 
     return {
-      total: applications.length,
-      byStatus,
-      // Actionable insights
+      // ===== IMPORTANT: USE THESE NUMBERS FOR TOTAL COUNTS =====
+      TOTAL_APPLICATIONS: relevantApplications.length, // <-- USE THIS NUMBER!
+      total: relevantApplications.length,
+      byStatus, // <-- USE THIS FOR STATUS BREAKDOWN!
+      // ===== Actionable insights =====
       insights: {
         staleApplicationsCount: staleApplications.length,
         staleApplications: staleApplications,
@@ -1860,12 +1875,12 @@ export default function JobApplicationsPage() {
         hotOpportunities: hotOpportunities,
         needsFollowUp: needsFollowUp,
         recentWins: recentWins,
-        responseRate: applications.length > 0 
-          ? Math.round((applications.filter(a => !['applied', 'pending', 'submitted', 'rejected'].includes(a.status || '')).length / applications.length) * 100)
+        responseRate: relevantApplications.length > 0 
+          ? Math.round((relevantApplications.filter(a => !['applied', 'pending', 'submitted', 'rejected'].includes(a.status || '')).length / relevantApplications.length) * 100)
           : 0,
       },
-      // Recent applications for reference
-      recentApplications: applications
+      // ===== WARNING: This is just a SAMPLE preview (10 items max), NOT the total! =====
+      _samplePreview_DO_NOT_COUNT: relevantApplications
         .sort((a, b) => new Date(b.appliedDate || b.createdAt || 0).getTime() - new Date(a.appliedDate || a.createdAt || 0).getTime())
         .slice(0, 10)
         .map(app => ({
@@ -1876,11 +1891,16 @@ export default function JobApplicationsPage() {
           daysSinceApplied: getAppAge(app),
           hasInterviews: (app.interviews?.length || 0) > 0,
         })),
-      interviewsScheduled: applications.filter(app => 
+      interviewsScheduled: relevantApplications.filter(app => 
         app.interviews?.some(i => i.status === 'scheduled')
       ).length,
+      // Include board context for clarity
+      boardContext: currentBoard ? {
+        boardName: currentBoard.name,
+        boardId: currentBoard.id,
+      } : null,
     };
-  }, [applications]);
+  }, [applications, currentBoard, boards]);
 
   // Register with AI Assistant
   useAssistantPageData('applications', applicationsSummary, applications.length > 0);
@@ -1921,7 +1941,15 @@ export default function JobApplicationsPage() {
     }
     
     // Get applications for this specific board
-    const boardApplications = applications.filter(app => app.boardId === currentBoard.id);
+    // NOTE: Applications without boardId belong to the default board!
+    const defaultBoard = boards.find(b => b.isDefault);
+    const boardApplications = applications.filter(app => {
+      if (!app.boardId) {
+        // Applications without boardId belong to the default board
+        return currentBoard.isDefault || defaultBoard?.id === currentBoard.id;
+      }
+      return app.boardId === currentBoard.id;
+    });
     const statusCounts: Record<string, number> = {};
     boardApplications.forEach(app => {
       const status = app.status || 'applied';
@@ -1929,6 +1957,11 @@ export default function JobApplicationsPage() {
     });
 
     return {
+      // ===== IMPORTANT: USE THESE NUMBERS FOR TOTAL COUNTS =====
+      TOTAL_APPLICATIONS: boardApplications.length, // <-- USE THIS NUMBER!
+      totalApplicationsOnBoard: boardApplications.length,
+      applicationsByStatus: statusCounts, // <-- USE THIS FOR STATUS BREAKDOWN!
+      // ===== Board Info =====
       boardName: currentBoard.name,
       boardId: currentBoard.id,
       boardType: currentBoard.boardType || 'jobs',
@@ -1936,9 +1969,8 @@ export default function JobApplicationsPage() {
       isDefaultBoard: currentBoard.isDefault || false,
       viewMode: view, // 'kanban' | 'analytics' | 'boards'
       columns: currentBoard.columns?.map(c => ({ title: c.title, count: boardApplications.filter(a => a.status === c.id).length })) || [],
-      totalApplicationsOnBoard: boardApplications.length,
-      applicationsByStatus: statusCounts,
-      recentOnBoard: boardApplications.slice(0, 5).map(a => ({ company: a.companyName, position: a.position, status: a.status })),
+      // ===== WARNING: This is just a SAMPLE preview, NOT the total! =====
+      _samplePreview_DO_NOT_COUNT: boardApplications.slice(0, 5).map(a => ({ company: a.companyName, position: a.position, status: a.status })),
     };
   }, [currentBoard, boards, applications, view]);
 

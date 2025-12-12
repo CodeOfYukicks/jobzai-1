@@ -73,10 +73,33 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
   }
   
   // Applications insights
-  if (pathname === '/applications' && pageData.applications) {
+  if (pathname === '/applications') {
+    // Prioritize currentBoard data over applications data for accurate counts
+    const board = pageData.currentBoard;
     const apps = pageData.applications;
     
-    if (apps.insights?.needsFollowUp?.length > 0) {
+    // CRITICAL: Always use currentBoard.totalApplicationsOnBoard if board exists
+    // This is the authoritative source for the board total
+    let totalApplications = 0;
+    if (board && typeof board.totalApplicationsOnBoard === 'number') {
+      // Board data is available - use it (this is the correct source)
+      totalApplications = board.totalApplicationsOnBoard;
+    } else if (apps && typeof apps.total === 'number') {
+      // Fallback to applications.total only if board data is not available
+      totalApplications = apps.total;
+    }
+    
+    // Debug log (can be removed later)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AIAssistantModal] Applications insight:', {
+        board: board ? { name: board.boardName, total: board.totalApplicationsOnBoard } : null,
+        apps: apps ? { total: apps.total } : null,
+        finalTotal: totalApplications
+      });
+    }
+    
+    // Only show insights if we have valid data
+    if (apps?.insights?.needsFollowUp?.length > 0) {
       const first = apps.insights.needsFollowUp[0];
       return {
         icon: <AlertCircle className="h-3.5 w-3.5" />,
@@ -86,7 +109,7 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
       };
     }
     
-    if (apps.insights?.hotOpportunities?.length > 0) {
+    if (apps?.insights?.hotOpportunities?.length > 0) {
       return {
         icon: <TrendingUp className="h-3.5 w-3.5" />,
         text: `${apps.insights.hotOpportunitiesCount} hot opportunit${apps.insights.hotOpportunitiesCount > 1 ? 'ies' : 'y'}`,
@@ -95,12 +118,25 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
       };
     }
     
-    if (apps.total > 0) {
+    // Show total applications badge - ALWAYS prioritize board data
+    // If board exists, use its totalApplicationsOnBoard even if it's 0
+    // Only fall back to apps.total if board doesn't exist
+    if (board && board.boardName) {
+      // Board exists - use its totalApplicationsOnBoard (this is the authoritative source)
+      const boardTotal = typeof board.totalApplicationsOnBoard === 'number' ? board.totalApplicationsOnBoard : (apps?.total || 0);
       return {
         icon: <Briefcase className="h-3.5 w-3.5" />,
-        text: `${apps.total} applications`,
-        highlight: apps.insights?.staleApplicationsCount > 0 ? `${apps.insights.staleApplicationsCount} need attention` : undefined,
-        type: apps.insights?.staleApplicationsCount > 0 ? 'warning' : 'info',
+        text: `${boardTotal} applications`,
+        highlight: `on "${board.boardName}"`,
+        type: apps?.insights?.staleApplicationsCount > 0 ? 'warning' : 'info',
+      };
+    } else if (totalApplications > 0) {
+      // No board context - use apps.total as fallback
+      return {
+        icon: <Briefcase className="h-3.5 w-3.5" />,
+        text: `${totalApplications} applications`,
+        highlight: apps?.insights?.staleApplicationsCount > 0 ? `${apps.insights.staleApplicationsCount} need attention` : undefined,
+        type: apps?.insights?.staleApplicationsCount > 0 ? 'warning' : 'info',
       };
     }
   }
