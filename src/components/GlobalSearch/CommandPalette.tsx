@@ -11,7 +11,7 @@ interface CommandPaletteProps {
   results: GlobalSearchResult[];
   isLoading: boolean;
   selectedIndex: number;
-  recentSearches: string[];
+  recentSearches: (string | { query: string; timestamp?: number; filters?: any })[];
   sidebarWidth?: number;
   onClose: () => void;
   onQueryChange: (query: string) => void;
@@ -180,21 +180,25 @@ export function CommandPalette({
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {recentSearches.map((search, i) => (
-                      <button
-                        key={i}
-                        onClick={() => onQueryChange(search)}
-                        className="
-                          px-2.5 py-1 rounded-full text-xs font-medium
-                          bg-gray-100 dark:bg-[#3d3c3e] 
-                          text-gray-600 dark:text-gray-300
-                          hover:bg-gray-200 dark:hover:bg-[#4a494b]
-                          transition-colors
-                        "
-                      >
-                        {search}
-                      </button>
-                    ))}
+                    {recentSearches.map((search, i) => {
+                      // Handle both string and object formats
+                      const searchQuery = typeof search === 'string' ? search : search.query;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => onQueryChange(searchQuery)}
+                          className="
+                            px-2.5 py-1 rounded-full text-xs font-medium
+                            bg-gray-100 dark:bg-[#3d3c3e] 
+                            text-gray-600 dark:text-gray-300
+                            hover:bg-gray-200 dark:hover:bg-[#4a494b]
+                            transition-colors
+                          "
+                        >
+                          {searchQuery}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}

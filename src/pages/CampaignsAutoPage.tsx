@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, 
@@ -170,6 +170,7 @@ const getStatusLabel = (status: RecipientStatus) => {
 export default function CampaignsAutoPage() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   const [isLoading, setIsLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -311,8 +312,12 @@ export default function CampaignsAutoPage() {
       
       setCampaigns(campaignsData);
       
-      // Auto-select first campaign if none selected
-      if (!selectedCampaignId && campaignsData.length > 0) {
+      // Check if there's a campaign ID in URL params
+      const campaignIdFromUrl = searchParams.get('id');
+      if (campaignIdFromUrl && campaignsData.find(c => c.id === campaignIdFromUrl)) {
+        setSelectedCampaignId(campaignIdFromUrl);
+      } else if (!selectedCampaignId && campaignsData.length > 0) {
+        // Auto-select first campaign if none selected and no URL param
         setSelectedCampaignId(campaignsData[0].id);
       }
       
@@ -324,7 +329,7 @@ export default function CampaignsAutoPage() {
     });
 
     return () => unsubscribe();
-  }, [currentUser, navigate, selectedCampaignId]);
+  }, [currentUser, navigate, selectedCampaignId, searchParams]);
 
   // Load recipients when campaign is selected
   useEffect(() => {

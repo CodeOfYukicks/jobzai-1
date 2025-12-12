@@ -593,7 +593,16 @@ const MAX_RECENT_SEARCHES = 5;
 export const getRecentSearches = (): string[] => {
   try {
     const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    
+    const parsed = JSON.parse(stored);
+    // Handle both string[] and object[] formats
+    if (Array.isArray(parsed)) {
+      return parsed.map(item => 
+        typeof item === 'string' ? item : (item?.query || '')
+      ).filter(Boolean);
+    }
+    return [];
   } catch {
     return [];
   }

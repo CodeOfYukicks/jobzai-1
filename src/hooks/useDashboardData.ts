@@ -187,7 +187,7 @@ function isInPeriod(date: Date | string | any, periodStart: Date | null): boolea
   return itemDate >= periodStart;
 }
 
-export function useDashboardData(periodFilter: PeriodFilter = 'all', boardFilter: string | null = null) {
+export function useDashboardData(periodFilter: PeriodFilter = 'all', boardFilter: string | null = null, campaignFilter: string | null = null) {
   const { currentUser } = useAuth();
   
   const [isLoading, setIsLoading] = useState(true);
@@ -349,13 +349,31 @@ export function useDashboardData(periodFilter: PeriodFilter = 'all', boardFilter
     );
     
     if (boardFilter && boardFilter !== 'all') {
-      filteredApps = filteredApps.filter(app => app.boardId === boardFilter);
+      // Find the default board if it exists
+      const defaultBoard = boards.find(b => b.isDefault === true);
+      const isDefaultBoard = defaultBoard?.id === boardFilter;
+      
+      filteredApps = filteredApps.filter(app => {
+        // Match if boardId exactly matches
+        if (app.boardId === boardFilter) {
+          return true;
+        }
+        // If filtering by default board, include apps without boardId
+        if (isDefaultBoard && (!app.boardId || app.boardId === '')) {
+          return true;
+        }
+        return false;
+      });
     }
     
-    // Filter recipients by period
-    const filteredRecipients = allRecipients.filter(r => 
+    // Filter recipients by period and campaign
+    let filteredRecipients = allRecipients.filter(r => 
       isInPeriod(r.createdAt, periodStart)
     );
+    
+    if (campaignFilter && campaignFilter !== 'all') {
+      filteredRecipients = filteredRecipients.filter(r => r.campaignId === campaignFilter);
+    }
     
     // Applications by status
     const appsByStatus: Record<string, number> = {};
@@ -444,6 +462,12 @@ export function useDashboardData(periodFilter: PeriodFilter = 'all', boardFilter
     const applicationsTrend = previousApps.length > 0 
       ? ((filteredApps.length - previousApps.length) / previousApps.length) * 100
       : 0;
+    
+    // Filter campaigns based on campaignFilter
+    let filteredCampaigns = campaigns;
+    if (campaignFilter && campaignFilter !== 'all') {
+      filteredCampaigns = campaigns.filter(c => c.id === campaignFilter);
+    }
     
     // Campaigns stats
     const sentRecipients = filteredRecipients.filter(r => 
@@ -672,7 +696,7 @@ export function useDashboardData(periodFilter: PeriodFilter = 'all', boardFilter
       interviewRateTrend: 0, // TODO: calculate properly
       
       // Campaigns stats
-      totalCampaigns: campaigns.length,
+      totalCampaigns: filteredCampaigns.length,
       totalContacts: filteredRecipients.length,
       emailsSent: sentRecipients.length,
       emailsOpened: openedRecipients.length,
@@ -716,7 +740,7 @@ export function useDashboardData(periodFilter: PeriodFilter = 'all', boardFilter
       recentApplications,
       recentReplies,
     };
-  }, [applications, allRecipients, campaigns, userData, creditsHistory, periodFilter, boardFilter]);
+  }, [applications, allRecipients, campaigns, userData, creditsHistory, periodFilter, boardFilter, campaignFilter]);
   
   return {
     stats,

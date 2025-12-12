@@ -50,7 +50,7 @@ export function CampaignCard({ campaign, className = '' }: CampaignCardProps) {
         </div>
         
         <Link
-          to={`/campaigns?id=${campaign.id}`}
+          to={`/campaigns-auto?id=${campaign.id}`}
           className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <ChevronRight className="w-4 h-4" />
@@ -106,7 +106,7 @@ export function CampaignsList({ campaigns, maxItems = 5, className = '' }: Campa
           </div>
           <p className="text-sm text-muted-foreground">No active campaigns</p>
           <Link
-            to="/campaigns"
+            to="/campaigns-auto"
             className="text-xs font-medium text-jobzai-600 dark:text-jobzai-400 hover:text-jobzai-700 mt-2"
           >
             Create your first campaign
@@ -122,7 +122,7 @@ export function CampaignsList({ campaigns, maxItems = 5, className = '' }: Campa
         <h3 className="text-sm font-medium text-muted-foreground">Active Campaigns</h3>
         {campaigns.length > maxItems && (
           <Link
-            to="/campaigns"
+            to="/campaigns-auto"
             className="text-xs font-medium text-jobzai-600 dark:text-jobzai-400 hover:text-jobzai-700 flex items-center gap-1"
           >
             View all

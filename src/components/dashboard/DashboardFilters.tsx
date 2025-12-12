@@ -5,10 +5,16 @@ import {
   ChevronDown, 
   RefreshCw, 
   FolderKanban,
+  Zap,
   Check
 } from 'lucide-react';
 import { PeriodFilter } from '../../hooks/useDashboardData';
 import { KanbanBoard } from '../../types/job';
+
+interface Campaign {
+  id: string;
+  name?: string;
+}
 
 interface DashboardFiltersProps {
   periodFilter: PeriodFilter;
@@ -16,6 +22,9 @@ interface DashboardFiltersProps {
   boardFilter: string | null;
   onBoardChange: (boardId: string | null) => void;
   boards: KanbanBoard[];
+  campaignFilter: string | null;
+  onCampaignChange: (campaignId: string | null) => void;
+  campaigns: Campaign[];
   onRefresh: () => void;
   isRefreshing: boolean;
   lastRefresh: Date | null;
@@ -36,15 +45,20 @@ export function DashboardFilters({
   boardFilter,
   onBoardChange,
   boards,
+  campaignFilter,
+  onCampaignChange,
+  campaigns,
   onRefresh,
   isRefreshing,
   lastRefresh,
 }: DashboardFiltersProps) {
   const [isPeriodOpen, setIsPeriodOpen] = useState(false);
   const [isBoardOpen, setIsBoardOpen] = useState(false);
+  const [isCampaignOpen, setIsCampaignOpen] = useState(false);
   
   const periodRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
+  const campaignRef = useRef<HTMLDivElement>(null);
   
   // Close dropdowns on outside click
   useEffect(() => {
@@ -55,6 +69,9 @@ export function DashboardFilters({
       if (boardRef.current && !boardRef.current.contains(event.target as Node)) {
         setIsBoardOpen(false);
       }
+      if (campaignRef.current && !campaignRef.current.contains(event.target as Node)) {
+        setIsCampaignOpen(false);
+      }
     };
     
     document.addEventListener('mousedown', handleClickOutside);
@@ -63,6 +80,7 @@ export function DashboardFilters({
   
   const currentPeriod = PERIOD_OPTIONS.find(p => p.value === periodFilter);
   const currentBoard = boards.find(b => b.id === boardFilter);
+  const currentCampaign = campaigns.find(c => c.id === campaignFilter);
   
   const formatLastRefresh = (date: Date | null) => {
     if (!date) return 'Never';
@@ -196,6 +214,76 @@ export function DashboardFilters({
                       <span className="truncate">{board.name}</span>
                     </div>
                     {boardFilter === board.id && <Check className="w-4 h-4 flex-shrink-0" />}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+      
+      {/* Campaign Filter */}
+      {campaigns.length > 0 && (
+        <div ref={campaignRef} className="relative">
+          <button
+            onClick={() => setIsCampaignOpen(!isCampaignOpen)}
+            className="flex items-center gap-2 px-3 py-2 
+              bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-lg
+              text-sm font-medium text-foreground
+              hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors duration-200"
+          >
+            <Zap className="w-4 h-4 text-muted-foreground" />
+            <span>{currentCampaign?.name || 'All Campaigns'}</span>
+            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 
+              ${isCampaignOpen ? 'rotate-180' : ''}`} 
+            />
+          </button>
+          
+          <AnimatePresence>
+            {isCampaignOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                transition={{ duration: 0.15 }}
+                className="absolute z-50 mt-1 w-48 
+                  bg-white dark:bg-[#1f1f23] border border-gray-200/60 dark:border-white/[0.08] rounded-xl shadow-lg
+                  py-1 overflow-hidden"
+              >
+                <button
+                  onClick={() => {
+                    onCampaignChange(null);
+                    setIsCampaignOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-sm
+                    transition-colors duration-150
+                    ${!campaignFilter 
+                      ? 'bg-jobzai-50 dark:bg-jobzai-950/30 text-jobzai-600 dark:text-jobzai-400' 
+                      : 'text-foreground hover:bg-muted/50'
+                    }`}
+                >
+                  <span>All Campaigns</span>
+                  {!campaignFilter && <Check className="w-4 h-4" />}
+                </button>
+                
+                <div className="h-px bg-border my-1" />
+                
+                {campaigns.map((campaign) => (
+                  <button
+                    key={campaign.id}
+                    onClick={() => {
+                      onCampaignChange(campaign.id);
+                      setIsCampaignOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-sm
+                      transition-colors duration-150
+                      ${campaignFilter === campaign.id 
+                        ? 'bg-jobzai-50 dark:bg-jobzai-950/30 text-jobzai-600 dark:text-jobzai-400' 
+                        : 'text-foreground hover:bg-muted/50'
+                      }`}
+                  >
+                    <span className="truncate">{campaign.name || `Campaign ${campaign.id.slice(0, 8)}`}</span>
+                    {campaignFilter === campaign.id && <Check className="w-4 h-4 flex-shrink-0" />}
                   </button>
                 ))}
               </motion.div>

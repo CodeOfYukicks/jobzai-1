@@ -92,6 +92,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('30d');
   const [boardFilter, setBoardFilter] = useState<string | null>(null);
+  const [campaignFilter, setCampaignFilter] = useState<string | null>(null);
 
   // Cover photo states
   const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
@@ -111,7 +112,7 @@ export default function DashboardPage() {
     isRefreshing,
     lastRefresh,
     refresh,
-  } = useDashboardData(periodFilter, boardFilter);
+  } = useDashboardData(periodFilter, boardFilter, campaignFilter);
   
   // Register data with AI Assistant
   const dashboardSummary = useMemo(() => ({
@@ -139,8 +140,9 @@ export default function DashboardPage() {
     filters: {
       period: periodFilter,
       board: boardFilter,
+      campaign: campaignFilter,
     },
-  }), [stats, periodFilter, boardFilter]);
+  }), [stats, periodFilter, boardFilter, campaignFilter]);
 
   useAssistantPageData('dashboardStats', dashboardSummary, !isLoading);
 
@@ -349,7 +351,12 @@ export default function DashboardPage() {
 
   // Prepare campaign summaries for the list
   const campaignSummaries = useMemo(() => {
-    return campaigns.map(c => ({
+    let filteredCampaigns = campaigns;
+    if (campaignFilter && campaignFilter !== 'all') {
+      filteredCampaigns = campaigns.filter(c => c.id === campaignFilter);
+    }
+    
+    return filteredCampaigns.map(c => ({
       id: c.id,
       name: c.name || `Campaign ${campaigns.indexOf(c) + 1}`,
       contactsFound: c.stats?.contactsFound || 0,
@@ -357,7 +364,7 @@ export default function DashboardPage() {
       opened: c.stats?.opened || 0,
       replied: c.stats?.replied || 0,
     }));
-  }, [campaigns]);
+  }, [campaigns, campaignFilter]);
 
   // Sparkline data for credits
   const creditsSparkline = useMemo(() => {
@@ -527,6 +534,9 @@ export default function DashboardPage() {
             boardFilter={boardFilter}
             onBoardChange={setBoardFilter}
             boards={boards}
+            campaignFilter={campaignFilter}
+            onCampaignChange={setCampaignFilter}
+            campaigns={campaigns}
             onRefresh={refresh}
             isRefreshing={isRefreshing}
             lastRefresh={lastRefresh}
@@ -684,36 +694,64 @@ export default function DashboardPage() {
             {/* ================== JOB APPLICATIONS TAB ================== */}
             {activeTab === 'applications' && (
               <div className="space-y-6">
+                {/* Empty State when no applications match filters */}
+                {stats.totalApplications === 0 && (
+                  <div className="bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-8 text-center">
+                    <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
+                      <Briefcase className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      No Applications Found
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                      {boardFilter && boardFilter !== 'all' 
+                        ? `No applications found for the selected board "${boards.find(b => b.id === boardFilter)?.name || 'board'}" in the selected time period (${periodFilter === '30d' ? '30 days' : periodFilter === '7d' ? '7 days' : periodFilter === '3m' ? '3 months' : periodFilter === '6m' ? '6 months' : periodFilter === '1y' ? '1 year' : 'all time'}). Try changing the time period to "All time" or selecting a different board.`
+                        : `No applications found for the selected time period (${periodFilter === '30d' ? '30 days' : periodFilter === '7d' ? '7 days' : periodFilter === '3m' ? '3 months' : periodFilter === '6m' ? '6 months' : periodFilter === '1y' ? '1 year' : 'all time'}). Try changing the time period filter to "All time".`
+                      }
+                    </p>
+                    {(boardFilter && boardFilter !== 'all') && (
+                      <button
+                        onClick={() => setBoardFilter(null)}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] text-gray-900 rounded-lg text-sm font-medium transition-colors shadow-sm hover:shadow-md"
+                      >
+                        Clear Board Filter
+                      </button>
+                    )}
+                  </div>
+                )}
+                
                 {/* KPIs Row */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                  <MetricCard
-                    label="Total Applications"
-                    value={stats.totalApplications}
-                    trend={stats.applicationsTrend}
-                  />
-                  <MetricCard
-                    label="Response Rate"
-                    value={`${stats.responseRate.toFixed(1)}%`}
-                    trend={stats.responseRateTrend}
-                  />
-                  <MetricCard
-                    label="Interview Rate"
-                    value={`${stats.interviewRate.toFixed(1)}%`}
-                    trend={stats.interviewRateTrend}
-                  />
-                  <MetricCard
-                    label="Offer Rate"
-                    value={`${stats.offerRate.toFixed(1)}%`}
-                  />
-                  <MetricCard
-                    label="Avg. Days to Interview"
-                    value={stats.avgDaysToInterview}
-                    suffix="days"
-                  />
-                </div>
+                {stats.totalApplications > 0 && (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                      <MetricCard
+                        label="Total Applications"
+                        value={stats.totalApplications}
+                        trend={stats.applicationsTrend}
+                      />
+                      <MetricCard
+                        label="Response Rate"
+                        value={`${stats.responseRate.toFixed(1)}%`}
+                        trend={stats.responseRateTrend}
+                      />
+                      <MetricCard
+                        label="Interview Rate"
+                        value={`${stats.interviewRate.toFixed(1)}%`}
+                        trend={stats.interviewRateTrend}
+                      />
+                      <MetricCard
+                        label="Offer Rate"
+                        value={`${stats.offerRate.toFixed(1)}%`}
+                      />
+                      <MetricCard
+                        label="Avg. Days to Interview"
+                        value={stats.avgDaysToInterview}
+                        suffix="days"
+                      />
+                    </div>
 
-                {/* Pipeline */}
-                <JobsPipelineFunnel data={stats.applicationsPipeline} />
+                    {/* Pipeline */}
+                    <JobsPipelineFunnel data={stats.applicationsPipeline} />
 
                 {/* Interviews & Insights */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -819,11 +857,13 @@ export default function DashboardPage() {
                       </div>
                   </div>
                   
-                {/* Recent Applications Table */}
-                <ApplicationsTable 
-                  applications={stats.recentApplications}
-                  maxItems={10}
-                />
+                    {/* Recent Applications Table */}
+                    <ApplicationsTable 
+                      applications={stats.recentApplications}
+                      maxItems={10}
+                    />
+                  </>
+                )}
               </div>
             )}
             
