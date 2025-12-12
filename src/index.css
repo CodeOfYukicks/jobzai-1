@@ -15,6 +15,20 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Space Grotesk', system-ui, sans-serif;
   }
+
+  /* Isolate CV preview from global font styles */
+  #cv-preview-content h1,
+  #cv-preview-content h2,
+  #cv-preview-content h3,
+  #cv-preview-content h4,
+  #cv-preview-content h5,
+  #cv-preview-content h6 {
+    font-family: inherit;
+  }
+
+  #cv-preview-content {
+    font-family: inherit;
+  }
   :root {
     --background: 30 9% 96%;
     --foreground: 222.2 84% 4.9%;
