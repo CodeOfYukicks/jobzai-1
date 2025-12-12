@@ -555,6 +555,8 @@ export default function EditorPanel({
                                         fullCV={JSON.stringify(cvData)}
                                         externalEditItemId={externalItemId}
                                         onExternalEditProcessed={handleExternalItemProcessed}
+                                        layoutSettings={layoutSettings}
+                                        onLayoutSettingsChange={onLayoutSettingsChange}
                                       />
                                     </div>
                                   </motion.div>

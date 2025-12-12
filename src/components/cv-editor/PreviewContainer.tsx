@@ -223,11 +223,14 @@ export default function PreviewContainer({
                 {/* Template Content */}
                 <TemplateComponent 
                   cvData={cvData} 
-                  layoutSettings={layoutSettings || {
-                    fontSize: 10,
-                    dateFormat: 'jan-24',
-                    lineHeight: 1.3,
-                    fontFamily: 'Inter'
+                  layoutSettings={{
+                    fontSize: layoutSettings?.fontSize ?? 10,
+                    dateFormat: layoutSettings?.dateFormat ?? 'jan-24',
+                    lineHeight: layoutSettings?.lineHeight ?? 1.3,
+                    fontFamily: layoutSettings?.fontFamily ?? 'Inter',
+                    accentColor: layoutSettings?.accentColor,
+                    experienceSpacing: layoutSettings?.experienceSpacing,
+                    showSkillLevel: layoutSettings?.showSkillLevel ?? true
                   }}
                   onSectionClick={onSectionClick}
                   highlightTarget={highlightTarget}

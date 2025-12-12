@@ -148,7 +148,8 @@ export default function PremiumCVEditor() {
     lineHeight: 1.3,
     fontFamily: 'Inter',
     accentColor: 'emerald',
-    experienceSpacing: 6
+    experienceSpacing: 6,
+    showSkillLevel: true
   });
   
   // Use custom hook for editor logic
@@ -543,7 +544,8 @@ export default function PremiumCVEditor() {
           const newSkill = {
             id: `skill-ai-${Date.now()}`,
             name: suggestedValue!,
-            category: 'technical'
+            category: 'technical',
+            level: 'intermediate' as const
           };
           setCvData(prev => ({
             ...prev,
@@ -1645,11 +1647,14 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                   >
                     {/* Render template based on current selection */}
                     {(() => {
-                      const layoutSettingsWithDefaults = layoutSettings || {
-                        fontSize: 10,
-                        dateFormat: 'jan-24',
-                        lineHeight: 1.3,
-                        fontFamily: 'Inter'
+                      const layoutSettingsWithDefaults = {
+                        fontSize: layoutSettings?.fontSize ?? 10,
+                        dateFormat: layoutSettings?.dateFormat ?? 'jan-24',
+                        lineHeight: layoutSettings?.lineHeight ?? 1.3,
+                        fontFamily: layoutSettings?.fontFamily ?? 'Inter',
+                        accentColor: layoutSettings?.accentColor,
+                        experienceSpacing: layoutSettings?.experienceSpacing,
+                        showSkillLevel: layoutSettings?.showSkillLevel ?? true
                       };
 
                       switch (template) {

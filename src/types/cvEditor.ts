@@ -182,6 +182,7 @@ export interface CVLayoutSettings {
   fontFamily: string;         // 'Inter', 'Playfair Display', 'Montserrat', etc.
   accentColor?: CVColorScheme; // Template accent color
   experienceSpacing?: number; // 0-12 (0px to 48px vertical spacing)
+  showSkillLevel?: boolean;   // Show skill levels on CV (default: true)
 }
 
 // Persisted editor preferences saved to Firestore

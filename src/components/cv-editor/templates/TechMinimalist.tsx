@@ -128,11 +128,27 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick,
                     {skillCategories[category as keyof typeof skillCategories] || category}
                   </h3>
                   <div className="text-gray-700 space-y-0.5" style={{ fontSize: '0.9em' }}>
-                    {skills.map(skill => (
-                      <span key={skill.id} className="inline-block mr-2">
-                        {skill.name}
-                      </span>
-                    ))}
+                    {skills.map(skill => {
+                      const shouldShowLevel = layoutSettings?.showSkillLevel !== false;
+                      const level = skill.level || 'intermediate';
+                      const showLevel = shouldShowLevel && level;
+                      const levelLabels: Record<string, string> = {
+                        'beginner': 'Beginner',
+                        'intermediate': 'Intermediate',
+                        'advanced': 'Advanced',
+                        'expert': 'Expert'
+                      };
+                      return (
+                        <span key={skill.id} className="inline-flex items-center gap-1 mr-2">
+                          <span>{skill.name}</span>
+                          {showLevel && (
+                            <span className="text-[0.75em] text-gray-500 font-medium">
+                              ({levelLabels[level] || level})
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               ))}

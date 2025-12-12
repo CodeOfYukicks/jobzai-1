@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { 
   Plus, Trash2, Calendar, Edit3,
   Wand2, TrendingUp, Target, Hash, FileText, Zap,
-  X, Check, Loader2, Sparkles
+  X, Check, Loader2, Sparkles, GripVertical, Star
 } from 'lucide-react';
-import { CVSection, CVExperience, CVEducation, CVSkill, CVCertification, CVProject, CVLanguage } from '../../types/cvEditor';
+import { CVSection, CVExperience, CVEducation, CVSkill, CVCertification, CVProject, CVLanguage, CVLayoutSettings } from '../../types/cvEditor';
 import { generateId } from '../../lib/cvEditorUtils';
 import { rewriteSection } from '../../lib/cvSectionAI';
 import { notify } from '@/lib/notify';
@@ -35,6 +36,9 @@ interface SectionEditorProps {
   // External control for click-to-edit from preview
   externalEditItemId?: string | null;
   onExternalEditProcessed?: () => void;
+  // Layout settings for controlling skill level display
+  layoutSettings?: CVLayoutSettings;
+  onLayoutSettingsChange?: (settings: Partial<CVLayoutSettings>) => void;
 }
 
 // AI action buttons for each section
@@ -54,7 +58,9 @@ export default function SectionEditor({
   jobContext, 
   fullCV,
   externalEditItemId,
-  onExternalEditProcessed
+  onExternalEditProcessed,
+  layoutSettings,
+  onLayoutSettingsChange
 }: SectionEditorProps) {
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [originalContent, setOriginalContent] = useState<string>('');
@@ -674,20 +680,94 @@ export default function SectionEditor({
       );
 
     case 'skills':
+      const handleSkillDragEnd = (result: DropResult) => {
+        if (!result.destination) return;
+        
+        const skills = [...(data.skills || [])];
+        const [reorderedSkill] = skills.splice(result.source.index, 1);
+        skills.splice(result.destination.index, 0, reorderedSkill);
+        
+        onChange({ skills });
+      };
+
+      const updateSkill = (skillId: string, updates: Partial<CVSkill>) => {
+        const updatedSkills = (data.skills || []).map((skill: CVSkill) =>
+          skill.id === skillId ? { ...skill, ...updates } : skill
+        );
+        onChange({ skills: updatedSkills });
+      };
+
+      const deleteSkill = (skillId: string) => {
+        const newSkills = (data.skills || []).filter((s: CVSkill) => s.id !== skillId);
+        onChange({ skills: newSkills });
+      };
+
+      const addSkill = (skillName: string) => {
+        const newSkill: CVSkill = {
+          id: generateId(),
+          name: skillName.trim(),
+          category: 'technical',
+          level: 'intermediate'
+        };
+        onChange({ skills: [...(data.skills || []), newSkill] });
+      };
+
       return (
         <div className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {data.skills?.map((skill: CVSkill) => (
-              <SkillChip
-                key={skill.id}
-                skill={skill}
-                onDelete={() => {
-                  const newSkills = data.skills.filter((s: CVSkill) => s.id !== skill.id);
-                  onChange({ skills: newSkills });
-                }}
-              />
-            ))}
-          </div>
+          {/* Show Skill Levels Toggle */}
+          {layoutSettings && onLayoutSettingsChange && (
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#2b2a2c]/40 rounded-xl border border-gray-200 dark:border-[#3d3c3e]/60">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-[#635BFF]/10 dark:bg-[#635BFF]/20">
+                  <Star className="w-4 h-4 text-[#635BFF] dark:text-[#a5a0ff]" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    Show Skill Levels on CV
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    Display proficiency levels on your CV
+                  </div>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={layoutSettings.showSkillLevel !== false}
+                  onChange={(e) => onLayoutSettingsChange({ showSkillLevel: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#635BFF]/30 dark:peer-focus:ring-[#635BFF]/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#635BFF] dark:peer-checked:bg-[#635BFF]"></div>
+              </label>
+            </div>
+          )}
+
+          <DragDropContext onDragEnd={handleSkillDragEnd}>
+            <Droppable droppableId="skills">
+              {(provided) => (
+                <div 
+                  {...provided.droppableProps} 
+                  ref={provided.innerRef} 
+                  className="space-y-2"
+                >
+                  {(data.skills || []).map((skill: CVSkill, index: number) => (
+                    <Draggable key={skill.id} draggableId={skill.id} index={index}>
+                      {(provided, snapshot) => (
+                        <SkillRow
+                          skill={skill}
+                          provided={provided}
+                          snapshot={snapshot}
+                          onUpdate={(updates) => updateSkill(skill.id, updates)}
+                          onDelete={() => deleteSkill(skill.id)}
+                        />
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
 
           <div className="flex gap-2">
             <input
@@ -698,20 +778,19 @@ export default function SectionEditor({
                 if (e.key === 'Enter') {
                   const input = e.currentTarget;
                   if (input.value.trim()) {
-                    const newSkill: CVSkill = {
-                      id: generateId(),
-                      name: input.value.trim(),
-                      category: 'technical'
-                    };
-                    onChange({ skills: [...(data.skills || []), newSkill] });
+                    addSkill(input.value);
                     input.value = '';
                   }
                 }
               }}
             />
             <button
-              onClick={() => {
-                // TODO: Open skill suggestions
+              onClick={(e) => {
+                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                if (input && input.value.trim()) {
+                  addSkill(input.value);
+                  input.value = '';
+                }
               }}
               className="px-3 py-2 bg-[#635BFF] text-white rounded-lg hover:bg-[#5249e6] transition-colors"
             >
@@ -1089,16 +1168,120 @@ export default function SectionEditor({
   }
 }
 
-// SkillChip component
-function SkillChip({ skill, onDelete }: { skill: CVSkill; onDelete: () => void }) {
+// SkillRow component - Line-by-line skill editor with level selection and drag & drop
+interface SkillRowProps {
+  skill: CVSkill;
+  provided: any;
+  snapshot: any;
+  onUpdate: (updates: Partial<CVSkill>) => void;
+  onDelete: () => void;
+}
+
+function SkillRow({ skill, provided, snapshot, onUpdate, onDelete }: SkillRowProps) {
+  const [skillName, setSkillName] = useState(skill.name);
+
+  // Sync with external changes
+  useEffect(() => {
+    setSkillName(skill.name);
+  }, [skill.name]);
+
+  const handleNameBlur = () => {
+    if (skillName.trim() && skillName !== skill.name) {
+      onUpdate({ name: skillName.trim() });
+    } else if (!skillName.trim()) {
+      setSkillName(skill.name); // Revert if empty
+    }
+  };
+
+  const handleNameKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
+  };
+
+  const levelOptions = [
+    { value: 'beginner', label: 'Beginner' },
+    { value: 'intermediate', label: 'Intermediate' },
+    { value: 'advanced', label: 'Advanced' },
+    { value: 'expert', label: 'Expert' }
+  ] as const;
+
   return (
-    <div className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#635BFF]/5 dark:bg-[#5249e6]/20 text-[#635BFF] dark:text-[#a5a0ff] rounded-full text-sm">
-      <span>{skill.name}</span>
+    <div
+      ref={provided.innerRef}
+      {...provided.draggableProps}
+      className={`
+        flex items-center gap-2 p-2.5 
+        bg-white dark:bg-[#2b2a2c] 
+        border border-gray-200 dark:border-[#3d3c3e] 
+        rounded-lg 
+        transition-all duration-200
+        ${snapshot.isDragging 
+          ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10' 
+          : 'hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm'
+        }
+      `}
+    >
+      {/* Drag handle */}
+      <div 
+        {...provided.dragHandleProps}
+        className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+      >
+        <GripVertical className="w-4 h-4" />
+      </div>
+
+      {/* Skill name input */}
+      <input
+        type="text"
+        value={skillName}
+        onChange={(e) => setSkillName(e.target.value)}
+        onBlur={handleNameBlur}
+        onKeyPress={handleNameKeyPress}
+        className="flex-1 px-2.5 py-1.5 
+          bg-transparent 
+          border border-transparent 
+          rounded 
+          text-sm text-gray-900 dark:text-white 
+          font-medium
+          focus:outline-none focus:ring-2 focus:ring-[#635BFF]/30 focus:border-[#635BFF]/50
+          hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50
+          transition-colors"
+        placeholder="Skill name"
+      />
+
+      {/* Level selector */}
+      <select
+        value={skill.level || 'intermediate'}
+        onChange={(e) => onUpdate({ level: e.target.value as CVSkill['level'] })}
+        className="px-2.5 py-1.5 
+          bg-white dark:bg-[#2b2a2c] 
+          border border-gray-200 dark:border-[#3d3c3e] 
+          rounded 
+          text-xs text-gray-700 dark:text-gray-300 
+          font-medium
+          focus:outline-none focus:ring-2 focus:ring-[#635BFF]/30 focus:border-[#635BFF]/50
+          hover:border-gray-300 dark:hover:border-gray-600
+          transition-colors
+          cursor-pointer"
+      >
+        {levelOptions.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+
+      {/* Delete button */}
       <button
         onClick={onDelete}
-        className="ml-1 p-0.5 hover:bg-[#635BFF]/10 dark:hover:bg-[#5249e6]/30 rounded-full transition-colors"
+        className="p-1.5 
+          text-gray-400 hover:text-red-600 dark:hover:text-red-400 
+          hover:bg-red-50 dark:hover:bg-red-900/20 
+          rounded 
+          transition-colors"
+        title="Delete skill"
       >
-        <X className="w-3 h-3" />
+        <X className="w-4 h-4" />
       </button>
     </div>
   );

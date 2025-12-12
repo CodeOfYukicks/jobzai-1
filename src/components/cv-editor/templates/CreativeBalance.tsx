@@ -251,20 +251,27 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
                 <h2 className="font-bold text-gray-800 mb-3" style={{ fontSize: '1.15em' }}>Skills</h2>
                 {cvData.skills?.length > 0 ? (
                 <div className="space-y-2">
-                  {cvData.skills.slice(0, 10).map(skill => (
-                    <div key={skill.id} className="flex items-center gap-2">
-                      <span className="text-gray-700 flex-1" style={{ fontSize: '0.95em' }}>{skill.name}</span>
-                      <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full rounded-full"
-                          style={{ 
-                            backgroundColor: accentColor,
-                            width: `${skill.level === 'expert' ? 100 : skill.level === 'advanced' ? 75 : skill.level === 'intermediate' ? 50 : 25}%` 
-                          }}
-                        />
+                  {cvData.skills.slice(0, 10).map(skill => {
+                    const shouldShowLevel = layoutSettings?.showSkillLevel !== false;
+                    const level = skill.level || 'intermediate';
+                    const showLevel = shouldShowLevel && level;
+                    const levelLabels: Record<string, string> = {
+                      'beginner': 'Beginner',
+                      'intermediate': 'Intermediate',
+                      'advanced': 'Advanced',
+                      'expert': 'Expert'
+                    };
+                    return (
+                      <div key={skill.id} className="flex items-center gap-2">
+                        <span className="text-gray-700 flex-1" style={{ fontSize: '0.95em' }}>{skill.name}</span>
+                        {showLevel && (
+                          <span className="text-[0.75em] text-gray-500 font-medium">
+                            {levelLabels[level] || level}
+                          </span>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">

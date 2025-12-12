@@ -239,7 +239,16 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
     }
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      
+      // Don't close if clicking on the TopBar (header) - check if target is in header
+      const header = document.querySelector('header');
+      if (header && (header.contains(target) || header === target)) {
+        return;
+      }
+      
+      // Don't close if clicking inside the modal
+      if (modalRef.current && !modalRef.current.contains(target)) {
         closeAssistant();
       }
     };

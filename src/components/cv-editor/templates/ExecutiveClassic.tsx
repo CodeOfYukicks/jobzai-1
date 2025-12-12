@@ -264,11 +264,27 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
                 </h2>
                 {cvData.skills?.length > 0 ? (
                 <div className="space-y-1">
-                  {cvData.skills.map(skill => (
-                    <div key={skill.id} className="text-gray-700" style={{ fontSize: '0.95em' }}>
-                      • {skill.name}
-                    </div>
-                  ))}
+                  {cvData.skills.map(skill => {
+                    const shouldShowLevel = layoutSettings?.showSkillLevel !== false;
+                    const level = skill.level || 'intermediate';
+                    const showLevel = shouldShowLevel && level;
+                    const levelLabels: Record<string, string> = {
+                      'beginner': 'Beginner',
+                      'intermediate': 'Intermediate',
+                      'advanced': 'Advanced',
+                      'expert': 'Expert'
+                    };
+                    return (
+                      <div key={skill.id} className="text-gray-700" style={{ fontSize: '0.95em' }}>
+                        • {skill.name}
+                        {showLevel && (
+                          <span className="text-gray-500 italic ml-2">
+                            ({levelLabels[level] || level})
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">

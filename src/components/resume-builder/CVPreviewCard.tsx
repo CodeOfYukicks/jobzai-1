@@ -38,7 +38,8 @@ const defaultLayoutSettings: CVLayoutSettings = {
   dateFormat: 'jan-24',
   lineHeight: 1.3,
   fontFamily: 'Inter',
-  accentColor: 'blue'
+  accentColor: 'blue',
+  showSkillLevel: true
 };
 
 // Check if CV has content

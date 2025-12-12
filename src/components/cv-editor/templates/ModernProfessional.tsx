@@ -229,15 +229,31 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
                   </h2>
                   {cvData.skills?.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {cvData.skills.map(skill => (
-                      <span
-                        key={skill.id}
-                        className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full"
-                        style={{ fontSize: '0.9em' }}
-                      >
-                        {skill.name}
-                      </span>
-                    ))}
+                    {cvData.skills.map(skill => {
+                      const shouldShowLevel = layoutSettings?.showSkillLevel !== false;
+                      const level = skill.level || 'intermediate';
+                      const showLevel = shouldShowLevel && level;
+                      const levelLabels: Record<string, string> = {
+                        'beginner': 'Beginner',
+                        'intermediate': 'Intermediate',
+                        'advanced': 'Advanced',
+                        'expert': 'Expert'
+                      };
+                      return (
+                        <span
+                          key={skill.id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 text-gray-700 rounded-full"
+                          style={{ fontSize: '0.9em' }}
+                        >
+                          <span>{skill.name}</span>
+                          {showLevel && (
+                            <span className="px-1.5 py-0.5 text-[0.75em] font-medium text-[#635BFF] bg-[#635BFF]/10 rounded">
+                              {levelLabels[level] || level}
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })}
                   </div>
                   ) : (
                     <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">

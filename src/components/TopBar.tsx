@@ -34,7 +34,7 @@ export default function TopBar({
   const navigate = useNavigate();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
-  const { openAssistant } = useAssistant();
+  const { isOpen: isAssistantOpen, openAssistant, closeAssistant } = useAssistant();
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -91,7 +91,20 @@ export default function TopBar({
 
           {/* Assistant Button */}
           <button
-            onClick={openAssistant}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              // Directly check state and toggle - this prevents conflicts with backdrop/click handlers
+              if (isAssistantOpen) {
+                closeAssistant();
+              } else {
+                openAssistant();
+              }
+            }}
+            onMouseDown={(e) => {
+              // Prevent mousedown from triggering click outside handlers
+              e.stopPropagation();
+            }}
             className="flex items-center gap-1.5 h-8 px-3 rounded-lg
               bg-gray-900 dark:bg-white
               border border-gray-900 dark:border-white
