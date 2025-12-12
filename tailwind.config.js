@@ -22,6 +22,8 @@ export default {
 			fontFamily: {
 				'geist': ['Geist', 'system-ui', 'sans-serif'],
 				'inter-tight': ['Inter Tight', 'system-ui', 'sans-serif'],
+				'inter': ['Inter', 'system-ui', 'sans-serif'],
+				'space-grotesk': ['Space Grotesk', 'system-ui', 'sans-serif'],
 				'display': ['Instrument Serif', 'Georgia', 'serif'],
 			},
 			colors: {
