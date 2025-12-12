@@ -1317,12 +1317,12 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                 <div className="hidden md:block h-6 w-px bg-gray-200 dark:bg-[#3d3c3e]" />
 
                 {/* Group 1: Document Actions (Save / Save As) */}
-                <div className="flex items-center gap-1 px-1.5 py-1 bg-gray-50/80 dark:bg-[#2b2a2c]/50 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-[#3d3c3e]/50">
+                <div className="flex items-center gap-1 px-1 py-0.5 bg-gray-50/80 dark:bg-[#2b2a2c]/50 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-[#3d3c3e]/50">
                   {/* Save Button */}
                   <button
                     onClick={handleSave}
                     disabled={!isDirty || isSaving}
-                    className="group relative flex items-center gap-2 px-3.5 py-2 
+                    className="group relative flex items-center gap-1.5 px-3 py-1.5 
                       bg-white dark:bg-[#2b2a2c] 
                       text-gray-700 dark:text-gray-200 
                       rounded-lg 
@@ -1333,10 +1333,10 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                       active:scale-[0.98] 
                       transition-all duration-200 
                       disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200/80 disabled:active:scale-100
-                      font-medium text-sm"
+                      font-medium text-xs"
                     title="Save changes"
                   >
-                    <Save className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
+                    <Save className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-opacity" />
                     <span className="hidden md:inline">Save</span>
                   </button>
 
@@ -1344,7 +1344,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                   {!isResumeBuilder && (
                     <button
                       onClick={() => setIsSaveAsModalOpen(true)}
-                      className="group relative flex items-center gap-2 px-3.5 py-2 
+                      className="group relative flex items-center gap-1.5 px-3 py-1.5 
                         bg-white dark:bg-[#2b2a2c] 
                         text-gray-700 dark:text-gray-200 
                         rounded-lg 
@@ -1354,22 +1354,22 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                         hover:shadow-sm 
                         active:scale-[0.98] 
                         transition-all duration-200 
-                        font-medium text-sm"
+                        font-medium text-xs"
                       title="Save to Resume Builder library"
                     >
-                      <FolderOpen className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
+                      <FolderOpen className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-opacity" />
                       <span className="hidden md:inline">Save As</span>
                     </button>
                   )}
                 </div>
 
                 {/* Group 2: AI/Transform Actions (Translate / Compare) */}
-                <div className="flex items-center gap-1 px-1.5 py-1 bg-purple-50/50 dark:bg-purple-900/10 backdrop-blur-sm rounded-xl border border-purple-200/40 dark:border-purple-700/30">
+                <div className="flex items-center gap-1 px-1 py-0.5 bg-purple-50/50 dark:bg-purple-900/10 backdrop-blur-sm rounded-xl border border-purple-200/40 dark:border-purple-700/30">
                   {/* Translate Button */}
                   <button
                     onClick={() => setIsTranslationModalOpen(true)}
                     disabled={isTranslating}
-                    className={`group relative flex items-center gap-2 px-3.5 py-2 
+                    className={`group relative flex items-center gap-1.5 px-3 py-1.5 
                       bg-white dark:bg-[#2b2a2c] 
                       text-gray-700 dark:text-gray-200 
                       rounded-lg 
@@ -1380,14 +1380,14 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                       hover:shadow-sm hover:shadow-purple-500/10
                       active:scale-[0.98] 
                       transition-all duration-200 
-                      font-medium text-sm 
+                      font-medium text-xs 
                       ${isTranslating ? 'cursor-wait opacity-80 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700' : ''}`}
                     title="Translate CV to another language"
                   >
                     {isTranslating ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-purple-600 dark:text-purple-400" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600 dark:text-purple-400" />
                     ) : (
-                      <Languages className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
+                      <Languages className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-opacity" />
                     )}
                     <span className="hidden md:inline">
                       {isTranslating ? 'Translating...' : 'Translate'}
@@ -1398,7 +1398,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                   {hasComparison && (
                     <button
                       onClick={() => openComparisonModal()}
-                      className="group relative flex items-center gap-2 px-3.5 py-2 
+                      className="group relative flex items-center gap-1.5 px-3 py-1.5 
                         bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 
                         text-emerald-700 dark:text-emerald-300 
                         rounded-lg 
@@ -1407,10 +1407,10 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                         hover:shadow-sm hover:shadow-emerald-500/15
                         active:scale-[0.98] 
                         transition-all duration-200 
-                        font-medium text-sm"
+                        font-medium text-xs"
                       title="View AI changes - Before/After comparison"
                     >
-                      <GitCompare className="w-4 h-4 opacity-80 group-hover:opacity-100 transition-opacity" />
+                      <GitCompare className="w-3.5 h-3.5 opacity-80 group-hover:opacity-100 transition-opacity" />
                       <span className="hidden md:inline">Compare</span>
                       {comparison?.hasAnyChanges && (
                         <span className="relative flex h-2 w-2 ml-0.5">
@@ -1426,21 +1426,22 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                 <button
                   onClick={handleExport}
                   disabled={isExporting}
-                  className="group relative flex items-center gap-2 px-5 py-2.5 
-                    bg-gradient-to-r from-blue-600 to-indigo-600 
-                    hover:from-blue-500 hover:to-indigo-500 
-                    active:from-blue-700 active:to-indigo-700
-                    text-white 
+                  className="group relative flex items-center gap-1.5 px-4 py-2 
+                    bg-[#b7e219] 
+                    hover:bg-[#a5cb17] 
+                    active:bg-[#9fc015]
+                    text-gray-900 
+                    border border-[#9fc015]
                     rounded-xl 
-                    shadow-lg shadow-blue-500/25 
-                    hover:shadow-xl hover:shadow-blue-500/30 
+                    shadow-sm 
+                    hover:shadow-md 
                     active:scale-[0.98] 
                     transition-all duration-200 
-                    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-indigo-600 disabled:hover:shadow-lg disabled:active:scale-100
-                    font-semibold text-sm"
+                    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#b7e219] disabled:hover:shadow-sm disabled:active:scale-100
+                    font-semibold text-xs"
                   title="Export as PDF"
                 >
-                  <Download className="w-4 h-4 group-hover:animate-bounce" style={{ animationDuration: '0.6s', animationIterationCount: '1' }} />
+                  <Download className="w-3.5 h-3.5 group-hover:animate-bounce" style={{ animationDuration: '0.6s', animationIterationCount: '1' }} />
                   <span className="hidden md:inline">
                     {isExporting ? 'Exporting...' : 'Export PDF'}
                   </span>

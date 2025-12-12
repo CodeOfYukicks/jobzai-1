@@ -322,13 +322,11 @@ export default function ExportPDFModal({
               <button
                 onClick={handleExport}
                 disabled={(exportMode === 'library' && !fileName.trim()) || isExporting}
-                className={`px-5 py-2.5 text-sm font-semibold text-white 
+                className="px-5 py-2.5 text-sm font-semibold text-gray-900 
+                  bg-[#b7e219] hover:bg-[#a5cb17] active:bg-[#9fc015]
+                  border border-[#9fc015]
                   rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed
-                  flex items-center gap-2 shadow-lg hover:shadow-xl
-                  ${exportMode === 'download'
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/25 hover:shadow-blue-500/30'
-                    : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-500/25 hover:shadow-purple-500/30'
-                  }`}
+                  flex items-center gap-2 shadow-sm hover:shadow-md"
               >
                 {isExporting ? (
                   <>
