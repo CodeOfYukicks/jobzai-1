@@ -166,3 +166,4 @@ If you encounter any further import errors with Tiptap extensions, remember:
 - Some packages like `StarterKit` use **default exports** (no brackets)
 - The `BubbleMenu` **component** is a named export, but the `BubbleMenuExtension` is a default export
 
+

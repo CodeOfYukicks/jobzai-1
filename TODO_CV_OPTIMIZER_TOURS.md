@@ -178,3 +178,4 @@ grep -n "jobInputMode\|manual.*ai" src/pages/CVOptimizerPage.tsx
 **Priorité:** Medium  
 **Temps estimé:** 15-20 minutes
 
+

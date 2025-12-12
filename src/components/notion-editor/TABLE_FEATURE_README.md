@@ -259,3 +259,4 @@ For issues or questions:
 3. Test in the browser console
 4. Check Firestore data structure
 
+

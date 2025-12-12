@@ -542,6 +542,30 @@ export default function DashboardPage() {
 
   const hasPremiumAccess = userData.plan === 'standard' || userData.plan === 'premium';
 
+  const recentApplications = useMemo(() => {
+    const list = [...applications];
+    list.sort((a, b) => {
+      const ta = new Date(a.appliedDate).getTime();
+      const tb = new Date(b.appliedDate).getTime();
+      const safeA = Number.isFinite(ta) ? ta : 0;
+      const safeB = Number.isFinite(tb) ? tb : 0;
+      return safeB - safeA;
+    });
+    return list;
+  }, [applications]);
+
+  const recentTemplates = useMemo(() => {
+    const list = [...templates];
+    list.sort((a, b) => {
+      const aTime = new Date(a.updatedAt?.toDate?.() || a.createdAt?.toDate?.() || 0).getTime();
+      const bTime = new Date(b.updatedAt?.toDate?.() || b.createdAt?.toDate?.() || 0).getTime();
+      const safeA = Number.isFinite(aTime) ? aTime : 0;
+      const safeB = Number.isFinite(bTime) ? bTime : 0;
+      return safeB - safeA;
+    });
+    return list;
+  }, [templates]);
+
   // Prepare application funnel data
   const funnelData = useMemo(() => {
     const maxValue = Math.max(
@@ -1034,7 +1058,7 @@ export default function DashboardPage() {
                           const activities: Array<{icon: any; title: string; description: string; time: string; iconColor: string; iconBg: string}> = [];
                           
                           // Add recent applications
-                          applications.slice(0, 2).forEach(app => {
+                          recentApplications.slice(0, 2).forEach(app => {
                             activities.push({
                               icon: Briefcase,
                               title: `Applied to ${app.companyName}`,
@@ -1046,7 +1070,7 @@ export default function DashboardPage() {
                           });
                           
                           // Add recent templates
-                          templates.slice(0, 1).forEach(template => {
+                          recentTemplates.slice(0, 1).forEach(template => {
                             if (template.createdAt) {
                               activities.push({
                                 icon: FileText,
@@ -1389,8 +1413,7 @@ export default function DashboardPage() {
                   
                   <div className="divide-y divide-gray-200 dark:divide-gray-700">
                     {templates.length > 0 ? (
-                      templates
-                        .sort((a, b) => new Date(b.updatedAt?.toDate?.() || 0).getTime() - new Date(a.updatedAt?.toDate?.() || 0).getTime())
+                      recentTemplates
                         .slice(0, 5)
                         .map(template => (
                           <div key={template.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
@@ -1585,8 +1608,7 @@ export default function DashboardPage() {
                     
                     <div className="space-y-4">
                       {applications.length > 0 ? (
-                        applications
-                          .sort((a, b) => new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime())
+                        recentApplications
                           .slice(0, 4)
                           .map((application, index) => {
                             const getStatusColor = (status: string) => {
@@ -1615,7 +1637,7 @@ export default function DashboardPage() {
                                   <div className={`p-2 rounded-full ${getStatusColor(application.status)}`}>
                                     {getStatusIcon(application.status)}
                                   </div>
-                                  {index < applications.length - 1 && (
+                                  {index < Math.min(recentApplications.length, 4) - 1 && (
                                     <div className="h-full w-0.5 bg-gray-200 dark:bg-gray-700 my-1"></div>
                                   )}
                                 </div>
@@ -1774,8 +1796,7 @@ export default function DashboardPage() {
                           </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                          {applications
-                            .sort((a, b) => new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime())
+                          {recentApplications
                             .slice(0, 5)
                             .map(application => (
                               <tr key={application.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">

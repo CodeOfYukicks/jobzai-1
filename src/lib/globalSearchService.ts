@@ -333,27 +333,46 @@ export const fetchNotes = async (
   searchQuery?: string,
   maxResults: number = 10
 ): Promise<GlobalSearchResult[]> => {
+  console.log('📝 fetchNotes called:', { userId, searchQuery, maxResults });
   try {
     const notesRef = collection(db, 'users', userId, 'notes');
     const q = query(notesRef, limit(50));
     const querySnapshot = await getDocs(q);
+    console.log('📝 Notes found in Firestore:', querySnapshot.size);
 
     const results: GlobalSearchResult[] = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
+      console.log('📝 Note:', doc.id, data.title);
 
       if (searchQuery) {
+        // Handle content matching - content might be string or structured object
+        const contentToSearch = typeof data.content === 'string' 
+          ? data.content 
+          : (data.plainTextContent || '');
+        
         const matches = 
           matchesQuery(data.title, searchQuery) ||
-          matchesQuery(data.content, searchQuery);
+          matchesQuery(contentToSearch, searchQuery);
         if (!matches) return;
       }
 
+      // Handle content - it might be a string or a structured object (Notion blocks)
+      let subtitle: string | undefined;
+      if (data.content) {
+        if (typeof data.content === 'string') {
+          subtitle = data.content.substring(0, 60) + '...';
+        } else if (data.plainTextContent && typeof data.plainTextContent === 'string') {
+          // Some notes store plain text separately
+          subtitle = data.plainTextContent.substring(0, 60) + '...';
+        }
+      }
+      
       results.push({
         type: 'note',
         id: doc.id,
         title: data.title || 'Untitled Note',
-        subtitle: data.content ? data.content.substring(0, 60) + '...' : undefined,
+        subtitle,
         date: formatDate(data.updatedAt || data.createdAt),
         icon: 'sticky-note',
         path: `/notes/${doc.id}`,
@@ -361,9 +380,10 @@ export const fetchNotes = async (
       });
     });
 
+    console.log('📝 fetchNotes returning:', results.length, 'notes');
     return results.slice(0, maxResults);
   } catch (error) {
-    console.error('Error fetching notes:', error);
+    console.error('📝 Error fetching notes:', error);
     return [];
   }
 };
@@ -463,10 +483,14 @@ export const globalSearch = async (
 ): Promise<GlobalSearchResult[]> => {
   const { query: searchQuery, types, limit: maxResults = 20 } = options;
   
+  console.log('🔍 globalSearch called:', { userId, searchQuery, types, maxResults });
+  
   const shouldSearch = (type: SearchResultType) => !types || types.includes(type);
   const pageResults = searchPages(searchQuery);
+  console.log('🔍 Page results:', pageResults.length);
 
   if (!searchQuery) {
+    console.log('🔍 No search query - fetching recent items');
     const fetchPromises: Promise<GlobalSearchResult[]>[] = [];
     
     if (shouldSearch('job-application')) {
@@ -490,12 +514,17 @@ export const globalSearch = async (
     
     try {
       const results = await Promise.all(fetchPromises);
-      return [...pageResults.slice(0, 6), ...results.flat()].slice(0, maxResults);
-    } catch {
+      console.log('🔍 Fetched results by type:', results.map((r, i) => `[${i}]: ${r.length} items`));
+      const allResults = [...pageResults.slice(0, 6), ...results.flat()];
+      console.log('🔍 Total results (no query):', allResults.length);
+      return allResults.slice(0, maxResults);
+    } catch (error) {
+      console.error('🔍 Error in globalSearch (no query):', error);
       return pageResults;
     }
   }
 
+  console.log('🔍 Searching with query:', searchQuery);
   const fetchPromises: Promise<GlobalSearchResult[]>[] = [];
 
   if (shouldSearch('job-application')) {
@@ -525,7 +554,9 @@ export const globalSearch = async (
 
   try {
     const results = await Promise.all(fetchPromises);
+    console.log('🔍 Fetched results by type (with query):', results.map((r, i) => `[${i}]: ${r.length} items`));
     const allResults = [...pageResults, ...results.flat()];
+    console.log('🔍 Total results (with query):', allResults.length, allResults.map(r => `${r.type}:${r.title}`));
 
     const queryLower = searchQuery.toLowerCase();
     allResults.sort((a, b) => {

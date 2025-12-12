@@ -295,3 +295,4 @@ Le système est **prêt à être utilisé** et peut être **facilement étendu**
 **Date:** Décembre 2025  
 **Version:** 1.0
 
+

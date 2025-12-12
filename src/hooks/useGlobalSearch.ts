@@ -235,3 +235,4 @@ export function useGlobalSearch(): UseGlobalSearchReturn {
 
 export default useGlobalSearch;
 
+

@@ -753,7 +753,7 @@ app.post('/api/assistant', async (req, res) => {
       });
     }
 
-    const { message, pageContext, userContext, conversationHistory, userId, pageData } = req.body;
+    const { message, pageContext, userContext, conversationHistory, userId, pageData, selectedContextItems } = req.body;
 
     if (!message) {
       return res.status(400).json({
@@ -765,9 +765,10 @@ app.post('/api/assistant', async (req, res) => {
     console.log(`📍 Page context: ${pageContext?.pageName || 'Unknown'}`);
     console.log(`👤 User: ${userContext?.firstName || 'Unknown'}`);
     console.log(`📊 Page data keys: ${pageData ? Object.keys(pageData).join(', ') : 'None'}`);
+    console.log(`📎 Context items: ${selectedContextItems?.length || 0} items`);
 
     // Build system prompt with context and page data
-    const systemPrompt = buildAssistantSystemPrompt(pageContext, userContext, pageData);
+    const systemPrompt = buildAssistantSystemPrompt(pageContext, userContext, pageData, selectedContextItems);
 
     // Build messages array
     const messages = [
@@ -1626,7 +1627,7 @@ C'est l'idéal avant de postuler à une offre importante !"
 }
 
 // Helper function to build system prompt for AI Assistant
-function buildAssistantSystemPrompt(pageContext, userContext, pageData) {
+function buildAssistantSystemPrompt(pageContext, userContext, pageData, selectedContextItems) {
   const pageName = pageContext?.pageName || 'Jobz.ai';
   const pageDescription = pageContext?.pageDescription || 'AI-powered job search platform';
   const firstName = userContext?.firstName || 'there';
@@ -1640,6 +1641,38 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData) {
   
   // Build product knowledge section
   const productKnowledge = buildProductKnowledgeSection();
+
+  // Format selected context items (user explicitly selected these with @)
+  let selectedContextSection = '';
+  if (selectedContextItems && selectedContextItems.length > 0) {
+    selectedContextSection = `\n## USER-SELECTED CONTEXT (HIGHEST PRIORITY!)\nThe user has explicitly selected these items as context for this conversation using @mentions. You MUST reference and use this data in your responses:\n\n`;
+    
+    for (const item of selectedContextItems) {
+      const typeLabels = {
+        'job-application': 'Job Application',
+        'resume': 'Resume/CV',
+        'cv-analysis': 'CV Analysis',
+        'interview': 'Interview',
+        'campaign': 'Campaign Contact',
+        'note': 'Note',
+        'whiteboard': 'Whiteboard',
+        'document': 'Document',
+        'page': 'Page'
+      };
+      
+      const typeLabel = typeLabels[item.type] || item.type;
+      selectedContextSection += `### ${typeLabel}: ${item.title}\n`;
+      if (item.subtitle) {
+        selectedContextSection += `*${item.subtitle}*\n`;
+      }
+      if (item.data) {
+        selectedContextSection += `\`\`\`json\n${JSON.stringify(item.data, null, 2)}\n\`\`\`\n`;
+      }
+      selectedContextSection += '\n';
+    }
+    
+    selectedContextSection += `**CRITICAL**: The user specifically selected these items. ALWAYS mention and reference them in your response. Provide specific, actionable advice based on this exact data.\n\n`;
+  }
 
   // Format page data if available - make it more readable
   let pageDataSection = '';
@@ -1680,7 +1713,7 @@ ${yearsOfExperience ? `- **Experience**: ${yearsOfExperience} years` : ''}
 
 ## CURRENT PAGE: ${pageName}
 ${pageDescription}
-${pageDataSection}
+${selectedContextSection}${pageDataSection}
 ## YOUR BEHAVIOR RULES (FOLLOW STRICTLY)
 ${behaviorRules}
 

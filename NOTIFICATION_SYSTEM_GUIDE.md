@@ -393,3 +393,4 @@ Les notifications lues de plus de 7 jours sont automatiquement nettoyées au dé
 **Dernière mise à jour:** Décembre 2024
 **Version:** 2.0
 
+

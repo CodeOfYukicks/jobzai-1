@@ -289,3 +289,4 @@ Le backend (`server.cjs`) crée maintenant des notifications lors de la détecti
 **Breaking Changes:** Aucun  
 **Backward Compatible:** ✅ Oui
 
+

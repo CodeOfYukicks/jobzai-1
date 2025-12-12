@@ -223,3 +223,4 @@ Click the **⋮ (three dots)** button to access:
 
 **Enjoy creating powerful tables in your notes! 🎉**
 
+

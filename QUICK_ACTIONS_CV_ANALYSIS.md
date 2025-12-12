@@ -256,3 +256,4 @@ boost your ATS score significantly!
 
 L'utilisateur bénéficie maintenant de **12 quick actions spécifiques** réparties sur 3 pages clés du workflow CV Analysis, chacune optimisée pour le contexte de la page et les données disponibles à l'assistant.
 
+

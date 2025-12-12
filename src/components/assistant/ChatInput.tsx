@@ -1,53 +1,124 @@
 import { useState, useRef, useEffect, KeyboardEvent, useCallback } from 'react';
-import { Send, Square, AtSign, Globe, Pencil, X, ChevronDown, LayoutDashboard, Briefcase, Calendar, FileSearch, FileText, User, Settings, CreditCard, Mic, Lightbulb, ScrollText, Clock } from 'lucide-react';
+import { Send, Square, AtSign, Globe, Pencil, X, Loader2, Clock, Briefcase, FileText, BarChart3, Calendar, UserCircle, LayoutDashboard, StickyNote, Palette, FileIcon, Settings, CreditCard, Mic, User, FileSearch, Lightbulb, Send as SendIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAssistant } from '../../contexts/AssistantContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, collection, getDocs, limit, query } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { recordCreditHistory } from '../../lib/creditHistory';
 import { notify } from '../../lib/notify';
+import { 
+  globalSearch, 
+  GlobalSearchResult, 
+  SearchResultType,
+  getTypeLabel,
+  getTypeColor,
+  fetchJobApplications,
+  fetchResumes,
+  fetchCVAnalyses,
+  fetchInterviews,
+  fetchCampaignContacts,
+  fetchNotes,
+  fetchWhiteboards,
+  fetchDocuments,
+} from '../../lib/globalSearchService';
 
 interface ChatInputProps {
   placeholder?: string;
 }
 
-// Available pages for context selection
-const CONTEXT_PAGES = [
-  { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', color: '#10B981' },
-  { id: 'jobs', name: 'Job Board', icon: Briefcase, path: '/jobs', color: '#635BFF' },
-  { id: 'applications', name: 'Applications', icon: Briefcase, path: '/applications', color: '#F59E0B' },
-  { id: 'campaigns', name: 'Campaigns', icon: ScrollText, path: '/campaigns', color: '#8B5CF6' },
-  { id: 'calendar', name: 'Calendar', icon: Calendar, path: '/calendar', color: '#10B981' },
-  { id: 'interviews', name: 'Interviews', icon: Clock, path: '/upcoming-interviews', color: '#3B82F6' },
-  { id: 'cv-analysis', name: 'CV Analysis', icon: FileSearch, path: '/cv-analysis', color: '#EC4899' },
-  { id: 'resume-builder', name: 'Documents', icon: FileText, path: '/resume-builder', color: '#14B8A6' },
-  { id: 'profile', name: 'Profile', icon: User, path: '/professional-profile', color: '#8B5CF6' },
-  { id: 'recommendations', name: 'Recommendations', icon: Lightbulb, path: '/recommendations', color: '#F59E0B' },
-  { id: 'mock-interview', name: 'Mock Interview', icon: Mic, path: '/mock-interview', color: '#EF4444' },
-  { id: 'settings', name: 'Settings', icon: Settings, path: '/settings', color: '#6B7280' },
-  { id: 'billing', name: 'Billing', icon: CreditCard, path: '/billing', color: '#6B7280' },
-];
-
-interface SelectedContext {
+// Selected context item with actual data
+interface SelectedContextItem {
   id: string;
-  name: string;
-  icon: React.ElementType;
-  color: string;
-  path: string;
+  type: SearchResultType;
+  title: string;
+  subtitle?: string;
+  path?: string;
+  data?: Record<string, any>; // Actual data fetched from Firebase
 }
 
 const CREDIT_COST = 1;
+const SEARCH_DEBOUNCE_MS = 200;
+
+// Icon mapping for context items
+const getContextIcon = (type: SearchResultType, iconName?: string) => {
+  const iconClass = "h-3.5 w-3.5";
+  
+  switch (iconName || type) {
+    case 'briefcase':
+    case 'job-application':
+      return <Briefcase className={iconClass} />;
+    case 'file-text':
+    case 'resume':
+      return <FileText className={iconClass} />;
+    case 'bar-chart-3':
+    case 'cv-analysis':
+      return <BarChart3 className={iconClass} />;
+    case 'calendar':
+    case 'interview':
+      return <Calendar className={iconClass} />;
+    case 'user-circle':
+    case 'campaign':
+      return <UserCircle className={iconClass} />;
+    case 'layout-dashboard':
+    case 'page':
+      return <LayoutDashboard className={iconClass} />;
+    case 'sticky-note':
+    case 'note':
+      return <StickyNote className={iconClass} />;
+    case 'palette':
+    case 'whiteboard':
+      return <Palette className={iconClass} />;
+    case 'file-pdf':
+    case 'document':
+      return <FileIcon className={iconClass} />;
+    case 'settings':
+      return <Settings className={iconClass} />;
+    case 'credit-card':
+      return <CreditCard className={iconClass} />;
+    case 'mic':
+      return <Mic className={iconClass} />;
+    case 'user':
+      return <User className={iconClass} />;
+    case 'file-search':
+      return <FileSearch className={iconClass} />;
+    case 'send':
+      return <SendIcon className={iconClass} />;
+    default:
+      return <FileText className={iconClass} />;
+  }
+};
+
+// Get color for result type
+const getContextColor = (type: SearchResultType): string => {
+  switch (type) {
+    case 'job-application': return '#3B82F6'; // blue
+    case 'resume': return '#10B981'; // emerald
+    case 'cv-analysis': return '#8B5CF6'; // purple
+    case 'interview': return '#F59E0B'; // amber
+    case 'campaign': return '#EC4899'; // pink
+    case 'note': return '#EAB308'; // yellow
+    case 'whiteboard': return '#06B6D4'; // cyan
+    case 'document': return '#EF4444'; // red
+    case 'page': return '#6B7280'; // gray
+    default: return '#6B7280';
+  }
+};
 
 export default function ChatInput({ placeholder = 'Ask, search, or make anything...' }: ChatInputProps) {
   const [input, setInput] = useState('');
-  const [selectedContexts, setSelectedContexts] = useState<SelectedContext[]>([]);
+  const [selectedContexts, setSelectedContexts] = useState<SelectedContextItem[]>([]);
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [contextSearch, setContextSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<GlobalSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -72,29 +143,211 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
       if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
         setShowContextMenu(false);
         setContextSearch('');
+        setSearchResults([]);
+        setSelectedIndex(0);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filter context pages based on search
-  const filteredContextPages = CONTEXT_PAGES.filter(page =>
-    page.name.toLowerCase().includes(contextSearch.toLowerCase()) &&
-    !selectedContexts.find(ctx => ctx.id === page.id)
-  );
+  // Search for context items when query changes
+  useEffect(() => {
+    console.log('📎 Search effect triggered:', { showContextMenu, hasUser: !!currentUser, contextSearch });
+    
+    if (!showContextMenu || !currentUser) {
+      console.log('📎 Search skipped - menu not open or no user');
+      return;
+    }
+    
+    // Clear previous debounce
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Debounce search
+    debounceRef.current = setTimeout(async () => {
+      console.log('📎 Starting search with query:', contextSearch || '(empty)');
+      setIsSearching(true);
+      try {
+        const results = await globalSearch(currentUser.uid, {
+          query: contextSearch || undefined,
+          limit: 15,
+        });
+        console.log('📎 Search results:', results.length, 'items found', results.map(r => `${r.type}:${r.title}`));
+        // Filter out already selected items
+        const filteredResults = results.filter(
+          r => !selectedContexts.find(ctx => ctx.id === r.id && ctx.type === r.type)
+        );
+        console.log('📎 Filtered results:', filteredResults.length, 'items');
+        setSearchResults(filteredResults);
+        setSelectedIndex(0);
+      } catch (error) {
+        console.error('📎 Error searching:', error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, SEARCH_DEBOUNCE_MS);
+    
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [contextSearch, showContextMenu, currentUser, selectedContexts]);
+
+  // Focus search input when menu opens
+  useEffect(() => {
+    if (showContextMenu && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
+  }, [showContextMenu]);
+
+  // Fetch actual data for a search result
+  const fetchContextData = async (result: GlobalSearchResult): Promise<Record<string, any> | undefined> => {
+    if (!currentUser) return undefined;
+    
+    try {
+      switch (result.type) {
+        case 'job-application': {
+          const docRef = doc(db, 'users', currentUser.uid, 'jobApplications', result.id);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            return { ...docSnap.data(), id: docSnap.id };
+          }
+          break;
+        }
+        case 'resume': {
+          const docRef = doc(db, 'users', currentUser.uid, 'cvs', result.id);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            return { ...docSnap.data(), id: docSnap.id };
+          }
+          break;
+        }
+        case 'cv-analysis': {
+          const docRef = doc(db, 'users', currentUser.uid, 'analyses', result.id);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            return { ...docSnap.data(), id: docSnap.id };
+          }
+          break;
+        }
+        case 'interview': {
+          // Interviews are nested in job applications
+          const appId = result.extra?.applicationId;
+          if (appId) {
+            const docRef = doc(db, 'users', currentUser.uid, 'jobApplications', appId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+              const appData = docSnap.data();
+              const interview = appData.interviews?.find((i: any) => i.id === result.id);
+              if (interview) {
+                return {
+                  ...interview,
+                  companyName: appData.companyName,
+                  position: appData.position,
+                  applicationId: appId,
+                };
+              }
+            }
+          }
+          break;
+        }
+        case 'campaign': {
+          const docRef = doc(db, 'users', currentUser.uid, 'jobApplications', result.id);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            return { ...docSnap.data(), id: docSnap.id };
+          }
+          break;
+        }
+        case 'note': {
+          const docRef = doc(db, 'users', currentUser.uid, 'notes', result.id);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            return { ...docSnap.data(), id: docSnap.id };
+          }
+          break;
+        }
+        case 'whiteboard': {
+          const docRef = doc(db, 'users', currentUser.uid, 'whiteboards', result.id);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            return { ...docSnap.data(), id: docSnap.id };
+          }
+          break;
+        }
+        case 'document': {
+          const docRef = doc(db, 'users', currentUser.uid, 'documents', result.id);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            return { ...docSnap.data(), id: docSnap.id };
+          }
+          break;
+        }
+        case 'page':
+          // Pages don't have extra data, just return basic info
+          return {
+            pageName: result.title,
+            pageDescription: result.subtitle,
+            path: result.path,
+          };
+      }
+    } catch (error) {
+      console.error(`Error fetching data for ${result.type}:`, error);
+    }
+    return undefined;
+  };
 
   // Add context to selection
-  const addContext = (context: typeof CONTEXT_PAGES[0]) => {
-    setSelectedContexts(prev => [...prev, context]);
+  const addContext = async (result: GlobalSearchResult) => {
+    console.log('📎 Adding context:', result.type, result.title, result.id);
+    
+    // Fetch actual data for the selected item
+    const data = await fetchContextData(result);
+    console.log('📎 Fetched data for context:', data ? 'Success' : 'No data', data);
+    
+    const contextItem: SelectedContextItem = {
+      id: result.id,
+      type: result.type,
+      title: result.title,
+      subtitle: result.subtitle,
+      path: result.path,
+      data,
+    };
+    
+    setSelectedContexts(prev => [...prev, contextItem]);
     setShowContextMenu(false);
     setContextSearch('');
+    setSearchResults([]);
+    setSelectedIndex(0);
     textareaRef.current?.focus();
   };
 
   // Remove context from selection
-  const removeContext = (contextId: string) => {
-    setSelectedContexts(prev => prev.filter(ctx => ctx.id !== contextId));
+  const removeContext = (contextId: string, contextType: SearchResultType) => {
+    setSelectedContexts(prev => prev.filter(ctx => !(ctx.id === contextId && ctx.type === contextType)));
+  };
+
+  // Handle keyboard navigation in search results
+  const handleSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.min(prev + 1, searchResults.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter' && searchResults[selectedIndex]) {
+      e.preventDefault();
+      addContext(searchResults[selectedIndex]);
+    } else if (e.key === 'Escape') {
+      setShowContextMenu(false);
+      setContextSearch('');
+      setSearchResults([]);
+      textareaRef.current?.focus();
+    }
   };
 
   // Auto-resize textarea
@@ -197,12 +450,18 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
           content: msg.content,
         }));
 
-      // Include selected context pages in the request
-      const contextPages = selectedContexts.map(ctx => ({
+      // Include selected context items with their actual data
+      const contextItems = selectedContexts.map(ctx => ({
         id: ctx.id,
-        name: ctx.name,
+        type: ctx.type,
+        title: ctx.title,
+        subtitle: ctx.subtitle,
         path: ctx.path,
+        data: ctx.data, // Include actual data from Firebase
       }));
+
+      // Debug: log context items being sent
+      console.log('📎 Sending context items to API:', contextItems);
 
       const response = await fetch('/api/assistant', {
         method: 'POST',
@@ -217,7 +476,7 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
             pageName: currentPageContext?.pageName,
             pageDescription: currentPageContext?.pageDescription,
           },
-          selectedContextPages: contextPages, // Include user-selected context pages
+          selectedContextItems: contextItems, // Include user-selected context items with data
           userContext,
           userId: currentUser?.uid,
           pageData: pageData,
@@ -357,7 +616,7 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.96 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute bottom-full left-0 mb-2 w-64 
+                    className="absolute bottom-full left-0 mb-2 w-80 
                       bg-white dark:bg-[#2a2a2c] 
                       rounded-xl border border-gray-200 dark:border-white/[0.08]
                       shadow-lg shadow-black/10 dark:shadow-black/30
@@ -366,9 +625,11 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
                     {/* Search input */}
                     <div className="p-2 border-b border-gray-100 dark:border-white/[0.06]">
                       <input
+                        ref={searchInputRef}
                         type="text"
                         value={contextSearch}
                         onChange={(e) => setContextSearch(e.target.value)}
+                        onKeyDown={handleSearchKeyDown}
                         placeholder="Search pages..."
                         className="w-full px-3 py-2 rounded-lg
                           bg-gray-50 dark:bg-white/[0.04]
@@ -376,43 +637,99 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
                           text-sm text-gray-900 dark:text-white
                           placeholder:text-gray-400 dark:placeholder:text-gray-500
                           focus:outline-none focus:border-[#635BFF]/50"
-                        autoFocus
                       />
                     </div>
                     
-                    {/* Pages list */}
-                    <div className="max-h-64 overflow-y-auto p-1.5">
-                      {filteredContextPages.length > 0 ? (
-                        filteredContextPages.map((page) => {
-                          const IconComponent = page.icon;
+                    {/* Search results */}
+                    <div className="max-h-72 overflow-y-auto p-1.5">
+                      {isSearching ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                        </div>
+                      ) : searchResults.length > 0 ? (
+                        searchResults.map((result, index) => {
+                          const color = getContextColor(result.type);
+                          const isSelected = index === selectedIndex;
                           return (
                             <button
-                              key={page.id}
-                              onClick={() => addContext(page)}
-                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
-                                hover:bg-gray-100 dark:hover:bg-white/[0.06]
-                                transition-colors duration-150 text-left"
+                              key={`${result.type}-${result.id}`}
+                              onClick={() => addContext(result)}
+                              onMouseEnter={() => setSelectedIndex(index)}
+                              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
+                                transition-colors duration-150 text-left
+                                ${isSelected 
+                                  ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20' 
+                                  : 'hover:bg-gray-100 dark:hover:bg-white/[0.06]'
+                                }`}
                             >
                               <div 
-                                className="flex items-center justify-center w-8 h-8 rounded-lg"
-                                style={{ backgroundColor: `${page.color}15` }}
+                                className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors
+                                  ${isSelected ? 'bg-[#635BFF] text-white' : ''}`}
+                                style={!isSelected ? { backgroundColor: `${color}15`, color } : {}}
                               >
-                                <IconComponent 
-                                  className="h-4 w-4" 
-                                  style={{ color: page.color }}
-                                />
+                                {getContextIcon(result.type, result.icon)}
                               </div>
-                              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                {page.name}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-sm font-medium truncate
+                                    ${isSelected ? 'text-[#635BFF] dark:text-[#a5a0ff]' : 'text-gray-900 dark:text-white'}`}>
+                                    {result.title}
+                                  </span>
+                                  {result.status && (
+                                    <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                                      {result.status.replace(/_/g, ' ')}
+                                    </span>
+                                  )}
+                                  {result.score !== undefined && (
+                                    <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded
+                                      ${result.score >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                                        : result.score >= 60 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                      {result.score}%
+                                    </span>
+                                  )}
+                                </div>
+                                {result.subtitle && (
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                      {result.subtitle}
+                                    </span>
+                                    {result.date && (
+                                      <>
+                                        <span className="text-gray-300 dark:text-gray-600">·</span>
+                                        <span className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                                          <Clock className="w-3 h-3" />
+                                          {result.date}
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              <span className={`text-[10px] font-medium uppercase tracking-wide flex-shrink-0
+                                ${isSelected ? 'text-[#635BFF] dark:text-[#a5a0ff]' : 'text-gray-400 dark:text-gray-500'}`}>
+                                {getTypeLabel(result.type)}
                               </span>
                             </button>
                           );
                         })
                       ) : (
-                        <p className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">
-                          No pages found
-                        </p>
+                        <div className="py-8 text-center">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {contextSearch ? 'No results found' : 'Start typing to search...'}
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                            Search applications, resumes, notes, and more
+                          </p>
+                        </div>
                       )}
+                    </div>
+                    
+                    {/* Footer hint */}
+                    <div className="px-3 py-2 border-t border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-[#242325]/50">
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                        <span className="font-medium">↑↓</span> navigate · <span className="font-medium">↵</span> select · <span className="font-medium">esc</span> close
+                      </p>
                     </div>
                   </motion.div>
                 )}
@@ -422,10 +739,10 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
             {/* Selected context pills */}
             <AnimatePresence mode="popLayout">
               {selectedContexts.map((context) => {
-                const IconComponent = context.icon;
+                const color = getContextColor(context.type);
                 return (
                   <motion.div
-                    key={context.id}
+                    key={`${context.type}-${context.id}`}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
@@ -433,20 +750,17 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
                     className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1.5 rounded-lg
                       bg-gray-100 dark:bg-white/[0.06] 
                       border border-gray-200/50 dark:border-white/[0.04]
-                      group"
+                      group max-w-[200px]"
                   >
-                    <IconComponent 
-                      className="h-3.5 w-3.5" 
-                      style={{ color: context.color }}
-                    />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {context.name}
+                    <span style={{ color }}>{getContextIcon(context.type)}</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                      {context.title}
                     </span>
                     <button
-                      onClick={() => removeContext(context.id)}
+                      onClick={() => removeContext(context.id, context.type)}
                       className="ml-0.5 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-white/[0.1]
                         text-gray-400 hover:text-gray-600 dark:hover:text-gray-200
-                        transition-colors duration-150"
+                        transition-colors duration-150 flex-shrink-0"
                     >
                       <X className="h-3 w-3" />
                     </button>
