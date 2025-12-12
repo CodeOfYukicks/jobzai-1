@@ -36,7 +36,7 @@ const CompanyUpdatesSection = memo(function CompanyUpdatesSection({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.3 }}
-      className="rounded-2xl bg-white dark:bg-[#242325] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 overflow-hidden transition-all hover:shadow-premium-soft"
+      className="rounded-2xl bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 overflow-hidden transition-all hover:shadow-premium-soft"
     >
       
       {/* Collapsible Header */}
@@ -125,7 +125,7 @@ const CompanyUpdatesSection = memo(function CompanyUpdatesSection({
                       <div className="flex-shrink-0 mt-2">
                         <div 
                           className={`
-                            w-2.5 h-2.5 rounded-full ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#242325]
+                            w-2.5 h-2.5 rounded-full ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#2b2a2c]
                             ${news.sentiment === 'positive' 
                               ? 'bg-emerald-500 ring-emerald-200 dark:ring-emerald-800' 
                               : news.sentiment === 'negative' 

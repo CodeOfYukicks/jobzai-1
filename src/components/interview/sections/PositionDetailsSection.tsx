@@ -31,11 +31,11 @@ const PositionDetailsSection = memo(function PositionDetailsSection({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.2 }}
-      className="rounded-2xl bg-white dark:bg-[#242325] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 overflow-hidden transition-all hover:shadow-premium-soft"
+      className="rounded-2xl bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 overflow-hidden transition-all hover:shadow-premium-soft"
     >
       
       {/* Header Bar - Premium gradient accent */}
-      <div className="relative px-8 py-5 border-b border-slate-100 dark:border-[#3d3c3e] bg-gradient-to-r from-slate-50 via-white to-slate-50 dark:from-[#2b2a2c]/50 dark:via-[#242325] dark:to-[#2b2a2c]/50">
+      <div className="relative px-8 py-5 border-b border-slate-100 dark:border-[#3d3c3e] bg-gradient-to-r from-slate-50 via-white to-slate-50 dark:from-[#2b2a2c]/50 dark:via-[#2b2a2c] dark:to-[#2b2a2c]/50">
         {/* Subtle violet accent line */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-jobzai-500/30 to-transparent" />
         

@@ -27,7 +27,7 @@ export function AICard({
 				className="
 					relative overflow-hidden
 					rounded-2xl 
-					bg-white dark:bg-[#242325]
+					bg-white dark:bg-[#2b2a2c]
 					border border-slate-200 dark:border-[#3d3c3e]
 					shadow-sm hover:shadow-md
 					transition-shadow duration-300

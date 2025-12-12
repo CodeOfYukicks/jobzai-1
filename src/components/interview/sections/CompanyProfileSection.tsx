@@ -59,7 +59,7 @@ const CompanyProfileSection = memo(function CompanyProfileSection({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="h-full rounded-2xl bg-white dark:bg-[#242325] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 p-8 transition-all hover:shadow-premium-soft"
+      className="h-full rounded-2xl bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 p-8 transition-all hover:shadow-premium-soft"
     >
       
       {/* Top: Logo + Company Name inline */}
@@ -73,7 +73,7 @@ const CompanyProfileSection = memo(function CompanyProfileSection({
           <div 
             className="
               h-14 w-14 rounded-xl 
-              backdrop-blur-xl bg-gradient-to-br from-slate-50 to-white dark:from-[#2b2a2c] dark:to-[#242325]
+              backdrop-blur-xl bg-gradient-to-br from-slate-50 to-white dark:from-[#2b2a2c] dark:to-[#2b2a2c]
               ring-1 ring-slate-200/80 dark:ring-[#3d3c3e]/80
               flex items-center justify-center
               transition-all duration-200

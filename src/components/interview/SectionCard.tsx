@@ -43,7 +43,7 @@ export function SectionCard({
       className={[
         'rounded-xl border border-black/[0.06] bg-white p-6',
         'transition-colors duration-200',
-        'dark:border-white/[0.08] dark:bg-[#1c1c1e]',
+        'dark:border-white/[0.08] dark:bg-[#2b2a2c]',
         className,
       ].join(' ')}
     >

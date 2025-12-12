@@ -138,22 +138,22 @@ export function JobsPipelineFunnel({
     { 
       label: 'Applied', 
       value: data.applied, 
-      color: 'bg-blue-500',
+      color: 'bg-[#118ab2]',
     },
     { 
       label: 'Interview', 
       value: data.interview, 
-      color: 'bg-jobzai-500',
+      color: 'bg-[#06d6a0]',
     },
     { 
       label: 'Pending', 
       value: data.pending_decision, 
-      color: 'bg-amber-500',
+      color: 'bg-[#ffd166]',
     },
     { 
       label: 'Offer', 
       value: data.offer, 
-      color: 'bg-green-500',
+      color: 'bg-[#ef476f]',
     },
   ];
   
@@ -184,17 +184,17 @@ export function CampaignsPipelineFunnel({
     { 
       label: 'Sent', 
       value: data.sent, 
-      color: 'bg-blue-500',
+      color: 'bg-[#118ab2]',
     },
     { 
       label: 'Opened', 
       value: data.opened, 
-      color: 'bg-amber-500',
+      color: 'bg-[#ffd166]',
     },
     { 
       label: 'Replied', 
       value: data.replied, 
-      color: 'bg-green-500',
+      color: 'bg-[#06d6a0]',
     },
   ];
   

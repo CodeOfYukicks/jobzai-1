@@ -30,7 +30,6 @@ import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
 import PremiumHeroSection from '../components/interview/PremiumHeroSection';
 import AICard from '../components/interview/AICard';
-import TabPills from '../components/interview/TabPills';
 import SectionCard from '../components/interview/SectionCard';
 import { InterviewQuestionsHeader } from '../components/interview/questions/InterviewQuestionsHeader';
 import { QuestionCard, QuestionTag } from '../components/interview/questions/QuestionCard';
@@ -4144,27 +4143,26 @@ Return ONLY the pitch text, no explanations or formatting.`;
 
       <MotionConfig transition={{ duration: 0.2 }}>
         <div className="min-h-0 flex-1 overflow-y-auto lg:pr-[400px]">
-          {/* Premium Hero Section */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mb-10"
-          >
-            <PremiumHeroSection
-              companyName={application?.companyName || ''}
-              position={application?.position || 'Interview Preparation'}
-              location={application?.location}
-              interviewType={interview?.type as any}
-              status={interview?.status as any}
-              date={interview?.date || null}
-              time={interview?.time || null}
-            />
-          </motion.div>
-
-          <div className="px-4">
+          <div className="max-w-4xl mx-auto px-6 lg:px-8 py-8">
+            {/* Premium Hero Section */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mb-10"
+            >
+              <PremiumHeroSection
+                companyName={application?.companyName || ''}
+                position={application?.position || 'Interview Preparation'}
+                location={application?.location}
+                interviewType={interview?.type as any}
+                status={interview?.status as any}
+                date={interview?.date || null}
+                time={interview?.time || null}
+              />
+            </motion.div>
             {/* AI Analysis Card - Full Width */}
-            <div className="mb-10 max-w-7xl mx-auto">
+            <div className="mb-10">
               <AICard
                 jobUrl={jobUrl}
                 onJobUrlChange={setJobUrl}
@@ -4175,18 +4173,38 @@ Return ONLY the pitch text, no explanations or formatting.`;
             </div>
 
             {/* Tab navigation */}
-            <div className="mb-8">
-              <TabPills
-                items={[
-                  { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
-                  { id: 'questions', label: 'Questions', icon: <HelpCircle className="w-4 h-4" /> },
-                  { id: 'skills', label: 'Skills', icon: <Briefcase className="w-4 h-4" /> },
-                  { id: 'resources', label: 'Resources', icon: <BookOpen className="w-4 h-4" /> }
-                ]}
-                activeId={tab as any}
-                onChange={(id) => setTab(id as any)}
-              />
-            </div>
+            <nav className="mb-8 border-b border-gray-200 dark:border-[#3d3c3e]">
+              <div className="flex gap-8">
+                {[
+                  { id: 'overview' as const, label: 'Overview', icon: LayoutDashboard },
+                  { id: 'questions' as const, label: 'Questions', icon: HelpCircle },
+                  { id: 'skills' as const, label: 'Skills', icon: Briefcase },
+                  { id: 'resources' as const, label: 'Resources', icon: BookOpen },
+                ].map((tabItem) => {
+                  const Icon = tabItem.icon;
+                  return (
+                    <button
+                      key={tabItem.id}
+                      onClick={() => setTab(tabItem.id)}
+                      className={`relative pb-3 text-sm font-medium transition-colors ${
+                        tab === tabItem.id
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}
+                    >
+                      {tabItem.label}
+                      {tab === tabItem.id && (
+                        <motion.div
+                          layoutId="mainTab"
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 dark:bg-white"
+                          transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
 
             {/* Tab content */}
             <div className="mb-8 relative">
@@ -4397,9 +4415,9 @@ Return ONLY the pitch text, no explanations or formatting.`;
                   {tab === 'overview' && (
                     <motion.div
                       key="overview"
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.15 }}
                       className="space-y-5"
                     >
@@ -5062,9 +5080,9 @@ Return ONLY the pitch text, no explanations or formatting.`;
                   {tab === 'questions' && (
                     <motion.div
                       key="questions"
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.15 }}
                       className="space-y-6 relative"
                     >
@@ -5333,9 +5351,9 @@ Return ONLY the pitch text, no explanations or formatting.`;
                   {tab === 'skills' && (
                     <motion.div
                       key="skills"
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.15 }}
                     >
                       <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-jobzai-600" /></div>}>
@@ -5615,9 +5633,9 @@ Return ONLY the pitch text, no explanations or formatting.`;
                   {tab === 'resources' && (
                     <motion.div
                       key="resources"
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.15 }}
                     >
                       <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-jobzai-600" /></div>}>

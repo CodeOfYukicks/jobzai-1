@@ -22,7 +22,7 @@ const KeyPointsSection = memo(function KeyPointsSection({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.1 }}
-      className="h-full rounded-2xl bg-gradient-to-br from-slate-50/80 to-white dark:from-[#242325]/80 dark:to-[#242325] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 p-6 transition-all hover:shadow-premium-soft"
+      className="h-full rounded-2xl bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 p-6 transition-all hover:shadow-premium-soft"
     >
       
       {/* Header - Premium badge style */}

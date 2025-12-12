@@ -293,11 +293,11 @@ export default function RightSidebarPanel({
   ];
 
   return (
-    <div className="hidden lg:flex fixed right-0 top-12 h-[calc(100vh-48px)] w-[400px] bg-white/95 dark:bg-[#1A1A1D]/95 backdrop-blur-md border-l border-gray-200/80 dark:border-gray-800/80 z-30 flex-col shadow-sidebar">
+    <div className="hidden lg:flex fixed right-0 top-12 h-[calc(100vh-48px)] w-[400px] bg-white dark:bg-[#2b2a2c] border-l border-gray-100 dark:border-[#3d3c3e] z-30 flex-col">
       
-      {/* Tab Headers - Notion Style Design */}
-      <div className="flex-shrink-0 bg-white/80 dark:bg-[#1A1A1D]/80 backdrop-blur-sm">
-        <div className="relative flex border-b border-gray-100 dark:border-gray-800/80" ref={tabsContainerRef}>
+      {/* Tab Headers - Minimal style */}
+      <div className="flex-shrink-0">
+        <div className="relative flex border-b border-gray-100 dark:border-[#3d3c3e]" ref={tabsContainerRef}>
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = sidebarTab === tab.id;
@@ -306,7 +306,7 @@ export default function RightSidebarPanel({
                 key={tab.id}
                 data-tab-id={tab.id}
                 onClick={() => setSidebarTab(tab.id as any)}
-                className={`relative flex-1 px-4 py-4 text-xs font-medium transition-all ${isActive
+                className={`relative flex-1 px-4 py-3.5 text-xs font-medium transition-all ${isActive
                   ? 'text-gray-900 dark:text-white'
                   : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}
@@ -317,9 +317,9 @@ export default function RightSidebarPanel({
                 </div>
                 {isActive && (
                   <motion.div
-                    layoutId="sidebarActiveTab"
+                    layoutId="sidebarTab"
                     className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 dark:bg-white"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
                   />
                 )}
               </button>
@@ -336,10 +336,10 @@ export default function RightSidebarPanel({
           {sidebarTab === 'progress' && (
             <motion.div
               key="progress"
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
               className="p-6 space-y-6 min-h-0 overflow-y-auto"
             >
               {/* Progress Header */}
@@ -448,10 +448,10 @@ export default function RightSidebarPanel({
           {sidebarTab === 'notes' && (
             <motion.div
               key="notes"
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
               className="min-h-0 flex flex-col overflow-y-auto"
             >
               <NotesDocumentManager
@@ -467,10 +467,10 @@ export default function RightSidebarPanel({
           {sidebarTab === 'history' && (
             <motion.div
               key="history"
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
               className="p-6 space-y-4 min-h-0 overflow-y-auto"
             >
               {/* Header */}
@@ -551,10 +551,10 @@ export default function RightSidebarPanel({
           {sidebarTab === 'coach' && (
             <motion.div
               key="coach"
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
               className="flex-1 flex flex-col min-h-0"
             >
               {/* Context Section - Premium Notion/Vercel Style */}
