@@ -1,798 +1,546 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  CreditCard, Send, TrendingUp, Loader2, RefreshCw, ChevronRight, 
-  Download, LayoutGrid, Users, Target, Inbox, Mail, MessageSquare,
-  FileText, Calendar, Award, ArrowUpRight, Clock, CheckCircle, 
-  AlertCircle, Bell, Zap, Activity, PieChart,
-  BriefcaseIcon as Briefcase, Flame, Lightbulb, Edit, PlusCircle,
-  TrendingDown, ArrowRight, Building2
+  LayoutGrid, 
+  Briefcase, 
+  Zap,
+  CreditCard,
+  Target,
+  Calendar,
+  TrendingUp,
+  Users,
+  Mail,
+  MailOpen,
+  Reply,
+  Clock,
+  ChevronRight,
+  Award,
+  Image,
+  Camera,
+  Loader2,
+  X
 } from 'lucide-react';
-import { doc, collection, onSnapshot, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
-import PageHeader from '../components/PageHeader';
-import FloatingCredits from '../components/FloatingCredits';
-import PremiumFeatureOverlay from '../components/PremiumFeatureOverlay';
-import { getCreditHistoryForChart } from '../lib/creditHistory';
-import {
-  LineChart, Line, ResponsiveContainer, XAxis, YAxis, 
-  Tooltip, AreaChart, Area, BarChart, Bar, ComposedChart,
-  PieChart as RechartsPieChart, Pie, Cell, RadarChart, Radar,
-  PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend, RadialBarChart,
-  RadialBar, CartesianGrid, FunnelChart, Funnel, LabelList
-} from 'recharts';
-import { Link } from 'react-router-dom';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage } from '../lib/firebase';
+import { notify } from '@/lib/notify';
+import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
+import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
+import { useDashboardData, PeriodFilter } from '../hooks/useDashboardData';
 import { useAssistantPageData } from '../hooks/useAssistantPageData';
+import {
+  DashboardFilters,
+  KPICard,
+  JobsPipelineFunnel,
+  CampaignsPipelineFunnel,
+  ActivityFeed,
+  InterviewList,
+  DonutChart,
+  HorizontalBarChart,
+  MetricCard,
+  ApplicationsTable,
+  CampaignsList,
+  RecentReplies,
+} from '../components/dashboard';
 
-// Interview interface
-interface Interview {
-  id: string;
-  date: string;
-  time: string;
-  type: 'technical' | 'hr' | 'manager' | 'final' | 'other';
-  status: 'scheduled' | 'completed' | 'cancelled';
-  location?: string;
-}
+type TabType = 'overview' | 'applications' | 'campaigns';
 
-interface DashboardStats {
-  credits: number;
-  creditsChange: number;
-  historicalData: {
-    date: string;
-    value: number;
-    applications: number;
-    responses: number;
-    balance: number;
-  }[];
-}
-
-interface UserData {
-  plan?: string;
-  credits: number;
-}
-
-interface ChartDataPoint {
-  date: string;
-  value: number;
-}
-
-interface CashFlowDataPoint {
-  date: string;
-  balance: number;
-  inflow: number;
-  outflow: number;
-}
-
-// Add new interface for email templates
-interface EmailTemplate {
-  id: string;
-  name: string;
-  subject: string;
-  content: string;
-  tone?: string;
-  language?: string;
-  aiGenerated?: boolean;
-  liked?: boolean;
-  tags?: string[];
-  createdAt: any;
-  updatedAt: any;
-}
-
-// Add new interface for job applications
-interface JobApplication {
-  id: string;
-  companyName: string;
-  position: string;
-  status: string;
-  appliedDate: string;
-  interviews?: Interview[];
-}
-
-// Enhance dashboard stats with more metrics
-interface EnhancedDashboardStats extends DashboardStats {
-  // Email template metrics
-  totalTemplates: number;
-  templatesCreatedThisMonth: number;
-  mostUsedTemplateId: string;
-  mostUsedTemplateName: string;
-  
-  // Job application metrics
-  totalApplications: number;
-  pendingApplications: number;
-  interviewScheduled: number;
-  successfulApplications: number;
-  rejectedApplications: number;
-  appliedCount: number;
-  interviewCount: number;
-  offerCount: number;
-  
-  // Success metrics
-  successRate: number;
-  
-  // Time metrics
-  averageResponseTime: number; // in hours
-  
-  // Activity metrics
-  activitiesThisWeek: number;
-  activitiesLastWeek: number;
-  activityGrowth: number;
-}
-
-function getStatusColor(status: string) {
-  switch (status.toLowerCase()) {
-    case 'active':
-      return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-    case 'completed':
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-    case 'paused':
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-    case 'pending':
-      return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
-    case 'failed':
-      return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-    default:
-      return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
-  }
-}
-
-const formatChartData = (data: any[], key: string): ChartDataPoint[] => {
-  return data.map(item => ({
-    date: new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
-    value: key === 'balance' ? item.balance : item[key]
-  }));
-};
-
-// New helper component for tab navigation
 const TabButton = ({ 
   active, 
   onClick, 
   icon: Icon, 
-  label 
+  label,
+  count,
 }: { 
   active: boolean; 
   onClick: () => void; 
   icon: any; 
-  label: string 
+  label: string;
+  count?: number;
 }) => {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-lg
+      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg
         transition-all duration-200 ${
         active
-          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-800'
+          ? 'bg-jobzai-100 dark:bg-jobzai-950/40 text-jobzai-700 dark:text-jobzai-300'
+          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
       }`}
     >
-      <Icon className="h-5 w-5" />
+      <Icon className="h-4 w-4" />
       <span>{label}</span>
-    </button>
-  );
-};
-
-// New helper component for stat cards
-const StatCard = ({ 
-  title, 
-  value, 
-  change, 
-  icon: Icon, 
-  iconColor, 
-  iconBg 
-}: { 
-  title: string; 
-  value: string | number; 
-  change?: string | number; 
-  icon: any; 
-  iconColor: string; 
-  iconBg: string;
-}) => {
-  const isPositiveChange = typeof change === 'number' ? change >= 0 : true;
-  
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-200">
-      <div className="flex items-center gap-4">
-        <div className={`p-3 ${iconBg} rounded-lg`}>
-          <Icon className={`h-6 w-6 ${iconColor}`} />
-        </div>
-        <div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {title}
-          </p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {value}
-            </p>
-            {change !== undefined && (
-              <span className={`text-sm ${isPositiveChange ? 'text-green-500' : 'text-red-500'}`}>
-                {typeof change === 'number' 
-                  ? (change > 0 ? `+${change}%` : `${change}%`) 
-                  : change}
+      {count !== undefined && count > 0 && (
+        <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium
+          ${active 
+            ? 'bg-jobzai-200 dark:bg-jobzai-900/50 text-jobzai-700 dark:text-jobzai-300' 
+            : 'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400'
+          }`}
+        >
+          {count}
               </span>
             )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Activity item component
-const ActivityItem = ({ 
-  icon: Icon, 
-  title, 
-  description, 
-  time, 
-  iconColor, 
-  iconBg 
-}: { 
-  icon: any; 
-  title: string; 
-  description: string; 
-  time: string; 
-  iconColor: string; 
-  iconBg: string;
-}) => {
-  return (
-    <div className="flex gap-3 pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0">
-      <div className={`p-2 ${iconBg} rounded-lg self-start mt-0.5`}>
-        <Icon className={`h-4 w-4 ${iconColor}`} />
-      </div>
-      <div className="flex-1">
-        <h4 className="text-sm font-medium text-gray-900 dark:text-white">{title}</h4>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{description}</p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{time}</p>
-      </div>
-    </div>
+    </button>
   );
 };
 
 export default function DashboardPage() {
   const { currentUser } = useAuth();
-  const [stats, setStats] = useState<EnhancedDashboardStats>({
-    credits: 0,
-    creditsChange: 0,
-    historicalData: [],
-    
-    // Email template metrics
-    totalTemplates: 0,
-    templatesCreatedThisMonth: 0,
-    mostUsedTemplateId: '',
-    mostUsedTemplateName: 'None',
-    
-    // Job application metrics
-    totalApplications: 0,
-    pendingApplications: 0,
-    interviewScheduled: 0,
-    successfulApplications: 0,
-    rejectedApplications: 0,
-    appliedCount: 0,
-    interviewCount: 0,
-    offerCount: 0,
-    
-    // Success metrics
-    successRate: 0,
-    
-    // Time metrics
-    averageResponseTime: 0,
-    
-    // Activity metrics
-    activitiesThisWeek: 0,
-    activitiesLastWeek: 0,
-    activityGrowth: 0
-  });
-  const [userData, setUserData] = useState<UserData>({ credits: 0 });
-  const [creditDiff, setCreditDiff] = useState(0);
-  const [triggerPosition, setTriggerPosition] = useState({ x: 0, y: 0 });
-  const [isLoading, setIsLoading] = useState(true);
-  const creditElementRef = useRef<HTMLDivElement>(null);
-  const previousCredits = useRef(stats.credits);
-  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
-  const [applications, setApplications] = useState<JobApplication[]>([]);
-  const [upcomingInterviews, setUpcomingInterviews] = useState<Array<{interview: Interview; application: JobApplication}>>([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'templates' | 'applications'>('overview');
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('30d');
+  const [boardFilter, setBoardFilter] = useState<string | null>(null);
 
-  const fetchStats = async (isRefresh = false) => {
-    try {
-      if (!currentUser) {
-        setIsLoading(false);
-        return;
-      }
-
-      // Get user's email templates
-      const templatesRef = collection(db, 'users', currentUser.uid, 'emailTemplates');
-      const templatesQuery = query(templatesRef);
-      const templatesSnapshot = await getDocs(templatesQuery);
-      
-      const templatesList: EmailTemplate[] = [];
-      const now = new Date();
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      let templatesThisMonth = 0;
-      
-      templatesSnapshot.forEach(doc => {
-        const template = doc.data() as EmailTemplate;
-        template.id = doc.id;
-        templatesList.push(template);
-        
-        // Count templates created this month
-        if (template.createdAt && new Date(template.createdAt.toDate()) >= firstDayOfMonth) {
-          templatesThisMonth++;
-        }
-      });
-      
-      setTemplates(templatesList);
-      
-      // Get user's job applications
-      const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
-      const applicationsQuery = query(applicationsRef);
-      const applicationsSnapshot = await getDocs(applicationsQuery);
-      
-      const applicationsList: JobApplication[] = [];
-      let pendingApps = 0;
-      let successfulApps = 0;
-      let rejectedApps = 0;
-      let appliedCount = 0;
-      let interviewCount = 0;
-      let offerCount = 0;
-      let interviewScheduled = 0;
-      
-      // Collect upcoming interviews
-      const upcomingInterviewsList: Array<{interview: Interview; application: JobApplication}> = [];
-      const currentDate = new Date();
-      
-      applicationsSnapshot.forEach(doc => {
-        const application = doc.data() as JobApplication;
-        application.id = doc.id;
-        applicationsList.push(application);
-        
-        // Count applications by status
-        if (application.status === 'applied') {
-          pendingApps++;
-          appliedCount++;
-        } else if (application.status === 'interview') {
-          pendingApps++;
-          interviewCount++;
-        } else if (application.status === 'offer') {
-          successfulApps++;
-          offerCount++;
-        } else if (application.status === 'rejected') {
-          rejectedApps++;
-        }
-        
-        // Collect upcoming interviews
-        if (application.interviews && application.interviews.length > 0) {
-          application.interviews.forEach(interview => {
-            if (interview.status === 'scheduled') {
-              const interviewDate = new Date(`${interview.date}T${interview.time || '00:00'}`);
-              if (interviewDate >= currentDate) {
-                upcomingInterviewsList.push({ interview, application });
-                interviewScheduled++;
-              }
-            }
-          });
-        }
-      });
-      
-      // Sort upcoming interviews by date
-      upcomingInterviewsList.sort((a, b) => {
-        const dateA = new Date(`${a.interview.date}T${a.interview.time || '00:00'}`);
-        const dateB = new Date(`${b.interview.date}T${b.interview.time || '00:00'}`);
-        return dateA.getTime() - dateB.getTime();
-      });
-      
-      setUpcomingInterviews(upcomingInterviewsList.slice(0, 5));
-      setApplications(applicationsList);
-
-      // Calculate success rate
-      const successRate = applicationsList.length > 0 
-        ? (successfulApps / applicationsList.length) * 100 
-        : 0;
-
-      // Calculate activity metrics
-      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-      
-      let activitiesThisWeek = 0;
-      let activitiesLastWeek = 0;
-      
-      // Count template activities
-      templatesList.forEach(template => {
-        if (template.createdAt) {
-          const templateDate = new Date(template.createdAt.toDate());
-          if (templateDate >= oneWeekAgo) {
-            activitiesThisWeek++;
-          } else if (templateDate >= twoWeeksAgo && templateDate < oneWeekAgo) {
-            activitiesLastWeek++;
-          }
-        }
-      });
-      
-      // Count application activities
-      applicationsList.forEach(application => {
-        const appDate = new Date(application.appliedDate);
-        if (appDate >= oneWeekAgo) {
-          activitiesThisWeek++;
-        } else if (appDate >= twoWeeksAgo && appDate < oneWeekAgo) {
-          activitiesLastWeek++;
-        }
-      });
-      
-      // Calculate activity growth
-      const activityGrowth = activitiesLastWeek > 0 
-        ? ((activitiesThisWeek - activitiesLastWeek) / activitiesLastWeek) * 100
-        : activitiesThisWeek > 0 ? 100 : 0;
-
-      // Charger l'historique des crédits depuis Firestore
-      const creditHistoryData = await getCreditHistoryForChart(currentUser.uid, 30);
-      
-      // Convertir l'historique des crédits au format attendu par historicalData
-      let creditHistoryFormatted = creditHistoryData.map(item => ({
-        date: item.date,
-        value: 0,
-        applications: applicationsList.length,
-        responses: 0,
-        balance: item.value
-      }));
-      
-      // Si l'historique est vide, ajouter au moins le solde actuel
-      if (creditHistoryFormatted.length === 0) {
-        creditHistoryFormatted = [];
-      }
-
-      // Subscribe to user document for real-time updates
-      const unsubscribeUser = onSnapshot(
-        doc(db, 'users', currentUser.uid),
-        async (doc) => {
-          if (doc.exists()) {
-            const data = doc.data() as UserData;
-            setUserData(data);
-            
-            // Calculate credit difference for animation
-            const diff = (data.credits || 0) - previousCredits.current;
-            
-            if (diff !== 0 && creditElementRef.current) {
-              const rect = creditElementRef.current.getBoundingClientRect();
-              setTriggerPosition({
-                x: rect.left + rect.width / 2,
-                y: rect.top + rect.height / 2
-              });
-              setCreditDiff(diff);
-            }
-            
-            // Toujours recharger l'historique des crédits pour avoir les données les plus récentes
-            const freshCreditHistory = await getCreditHistoryForChart(currentUser.uid, 30);
-            let updatedCreditHistory = freshCreditHistory.map(item => ({
-              date: item.date,
-              value: 0,
-              applications: applicationsList.length,
-              responses: 0,
-              balance: item.value,
-              change: item.change,
-              reason: item.reason
-            }));
-            
-            // Si l'historique est vide après chargement, ajouter le solde actuel
-            if (updatedCreditHistory.length === 0) {
-              updatedCreditHistory = [{
-                date: new Date().toISOString(),
-                value: 0,
-                applications: applicationsList.length,
-                responses: 0,
-                balance: data.credits || 0
-              }];
-            }
-            
-            // Définir la nouvelle valeur de référence pour les crédits
-            previousCredits.current = data.credits || 0;
-            
-            // Update all stats
-            setStats(prev => ({
-              ...prev,
-              credits: data.credits || 0,
-              creditsChange: diff,
-              historicalData: updatedCreditHistory,
-              
-              // Email template metrics
-              totalTemplates: templatesList.length,
-              templatesCreatedThisMonth: templatesThisMonth,
-              mostUsedTemplateId: '',
-              mostUsedTemplateName: templatesList.length > 0 ? templatesList[0].name : 'None',
-              
-              // Job application metrics
-              totalApplications: applicationsList.length,
-              pendingApplications: pendingApps,
-              interviewScheduled,
-              successfulApplications: successfulApps,
-              rejectedApplications: rejectedApps,
-              appliedCount,
-              interviewCount,
-              offerCount,
-              
-              // Success metrics
-              successRate,
-              
-              // Time metrics
-              averageResponseTime: 24,
-              
-              // Activity metrics
-              activitiesThisWeek,
-              activitiesLastWeek,
-              activityGrowth
-            }));
-          }
-          setIsLoading(false);
-        }
-      );
-
-      return () => {
-        unsubscribeUser();
-      };
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!currentUser) return;
-    fetchStats(false); // Indiquer que ce n'est pas un refresh
-  }, [currentUser]);
-
-  const hasPremiumAccess = userData.plan === 'standard' || userData.plan === 'premium';
-
-  const recentApplications = useMemo(() => {
-    const list = [...applications];
-    list.sort((a, b) => {
-      const ta = new Date(a.appliedDate).getTime();
-      const tb = new Date(b.appliedDate).getTime();
-      const safeA = Number.isFinite(ta) ? ta : 0;
-      const safeB = Number.isFinite(tb) ? tb : 0;
-      return safeB - safeA;
-    });
-    return list;
-  }, [applications]);
-
-  const recentTemplates = useMemo(() => {
-    const list = [...templates];
-    list.sort((a, b) => {
-      const aTime = new Date(a.updatedAt?.toDate?.() || a.createdAt?.toDate?.() || 0).getTime();
-      const bTime = new Date(b.updatedAt?.toDate?.() || b.createdAt?.toDate?.() || 0).getTime();
-      const safeA = Number.isFinite(aTime) ? aTime : 0;
-      const safeB = Number.isFinite(bTime) ? bTime : 0;
-      return safeB - safeA;
-    });
-    return list;
-  }, [templates]);
-
-  // Prepare application funnel data
-  const funnelData = useMemo(() => {
-    const maxValue = Math.max(
-      stats.appliedCount,
-      stats.interviewCount,
-      stats.offerCount,
-      stats.rejectedApplications
-    );
-    
-    return [
-      { name: 'Applied', value: stats.appliedCount, fill: '#8B5CF6' },
-      { name: 'Interview', value: stats.interviewCount, fill: '#6366F1' },
-      { name: 'Offer', value: stats.offerCount, fill: '#10B981' },
-      { name: 'Rejected', value: stats.rejectedApplications, fill: '#EF4444' }
-    ].filter(item => item.value > 0);
-  }, [stats.appliedCount, stats.interviewCount, stats.offerCount, stats.rejectedApplications]);
-
-  const refreshDashboard = async () => {
-    setIsRefreshing(true);
-    try {
-      const response = await fetch('/api/refresh-dashboard', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUser?.uid })
-      });
-      // Mettre à jour les données en indiquant que c'est un refresh
-      await fetchStats(true);
-    } catch (error) {
-      console.error('Error refreshing dashboard:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  // Formatez les données pour les graphiques
-  // Pour le graphique des crédits, utiliser directement l'historique des crédits
-  const balanceData = useMemo(() => {
-    // Noms de mois en français
-    const monthNames = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
-    
-    // Extraire uniquement les données de balance de l'historique
-    const creditData = stats.historicalData
-      .filter(item => item.balance !== undefined && item.balance !== null)
-      .map(item => ({
-        date: item.date,
-        value: item.balance,
-        change: (item as any).change,
-        reason: (item as any).reason
-      }));
-    
-    // Si on n'a pas de données, retourner un tableau vide (sera géré par le graphique)
-    if (creditData.length === 0) {
-      return [];
-    }
-    
-    // Trier par date (plus ancien en premier)
-    creditData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    
-    // Formater les dates pour le graphique avec heure si nécessaire pour les distinguer
-    return creditData.map((item, index) => {
-      const date = new Date(item.date);
-      // Si plusieurs points le même jour, inclure l'heure
-      const hasMultipleSameDay = creditData.filter(c => {
-        const cDate = new Date(c.date);
-        return cDate.toDateString() === date.toDateString();
-      }).length > 1;
-      
-      let dateLabel: string;
-      if (hasMultipleSameDay || creditData.length > 1) {
-        // Toujours inclure l'heure si on a plusieurs points
-        const day = date.getDate();
-        const month = monthNames[date.getMonth()];
-        const hours = date.getHours().toString().padStart(2, '0');
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        dateLabel = `${day} ${month}, ${hours}:${minutes}`;
-      } else {
-        const day = date.getDate();
-        const month = monthNames[date.getMonth()];
-        const year = date.getFullYear();
-        dateLabel = `${day} ${month} ${year}`;
-      }
-      
-      return {
-        date: dateLabel,
-        dateISO: item.date, // Garder la date ISO pour le tri et le tooltip
-        value: item.value,
-        change: item.change,
-        reason: item.reason
-      };
-    });
-  }, [stats.historicalData]);
-  const applicationsData = formatChartData(stats.historicalData, 'applications');
-  const performanceData = formatChartData(stats.historicalData, 'responses');
-
-  // Register dashboard data with AI Assistant - Enhanced with actionable insights
-  const dashboardSummary = useMemo(() => {
-    const totalApps = stats.totalApplications || 0;
-    const pending = stats.pendingApplications || 0;
-    const successful = stats.successfulApplications || 0;
-    const rejected = stats.rejectedApplications || 0;
-    const responseRate = totalApps > 0 ? Math.round(((successful + rejected) / totalApps) * 100) : 0;
-    
-    // Calculate activity trend
-    const thisWeek = stats.activitiesThisWeek || 0;
-    const lastWeek = stats.activitiesLastWeek || 0;
-    const activityTrend = lastWeek > 0 
-      ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) 
-      : (thisWeek > 0 ? 100 : 0);
-
-    // Generate action items based on data
-    const actionItems: string[] = [];
-    if (pending > 5) {
-      actionItems.push(`You have ${pending} pending applications - consider following up on older ones`);
-    }
-    if (upcomingInterviews.length > 0) {
-      actionItems.push(`${upcomingInterviews.length} upcoming interview${upcomingInterviews.length > 1 ? 's' : ''} - time to prepare!`);
-    }
-    if (thisWeek < lastWeek) {
-      actionItems.push('Activity dropped this week - try to apply to more jobs');
-    }
-    if (responseRate < 20 && totalApps > 5) {
-      actionItems.push('Low response rate - consider optimizing your CV or targeting different roles');
-    }
-    if (stats.credits && stats.credits < 10) {
-      actionItems.push('Running low on credits - consider upgrading your plan');
-    }
-
-    // Identify wins to celebrate
-    const wins: string[] = [];
-    if (successful > 0) {
-      wins.push(`${successful} successful application${successful > 1 ? 's' : ''}!`);
-    }
-    if (activityTrend > 20) {
-      wins.push(`Activity up ${activityTrend}% from last week!`);
-    }
-    if (responseRate > 30) {
-      wins.push(`Great response rate of ${responseRate}%!`);
-    }
-
-    return {
-      totalApplications: totalApps,
-      applicationsByStatus: {
-        pending,
-        successful,
-        rejected,
-      },
+  // Cover photo states
+  const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
+  const [isUpdatingCover, setIsUpdatingCover] = useState(false);
+  const [isCoverCropperOpen, setIsCoverCropperOpen] = useState(false);
+  const [isCoverGalleryOpen, setIsCoverGalleryOpen] = useState(false);
+  const [selectedCoverFile, setSelectedCoverFile] = useState<Blob | File | null>(null);
+  const [isHoveringCover, setIsHoveringCover] = useState(false);
+  const [isCoverDark, setIsCoverDark] = useState<boolean | null>(null);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
+  
+  const {
+    stats,
+    boards,
+    campaigns,
+    isLoading,
+    isRefreshing,
+    lastRefresh,
+    refresh,
+  } = useDashboardData(periodFilter, boardFilter);
+  
+  // Register data with AI Assistant
+  const dashboardSummary = useMemo(() => ({
       credits: stats.credits,
-      plan: userData?.plan || 'free',
-      interviewStats: {
-        total: stats.totalInterviews || 0,
-        upcoming: upcomingInterviews.length,
-        nextInterview: upcomingInterviews[0] ? {
-          company: upcomingInterviews[0].companyName,
-          date: upcomingInterviews[0].date,
-          type: upcomingInterviews[0].type,
-        } : null,
-      },
-      // Key metrics
-      metrics: {
-        responseRate,
-        successRate: stats.successRate || 0,
-        activityTrend,
-        applicationsThisWeek: thisWeek,
-      },
-      // Actionable insights
-      insights: {
-        actionItems,
-        wins,
-        priority: actionItems.length > 0 ? actionItems[0] : 'Keep up the good work!',
-      },
-      recentApplications: recentApplications.slice(0, 5).map(app => ({
-        company: app.companyName,
-        position: app.position,
-        status: app.status,
-      })),
-    };
-  }, [stats, userData?.plan, upcomingInterviews, recentApplications]);
+    applications: {
+      total: stats.totalApplications,
+      active: stats.activeApplications,
+      interviews: stats.interviewCount,
+      offers: stats.offerCount,
+      responseRate: stats.responseRate,
+      interviewRate: stats.interviewRate,
+    },
+    campaigns: {
+      total: stats.totalCampaigns,
+      contacts: stats.totalContacts,
+      emailsSent: stats.emailsSent,
+      openRate: stats.openRate,
+      replyRate: stats.replyRate,
+    },
+    upcomingInterviews: stats.upcomingInterviews.slice(0, 3).map(i => ({
+      company: i.companyName,
+      date: i.date,
+      type: i.type,
+    })),
+    filters: {
+      period: periodFilter,
+      board: boardFilter,
+    },
+  }), [stats, periodFilter, boardFilter]);
 
   useAssistantPageData('dashboardStats', dashboardSummary, !isLoading);
+
+  // Load page preferences (cover photo) and detect brightness
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const loadPagePreferences = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const pagePreferences = userData.pagePreferences || {};
+          const dashboardPrefs = pagePreferences.dashboard || {};
+          if (dashboardPrefs.coverPhoto) {
+            setCoverPhoto(dashboardPrefs.coverPhoto);
+            const isDark = await detectCoverBrightness(dashboardPrefs.coverPhoto);
+            setIsCoverDark(isDark);
+          } else {
+            setIsCoverDark(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading page preferences:', error);
+      }
+    };
+
+    loadPagePreferences();
+  }, [currentUser]);
+
+  // Handle file select for cover
+  const handleCoverFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedCoverFile(file);
+      setIsCoverCropperOpen(true);
+    }
+    if (coverFileInputRef.current) {
+      coverFileInputRef.current.value = '';
+    }
+  };
+
+  // Handle cropped cover
+  const handleCroppedCover = async (blob: Blob) => {
+    await handleUpdateCover(blob);
+    setIsCoverCropperOpen(false);
+    setSelectedCoverFile(null);
+  };
+
+  // Handle direct cover apply from gallery
+  const handleDirectApplyCover = async (blob: Blob) => {
+    await handleUpdateCover(blob);
+  };
+
+  // Function to detect if cover image is dark or light
+  const detectCoverBrightness = (imageUrl: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          
+          if (!ctx) {
+            resolve(true);
+            return;
+          }
+          
+          ctx.drawImage(img, 0, 0);
+          
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          let totalBrightness = 0;
+          let sampleCount = 0;
+          
+          for (let i = 0; i < data.length; i += 40) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            totalBrightness += luminance;
+            sampleCount++;
+          }
+          
+          const averageBrightness = totalBrightness / sampleCount;
+          resolve(averageBrightness < 0.5);
+        } catch (error) {
+          console.error('Error detecting cover brightness:', error);
+          resolve(true);
+        }
+      };
+      
+      img.onerror = () => {
+        resolve(true);
+      };
+      
+      img.src = imageUrl;
+    });
+  };
+
+  // Handle cover photo update
+  const handleUpdateCover = async (blob: Blob) => {
+    if (!currentUser) return;
+
+    setIsUpdatingCover(true);
+    try {
+      const timestamp = Date.now();
+      const fileName = `dashboard_cover_${timestamp}.jpg`;
+      const coverRef = ref(storage, `cover-photos/${currentUser.uid}/${fileName}`);
+
+      await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
+      const coverUrl = await getDownloadURL(coverRef);
+
+      if (coverPhoto) {
+        try {
+          const urlParts = coverPhoto.split('/o/');
+          if (urlParts.length > 1) {
+            const pathPart = urlParts[1].split('?')[0];
+            const decodedPath = decodeURIComponent(pathPart);
+            const oldCoverRef = ref(storage, decodedPath);
+            await deleteObject(oldCoverRef);
+          }
+        } catch (e) {
+          console.warn('Could not delete old cover photo from storage', e);
+        }
+      }
+
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      const currentData = userDoc.exists() ? userDoc.data() : {};
+      const currentPagePreferences = currentData.pagePreferences || {};
+      const currentDashboardPrefs = currentPagePreferences.dashboard || {};
+
+      await updateDoc(userRef, {
+        pagePreferences: {
+          ...currentPagePreferences,
+          dashboard: {
+            ...currentDashboardPrefs,
+            coverPhoto: coverUrl
+          }
+        }
+      });
+
+      setCoverPhoto(coverUrl);
+      
+      const isDark = await detectCoverBrightness(coverUrl);
+      setIsCoverDark(isDark);
+      
+      notify.success('Cover updated');
+    } catch (error) {
+      console.error('Error updating cover:', error);
+      notify.error('Failed to update cover');
+    } finally {
+      setIsUpdatingCover(false);
+    }
+  };
+
+  // Handle cover photo removal
+  const handleRemoveCover = async () => {
+    if (!currentUser || !coverPhoto) return;
+
+    setIsUpdatingCover(true);
+    try {
+      try {
+        const urlParts = coverPhoto.split('/o/');
+        if (urlParts.length > 1) {
+          const pathPart = urlParts[1].split('?')[0];
+          const decodedPath = decodeURIComponent(pathPart);
+          const coverRef = ref(storage, decodedPath);
+          await deleteObject(coverRef);
+        }
+      } catch (e) {
+        console.warn('Could not delete cover photo from storage', e);
+      }
+
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      const currentData = userDoc.exists() ? userDoc.data() : {};
+      const currentPagePreferences = currentData.pagePreferences || {};
+      const currentDashboardPrefs = currentPagePreferences.dashboard || {};
+
+      await updateDoc(userRef, {
+        pagePreferences: {
+          ...currentPagePreferences,
+          dashboard: {
+            ...currentDashboardPrefs,
+            coverPhoto: null
+          }
+        }
+      });
+
+      setCoverPhoto(null);
+      setIsCoverDark(null);
+      notify.success('Cover removed');
+    } catch (error) {
+      console.error('Error removing cover:', error);
+      notify.error('Failed to remove cover');
+    } finally {
+      setIsUpdatingCover(false);
+    }
+  };
+
+  // Prepare campaign summaries for the list
+  const campaignSummaries = useMemo(() => {
+    return campaigns.map(c => ({
+      id: c.id,
+      name: c.name || `Campaign ${campaigns.indexOf(c) + 1}`,
+      contactsFound: c.stats?.contactsFound || 0,
+      emailsSent: c.stats?.emailsSent || 0,
+      opened: c.stats?.opened || 0,
+      replied: c.stats?.replied || 0,
+    }));
+  }, [campaigns]);
+
+  // Sparkline data for credits
+  const creditsSparkline = useMemo(() => {
+    return stats.creditsHistory.map(h => ({ value: h.value }));
+  }, [stats.creditsHistory]);
 
   if (isLoading) {
     return (
       <AuthLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(var(--primary))]"></div>
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-8 h-8 border-2 border-jobzai-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+          </div>
         </div>
       </AuthLayout>
     );
   }
 
-  // Format data for the pie chart
-  const applicationStatusData = [
-    { name: 'Pending', value: stats.pendingApplications },
-    { name: 'Successful', value: stats.successfulApplications },
-    { name: 'Rejected', value: stats.rejectedApplications },
-  ];
-
-  const COLORS = ['#8B5CF6', '#10B981', '#EF4444'];
-
   return (
     <AuthLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section */}
-        <div className="mb-8">
-          <PageHeader 
-            title="Dashboard"
-            subtitle="Track your job applications and progress"
-          />
-          <div className="flex justify-center mt-6">
-            <button
-              onClick={refreshDashboard}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl 
-                bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700
-                border border-gray-200 dark:border-gray-700
-                transition-all duration-200 shadow-sm"
-            >
-              <RefreshCw className={`h-4 w-4 text-gray-600 dark:text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Refresh
-              </span>
-            </button>
+      <div className="flex flex-col h-full overflow-y-auto">
+        {/* Cover Photo Section with all header elements */}
+        <div 
+          className="relative group/cover flex-shrink-0"
+          onMouseEnter={() => setIsHoveringCover(true)}
+          onMouseLeave={() => setIsHoveringCover(false)}
+        >
+          {/* Cover Photo Area */}
+          <div className={`relative w-full transition-all duration-300 ease-in-out ${coverPhoto ? 'h-auto min-h-[200px] sm:min-h-[220px]' : 'h-auto min-h-[150px] sm:min-h-[170px]'}`}>
+            {/* Cover Background */}
+            {coverPhoto ? (
+              <div className="absolute inset-0 w-full h-full overflow-hidden">
+                <img 
+                  key={coverPhoto}
+                  src={coverPhoto} 
+                  alt="Dashboard cover" 
+                  className="w-full h-full object-cover animate-in fade-in duration-500"
+                />
+                <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
+              </div>
+            ) : (
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-[#3d3c3e]/20">
+                <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
+                   style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
+                />
+                <div className="absolute top-10 right-20 w-64 h-64 bg-purple-200/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-blob" />
+                <div className="absolute bottom-10 left-20 w-64 h-64 bg-indigo-200/20 dark:bg-indigo-600/10 rounded-full blur-3xl animate-blob animation-delay-2000" />
+              </div>
+            )}
+
+            {/* Cover Controls - Visible on hover - Centered */}
+            <div className="absolute top-4 left-0 right-0 flex justify-center z-30 pointer-events-none">
+              <AnimatePresence>
+                {(isHoveringCover || !coverPhoto) && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center gap-2 pointer-events-auto"
+                  >
+                    {!coverPhoto ? (
+                      <button
+                        onClick={() => setIsCoverGalleryOpen(true)}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 
+                          bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm hover:bg-white dark:hover:bg-[#3d3c3e]
+                          border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-sm transition-all duration-200
+                          hover:shadow-md group"
+                      >
+                        <Image className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+                        <span>Add cover</span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-[#242325]/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
+                        <button
+                          onClick={() => setIsCoverGalleryOpen(true)}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
+                            hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
+                        >
+                          <Image className="w-3.5 h-3.5" />
+                          Change cover
+                        </button>
+                        
+                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
+                        
+                        <button
+                          onClick={() => coverFileInputRef.current?.click()}
+                          disabled={isUpdatingCover}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
+                            hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
+                        >
+                          {isUpdatingCover ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Camera className="w-3.5 h-3.5" />
+                          )}
+                          Upload
+                        </button>
+                        
+                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
+                        
+                        <button
+                          onClick={handleRemoveCover}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 
+                            hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
+                          title="Remove cover"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Header Content - Positioned on cover */}
+            <div className="relative z-10 px-4 sm:px-6 pt-4 pb-4 flex flex-col gap-3">
+              {/* Title */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="flex items-center justify-between"
+              >
+                <div>
+                  <h1 className={`text-2xl font-bold ${coverPhoto 
+                    ? 'text-white drop-shadow-2xl'
+                    : 'text-gray-900 dark:text-white'
+                  }`}>Dashboard</h1>
+                  <p className={`text-sm mt-0.5 ${coverPhoto 
+                    ? 'text-white/90 drop-shadow-lg'
+                    : 'text-gray-500 dark:text-gray-400'
+                  }`}>
+            Track your job search progress and campaign performance
+          </p>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={coverFileInputRef}
+              className="hidden"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleCoverFileSelect}
+            />
           </div>
         </div>
 
+        {/* Main Content */}
+        <div className="w-full px-4 sm:px-6 lg:px-8">
+          {/* Filters and Tabs Container */}
+          <div className="pt-6 pb-4">
+        {/* Filters Bar */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="mb-6"
+            >
+          <DashboardFilters
+            periodFilter={periodFilter}
+            onPeriodChange={setPeriodFilter}
+            boardFilter={boardFilter}
+            onBoardChange={setBoardFilter}
+            boards={boards}
+            onRefresh={refresh}
+            isRefreshing={isRefreshing}
+            lastRefresh={lastRefresh}
+          />
+            </motion.div>
+
         {/* Tab Navigation */}
-        <div className="mb-8 overflow-x-auto">
-          <div className="flex space-x-2 min-w-max">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="border-b border-border"
+            >
+          <div className="flex gap-1 -mb-px">
             <TabButton 
               active={activeTab === 'overview'} 
               onClick={() => setActiveTab('overview')} 
@@ -800,1056 +548,405 @@ export default function DashboardPage() {
               label="Overview" 
             />
             <TabButton 
-              active={activeTab === 'templates'} 
-              onClick={() => setActiveTab('templates')} 
-              icon={FileText} 
-              label="Email Templates" 
-            />
-            <TabButton 
               active={activeTab === 'applications'} 
               onClick={() => setActiveTab('applications')} 
               icon={Briefcase} 
               label="Job Applications" 
+              count={stats.totalApplications}
+            />
+            <TabButton 
+              active={activeTab === 'campaigns'} 
+              onClick={() => setActiveTab('campaigns')} 
+              icon={Zap} 
+              label="Campaigns"
+              count={stats.totalCampaigns}
             />
           </div>
+            </motion.div>
         </div>
 
-        <AnimatePresence mode="wait">
+          {/* Tab Content */}
+          <div className="pt-6 pb-6">
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
           >
+            {/* ================== OVERVIEW TAB ================== */}
             {activeTab === 'overview' && (
-              <>
-                {/* Quick Stats - Apple Style */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0 }}
-                  >
-                    <StatCard 
-                      title="Total Applications" 
-                      value={stats.totalApplications} 
-                      icon={Briefcase} 
-                      iconColor="text-purple-600 dark:text-purple-400" 
-                      iconBg="bg-purple-100 dark:bg-purple-900/30" 
-                    />
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 }}
-                  >
-                    <StatCard 
-                      title="Pending" 
-                      value={stats.pendingApplications} 
-                      icon={Clock} 
-                      iconColor="text-blue-600 dark:text-blue-400" 
-                      iconBg="bg-blue-100 dark:bg-blue-900/30" 
-                    />
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.2 }}
-                  >
-                    <StatCard 
-                      title="Interviews Scheduled" 
-                      value={stats.interviewScheduled} 
-                      icon={Calendar} 
-                      iconColor="text-indigo-600 dark:text-indigo-400" 
-                      iconBg="bg-indigo-100 dark:bg-indigo-900/30" 
-                    />
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.3 }}
-                  >
-                    <StatCard 
-                      title="Success Rate" 
-                      value={`${stats.successRate.toFixed(1)}%`} 
-                      icon={TrendingUp} 
-                      iconColor="text-green-600 dark:text-green-400" 
-                      iconBg="bg-green-100 dark:bg-green-900/30" 
-                    />
-                  </motion.div>
+              <div className="space-y-6">
+                {/* Hero KPIs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <KPICard
+                    title="Credits"
+                    value={stats.credits}
+                    icon={<CreditCard className="w-5 h-5 text-jobzai-600 dark:text-jobzai-400" />}
+                    sparklineData={creditsSparkline}
+                    sparklineColor="#635BFF"
+                  />
+                  <KPICard
+                    title="Active Applications"
+                    value={stats.activeApplications}
+                    trend={stats.applicationsTrend}
+                    icon={<Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
+                    iconColor="bg-blue-100 dark:bg-blue-500/20"
+                  />
+                  <KPICard
+                    title="Outreach Contacts"
+                    value={stats.totalContacts}
+                    trend={stats.contactsTrend}
+                    icon={<Users className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
+                    iconColor="bg-amber-100 dark:bg-amber-900/30"
+                  />
+                  <KPICard
+                    title="Upcoming Interviews"
+                    value={stats.upcomingInterviews.length}
+                    subtitle={stats.upcomingInterviews.length > 0 
+                      ? `Next: ${stats.upcomingInterviews[0]?.companyName}` 
+                      : undefined
+                    }
+                    icon={<Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />}
+                    iconColor="bg-green-100 dark:bg-green-900/30"
+                  />
                 </div>
 
-                {/* Main Dashboard Content */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                  {/* Left Column - Credits and Activity */}
-                  <div className="col-span-1">
-                    {/* Credit Card */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 mb-6">
-                      <div className="flex justify-between items-center mb-6">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                            <CreditCard className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                {/* Dual Pipeline */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <JobsPipelineFunnel data={stats.applicationsPipeline} />
+                  <CampaignsPipelineFunnel data={stats.campaignsPipeline} />
                           </div>
-                          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Available Credits</h3>
-                        </div>
-                        <span ref={creditElementRef} className="text-2xl font-semibold text-gray-900 dark:text-white">
-                          {stats.credits}
-                        </span>
-                      </div>
-                      <div className="h-[150px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={balanceData}>
-                            <XAxis 
-                              dataKey="date" 
-                              tick={{ fontSize: 10 }} 
-                              angle={-45}
-                              textAnchor="end"
-                              height={60}
-                            />
-                            <YAxis />
-                            <Tooltip 
-                              content={({ active, payload }) => {
-                                if (active && payload && payload.length) {
-                                  const data = payload[0].payload;
-                                  const change = data.change || 0;
-                                  const reason = data.reason || 'unknown';
-                                  
-                                  // Translate reason to English
-                                  const reasonLabels: Record<string, string> = {
-                                    'campaign': 'Campaign',
-                                    'plan_selection': 'Plan Selection',
-                                    'subscription': 'Subscription',
-                                    'subscription_payment': 'Subscription Payment',
-                                    'subscription_renewal': 'Subscription Renewal',
-                                    'credit_purchase': 'Credit Purchase',
-                                    'purchase': 'Purchase',
-                                    'refund': 'Refund',
-                                    'initial': 'Initial Balance',
-                                    'unknown': 'Unknown'
-                                  };
-                                  
-                                  return (
-                                    <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-                                      <p className="font-medium text-gray-900 dark:text-white mb-1">
-                                        {data.value} credits
-                                      </p>
-                                      {change !== 0 && (
-                                        <p className={`text-sm ${change > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                          {change > 0 ? '+' : ''}{change} credits
-                                        </p>
-                                      )}
-                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        {reasonLabels[reason] || reason}
-                                      </p>
-                                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                        {(() => {
-                                          const date = new Date(data.dateISO || data.date);
-                                          const monthNames = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
-                                          const day = date.getDate();
-                                          const month = monthNames[date.getMonth()];
-                                          const year = date.getFullYear();
-                                          const hours = date.getHours().toString().padStart(2, '0');
-                                          const minutes = date.getMinutes().toString().padStart(2, '0');
-                                          return `${day} ${month} ${year}, ${hours}:${minutes}`;
-                                        })()}
-                                      </p>
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              }}
-                            />
-                            <Line 
-                              type="monotone" 
-                              dataKey="value" 
-                              stroke="#8B5CF6" 
-                              strokeWidth={2}
-                              dot={{ fill: '#8B5CF6', r: 3 }}
-                              activeDot={{ fill: '#8B5CF6', r: 5, strokeWidth: 2 }}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
 
-                    {/* Upcoming Interviews */}
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm">
-                      <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Upcoming Interviews</h3>
-                        {upcomingInterviews.length > 0 && (
-                          <Link
-                            to="/upcoming-interviews"
-                            className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 font-medium flex items-center gap-1"
-                          >
-                            View all <ChevronRight className="h-4 w-4" />
-                          </Link>
-                        )}
-                      </div>
-                      <div className="space-y-3">
-                        {upcomingInterviews.length > 0 ? (
-                          upcomingInterviews.slice(0, 3).map((item, index) => {
-                            const interviewDate = new Date(`${item.interview.date}T${item.interview.time || '00:00'}`);
-                            const isToday = interviewDate.toDateString() === new Date().toDateString();
-                            const isTomorrow = interviewDate.toDateString() === new Date(Date.now() + 86400000).toDateString();
-                            
-                            return (
-                              <motion.div
-                                key={item.interview.id || index}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.2, delay: index * 0.1 }}
-                                className="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700/50 hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-200"
-                              >
-                                <div className="flex items-start justify-between mb-2">
-                                  <div className="flex-1">
-                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-                                      {item.application.position}
-                                    </h4>
-                                    <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                                      <Building2 className="h-3 w-3" />
-                                      {item.application.companyName}
-                                    </p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-xs font-medium text-gray-900 dark:text-white">
-                                      {interviewDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                    </p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                      {isToday ? 'Today' : isTomorrow ? 'Tomorrow' : interviewDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                    </p>
-                                  </div>
-                                </div>
-                                {item.interview.type && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-                                    {item.interview.type}
-                                  </span>
-                                )}
-                              </motion.div>
-                            );
-                          })
-                        ) : (
-                          <div className="text-center py-8">
-                            <Calendar className="h-8 w-8 text-gray-400 mx-auto mb-3" />
-                            <p className="text-sm text-gray-500 dark:text-gray-400">No upcoming interviews</p>
+                {/* Actions & Activity */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Upcoming Interviews */}
+                  <InterviewList 
+                    interviews={stats.upcomingInterviews} 
+                    maxItems={3}
+                  />
+                  
+                  {/* Quick Actions */}
+                  <div className="bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-5">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-4">Quick Actions</h3>
+                    <div className="space-y-2">
                             <Link
                               to="/applications"
-                              className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 font-medium mt-2 inline-block"
+                        className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors group"
                             >
-                              Schedule one
-                            </Link>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-500/20">
+                            <Briefcase className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           </div>
-                        )}
+                          <span className="text-sm font-medium text-foreground">Track Application</span>
                       </div>
-                    </div>
-
-                    {/* Recent Activity */}
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm mt-6">
-                      <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
-                        {stats.activityGrowth > 0 && (
-                          <div className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full text-xs font-medium">
-                            +{stats.activityGrowth.toFixed(0)}% this week
-                          </div>
-                        )}
-                      </div>
-                      <div className="space-y-3">
-                        {(() => {
-                          const activities: Array<{icon: any; title: string; description: string; time: string; iconColor: string; iconBg: string}> = [];
-                          
-                          // Add recent applications
-                          recentApplications.slice(0, 2).forEach(app => {
-                            activities.push({
-                              icon: Briefcase,
-                              title: `Applied to ${app.companyName}`,
-                              description: app.position,
-                              time: new Date(app.appliedDate).toLocaleDateString(),
-                              iconColor: "text-purple-600 dark:text-purple-400",
-                              iconBg: "bg-purple-100 dark:bg-purple-900/30"
-                            });
-                          });
-                          
-                          // Add recent templates
-                          recentTemplates.slice(0, 1).forEach(template => {
-                            if (template.createdAt) {
-                              activities.push({
-                                icon: FileText,
-                                title: `Created template "${template.name}"`,
-                                description: template.subject,
-                                time: new Date(template.createdAt.toDate()).toLocaleDateString(),
-                                iconColor: "text-blue-600 dark:text-blue-400",
-                                iconBg: "bg-blue-100 dark:bg-blue-900/30"
-                              });
-                            }
-                          });
-                          
-                          return activities.length > 0 ? (
-                            activities.map((activity, index) => (
-                              <ActivityItem key={index} {...activity} />
-                            ))
-                          ) : (
-                            <div className="text-center py-6">
-                              <Inbox className="h-6 w-6 text-gray-400 mx-auto mb-2" />
-                              <p className="text-sm text-gray-500 dark:text-gray-400">No recent activity</p>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Middle and Right Columns */}
-                  <div className="col-span-1 lg:col-span-2">
-                    {/* Applications Overview */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 mb-6">
-                      <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-white">Applications Overview</h3>
-                        <Link
-                          to="/applications"
-                          className="text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
-                        >
-                          View all <ChevronRight className="h-4 w-4" />
-                        </Link>
-                      </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      </Link>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Application Stats */}
-                        <div className="flex flex-col gap-4">
-                          <div className="flex justify-between p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
-                            <div>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">Total Applications</p>
-                              <p className="text-xl font-semibold text-gray-900 dark:text-white">{stats.totalApplications}</p>
+                        <Link
+                        to="/campaigns"
+                        className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors group"
+                        >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-jobzai-100 dark:bg-jobzai-500/20">
+                            <Zap className="w-4 h-4 text-jobzai-600 dark:text-jobzai-400" />
+                      </div>
+                          <span className="text-sm font-medium text-foreground">New Campaign</span>
                             </div>
-                            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg h-fit">
-                              <Briefcase className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                            </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      </Link>
+                      
+                      <Link
+                        to="/cv-optimizer"
+                        className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                            <Target className="w-4 h-4 text-green-600 dark:text-green-400" />
                           </div>
-                          
-                          <div className="flex justify-between p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
-                            <div>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">Pending</p>
-                              <p className="text-xl font-semibold text-gray-900 dark:text-white">{stats.pendingApplications}</p>
+                          <span className="text-sm font-medium text-foreground">Optimize CV</span>
                             </div>
-                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg h-fit">
-                              <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                            </div>
-                          </div>
-                          
-                          <div className="flex justify-between p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
-                            <div>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">Successful</p>
-                              <p className="text-xl font-semibold text-gray-900 dark:text-white">{stats.successfulApplications}</p>
-                            </div>
-                            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg h-fit">
-                              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Application Pie Chart */}
-                        <div className="flex flex-col items-center justify-center w-full">
-                          <div className="h-[260px] w-[260px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <RechartsPieChart>
-                                <Pie
-                                  data={applicationStatusData}
-                                  cx="50%"
-                                  cy="50%"
-                                  innerRadius={80}
-                                  outerRadius={120}
-                                  paddingAngle={5}
-                                  dataKey="value"
-                                  label={false}
-                                >
-                                  {applicationStatusData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                  ))}
-                                </Pie>
-                                <Tooltip />
-                              </RechartsPieChart>
-                            </ResponsiveContainer>
-                          </div>
-                          {/* Légende centrée sous le graphique */}
-                          <div className="flex justify-center gap-6 mt-4">
-                            <div className="flex items-center gap-2">
-                              <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[0] }}></span>
-                              <span className="text-xs font-medium">Pending</span>
-                              <span className="text-xs text-gray-500 ml-1">({stats.pendingApplications})</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[1] }}></span>
-                              <span className="text-xs font-medium">Successful</span>
-                              <span className="text-xs text-gray-500 ml-1">({stats.successfulApplications})</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[2] }}></span>
-                              <span className="text-xs font-medium">Rejected</span>
-                              <span className="text-xs text-gray-500 ml-1">({stats.rejectedApplications})</span>
-                            </div>
-                          </div>
-                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      </Link>
                       </div>
                     </div>
 
-                    {/* Application Funnel */}
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-sm">
-                      <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Application Funnel</h3>
-                        <Link
-                          to="/applications"
-                          className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 font-medium flex items-center gap-1"
-                        >
-                          View details <ChevronRight className="h-4 w-4" />
-                        </Link>
-                      </div>
-                      <div className="h-[280px]">
-                        {funnelData.length > 0 ? (
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart 
-                              data={funnelData}
-                              layout="vertical"
-                              margin={{ top: 20, right: 30, left: 80, bottom: 20 }}
-                            >
-                              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-                              <XAxis type="number" axisLine={false} tickLine={false} />
-                              <YAxis 
-                                dataKey="name" 
-                                type="category" 
-                                axisLine={false} 
-                                tickLine={false}
-                                tick={{ fontSize: 12, fill: '#6B7280' }}
-                              />
-                              <Tooltip 
-                                content={({ active, payload }) => {
-                                  if (active && payload && payload.length) {
-                                    const data = payload[0].payload;
-                                    return (
-                                      <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-                                        <p className="font-semibold text-gray-900 dark:text-white mb-1">{data.name}</p>
-                                        <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{data.value}</p>
-                                      </div>
-                                    );
-                                  }
-                                  return null;
-                                }}
-                              />
-                              <Bar 
-                                dataKey="value" 
-                                radius={[0, 8, 8, 0]}
-                                fill={(entry: any) => entry.fill}
-                              >
-                                {funnelData.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={entry.fill} />
-                                ))}
-                                <LabelList 
-                                  dataKey="value" 
-                                  position="right" 
-                                  style={{ fill: '#6B7280', fontSize: 12, fontWeight: 600 }}
-                                />
-                              </Bar>
-                            </BarChart>
-                          </ResponsiveContainer>
-                        ) : (
-                          <div className="flex items-center justify-center h-full">
-                            <div className="text-center">
-                              <Target className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                              <p className="text-sm text-gray-500 dark:text-gray-400">No application data yet</p>
-                              <Link
-                                to="/applications"
-                                className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 font-medium mt-2 inline-block"
-                              >
-                                Start tracking
-                              </Link>
+                  {/* Recent Activity */}
+                  <ActivityFeed 
+                    activities={stats.recentActivity} 
+                    maxItems={5}
+                  />
                             </div>
                           </div>
                         )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
-              </>
-            )}
-
-            
-            {activeTab === 'templates' && (
+            {/* ================== JOB APPLICATIONS TAB ================== */}
+            {activeTab === 'applications' && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                  <StatCard 
-                    title="Total Templates" 
-                    value={stats.totalTemplates} 
-                    icon={FileText} 
-                    iconColor="text-blue-600 dark:text-blue-400" 
-                    iconBg="bg-blue-100 dark:bg-blue-900/30" 
+                {/* KPIs Row */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                  <MetricCard
+                    label="Total Applications"
+                    value={stats.totalApplications}
+                    trend={stats.applicationsTrend}
                   />
-                  <StatCard 
-                    title="Created This Month" 
-                    value={stats.templatesCreatedThisMonth} 
-                    icon={PlusCircle} 
-                    iconColor="text-green-600 dark:text-green-400" 
-                    iconBg="bg-green-100 dark:bg-green-900/30" 
+                  <MetricCard
+                    label="Response Rate"
+                    value={`${stats.responseRate.toFixed(1)}%`}
+                    trend={stats.responseRateTrend}
                   />
-                  <StatCard 
-                    title="AI Generated" 
-                    value={templates.filter(t => t.aiGenerated).length} 
-                    icon={Zap} 
-                    iconColor="text-amber-600 dark:text-amber-400" 
-                    iconBg="bg-amber-100 dark:bg-amber-900/30" 
+                  <MetricCard
+                    label="Interview Rate"
+                    value={`${stats.interviewRate.toFixed(1)}%`}
+                    trend={stats.interviewRateTrend}
                   />
-                  <StatCard 
-                    title="Favorited Templates" 
-                    value={templates.filter(t => t.liked).length} 
-                    icon={Flame} 
-                    iconColor="text-red-600 dark:text-red-400" 
-                    iconBg="bg-red-100 dark:bg-red-900/30" 
+                  <MetricCard
+                    label="Offer Rate"
+                    value={`${stats.offerRate.toFixed(1)}%`}
+                  />
+                  <MetricCard
+                    label="Avg. Days to Interview"
+                    value={stats.avgDaysToInterview}
+                    suffix="days"
                   />
                 </div>
 
-                {/* Template Insights */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 mb-8">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">Template Insights</h3>
-                    <Link
-                      to="/email-templates/new"
-                      className="flex items-center gap-2 px-3 py-1.5 
-                        bg-purple-100 text-purple-700 hover:bg-purple-200
-                        dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50
-                        rounded-full text-xs font-medium transition-colors duration-200"
-                    >
-                      <PlusCircle className="h-3.5 w-3.5" />
-                      <span>New Template</span>
-                    </Link>
-                  </div>
+                {/* Pipeline */}
+                <JobsPipelineFunnel data={stats.applicationsPipeline} />
+
+                {/* Interviews & Insights */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <InterviewList 
+                    interviews={stats.upcomingInterviews} 
+                    maxItems={5}
+                  />
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Most Used Templates Chart */}
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Template Usage Distribution</h4>
-                      <div className="h-[200px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart
-                            data={[
-                              { name: 'Favorited', value: templates.filter(t => t.liked).length },
-                              { name: 'Standard', value: templates.filter(t => !t.liked && !t.aiGenerated).length },
-                              { name: 'AI Generated', value: templates.filter(t => t.aiGenerated).length }
-                            ]}
-                            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                          >
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="value" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                    
-                    {/* Template Tags */}
-                    <div className="flex flex-col justify-center">
-                      <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4 mb-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Most Used Template</p>
-                        </div>
-                        <div className="flex items-center gap-3 mt-2">
-                          <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                            <FileText className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{stats.mostUsedTemplateName}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Most recently used
-                            </p>
-                          </div>
-                        </div>
+                  <DonutChart
+                    title="Location Distribution"
+                    data={stats.locationDistribution.map(l => ({
+                      name: l.type,
+                      value: l.count,
+                    }))}
+                  />
                       </div>
                       
-                      <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Popular Template Tags</p>
+                {/* Industry & Tech Insights */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <HorizontalBarChart
+                    title="Top Industries"
+                    data={stats.topIndustries.map(i => ({
+                      name: i.industry,
+                      value: i.count,
+                      rate: i.successRate,
+                    }))}
+                    showRate
+                    valueLabel=""
+                  />
+                  
+                  <HorizontalBarChart
+                    title="Top Technologies"
+                    data={stats.topTechnologies.map(t => ({
+                      name: t.tech,
+                      value: t.count,
+                      rate: t.successRate,
+                    }))}
+                    showRate
+                    valueLabel=""
+                    maxItems={8}
+                  />
                         </div>
                         
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {/* Extract and count tags from all templates */}
-                          {(() => {
-                            const tagCount: Record<string, number> = {};
-                            templates.forEach(template => {
-                              if (template.tags) {
-                                template.tags.forEach(tag => {
-                                  tagCount[tag] = (tagCount[tag] || 0) + 1;
-                                });
-                              }
-                            });
-                            
-                            // Convert to array and sort by count
-                            const sortedTags = Object.entries(tagCount)
-                              .sort((a, b) => b[1] - a[1])
-                              .slice(0, 10);
-                              
-                            return sortedTags.length > 0 ? (
-                              sortedTags.map(([tag, count]) => (
-                                <span 
-                                  key={tag}
-                                  className="inline-flex items-center px-2.5 py-1 rounded-full text-xs
-                                    bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
-                                >
-                                  {tag} <span className="ml-1 text-purple-600 dark:text-purple-300">({count})</span>
-                                </span>
-                              ))
-                            ) : (
-                              <p className="text-sm text-gray-500 dark:text-gray-400">No tags available</p>
-                            );
-                          })()}
+                {/* Company Size Distribution */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <HorizontalBarChart
+                    title="Company Size"
+                    data={stats.companySizeDistribution.map(s => ({
+                      name: s.size,
+                      value: s.count,
+                      rate: s.successRate,
+                    }))}
+                    showRate
+                    valueLabel=""
+                  />
+                  
+                  {/* Placeholder for additional insights */}
+                  <div className="bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-5">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-4">Success Insights</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                          <Award className="w-4 h-4 text-green-600 dark:text-green-400" />
                         </div>
-                      </div>
-                    </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            {stats.offerCount} Offers Received
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {stats.offerRate.toFixed(1)}% success rate
+                          </p>
                   </div>
                 </div>
                 
-                {/* Recent Templates */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">Recent Templates</h3>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-jobzai-100 dark:bg-jobzai-500/20">
+                          <Calendar className="w-4 h-4 text-jobzai-600 dark:text-jobzai-400" />
                   </div>
-                  
-                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {templates.length > 0 ? (
-                      recentTemplates
-                        .slice(0, 5)
-                        .map(template => (
-                          <div key={template.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="text-base font-medium text-gray-900 dark:text-white">
-                                    {template.name}
-                                  </h4>
-                                  {template.aiGenerated && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
-                                      <Zap className="h-3 w-3 mr-1" />
-                                      AI
-                                    </span>
-                                  )}
-                                  {template.liked && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                                      <Flame className="h-3 w-3 mr-1" />
-                                      Favorite
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{template.subject}</p>
-                                <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
-                                  {template.content.slice(0, 120)}...
-                                </p>
-                                
-                                {template.tags && template.tags.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 mt-3">
-                                    {template.tags.map(tag => (
-                                      <span 
-                                        key={tag}
-                                        className="inline-flex items-center px-2 py-0.5 rounded text-xs
-                                          bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-                                      >
-                                        {tag}
-                                      </span>
-                                    ))}
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            {stats.interviewCount} Interviews
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Avg. {stats.avgDaysToInterview} days from application
+                          </p>
                                   </div>
-                                )}
                               </div>
                               
-                              <div className="flex flex-col space-y-2">
-                                <Link
-                                  to={`/templates/${template.id}/edit`}
-                                  className="inline-flex items-center justify-center p-2 rounded-lg
-                                    text-gray-400 hover:text-gray-500 hover:bg-gray-100
-                                    dark:text-gray-500 dark:hover:text-gray-400 dark:hover:bg-gray-700"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Link>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-500/20">
+                          <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                               </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            {stats.responseRate.toFixed(0)}% Response Rate
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {stats.totalApplications - stats.applicationsByStatus.applied - stats.applicationsByStatus.wishlist} responses
+                          </p>
                             </div>
                           </div>
-                        ))
-                    ) : (
-                      <div className="text-center py-12">
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
-                          <FileText className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                         </div>
-                        <h3 className="text-base font-medium text-gray-900 dark:text-white mb-2">
-                          No templates yet
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                          Create your first email template
-                        </p>
-                        <Link 
-                          to="/templates/new" 
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
-                        >
-                          <PlusCircle className="h-4 w-4" />
-                          <span>Create Template</span>
-                        </Link>
                       </div>
-                    )}
                   </div>
                   
-                  {templates.length > 5 && (
-                    <div className="p-4 border-t border-gray-200 dark:border-gray-700 text-center">
-                      <Link
-                        to="/templates"
-                        className="text-sm text-purple-600 hover:text-purple-700 
-                          dark:text-purple-400 dark:hover:text-purple-300 font-medium"
-                      >
-                        View all {templates.length} templates
-                      </Link>
-                    </div>
-                  )}
-                </div>
+                {/* Recent Applications Table */}
+                <ApplicationsTable 
+                  applications={stats.recentApplications}
+                  maxItems={10}
+                />
               </div>
             )}
             
-            {activeTab === 'applications' && (
+            {/* ================== CAMPAIGNS TAB ================== */}
+            {activeTab === 'campaigns' && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                  <StatCard 
-                    title="Total Applications" 
-                    value={stats.totalApplications} 
-                    icon={Briefcase} 
-                    iconColor="text-purple-600 dark:text-purple-400" 
-                    iconBg="bg-purple-100 dark:bg-purple-900/30" 
+                {/* KPIs Row */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                  <MetricCard
+                    label="Total Contacts"
+                    value={stats.totalContacts}
+                    trend={stats.contactsTrend}
                   />
-                  <StatCard 
-                    title="Pending" 
-                    value={stats.pendingApplications} 
-                    icon={Clock} 
-                    iconColor="text-blue-600 dark:text-blue-400" 
-                    iconBg="bg-blue-100 dark:bg-blue-900/30" 
+                  <MetricCard
+                    label="Emails Sent"
+                    value={stats.emailsSent}
                   />
-                  <StatCard 
-                    title="Successful" 
-                    value={stats.successfulApplications} 
-                    icon={CheckCircle} 
-                    iconColor="text-green-600 dark:text-green-400" 
-                    iconBg="bg-green-100 dark:bg-green-900/30" 
+                  <MetricCard
+                    label="Open Rate"
+                    value={`${stats.openRate.toFixed(1)}%`}
                   />
-                  <StatCard 
-                    title="Rejected" 
-                    value={stats.rejectedApplications} 
-                    icon={AlertCircle} 
-                    iconColor="text-red-600 dark:text-red-400" 
-                    iconBg="bg-red-100 dark:bg-red-900/30" 
+                  <MetricCard
+                    label="Reply Rate"
+                    value={`${stats.replyRate.toFixed(1)}%`}
+                    trend={stats.replyRateTrend}
+                  />
+                  <MetricCard
+                    label="Replies"
+                    value={stats.emailsReplied}
                   />
                 </div>
 
-                {/* Application Analytics */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                  {/* Application Status Distribution */}
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center">
-                    <div className="flex flex-col items-center justify-center w-full">
-                      <div className="h-[260px] w-[260px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <RechartsPieChart>
-                            <Pie
-                              data={applicationStatusData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={80}
-                              outerRadius={120}
-                              paddingAngle={5}
-                              dataKey="value"
-                              label={false}
-                            >
-                              {applicationStatusData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip />
-                          </RechartsPieChart>
-                        </ResponsiveContainer>
-                      </div>
-                      {/* Légende centrée sous le graphique */}
-                      <div className="flex justify-center gap-6 mt-4">
-                        <div className="flex items-center gap-2">
-                          <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[0] }}></span>
-                          <span className="text-xs font-medium">Pending</span>
-                          <span className="text-xs text-gray-500 ml-1">({stats.pendingApplications})</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[1] }}></span>
-                          <span className="text-xs font-medium">Successful</span>
-                          <span className="text-xs text-gray-500 ml-1">({stats.successfulApplications})</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[2] }}></span>
-                          <span className="text-xs font-medium">Rejected</span>
-                          <span className="text-xs text-gray-500 ml-1">({stats.rejectedApplications})</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                {/* Pipeline */}
+                <CampaignsPipelineFunnel data={stats.campaignsPipeline} />
+
+                {/* Campaigns List & Recent Replies */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <CampaignsList 
+                    campaigns={campaignSummaries}
+                    maxItems={5}
+                  />
                   
-                  {/* Application Timeline */}
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-white">Application Timeline</h3>
-                      <Link
-                        to="/applications"
-                        className="flex items-center gap-2 px-3 py-1.5 
-                          bg-purple-100 text-purple-700 hover:bg-purple-200
-                          dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50
-                          rounded-full text-xs font-medium transition-colors duration-200"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          window.location.href = '/applications?action=new';
-                        }}
-                      >
-                        <PlusCircle className="h-3.5 w-3.5" />
-                        <span>Track New</span>
-                      </Link>
+                  <RecentReplies 
+                    replies={stats.recentReplies}
+                    maxItems={5}
+                  />
                     </div>
                     
-                    <div className="space-y-4">
-                      {applications.length > 0 ? (
-                        recentApplications
-                          .slice(0, 4)
-                          .map((application, index) => {
-                            const getStatusColor = (status: string) => {
-                              switch (status) {
-                                case 'applied': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-                                case 'interview': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
-                                case 'offer': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-                                case 'rejected': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-                                default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
-                              }
-                            };
-                            
-                            const getStatusIcon = (status: string) => {
-                              switch (status) {
-                                case 'applied': return <Send className="h-4 w-4" />;
-                                case 'interview': return <Calendar className="h-4 w-4" />;
-                                case 'offer': return <CheckCircle className="h-4 w-4" />;
-                                case 'rejected': return <AlertCircle className="h-4 w-4" />;
-                                default: return <Clock className="h-4 w-4" />;
-                              }
-                            };
-                            
-                            return (
-                              <div key={application.id} className="flex">
-                                <div className="mr-4 flex flex-col items-center">
-                                  <div className={`p-2 rounded-full ${getStatusColor(application.status)}`}>
-                                    {getStatusIcon(application.status)}
+                {/* Email Performance Stats */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-5">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2.5 rounded-lg bg-blue-100 dark:bg-blue-500/20">
+                        <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                   </div>
-                                  {index < Math.min(recentApplications.length, 4) - 1 && (
-                                    <div className="h-full w-0.5 bg-gray-200 dark:bg-gray-700 my-1"></div>
-                                  )}
+                      <div>
+                        <p className="text-2xl font-bold text-foreground tabular-nums">{stats.emailsSent}</p>
+                        <p className="text-xs text-muted-foreground">Emails Sent</p>
                                 </div>
-                                <div className="pb-4">
-                                  <div className="flex items-center gap-2">
-                                    <h4 className="text-base font-medium text-gray-900 dark:text-white">{application.position}</h4>
-                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(application.status)}`}>
-                                      {application.status}
-                                    </span>
                                   </div>
-                                  <p className="text-sm text-gray-600 dark:text-gray-300">{application.companyName}</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Applied on {new Date(application.appliedDate).toLocaleDateString()}
-                                  </p>
+                    <div className="h-2 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                        style={{ width: '100%' }}
+                      />
                                 </div>
                               </div>
-                            );
-                          })
-                      ) : (
-                        <div className="text-center py-6">
-                          <p className="text-sm text-gray-500 dark:text-gray-400">No applications tracked yet</p>
-                        </div>
-                      )}
-                      
-                      {applications.length > 4 && (
-                        <div className="pt-2">
-                          <Link
-                            to="/applications"
-                            className="text-sm text-purple-600 hover:text-purple-700 
-                              dark:text-purple-400 dark:hover:text-purple-300 font-medium"
-                          >
-                            View all {applications.length} applications
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Application Insights */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">Application Insights</h3>
-                  </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Success Rate Card */}
-                    <div className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4 flex flex-col items-center justify-center">
-                      <div className="w-20 h-20 mb-3">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <RadialBarChart 
-                            innerRadius="70%" 
-                            outerRadius="100%" 
-                            data={[{ name: 'Success Rate', value: stats.successfulApplications > 0 
-                              ? (stats.successfulApplications / stats.totalApplications) * 100
-                              : 0 }]} 
-                            startAngle={90} 
-                            endAngle={-270}
-                          >
-                            <RadialBar
-                              background
-                              dataKey="value"
-                              fill="#10B981"
-                            />
-                          </RadialBarChart>
-                        </ResponsiveContainer>
+                  <div className="bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-5">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2.5 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                        <MailOpen className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                      <div>
+                        <p className="text-2xl font-bold text-foreground tabular-nums">{stats.emailsOpened}</p>
+                        <p className="text-xs text-muted-foreground">Opened ({stats.openRate.toFixed(1)}%)</p>
+                    </div>
+                  </div>
+                    <div className="h-2 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                        style={{ width: `${stats.openRate}%` }}
+                      />
                       </div>
-                      <p className="text-base font-medium text-gray-900 dark:text-white">
-                        {stats.totalApplications > 0 
-                          ? ((stats.successfulApplications / stats.totalApplications) * 100).toFixed(1)
-                          : '0.0'}%
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Success Rate</p>
                     </div>
                     
-                    {/* Average Response Time */}
-                    <div className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4 flex flex-col items-center justify-center">
-                      <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-3">
-                        <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  <div className="bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-5">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2.5 rounded-lg bg-green-100 dark:bg-green-900/30">
+                        <Reply className="w-5 h-5 text-green-600 dark:text-green-400" />
                       </div>
-                      <p className="text-base font-medium text-gray-900 dark:text-white">
-                        {stats.averageResponseTime} hours
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Average Response Time</p>
+                      <div>
+                        <p className="text-2xl font-bold text-foreground tabular-nums">{stats.emailsReplied}</p>
+                        <p className="text-xs text-muted-foreground">Replied ({stats.replyRate.toFixed(1)}%)</p>
                     </div>
-                    
-                    {/* Most Active Time */}
-                    <div className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4">
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 text-center">Activity</h4>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <p className="text-xs text-gray-500 dark:text-gray-400">This Week</p>
-                          <div className="flex items-center">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white mr-2">{stats.activitiesThisWeek}</p>
-                            <div className="w-16 h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-purple-500" 
-                                style={{ width: `${Math.min(stats.activitiesThisWeek / 10 * 100, 100)}%` }}
-                              ></div>
                             </div>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Last Week</p>
-                          <div className="flex items-center">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white mr-2">{stats.activitiesLastWeek}</p>
-                            <div className="w-16 h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-blue-500" 
-                                style={{ width: `${Math.min(stats.activitiesLastWeek / 10 * 100, 100)}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Growth</p>
-                          <p className={`text-sm font-medium ${stats.activityGrowth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {stats.activityGrowth > 0 ? '+' : ''}{stats.activityGrowth.toFixed(1)}%
-                          </p>
-                        </div>
-                      </div>
+                    <div className="h-2 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-green-500 rounded-full transition-all duration-500"
+                        style={{ width: `${stats.replyRate}%` }}
+                      />
                     </div>
                   </div>
                 </div>
                 
-                {/* Recent Applications */}
-                {applications.length > 0 && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-white">Recent Applications</h3>
-                      <Link
-                        to="/applications"
-                        className="text-sm text-purple-600 hover:text-purple-700 
-                          dark:text-purple-400 dark:hover:text-purple-300 font-medium flex items-center gap-1"
-                      >
-                        View all <ChevronRight className="h-4 w-4" />
-                      </Link>
+                {/* Empty State for No Campaigns */}
+                {stats.totalCampaigns === 0 && (
+                  <div className="bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-8 text-center">
+                    <div className="w-16 h-16 rounded-full bg-jobzai-100 dark:bg-jobzai-500/20 flex items-center justify-center mx-auto mb-4">
+                      <Zap className="w-8 h-8 text-jobzai-600 dark:text-jobzai-400" />
                     </div>
-                    
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead className="bg-gray-50 dark:bg-gray-800">
-                          <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Company
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Position
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Status
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Applied Date
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                          {recentApplications
-                            .slice(0, 5)
-                            .map(application => (
-                              <tr key={application.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                    {application.companyName}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm text-gray-600 dark:text-gray-300">{application.position}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium 
-                                    ${application.status === 'applied' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' : 
-                                      application.status === 'interview' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' :
-                                      application.status === 'offer' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                                      'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}
-                                  >
-                                    {application.status}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                  {new Date(application.appliedDate).toLocaleDateString()}
-                                </td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-                
-                {applications.length === 0 && (
-                  <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
-                      <Briefcase className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                      No applications tracked yet
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      No Campaigns Yet
                     </h3>
-                    <p className="text-gray-500 dark:text-gray-400 mb-4">
-                      Start tracking your job applications
+                    <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                      Start your first outreach campaign to automatically reach out to potential employers and track your email performance.
                     </p>
                     <Link 
-                      to="/applications" 
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        window.location.href = '/applications?action=new';
-                      }}
+                      to="/campaigns"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-jobzai-600 hover:bg-jobzai-700 text-white rounded-lg text-sm font-medium transition-colors"
                     >
-                      <PlusCircle className="h-4 w-4" />
-                      <span>Track Application</span>
+                      <Zap className="w-4 h-4" />
+                      Create Campaign
                     </Link>
                   </div>
                 )}
@@ -1857,6 +954,29 @@ export default function DashboardPage() {
             )}
           </motion.div>
         </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Cover Photo Modals */}
+        <CoverPhotoCropper
+          isOpen={isCoverCropperOpen}
+          file={selectedCoverFile}
+          onClose={() => {
+            setIsCoverCropperOpen(false);
+            setSelectedCoverFile(null);
+          }}
+          onCropped={handleCroppedCover}
+          exportWidth={1584}
+          exportHeight={396}
+        />
+        
+        <CoverPhotoGallery
+          isOpen={isCoverGalleryOpen}
+          onClose={() => setIsCoverGalleryOpen(false)}
+          onDirectApply={handleDirectApplyCover}
+          onRemove={coverPhoto ? handleRemoveCover : undefined}
+          currentCover={coverPhoto || undefined}
+        />
       </div>
     </AuthLayout>
   );

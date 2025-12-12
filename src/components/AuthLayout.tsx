@@ -369,6 +369,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/resume-builder' ||
     location.pathname === '/cv-analysis' ||
     location.pathname === '/recommendations' ||
+    location.pathname === '/dashboard' ||
     (location.pathname.startsWith('/ats-analysis/') && location.pathname.endsWith('/cv-editor')) ||
     (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
     location.pathname.startsWith('/notes/');
@@ -377,7 +378,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const isBuilderMode = location.pathname.startsWith('/resume-builder') || 
     location.pathname.startsWith('/notes/');
 
-  // Check if we need full width (no max-width constraint) - includes all ats-analysis pages, cv-analysis, professional-profile, campaigns-auto, and notes
+  // Check if we need full width (no max-width constraint) - includes all ats-analysis pages, cv-analysis, professional-profile, campaigns-auto, dashboard, and notes
   const needsFullWidth = needsFullHeight || 
     location.pathname.startsWith('/ats-analysis/') ||
     location.pathname === '/cv-analysis' ||
@@ -386,10 +387,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/campaigns' ||
     location.pathname === '/campaigns-auto' ||
     location.pathname === '/recommendations' ||
+    location.pathname === '/dashboard' ||
     location.pathname.startsWith('/notes/');
 
   // Pages that should not be wrapped in a white card so they inherit the layout background
-  const isPlainBackground = location.pathname === '/recommendations' || location.pathname === '/recommendations-legacy';
+  const isPlainBackground = location.pathname === '/recommendations' || location.pathname === '/recommendations-legacy' || location.pathname === '/dashboard';
 
   // Pages that have their own full-page background (need to override AuthLayout background)
   const hasOwnBackground = location.pathname.startsWith('/ats-analysis/') && !location.pathname.endsWith('/cv-editor');

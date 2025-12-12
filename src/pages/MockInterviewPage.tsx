@@ -853,7 +853,7 @@ export default function MockInterviewPage() {
           disabled={!selectedApplication}
           className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-medium transition-all
             ${selectedApplication
-              ? 'bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white shadow-lg shadow-violet-500/25'
+              ? 'bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] text-gray-900 font-semibold shadow-sm hover:shadow-md'
               : 'bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-600 cursor-not-allowed'
             }`}
         >
@@ -1181,7 +1181,7 @@ export default function MockInterviewPage() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleBeginInterview}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-medium bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white shadow-lg shadow-violet-500/25 transition-all"
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] text-gray-900 shadow-sm hover:shadow-md transition-all"
             >
               <Play className="h-4 w-4" />
               I'm Ready, Let's Start
@@ -1584,7 +1584,7 @@ export default function MockInterviewPage() {
                   </button>
                   <button
                     onClick={handleConfirmEndInterview}
-                    className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white font-medium shadow-lg shadow-violet-500/25 transition-all"
+                    className="flex-1 px-4 py-3 rounded-xl bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] text-gray-900 font-semibold shadow-sm hover:shadow-md transition-all"
                   >
                     End & Analyze
                   </button>
@@ -1920,7 +1920,7 @@ export default function MockInterviewPage() {
                   </p>
                   <button
                     onClick={analyzeInterview}
-                    className="mt-4 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-colors"
+                    className="mt-4 px-4 py-2 rounded-lg bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] text-gray-900 text-sm font-semibold transition-colors"
                   >
                     Analyze Interview
                   </button>
