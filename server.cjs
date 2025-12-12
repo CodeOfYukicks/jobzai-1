@@ -869,7 +869,7 @@ async function callClaudeAssistant(messages, systemPrompt, apiKey, res) {
     claudeRes.on('end', () => {
       res.write('data: [DONE]\n\n');
       res.end();
-      console.log('✅ Claude Assistant response completed (streamed)');
+      console.log('✅ [ANTHROPIC] Claude Sonnet 4.5 response completed (streamed)');
       console.log(`   Response length: ${fullContent.length} chars`);
     });
 
@@ -981,7 +981,7 @@ async function callGeminiAssistant(messages, systemPrompt, apiKey, res) {
     geminiRes.on('end', () => {
       res.write('data: [DONE]\n\n');
       res.end();
-      console.log('✅ Gemini Assistant response completed (streamed)');
+      console.log('✅ [GEMINI] Gemini 3 response completed (streamed)');
       console.log(`   Response length: ${fullContent.length} chars`);
     });
 
@@ -1102,18 +1102,18 @@ app.post('/api/assistant', async (req, res) => {
     // Route to appropriate AI provider
     switch (aiProvider) {
       case 'anthropic':
-        console.log('🧠 [ANTHROPIC] Calling Claude Sonnet 4.5...');
+        console.log('🧠 [ANTHROPIC] Calling Claude Sonnet 4.5 (latest)...');
         await callClaudeAssistant(messages, systemPrompt, apiKey, res);
         return;
       
       case 'gemini':
-        console.log('⚡ [GEMINI] Calling Gemini 3...');
+        console.log('⚡ [GEMINI] Calling Gemini 3 (latest)...');
         await callGeminiAssistant(messages, systemPrompt, apiKey, res);
         return;
       
       case 'openai':
       default:
-        console.log('✨ [OPENAI] Calling GPT-5.2...');
+        console.log('✨ [OPENAI] Calling GPT-5.2 (latest)...');
         // Use https module for reliable streaming in Node.js
         const https = require('https');
         
@@ -1174,12 +1174,12 @@ app.post('/api/assistant', async (req, res) => {
             }
           });
 
-          openaiRes.on('end', () => {
-            res.write('data: [DONE]\n\n');
-            res.end();
-            console.log('✅ OpenAI Assistant response completed (streamed)');
-            console.log(`   Response length: ${fullContent.length} chars`);
-          });
+      openaiRes.on('end', () => {
+        res.write('data: [DONE]\n\n');
+        res.end();
+        console.log('✅ [OPENAI] GPT-5.2 response completed (streamed)');
+        console.log(`   Response length: ${fullContent.length} chars`);
+      });
 
           openaiRes.on('error', (err) => {
             console.error('❌ OpenAI stream error:', err);
@@ -1944,10 +1944,24 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData, selected
   const pageName = pageContext?.pageName || 'Jobz.ai';
   const pageDescription = pageContext?.pageDescription || 'AI-powered job search platform';
   const firstName = userContext?.firstName || 'there';
+  const lastName = userContext?.lastName || '';
   const currentJobTitle = userContext?.currentJobTitle || '';
+  const currentCompany = userContext?.currentCompany || '';
   const industry = userContext?.industry || '';
-  const skills = userContext?.skills?.slice(0, 10).join(', ') || '';
+  const skills = userContext?.skills || [];
+  const skillsDisplay = skills.slice(0, 15).join(', ') || '';
   const yearsOfExperience = userContext?.yearsOfExperience || '';
+  const professionalSummary = userContext?.professionalSummary || '';
+  const cvText = userContext?.cvText || '';
+  const cvTechnologies = userContext?.cvTechnologies || [];
+  const cvSkills = userContext?.cvSkills || [];
+  const workExperience = userContext?.workExperience || [];
+  const education = userContext?.education || [];
+  const languages = userContext?.languages || [];
+  const certifications = userContext?.certifications || [];
+  const targetPosition = userContext?.targetPosition || '';
+  const targetSectors = userContext?.targetSectors || [];
+  const location = userContext?.location || '';
 
   // Get page-specific expertise
   const expertise = PAGE_EXPERTISE[pageName] || DEFAULT_EXPERTISE;
@@ -1958,11 +1972,15 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData, selected
   // Format selected context items (user explicitly selected these with @)
   let selectedContextSection = '';
   if (selectedContextItems && selectedContextItems.length > 0) {
+    const jobItems = selectedContextItems.filter(item => item.type === 'job' || item.type === 'job-application');
+    const hasMultipleJobs = jobItems.length > 1;
+    
     selectedContextSection = `\n## USER-SELECTED CONTEXT (HIGHEST PRIORITY!)\nThe user has explicitly selected these items as context for this conversation using @mentions. You MUST reference and use this data in your responses:\n\n`;
     
     for (const item of selectedContextItems) {
       const typeLabels = {
         'job-application': 'Job Application',
+        'job': 'Job Listing',
         'resume': 'Resume/CV',
         'cv-analysis': 'CV Analysis',
         'interview': 'Interview',
@@ -1984,7 +2002,29 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData, selected
       selectedContextSection += '\n';
     }
     
-    selectedContextSection += `**CRITICAL**: The user specifically selected these items. ALWAYS mention and reference them in your response. Provide specific, actionable advice based on this exact data.\n\n`;
+    selectedContextSection += `**CRITICAL INSTRUCTIONS FOR ANALYZING SELECTED CONTEXT**:\n\n`;
+    selectedContextSection += `1. **DEEP ANALYSIS REQUIRED**: Don't just mention these items - analyze them thoroughly:\n`;
+    selectedContextSection += `   - Extract ALL key information: requirements, skills needed, experience level, qualifications\n`;
+    selectedContextSection += `   - Identify specific details: company names, job titles, descriptions, requirements, benefits\n`;
+    selectedContextSection += `   - Look for match scores, analysis results, or any existing evaluations\n\n`;
+    
+    if (hasMultipleJobs) {
+      selectedContextSection += `2. **COMPARISON MODE ACTIVATED**: The user has selected ${jobItems.length} jobs. You MUST:\n`;
+      selectedContextSection += `   - Compare each job systematically against the user's complete professional profile\n`;
+      selectedContextSection += `   - Identify which job has the BEST match with specific reasons\n`;
+      selectedContextSection += `   - List matching skills/technologies for each job\n`;
+      selectedContextSection += `   - Highlight gaps or missing requirements for each\n`;
+      selectedContextSection += `   - Provide a clear recommendation with justification\n`;
+      selectedContextSection += `   - Be HONEST - if a job doesn't fit well, say so with specific reasons\n\n`;
+    }
+    
+    selectedContextSection += `3. **REFERENCE SPECIFIC DATA**: Always cite exact details from the context items:\n`;
+    selectedContextSection += `   - Use exact company names, job titles, and requirements from the data\n`;
+    selectedContextSection += `   - Reference specific skills, technologies, or qualifications mentioned\n`;
+    selectedContextSection += `   - Mention any scores, dates, or metrics provided\n`;
+    selectedContextSection += `   - Never give generic advice when you have specific data available\n\n`;
+    
+    selectedContextSection += `4. **ACTIONABLE INSIGHTS**: Provide specific, actionable advice based on the exact data provided.\n\n`;
   }
 
   // Format page data if available - make it more readable
@@ -2017,16 +2057,151 @@ You are NOT a generic AI assistant. You are a specialized **${expertise.role}** 
 Your focus: **${expertise.focus}**
 Your personality: **${expertise.personality}**
 
-## USER CONTEXT
-- **Name**: ${firstName}
-${currentJobTitle ? `- **Current Role**: ${currentJobTitle}` : ''}
+## PROFESSIONAL PROFILE (COMPLETE USER CONTEXT)
+
+### Basic Information
+- **Name**: ${firstName}${lastName ? ` ${lastName}` : ''}
+${location ? `- **Location**: ${location}` : ''}
+${currentJobTitle ? `- **Current Role**: ${currentJobTitle}${currentCompany ? ` at ${currentCompany}` : ''}` : ''}
 ${industry ? `- **Industry**: ${industry}` : ''}
-${skills ? `- **Key Skills**: ${skills}` : ''}
-${yearsOfExperience ? `- **Experience**: ${yearsOfExperience} years` : ''}
+${yearsOfExperience ? `- **Years of Experience**: ${yearsOfExperience} years` : ''}
+
+### Professional Summary
+${professionalSummary ? `${professionalSummary}\n` : '*No professional summary available*'}
+
+### Core Skills & Technologies
+${skills.length > 0 ? `**Skills**: ${skillsDisplay}${skills.length > 15 ? ` (and ${skills.length - 15} more)` : ''}\n` : ''}
+${cvTechnologies.length > 0 ? `**Technologies (from CV)**: ${cvTechnologies.slice(0, 20).join(', ')}${cvTechnologies.length > 20 ? ` (and ${cvTechnologies.length - 20} more)` : ''}\n` : ''}
+${cvSkills.length > 0 ? `**CV Skills (extracted)**: ${cvSkills.slice(0, 15).join(', ')}${cvSkills.length > 15 ? ` (and ${cvSkills.length - 15} more)` : ''}\n` : ''}
+
+### Work Experience
+${workExperience.length > 0 ? workExperience.slice(0, 5).map((exp, idx) => {
+  const title = exp.title || 'Unknown Title';
+  const company = exp.company || 'Unknown Company';
+  const dates = exp.current ? `${exp.startDate || ''} - Present` : `${exp.startDate || ''} - ${exp.endDate || ''}`;
+  const desc = exp.description ? `\n  ${exp.description.substring(0, 200)}${exp.description.length > 200 ? '...' : ''}` : '';
+  return `${idx + 1}. **${title}** at ${company} (${dates})${desc}`;
+}).join('\n') : '*No work experience listed*'}
+
+### Education
+${education.length > 0 ? education.slice(0, 3).map((edu, idx) => {
+  const degree = edu.degree || 'Unknown Degree';
+  const institution = edu.institution || 'Unknown Institution';
+  const year = edu.year ? ` (${edu.year})` : '';
+  const field = edu.field ? ` - ${edu.field}` : '';
+  return `${idx + 1}. ${degree}${field} from ${institution}${year}`;
+}).join('\n') : '*No education listed*'}
+
+### Languages & Certifications
+${languages.length > 0 ? `**Languages**: ${languages.map(l => `${l.language || l}${l.proficiency ? ` (${l.proficiency})` : ''}`).join(', ')}\n` : ''}
+${certifications.length > 0 ? `**Certifications**: ${certifications.map(c => `${c.name || c}${c.issuer ? ` - ${c.issuer}` : ''}${c.date ? ` (${c.date})` : ''}`).join(', ')}\n` : ''}
+
+### Career Objectives
+${targetPosition ? `- **Target Position**: ${targetPosition}\n` : ''}
+${targetSectors.length > 0 ? `- **Target Sectors**: ${targetSectors.join(', ')}\n` : ''}
+
+### Full CV Context
+${cvText ? `**Complete CV Text Available**: ${cvText.length > 500 ? cvText.substring(0, 500) + '... (truncated, full text available for analysis)' : cvText}\n` : '*No CV text available*'}
+
+**IMPORTANT**: Use this complete professional profile to provide highly personalized and relevant advice. Reference specific skills, technologies, experience, and career objectives when making recommendations.
 
 ## CURRENT PAGE: ${pageName}
 ${pageDescription}
 ${selectedContextSection}${pageDataSection}
+## JOB MATCHING & COMPARISON (CRITICAL!)
+
+When the user asks you to compare jobs, identify which job fits best, or analyze job compatibility:
+
+### 1. PROFILE ANALYSIS FIRST
+Before analyzing any jobs, thoroughly review the user's complete professional profile:
+- **Skills & Technologies**: Note ALL skills, technologies, and CV-extracted competencies
+- **Experience Level**: Consider years of experience, seniority level, and industry background
+- **Career Trajectory**: Review work history to understand career progression and focus areas
+- **Career Objectives**: Check target position and target sectors - these indicate preferences
+- **Education & Certifications**: Note qualifications that may be required or preferred
+- **Key Strengths**: Identify the user's strongest areas based on experience and skills
+
+### 2. JOB-BY-JOB ANALYSIS
+For each job provided via @mentions or in the context:
+
+**Extract ALL Requirements:**
+- Required skills and technologies (list them explicitly)
+- Experience level needed (junior/mid/senior, years required)
+- Education requirements (degree level, field, certifications)
+- Industry or domain experience needed
+- Specific qualifications or credentials
+- Soft skills or other requirements
+
+**Systematic Comparison with User Profile:**
+- **Skills Match**: Count and list matching skills/technologies
+  * Example: "Matches 8/10 required skills: React, TypeScript, Node.js, AWS, Docker..."
+  * Highlight which CV technologies match job requirements
+- **Experience Alignment**: Compare required vs actual experience
+  * Years of experience match
+  * Seniority level alignment
+  * Industry relevance
+- **Education Match**: Check if user's education meets requirements
+- **Missing Requirements**: Be SPECIFIC about what's missing
+  * Example: "Missing: Kubernetes (required), GraphQL (preferred)"
+  * Don't just say "some skills missing" - name them
+
+**Calculate Mental Match Score (0-100):**
+- **Skills Match**: 40% weight
+  * Count matching required skills vs total required
+  * Prioritize CV technologies and core skills
+- **Experience Match**: 30% weight
+  * Years of experience alignment
+  * Level (junior/mid/senior) match
+  * Industry/domain relevance
+- **Technologies Match**: 20% weight
+  * Match CV technologies with job tech stack
+  * Consider both required and preferred technologies
+- **Education/Certifications**: 10% weight
+  * Degree level match
+  * Relevant certifications
+  * Field of study relevance
+
+### 3. COMPARISON & RECOMMENDATION
+When comparing multiple jobs:
+
+**Side-by-Side Analysis:**
+- Create a mental comparison table for all jobs
+- Compare match scores systematically
+- Identify which job has the HIGHEST overall match score
+- Note if scores are close (within 5-10 points) - these need trade-off analysis
+
+**Provide SPECIFIC Reasons with Data Points:**
+- **Best Match Example**: "Job A at Google matches best (85% match): You have 9/10 required skills including React, TypeScript, AWS, and Docker. Your 5 years of experience aligns perfectly with their '3-5 years' requirement. Only gap: Kubernetes, but it's listed as 'preferred' not 'required'."
+- **Other Options**: "Job B at Meta scores 72%: Strong industry match and your React expertise fits, but requires 7+ years (you have 5) and needs GraphQL which you don't have."
+- **Be HONEST**: If a job is a poor match, say so clearly: "Job C requires Kubernetes and Terraform which you don't have, and needs 8+ years vs your 5. Match score: 45% - not recommended unless you're willing to learn these quickly."
+
+**Trade-offs Analysis:**
+- If multiple jobs are close in score, explain trade-offs:
+  * "Job A has better skill match (90%) but lower salary. Job B has good match (85%) with higher salary but requires relocation."
+  * Help user understand what they're gaining/losing with each option
+
+### 4. RESPONSE STRUCTURE FOR JOB COMPARISONS
+When user asks "which job fits best" or similar:
+
+1. **Start with BEST MATCH**: Name the job and company immediately
+2. **Explain WHY**: Provide specific matching points with numbers and details
+   - "Matches 8/10 required skills"
+   - "Your 5 years experience fits their 3-5 requirement"
+   - "Your React, TypeScript, and AWS expertise directly match their stack"
+3. **List Other Options**: Rank them with match scores and brief reasons
+4. **Mention Gaps**: Be honest about what's missing, even for the best match
+5. **Actionable Next Steps**: 
+   - "To strengthen your application for Job A, consider learning Kubernetes basics"
+   - "Job B is a good backup option if Job A doesn't work out"
+
+### 5. CRITICAL RULES
+- **NEVER recommend a job without analyzing it first** - always do the comparison
+- **ALWAYS cite specific data**: Use exact skill names, years, company names from the job data
+- **Be HONEST about poor matches** - don't recommend jobs that clearly don't fit
+- **Prioritize user's career objectives**: If they have target sectors, favor jobs in those sectors
+- **Consider the full profile**: Don't just match skills - consider experience, education, and career trajectory
+- **Use match scores consistently**: Calculate them the same way for all jobs being compared
+
 ## YOUR BEHAVIOR RULES (FOLLOW STRICTLY)
 ${behaviorRules}
 

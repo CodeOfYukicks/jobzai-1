@@ -152,7 +152,7 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
   const { currentUser, userData } = useAuth();
   const { profile } = useUserProfile();
 
-  // AI Provider options with company logos
+  // AI Provider options with company logos - LATEST model names
   const aiProviders: AIProviderOption[] = [
     {
       id: 'openai',
@@ -534,14 +534,35 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
         }
       }
 
-      // Build user context for the API
+      // Build user context for the API - Enriched with full professional profile
       const userContext = {
         firstName: profile?.firstName || userData?.name?.split(' ')[0] || 'User',
+        lastName: profile?.lastName,
         email: profile?.email || currentUser?.email,
         currentJobTitle: profile?.currentJobTitle,
+        currentCompany: profile?.currentCompany,
         industry: profile?.industry,
         skills: profile?.skills,
         yearsOfExperience: profile?.yearsOfExperience,
+        // Professional summary and CV data
+        professionalSummary: profile?.professionalSummary,
+        cvText: profile?.cvText,
+        cvTechnologies: profile?.cvTechnologies,
+        cvSkills: profile?.cvSkills,
+        // Work experience and education
+        workExperience: profile?.workExperience,
+        education: profile?.education,
+        // Languages and certifications
+        languages: profile?.languages,
+        certifications: profile?.certifications,
+        // Career preferences (if available from userData)
+        targetPosition: (userData as any)?.targetPosition,
+        targetSectors: (userData as any)?.targetSectors,
+        // Additional professional info
+        location: profile?.location,
+        linkedinUrl: profile?.linkedinUrl,
+        githubUrl: profile?.githubUrl,
+        portfolioUrl: profile?.portfolioUrl,
       };
 
       // Build conversation history for context (last 10 messages to avoid token limits)
