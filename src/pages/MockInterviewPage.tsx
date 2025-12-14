@@ -138,6 +138,14 @@ export default function MockInterviewPage() {
   // Refs
   const clientRef = useRef<LiveInterviewClient | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
+  
+  // Microphone test state (for preparation phase)
+  const [micLevel, setMicLevel] = useState(0);
+  const [micStatus, setMicStatus] = useState<'idle' | 'requesting' | 'active' | 'error'>('idle');
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const micAnimationRef = useRef<number | null>(null);
 
   // ============================================
   // EFFECTS
@@ -337,6 +345,87 @@ export default function MockInterviewPage() {
       }
     };
   }, [phase, connectionStatus, isTimeWarning]);
+
+  // Microphone test effect - runs during preparation phase
+  useEffect(() => {
+    if (phase !== 'preparation') {
+      // Cleanup when leaving preparation phase
+      if (micAnimationRef.current) {
+        cancelAnimationFrame(micAnimationRef.current);
+        micAnimationRef.current = null;
+      }
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach(track => track.stop());
+        micStreamRef.current = null;
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+      setMicLevel(0);
+      setMicStatus('idle');
+      return;
+    }
+
+    // Start microphone test when entering preparation phase
+    const startMicTest = async () => {
+      try {
+        setMicStatus('requesting');
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micStreamRef.current = stream;
+        
+        const audioContext = new AudioContext();
+        audioContextRef.current = audioContext;
+        
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        analyserRef.current = analyser;
+        
+        const source = audioContext.createMediaStreamSource(stream);
+        source.connect(analyser);
+        
+        setMicStatus('active');
+        
+        // Animation loop for audio level
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        
+        const updateLevel = () => {
+          if (!analyserRef.current) return;
+          
+          analyserRef.current.getByteFrequencyData(dataArray);
+          
+          // Calculate average level
+          const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+          const normalizedLevel = Math.min(average / 128, 1); // Normalize to 0-1
+          
+          setMicLevel(normalizedLevel);
+          
+          micAnimationRef.current = requestAnimationFrame(updateLevel);
+        };
+        
+        updateLevel();
+      } catch (err) {
+        console.error('Microphone access error:', err);
+        setMicStatus('error');
+      }
+    };
+
+    startMicTest();
+
+    // Cleanup
+    return () => {
+      if (micAnimationRef.current) {
+        cancelAnimationFrame(micAnimationRef.current);
+      }
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, [phase]);
 
   // ============================================
   // HANDLERS
@@ -1072,103 +1161,137 @@ export default function MockInterviewPage() {
             )}
           </motion.div>
 
-          {/* Instructions List */}
+          {/* Instructions Grid 2x2 */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="space-y-4 mb-10"
+            className="grid grid-cols-2 gap-3 mb-6"
           >
-            {/* Instruction 1 */}
+            {/* Instruction 1 - Quiet Space */}
             <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.25 }}
-              className="flex items-start gap-4"
+              className="p-4 rounded-xl bg-white/60 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/50 dark:border-white/10 hover:border-violet-300 dark:hover:border-violet-500/30 transition-colors group"
             >
-              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-violet-500/10 dark:bg-violet-500/20 flex items-center justify-center">
-                <Volume2 className="h-5 w-5 text-violet-500 dark:text-violet-400" />
+              <div className="w-9 h-9 rounded-lg bg-violet-500/10 dark:bg-violet-500/20 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                <Volume2 className="h-4 w-4 text-violet-500 dark:text-violet-400" />
               </div>
-              <div className="flex-1 pt-1">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">
-                  Find a Quiet Space
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Choose a room with minimal background noise
-                </p>
-              </div>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                Quiet Space
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                Minimal background noise
+              </p>
             </motion.div>
 
-            {/* Instruction 2 */}
+            {/* Instruction 2 - Duration */}
             <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3 }}
-              className="flex items-start gap-4"
+              className="p-4 rounded-xl bg-white/60 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/50 dark:border-white/10 hover:border-cyan-300 dark:hover:border-cyan-500/30 transition-colors group"
             >
-              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-cyan-500/10 dark:bg-cyan-500/20 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-cyan-500 dark:text-cyan-400" />
+              <div className="w-9 h-9 rounded-lg bg-cyan-500/10 dark:bg-cyan-500/20 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                <Clock className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
               </div>
-              <div className="flex-1 pt-1">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">
-                  10 Minutes Duration
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Take your time to answer each question thoughtfully
-                </p>
-              </div>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                10 Minutes
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                Answer thoughtfully
+              </p>
             </motion.div>
 
-            {/* Instruction 3 */}
+            {/* Instruction 3 - Speak Naturally */}
             <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.35 }}
-              className="flex items-start gap-4"
+              className="p-4 rounded-xl bg-white/60 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/50 dark:border-white/10 hover:border-emerald-300 dark:hover:border-emerald-500/30 transition-colors group"
             >
-              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center">
-                <Mic className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                <Mic className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
               </div>
-              <div className="flex-1 pt-1">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">
-                  Speak Naturally
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Respond as you would in a real interview
-                </p>
-              </div>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                Speak Naturally
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                Like a real interview
+              </p>
             </motion.div>
 
-            {/* Instruction 4 */}
+            {/* Instruction 4 - Feedback */}
             <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.4 }}
-              className="flex items-start gap-4"
+              className="p-4 rounded-xl bg-white/60 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/50 dark:border-white/10 hover:border-amber-300 dark:hover:border-amber-500/30 transition-colors group"
             >
-              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center">
-                <BarChart3 className="h-5 w-5 text-amber-500 dark:text-amber-400" />
+              <div className="w-9 h-9 rounded-lg bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                <BarChart3 className="h-4 w-4 text-amber-500 dark:text-amber-400" />
               </div>
-              <div className="flex-1 pt-1">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">
-                  Detailed Feedback
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Receive AI-powered analysis after your interview
-                </p>
-              </div>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                AI Feedback
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                Detailed analysis
+              </p>
             </motion.div>
           </motion.div>
 
-          {/* Mic reminder */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+          {/* Microphone Check Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.45 }}
-            className="text-center text-xs text-gray-400 dark:text-gray-500 mb-8"
+            className="p-4 rounded-xl bg-white/60 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/50 dark:border-white/10 mb-8"
           >
-            Make sure your microphone is enabled and working properly
-          </motion.p>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-cyan-500/10 dark:bg-cyan-500/20">
+                <Mic className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
+              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                Microphone Check
+              </span>
+              <span className={`ml-auto text-xs font-medium px-2 py-0.5 rounded-full ${
+                micStatus === 'active' 
+                  ? micLevel > 0.1 
+                    ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
+                    : 'bg-cyan-100 dark:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400'
+                  : micStatus === 'requesting'
+                    ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                    : micStatus === 'error'
+                      ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400'
+                      : 'bg-gray-100 dark:bg-gray-500/20 text-gray-500 dark:text-gray-400'
+              }`}>
+                {micStatus === 'active' 
+                  ? micLevel > 0.1 ? 'Speaking...' : 'Ready' 
+                  : micStatus === 'requesting' 
+                    ? 'Requesting...' 
+                    : micStatus === 'error'
+                      ? 'Not Available'
+                      : 'Waiting...'}
+              </span>
+            </div>
+            
+            {/* Audio Level Bar */}
+            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full"
+                animate={{ width: `${Math.max(micLevel * 100, micStatus === 'active' ? 3 : 0)}%` }}
+                transition={{ duration: 0.05 }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              {micStatus === 'error' 
+                ? 'Please allow microphone access to continue'
+                : micStatus === 'active'
+                  ? 'Speak to test your microphone'
+                  : 'Requesting microphone access...'}
+            </p>
+          </motion.div>
 
           {/* Actions */}
           <motion.div
