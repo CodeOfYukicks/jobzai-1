@@ -8,6 +8,15 @@ import { LiveInterviewQuestion } from './LiveInterviewQuestion';
 import { LiveInterviewResults } from './LiveInterviewResults';
 import { QuestionEntry, InterviewAnalysis, JobContext } from '../../../types/interview';
 
+interface SessionRecord {
+    id: string;
+    date: string;
+    timestamp: number;
+    overallScore: number;
+    passed: boolean;
+    tier: 'excellent' | 'good' | 'needs-improvement' | 'poor';
+}
+
 interface LiveInterviewSessionProps {
     isOpen: boolean;
     onClose: () => void;
@@ -21,6 +30,7 @@ interface LiveInterviewSessionProps {
     onGenerateQuestions?: (type: InterviewType, count: QuestionCount) => Promise<QuestionEntry[]>;
     companyName?: string;
     position?: string;
+    previousSessions?: SessionRecord[];
 }
 
 type SessionState = 'config' | 'intro' | 'question' | 'results';
@@ -34,6 +44,7 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
     onGenerateQuestions,
     companyName,
     position,
+    previousSessions = [],
 }) => {
     const [sessionState, setSessionState] = useState<SessionState>('config');
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -210,19 +221,19 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed top-12 left-16 right-0 bottom-0 z-40 flex flex-col bg-white dark:bg-[#333234]"
+                    className="fixed top-12 left-16 right-0 bottom-0 z-40 flex flex-col bg-white dark:bg-[#1a1a1c]"
                 >
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-black/5 dark:border-white/5">
+                    {/* Header - Compact */}
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-black/5 dark:border-white/5">
                         <div className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                            <span className="text-sm font-medium text-neutral-900 dark:text-white">Live Session</span>
+                            <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                            <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">Live Session</span>
                         </div>
                         <button
                             onClick={onClose}
-                            className="rounded-full p-2 text-neutral-500 hover:bg-black/5 dark:text-neutral-400 dark:hover:bg-white/5"
+                            className="rounded-full p-1 text-neutral-400 hover:bg-black/5 dark:text-neutral-500 dark:hover:bg-white/5"
                         >
-                            <X className="h-5 w-5" />
+                            <X className="h-4 w-4" />
                         </button>
                     </div>
 
@@ -276,6 +287,7 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
                                 analysis={analysis}
                                 onClose={onClose}
                                 onRetry={handleRetry}
+                                previousSessions={previousSessions}
                             />
                         )}
                     </div>

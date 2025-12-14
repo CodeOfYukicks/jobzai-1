@@ -1286,6 +1286,9 @@ export default function NotionEditorPage() {
                 aiSelectionRange={inlineEdit.selectedRange}
                 onAIEditAccept={confirmInlineEdit}
                 onAIEditReject={rejectInlineEdit}
+                // Layout offsets for AI floating bar positioning
+                sidebarWidth={isSidebarCollapsed ? 48 : 256}
+                assistantPanelWidth={isAssistantOpen ? 440 : 0}
               />
             </div>
           </div>

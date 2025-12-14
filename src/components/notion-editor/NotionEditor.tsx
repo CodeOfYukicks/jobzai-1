@@ -50,6 +50,9 @@ export interface NotionEditorProps {
   aiSelectionRange?: { from: number; to: number } | null; // Range being edited
   onAIEditAccept?: (mode: 'replace' | 'insert') => void;
   onAIEditReject?: () => void;
+  // Layout offsets for floating bar positioning (to center relative to content area)
+  sidebarWidth?: number;
+  assistantPanelWidth?: number;
 }
 
 // Ref type for imperative methods
@@ -84,6 +87,8 @@ const NotionEditor = forwardRef<NotionEditorRef, NotionEditorProps>(({
   aiSelectionRange,
   onAIEditAccept,
   onAIEditReject,
+  sidebarWidth = 0,
+  assistantPanelWidth = 0,
 }, ref) => {
   // Slash menu state
   const [showSlashMenu, setShowSlashMenu] = useState(false);
@@ -727,6 +732,8 @@ const NotionEditor = forwardRef<NotionEditorRef, NotionEditorProps>(({
         onAccept={handleAIEditAccept}
         onReject={handleAIEditReject}
         streamingText={aiStreamingText}
+        sidebarWidth={sidebarWidth}
+        assistantWidth={assistantPanelWidth}
       />
       
       {/* Slash Command Menu - Using Portal for better positioning */}

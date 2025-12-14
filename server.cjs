@@ -3445,7 +3445,7 @@ app.post('/api/generate-questions', async (req, res) => {
         "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-5.2',
         messages: [
           {
             role: 'system',
@@ -3595,7 +3595,7 @@ CRITICAL RULES:
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: "gpt-4o",
+          model: "gpt-5.2",
           messages: messages,
           response_format: { type: 'json_object' },
           max_completion_tokens: 8000,
@@ -4297,7 +4297,7 @@ IMPORTANT INSTRUCTIONS:
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-5.2',
         messages: [
           {
             role: 'system',

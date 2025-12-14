@@ -7238,6 +7238,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
         onGenerateQuestions={generateLiveSessionQuestions}
         companyName={application?.companyName}
         position={application?.position}
+        previousSessions={liveSessionHistory}
       />
 
       {/* History Session Modal */}
@@ -7283,6 +7284,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                     setSelectedHistorySession(null);
                     setIsLiveSessionOpen(true);
                   }}
+                  previousSessions={liveSessionHistory.filter(s => s.id !== selectedHistorySession.id)}
                 />
               </div>
             </div>

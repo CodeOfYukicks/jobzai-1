@@ -5,7 +5,10 @@ import { useAssistant, ChatMessage } from '../../contexts/AssistantContext';
 import { useTour, TOURS } from '../../contexts/TourContext';
 import ReactMarkdown from 'react-markdown';
 import { parseRecordMarkup, hasRecordMarkup } from './parseRecordMarkup';
+import { parseEditNoteMarkup, hasEditNoteMarkup } from './parseEditNoteMarkup';
 import RecordCard from './RecordCard';
+import EditActionButton from './EditActionButton';
+import { markdownToTiptap } from '../../lib/markdownToTiptap';
 
 // Regex to detect tour trigger markup: [[START_TOUR:tour-id]]
 const TOUR_TRIGGER_REGEX = /\[\[START_TOUR:([a-zA-Z0-9_-]+)\]\]/g;
@@ -82,15 +85,100 @@ function TourTriggerButton({ tourId }: { tourId: string }) {
   );
 }
 
-// Component to render content with record cards and tour triggers
+// Component to render content with record cards, tour triggers, and edit actions
 function MessageContent({ content }: { content: string }) {
+  const { noteEditorCallbacks } = useAssistant();
+  
   // Check for tour triggers first
   const tourTriggers = extractTourTriggers(content);
   
   // Strip tour markup from display content
   const displayContent = stripTourTriggers(content);
   
-  const segments = useMemo(() => parseRecordMarkup(displayContent), [displayContent]);
+  // Check for EDIT_NOTE markup
+  const hasEditActions = hasEditNoteMarkup(displayContent);
+  const editNoteSegments = useMemo(() => 
+    hasEditActions ? parseEditNoteMarkup(displayContent) : [], 
+    [displayContent, hasEditActions]
+  );
+  
+  const recordSegments = useMemo(() => parseRecordMarkup(displayContent), [displayContent]);
+
+  // Handler to apply edit to note
+  const handleApplyEdit = async (markdownContent: string) => {
+    if (!noteEditorCallbacks?.setContent || !noteEditorCallbacks?.onContentChange) {
+      console.warn('Note editor callbacks not available');
+      return;
+    }
+
+    try {
+      // Convert markdown to TipTap JSON format
+      const tiptapContent = markdownToTiptap(markdownContent);
+      
+      // Update the editor display
+      noteEditorCallbacks.setContent(tiptapContent);
+      
+      // Trigger save
+      await noteEditorCallbacks.onContentChange(tiptapContent);
+    } catch (error) {
+      console.error('Error applying edit to note:', error);
+      throw error;
+    }
+  };
+
+  // If has EDIT_NOTE markup, render with edit action buttons
+  if (hasEditActions) {
+    return (
+      <div className="space-y-2">
+        {editNoteSegments.map((segment, index) => {
+          if (segment.type === 'text' && segment.content) {
+            // For text segments, also check for record cards
+            const textRecordSegments = parseRecordMarkup(segment.content);
+            const hasRecords = hasRecordMarkup(segment.content);
+            
+            if (hasRecords) {
+              return (
+                <div key={index} className="space-y-1">
+                  {textRecordSegments.map((recordSeg, recIndex) => {
+                    if (recordSeg.type === 'text') {
+                      return (
+                        <ReactMarkdown key={recIndex} components={markdownComponents}>
+                          {recordSeg.content}
+                        </ReactMarkdown>
+                      );
+                    } else {
+                      return (
+                        <RecordCard key={recIndex} data={recordSeg.data} />
+                      );
+                    }
+                  })}
+                </div>
+              );
+            }
+            
+            return (
+              <ReactMarkdown key={index} components={markdownComponents}>
+                {segment.content}
+              </ReactMarkdown>
+            );
+          } else if (segment.type === 'edit' && segment.editAction) {
+            return (
+              <EditActionButton
+                key={index}
+                action={segment.editAction.action}
+                content={segment.editAction.content}
+                onApply={handleApplyEdit}
+              />
+            );
+          }
+          return null;
+        })}
+        {tourTriggers.map((tourId, index) => (
+          <TourTriggerButton key={`tour-${index}`} tourId={tourId} />
+        ))}
+      </div>
+    );
+  }
 
   // If no record markup, render plain markdown
   if (!hasRecordMarkup(displayContent)) {
@@ -109,7 +197,7 @@ function MessageContent({ content }: { content: string }) {
   // Render segments with cards
   return (
     <div className="space-y-1">
-      {segments.map((segment, index) => {
+      {recordSegments.map((segment, index) => {
         if (segment.type === 'text') {
           return (
             <ReactMarkdown key={index} components={markdownComponents}>

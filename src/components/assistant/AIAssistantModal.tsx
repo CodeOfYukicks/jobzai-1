@@ -1,13 +1,14 @@
-import { useRef, useEffect, useState, useMemo } from 'react';
+import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Rocket, Plus, History, Trash2, MessageSquare, ChevronLeft, TrendingUp, AlertCircle, Calendar, Briefcase, FileText, Target, Type } from 'lucide-react';
-import { useAssistant, Conversation } from '../../contexts/AssistantContext';
+import { X, Rocket, Plus, History, Trash2, MessageSquare, ChevronLeft, TrendingUp, AlertCircle, Calendar, Briefcase, FileText, Target, Type, Pencil } from 'lucide-react';
+import { useAssistant } from '../../contexts/AssistantContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import QuickActions from './QuickActions';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { Link, useLocation } from 'react-router-dom';
+import { Avatar, AvatarEditor, AvatarConfig, DEFAULT_AVATAR_CONFIG, loadAvatarConfig, saveAvatarConfig } from './avatar';
 
 // Pages where the assistant should NOT have a backdrop (to allow interaction with content)
 const PAGES_WITHOUT_BACKDROP = ['/notes'];
@@ -205,14 +206,52 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
     editorSelection,
     setEditorSelection,
   } = useAssistant();
-  const { userData } = useAuth();
+  const { userData, currentUser } = useAuth();
   const { profile } = useUserProfile();
   const modalRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const [showHistory, setShowHistory] = useState(false);
+  
+  // Avatar customization state
+  const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>(DEFAULT_AVATAR_CONFIG);
+  const [showAvatarEditor, setShowAvatarEditor] = useState(false);
+  const [avatarLoaded, setAvatarLoaded] = useState(false);
 
   // Get user's first name
   const firstName = profile?.firstName || userData?.name?.split(' ')[0] || 'there';
+  
+  // Load avatar config on mount
+  useEffect(() => {
+    const loadUserAvatar = async () => {
+      if (currentUser?.uid && !avatarLoaded) {
+        try {
+          const config = await loadAvatarConfig(currentUser.uid);
+          setAvatarConfig(config);
+          setAvatarLoaded(true);
+        } catch (error) {
+          console.error('[Avatar] Error loading config:', error);
+          setAvatarLoaded(true);
+        }
+      }
+    };
+    loadUserAvatar();
+  }, [currentUser?.uid, avatarLoaded]);
+  
+  // Handle avatar config change
+  const handleAvatarConfigChange = useCallback((newConfig: AvatarConfig) => {
+    setAvatarConfig(newConfig);
+  }, []);
+  
+  // Handle avatar save
+  const handleAvatarSave = useCallback(async () => {
+    if (currentUser?.uid) {
+      try {
+        await saveAvatarConfig(currentUser.uid, avatarConfig);
+      } catch (error) {
+        console.error('[Avatar] Error saving config:', error);
+      }
+    }
+  }, [currentUser?.uid, avatarConfig]);
   
   // Generate contextual insight based on current page and data
   const contextualInsight = useMemo(() => {
@@ -224,10 +263,11 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
   const credits = (userData as any)?.credits ?? 25;
   const showUpgradePrompt = !isPremium && credits <= 5;
 
-  // Reset history view when assistant is closed
+  // Reset views when assistant is closed
   useEffect(() => {
     if (!isOpen) {
       setShowHistory(false);
+      setShowAvatarEditor(false);
     }
   }, [isOpen]);
 
@@ -335,10 +375,18 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
               shadow-2xl border-l border-gray-200/80 dark:border-[#2d2d2e]
               flex flex-col overflow-hidden ${shouldShowBackdrop ? 'z-50' : 'z-40'} ${className}`}
           >
-            {/* Header */}
-            <div className="flex-shrink-0 px-8 pt-8 pb-6">
-              {/* Header buttons */}
-              <div className="absolute top-3 right-3 flex items-center gap-1">
+            {/* Header - Compact when chatting, full when empty */}
+            <motion.div 
+              className="flex-shrink-0 relative"
+              initial={false}
+              animate={{ 
+                paddingTop: hasMessages || showHistory ? '12px' : '32px',
+                paddingBottom: hasMessages || showHistory ? '12px' : '24px',
+              }}
+              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            >
+              {/* Header buttons - Always visible */}
+              <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
                 {/* History button - show when there are past conversations */}
                 {conversationsWithMessages.length > 0 && (
                   <button
@@ -384,61 +432,126 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
                 </button>
               </div>
 
-              {/* AI Avatar */}
-              <div className="flex justify-center mb-5">
-                <div className="h-14 w-14 rounded-2xl bg-gray-50 dark:bg-[#2a2a2b] 
-                  flex items-center justify-center 
-                  ring-1 ring-gray-200/80 dark:ring-white/10">
-                  <Sparkles className="h-6 w-6 text-gray-700 dark:text-gray-300" />
-                </div>
-              </div>
-
-              {/* Greeting */}
-              <div className="text-center">
-                <p className="text-sm font-medium text-gray-400 dark:text-gray-500">
-                  Hi, {firstName}
-                </p>
-                <h1 className="text-xl font-semibold text-gray-900 dark:text-white mt-1 tracking-tight">
-                  {currentPageContext?.pageName && currentPageContext.pageName !== 'Jobz.ai'
-                    ? `How can I help with ${currentPageContext.pageName}?`
-                    : 'Can I help you with anything?'
-                  }
-                </h1>
-                
-                {/* Contextual insight badge */}
-                {!hasMessages && !showHistory && contextualInsight && (
+              {/* Collapsible content - Avatar, Greeting, Insight */}
+              <AnimatePresence mode="wait">
+                {!hasMessages && !showHistory ? (
                   <motion.div
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className={`inline-flex items-center gap-2 mt-4 px-3 py-1.5 rounded-full text-xs font-medium
-                      ${contextualInsight.type === 'success' 
-                        ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-200/60 dark:ring-emerald-700/40' 
-                        : contextualInsight.type === 'warning'
-                        ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 ring-1 ring-amber-200/60 dark:ring-amber-700/40'
-                        : contextualInsight.type === 'action'
-                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200/60 dark:ring-blue-700/40'
-                        : 'bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 ring-1 ring-gray-200/60 dark:ring-gray-700/40'
-                      }`}
+                    key="full-header"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                    className="px-8 overflow-hidden"
                   >
-                    {contextualInsight.icon}
-                    <span>{contextualInsight.text}</span>
-                    {contextualInsight.highlight && (
-                      <>
-                        <span className="text-gray-400 dark:text-gray-500">·</span>
-                        <span className="font-semibold">{contextualInsight.highlight}</span>
-                      </>
-                    )}
+                    {/* AI Avatar - Customizable DiceBear avatar */}
+                    <div className="flex justify-center mb-5">
+                      <motion.div 
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.1 }}
+                        className="relative group"
+                      >
+                        <Avatar 
+                          config={avatarConfig}
+                          size={56}
+                          className="rounded-2xl ring-1 ring-gray-200/80 dark:ring-white/10 
+                            bg-gray-50 dark:bg-[#2a2a2b] cursor-pointer
+                            transition-transform hover:scale-105"
+                          onClick={() => setShowAvatarEditor(true)}
+                        />
+                        {/* Edit hint on hover */}
+                        <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 
+                          group-hover:opacity-100 transition-opacity flex items-center justify-center
+                          pointer-events-none">
+                          <Pencil className="w-5 h-5 text-white" />
+                        </div>
+                      </motion.div>
+                    </div>
+
+                    {/* Greeting */}
+                    <div className="text-center">
+                      <motion.p 
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.15 }}
+                        className="text-sm font-medium text-gray-400 dark:text-gray-500"
+                      >
+                        Hi, {firstName}
+                      </motion.p>
+                      <motion.h1 
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="text-xl font-semibold text-gray-900 dark:text-white mt-1 tracking-tight"
+                      >
+                        {currentPageContext?.pageName && currentPageContext.pageName !== 'Jobz.ai'
+                          ? `How can I help with ${currentPageContext.pageName}?`
+                          : 'Can I help you with anything?'
+                        }
+                      </motion.h1>
+                      
+                      {/* Contextual insight badge */}
+                      {contextualInsight && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.25 }}
+                          className={`inline-flex items-center gap-2 mt-4 px-3 py-1.5 rounded-full text-xs font-medium
+                            ${contextualInsight.type === 'success' 
+                              ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-200/60 dark:ring-emerald-700/40' 
+                              : contextualInsight.type === 'warning'
+                              ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 ring-1 ring-amber-200/60 dark:ring-amber-700/40'
+                              : contextualInsight.type === 'action'
+                              ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200/60 dark:ring-blue-700/40'
+                              : 'bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 ring-1 ring-gray-200/60 dark:ring-gray-700/40'
+                            }`}
+                        >
+                          {contextualInsight.icon}
+                          <span>{contextualInsight.text}</span>
+                          {contextualInsight.highlight && (
+                            <>
+                              <span className="text-gray-400 dark:text-gray-500">·</span>
+                              <span className="font-semibold">{contextualInsight.highlight}</span>
+                            </>
+                          )}
+                        </motion.div>
+                      )}
+                      
+                      {!contextualInsight && (
+                        <motion.p 
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.25 }}
+                          className="text-sm text-gray-500 dark:text-gray-400 mt-3 max-w-[300px] mx-auto leading-relaxed"
+                        >
+                          Ready to assist with anything you need. Let's get started!
+                        </motion.p>
+                      )}
+                    </div>
+                  </motion.div>
+                ) : (
+                  /* Compact header when chatting */
+                  <motion.div
+                    key="compact-header"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="px-6 flex items-center gap-3"
+                  >
+                    <Avatar 
+                      config={avatarConfig}
+                      size={32}
+                      className="rounded-xl ring-1 ring-gray-200/80 dark:ring-white/10 
+                        bg-gray-50 dark:bg-[#2a2a2b]"
+                    />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {showHistory ? 'Chat History' : 'AI Assistant'}
+                    </span>
                   </motion.div>
                 )}
-                
-                {!hasMessages && !showHistory && !contextualInsight && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-3 max-w-[300px] mx-auto leading-relaxed">
-                    Ready to assist with anything you need. Let's get started!
-                  </p>
-                )}
-              </div>
-            </div>
+              </AnimatePresence>
+            </motion.div>
 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden flex flex-col min-h-0">
@@ -633,6 +746,18 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
             <div className="flex-shrink-0 px-6 pb-6 pt-3 border-t border-gray-100 dark:border-white/5">
               <ChatInput />
             </div>
+            
+            {/* Avatar Editor Overlay */}
+            <AnimatePresence>
+              {showAvatarEditor && (
+                <AvatarEditor
+                  config={avatarConfig}
+                  onConfigChange={handleAvatarConfigChange}
+                  onClose={() => setShowAvatarEditor(false)}
+                  onSave={handleAvatarSave}
+                />
+              )}
+            </AnimatePresence>
           </motion.div>
         </>
       )}
