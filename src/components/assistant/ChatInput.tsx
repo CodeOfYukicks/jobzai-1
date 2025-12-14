@@ -154,6 +154,8 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
     streamInlineChunk,
     setInlinePendingContent,
     finishInlineStreaming,
+    // Real-time editor selection
+    editorSelection,
   } = useAssistant();
   
   const { currentUser, userData } = useAuth();
@@ -501,12 +503,13 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
     const trimmedInput = messageContent.trim();
     if (!trimmedInput || isLoading) return;
     
-    // Check if there's a text selection in the editor
-    const editorSelection = noteEditorCallbacks?.getSelection?.();
+    // Use the real-time editor selection from context (tracked as user selects text)
     const hasSelection = editorSelection && editorSelection.text.trim().length > 0;
     
-    // Check if this should be an inline edit (on notes page + edit request + editor available)
-    const shouldDoInlineEdit = isOnNotesPage && noteEditorCallbacks && isNoteEditRequest(trimmedInput);
+    // Check if this should be an inline edit:
+    // - On notes page + editor available
+    // - AND either: has a selection (any message on selection = edit request) OR explicit edit request
+    const shouldDoInlineEdit = isOnNotesPage && noteEditorCallbacks && (hasSelection || isNoteEditRequest(trimmedInput));
     
     // Determine edit type: 'selection' if user has selected text, otherwise 'full'
     const editType = hasSelection ? 'selection' : 'full';
@@ -882,7 +885,7 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, currentUser, addMessage, setIsLoading, profile, userData, location.pathname, currentPageContext, updateMessage, pageData, messages, selectedContexts, isOnNotesPage, noteEditorCallbacks, isNoteEditRequest, startInlineEdit, streamInlineChunk, finishInlineStreaming, setInlinePendingContent, selectedAIProvider]);
+  }, [isLoading, currentUser, addMessage, setIsLoading, profile, userData, location.pathname, currentPageContext, updateMessage, pageData, messages, selectedContexts, isOnNotesPage, noteEditorCallbacks, isNoteEditRequest, startInlineEdit, streamInlineChunk, finishInlineStreaming, setInlinePendingContent, selectedAIProvider, editorSelection]);
 
   // Handle pending messages from QuickActions
   useEffect(() => {

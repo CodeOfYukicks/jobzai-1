@@ -57,6 +57,8 @@ export default function NotionEditorPage() {
     inlineEdit,
     confirmInlineEdit,
     rejectInlineEdit,
+    setEditorSelection,
+    editorSelection,
   } = useAssistant();
   
   // Ref for NotionEditor imperative methods
@@ -508,6 +510,14 @@ export default function NotionEditorPage() {
     []
   );
 
+  // Handle selection changes for the AI assistant
+  const handleSelectionChange = useCallback(
+    (selection: { from: number; to: number; text: string } | null) => {
+      setEditorSelection(selection);
+    },
+    [setEditorSelection]
+  );
+
   // Register note editor with AI Assistant on mount
   useEffect(() => {
     registerNoteEditor({
@@ -515,7 +525,7 @@ export default function NotionEditorPage() {
       getContent: () => editorRef.current?.getContent() || null,
       getSelection: () => editorRef.current?.getSelection() || null,
       setContent: (content: any) => editorRef.current?.setContent(content),
-      replaceSelection: (text: string) => editorRef.current?.replaceSelection(text),
+      replaceSelection: (content: string | any, range?: { from: number; to: number }) => editorRef.current?.replaceSelection(content, range),
     });
 
     return () => {
@@ -1265,6 +1275,7 @@ export default function NotionEditorPage() {
                 key={activeNoteId}
                 content={note.content}
                 onChange={handleContentChange}
+                onSelectionChange={handleSelectionChange}
                 placeholder="Type '/' for commands..."
                 autofocus
                 // AI inline editing props
@@ -1272,6 +1283,7 @@ export default function NotionEditorPage() {
                 aiIsStreaming={inlineEdit.isStreaming}
                 aiStreamingText={inlineEdit.streamingText}
                 aiPendingContent={inlineEdit.pendingContent}
+                aiSelectionRange={inlineEdit.selectedRange}
                 onAIEditAccept={confirmInlineEdit}
                 onAIEditReject={rejectInlineEdit}
               />

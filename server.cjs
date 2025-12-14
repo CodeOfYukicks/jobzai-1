@@ -1129,7 +1129,7 @@ app.post('/api/assistant', async (req, res) => {
     
     // Add inline edit mode instructions if enabled
     if (inlineEditMode) {
-      const inlineEditInstructions = `
+      let inlineEditInstructions = `
 
 ## 🎯 INLINE EDIT MODE ACTIVE 🎯
 

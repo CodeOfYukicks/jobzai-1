@@ -61,7 +61,14 @@ export interface NoteEditorCallbacks {
   getContent?: () => any;
   getSelection?: () => { from: number; to: number; text: string } | null;
   setContent?: (content: any) => void;
-  replaceSelection?: (text: string) => void;
+  replaceSelection?: (content: string | any, range?: { from: number; to: number }) => void;
+}
+
+// Editor selection state for real-time tracking
+export interface EditorSelection {
+  from: number;
+  to: number;
+  text: string;
 }
 
 // Storage key for persisting conversations
@@ -113,6 +120,9 @@ interface AssistantContextType {
   confirmInlineEdit: (mode: 'replace' | 'insert') => Promise<void>;
   rejectInlineEdit: () => void;
   finishInlineStreaming: () => void;
+  // Real-time editor selection tracking
+  editorSelection: EditorSelection | null;
+  setEditorSelection: (selection: EditorSelection | null) => void;
 }
 
 const AssistantContext = createContext<AssistantContextType | undefined>(undefined);
@@ -191,6 +201,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     selectedRange: null,
     editType: 'full',
   });
+
+  // Real-time editor selection tracking
+  const [editorSelection, setEditorSelection] = useState<EditorSelection | null>(null);
 
   // Save conversations to localStorage whenever they change
   useEffect(() => {
@@ -323,6 +336,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 
   const unregisterNoteEditor = useCallback(() => {
     setNoteEditorCallbacks(null);
+    // Clear editor selection when editor is unregistered
+    setEditorSelection(null);
     // Reset inline edit state when editor is unregistered
     setInlineEdit({
       isActive: false,
@@ -430,8 +445,10 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       if (inlineEdit.pendingContent.type === 'selection-replace' && noteEditorCallbacks?.replaceSelection) {
         // Replace only the selected text - use parsed TipTap content if available
         const contentToInsert = inlineEdit.pendingContent.content || inlineEdit.pendingContent.text;
-        await noteEditorCallbacks.replaceSelection(contentToInsert);
-      } else if (mode === 'insert' && noteEditorCallbacks?.getContent && noteEditorCallbacks?.onContentChange) {
+        // Use the stored range from when the user made the selection
+        const storedRange = inlineEdit.pendingContent.range;
+        await noteEditorCallbacks.replaceSelection(contentToInsert, storedRange);
+      } else if (mode === 'insert' && noteEditorCallbacks?.getContent && noteEditorCallbacks?.setContent && noteEditorCallbacks?.onContentChange) {
         // Insert mode: append new content below existing content
         const currentContent = noteEditorCallbacks.getContent();
         const newContent = inlineEdit.pendingContent;
@@ -447,13 +464,25 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
               ...(newContent.content || []),
             ],
           };
+          // Update the editor display first
+          noteEditorCallbacks.setContent(mergedContent);
+          // Then trigger save
           await noteEditorCallbacks.onContentChange(mergedContent);
         } else {
           // Fallback: just set the new content
+          if (noteEditorCallbacks.setContent) {
+            noteEditorCallbacks.setContent(newContent);
+          }
           await noteEditorCallbacks.onContentChange(newContent);
         }
-      } else if (noteEditorCallbacks?.onContentChange) {
+      } else if (noteEditorCallbacks?.setContent && noteEditorCallbacks?.onContentChange) {
         // Replace mode: full document replacement
+        // Update the editor display first
+        noteEditorCallbacks.setContent(inlineEdit.pendingContent);
+        // Then trigger save
+        await noteEditorCallbacks.onContentChange(inlineEdit.pendingContent);
+      } else if (noteEditorCallbacks?.onContentChange) {
+        // Fallback: just save without updating display (legacy behavior)
         await noteEditorCallbacks.onContentChange(inlineEdit.pendingContent);
       } else {
         console.warn('Cannot confirm inline edit: no appropriate callback');
@@ -536,6 +565,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     confirmInlineEdit,
     rejectInlineEdit,
     finishInlineStreaming,
+    // Real-time editor selection
+    editorSelection,
+    setEditorSelection,
   };
 
   return (

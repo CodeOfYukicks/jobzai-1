@@ -25,10 +25,10 @@ import BubbleMenuBar from './menus/BubbleMenuBar';
 import TableBubbleMenu from './menus/TableBubbleMenu';
 import MentionEmbed, { MentionEmbedData } from './extensions/MentionEmbed';
 import EnhancedTable from './extensions/EnhancedTable';
+import SelectionHighlight from './extensions/SelectionHighlight';
 import MentionMenu from './MentionMenu';
 import MentionDetailModal from './MentionDetailModal';
 import { MentionSearchResult, searchResultToEmbedData } from '../../lib/mentionSearchService';
-import NotesAIPopover from '../interview/NotesAIPopover';
 import AIEditFloatingBar from './AIEditFloatingBar';
 
 import './notion-editor.css';
@@ -40,11 +40,14 @@ export interface NotionEditorProps {
   editable?: boolean;
   className?: string;
   autofocus?: boolean;
+  // Selection change callback for real-time tracking
+  onSelectionChange?: (selection: { from: number; to: number; text: string } | null) => void;
   // AI inline editing props
   aiEditMode?: boolean;
   aiIsStreaming?: boolean;
   aiStreamingText?: string;
   aiPendingContent?: any;
+  aiSelectionRange?: { from: number; to: number } | null; // Range being edited
   onAIEditAccept?: (mode: 'replace' | 'insert') => void;
   onAIEditReject?: () => void;
 }
@@ -54,7 +57,7 @@ export interface NotionEditorRef {
   getContent: () => any;
   setContent: (content: any) => void;
   getSelection: () => { from: number; to: number; text: string } | null;
-  replaceSelection: (content: string | any) => void;
+  replaceSelection: (content: string | any, range?: { from: number; to: number }) => void;
   getEditor: () => ReturnType<typeof useEditor> | null;
 }
 
@@ -72,11 +75,13 @@ const NotionEditor = forwardRef<NotionEditorRef, NotionEditorProps>(({
   editable = true,
   className = '',
   autofocus = false,
+  onSelectionChange,
   // AI inline editing props
   aiEditMode = false,
   aiIsStreaming = false,
   aiStreamingText = '',
   aiPendingContent,
+  aiSelectionRange,
   onAIEditAccept,
   onAIEditReject,
 }, ref) => {
@@ -97,12 +102,6 @@ const NotionEditor = forwardRef<NotionEditorRef, NotionEditorProps>(({
   // Detail modal state
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailModalData, setDetailModalData] = useState<MentionEmbedData | null>(null);
-
-  // AI Popover state
-  const [showAIPopover, setShowAIPopover] = useState(false);
-  const [aiPopoverPosition, setAIPopoverPosition] = useState({ x: 0, y: 0 });
-  const [selectedText, setSelectedText] = useState('');
-  const [selectionTimeout, setSelectionTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Ref for tracking active menu for keyboard handling
   const activeMenuRef = useRef<'slash' | 'mention' | null>(null);
@@ -151,6 +150,9 @@ const NotionEditor = forwardRef<NotionEditorRef, NotionEditorProps>(({
             },
           };
         },
+      }),
+      SelectionHighlight.configure({
+        highlightClass: 'ai-selection-highlight',
       }),
     ],
     content: content || {
@@ -204,39 +206,26 @@ const NotionEditor = forwardRef<NotionEditorRef, NotionEditorProps>(({
       }
     },
     onSelectionUpdate: ({ editor }) => {
-      // Clear any existing timeout
-      if (selectionTimeout) {
-        clearTimeout(selectionTimeout);
-      }
-
-      // Wait for selection to stabilize (after mouseup)
-      const timeout = setTimeout(() => {
-        const { from, to } = editor.state.selection;
+      // Track selection changes in real-time for the assistant
+      const { from, to } = editor.state.selection;
+      if (from !== to) {
         const text = editor.state.doc.textBetween(from, to, ' ');
-        
-        // Only show if text is selected and has minimum length
-        if (text.trim().length > 5) {
-          setSelectedText(text);
-          
-          // Get selection coordinates
-          const { view } = editor;
-          const start = view.coordsAtPos(from);
-          const end = view.coordsAtPos(to);
-          
-          // Position popover above selection
-          setAIPopoverPosition({
-            x: (start.left + end.right) / 2,
-            y: start.top - 10,
-          });
-          
-          setShowAIPopover(true);
+        const trimmedText = text.trim();
+        if (trimmedText.length > 0) {
+          onSelectionChange?.({ from, to, text: trimmedText });
         } else {
-          setShowAIPopover(false);
-          setSelectedText('');
+          // Only clear if editor is focused (user collapsed selection in editor)
+          if (editor.isFocused) {
+            onSelectionChange?.(null);
+          }
         }
-      }, 150); // Delay ensures user finished selecting
-      
-      setSelectionTimeout(timeout);
+      } else {
+        // Only clear if editor is focused (user clicked elsewhere in editor)
+        // This preserves selection when user clicks in chat input
+        if (editor.isFocused) {
+          onSelectionChange?.(null);
+        }
+      }
     },
     editorProps: {
       attributes: {
@@ -302,9 +291,10 @@ const NotionEditor = forwardRef<NotionEditorRef, NotionEditorProps>(({
       if (from === to) return null;
       return { from, to, text };
     },
-    replaceSelection: (content: string | any) => {
+    replaceSelection: (content: string | any, range?: { from: number; to: number }) => {
       if (!editor) return;
-      const { from, to } = editor.state.selection;
+      // Use provided range or fall back to current selection
+      const { from, to } = range || editor.state.selection;
       // insertContent accepts both text and TipTap JSON
       editor.chain().focus().deleteRange({ from, to }).insertContent(content).run();
     },
@@ -617,33 +607,37 @@ const NotionEditor = forwardRef<NotionEditorRef, NotionEditorProps>(({
     }
   }, [showSlashMenu]);
 
-  // Handle AI rewrite
-  const handleAIRewrite = useCallback((rewrittenText: string) => {
-    if (!editor) return;
-    
-    // Replace selected text with AI-rewritten version
-    const { from, to } = editor.state.selection;
-    editor.chain().focus().deleteRange({ from, to }).insertContent(rewrittenText).run();
-    
-    setShowAIPopover(false);
-    setSelectedText('');
-  }, [editor]);
-
   if (!editor) {
     return null;
   }
 
+  // Determine if this is a selection-based edit
+  const isSelectionEdit = aiEditMode && aiSelectionRange && aiSelectionRange.from !== aiSelectionRange.to;
+
+  // Highlight the selection range when in AI edit mode using decoration
+  useEffect(() => {
+    if (editor) {
+      if (isSelectionEdit && aiSelectionRange) {
+        // Use custom decoration to highlight the text being edited
+        (editor.commands as any).setHighlightRange({ from: aiSelectionRange.from, to: aiSelectionRange.to });
+      } else {
+        // Clear highlight when not in selection edit mode
+        (editor.commands as any).clearHighlightRange?.();
+      }
+    }
+  }, [editor, isSelectionEdit, aiSelectionRange]);
+
   return (
     <div 
       ref={editorContainerRef} 
-      className={`notion-editor relative ${aiEditMode ? 'ai-edit-mode' : ''} ${showAIEditFlash === 'accepted' ? 'ai-edit-accepted' : ''} ${showAIEditFlash === 'rejected' ? 'ai-edit-rejected' : ''}`}
+      className={`notion-editor relative ${aiEditMode && !isSelectionEdit ? 'ai-edit-mode' : ''} ${isSelectionEdit ? 'ai-selection-edit-mode' : ''} ${showAIEditFlash === 'accepted' ? 'ai-edit-accepted' : ''} ${showAIEditFlash === 'rejected' ? 'ai-edit-rejected' : ''}`}
     >
       <BubbleMenuBar editor={editor} />
       <TableBubbleMenu editor={editor} />
       
-      {/* AI Writing Indicator - Premium shimmer overlay */}
+      {/* AI Writing Indicator - Premium shimmer overlay (only for full document edit) */}
       <AnimatePresence>
-        {aiEditMode && aiIsStreaming && (
+        {aiEditMode && aiIsStreaming && !isSelectionEdit && (
           <>
             {/* Shimmer overlay effect */}
             <motion.div
@@ -686,8 +680,43 @@ const NotionEditor = forwardRef<NotionEditorRef, NotionEditorProps>(({
         )}
       </AnimatePresence>
 
-      {/* Editor content - dim when AI is editing */}
-      <div className={aiEditMode && aiIsStreaming ? 'ai-original-content' : ''}>
+      {/* Selection edit indicator - compact pill for selection mode */}
+      <AnimatePresence>
+        {isSelectionEdit && aiIsStreaming && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="absolute top-2 right-2 z-20"
+          >
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 dark:bg-purple-500/20 border border-purple-300/50 dark:border-purple-500/30">
+              <div className="flex gap-0.5">
+                <motion.span
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+                  className="w-1 h-1 rounded-full bg-purple-500"
+                />
+                <motion.span
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ duration: 1, repeat: Infinity, delay: 0.15 }}
+                  className="w-1 h-1 rounded-full bg-purple-500"
+                />
+                <motion.span
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ duration: 1, repeat: Infinity, delay: 0.3 }}
+                  className="w-1 h-1 rounded-full bg-purple-500"
+                />
+              </div>
+              <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                Editing selection
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Editor content - dim when AI is editing full doc, not for selection */}
+      <div className={aiEditMode && aiIsStreaming && !isSelectionEdit ? 'ai-original-content' : ''}>
         <EditorContent editor={editor} />
       </div>
 
@@ -784,19 +813,6 @@ const NotionEditor = forwardRef<NotionEditorRef, NotionEditorProps>(({
         onClose={() => setShowDetailModal(false)}
         data={detailModalData}
       />
-
-      {/* AI Popover */}
-      {showAIPopover && selectedText && !aiEditMode && (
-        <NotesAIPopover
-          position={aiPopoverPosition}
-          selectedText={selectedText}
-          onClose={() => {
-            setShowAIPopover(false);
-            setSelectedText('');
-          }}
-          onRewrite={handleAIRewrite}
-        />
-      )}
     </div>
   );
 });

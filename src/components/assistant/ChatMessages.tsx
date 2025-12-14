@@ -1,18 +1,14 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, User, Play } from 'lucide-react';
 import { useAssistant, ChatMessage } from '../../contexts/AssistantContext';
 import { useTour, TOURS } from '../../contexts/TourContext';
 import ReactMarkdown from 'react-markdown';
-import { parseRecordMarkup, hasRecordMarkup, ContentSegment } from './parseRecordMarkup';
+import { parseRecordMarkup, hasRecordMarkup } from './parseRecordMarkup';
 import RecordCard from './RecordCard';
-import EditActionButton from './EditActionButton';
 
 // Regex to detect tour trigger markup: [[START_TOUR:tour-id]]
 const TOUR_TRIGGER_REGEX = /\[\[START_TOUR:([a-zA-Z0-9_-]+)\]\]/g;
-
-// Regex to detect edit note markup: [[EDIT_NOTE:action:content]]
-const EDIT_NOTE_REGEX = /\[\[EDIT_NOTE:(insert|replace):([\s\S]*?)\]\]/g;
 
 // Function to extract tour triggers from content
 function extractTourTriggers(content: string): string[] {
@@ -28,48 +24,6 @@ function extractTourTriggers(content: string): string[] {
 // Function to strip tour trigger markup from content for display
 function stripTourTriggers(content: string): string {
   return content.replace(TOUR_TRIGGER_REGEX, '').trim();
-}
-
-// Function to check if content has tour triggers
-function hasTourTrigger(content: string): boolean {
-  TOUR_TRIGGER_REGEX.lastIndex = 0;
-  const result = TOUR_TRIGGER_REGEX.test(content);
-  TOUR_TRIGGER_REGEX.lastIndex = 0;
-  return result;
-}
-
-// Edit note action interface
-interface EditNoteAction {
-  action: 'insert' | 'replace';
-  content: string;
-}
-
-// Function to extract edit note actions from content
-function extractEditNoteActions(content: string): EditNoteAction[] {
-  const actions: EditNoteAction[] = [];
-  let match;
-  EDIT_NOTE_REGEX.lastIndex = 0;
-  while ((match = EDIT_NOTE_REGEX.exec(content)) !== null) {
-    actions.push({
-      action: match[1] as 'insert' | 'replace',
-      content: match[2].trim(),
-    });
-  }
-  EDIT_NOTE_REGEX.lastIndex = 0;
-  return actions;
-}
-
-// Function to strip edit note markup from content for display
-function stripEditNoteMarkup(content: string): string {
-  return content.replace(EDIT_NOTE_REGEX, '').trim();
-}
-
-// Function to check if content has edit note actions
-function hasEditNoteAction(content: string): boolean {
-  EDIT_NOTE_REGEX.lastIndex = 0;
-  const result = EDIT_NOTE_REGEX.test(content);
-  EDIT_NOTE_REGEX.lastIndex = 0;
-  return result;
 }
 
 interface MessageBubbleProps {
@@ -128,28 +82,15 @@ function TourTriggerButton({ tourId }: { tourId: string }) {
   );
 }
 
-// Component to render content with record cards, tour triggers, and edit actions
+// Component to render content with record cards and tour triggers
 function MessageContent({ content }: { content: string }) {
-  const { applyNoteEdit } = useAssistant();
-  
   // Check for tour triggers first
   const tourTriggers = extractTourTriggers(content);
   
-  // Check for edit actions
-  const editActions = extractEditNoteActions(content);
-  
-  // Strip all markup from display content
-  let displayContent = stripTourTriggers(content);
-  displayContent = stripEditNoteMarkup(displayContent);
+  // Strip tour markup from display content
+  const displayContent = stripTourTriggers(content);
   
   const segments = useMemo(() => parseRecordMarkup(displayContent), [displayContent]);
-
-  // Handle edit action apply
-  const handleApplyEdit = useCallback(async (editContent: string) => {
-    if (applyNoteEdit) {
-      await applyNoteEdit(editContent);
-    }
-  }, [applyNoteEdit]);
 
   // If no record markup, render plain markdown
   if (!hasRecordMarkup(displayContent)) {
@@ -160,14 +101,6 @@ function MessageContent({ content }: { content: string }) {
         </ReactMarkdown>
         {tourTriggers.map((tourId, index) => (
           <TourTriggerButton key={index} tourId={tourId} />
-        ))}
-        {editActions.map((editAction, index) => (
-          <EditActionButton
-            key={`edit-${index}`}
-            action={editAction.action}
-            content={editAction.content}
-            onApply={handleApplyEdit}
-          />
         ))}
       </>
     );
@@ -191,14 +124,6 @@ function MessageContent({ content }: { content: string }) {
       })}
       {tourTriggers.map((tourId, index) => (
         <TourTriggerButton key={`tour-${index}`} tourId={tourId} />
-      ))}
-      {editActions.map((editAction, index) => (
-        <EditActionButton
-          key={`edit-${index}`}
-          action={editAction.action}
-          content={editAction.content}
-          onApply={handleApplyEdit}
-        />
       ))}
     </div>
   );

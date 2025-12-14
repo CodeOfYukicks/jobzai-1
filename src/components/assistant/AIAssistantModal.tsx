@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Rocket, Plus, History, Trash2, MessageSquare, ChevronLeft, TrendingUp, AlertCircle, Calendar, Briefcase, FileText, Target } from 'lucide-react';
+import { X, Sparkles, Rocket, Plus, History, Trash2, MessageSquare, ChevronLeft, TrendingUp, AlertCircle, Calendar, Briefcase, FileText, Target, Type } from 'lucide-react';
 import { useAssistant, Conversation } from '../../contexts/AssistantContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserProfile } from '../../hooks/useUserProfile';
@@ -202,6 +202,8 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
     deleteConversation,
     pageData,
     currentPageContext,
+    editorSelection,
+    setEditorSelection,
   } = useAssistant();
   const { userData } = useAuth();
   const { profile } = useUserProfile();
@@ -580,6 +582,52 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
                 </div>
               </div>
             )}
+
+            {/* Selection Indicator */}
+            <AnimatePresence>
+              {editorSelection && editorSelection.text && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="flex-shrink-0 px-6"
+                >
+                  <div className="flex items-center gap-2 px-3 py-2 mb-2
+                    bg-violet-50 dark:bg-violet-500/10
+                    border border-violet-200 dark:border-violet-500/20
+                    rounded-xl"
+                  >
+                    <div className="flex-shrink-0 w-6 h-6 rounded-lg 
+                      bg-violet-100 dark:bg-violet-500/20
+                      flex items-center justify-center"
+                    >
+                      <Type className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-violet-700 dark:text-violet-300 mb-0.5">
+                        Selected text
+                      </p>
+                      <p className="text-xs text-violet-600/80 dark:text-violet-400/80 truncate">
+                        "{editorSelection.text.length > 50 
+                          ? editorSelection.text.substring(0, 50) + '...' 
+                          : editorSelection.text}"
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setEditorSelection(null)}
+                      className="flex-shrink-0 p-1 rounded-md
+                        text-violet-400 hover:text-violet-600
+                        dark:text-violet-500 dark:hover:text-violet-300
+                        hover:bg-violet-100 dark:hover:bg-violet-500/20
+                        transition-colors"
+                      title="Clear selection"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Chat Input */}
             <div className="flex-shrink-0 px-6 pb-6 pt-3 border-t border-gray-100 dark:border-white/5">

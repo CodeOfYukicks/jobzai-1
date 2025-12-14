@@ -293,6 +293,16 @@
   @apply bg-purple-200 dark:bg-purple-500/30;
 }
 
+/* Keep selection visible even when editor loses focus */
+.notion-editor-content .ProseMirror:not(:focus) .ProseMirror-selectednode {
+  @apply bg-purple-100 dark:bg-purple-500/20;
+}
+
+/* Preserve text selection appearance when not focused */
+.notion-editor-content .ProseMirror {
+  caret-color: #8B5CF6;
+}
+
 /* Focus styles for blocks */
 .notion-editor-content [data-type="toggle"]:focus-within,
 .notion-editor-content [data-type="callout"]:focus-within,
@@ -359,7 +369,7 @@
    AI Inline Editing Styles (Notion-like)
    ============================================ */
 
-/* AI Edit Mode - Editor container state */
+/* AI Edit Mode - Editor container state (full document) */
 .notion-editor.ai-edit-mode {
   @apply relative;
 }
@@ -369,6 +379,126 @@
   @apply absolute inset-0 pointer-events-none
     border-2 border-purple-400/30 dark:border-purple-500/30 rounded-lg
     animate-pulse;
+}
+
+/* AI Selection Edit Mode - Only highlights selected text */
+.notion-editor.ai-selection-edit-mode {
+  @apply relative;
+}
+
+/* Selection highlight during AI edit - the selected text gets highlighted */
+.notion-editor.ai-selection-edit-mode ::selection {
+  background: rgba(139, 92, 246, 0.4) !important;
+}
+
+.notion-editor.ai-selection-edit-mode .ProseMirror ::selection {
+  background: rgba(139, 92, 246, 0.4) !important;
+}
+
+/* Pulsing border around the editor in selection mode */
+.notion-editor.ai-selection-edit-mode::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: linear-gradient(90deg, 
+    rgba(139, 92, 246, 0.3) 0%, 
+    rgba(167, 139, 250, 0.4) 50%, 
+    rgba(139, 92, 246, 0.3) 100%
+  ) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: selectionBorderPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes selectionBorderPulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Subtle glow effect on selection mode */
+.notion-editor.ai-selection-edit-mode .ProseMirror {
+  position: relative;
+}
+
+.notion-editor.ai-selection-edit-mode .ProseMirror::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 8px;
+  background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  animation: selectionGlow 2s ease-in-out infinite;
+}
+
+@keyframes selectionGlow {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* AI Selection Highlight Decoration - persists even when editor loses focus */
+.ai-selection-highlight {
+  background: linear-gradient(90deg, 
+    rgba(139, 92, 246, 0.25) 0%, 
+    rgba(167, 139, 250, 0.35) 50%, 
+    rgba(139, 92, 246, 0.25) 100%
+  );
+  border-radius: 3px;
+  padding: 2px 0;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  animation: highlightPulse 1.5s ease-in-out infinite;
+  position: relative;
+}
+
+.ai-selection-highlight::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #8B5CF6 0%, #A78BFA 100%);
+  border-radius: 2px;
+}
+
+@keyframes highlightPulse {
+  0%, 100% {
+    background: linear-gradient(90deg, 
+      rgba(139, 92, 246, 0.2) 0%, 
+      rgba(167, 139, 250, 0.3) 50%, 
+      rgba(139, 92, 246, 0.2) 100%
+    );
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+  }
+  50% {
+    background: linear-gradient(90deg, 
+      rgba(139, 92, 246, 0.3) 0%, 
+      rgba(167, 139, 250, 0.45) 50%, 
+      rgba(139, 92, 246, 0.3) 100%
+    );
+    box-shadow: 0 0 12px 2px rgba(139, 92, 246, 0.2);
+  }
+}
+
+.dark .ai-selection-highlight {
+  background: linear-gradient(90deg, 
+    rgba(139, 92, 246, 0.35) 0%, 
+    rgba(167, 139, 250, 0.45) 50%, 
+    rgba(139, 92, 246, 0.35) 100%
+  );
 }
 
 /* Streaming block animation */
