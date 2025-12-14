@@ -50,7 +50,7 @@ export default function TopBar({
 
   return (
     <header 
-      className="fixed top-0 right-0 z-40 h-12 bg-white dark:bg-[#2b2a2c] border-b border-gray-200 dark:border-[#3d3c3e]"
+      className="fixed top-0 right-0 z-50 h-12 bg-white dark:bg-[#2b2a2c] border-b border-gray-200 dark:border-[#3d3c3e]"
       style={{ left: sidebarWidth }}
     >
       <div className="h-full flex items-center justify-center px-4 relative">

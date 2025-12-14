@@ -279,9 +279,9 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
                 </button>
               </div>
 
-              <div className="mt-6 flex items-start gap-2 text-left max-w-md mx-auto p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-lg">
-                <Lightbulb className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-blue-700 dark:text-blue-300">
+              <div className="mt-6 flex items-start gap-2 text-left max-w-md mx-auto p-3 bg-blue-50 dark:bg-[#3d3c3e] border border-blue-100 dark:border-[#3d3c3e] rounded-lg">
+                <Lightbulb className="w-4 h-4 text-blue-600 dark:text-gray-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-blue-700 dark:text-gray-300">
                   <strong>Tip:</strong> Include 3-5 key accomplishments per role with metrics when possible
                 </p>
               </div>

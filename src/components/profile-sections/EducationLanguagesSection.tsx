@@ -268,7 +268,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
               </p>
               <button
                 onClick={addEducation}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#0A66C2] border border-[#0A66C2] hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#0A66C2] border border-[#0A66C2] hover:bg-blue-50 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Add Education

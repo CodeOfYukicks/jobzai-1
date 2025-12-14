@@ -223,10 +223,10 @@ const JobSearchContextSection = ({ onUpdate }: SectionProps) => {
         </div>
 
         {/* Info Box */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="bg-blue-50 dark:bg-[#3d3c3e] border border-blue-200 dark:border-[#3d3c3e] rounded-lg p-4">
           <div className="flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-            <div className="text-sm text-blue-800 dark:text-blue-200">
+            <AlertCircle className="w-5 h-5 text-blue-600 dark:text-gray-400 mt-0.5" />
+            <div className="text-sm text-blue-800 dark:text-gray-200">
               <strong>Why we ask:</strong> This information helps us prioritize opportunities, adjust recommendation timing, and personalize your job search strategy.
             </div>
           </div>

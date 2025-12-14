@@ -418,14 +418,14 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
                       value={editFormData.firstName}
                       onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
                       placeholder="First Name"
-                      className="flex-1 px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                      className="flex-1 px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-[#3d3c3e] focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3d3c3e] outline-none transition-all"
                     />
                     <input
                       type="text"
                       value={editFormData.lastName}
                       onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
                       placeholder="Last Name"
-                      className="flex-1 px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                      className="flex-1 px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-[#3d3c3e] focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3d3c3e] outline-none transition-all"
                     />
                   </div>
                   <input
@@ -433,14 +433,14 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
                     value={editFormData.headline}
                     onChange={(e) => setEditFormData(prev => ({ ...prev, headline: e.target.value }))}
                     placeholder="Professional headline (e.g., Consultant at Accenture | CRM Specialist)"
-                    className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                    className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-[#3d3c3e] focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3d3c3e] outline-none transition-all"
                   />
                   <input
                     type="text"
                     value={editFormData.location}
                     onChange={(e) => setEditFormData(prev => ({ ...prev, location: e.target.value }))}
                     placeholder="Location (e.g., Paris, Île-de-France, France)"
-                    className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                    className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 dark:focus:border-[#3d3c3e] focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3d3c3e] outline-none transition-all"
                   />
                   <div className="flex gap-2 pt-2">
                     <motion.button
@@ -577,11 +577,11 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="mt-5 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30"
+            className="mt-5 p-4 rounded-lg bg-blue-50 dark:bg-[#3d3c3e] border border-blue-100 dark:border-[#3d3c3e]"
           >
             <div className="flex items-start gap-3">
-              <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-800/50">
-                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-[#3d3c3e]">
+                <Sparkles className="w-4 h-4 text-blue-600 dark:text-gray-400" />
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">

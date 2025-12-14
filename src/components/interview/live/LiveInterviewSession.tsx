@@ -210,7 +210,7 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-[#0c0c0e]"
+                    className="fixed top-12 left-16 right-0 bottom-0 z-40 flex flex-col bg-white dark:bg-[#333234]"
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between px-6 py-4 border-b border-black/5 dark:border-white/5">

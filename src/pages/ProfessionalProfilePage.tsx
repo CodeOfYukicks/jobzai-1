@@ -157,9 +157,9 @@ const ProfessionalProfilePage = () => {
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
       // Flash effect to highlight the section
-      element.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-2');
+      element.classList.add('ring-2', 'ring-indigo-500', 'dark:ring-[#3d3c3e]', 'ring-offset-2');
       setTimeout(() => {
-        element.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-2');
+        element.classList.remove('ring-2', 'ring-indigo-500', 'dark:ring-[#3d3c3e]', 'ring-offset-2');
       }, 2000);
     }
   }, []);

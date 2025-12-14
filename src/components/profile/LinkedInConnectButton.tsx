@@ -264,11 +264,11 @@ export const LinkedInImportModal = ({
               {/* Content */}
               <div className="p-6">
                 {/* Instructions */}
-                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30">
-                  <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                <div className="mb-6 p-4 bg-blue-50 dark:bg-[#3d3c3e] rounded-xl border border-blue-100 dark:border-[#3d3c3e]">
+                  <h3 className="text-sm font-medium text-blue-900 dark:text-gray-100 mb-2">
                     How to export your LinkedIn profile:
                   </h3>
-                  <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-decimal list-inside">
+                  <ol className="text-sm text-blue-800 dark:text-gray-200 space-y-1 list-decimal list-inside">
                     <li>Go to your LinkedIn profile</li>
                     <li>Click "More" → "Save to PDF"</li>
                     <li>Upload the downloaded PDF below</li>
@@ -284,7 +284,7 @@ export const LinkedInImportModal = ({
                       transition-all
                       ${error 
                         ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-900/20' 
-                        : 'border-gray-300 dark:border-gray-600 hover:border-[#0A66C2] dark:hover:border-[#0A66C2] bg-gray-50 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/10'
+                        : 'border-gray-300 dark:border-gray-600 hover:border-[#0A66C2] dark:hover:border-[#0A66C2] bg-gray-50 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-[#3d3c3e]'
                       }
                     `}>
                       <Upload className={`w-10 h-10 mb-3 ${error ? 'text-red-400' : 'text-gray-400'}`} />

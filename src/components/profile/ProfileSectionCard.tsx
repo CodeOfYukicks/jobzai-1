@@ -136,9 +136,9 @@ const ProfileSectionCard = ({
         <div className="px-6 py-4">
           {/* AI Suggestion Banner */}
           {aiSuggestion && (
-            <div className="flex items-start gap-3 p-3 mb-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30">
-              <div className="p-1.5 rounded bg-blue-100 dark:bg-blue-800/50">
-                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <div className="flex items-start gap-3 p-3 mb-4 rounded-lg bg-blue-50 dark:bg-[#3d3c3e] border border-blue-100 dark:border-[#3d3c3e]">
+              <div className="p-1.5 rounded bg-blue-100 dark:bg-[#3d3c3e]">
+                <Sparkles className="w-4 h-4 text-blue-600 dark:text-gray-400" />
               </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-800 dark:text-gray-200">{aiSuggestion}</p>
@@ -183,7 +183,7 @@ const ProfileSectionCard = ({
               {emptyState.actionLabel && emptyState.onAction && (
                 <button
                   onClick={emptyState.onAction}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#0A66C2] border border-[#0A66C2] hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#0A66C2] border border-[#0A66C2] hover:bg-blue-50 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   {emptyState.actionLabel}
