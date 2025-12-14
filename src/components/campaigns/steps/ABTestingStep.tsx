@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Eye, Sparkles, MessageSquare, FileText, Target, Wand2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Eye, Sparkles, MessageSquare, FileText, Target, Wand2, Loader2, ArrowRight, ArrowLeft, ChevronRight } from 'lucide-react';
 import { CampaignData } from '../NewCampaignModal';
 import { notify } from '@/lib/notify';
 import { getAuth } from 'firebase/auth';
@@ -11,15 +11,16 @@ interface ABTestingStepProps {
   onUpdate: (updates: Partial<CampaignData>) => void;
 }
 
-type Section = 'hooks' | 'bodies' | 'ctas';
+type SubStep = 'hooks' | 'bodies' | 'ctas';
 
 interface SectionConfig {
-  id: Section;
+  id: SubStep;
   icon: typeof MessageSquare;
   title: string;
-  description: string;
+  subtitle: string;
   placeholder: string;
   maxVariants: number;
+  recommended: string;
 }
 
 const sections: SectionConfig[] = [
@@ -27,34 +28,37 @@ const sections: SectionConfig[] = [
     id: 'hooks',
     icon: MessageSquare,
     title: 'Opening Hooks',
-    description: 'First sentences to grab attention (3-5 variants)',
+    subtitle: 'First sentences to grab attention',
     placeholder: 'Hi {{firstName}}, I noticed your work at {{company}}...',
     maxVariants: 5,
+    recommended: '3-5 variants',
   },
   {
     id: 'bodies',
     icon: FileText,
     title: 'Email Bodies',
-    description: 'Main message content (2-3 variants)',
+    subtitle: 'Main message content',
     placeholder: 'I wanted to reach out because...',
     maxVariants: 3,
+    recommended: '2-3 variants',
   },
   {
     id: 'ctas',
     icon: Target,
     title: 'Call-to-Actions',
-    description: 'Closing and next steps (2-3 variants)',
+    subtitle: 'Closing and next steps',
     placeholder: 'Would you be open to a quick call this week?',
     maxVariants: 3,
+    recommended: '2-3 variants',
   },
 ];
 
+const SUB_STEPS: SubStep[] = ['hooks', 'bodies', 'ctas'];
+
 export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
-  const [activeSection, setActiveSection] = useState<Section>('hooks');
-  const [showPreview, setShowPreview] = useState(false);
+  const [activeSubStep, setActiveSubStep] = useState<SubStep>('hooks');
   const [previewIndices, setPreviewIndices] = useState({ hook: 0, body: 0, cta: 0 });
   const [generatingVariantIndex, setGeneratingVariantIndex] = useState<number | null>(null);
-  const [generatingAll, setGeneratingAll] = useState(false);
   const [outreachGoal, setOutreachGoal] = useState<'job' | 'internship' | 'networking'>(
     data.outreachGoal || 'job'
   );
@@ -66,13 +70,18 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
   // Initialize with empty arrays if not set
   const abTestConfig = data.abTestConfig || { hooks: [''], bodies: [''], ctas: [''] };
 
+  // Get current sub-step index
+  const currentSubStepIndex = SUB_STEPS.indexOf(activeSubStep);
+  const activeSectionConfig = sections.find(s => s.id === activeSubStep)!;
+  const activeVariants = abTestConfig[activeSubStep];
+
   // Update outreach goal in campaign data
   const handleOutreachGoalChange = (goal: 'job' | 'internship' | 'networking') => {
     setOutreachGoal(goal);
     onUpdate({ outreachGoal: goal });
   };
 
-  const updateVariants = (section: Section, variants: string[]) => {
+  const updateVariants = (section: SubStep, variants: string[]) => {
     onUpdate({
       abTestConfig: {
         ...abTestConfig,
@@ -81,7 +90,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
     });
   };
 
-  const addVariant = (section: Section) => {
+  const addVariant = (section: SubStep) => {
     const currentVariants = abTestConfig[section];
     const sectionConfig = sections.find(s => s.id === section);
     
@@ -93,7 +102,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
     updateVariants(section, [...currentVariants, '']);
   };
 
-  const removeVariant = (section: Section, index: number) => {
+  const removeVariant = (section: SubStep, index: number) => {
     const currentVariants = abTestConfig[section];
     
     if (currentVariants.length <= 1) {
@@ -104,7 +113,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
     updateVariants(section, currentVariants.filter((_, i) => i !== index));
   };
 
-  const updateVariant = (section: Section, index: number, value: string) => {
+  const updateVariant = (section: SubStep, index: number, value: string) => {
     const currentVariants = abTestConfig[section];
     const updated = [...currentVariants];
     updated[index] = value;
@@ -113,26 +122,24 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
 
   // Insert merge field at cursor position
   const insertMergeField = (fieldName: string, variantIndex: number) => {
-    const textareaKey = `${activeSection}-${variantIndex}`;
+    const textareaKey = `${activeSubStep}-${variantIndex}`;
     const textarea = textareaRefs.current.get(textareaKey);
     
     if (!textarea) {
-      // Fallback: append to end
-      const currentText = abTestConfig[activeSection][variantIndex];
-      updateVariant(activeSection, variantIndex, currentText + fieldName);
+      const currentText = abTestConfig[activeSubStep][variantIndex];
+      updateVariant(activeSubStep, variantIndex, currentText + fieldName);
       return;
     }
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const text = abTestConfig[activeSection][variantIndex];
+    const text = abTestConfig[activeSubStep][variantIndex];
     const before = text.substring(0, start);
     const after = text.substring(end);
 
     const newText = before + fieldName + after;
-    updateVariant(activeSection, variantIndex, newText);
+    updateVariant(activeSubStep, variantIndex, newText);
 
-    // Remettre le focus et déplacer le curseur après le merge field
     setTimeout(() => {
       textarea.focus();
       const newPosition = start + fieldName.length;
@@ -141,7 +148,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
   };
 
   // Generate single variant with AI
-  const generateVariant = async (section: Section, index: number) => {
+  const generateVariant = async (section: SubStep, index: number) => {
     setGeneratingVariantIndex(index);
     
     try {
@@ -181,60 +188,23 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
     }
   };
 
-  // Generate all variants for current section
-  const generateAllVariants = async () => {
-    setGeneratingAll(true);
-    
-    try {
-      const auth = getAuth();
-      const token = await auth.currentUser?.getIdToken();
-
-      const variantCount = Math.min(activeVariants.length, activeSectionConfig.maxVariants);
-
-      for (let i = 0; i < variantCount; i++) {
-        try {
-          const existingVariants = abTestConfig[activeSection]
-            .filter((v, idx) => idx !== i && v.trim());
-
-          const response = await fetch(`${BACKEND_URL}/api/campaigns/generate-variant`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              type: activeSection === 'hooks' ? 'hook' : activeSection === 'bodies' ? 'body' : 'cta',
-              tone: data.emailTone || 'casual',
-              language: data.language || 'en',
-              outreachGoal: outreachGoal,
-              existingVariants
-            })
-          });
-
-          const result = await response.json();
-
-          if (result.success && result.variant) {
-            updateVariant(activeSection, i, result.variant);
-          }
-
-          // Small delay to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 300));
-        } catch (error) {
-          console.error(`Error generating variant ${i}:`, error);
-        }
-      }
-
-      notify.success(`Generated ${variantCount} variants!`);
-    } catch (error) {
-      console.error('Error generating all variants:', error);
-      notify.error('Failed to generate variants');
-    } finally {
-      setGeneratingAll(false);
+  // Navigation between sub-steps
+  const handleNextSubStep = () => {
+    const nextIndex = currentSubStepIndex + 1;
+    if (nextIndex < SUB_STEPS.length) {
+      setActiveSubStep(SUB_STEPS[nextIndex]);
     }
   };
 
-  const activeSectionConfig = sections.find(s => s.id === activeSection)!;
-  const activeVariants = abTestConfig[activeSection];
+  const handlePrevSubStep = () => {
+    const prevIndex = currentSubStepIndex - 1;
+    if (prevIndex >= 0) {
+      setActiveSubStep(SUB_STEPS[prevIndex]);
+    }
+  };
+
+  // Check if current section has at least one valid variant
+  const currentSectionValid = activeVariants.some(v => v.trim());
 
   // Generate preview email
   const generatePreview = () => {
@@ -245,121 +215,95 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
     return `${hook}\n\n${body}\n\n${cta}`;
   };
 
-  // Check if configuration is valid
-  const isValid = () => {
+  // Check if configuration is valid (for preview)
+  const hasContent = () => {
     return (
-      abTestConfig.hooks.some(h => h.trim()) &&
-      abTestConfig.bodies.some(b => b.trim()) &&
+      abTestConfig.hooks.some(h => h.trim()) ||
+      abTestConfig.bodies.some(b => b.trim()) ||
       abTestConfig.ctas.some(c => c.trim())
     );
   };
 
+  // Render merge field highlighted text
+  const renderHighlightedText = (text: string) => {
+    return text.split(/(\{\{[^}]+\}\})/g).map((part, idx) => {
+      if (part.match(/\{\{[^}]+\}\}/)) {
   return (
-    <div className="space-y-8">
-      {/* Two-column wrapper for desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-      {/* Header - Full width */}
-      <div className="lg:col-span-5 text-center">
-        <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
-          A/B Testing Configuration
-        </h3>
-        <p className="text-[14px] text-gray-500 dark:text-white/60">
-          Create multiple variants to test what resonates best
-        </p>
-      </div>
+          <span 
+            key={idx}
+            className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md
+              bg-[#b7e219]/15 dark:bg-[#b7e219]/25
+              text-[#b7e219] dark:text-[#b7e219]
+              border border-[#b7e219]/40
+              font-mono text-xs font-semibold
+              shadow-sm"
+          >
+            {part}
+          </span>
+        );
+      }
+      return <span key={idx}>{part || '\u00A0'}</span>;
+    });
+  };
 
-      {/* Outreach Goal Filter - Full width */}
-      <div className="lg:col-span-5">
-        <label className="block text-[11px] font-medium text-gray-500 dark:text-white/50 uppercase tracking-wider mb-2">
-          Outreach Goal
-        </label>
-        <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-white/[0.04] rounded-lg">
+  return (
+    <div className="flex flex-col h-full min-h-0">
+      {/* Header Section - Compact */}
+      <div className="flex-shrink-0 space-y-6 mb-8">
+        {/* Outreach Goal Selector */}
+        <div>
+          <label className="block text-[11px] font-semibold text-gray-500 dark:text-white/50 uppercase tracking-wider mb-3">
+            Outreach Goal
+          </label>
+          <div className="inline-flex items-center gap-1 p-1 bg-gray-100 dark:bg-white/[0.04] rounded-xl">
+            {(['job', 'internship', 'networking'] as const).map((goal) => (
           <button
+                key={goal}
             type="button"
-            onClick={() => handleOutreachGoalChange('job')}
+                onClick={() => handleOutreachGoalChange(goal)}
             className={`
-              flex-1 px-4 py-2 rounded-md text-[12px] font-semibold transition-all duration-200
-              ${outreachGoal === 'job'
+                  px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-all duration-200
+                  ${outreachGoal === goal
                 ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }
             `}
           >
-            Job Search
+                {goal === 'job' ? 'Job Search' : goal === 'internship' ? 'Internship' : 'Networking'}
           </button>
-          
-          <button
-            type="button"
-            onClick={() => handleOutreachGoalChange('internship')}
-            className={`
-              flex-1 px-4 py-2 rounded-md text-[12px] font-semibold transition-all duration-200
-              ${outreachGoal === 'internship'
-                ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }
-            `}
-          >
-            Internship
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => handleOutreachGoalChange('networking')}
-            className={`
-              flex-1 px-4 py-2 rounded-md text-[12px] font-semibold transition-all duration-200
-              ${outreachGoal === 'networking'
-                ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }
-            `}
-          >
-            Networking
-          </button>
+            ))}
         </div>
       </div>
 
-      {/* Info Box - Full width */}
-      <div className="lg:col-span-5 p-5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
-        <div className="flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[13px] text-blue-900 dark:text-blue-200 mb-2">
-              <strong>How it works:</strong> Each email will randomly combine one hook, one body, and one CTA. 
-              We'll track which combinations perform best.
-            </p>
-            <p className="text-[11px] text-blue-700 dark:text-blue-300">
-              Use merge fields to personalize: click the pills to insert them into your text
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Left Column: Editor (3/5) */}
-      <div className="lg:col-span-3 space-y-6">
-      {/* Section Tabs */}
-      <div className="flex items-center gap-2 p-1.5 bg-gray-100 dark:bg-white/[0.04] rounded-xl">
-        {sections.map((section) => {
+        {/* Sub-step Progress Indicator */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {sections.map((section, idx) => {
           const Icon = section.icon;
-          const isActive = activeSection === section.id;
+              const isActive = activeSubStep === section.id;
+              const isPast = idx < currentSubStepIndex;
           const variantCount = abTestConfig[section.id].filter(v => v.trim()).length;
           
           return (
             <button
               key={section.id}
-              onClick={() => setActiveSection(section.id)}
+                  onClick={() => setActiveSubStep(section.id)}
               className={`
-                flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-[13px] font-medium
+                    flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[13px] font-medium
                 transition-all duration-200
                 ${isActive
-                  ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }
-              `}
-            >
-              <Icon className="w-4 h-4" />
+                      ? 'bg-[#b7e219]/10 dark:bg-[#b7e219]/15 text-gray-900 dark:text-white ring-1 ring-[#b7e219]/50'
+                      : isPast
+                        ? 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.04]'
+                        : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.04]'
+                    }
+                  `}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-[#b7e219]' : ''}`} />
               <span className="hidden sm:inline">{section.title}</span>
+                  {variantCount > 0 && (
               <span className={`
-                inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold
+                      inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold
                 ${isActive
                   ? 'bg-[#b7e219] text-gray-900'
                   : 'bg-gray-200 dark:bg-white/[0.08] text-gray-600 dark:text-gray-400'
@@ -367,40 +311,56 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
               `}>
                 {variantCount}
               </span>
+                  )}
+                  {idx < sections.length - 1 && (
+                    <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 ml-1 hidden sm:block" />
+                  )}
             </button>
           );
         })}
+          </div>
+        </div>
+
+        {/* Info Tip - Compact */}
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-purple-50 dark:bg-purple-500/10 border border-purple-200/50 dark:border-purple-500/20">
+          <Sparkles className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+          <p className="text-[12px] text-purple-700 dark:text-purple-300">
+            Each email will randomly combine one hook, one body, and one CTA. We'll track which combinations perform best.
+          </p>
+        </div>
       </div>
 
-      {/* Active Section Content */}
+      {/* Active Section Editor - Full Width */}
+      <div className="flex-1 min-h-0">
       <AnimatePresence mode="wait">
         <motion.div
-          key={activeSection}
-          initial={{ opacity: 0, x: 20 }}
+            key={activeSubStep}
+            initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.2 }}
-          className="space-y-4"
+            exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            className="space-y-6"
         >
           {/* Section Header */}
-          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-start justify-between">
             <div>
-              <h4 className="text-[16px] font-semibold text-gray-900 dark:text-white">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
                 {activeSectionConfig.title}
-              </h4>
-              <p className="text-[13px] text-gray-500 dark:text-white/60 mt-0.5">
-                {activeSectionConfig.description}
+                </h3>
+                <p className="text-[14px] text-gray-500 dark:text-white/60">
+                  {activeSectionConfig.subtitle} <span className="text-gray-400 dark:text-white/40">({activeSectionConfig.recommended})</span>
               </p>
             </div>
+              
               <button
-                onClick={() => addVariant(activeSection)}
+                onClick={() => addVariant(activeSubStep)}
                 disabled={activeVariants.length >= activeSectionConfig.maxVariants}
                 className={`
-                  inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold
+                  inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold
                   transition-all duration-200
                 ${activeVariants.length >= activeSectionConfig.maxVariants
                   ? 'bg-gray-100 dark:bg-white/[0.04] text-gray-400 dark:text-gray-600 cursor-not-allowed'
-                  : 'bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] border border-[#9fc015]'
+                    : 'bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] shadow-sm hover:shadow-md'
                 }
               `}
             >
@@ -409,33 +369,46 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
             </button>
           </div>
 
-          {/* Variants */}
-          <div className="space-y-5">
+            {/* Shared Merge Fields - Once at the top */}
+            <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/[0.06]">
+              <p className="text-[11px] font-medium text-gray-500 dark:text-white/50 uppercase tracking-wider mb-3">
+                Personalization Fields
+              </p>
+              <MergeFieldPills onInsert={(field) => {
+                // Insert into the first variant's textarea by default, or the focused one
+                const focusedTextarea = Array.from(textareaRefs.current.entries()).find(([key]) => 
+                  document.activeElement === textareaRefs.current.get(key)
+                );
+                const targetIndex = focusedTextarea ? parseInt(focusedTextarea[0].split('-')[1]) : 0;
+                insertMergeField(field, targetIndex);
+              }} />
+            </div>
+
+            {/* Variants List */}
+            <div className="space-y-4">
             {activeVariants.map((variant, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="relative group"
+                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                  className="group relative"
               >
-                <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-4">
                   {/* Variant Number */}
-                  <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/[0.05] flex items-center justify-center text-[15px] font-semibold text-gray-600 dark:text-gray-400 flex-shrink-0 mt-2">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-white/[0.06] dark:to-white/[0.02] 
+                      flex items-center justify-center text-[15px] font-bold text-gray-500 dark:text-gray-400 
+                      flex-shrink-0 mt-1 border border-gray-200/50 dark:border-white/[0.06]">
                     {index + 1}
                   </div>
 
-                  {/* Variant Content Area */}
+                    {/* Textarea Container */}
                   <div className="flex-1 space-y-3">
-                    {/* Merge Field Pills */}
-                    <MergeFieldPills onInsert={(field) => insertMergeField(field, index)} />
-
-                    {/* Textarea with Overlay for Merge Field Pills */}
                     <div className="relative">
                       <textarea
                         ref={(el) => {
-                          const key = `${activeSection}-${index}`;
+                            const key = `${activeSubStep}-${index}`;
                           if (el) {
                             textareaRefs.current.set(key, el);
                           } else {
@@ -443,81 +416,65 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
                           }
                         }}
                         value={variant}
-                        onChange={(e) => updateVariant(activeSection, index, e.target.value)}
+                          onChange={(e) => updateVariant(activeSubStep, index, e.target.value)}
                         placeholder={activeSectionConfig.placeholder}
-                        rows={activeSection === 'bodies' ? 5 : 3}
-                        className="w-full px-4 py-3.5 text-[13px] bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08]
-                          rounded-xl focus:outline-none focus:ring-2 focus:ring-[#b7e219]/20 focus:border-[#b7e219]
-                          text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/40
-                          resize-none transition-all duration-200"
+                          rows={activeSubStep === 'bodies' ? 5 : 3}
+                          className="w-full px-5 py-4 text-[14px] bg-white dark:bg-[#1a1a1a] 
+                            border border-gray-200 dark:border-white/[0.08]
+                            rounded-xl focus:outline-none focus:ring-2 focus:ring-[#b7e219]/30 focus:border-[#b7e219]
+                            text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30
+                            resize-none transition-all duration-200 leading-relaxed"
                         style={{
-                          lineHeight: '1.8',
                           color: 'transparent',
-                          caretColor: '#1f2937'
+                            caretColor: 'currentColor'
                         }}
                       />
                       {/* Overlay with styled merge fields */}
                       <div 
-                        className="absolute inset-0 px-4 py-3.5 text-[13px] pointer-events-none rounded-xl overflow-hidden"
-                        style={{
-                          lineHeight: '1.8'
-                        }}
+                          className="absolute inset-0 px-5 py-4 text-[14px] pointer-events-none rounded-xl overflow-hidden leading-relaxed"
                       >
                         <div className="text-gray-900 dark:text-white whitespace-pre-wrap break-words">
-                          {variant.split(/(\{\{[^}]+\}\})/g).map((part, idx) => {
-                            if (part.match(/\{\{[^}]+\}\}/)) {
-                              return (
-                                <span 
-                                  key={idx}
-                                  className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md
-                                    bg-[#b7e219]/15 dark:bg-[#b7e219]/25
-                                    text-[#b7e219] dark:text-[#b7e219]
-                                    border border-[#b7e219]/40
-                                    font-mono text-xs font-semibold
-                                    shadow-sm"
-                                >
-                                  {part}
-                                </span>
-                              );
-                            }
-                            return <span key={idx}>{part || '\u00A0'}</span>;
-                          })}
-                        </div>
+                            {renderHighlightedText(variant)}
+                          </div>
                       </div>
                     </div>
 
-                    {/* AI Generate Button */}
-                    <div className="flex items-center gap-2">
+                      {/* AI Generate Button - Glassmorphism */}
                       <button
-                        onClick={() => generateVariant(activeSection, index)}
+                        onClick={() => generateVariant(activeSubStep, index)}
                         disabled={generatingVariantIndex === index}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-medium
-                          bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-500/10 dark:to-indigo-500/10
-                          text-purple-700 dark:text-purple-300 
-                          border border-purple-200 dark:border-purple-500/20
-                          hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-500/20 dark:hover:to-indigo-500/20
-                          transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="group inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-medium
+                          bg-white/60 dark:bg-white/[0.06] backdrop-blur-md
+                          text-gray-600 dark:text-gray-300
+                          border border-white/50 dark:border-white/[0.08]
+                          shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)]
+                          hover:bg-white/80 dark:hover:bg-white/[0.1]
+                          hover:border-purple-300/50 dark:hover:border-purple-400/30
+                          hover:text-purple-600 dark:hover:text-purple-300
+                          hover:shadow-[0_4px_12px_-2px_rgba(168,85,247,0.15)] dark:hover:shadow-[0_4px_12px_-2px_rgba(168,85,247,0.2)]
+                          active:scale-[0.98]
+                          transition-all duration-300 ease-out
+                          disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                       >
                         {generatingVariantIndex === index ? (
                           <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>Generating...</span>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-500" />
+                            <span className="text-purple-600 dark:text-purple-300">Generating...</span>
                           </>
                         ) : (
                           <>
-                            <Wand2 className="w-4 h-4" />
+                            <Wand2 className="w-3.5 h-3.5 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors duration-300" />
                             <span>Generate with AI</span>
                           </>
                         )}
                       </button>
-                    </div>
                   </div>
 
                   {/* Delete Button */}
                   {activeVariants.length > 1 && (
                     <button
-                      onClick={() => removeVariant(activeSection, index)}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-2
+                        onClick={() => removeVariant(activeSubStep, index)}
+                        className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-1
                         text-gray-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400
                         hover:bg-red-50 dark:hover:bg-red-500/10 transition-all duration-200
                         opacity-0 group-hover:opacity-100"
@@ -528,197 +485,135 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
                 </div>
               </motion.div>
             ))}
-          </div>
-        </motion.div>
-      </AnimatePresence>
-
       </div>
       
-      {/* Right Column: Preview (2/5) - Sticky on desktop */}
-      <div className="lg:col-span-2">
-        <div className="lg:sticky lg:top-0 space-y-4">
-          {/* Preview Card */}
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-white/[0.04] dark:to-white/[0.02] border border-gray-200 dark:border-white/[0.08]">
-            <h4 className="text-[15px] font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <Eye className="w-4 h-4" />
-              Live Preview
-            </h4>
-            
-            {isValid() ? (
-              <>
-                {/* Preview Selectors */}
-                <div className="flex flex-col gap-2.5 mb-4">
-                  <select
-                    value={previewIndices.hook}
-                    onChange={(e) => setPreviewIndices(prev => ({ ...prev, hook: parseInt(e.target.value) }))}
-                    className="px-3 py-2.5 text-[12px] bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08] rounded-lg text-gray-700 dark:text-gray-300"
-                  >
-                    {abTestConfig.hooks.map((_, idx) => (
-                      <option key={idx} value={idx}>Hook {idx + 1}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={previewIndices.body}
-                    onChange={(e) => setPreviewIndices(prev => ({ ...prev, body: parseInt(e.target.value) }))}
-                    className="px-3 py-2.5 text-[12px] bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08] rounded-lg text-gray-700 dark:text-gray-300"
-                  >
-                    {abTestConfig.bodies.map((_, idx) => (
-                      <option key={idx} value={idx}>Body {idx + 1}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={previewIndices.cta}
-                    onChange={(e) => setPreviewIndices(prev => ({ ...prev, cta: parseInt(e.target.value) }))}
-                    className="px-3 py-2.5 text-[12px] bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08] rounded-lg text-gray-700 dark:text-gray-300"
-                  >
-                    {abTestConfig.ctas.map((_, idx) => (
-                      <option key={idx} value={idx}>CTA {idx + 1}</option>
-                    ))}
-                  </select>
-                </div>
+            {/* Internal Navigation */}
+            <div className="flex items-center justify-between pt-6 border-t border-gray-200/50 dark:border-white/[0.06]">
+              <button
+                onClick={handlePrevSubStep}
+                disabled={currentSubStepIndex === 0}
+                className={`
+                  inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-medium
+                  transition-all duration-200
+                  ${currentSubStepIndex === 0
+                    ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.06]'
+                  }
+                `}
+              >
+                <ArrowLeft className="w-4 h-4" />
+                {currentSubStepIndex > 0 ? sections[currentSubStepIndex - 1].title : 'Back'}
+              </button>
 
-                {/* Preview Content */}
-                <div className="p-5 rounded-xl bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/[0.08]">
-                  <p className="text-[13px] text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                    {generatePreview().split(/(\{\{[^}]+\}\})/g).map((part, idx) => {
-                      if (part.match(/\{\{[^}]+\}\}/)) {
-                        return (
-                          <span 
-                            key={idx}
-                            className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md
-                              bg-[#b7e219]/10 dark:bg-[#b7e219]/20
-                              text-[#b7e219] dark:text-[#b7e219]
-                              border border-[#b7e219]/30
-                              font-mono text-xs font-semibold"
-                          >
-                            {part}
-                          </span>
-                        );
+              <div className="flex items-center gap-2">
+                {SUB_STEPS.map((step, idx) => (
+                  <div
+                    key={step}
+                    className={`
+                      w-2 h-2 rounded-full transition-all duration-200
+                      ${idx === currentSubStepIndex
+                        ? 'w-6 bg-[#b7e219]'
+                        : idx < currentSubStepIndex
+                          ? 'bg-[#b7e219]/50'
+                          : 'bg-gray-300 dark:bg-gray-600'
                       }
-                      return <span key={idx}>{part}</span>;
-                    })}
-                  </p>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-[13px] text-gray-500 dark:text-white/50">
-                  Add variants to see preview
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+                    `}
+                  />
+                ))}
       </div>
 
-      {/* Mobile Preview Button (shown only on mobile) */}
-      <div className="lg:hidden flex items-center justify-center pt-4 border-t border-gray-200 dark:border-white/[0.08]">
+              {currentSubStepIndex < SUB_STEPS.length - 1 ? (
         <button
-          onClick={() => setShowPreview(!showPreview)}
-          disabled={!isValid()}
+                  onClick={handleNextSubStep}
+                  disabled={!currentSectionValid}
           className={`
-            inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                    inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-semibold
             transition-all duration-200
-            ${isValid()
-              ? 'bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.06]'
+                    ${currentSectionValid
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 shadow-sm'
               : 'bg-gray-100 dark:bg-white/[0.04] text-gray-400 dark:text-gray-600 cursor-not-allowed'
             }
           `}
         >
-          <Eye className="w-4 h-4" />
-          {showPreview ? 'Hide Preview' : 'Preview Email'}
+                  {sections[currentSubStepIndex + 1].title}
+                  <ArrowRight className="w-4 h-4" />
         </button>
+              ) : (
+                <div className="w-[120px]" /> 
+              )}
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      {/* Preview Panel */}
-      <AnimatePresence>
-        {showPreview && isValid() && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="p-5 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-white/[0.04] dark:to-white/[0.02] border border-gray-200 dark:border-white/[0.08]">
+      {/* Preview Section - Sticky Bottom */}
+      <div className="flex-shrink-0 mt-8 pt-6 border-t border-gray-200/50 dark:border-white/[0.06]">
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-white/[0.03] dark:to-white/[0.01] 
+          border border-gray-200/60 dark:border-white/[0.06]">
               <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Preview Combination
+            <h4 className="text-[14px] font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Eye className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              Live Preview
                 </h4>
-                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-white/50">
-                  <span>Hook {previewIndices.hook + 1}</span>
-                  <span>•</span>
-                  <span>Body {previewIndices.body + 1}</span>
-                  <span>•</span>
-                  <span>CTA {previewIndices.cta + 1}</span>
-                </div>
-              </div>
-
-              {/* Preview Selectors */}
-              <div className="flex items-center gap-2 mb-4">
+            
+            {/* Mini Selectors */}
+            {hasContent() && (
+              <div className="flex items-center gap-2">
                 <select
                   value={previewIndices.hook}
                   onChange={(e) => setPreviewIndices(prev => ({ ...prev, hook: parseInt(e.target.value) }))}
-                  className="px-3 py-1.5 text-xs bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08] rounded-lg text-gray-700 dark:text-gray-300"
+                  className="px-2.5 py-1.5 text-[11px] font-medium bg-white dark:bg-[#1a1a1a] 
+                    border border-gray-200 dark:border-white/[0.08] rounded-lg 
+                    text-gray-700 dark:text-gray-300 cursor-pointer"
                 >
                   {abTestConfig.hooks.map((_, idx) => (
                     <option key={idx} value={idx}>Hook {idx + 1}</option>
                   ))}
                 </select>
+                <span className="text-gray-300 dark:text-gray-600">+</span>
                 <select
                   value={previewIndices.body}
                   onChange={(e) => setPreviewIndices(prev => ({ ...prev, body: parseInt(e.target.value) }))}
-                  className="px-3 py-1.5 text-xs bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08] rounded-lg text-gray-700 dark:text-gray-300"
+                  className="px-2.5 py-1.5 text-[11px] font-medium bg-white dark:bg-[#1a1a1a] 
+                    border border-gray-200 dark:border-white/[0.08] rounded-lg 
+                    text-gray-700 dark:text-gray-300 cursor-pointer"
                 >
                   {abTestConfig.bodies.map((_, idx) => (
                     <option key={idx} value={idx}>Body {idx + 1}</option>
                   ))}
                 </select>
+                <span className="text-gray-300 dark:text-gray-600">+</span>
                 <select
                   value={previewIndices.cta}
                   onChange={(e) => setPreviewIndices(prev => ({ ...prev, cta: parseInt(e.target.value) }))}
-                  className="px-3 py-1.5 text-xs bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08] rounded-lg text-gray-700 dark:text-gray-300"
+                  className="px-2.5 py-1.5 text-[11px] font-medium bg-white dark:bg-[#1a1a1a] 
+                    border border-gray-200 dark:border-white/[0.08] rounded-lg 
+                    text-gray-700 dark:text-gray-300 cursor-pointer"
                 >
                   {abTestConfig.ctas.map((_, idx) => (
                     <option key={idx} value={idx}>CTA {idx + 1}</option>
                   ))}
                 </select>
               </div>
-
-              {/* Preview Content with Merge Field Highlighting */}
-              <div className="p-4 rounded-lg bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/[0.08]">
-                <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                  {generatePreview().split(/(\{\{[^}]+\}\})/g).map((part, idx) => {
-                    if (part.match(/\{\{[^}]+\}\}/)) {
-                      return (
-                        <span 
-                          key={idx}
-                          className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md
-                            bg-[#b7e219]/10 dark:bg-[#b7e219]/20
-                            text-[#b7e219] dark:text-[#b7e219]
-                            border border-[#b7e219]/30
-                            font-mono text-xs font-semibold"
-                        >
-                          {part}
-                        </span>
-                      );
-                    }
-                    return <span key={idx}>{part}</span>;
-                  })}
-                </p>
+            )}
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* Validation Warning - Full width */}
-      {!isValid() && (
-        <div className="lg:col-span-5 p-4 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
-          <p className="text-sm text-amber-800 dark:text-amber-300">
-            Please add at least one variant for each section (hooks, bodies, and CTAs) to continue.
+          {/* Preview Content */}
+          {hasContent() ? (
+            <div className="p-4 rounded-xl bg-white dark:bg-[#0a0a0a] border border-gray-200/50 dark:border-white/[0.06] 
+              max-h-[150px] overflow-y-auto">
+              <p className="text-[13px] text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                {renderHighlightedText(generatePreview())}
+              </p>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-[13px] text-gray-400 dark:text-white/40">
+                Add variants to see preview
           </p>
         </div>
       )}
+        </div>
       </div>
     </div>
   );
