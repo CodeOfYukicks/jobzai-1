@@ -34,12 +34,12 @@ interface AvatarEditorProps {
 type TabKey = 'eyes' | 'mouth' | 'hair' | 'glasses' | 'brows' | 'nose';
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-  { key: 'eyes', label: 'Eyes', icon: <Eye className="w-4 h-4" /> },
-  { key: 'mouth', label: 'Mouth', icon: <Smile className="w-4 h-4" /> },
-  { key: 'hair', label: 'Hair', icon: <Scissors className="w-4 h-4" /> },
-  { key: 'glasses', label: 'Glasses', icon: <Glasses className="w-4 h-4" /> },
-  { key: 'brows', label: 'Brows', icon: <BrowIcon className="w-4 h-4" /> },
-  { key: 'nose', label: 'Nose', icon: <User2 className="w-4 h-4" /> },
+  { key: 'eyes', label: 'Eyes', icon: <Eye className="w-3.5 h-3.5" /> },
+  { key: 'mouth', label: 'Mouth', icon: <Smile className="w-3.5 h-3.5" /> },
+  { key: 'hair', label: 'Hair', icon: <Scissors className="w-3.5 h-3.5" /> },
+  { key: 'glasses', label: 'Glasses', icon: <Glasses className="w-3.5 h-3.5" /> },
+  { key: 'brows', label: 'Brows', icon: <BrowIcon className="w-3.5 h-3.5" /> },
+  { key: 'nose', label: 'Nose', icon: <User2 className="w-3.5 h-3.5" /> },
 ];
 
 export default function AvatarEditor({ 
@@ -163,22 +163,24 @@ export default function AvatarEditor({
         <div className="flex items-center gap-2 mt-4">
           <button
             onClick={handleRandomize}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl
-              bg-gradient-to-r from-violet-500 to-purple-500
-              text-white text-sm font-medium
-              hover:from-violet-600 hover:to-purple-600
-              transition-all shadow-md hover:shadow-lg"
+            className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg
+              bg-gray-900/5 dark:bg-white/5
+              text-gray-700 dark:text-gray-300 text-xs font-medium
+              hover:bg-violet-500 hover:text-white dark:hover:bg-violet-500
+              border border-gray-200/60 dark:border-white/10
+              hover:border-transparent
+              transition-all duration-200"
           >
-            <Shuffle className="w-4 h-4" />
+            <Shuffle className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-300" />
             Randomize
           </button>
           <button
             onClick={handleReset}
-            className="px-4 py-2 rounded-xl
-              bg-gray-100 dark:bg-white/5
-              text-gray-600 dark:text-gray-300 text-sm font-medium
-              hover:bg-gray-200 dark:hover:bg-white/10
-              transition-all"
+            className="px-3 py-1.5 rounded-lg
+              text-gray-500 dark:text-gray-400 text-xs font-medium
+              hover:text-gray-700 dark:hover:text-gray-200
+              hover:bg-gray-100 dark:hover:bg-white/5
+              transition-all duration-200"
           >
             Reset
           </button>
@@ -186,16 +188,16 @@ export default function AvatarEditor({
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 px-4 py-2 border-b border-gray-200 dark:border-white/10 overflow-x-auto">
+      <div className="flex items-center gap-0.5 px-3 py-2 border-b border-gray-200/60 dark:border-white/5 overflow-x-auto scrollbar-none">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
-              transition-all whitespace-nowrap
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium
+              transition-all duration-150 whitespace-nowrap
               ${activeTab === tab.key
-                ? 'bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300'
-                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'
+                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5'
               }`}
           >
             {tab.icon}
@@ -285,20 +287,21 @@ export default function AvatarEditor({
 
       {/* Save Button */}
       {onSave && (
-        <div className="p-4 border-t border-gray-200 dark:border-white/10">
+        <div className="px-4 py-3 border-t border-gray-200/60 dark:border-white/5">
           <button
             onClick={() => {
               onSave();
               onClose();
             }}
-            className="w-full py-3 rounded-xl
+            className="w-full py-2 rounded-lg text-sm
               bg-gray-900 dark:bg-white
               text-white dark:text-gray-900
               font-medium
               hover:bg-gray-800 dark:hover:bg-gray-100
-              transition-all"
+              active:scale-[0.98]
+              transition-all duration-150"
           >
-            Save Avatar
+            Save
           </button>
         </div>
       )}
