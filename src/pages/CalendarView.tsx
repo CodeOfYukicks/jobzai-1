@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import moment from 'moment';
 import { collection, query, getDocs, getDoc, addDoc, doc, updateDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -14,6 +14,7 @@ import {
 } from '../components/calendar';
 import { CalendarEvent, CalendarView as CalendarViewType } from '../components/calendar/types';
 import { KanbanBoard } from '../types/job';
+import { useGoogleCalendar, GoogleCalendarEvent } from '../hooks/useGoogleCalendar';
 
 // Types from JobApplicationsPage
 interface Interview {
@@ -63,6 +64,7 @@ export default function CalendarView() {
   const [showApplications, setShowApplications] = useState(true);
   const [showInterviews, setShowInterviews] = useState(true);
   const [showWishlists, setShowWishlists] = useState(true);
+  const [showGoogleEvents, setShowGoogleEvents] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showAddEventModal, setShowAddEventModal] = useState(false);
@@ -70,8 +72,21 @@ export default function CalendarView() {
   const [isDragging, setIsDragging] = useState(false);
   const [justSelectedEvent, setJustSelectedEvent] = useState(false);
   const [boards, setBoards] = useState<KanbanBoard[]>([]);
+  const [googleEvents, setGoogleEvents] = useState<CalendarEvent[]>([]);
   const dragTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const dragStartTimeRef = useRef<number>(0);
+
+  // Google Calendar hook
+  const {
+    isConnected: isGoogleConnected,
+    isLoading: isGoogleLoading,
+    email: googleEmail,
+    error: googleError,
+    connect: connectGoogle,
+    disconnect: disconnectGoogle,
+    fetchEvents: fetchGoogleEvents,
+    createEvent: createGoogleEvent,
+  } = useGoogleCalendar();
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -210,6 +225,59 @@ export default function CalendarView() {
     
     fetchApplicationsAndInterviews();
   }, [currentUser]);
+
+  // Fetch Google Calendar events when connected and date changes
+  const loadGoogleEvents = useCallback(async () => {
+    if (!isGoogleConnected) {
+      setGoogleEvents([]);
+      return;
+    }
+
+    try {
+      // Calculate date range based on current view
+      let startDate: Date;
+      let endDate: Date;
+
+      if (selectedView === 'month') {
+        startDate = moment(currentDate).startOf('month').subtract(1, 'week').toDate();
+        endDate = moment(currentDate).endOf('month').add(1, 'week').toDate();
+      } else if (selectedView === 'week') {
+        startDate = moment(currentDate).startOf('week').toDate();
+        endDate = moment(currentDate).endOf('week').toDate();
+      } else {
+        startDate = moment(currentDate).startOf('day').toDate();
+        endDate = moment(currentDate).endOf('day').toDate();
+      }
+
+      const gEvents = await fetchGoogleEvents(startDate, endDate);
+      
+      // Convert Google events to CalendarEvent format
+      const convertedEvents: CalendarEvent[] = gEvents.map((gEvent: GoogleCalendarEvent) => ({
+        id: `google-${gEvent.id}`,
+        title: gEvent.summary,
+        start: gEvent.start,
+        end: gEvent.end,
+        allDay: gEvent.allDay,
+        type: 'google' as const,
+        color: '#4285F4', // Google blue
+        resource: {
+          googleEventId: gEvent.id,
+          description: gEvent.description,
+          location: gEvent.location,
+          htmlLink: gEvent.htmlLink,
+          isGoogleEvent: true,
+        },
+      }));
+
+      setGoogleEvents(convertedEvents);
+    } catch (error) {
+      console.error('Error fetching Google events:', error);
+    }
+  }, [isGoogleConnected, currentDate, selectedView, fetchGoogleEvents]);
+
+  useEffect(() => {
+    loadGoogleEvents();
+  }, [loadGoogleEvents]);
 
   // Handle drag and drop
   const handleEventDrop = async ({ event, start, end }: any) => {
@@ -380,11 +448,15 @@ export default function CalendarView() {
   };
 
   // Filter events
-  const filteredEvents = events.filter(
+  // Merge local events with Google events
+  const allEvents = [...events, ...googleEvents];
+  
+  const filteredEvents = allEvents.filter(
     (event) =>
       (showApplications && event.type === 'application') || 
       (showInterviews && event.type === 'interview') ||
-      (showWishlists && event.type === 'wishlist')
+      (showWishlists && event.type === 'wishlist') ||
+      (showGoogleEvents && event.type === 'google')
   );
 
   // Event style getter - Minimal styling, EventPill handles the rest
@@ -624,7 +696,29 @@ export default function CalendarView() {
         };
         
         setEvents((prev) => [...prev, newInterviewEvent]);
-        notify.success('Interview added successfully');
+        
+        // Sync interview to Google Calendar if connected
+        if (isGoogleConnected) {
+          try {
+            const interviewTitle = `${eventData.interviewType.charAt(0).toUpperCase() + eventData.interviewType.slice(1)} Interview - ${eventData.companyName}`;
+            const description = `Position: ${eventData.position}\n${eventData.notes ? `Notes: ${eventData.notes}` : ''}`;
+            
+            await createGoogleEvent({
+              summary: interviewTitle,
+              description,
+              start: interviewDate,
+              end: endDate,
+              location: eventData.location,
+            });
+            
+            notify.success('Interview added and synced to Google Calendar');
+          } catch (googleError) {
+            console.error('Failed to sync to Google Calendar:', googleError);
+            notify.success('Interview added (Google Calendar sync failed)');
+          }
+        } else {
+          notify.success('Interview added successfully');
+        }
       }
     } catch (error) {
       console.error('Error adding event:', error);
@@ -689,6 +783,15 @@ export default function CalendarView() {
               onToggleApplications={() => setShowApplications(!showApplications)}
               onToggleInterviews={() => setShowInterviews(!showInterviews)}
               onToggleWishlists={() => setShowWishlists(!showWishlists)}
+              googleCalendar={{
+                isConnected: isGoogleConnected,
+                isLoading: isGoogleLoading,
+                email: googleEmail,
+                onConnect: connectGoogle,
+                onDisconnect: disconnectGoogle,
+                showGoogleEvents,
+                onToggleGoogleEvents: () => setShowGoogleEvents(!showGoogleEvents),
+              }}
             />
 
             {/* Calendar */}

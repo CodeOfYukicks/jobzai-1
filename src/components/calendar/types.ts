@@ -7,7 +7,7 @@ export interface CalendarEvent {
   end: Date;
   allDay?: boolean;
   resource?: any;
-  type: 'interview' | 'application' | 'wishlist';
+  type: 'interview' | 'application' | 'wishlist' | 'google';
   color?: string;
 }
 

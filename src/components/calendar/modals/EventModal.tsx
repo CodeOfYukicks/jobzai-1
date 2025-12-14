@@ -19,12 +19,24 @@ import {
   CheckCircle2,
   Circle,
   AlertCircle,
-  Layout
+  Layout,
+  Heart,
+  Link2
 } from 'lucide-react';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
 import { CalendarEvent } from '../types';
 import { CompanyLogo } from '../../common/CompanyLogo';
+
+// Google Calendar icon component
+const GoogleCalendarIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+  </svg>
+);
 
 interface EventModalProps {
   event: CalendarEvent | null;
@@ -37,12 +49,18 @@ export const EventModal = ({ event, onClose }: EventModalProps) => {
   if (!event) return null;
 
   const isInterview = event.type === 'interview';
+  const isGoogleEvent = event.type === 'google';
+  const isWishlist = event.type === 'wishlist';
   const resource = event.resource || {};
   const application = isInterview ? (resource.application || resource) : resource;
   const interview = isInterview ? resource.interview : null;
 
-  const companyName = application?.companyName || 'Company';
-  const position = application?.position || 'Position';
+  // For Google events, use event title and resource properties
+  const companyName = isGoogleEvent ? event.title : (application?.companyName || 'Company');
+  const position = isGoogleEvent ? '' : (application?.position || 'Position');
+  const googleLink = resource?.htmlLink;
+  const googleDescription = resource?.description;
+  const googleLocation = resource?.location;
   
   // Board info
   const boardName = resource?.boardName;
@@ -98,6 +116,31 @@ END:VCALENDAR`;
 
   // Get colors based on event type
   const getEventColors = () => {
+    // Google Calendar events
+    if (isGoogleEvent) {
+      return {
+        gradient: 'from-[#4285F4]/15 to-[#1a73e8]/10',
+        border: 'border-[#4285F4]/30',
+        badge: 'bg-[#4285F4]/10 text-[#4285F4] dark:text-[#8ab4f8] border-[#4285F4]/20',
+        icon: <GoogleCalendarIcon className="w-5 h-5" />,
+        iconBg: 'bg-white dark:bg-gray-800',
+        iconColor: 'text-[#4285F4]',
+        isGoogle: true
+      };
+    }
+
+    // Wishlist events
+    if (isWishlist) {
+      return {
+        gradient: 'from-pink-500/10 to-rose-600/5',
+        border: 'border-pink-500/20',
+        badge: 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20',
+        icon: <Heart className="w-5 h-5" />,
+        iconBg: 'bg-pink-500/10',
+        iconColor: 'text-pink-600 dark:text-pink-400'
+      };
+    }
+
     if (event.type === 'application') {
       return {
         gradient: 'from-blue-500/10 to-blue-600/5',
@@ -232,17 +275,23 @@ END:VCALENDAR`;
           {/* Header - Google Style */}
           <div className="relative">
             {/* Subtle top accent bar */}
-            <div className={`h-1.5 bg-gradient-to-r ${colors.gradient.replace('/10', '/40').replace('/5', '/30')}`} />
+            <div className={`h-1.5 bg-gradient-to-r ${isGoogleEvent ? 'from-[#4285F4] via-[#34A853] via-[#FBBC05] to-[#EA4335]' : colors.gradient.replace('/10', '/40').replace('/5', '/30')}`} />
             
             <div className="p-6 pb-4">
               <div className="flex items-start gap-4">
-                {/* Company Logo - Simple without overlay icon */}
+                {/* Company Logo or Google Icon */}
                 <div className="flex-shrink-0">
-                  <CompanyLogo 
-                    companyName={companyName} 
-                    size="lg"
-                    className="ring-2 ring-gray-100 dark:ring-gray-800 shadow-sm"
-                  />
+                  {isGoogleEvent ? (
+                    <div className="w-14 h-14 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center shadow-sm">
+                      <GoogleCalendarIcon className="w-8 h-8" />
+                    </div>
+                  ) : (
+                    <CompanyLogo 
+                      companyName={companyName} 
+                      size="lg"
+                      className="ring-2 ring-gray-100 dark:ring-gray-800 shadow-sm"
+                    />
+                  )}
                 </div>
 
                 {/* Title and Meta */}
@@ -250,9 +299,12 @@ END:VCALENDAR`;
                   <h3 className="font-semibold text-2xl text-gray-900 dark:text-white tracking-tight mb-0.5">
                     {companyName}
                   </h3>
-                  <p className="text-base text-gray-600 dark:text-gray-400 mb-3">
-                    {position}
-                  </p>
+                  {position && (
+                    <p className="text-base text-gray-600 dark:text-gray-400 mb-3">
+                      {position}
+                    </p>
+                  )}
+                  {isGoogleEvent && !position && <div className="mb-2" />}
                   
                   <div className="flex items-center gap-2 flex-wrap">
                     {/* Type Badge with icon */}
@@ -260,11 +312,25 @@ END:VCALENDAR`;
                       <div className="w-3.5 h-3.5">
                         {colors.icon}
                       </div>
-                      {isInterview ? `${interview?.type.charAt(0).toUpperCase() + interview?.type.slice(1)} Interview` : 'Application'}
+                      {isGoogleEvent 
+                        ? 'Google Calendar' 
+                        : isWishlist 
+                          ? 'Wishlist'
+                          : isInterview 
+                            ? `${interview?.type.charAt(0).toUpperCase() + interview?.type.slice(1)} Interview` 
+                            : 'Application'}
                     </span>
                     
+                    {/* Synced indicator for Google events */}
+                    {isGoogleEvent && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Synced
+                      </span>
+                    )}
+                    
                     {/* Status Badge */}
-                    {statusInfo && (
+                    {statusInfo && !isGoogleEvent && (
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${statusInfo.bg} ${statusInfo.color}`}>
                         {statusInfo.icon}
                         {statusInfo.text}
@@ -272,7 +338,7 @@ END:VCALENDAR`;
                     )}
                     
                     {/* Board Badge - minimalist */}
-                    {boardName && (
+                    {boardName && !isGoogleEvent && (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 border border-gray-200/50 dark:border-gray-700/50">
                         <span 
                           className="w-2 h-2 rounded-full flex-shrink-0" 
@@ -375,8 +441,69 @@ END:VCALENDAR`;
               </motion.div>
             )}
 
+            {/* Google Calendar Location */}
+            {isGoogleEvent && googleLocation && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="flex items-start gap-4 px-4 py-3 rounded-xl hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors cursor-default"
+              >
+                <div className="p-2.5 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                  <MapPin className="w-5 h-5 text-[#EA4335]" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Location</p>
+                  <p className="text-sm text-gray-900 dark:text-white font-medium">{googleLocation}</p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Google Calendar Description */}
+            {isGoogleEvent && googleDescription && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="px-4 py-3 rounded-xl bg-[#4285F4]/5 dark:bg-[#4285F4]/10 border border-[#4285F4]/10 dark:border-[#4285F4]/20"
+              >
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-2 uppercase tracking-wide">
+                  <FileText className="w-3.5 h-3.5" />
+                  Description
+                </p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">
+                  {googleDescription}
+                </p>
+              </motion.div>
+            )}
+
+            {/* Google Calendar Link */}
+            {isGoogleEvent && googleLink && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+              >
+                <a
+                  href={googleLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-[#4285F4]/5 dark:hover:bg-[#4285F4]/10 transition-colors group cursor-pointer border border-transparent hover:border-[#4285F4]/20"
+                >
+                  <div className="p-2.5 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 group-hover:scale-110 transition-transform">
+                    <Link2 className="w-5 h-5 text-[#4285F4]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Google Calendar</p>
+                    <p className="text-sm text-[#4285F4] dark:text-[#8ab4f8] font-medium group-hover:underline">View in Google Calendar</p>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-[#4285F4] transition-colors" />
+                </a>
+              </motion.div>
+            )}
+
             {/* Job URL (for applications) */}
-            {!isInterview && application?.url && (
+            {!isInterview && !isGoogleEvent && application?.url && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -463,8 +590,27 @@ END:VCALENDAR`;
                   </>
                 )}
 
+                {/* Action for Google Events */}
+                {isGoogleEvent && googleLink && (
+                  <motion.a
+                    href={googleLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    whileHover={{ 
+                      scale: 1.02,
+                      boxShadow: '0 8px 24px rgba(66, 133, 244, 0.35)'
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                    className="px-6 py-2.5 text-sm font-semibold text-white bg-[#4285F4] hover:bg-[#3367D6] rounded-full transition-all flex items-center gap-2 shadow-md"
+                  >
+                    <GoogleCalendarIcon className="w-4 h-4" />
+                    Open in Google Calendar
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </motion.a>
+                )}
+
                 {/* Action for Applications */}
-                {!isInterview && (
+                {!isInterview && !isGoogleEvent && (
                   <motion.button
                     whileHover={{ 
                       scale: 1.02,

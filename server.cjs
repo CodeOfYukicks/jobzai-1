@@ -7484,6 +7484,457 @@ app.post('/api/gmail/thread/:threadId/reply', verifyFirebaseToken, async (req, r
   }
 });
 
+// ==================== GOOGLE CALENDAR API ====================
+
+// Helper function to refresh Calendar access token
+async function refreshCalendarToken(userId) {
+  const db = admin.firestore();
+  
+  // Get stored tokens
+  const tokenDoc = await db.collection('calendarTokens').doc(userId).get();
+  if (!tokenDoc.exists) {
+    throw new Error('No Calendar tokens found');
+  }
+  
+  const tokenData = tokenDoc.data();
+  
+  // Check if token is still valid (with 5 min buffer)
+  if (tokenData.expiresAt > Date.now() + 5 * 60 * 1000) {
+    return tokenData.accessToken;
+  }
+  
+  // Need to refresh
+  if (!tokenData.refreshToken) {
+    throw new Error('No refresh token available - please reconnect Google Calendar');
+  }
+  
+  console.log(`🔄 Refreshing Calendar token for user ${userId}`);
+  
+  // Get OAuth credentials (try calendar settings first, fall back to gmail)
+  let settingsDoc = await db.collection('settings').doc('calendar').get();
+  if (!settingsDoc.exists) {
+    settingsDoc = await db.collection('settings').doc('gmail').get();
+  }
+  const settings = settingsDoc.data();
+  
+  // Refresh the token
+  const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: settings.CLIENT_ID,
+      client_secret: settings.CLIENT_SECRET,
+      refresh_token: tokenData.refreshToken,
+      grant_type: 'refresh_token'
+    })
+  });
+  
+  const refreshData = await refreshResponse.json();
+  
+  if (refreshData.error) {
+    throw new Error(refreshData.error_description || refreshData.error);
+  }
+  
+  // Update stored token
+  const newExpiresAt = Date.now() + (refreshData.expires_in * 1000);
+  await db.collection('calendarTokens').doc(userId).update({
+    accessToken: refreshData.access_token,
+    expiresAt: newExpiresAt
+  });
+  
+  console.log(`✅ Calendar token refreshed for user ${userId}`);
+  return refreshData.access_token;
+}
+
+// Exchange Calendar authorization code for tokens
+app.post('/api/calendar/exchange-code', verifyFirebaseToken, async (req, res) => {
+  const { code } = req.body;
+  const userId = req.user.uid;
+  
+  console.log('🗓️ Exchanging Calendar authorization code for tokens');
+  
+  if (!code) {
+    return res.status(400).json({ error: 'Missing authorization code' });
+  }
+  
+  try {
+    const db = admin.firestore();
+    
+    // Get OAuth credentials (try calendar settings first, fall back to gmail)
+    let settingsDoc = await db.collection('settings').doc('calendar').get();
+    if (!settingsDoc.exists) {
+      settingsDoc = await db.collection('settings').doc('gmail').get();
+    }
+    
+    if (!settingsDoc.exists) {
+      return res.status(500).json({ error: 'Calendar OAuth not configured' });
+    }
+    
+    const settings = settingsDoc.data();
+    const clientId = settings.CLIENT_ID;
+    const clientSecret = settings.CLIENT_SECRET;
+    
+    if (!clientId || !clientSecret) {
+      return res.status(500).json({ error: 'OAuth credentials missing' });
+    }
+    
+    // Exchange code for tokens
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code: code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: 'postmessage',
+        grant_type: 'authorization_code'
+      })
+    });
+    
+    const tokenData = await tokenResponse.json();
+    
+    if (tokenData.error) {
+      console.error('Token exchange error:', tokenData);
+      return res.status(400).json({ error: tokenData.error_description || tokenData.error });
+    }
+    
+    const { access_token, refresh_token, expires_in } = tokenData;
+    
+    // Get user email
+    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { 'Authorization': `Bearer ${access_token}` }
+    });
+    
+    const userInfo = await userInfoResponse.json();
+    const email = userInfo.email;
+    
+    // Store tokens in Firestore
+    await db.collection('calendarTokens').doc(userId).set({
+      accessToken: access_token,
+      refreshToken: refresh_token,
+      email: email,
+      expiresAt: Date.now() + (expires_in * 1000),
+      connectedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    
+    console.log(`✅ Calendar tokens stored for user ${userId} (${email})`);
+    
+    res.json({ success: true, email });
+  } catch (error) {
+    console.error('Error exchanging Calendar code:', error);
+    res.status(500).json({ error: 'Failed to exchange code', details: error.message });
+  }
+});
+
+// Get Calendar events
+app.get('/api/calendar/events', verifyFirebaseToken, async (req, res) => {
+  const userId = req.user.uid;
+  const { timeMin, timeMax } = req.query;
+  
+  console.log(`📅 Fetching Calendar events for user ${userId}`);
+  
+  try {
+    // Get and refresh token if needed
+    let accessToken;
+    try {
+      accessToken = await refreshCalendarToken(userId);
+    } catch (refreshError) {
+      console.error('Token refresh failed:', refreshError.message);
+      return res.status(401).json({ 
+        error: 'Calendar token expired', 
+        message: refreshError.message,
+        needsReconnect: true 
+      });
+    }
+    
+    // Build query params
+    const params = new URLSearchParams({
+      singleEvents: 'true',
+      orderBy: 'startTime',
+      maxResults: '250'
+    });
+    
+    if (timeMin) params.append('timeMin', timeMin);
+    if (timeMax) params.append('timeMax', timeMax);
+    
+    // Fetch events from Google Calendar
+    const eventsResponse = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,
+      {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      }
+    );
+    
+    if (!eventsResponse.ok) {
+      const errorText = await eventsResponse.text();
+      console.error('Calendar API error:', errorText);
+      
+      if (eventsResponse.status === 401) {
+        return res.status(401).json({ 
+          error: 'Calendar token expired', 
+          message: 'Please reconnect Google Calendar',
+          needsReconnect: true 
+        });
+      }
+      return res.status(500).json({ error: 'Failed to fetch events' });
+    }
+    
+    const eventsData = await eventsResponse.json();
+    
+    console.log(`✅ Fetched ${eventsData.items?.length || 0} Calendar events`);
+    
+    res.json({ success: true, events: eventsData.items || [] });
+  } catch (error) {
+    console.error('Error fetching Calendar events:', error);
+    res.status(500).json({ error: 'Failed to fetch events', details: error.message });
+  }
+});
+
+// Create Calendar event
+app.post('/api/calendar/events', verifyFirebaseToken, async (req, res) => {
+  const userId = req.user.uid;
+  const { summary, description, start, end, location, attendees } = req.body;
+  
+  console.log(`📅 Creating Calendar event for user ${userId}: ${summary}`);
+  
+  if (!summary || !start || !end) {
+    return res.status(400).json({ error: 'Missing required fields: summary, start, end' });
+  }
+  
+  try {
+    // Get and refresh token if needed
+    let accessToken;
+    try {
+      accessToken = await refreshCalendarToken(userId);
+    } catch (refreshError) {
+      console.error('Token refresh failed:', refreshError.message);
+      return res.status(401).json({ 
+        error: 'Calendar token expired', 
+        message: refreshError.message,
+        needsReconnect: true 
+      });
+    }
+    
+    // Build event object
+    const event = {
+      summary,
+      description: description || '',
+      start: {
+        dateTime: new Date(start).toISOString(),
+        timeZone: 'Europe/Paris'
+      },
+      end: {
+        dateTime: new Date(end).toISOString(),
+        timeZone: 'Europe/Paris'
+      }
+    };
+    
+    if (location) event.location = location;
+    if (attendees && attendees.length > 0) {
+      event.attendees = attendees.map(email => ({ email }));
+    }
+    
+    // Create event in Google Calendar
+    const createResponse = await fetch(
+      'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(event)
+      }
+    );
+    
+    if (!createResponse.ok) {
+      const errorText = await createResponse.text();
+      console.error('Calendar API error:', errorText);
+      
+      if (createResponse.status === 401) {
+        return res.status(401).json({ 
+          error: 'Calendar token expired', 
+          message: 'Please reconnect Google Calendar',
+          needsReconnect: true 
+        });
+      }
+      return res.status(500).json({ error: 'Failed to create event' });
+    }
+    
+    const createdEvent = await createResponse.json();
+    
+    console.log(`✅ Created Calendar event: ${createdEvent.id}`);
+    
+    res.json({ success: true, event: createdEvent });
+  } catch (error) {
+    console.error('Error creating Calendar event:', error);
+    res.status(500).json({ error: 'Failed to create event', details: error.message });
+  }
+});
+
+// Update Calendar event
+app.put('/api/calendar/events/:eventId', verifyFirebaseToken, async (req, res) => {
+  const userId = req.user.uid;
+  const { eventId } = req.params;
+  const { summary, description, start, end, location, attendees } = req.body;
+  
+  console.log(`📅 Updating Calendar event ${eventId} for user ${userId}`);
+  
+  try {
+    // Get and refresh token if needed
+    let accessToken;
+    try {
+      accessToken = await refreshCalendarToken(userId);
+    } catch (refreshError) {
+      console.error('Token refresh failed:', refreshError.message);
+      return res.status(401).json({ 
+        error: 'Calendar token expired', 
+        message: refreshError.message,
+        needsReconnect: true 
+      });
+    }
+    
+    // First, get the existing event
+    const getResponse = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+      {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      }
+    );
+    
+    if (!getResponse.ok) {
+      if (getResponse.status === 404) {
+        return res.status(404).json({ error: 'Event not found' });
+      }
+      if (getResponse.status === 401) {
+        return res.status(401).json({ 
+          error: 'Calendar token expired', 
+          message: 'Please reconnect Google Calendar',
+          needsReconnect: true 
+        });
+      }
+      return res.status(500).json({ error: 'Failed to get event' });
+    }
+    
+    const existingEvent = await getResponse.json();
+    
+    // Build updated event object
+    const updatedEvent = { ...existingEvent };
+    if (summary) updatedEvent.summary = summary;
+    if (description !== undefined) updatedEvent.description = description;
+    if (start) {
+      updatedEvent.start = {
+        dateTime: new Date(start).toISOString(),
+        timeZone: 'Europe/Paris'
+      };
+    }
+    if (end) {
+      updatedEvent.end = {
+        dateTime: new Date(end).toISOString(),
+        timeZone: 'Europe/Paris'
+      };
+    }
+    if (location !== undefined) updatedEvent.location = location;
+    if (attendees) {
+      updatedEvent.attendees = attendees.map(email => ({ email }));
+    }
+    
+    // Update event in Google Calendar
+    const updateResponse = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedEvent)
+      }
+    );
+    
+    if (!updateResponse.ok) {
+      const errorText = await updateResponse.text();
+      console.error('Calendar API error:', errorText);
+      
+      if (updateResponse.status === 401) {
+        return res.status(401).json({ 
+          error: 'Calendar token expired', 
+          message: 'Please reconnect Google Calendar',
+          needsReconnect: true 
+        });
+      }
+      return res.status(500).json({ error: 'Failed to update event' });
+    }
+    
+    const updated = await updateResponse.json();
+    
+    console.log(`✅ Updated Calendar event: ${eventId}`);
+    
+    res.json({ success: true, event: updated });
+  } catch (error) {
+    console.error('Error updating Calendar event:', error);
+    res.status(500).json({ error: 'Failed to update event', details: error.message });
+  }
+});
+
+// Delete Calendar event
+app.delete('/api/calendar/events/:eventId', verifyFirebaseToken, async (req, res) => {
+  const userId = req.user.uid;
+  const { eventId } = req.params;
+  
+  console.log(`📅 Deleting Calendar event ${eventId} for user ${userId}`);
+  
+  try {
+    // Get and refresh token if needed
+    let accessToken;
+    try {
+      accessToken = await refreshCalendarToken(userId);
+    } catch (refreshError) {
+      console.error('Token refresh failed:', refreshError.message);
+      return res.status(401).json({ 
+        error: 'Calendar token expired', 
+        message: refreshError.message,
+        needsReconnect: true 
+      });
+    }
+    
+    // Delete event from Google Calendar
+    const deleteResponse = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+      {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      }
+    );
+    
+    if (!deleteResponse.ok && deleteResponse.status !== 204) {
+      const errorText = await deleteResponse.text();
+      console.error('Calendar API error:', errorText);
+      
+      if (deleteResponse.status === 404) {
+        return res.status(404).json({ error: 'Event not found' });
+      }
+      if (deleteResponse.status === 401) {
+        return res.status(401).json({ 
+          error: 'Calendar token expired', 
+          message: 'Please reconnect Google Calendar',
+          needsReconnect: true 
+        });
+      }
+      return res.status(500).json({ error: 'Failed to delete event' });
+    }
+    
+    console.log(`✅ Deleted Calendar event: ${eventId}`);
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting Calendar event:', error);
+    res.status(500).json({ error: 'Failed to delete event', details: error.message });
+  }
+});
+
+// ==================== END GOOGLE CALENDAR API ====================
+
 // En production, pour toutes les autres routes, servir index.html
 // Cela permet à React Router de gérer les routes côté client
 if (isProduction) {
