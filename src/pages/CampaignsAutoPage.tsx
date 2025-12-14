@@ -1413,9 +1413,27 @@ export default function CampaignsAutoPage() {
                         <Zap className="w-3.5 h-3.5 text-white" />
                       </div>
                       <div className="flex flex-col items-start flex-1 min-w-0">
-                        <span className={`text-[10px] uppercase tracking-wider ${
-                          coverPhoto ? 'text-gray-700 dark:text-gray-400' : 'text-gray-500 dark:text-gray-500'
-                        }`}>Campaign</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] uppercase tracking-wider ${
+                            coverPhoto ? 'text-gray-700 dark:text-gray-400' : 'text-gray-500 dark:text-gray-500'
+                          }`}>Campaign</span>
+                          {/* Email Generation Mode Pill - Main Button */}
+                          {selectedCampaign?.emailGenerationMode && (
+                            <span className={`
+                              inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-semibold uppercase tracking-wider
+                              backdrop-blur-sm border
+                              ${selectedCampaign.emailGenerationMode === 'abtest'
+                                ? 'bg-violet-500/10 dark:bg-violet-400/15 text-violet-600 dark:text-violet-300 border-violet-300/40 dark:border-violet-400/30'
+                                : selectedCampaign.emailGenerationMode === 'template'
+                                  ? 'bg-emerald-500/10 dark:bg-emerald-400/15 text-emerald-600 dark:text-emerald-300 border-emerald-300/40 dark:border-emerald-400/30'
+                                  : 'bg-amber-500/10 dark:bg-amber-400/15 text-amber-600 dark:text-amber-300 border-amber-300/40 dark:border-amber-400/30'
+                              }
+                            `}>
+                              {selectedCampaign.emailGenerationMode === 'abtest' ? 'A/B' : 
+                               selectedCampaign.emailGenerationMode === 'template' ? 'Template' : 'Auto'}
+                            </span>
+                          )}
+                        </div>
                         <span className={`text-[13px] font-semibold truncate max-w-[160px] ${
                           coverPhoto ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-gray-100'
                         }`}>
@@ -1487,9 +1505,27 @@ export default function CampaignsAutoPage() {
                                     className="flex-1 flex items-center gap-3 text-left min-w-0"
                                   >
                                     <div className="flex-1 min-w-0">
-                                      <p className="text-[13px] font-medium text-gray-900 dark:text-gray-100 truncate">
-                                        {campaign.name || `Campaign ${index + 1}`}
-                                      </p>
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-[13px] font-medium text-gray-900 dark:text-gray-100 truncate">
+                                          {campaign.name || `Campaign ${index + 1}`}
+                                        </p>
+                                        {/* Email Generation Mode Pill */}
+                                        {campaign.emailGenerationMode && (
+                                          <span className={`
+                                            inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wider
+                                            backdrop-blur-sm border transition-all duration-200
+                                            ${campaign.emailGenerationMode === 'abtest'
+                                              ? 'bg-violet-500/10 dark:bg-violet-400/15 text-violet-600 dark:text-violet-300 border-violet-300/40 dark:border-violet-400/30'
+                                              : campaign.emailGenerationMode === 'template'
+                                                ? 'bg-emerald-500/10 dark:bg-emerald-400/15 text-emerald-600 dark:text-emerald-300 border-emerald-300/40 dark:border-emerald-400/30'
+                                                : 'bg-amber-500/10 dark:bg-amber-400/15 text-amber-600 dark:text-amber-300 border-amber-300/40 dark:border-amber-400/30'
+                                            }
+                                          `}>
+                                            {campaign.emailGenerationMode === 'abtest' ? 'A/B' : 
+                                             campaign.emailGenerationMode === 'template' ? 'Template' : 'Auto'}
+                                          </span>
+                                        )}
+                                      </div>
                                       <p className="text-[11px] text-gray-500 truncate mt-0.5">
                                         {campaign.targeting?.personTitles?.slice(0, 2).join(', ') || 'No targeting'}
                                         {(campaign.targeting?.personTitles?.length || 0) > 2 && ` +${campaign.targeting.personTitles.length - 2}`}

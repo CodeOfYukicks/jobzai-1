@@ -6481,7 +6481,7 @@ SUBJECT: [short subject]
 
   const openaiClient = await getOpenAIClient();
   const completion = await openaiClient.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "gpt-5.2-chat-latest",
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: `SENDER CONTEXT:\n${userContext}\n\nGenerate a personalized email for ${recipient.firstName} at ${recipient.company}. Sign with "${userProfile.firstName || 'Me'}".` }
