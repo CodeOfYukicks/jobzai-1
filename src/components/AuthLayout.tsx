@@ -405,11 +405,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const sidebarExpandedWidth = 256; // 16rem = 256px
   const sidebarCollapsedWidth = 64; // 4rem = 64px
   
-  // Check if we're on a whiteboard page (no expand on hover)
-  const isWhiteboardPage = location.pathname.startsWith('/whiteboard/');
-  
-  // Effective display state: expand on hover even if collapsed (except on whiteboard pages)
-  const isEffectivelyExpanded = !isCollapsed || (isHoveringSidebar && !isWhiteboardPage);
+  // Effective display state: expand on hover even if collapsed
+  const isEffectivelyExpanded = !isCollapsed || isHoveringSidebar;
   const currentSidebarWidth = isCollapsed ? sidebarCollapsedWidth : sidebarExpandedWidth;
   const displaySidebarWidth = isEffectivelyExpanded ? sidebarExpandedWidth : sidebarCollapsedWidth;
 
