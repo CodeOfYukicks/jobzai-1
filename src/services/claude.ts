@@ -2,7 +2,7 @@ import { UserData } from '../types';
 import axios from 'axios';
 import { CompleteUserData } from '../lib/userDataFetcher';
 
-export type RecommendationType = 'target-companies' | 'application-timing' | 'salary-insights' | 'job-strategy' | 'career-path' | 'skills-gap' | 'market-insights';
+export type RecommendationType = 'target-companies' | 'application-timing' | 'salary-insights' | 'job-strategy' | 'career-path' | 'skills-gap' | 'market-insights' | 'alignment-analysis';
 
 interface ClaudeRecommendationRequest {
   prompt: string;
@@ -804,12 +804,19 @@ ${hasCV ?
   '❌ NO CV: Rely on profile data only. Be more conservative in recommendations and emphasize the need for a CV.'}
 
 ${hasApplications ? 
-  `✅ APPLICATION HISTORY: User has ${userData.applications?.length} applications. Analyze patterns:
-   - What types of companies have they applied to?
-   - What's their response rate? (${userData.responseRate || 0}%)
-   - What's their average match score? (${userData.averageMatchScore || 0}%)
-   - Use this data to recommend companies similar to successful applications or identify gaps.` : 
-  '❌ NO APPLICATION HISTORY: User is new. Provide foundational recommendations.'}
+  `✅ APPLICATION HISTORY CRITICAL ANALYSIS:
+   User has ${userData.applications?.length} applications with ${userData.responseRate || 0}% response rate.
+   
+   COMPANIES THEY'VE ALREADY APPLIED TO:
+   ${userData.applications?.slice(0, 10).map((app: any) => `- ${app.companyName || 'Unknown'}: ${app.position || 'Unknown'} (Match: ${app.matchScore || 'N/A'}%, Status: ${app.status || 'applied'})`).join('\n   ') || 'N/A'}
+   
+   ⚠️ CRITICAL INSTRUCTIONS FOR YOUR RECOMMENDATIONS:
+   1. DO NOT recommend companies they've already applied to (listed above)
+   2. If their response rate is below 15%, their targeting may need adjustment - comment on this
+   3. Compare your recommendations to their past applications - are you suggesting DIFFERENT or SIMILAR types?
+   4. If they're applying to wrong-fit companies, SAY SO directly
+   5. Use their successful applications (if any) as a template for recommendations` : 
+  '❌ NO APPLICATION HISTORY: User is new. Provide foundational recommendations based on profile analysis.'}
 
 **DO NOT:**
 - Use generic company names or descriptions
@@ -1216,11 +1223,33 @@ ${hasCV ? '✅ CV AVAILABLE: Analyze CV content to identify strengths and gaps.'
 ⚠️  CRITICAL INSTRUCTIONS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+${hasApplications ? 
+  `📊 STRATEGY CRITIQUE BASED ON THEIR APPLICATIONS:
+   
+   CURRENT PERFORMANCE ANALYSIS:
+   - Total Applications: ${userData.applications?.length}
+   - Response Rate: ${userData.responseRate || 0}% ${(userData.responseRate || 0) < 10 ? '⚠️ CRITICALLY LOW - strategy needs major adjustment' : (userData.responseRate || 0) < 20 ? '⚠️ Below average - improvements needed' : '✅ Decent'}
+   - Average Match Score: ${userData.averageMatchScore || 0}%
+   
+   APPLICATION STATUS BREAKDOWN:
+   ${JSON.stringify(userData.applications?.reduce((acc: any, app: any) => {
+     acc[app.status || 'applied'] = (acc[app.status || 'applied'] || 0) + 1;
+     return acc;
+   }, {}) || {}, null, 2)}
+   
+   ⚠️ YOUR STRATEGY MUST ADDRESS:
+   1. Why is their response rate ${userData.responseRate || 0}%? What's going wrong?
+   2. What should they STOP doing immediately?
+   3. What should they START doing differently?
+   4. Be BRUTALLY HONEST about their current approach` : 
+  ''}
+
 **DO NOT:**
 - Give generic advice that applies to everyone
 - Ignore their specific skills and experience
 - Provide vague recommendations
 - Ignore their application history (if available)
+- Pretend their strategy is working if their response rate is low
 
 **DO:**
 - Be SPECIFIC and ACTIONABLE
@@ -1228,6 +1257,7 @@ ${hasCV ? '✅ CV AVAILABLE: Analyze CV content to identify strengths and gaps.'
 - Provide concrete resources (not just "take a course")
 - Give honest ATS scores
 - Tailor everything to their profile
+- CRITIQUE their current approach if response rate is below 15%
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1385,11 +1415,27 @@ Each career path should be:
 ⚠️  CRITICAL INSTRUCTIONS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+${hasApplications ? 
+  `📊 APPLICATION HISTORY ANALYSIS FOR CAREER PATH:
+   The user has ${userData.applications?.length} applications. Analyze their current trajectory:
+   
+   ROLES THEY'RE APPLYING TO:
+   ${[...new Set(userData.applications?.map((app: any) => app.position).filter(Boolean))].slice(0, 8).join(', ') || 'N/A'}
+   
+   ⚠️ CRITICAL FEEDBACK REQUIRED:
+   1. Are their applications aligned with a coherent career path?
+   2. If they're applying to scattered/inconsistent roles, CALL THIS OUT
+   3. If they're over-reaching (applying to roles 3+ levels above), tell them honestly
+   4. If they're under-selling, explain how they should aim higher
+   5. Your career paths should CORRECT any misalignment you observe in their applications` : 
+  ''}
+
 **DO NOT:**
 - Give generic career paths that apply to everyone
 - Ignore their specific skills and experience
 - Provide unrealistic timelines
 - Ignore their location and industry constraints
+- Ignore evidence of misalignment in their applications
 
 **DO:**
 - Be SPECIFIC and ACTIONABLE
@@ -1398,6 +1444,7 @@ Each career path should be:
 - Consider their location and industry
 - Give honest success probabilities
 - Provide concrete resources and actions
+- If their applications show misalignment, include a "course correction" path
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1539,11 +1586,27 @@ ${hasCV ? '✅ CV AVAILABLE: Use CV as PRIMARY source to identify skills mention
 ⚠️  CRITICAL INSTRUCTIONS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+${hasApplications ? 
+  `📊 SKILLS GAP BASED ON THEIR APPLICATIONS:
+   Analyze the ${userData.applications?.length} roles they've applied to:
+   
+   POSITIONS APPLIED TO:
+   ${[...new Set(userData.applications?.map((app: any) => app.position).filter(Boolean))].slice(0, 8).join(', ') || 'N/A'}
+   
+   ⚠️ CRITICAL ANALYSIS REQUIRED:
+   1. What skills are commonly required in the jobs they're applying to that they DON'T have?
+   2. Are there skill gaps explaining their ${userData.responseRate || 0}% response rate?
+   3. If their match scores average ${userData.averageMatchScore || 0}%, what skills would boost this?
+   4. Prioritize skills that would have the HIGHEST IMPACT on their current job search
+   5. Be HONEST if they're missing fundamental skills for their target roles` : 
+  ''}
+
 **DO NOT:**
 - Give generic skills that apply to everyone
 - Ignore their specific industry and role
 - Provide vague learning resources
 - Ignore their current skill level
+- Ignore the skills required by jobs they're actually applying to
 
 **DO:**
 - Be SPECIFIC with skill names (not "programming" but "Python" or "JavaScript")
@@ -1551,6 +1614,7 @@ ${hasCV ? '✅ CV AVAILABLE: Use CV as PRIMARY source to identify skills mention
 - Provide concrete, actionable learning resources
 - Consider their experience level and learning capacity
 - Prioritize skills based on impact and urgency
+- Focus on skills that would improve their success rate with current applications
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1698,11 +1762,27 @@ ${hasCV ? '✅ CV AVAILABLE: Use CV to understand their full skill set and exper
 ⚠️  CRITICAL INSTRUCTIONS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+${hasApplications ? 
+  `📊 MARKET REALITY CHECK BASED ON THEIR APPLICATIONS:
+   
+   WHERE THEY'RE APPLYING:
+   - Industries: ${[...new Set(userData.applications?.map((app: any) => app.industry || 'Unknown').filter((i: string) => i !== 'Unknown'))].slice(0, 5).join(', ') || 'Not tracked'}
+   - Companies: ${[...new Set(userData.applications?.map((app: any) => app.companyName).filter(Boolean))].slice(0, 8).join(', ') || 'N/A'}
+   
+   ⚠️ MARKET INSIGHTS MUST ADDRESS:
+   1. Are the industries/companies they're targeting actually growing or declining?
+   2. Are they targeting oversaturated roles or hidden opportunities?
+   3. How does their targeting compare to market trends?
+   4. If they're targeting declining sectors, WARN THEM
+   5. Suggest BETTER opportunities based on market data` : 
+  ''}
+
 **DO NOT:**
 - Give generic market insights that apply to everyone
 - Ignore their specific industry and location
 - Provide vague recommendations
 - Use generic company names
+- Ignore if their targeting is misaligned with market reality
 
 **DO:**
 - Be SPECIFIC and ACTIONABLE
@@ -1710,6 +1790,7 @@ ${hasCV ? '✅ CV AVAILABLE: Use CV to understand their full skill set and exper
 - Provide real company names (not generic descriptions)
 - Give specific timelines and percentages
 - Tailor everything to their profile
+- Compare their current targeting to market reality
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1818,6 +1899,208 @@ ${hasCV ? '✅ CV AVAILABLE: Use CV to understand their full skill set and exper
         "Specific action 3 for next 6-12 months"
       ]
     }
+  }
+}`;
+
+    case 'alignment-analysis':
+      return `You are a BRUTALLY HONEST career strategist and job search analyst with 25+ years of experience in executive recruitment. Your specialty is providing CRITICAL, DATA-DRIVEN feedback on job search strategies. You don't sugarcoat - you tell candidates exactly what's wrong with their approach and how to fix it.
+
+Your expertise includes:
+- Analyzing application patterns to identify misalignments
+- Detecting when candidates are over-reaching or under-selling
+- Identifying wasted time and inefficient job search strategies
+- Providing actionable, specific corrective measures
+- Giving honest feedback even when it's uncomfortable to hear
+
+${formatCompleteProfile(userData)}
+${jobMarket}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 YOUR MISSION: CRITICAL JOB SEARCH ALIGNMENT ANALYSIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Perform a DEEP, CRITICAL analysis of the user's job search behavior by comparing:
+
+1. **Their PROFILE** (skills, experience, target position, preferences)
+2. **Their APPLICATIONS** (${userData.applications?.length || 0} applications tracked)
+3. **Their CAMPAIGNS** (${userData.campaigns?.length || 0} campaigns created)
+
+${userData.applications && userData.applications.length > 0 ? `
+📊 APPLICATION DATA TO ANALYZE:
+- Total Applications: ${userData.applications.length}
+- Response Rate: ${userData.responseRate || 0}%
+- Average Match Score: ${userData.averageMatchScore || 0}%
+
+Recent Applications:
+${userData.applications.slice(0, 15).map((app: any, i: number) => `
+  ${i + 1}. ${app.companyName || 'Unknown'} - ${app.position || 'Unknown Position'}
+     Status: ${app.status || 'applied'} | Match: ${app.matchScore || 'N/A'}%
+     Location: ${app.location || 'N/A'} | Salary: ${app.salary || 'N/A'}
+`).join('')}
+
+Application Status Distribution:
+${JSON.stringify(userData.applications.reduce((acc: any, app: any) => {
+  acc[app.status || 'applied'] = (acc[app.status || 'applied'] || 0) + 1;
+  return acc;
+}, {}), null, 2)}
+` : '❌ NO APPLICATION HISTORY - User has not tracked any applications. Provide general guidance on starting a job search strategy.'}
+
+${userData.campaigns && userData.campaigns.length > 0 ? `
+📧 CAMPAIGN DATA TO ANALYZE:
+${userData.campaigns.slice(0, 5).map((c: any, i: number) => `
+  ${i + 1}. ${c.title || 'Untitled'} - ${c.jobTitle || 'N/A'}
+     Industry: ${c.industry || 'N/A'} | Status: ${c.status || 'active'}
+     Emails Sent: ${c.emailsSent || 0} | Responses: ${c.responses || 0}
+`).join('')}
+` : '❌ NO CAMPAIGN DATA - User has not created any outreach campaigns.'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 REQUIRED ANALYSIS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. **OVERALL ALIGNMENT SCORE** (0-100%):
+   - How well does their job search align with their profile?
+   - Be HONEST - don't inflate scores to make them feel good
+   - Consider: skills match, experience level, industry fit, location, salary
+
+2. **PROFILE VS APPLICATIONS MATCH** (0-100%):
+   - Compare their stated profile to what they're actually applying for
+   - Are they applying for roles that match their experience level?
+   - Are they targeting appropriate industries/sectors?
+
+3. **DIRECTION ASSESSMENT**:
+   - "on-track": Applications align well with profile and goals
+   - "misaligned": Applications don't match profile/goals at all
+   - "over-reaching": Applying for roles above their experience level
+   - "under-selling": Applying for roles below their potential
+
+4. **CRITICAL MISMATCHES** (identify 3-7 specific issues):
+   For each mismatch:
+   - Type: seniority | industry | skills | salary | location
+   - Description: What's wrong
+   - Evidence: Specific data from their applications (e.g., "Applied to 8 Director roles with only 3 years experience")
+   - Recommendation: How to fix it
+   - Severity: critical | warning | info
+
+5. **APPLICATION PATTERNS**:
+   - Companies targeted (list top 5-10)
+   - Roles applied (list top 5-10)
+   - Success rate by type (e.g., "Direct apply: 5%, Referral: 25%")
+   - Time wasted analysis: Estimate how much time/effort is going to low-match applications
+
+6. **CAMPAIGN ANALYSIS** (if campaigns exist):
+   For each campaign:
+   - Campaign name
+   - Alignment score (0-100%)
+   - Feedback: Is this campaign targeting the right companies/roles?
+   - Issues: What's wrong with this campaign's targeting?
+
+7. **HONEST FEEDBACK**:
+   - Write 3-5 sentences of BRUTALLY HONEST feedback
+   - Don't be mean, but don't sugarcoat either
+   - Tell them exactly what they're doing wrong
+   - Examples of good honest feedback:
+     * "You're applying to Senior Manager positions with 2 years of experience. This is a waste of time."
+     * "Your applications are scattered across 5 different industries. Pick one and focus."
+     * "You're under-selling yourself. With your skills, you should target roles 20% higher."
+     * "Your response rate is 5%. Industry average is 15%. Your resume needs work."
+
+8. **CORRECTIVE ACTIONS** (5-7 specific actions):
+   - Numbered list of SPECIFIC actions to take
+   - Be concrete: "Apply to 5 mid-level roles at these companies..." not "Apply to more appropriate roles"
+   - Prioritize by impact
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  CRITICAL INSTRUCTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${userData.applications && userData.applications.length > 0 ? 
+  `✅ APPLICATION HISTORY AVAILABLE: Analyze the ${userData.applications.length} applications in detail.
+   - Look for patterns in companies, roles, locations
+   - Compare to their profile and experience level
+   - Identify mismatches and inefficiencies` : 
+  '❌ NO APPLICATION HISTORY: Provide hypothetical guidance based on their profile, but note that real analysis requires application tracking.'}
+
+${userData.campaigns && userData.campaigns.length > 0 ? 
+  `✅ CAMPAIGN DATA AVAILABLE: Analyze the ${userData.campaigns.length} campaigns.
+   - Are they targeting the right industries?
+   - Are their job titles realistic for their experience?` : 
+  '❌ NO CAMPAIGN DATA: Skip campaign analysis section.'}
+
+**BE HONEST:**
+- If they're wasting time on unrealistic applications, SAY SO
+- If their strategy is good, acknowledge it but still find areas to improve
+- Use specific data from their applications to support your claims
+- Don't give generic advice - reference THEIR specific situation
+
+**DO NOT:**
+- Sugarcoat problems to avoid hurting feelings
+- Give generic advice that could apply to anyone
+- Ignore obvious mismatches just to be nice
+- Inflate scores to make them feel better
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 OUTPUT FORMAT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{
+  "alignment_analysis": {
+    "overall_alignment_score": 65,
+    "profile_vs_applications_match": 55,
+    "direction_assessment": "over-reaching",
+    
+    "critical_mismatches": [
+      {
+        "type": "seniority",
+        "description": "Applying for senior roles without sufficient experience",
+        "evidence": "Applied to 8 Senior Manager positions with only 2.5 years of experience",
+        "recommendation": "Focus on mid-level roles (3-5 years experience requirement) to build foundation",
+        "severity": "critical"
+      },
+      {
+        "type": "industry",
+        "description": "Scattered industry targeting reduces effectiveness",
+        "evidence": "Applications span 5 different industries: Tech, Finance, Healthcare, Retail, Manufacturing",
+        "recommendation": "Pick 2 industries maximum and focus your efforts there",
+        "severity": "warning"
+      }
+    ],
+    
+    "application_patterns": {
+      "companies_targeted": ["Google", "Meta", "Amazon", "Apple", "Microsoft", "Stripe", "Airbnb"],
+      "roles_applied": ["Senior Manager", "Director", "VP", "Team Lead", "Principal Engineer"],
+      "success_rate_by_type": [
+        { "type": "Direct Apply", "rate": 5 },
+        { "type": "Referral", "rate": 25 },
+        { "type": "Recruiter", "rate": 15 }
+      ],
+      "time_wasted_analysis": "Estimated 40% of applications (12 of 30) are to roles requiring 5+ more years experience than you have. These have near-zero success probability."
+    },
+    
+    "campaign_analysis": [
+      {
+        "campaign_name": "Tech Company Outreach",
+        "alignment_score": 70,
+        "feedback": "Good industry targeting, but job titles are too senior for your experience level",
+        "issues": ["Targeting Director-level roles", "Missing mid-size companies that are more accessible"]
+      }
+    ],
+    
+    "honest_feedback": "Let me be direct: you're wasting a lot of time. Your profile shows 2.5 years of experience, but 60% of your applications are for roles requiring 7+ years. Your 5% response rate tells the story - you're not getting callbacks because you're not qualified for most roles you're applying to. The good news: you have solid skills. The problem: you're not targeting the right level. Stop applying to Director roles and focus on Senior IC or Team Lead positions where you'll actually get interviews.",
+    
+    "corrective_actions": [
+      "1. IMMEDIATELY stop applying to Director/VP roles - you're not there yet and it's hurting your morale",
+      "2. Focus on Senior Individual Contributor roles with 3-5 years experience requirements",
+      "3. Narrow your industry focus to Technology and SaaS only - your skills match best there",
+      "4. Apply to 10 mid-size companies (500-2000 employees) this week - they're more accessible than FAANG",
+      "5. Get 2-3 referrals this month - your referral success rate is 5x higher than direct apply",
+      "6. Update your resume to emphasize hands-on technical achievements, not management aspirations",
+      "7. Set a realistic 6-month goal: land a Senior role, prove yourself, then target management in 18-24 months"
+    ]
   }
 }`;
 

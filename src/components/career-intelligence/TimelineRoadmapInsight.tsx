@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Clock, Target, Calendar, CheckCircle2, Circle, ArrowRight, TrendingUp } from 'lucide-react';
+import { Clock, Target, Calendar, CheckCircle2, Circle, TrendingUp, AlertTriangle, Lightbulb, Activity } from 'lucide-react';
 
 interface Milestone {
   title: string;
@@ -17,6 +17,9 @@ interface TimelineData {
   thirtyDayPlan: string;
   sixtyDayPlan: string;
   ninetyDayPlan: string;
+  adjustedForCurrentRate?: boolean;
+  honestFeedback?: string;
+  correctiveActions?: string[];
 }
 
 interface TimelineRoadmapInsightProps {
@@ -53,6 +56,12 @@ export default function TimelineRoadmapInsight({ data }: TimelineRoadmapInsightP
     return 'text-amber-600 dark:text-amber-400';
   };
 
+  const getProbabilityBgColor = (probability: number) => {
+    if (probability >= 75) return 'bg-emerald-500';
+    if (probability >= 50) return 'bg-teal-500';
+    return 'bg-amber-500';
+  };
+
   return (
     <div className="space-y-8 pt-4">
       {/* Time to Goal */}
@@ -73,19 +82,90 @@ export default function TimelineRoadmapInsight({ data }: TimelineRoadmapInsightP
               </p>
             </div>
             <div className="text-right">
-              <p className={`text-2xl font-bold ${getProbabilityColor(data.successProbability)}`}>
-                {data.successProbability}%
-              </p>
+              <div className="flex items-center gap-2">
+                <p className={`text-2xl font-bold ${getProbabilityColor(data.successProbability)}`}>
+                  {data.successProbability}%
+                </p>
+                {data.adjustedForCurrentRate && (
+                  <Activity className="w-4 h-4 text-amber-500" title="Adjusted for your current rate" />
+                )}
+              </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Success probability
               </p>
             </div>
           </div>
+          
+          {/* Success Probability Bar */}
+          <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full mb-3 overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${data.successProbability}%` }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              className={`h-full rounded-full ${getProbabilityBgColor(data.successProbability)}`}
+            />
+          </div>
+          
           <p className="text-sm text-gray-700 dark:text-gray-300">
             {data.summary}
           </p>
+          
+          {data.adjustedForCurrentRate && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
+              <Activity className="w-3 h-3" />
+              Timeline adjusted based on your current response rate
+            </p>
+          )}
         </div>
       </section>
+
+      {/* Honest Feedback Section - NEW */}
+      {data.honestFeedback && (
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                Timeline Reality Check
+              </h4>
+              <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">
+                {data.honestFeedback}
+              </p>
+            </div>
+          </div>
+        </motion.section>
+      )}
+
+      {/* Corrective Actions - NEW */}
+      {data.correctiveActions && data.correctiveActions.length > 0 && (
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <Lightbulb className="w-4 h-4 text-amber-500" />
+            To Accelerate Your Timeline
+          </h4>
+          <div className="space-y-2">
+            {data.correctiveActions.map((action, idx) => (
+              <div 
+                key={idx} 
+                className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-[#2b2a2c]/40 rounded-lg"
+              >
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-teal-100 dark:bg-teal-900/30 text-xs font-bold text-teal-600 dark:text-teal-400 flex-shrink-0">
+                  {idx + 1}
+                </span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">{action}</span>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+      )}
 
       {/* Milestones */}
       <section>
@@ -112,7 +192,7 @@ export default function TimelineRoadmapInsight({ data }: TimelineRoadmapInsightP
                 </div>
                 
                 <div className="flex-1 pb-4">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h5 className="text-sm font-medium text-gray-900 dark:text-white">
                       {milestone.title}
                     </h5>
@@ -205,4 +285,3 @@ export default function TimelineRoadmapInsight({ data }: TimelineRoadmapInsightP
     </div>
   );
 }
-

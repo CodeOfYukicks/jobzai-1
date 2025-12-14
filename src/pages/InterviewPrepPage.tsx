@@ -4161,16 +4161,18 @@ Return ONLY the pitch text, no explanations or formatting.`;
                 time={interview?.time || null}
               />
             </motion.div>
-            {/* AI Analysis Card - Full Width */}
-            <div className="mb-10">
-              <AICard
-                jobUrl={jobUrl}
-                onJobUrlChange={setJobUrl}
-                isAnalyzing={isAnalyzing}
-                onAnalyze={handleAnalyzeJobPost}
-                className="w-full"
-              />
-            </div>
+            {/* AI Analysis Card - Hidden once analysis is generated */}
+            {(!interview?.preparation || isAnalyzing) && (
+              <div className="mb-10">
+                <AICard
+                  jobUrl={jobUrl}
+                  onJobUrlChange={setJobUrl}
+                  isAnalyzing={isAnalyzing}
+                  onAnalyze={handleAnalyzeJobPost}
+                  className="w-full"
+                />
+              </div>
+            )}
 
             {/* Tab navigation */}
             <nav className="mb-8 border-b border-gray-200 dark:border-[#3d3c3e]">

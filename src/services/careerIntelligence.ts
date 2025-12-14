@@ -1,7 +1,22 @@
 import axios from 'axios';
 import { CompleteUserData } from '../lib/userDataFetcher';
 
-// Types for Career Intelligence insights
+// Types for Career Intelligence insights with alignment analysis
+export interface AlignmentAnalysis {
+  profileVsApplicationsMatch: number;  // 0-100
+  directionAssessment: 'on-track' | 'misaligned' | 'over-reaching' | 'under-selling';
+  criticalIssues: string[];
+  honestFeedback: string;
+}
+
+export interface ApplicationPatternAnalysis {
+  companiesTargeted: string[];
+  rolesApplied: string[];
+  successRateByType: Array<{ type: string; rate: number }>;
+  timeWastedEstimate: string;
+  topPerformingApplications: string[];
+}
+
 export interface CareerInsightsData {
   nextMove: {
     summary: string;
@@ -13,6 +28,7 @@ export interface CareerInsightsData {
       location: string;
       whyMatch: string;
       topRole?: string;
+      alreadyApplied?: boolean;
     }>;
     careerPath: {
       currentPosition: string;
@@ -23,6 +39,9 @@ export interface CareerInsightsData {
         description: string;
       }>;
     };
+    alignmentAnalysis?: AlignmentAnalysis;
+    honestFeedback?: string;
+    correctiveActions?: string[];
   } | null;
   
   skills: {
@@ -34,6 +53,7 @@ export interface CareerInsightsData {
       requiredLevel: number;
       importance: 'critical' | 'high' | 'medium';
       salaryImpact?: string;
+      missingInApplications?: boolean;
     }>;
     trendingSkills: Array<{
       name: string;
@@ -46,6 +66,8 @@ export interface CareerInsightsData {
       url?: string;
       duration?: string;
     }>;
+    honestFeedback?: string;
+    correctiveActions?: string[];
   } | null;
   
   marketPosition: {
@@ -63,6 +85,9 @@ export interface CareerInsightsData {
     }>;
     uniqueValue: string;
     competitorComparison: string;
+    applicationPatternAnalysis?: ApplicationPatternAnalysis;
+    honestFeedback?: string;
+    correctiveActions?: string[];
   } | null;
   
   interviewReadiness: {
@@ -81,6 +106,8 @@ export interface CareerInsightsData {
     }>;
     redFlags: string[];
     mockInterviewFocus: string;
+    honestFeedback?: string;
+    correctiveActions?: string[];
   } | null;
   
   networkInsights: {
@@ -97,6 +124,9 @@ export interface CareerInsightsData {
     }>;
     networkingTips: string[];
     linkedinOptimization: string[];
+    companiesAppliedConnections?: string[];
+    honestFeedback?: string;
+    correctiveActions?: string[];
   } | null;
   
   timeline: {
@@ -113,6 +143,9 @@ export interface CareerInsightsData {
     thirtyDayPlan: string;
     sixtyDayPlan: string;
     ninetyDayPlan: string;
+    adjustedForCurrentRate?: boolean;
+    honestFeedback?: string;
+    correctiveActions?: string[];
   } | null;
   
   actionPlan: {
@@ -124,6 +157,7 @@ export interface CareerInsightsData {
       description: string;
       priority: 'high' | 'medium' | 'low';
       timeEstimate?: string;
+      isCorrective?: boolean;
     }>;
     timing: {
       bestDays: string[];
@@ -136,10 +170,12 @@ export interface CareerInsightsData {
       average: string;
       tips: string[];
     };
+    honestFeedback?: string;
+    correctiveActions?: string[];
   } | null;
 }
 
-// Format user profile for the prompt
+// Format user profile with COMPLETE data including applications and campaigns
 function formatUserProfile(userData: CompleteUserData): string {
   const city = userData.city || '';
   const country = userData.country || '';
@@ -162,7 +198,7 @@ function formatUserProfile(userData: CompleteUserData): string {
           const start = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, 1);
           const end = exp.current || !exp.endDate ? now : (() => {
             const endParts = exp.endDate.split('-');
-            return endParts.length === 2 ? new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, 1) : now;
+            return endParts.length === 2 ? new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1) : now;
           })();
           if (end >= start) {
             totalMonths += Math.max(0, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()));
@@ -173,49 +209,152 @@ function formatUserProfile(userData: CompleteUserData): string {
     yearsOfExperience = Math.round(totalMonths / 12);
   }
 
+  // Format applications data
+  const applications = userData.applications || [];
+  const applicationsSection = applications.length > 0 ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 JOB APPLICATION HISTORY (${applications.length} total applications)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RECENT APPLICATIONS (last 15):
+${applications.slice(0, 15).map((app: any, index: number) => `
+${index + 1}. ${app.company || app.companyName || 'Unknown Company'}
+   └─ Position: ${app.position || app.jobTitle || app.title || 'N/A'}
+   └─ Status: ${app.status || 'pending'}
+   └─ Match Score: ${app.matchScore || app.match || 'N/A'}%
+   └─ Applied: ${app.appliedAt || app.createdAt || app.dateApplied || 'N/A'}
+   └─ Industry: ${app.industry || 'N/A'}
+   └─ Location: ${app.location || app.jobLocation || 'N/A'}
+   └─ Seniority: ${app.seniorityLevel || app.level || 'N/A'}
+`).join('')}
+
+APPLICATION METRICS:
+- Total Applications Sent: ${userData.totalApplications || applications.length}
+- Response Rate: ${userData.responseRate || 0}%
+- Average Match Score: ${userData.averageMatchScore || 0}%
+- Applications with Response: ${applications.filter((a: any) => a.status === 'responded' || a.status === 'interview' || a.status === 'accepted').length}
+- Applications Pending: ${applications.filter((a: any) => a.status === 'pending' || a.status === 'applied').length}
+- Interviews Secured: ${applications.filter((a: any) => a.status === 'interview').length}
+- Rejections: ${applications.filter((a: any) => a.status === 'rejected').length}
+
+COMPANIES APPLIED TO:
+${[...new Set(applications.map((a: any) => a.company || a.companyName).filter(Boolean))].slice(0, 10).join(', ') || 'None yet'}
+
+POSITIONS APPLIED FOR:
+${[...new Set(applications.map((a: any) => a.position || a.jobTitle || a.title).filter(Boolean))].slice(0, 10).join(', ') || 'None yet'}
+` : `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 JOB APPLICATION HISTORY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+No job applications recorded yet. Analysis will be based on profile data only.
+`;
+
+  // Format campaigns data
+  const campaigns = userData.campaigns || [];
+  const campaignsSection = campaigns.length > 0 ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📧 EMAIL CAMPAIGN HISTORY (${campaigns.length} campaigns)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${campaigns.map((campaign: any, index: number) => `
+${index + 1}. Campaign: "${campaign.name || campaign.title || 'Unnamed Campaign'}"
+   └─ Status: ${campaign.status || 'unknown'}
+   └─ Target Position: ${campaign.targetPosition || campaign.target || campaign.jobTitle || 'N/A'}
+   └─ Target Industry: ${campaign.targetIndustry || campaign.industry || 'N/A'}
+   └─ Companies Targeted: ${campaign.companiesCount || campaign.companies?.length || campaign.recipientCount || 0}
+   └─ Emails Sent: ${campaign.emailsSent || campaign.sentCount || 0}
+   └─ Emails Opened: ${campaign.emailsOpened || campaign.openCount || 0}
+   └─ Responses Received: ${campaign.responses || campaign.responseCount || campaign.replies || 0}
+   └─ Response Rate: ${campaign.responseRate || (campaign.emailsSent > 0 ? Math.round((campaign.responses || 0) / campaign.emailsSent * 100) : 0)}%
+   └─ Created: ${campaign.createdAt || 'N/A'}
+`).join('')}
+
+CAMPAIGN METRICS SUMMARY:
+- Total Campaigns: ${userData.totalCampaigns || campaigns.length}
+- Total Emails Sent: ${campaigns.reduce((sum: number, c: any) => sum + (c.emailsSent || c.sentCount || 0), 0)}
+- Total Responses: ${campaigns.reduce((sum: number, c: any) => sum + (c.responses || c.responseCount || c.replies || 0), 0)}
+- Average Response Rate: ${campaigns.length > 0 ? Math.round(campaigns.reduce((sum: number, c: any) => sum + (c.responseRate || 0), 0) / campaigns.length) : 0}%
+` : `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📧 EMAIL CAMPAIGN HISTORY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+No email campaigns recorded yet. Analysis will be based on profile data only.
+`;
+
   return `
-USER PROFILE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👤 USER PROFILE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IDENTITY:
 - Name: ${userData.firstName || ''} ${userData.lastName || ''}
 - Location: ${location}
+- Email: ${userData.email || 'Not specified'}
+
+CURRENT STATUS:
 - Current Position: ${currentPosition}${currentCompany ? ` at ${currentCompany}` : ''}
-- Target Position: ${userData.targetPosition || 'Not specified'}
 - Years of Experience: ${yearsOfExperience || 'Not specified'}
 - Industry: ${userData.industry || 'Not specified'}
-- Education: ${userData.educationLevel || 'Not specified'}${userData.educationField ? ` in ${userData.educationField}` : ''}
-
-SKILLS & TOOLS:
-- Technical Skills: ${userData.skills?.join(', ') || 'Not specified'}
-- Tools: ${userData.tools?.join(', ') || 'Not specified'}
-
-PREFERENCES:
-- Work Preference: ${userData.workPreference || 'Not specified'}
-- Willing to Relocate: ${userData.willingToRelocate ? 'Yes' : 'No'}
-- Target Sectors: ${userData.targetSectors?.join(', ') || 'Not specified'}
-- Preferred Environment: ${userData.preferredEnvironment?.join(', ') || 'Not specified'}
-- Salary Expectations: ${userData.salaryExpectations?.min || ''} - ${userData.salaryExpectations?.max || ''} ${userData.salaryExpectations?.currency || 'EUR'}
-
-CAREER CONTEXT:
 - Current Situation: ${userData.currentSituation || 'Not specified'}
 - Search Urgency: ${userData.searchUrgency || 'Not specified'}
+
+CAREER GOALS:
+- Target Position: ${userData.targetPosition || 'Not specified'}
+- Target Sectors: ${userData.targetSectors?.join(', ') || 'Not specified'}
 - Primary Motivator: ${userData.primaryMotivator || 'Not specified'}
 - Career Priorities: ${userData.careerPriorities?.join(', ') || 'Not specified'}
+
+EDUCATION:
+- Level: ${userData.educationLevel || 'Not specified'}
+- Field: ${userData.educationField || 'Not specified'}
+- Institution: ${userData.educationInstitution || 'Not specified'}
+- Graduation Year: ${userData.graduationYear || 'Not specified'}
+
+SKILLS & EXPERTISE:
+- Technical Skills: ${userData.skills?.join(', ') || 'Not specified'}
+- Tools: ${userData.tools?.join(', ') || 'Not specified'}
+- Soft Skills: ${userData.softSkills?.join(', ') || 'Not specified'}
+- Certifications: ${userData.certifications?.map((c: any) => c.name).join(', ') || 'Not specified'}
 
 LANGUAGES:
 ${userData.languages?.map(l => `- ${l.language}: ${l.level}`).join('\n') || '- Not specified'}
 
+WORK PREFERENCES:
+- Work Preference: ${userData.workPreference || 'Not specified'}
+- Willing to Relocate: ${userData.willingToRelocate ? 'Yes' : 'No'}
+- Preferred Environment: ${userData.preferredEnvironment?.join(', ') || 'Not specified'}
+- Role Type: ${userData.roleType || 'Not specified'}
+- Deal Breakers: ${userData.dealBreakers?.join(', ') || 'Not specified'}
+
+COMPENSATION:
+- Salary Expectations: ${userData.salaryExpectations?.min || ''} - ${userData.salaryExpectations?.max || ''} ${userData.salaryExpectations?.currency || 'EUR'}
+- Salary Flexibility: ${userData.salaryFlexibility || 'Not specified'}
+- Compensation Priorities: ${userData.compensationPriorities?.join(', ') || 'Not specified'}
+
 PROFESSIONAL HISTORY:
-${userData.professionalHistory?.slice(0, 3).map(exp => 
+${userData.professionalHistory?.slice(0, 5).map((exp: any) => 
   `- ${exp.title} at ${exp.company} (${exp.startDate} - ${exp.current ? 'Present' : exp.endDate})
-   Industry: ${exp.industry || 'N/A'}, Location: ${exp.location || 'N/A'}`
+   Industry: ${exp.industry || 'N/A'}, Location: ${exp.location || 'N/A'}
+   Key Achievements: ${exp.achievements?.slice(0, 2).join('; ') || 'N/A'}`
 ).join('\n') || '- Not specified'}
+
+MANAGEMENT EXPERIENCE:
+- Has Management Experience: ${userData.managementExperience?.hasExperience ? 'Yes' : 'No'}
+- Team Size: ${userData.managementExperience?.teamSize || 'N/A'}
+- Team Type: ${userData.managementExperience?.teamType || 'N/A'}
 
 PROFILE TAGS (AI-generated summary):
 ${userData.profileTags?.join(', ') || 'Not generated'}
 
 ${userData.cvContent ? `
-CV CONTENT (extracted):
-${userData.cvContent.substring(0, 3000)}...
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📄 CV CONTENT (extracted)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userData.cvContent.substring(0, 4000)}
+${userData.cvContent.length > 4000 ? '...[truncated]' : ''}
 ` : ''}
+${applicationsSection}
+${campaignsSection}
 `;
 }
 
@@ -223,93 +362,253 @@ ${userData.cvContent.substring(0, 3000)}...
 export async function generateCareerInsights(userData: CompleteUserData): Promise<CareerInsightsData> {
   const userProfile = formatUserProfile(userData);
   
-  const prompt = `You are a world-class career advisor and strategist. Analyze this professional's profile and provide comprehensive, actionable career insights.
+  const prompt = `You are a WORLD-CLASS CAREER INTELLIGENCE ANALYST and BRUTALLY HONEST CAREER COACH with 25+ years of experience in executive recruitment, talent acquisition, career coaching, and job market analysis. You have worked with Fortune 500 companies and helped thousands of professionals land their dream jobs.
 
+Your analysis is renowned for being:
+- BRUTALLY HONEST - You tell people what they NEED to hear, not what they WANT to hear
+- DATA-DRIVEN - You base every recommendation on the actual numbers and patterns
+- SPECIFIC - You never give generic advice; everything is personalized
+- ACTIONABLE - Every insight leads to a concrete next step
+- REALITY-BASED - You compare aspirations against actual market reality
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 COMPLETE USER DATA FOR ANALYSIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${userProfile}
 
-Based on this profile, generate a complete career intelligence report with SEVEN sections:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 YOUR MISSION: COMPREHENSIVE CAREER INTELLIGENCE REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-## SECTION 1: NEXT MOVE (Companies & Career Path)
-## SECTION 2: SKILLS TO MASTER
-## SECTION 3: MARKET POSITIONING (How they compare to competition)
-## SECTION 4: INTERVIEW READINESS (Preparation score & common questions)
-## SECTION 5: NETWORK INSIGHTS (Connections & referral opportunities)
-## SECTION 6: TIMELINE/ROADMAP (Path to goal with milestones)
-## SECTION 7: ACTION PLAN
+**CRITICAL ANALYSIS REQUIREMENTS:**
 
-IMPORTANT INSTRUCTIONS:
-- Be SPECIFIC and PERSONALIZED - use their actual data
-- Recommend REAL companies that exist and hire in their field
-- Provide ACTIONABLE advice, not generic tips
-- Be HONEST about scores and levels
-- Consider their location, experience level, and preferences
+1. **ALIGNMENT CHECK**: Compare the user's TARGET POSITION against what they're actually APPLYING TO. Are they aligned or completely off-track?
 
-Return your response as a JSON object with this EXACT structure:
+2. **SUCCESS RATE ANALYSIS**: If their response rate is low (under 20%), identify WHY. Is it:
+   - Wrong seniority level (over-reaching or under-selling)?
+   - Wrong industry targeting?
+   - Skills mismatch?
+   - Poor application timing?
+
+3. **CAMPAIGN EFFECTIVENESS**: Analyze their email campaigns. Are they targeting the right companies? Is their outreach effective?
+
+4. **HONEST FEEDBACK**: In EVERY section, include a "honestFeedback" field. Be direct. Examples:
+   - "You're applying to Director roles with only 3 years of experience. This is unrealistic."
+   - "Your skills don't match the roles you're targeting. You need to upskill first."
+   - "You're under-selling yourself. Your experience qualifies you for more senior positions."
+   - "Your campaign response rate of 2% indicates a fundamental targeting problem."
+
+5. **CORRECTIVE ACTIONS**: For each section, provide specific corrections if the user is off-track.
+
+6. **USE ACTUAL DATA**: Reference specific numbers from their applications:
+   - "${userData.totalApplications || 0} applications with ${userData.responseRate || 0}% response rate"
+   - "Applied to companies like: [list actual companies from their data]"
+   - "Your average match score of ${userData.averageMatchScore || 0}% suggests..."
+
+7. **REAL COMPANIES**: Recommend REAL companies that actually hire for their target role in their location.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📝 REQUIRED OUTPUT FORMAT (JSON)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Return ONLY a valid JSON object with this EXACT structure:
 
 {
   "nextMove": {
-    "summary": "One sentence summary of their best opportunities",
+    "summary": "Based on your ${userData.totalApplications || 0} applications with ${userData.responseRate || 0}% response rate, here's your realistic next move... [BE SPECIFIC AND DATA-DRIVEN]",
     "opportunityCount": 8,
     "topCompanies": [
-      { "name": "Real Company", "matchScore": 85, "industry": "Tech", "location": "Paris", "whyMatch": "Why this fits", "topRole": "Role" }
+      {
+        "name": "REAL Company Name that hires in their field",
+        "matchScore": 85,
+        "industry": "Specific Industry",
+        "location": "Specific City",
+        "whyMatch": "Detailed explanation referencing their ACTUAL skills and experience",
+        "topRole": "Specific role title they should target",
+        "alreadyApplied": false
+      }
     ],
     "careerPath": {
-      "currentPosition": "Current role",
-      "targetPosition": "Target role",
-      "steps": [{ "title": "Step", "timeline": "6 months", "description": "What to do" }]
-    }
+      "currentPosition": "Their actual current role",
+      "targetPosition": "Realistic target based on their experience",
+      "steps": [
+        {
+          "title": "Specific step",
+          "timeline": "Realistic timeframe",
+          "description": "Detailed action with specific advice"
+        }
+      ]
+    },
+    "alignmentAnalysis": {
+      "profileVsApplicationsMatch": 65,
+      "directionAssessment": "misaligned",
+      "criticalIssues": ["Issue 1 with specific evidence", "Issue 2"],
+      "honestFeedback": "Direct, honest assessment of their job search direction"
+    },
+    "honestFeedback": "Brutally honest assessment of their next move strategy",
+    "correctiveActions": ["Specific action 1", "Specific action 2"]
   },
   "skills": {
-    "summary": "Skill development needs",
+    "summary": "Based on roles you're targeting vs. your current skills... [BE SPECIFIC]",
     "criticalCount": 3,
-    "criticalSkills": [{ "name": "Skill", "currentLevel": 40, "requiredLevel": 80, "importance": "critical", "salaryImpact": "+€5k/year" }],
-    "trendingSkills": [{ "name": "Skill", "demandGrowth": "+25%", "relevance": "Why it matters" }],
-    "recommendedResources": [{ "title": "Resource", "type": "course", "duration": "4 weeks" }]
+    "criticalSkills": [
+      {
+        "name": "Specific Skill",
+        "currentLevel": 40,
+        "requiredLevel": 80,
+        "importance": "critical",
+        "salaryImpact": "+€X,XXX/year",
+        "missingInApplications": true
+      }
+    ],
+    "trendingSkills": [
+      {
+        "name": "Skill",
+        "demandGrowth": "+XX%",
+        "relevance": "Why this matters for THEIR specific goals"
+      }
+    ],
+    "recommendedResources": [
+      {
+        "title": "Specific course/cert name",
+        "type": "course",
+        "duration": "X weeks"
+      }
+    ],
+    "honestFeedback": "Honest assessment of their skill gaps vs. applications",
+    "correctiveActions": ["Specific action 1", "Specific action 2"]
   },
   "marketPosition": {
-    "summary": "How they stand in the market",
-    "marketFitScore": 75,
-    "strengths": [{ "title": "Strength", "description": "Details", "competitiveEdge": "Why it matters" }],
-    "weaknesses": [{ "title": "Weakness", "description": "Details", "howToImprove": "Advice" }],
-    "uniqueValue": "Their unique value proposition",
-    "competitorComparison": "How they compare to typical candidates"
+    "summary": "Your ${userData.responseRate || 0}% response rate indicates... [BE SPECIFIC]",
+    "marketFitScore": 72,
+    "strengths": [
+      {
+        "title": "Strength",
+        "description": "Based on their ACTUAL experience",
+        "competitiveEdge": "How this helps them"
+      }
+    ],
+    "weaknesses": [
+      {
+        "title": "Weakness",
+        "description": "Honest assessment",
+        "howToImprove": "Specific improvement path"
+      }
+    ],
+    "uniqueValue": "Their unique value proposition based on actual data",
+    "competitorComparison": "How they compare to typical candidates for roles they're applying to",
+    "applicationPatternAnalysis": {
+      "companiesTargeted": ["List of companies from their applications"],
+      "rolesApplied": ["List of role types"],
+      "successRateByType": [{"type": "Senior roles", "rate": 5}, {"type": "Mid-level", "rate": 25}],
+      "timeWastedEstimate": "X% of applications are likely wasted on wrong-fit roles",
+      "topPerformingApplications": ["Which applications got responses"]
+    },
+    "honestFeedback": "Honest market position assessment",
+    "correctiveActions": ["Specific action 1", "Specific action 2"]
   },
   "interviewReadiness": {
-    "summary": "Interview preparation status",
+    "summary": "Based on the roles you're actually interviewing for...",
     "readinessScore": 65,
-    "topQuestions": [{ "question": "Common question", "category": "behavioral", "tip": "How to answer" }],
-    "preparationAreas": [{ "area": "Area name", "currentLevel": 50, "importance": "critical", "advice": "How to prepare" }],
-    "redFlags": ["Things to avoid in interviews"],
-    "mockInterviewFocus": "What type of mock interview to practice"
+    "topQuestions": [
+      {
+        "question": "Question specific to roles they're applying for",
+        "category": "behavioral",
+        "tip": "Specific tip based on their background"
+      }
+    ],
+    "preparationAreas": [
+      {
+        "area": "Area",
+        "currentLevel": 50,
+        "importance": "critical",
+        "advice": "Specific advice"
+      }
+    ],
+    "redFlags": ["Red flags based on their profile and target roles"],
+    "mockInterviewFocus": "Specific focus area",
+    "honestFeedback": "Honest interview readiness assessment",
+    "correctiveActions": ["Action 1", "Action 2"]
   },
   "networkInsights": {
-    "summary": "Network strength analysis",
+    "summary": "Network analysis for companies you've applied to...",
     "connectionScore": 55,
-    "potentialReferrals": [{ "type": "Alumni/Industry/LinkedIn", "description": "Opportunity", "actionStep": "What to do" }],
-    "outreachTemplates": [{ "scenario": "Cold outreach", "template": "Message template" }],
-    "networkingTips": ["Actionable networking advice"],
-    "linkedinOptimization": ["LinkedIn improvement tips"]
+    "potentialReferrals": [
+      {
+        "type": "Type",
+        "description": "Description",
+        "actionStep": "Specific action"
+      }
+    ],
+    "outreachTemplates": [
+      {
+        "scenario": "Scenario",
+        "template": "Template text"
+      }
+    ],
+    "networkingTips": ["Tip 1", "Tip 2"],
+    "linkedinOptimization": ["Optimization 1", "Optimization 2"],
+    "companiesAppliedConnections": ["Suggestions for connecting at companies they applied to"],
+    "honestFeedback": "Honest network assessment",
+    "correctiveActions": ["Action 1", "Action 2"]
   },
   "timeline": {
-    "summary": "Path to achieving their goal",
-    "estimatedTimeToGoal": "6-9 months",
+    "summary": "Based on your current ${userData.responseRate || 0}% response rate, realistic timeline is...",
+    "estimatedTimeToGoal": "X-Y months",
     "successProbability": 70,
-    "milestones": [{ "title": "Milestone", "timeline": "Month 1-2", "description": "What to achieve", "status": "pending" }],
-    "weeklyFocus": "This week's priority",
+    "milestones": [
+      {
+        "title": "Milestone",
+        "timeline": "Month X-Y",
+        "description": "Description",
+        "status": "pending"
+      }
+    ],
+    "weeklyFocus": "This week's priority based on their current situation",
     "thirtyDayPlan": "30-day goals",
     "sixtyDayPlan": "60-day goals",
-    "ninetyDayPlan": "90-day goals"
+    "ninetyDayPlan": "90-day goals",
+    "adjustedForCurrentRate": true,
+    "honestFeedback": "Honest timeline assessment - is their goal realistic?",
+    "correctiveActions": ["Action 1", "Action 2"]
   },
   "actionPlan": {
-    "summary": "Immediate priorities",
+    "summary": "Your top priority actions based on your ${userData.totalApplications || 0} applications...",
     "actionCount": 5,
-    "weeklyActions": [{ "id": "action-1", "title": "Action", "description": "Details", "priority": "high", "timeEstimate": "2 hours" }],
-    "timing": { "bestDays": ["Tuesday", "Wednesday"], "bestTimes": "9-11 AM", "bestMonths": ["January"], "insight": "Timing advice" },
-    "salary": { "range": "€55,000-75,000", "average": "€65,000", "tips": ["Negotiation tips"] }
+    "weeklyActions": [
+      {
+        "id": "action-1",
+        "title": "Action title",
+        "description": "Detailed action",
+        "priority": "high",
+        "timeEstimate": "X hours",
+        "isCorrective": true
+      }
+    ],
+    "timing": {
+      "bestDays": ["Day1", "Day2"],
+      "bestTimes": "XX:XX - XX:XX",
+      "bestMonths": ["Month1", "Month2"],
+      "insight": "Timing insight for their industry"
+    },
+    "salary": {
+      "range": "€XX,XXX - €XX,XXX",
+      "average": "€XX,XXX",
+      "tips": ["Tip 1", "Tip 2"]
+    },
+    "honestFeedback": "Honest assessment of what they need to do NOW",
+    "correctiveActions": ["Corrective action 1", "Corrective action 2"]
   }
 }
 
-Provide 3 items for each array. Be concise but specific.`;
+**CRITICAL REMINDERS:**
+1. Provide 3-5 items for each array
+2. Use REAL data from their profile - reference specific companies they applied to, their actual response rate, their actual skills
+3. Be BRUTALLY HONEST in every honestFeedback field
+4. If they have NO applications or campaigns, note this and provide advice based solely on their profile
+5. Adjust all advice based on their location (${userData.city || userData.location || 'their location'})
+6. Consider their experience level (${userData.yearsOfExperience || 'unknown'} years) when making recommendations
+7. Return ONLY valid JSON, no markdown code blocks or extra text`;
 
   try {
     const response = await axios.post('/api/chatgpt', {
@@ -317,7 +616,7 @@ Provide 3 items for each array. Be concise but specific.`;
       type: 'career-intelligence',
       cvContent: userData.cvContent || null
     }, {
-      timeout: 90000 // 90 seconds for comprehensive analysis
+      timeout: 120000 // 120 seconds for comprehensive analysis
     });
 
     if (response.data.status === 'success') {
@@ -330,7 +629,14 @@ Provide 3 items for each array. Be concise but specific.`;
         if (jsonMatch) {
           content = JSON.parse(jsonMatch[1]);
         } else {
-          content = JSON.parse(content);
+          // Try to find JSON object in the response
+          const jsonStart = content.indexOf('{');
+          const jsonEnd = content.lastIndexOf('}');
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+            content = JSON.parse(content.substring(jsonStart, jsonEnd + 1));
+          } else {
+            content = JSON.parse(content);
+          }
         }
       }
       
@@ -353,83 +659,135 @@ function getMockInsights(userData: CompleteUserData): CareerInsightsData {
   const location = userData.city && userData.country 
     ? `${userData.city}, ${userData.country}` 
     : userData.location || 'Your Location';
+  const totalApps = userData.totalApplications || 0;
+  const responseRate = userData.responseRate || 0;
   
   return {
     nextMove: {
-      summary: `Strong opportunities in your target market based on your ${userData.yearsOfExperience || '5'}+ years of experience`,
+      summary: `Based on your ${totalApps} applications with ${responseRate}% response rate, your best opportunities lie in leveraging your ${userData.skills?.slice(0, 2).join(' and ') || 'core skills'} expertise.`,
       opportunityCount: 8,
       topCompanies: [
         {
-          name: 'Example Company 1',
+          name: 'Salesforce',
           matchScore: 87,
           industry: userData.industry || 'Technology',
           location: location,
-          whyMatch: 'Strong alignment with your skills and career goals. The company culture matches your preferences for work-life balance.',
-          topRole: targetPosition
+          whyMatch: `Strong alignment with your ${userData.yearsOfExperience || '5'}+ years of experience and ${userData.skills?.[0] || 'technical'} skills.`,
+          topRole: targetPosition,
+          alreadyApplied: false
         },
         {
-          name: 'Example Company 2',
+          name: 'HubSpot',
           matchScore: 82,
-          industry: userData.targetSectors?.[0] || 'Technology',
+          industry: userData.targetSectors?.[0] || 'SaaS',
           location: location,
           whyMatch: 'Growing company with excellent career advancement opportunities in your field.',
-          topRole: `Senior ${currentPosition}`
+          topRole: `Senior ${currentPosition}`,
+          alreadyApplied: false
         },
         {
-          name: 'Example Company 3',
+          name: 'Zendesk',
           matchScore: 78,
-          industry: userData.targetSectors?.[1] || 'Consulting',
+          industry: userData.targetSectors?.[1] || 'Customer Success',
           location: location,
-          whyMatch: 'Innovative environment with competitive compensation and strong team culture.',
-          topRole: targetPosition
+          whyMatch: 'Innovative environment with competitive compensation.',
+          topRole: targetPosition,
+          alreadyApplied: false
         }
       ],
       careerPath: {
         currentPosition: currentPosition,
         targetPosition: targetPosition,
         steps: [
-          { title: 'Strengthen Core Skills', timeline: '0-6 months', description: 'Focus on developing key competencies and building a stronger portfolio' },
-          { title: 'Expand Network', timeline: '3-9 months', description: 'Connect with industry leaders and join relevant professional communities' },
-          { title: 'Target Senior Roles', timeline: '6-12 months', description: 'Apply strategically to positions that align with your enhanced skillset' }
+          { title: 'Strengthen Core Skills', timeline: '0-3 months', description: 'Focus on developing key competencies based on your skill gaps' },
+          { title: 'Targeted Applications', timeline: '1-4 months', description: 'Apply strategically to companies matching your profile' },
+          { title: 'Interview & Close', timeline: '3-6 months', description: 'Convert interviews into offers with focused preparation' }
         ]
-      }
+      },
+      alignmentAnalysis: {
+        profileVsApplicationsMatch: responseRate > 15 ? 75 : 50,
+        directionAssessment: responseRate > 15 ? 'on-track' : 'misaligned',
+        criticalIssues: responseRate < 15 ? [
+          `Your ${responseRate}% response rate suggests targeting issues`,
+          'Consider adjusting seniority level of applications'
+        ] : [],
+        honestFeedback: responseRate < 15 
+          ? `With only ${responseRate}% response rate, your current targeting strategy needs adjustment. Focus on roles that better match your experience level.`
+          : `Your ${responseRate}% response rate is healthy. Continue with current strategy but optimize for higher match scores.`
+      },
+      honestFeedback: totalApps === 0 
+        ? 'You haven\'t started applying yet. Your profile looks solid - it\'s time to start your job search.'
+        : `Based on ${totalApps} applications, ${responseRate > 15 ? 'you\'re on the right track' : 'you need to recalibrate your targeting strategy'}.`,
+      correctiveActions: responseRate < 15 ? [
+        'Focus on roles matching your current seniority level',
+        'Improve your CV to highlight relevant achievements',
+        'Target companies where your skills are in high demand'
+      ] : [
+        'Continue current strategy',
+        'Increase application volume',
+        'Prepare for upcoming interviews'
+      ]
     },
     skills: {
-      summary: '3 critical skills to develop for your target roles',
+      summary: `Focus on mastering ${userData.skills?.[0] || 'key skills'} and developing leadership capabilities for your target roles.`,
       criticalCount: 3,
       criticalSkills: [
-        { name: 'Leadership & Management', currentLevel: 45, requiredLevel: 75, importance: 'critical', salaryImpact: '+€8,000-12,000/year' },
-        { name: 'Strategic Thinking', currentLevel: 50, requiredLevel: 80, importance: 'high', salaryImpact: '+€5,000-8,000/year' },
-        { name: 'Data Analysis', currentLevel: 35, requiredLevel: 65, importance: 'medium', salaryImpact: '+€3,000-6,000/year' }
+        { name: 'Leadership & Management', currentLevel: 45, requiredLevel: 75, importance: 'critical', salaryImpact: '+€8,000-12,000/year', missingInApplications: true },
+        { name: 'Strategic Thinking', currentLevel: 50, requiredLevel: 80, importance: 'high', salaryImpact: '+€5,000-8,000/year', missingInApplications: false },
+        { name: 'Data Analysis', currentLevel: 35, requiredLevel: 65, importance: 'medium', salaryImpact: '+€3,000-6,000/year', missingInApplications: true }
       ],
       trendingSkills: [
         { name: 'AI/ML Fundamentals', demandGrowth: '+35%', relevance: 'Increasingly required across all industries' },
         { name: 'Remote Leadership', demandGrowth: '+28%', relevance: 'Essential for modern hybrid work environments' },
-        { name: 'Sustainability Practices', demandGrowth: '+22%', relevance: 'Growing focus on ESG across sectors' }
+        { name: 'Data-Driven Decision Making', demandGrowth: '+22%', relevance: 'Growing focus across sectors' }
       ],
       recommendedResources: [
         { title: 'Leadership Masterclass', type: 'course', duration: '6 weeks' },
         { title: 'Strategic Management Certification', type: 'certification', duration: '3 months' },
-        { title: 'Data-Driven Decision Making', type: 'course', duration: '4 weeks' }
+        { title: 'Data Analytics Fundamentals', type: 'course', duration: '4 weeks' }
+      ],
+      honestFeedback: 'Your technical skills are solid, but you need to develop leadership capabilities to reach senior roles.',
+      correctiveActions: [
+        'Start a leadership development program',
+        'Seek opportunities to mentor junior team members',
+        'Complete at least one industry certification'
       ]
     },
     marketPosition: {
-      summary: `You rank in the top 30% of candidates for ${targetPosition} roles in your market`,
-      marketFitScore: 72,
+      summary: `You're well-positioned in the market with strong ${userData.skills?.[0] || 'technical'} skills but need to strengthen your leadership narrative.`,
+      marketFitScore: 75,
       strengths: [
         { title: 'Industry Experience', description: `${userData.yearsOfExperience || '5'}+ years in your field gives you credibility`, competitiveEdge: 'Employers value proven track records' },
         { title: 'Technical Skills', description: 'Your skill set aligns well with market demands', competitiveEdge: 'You have skills that are in high demand' },
-        { title: 'Location Flexibility', description: userData.willingToRelocate ? 'Open to relocation expands opportunities' : 'Local market presence is strong', competitiveEdge: 'Geographic flexibility is valued' }
+        { title: 'Location', description: `Based in ${location}`, competitiveEdge: 'Strong local market presence' }
       ],
       weaknesses: [
         { title: 'Leadership Experience', description: 'Limited management experience compared to senior candidates', howToImprove: 'Take on project lead roles or mentor junior team members' },
         { title: 'Industry Certifications', description: 'Could benefit from industry-recognized credentials', howToImprove: 'Pursue relevant certifications in your field' }
       ],
       uniqueValue: `Your combination of ${userData.skills?.slice(0, 2).join(' and ') || 'technical expertise'} with ${userData.industry || 'industry'} experience makes you uniquely positioned`,
-      competitorComparison: 'You have stronger technical skills than 60% of candidates but may need to demonstrate more leadership experience'
+      competitorComparison: 'You have stronger technical skills than 60% of candidates but may need to demonstrate more leadership experience',
+      applicationPatternAnalysis: {
+        companiesTargeted: (userData.applications || []).slice(0, 5).map((a: any) => a.company || a.companyName).filter(Boolean) as string[],
+        rolesApplied: [...new Set((userData.applications || []).map((a: any) => a.position || a.jobTitle).filter(Boolean))] as string[],
+        successRateByType: [
+          { type: 'Senior roles', rate: 10 },
+          { type: 'Mid-level roles', rate: 25 }
+        ],
+        timeWastedEstimate: responseRate < 15 ? '40% of applications may be misaligned' : '15% optimization possible',
+        topPerformingApplications: ['Focus on companies where you got responses']
+      },
+      honestFeedback: responseRate < 15 
+        ? 'Your low response rate indicates a targeting problem. Either you\'re over-reaching on seniority or your CV isn\'t highlighting the right achievements.'
+        : 'You\'re competitive in the market. Focus on converting more interviews into offers.',
+      correctiveActions: [
+        'Audit your recent applications for seniority alignment',
+        'Update your CV to highlight quantifiable achievements',
+        'Focus on companies with higher match scores'
+      ]
     },
     interviewReadiness: {
-      summary: 'You\'re 65% ready for interviews - focus on behavioral questions and company research',
+      summary: `You're moderately prepared for interviews but need to focus on behavioral questions and company research.`,
       readinessScore: 65,
       topQuestions: [
         { question: 'Tell me about a time you led a challenging project', category: 'behavioral', tip: 'Use STAR method - focus on measurable outcomes' },
@@ -446,19 +804,25 @@ function getMockInsights(userData: CompleteUserData): CareerInsightsData {
         'Being vague about achievements or responsibilities',
         'Not asking thoughtful questions about the role'
       ],
-      mockInterviewFocus: 'Focus on behavioral interviews with emphasis on leadership scenarios and conflict resolution'
+      mockInterviewFocus: 'Focus on behavioral interviews with emphasis on leadership scenarios',
+      honestFeedback: 'Your interview preparation is average. Invest more time in practicing behavioral responses.',
+      correctiveActions: [
+        'Schedule 3 mock interviews this week',
+        'Research each target company deeply before applying',
+        'Prepare specific stories for common behavioral questions'
+      ]
     },
     networkInsights: {
-      summary: 'Your network has untapped potential - 3 warm connection paths to target companies',
-      connectionScore: 58,
+      summary: `Your network has untapped potential - focus on expanding industry connections.`,
+      connectionScore: 55,
       potentialReferrals: [
-        { type: 'Alumni Network', description: 'Connect with alumni from your school working at target companies', actionStep: 'Search LinkedIn for alumni at your top 3 target companies' },
+        { type: 'Alumni Network', description: 'Connect with alumni working at target companies', actionStep: 'Search LinkedIn for alumni at your top 3 target companies' },
         { type: 'Industry Events', description: 'Attend virtual or in-person industry meetups', actionStep: 'Register for 2 industry events this month' },
-        { type: 'Second-degree Connections', description: 'You have connections who know people at target companies', actionStep: 'Ask for introductions to 3 specific people' }
+        { type: 'Second-degree Connections', description: 'Leverage connections who know people at target companies', actionStep: 'Ask for introductions to 3 specific people' }
       ],
       outreachTemplates: [
         { scenario: 'Cold LinkedIn Outreach', template: 'Hi [Name], I noticed you work at [Company] as [Role]. I\'m exploring opportunities in [Field] and would love to learn about your experience. Would you have 15 minutes for a quick call?' },
-        { scenario: 'Referral Request', template: 'Hi [Name], I hope you\'re doing well! I\'m currently looking for my next role in [Field] and noticed [Company] is hiring. Would you be comfortable making an introduction to the hiring team?' }
+        { scenario: 'Referral Request', template: 'Hi [Name], I hope you\'re doing well! I\'m currently looking for my next role and noticed [Company] is hiring. Would you be comfortable making an introduction?' }
       ],
       networkingTips: [
         'Engage with content from people at target companies before reaching out',
@@ -469,38 +833,54 @@ function getMockInsights(userData: CompleteUserData): CareerInsightsData {
         'Add "Open to Work" badge visible to recruiters only',
         'Include keywords from target job descriptions in your headline',
         'Post industry insights weekly to increase visibility'
+      ],
+      companiesAppliedConnections: ['Search for connections at companies you\'ve applied to'],
+      honestFeedback: 'Your network is underutilized. Many jobs are filled through referrals - invest more time in networking.',
+      correctiveActions: [
+        'Send 5 outreach messages per week',
+        'Optimize your LinkedIn profile for your target role',
+        'Join 2 relevant professional groups'
       ]
     },
     timeline: {
-      summary: `Realistic path to ${targetPosition}: 6-9 months with focused effort`,
+      summary: `Rouchdi can achieve his career goals within 6-9 months with focused effort and strategy adjustments.`,
       estimatedTimeToGoal: '6-9 months',
-      successProbability: 70,
+      successProbability: responseRate > 15 ? 75 : 60,
       milestones: [
         { title: 'Profile Optimization', timeline: 'Week 1-2', description: 'Update CV, LinkedIn, and portfolio', status: 'pending' },
-        { title: 'Skill Development', timeline: 'Month 1-3', description: 'Complete priority certifications and courses', status: 'pending' },
-        { title: 'Active Applications', timeline: 'Month 2-6', description: 'Apply to 5-10 targeted positions weekly', status: 'pending' },
-        { title: 'Interview Phase', timeline: 'Month 4-8', description: 'Interview at 3-5 companies', status: 'pending' }
+        { title: 'Strategy Calibration', timeline: 'Week 1-3', description: 'Analyze and adjust targeting based on response data', status: 'pending' },
+        { title: 'Active Applications', timeline: 'Month 1-4', description: 'Apply to 5-10 targeted positions weekly', status: 'pending' },
+        { title: 'Interview Phase', timeline: 'Month 3-6', description: 'Interview at 3-5 companies', status: 'pending' }
       ],
-      weeklyFocus: 'This week: Update your LinkedIn headline and apply to 3 target companies',
-      thirtyDayPlan: 'Optimize all profiles, start one critical skill course, apply to 15 positions',
+      weeklyFocus: 'This week: Audit your recent applications and identify patterns',
+      thirtyDayPlan: 'Optimize all profiles, adjust targeting strategy, apply to 15 well-matched positions',
       sixtyDayPlan: 'Complete first certification, expand network by 20 connections, secure 3 interviews',
-      ninetyDayPlan: 'Receive first offer, complete second skill course, have backup opportunities ready'
+      ninetyDayPlan: 'Receive first offer, complete skill development course, have backup opportunities ready',
+      adjustedForCurrentRate: true,
+      honestFeedback: responseRate < 15 
+        ? 'Your current trajectory needs adjustment. Without changes, this timeline could extend to 9-12 months.'
+        : 'You\'re on track. Maintain momentum and focus on interview conversion.',
+      correctiveActions: [
+        'Review and adjust application targeting weekly',
+        'Track response rates by company type and seniority',
+        'Increase networking activities'
+      ]
     },
     actionPlan: {
-      summary: '5 high-impact actions to accelerate your job search this week',
+      summary: `${5} high-impact actions to accelerate your job search this week`,
       actionCount: 5,
       weeklyActions: [
-        { id: 'action-1', title: 'Update your LinkedIn headline', description: 'Make it clear you are open to opportunities with your target role in the title', priority: 'high', timeEstimate: '30 minutes' },
-        { id: 'action-2', title: 'Apply to 3 target companies', description: 'Focus on companies matching your profile with customized cover letters', priority: 'high', timeEstimate: '2 hours' },
-        { id: 'action-3', title: 'Reach out to 5 connections', description: 'Message people working at your target companies for informational interviews', priority: 'high', timeEstimate: '1 hour' },
-        { id: 'action-4', title: 'Complete one skill module', description: 'Invest time in learning a critical skill from the recommendations', priority: 'medium', timeEstimate: '2 hours' },
-        { id: 'action-5', title: 'Review and update your CV', description: 'Ensure your CV highlights achievements relevant to target roles', priority: 'medium', timeEstimate: '1 hour' }
+        { id: 'action-1', title: 'Audit Application History', description: 'Review your applications and identify which ones got responses', priority: 'high', timeEstimate: '1 hour', isCorrective: true },
+        { id: 'action-2', title: 'Update your CV', description: 'Ensure your CV highlights achievements relevant to target roles', priority: 'high', timeEstimate: '2 hours', isCorrective: false },
+        { id: 'action-3', title: 'Apply to 3 well-matched companies', description: 'Focus on companies with 75%+ match score', priority: 'high', timeEstimate: '2 hours', isCorrective: false },
+        { id: 'action-4', title: 'Send 5 networking messages', description: 'Reach out to people at your target companies', priority: 'high', timeEstimate: '1 hour', isCorrective: false },
+        { id: 'action-5', title: 'Complete one skill module', description: 'Invest time in a critical skill gap', priority: 'medium', timeEstimate: '2 hours', isCorrective: false }
       ],
       timing: {
         bestDays: ['Tuesday', 'Wednesday', 'Thursday'],
         bestTimes: '9:00 - 11:00 AM',
         bestMonths: ['January', 'February', 'September', 'October'],
-        insight: 'Applications submitted early in the week have 20% higher response rates in your industry'
+        insight: 'Applications submitted early in the week have 20% higher response rates'
       },
       salary: {
         range: userData.salaryExpectations?.min && userData.salaryExpectations?.max 
@@ -512,9 +892,15 @@ function getMockInsights(userData: CompleteUserData): CareerInsightsData {
           'Lead with your value and achievements, not your current salary',
           'Consider total compensation including equity, bonuses, and benefits'
         ]
-      }
+      },
+      honestFeedback: totalApps === 0 
+        ? 'You need to start applying. Analysis without application data limits the quality of recommendations.'
+        : `With ${totalApps} applications and ${responseRate}% response rate, ${responseRate < 15 ? 'strategy adjustment is critical' : 'focus on interview preparation'}.`,
+      correctiveActions: [
+        'Set weekly application and networking targets',
+        'Track all interactions in a spreadsheet',
+        'Review and adjust strategy every 2 weeks'
+      ]
     }
   };
 }
-
-

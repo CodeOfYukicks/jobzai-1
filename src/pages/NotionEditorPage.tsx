@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
-import NotionEditor from '../components/notion-editor/NotionEditor';
+import NotionEditor, { NotionEditorRef } from '../components/notion-editor/NotionEditor';
 import FolderSidebar, { SelectedFolderType } from '../components/resume-builder/FolderSidebar';
 import { Folder } from '../components/resume-builder/FolderCard';
 import { ImportedDocument } from '../components/resume-builder/PDFPreviewCard';
@@ -50,7 +50,17 @@ export default function NotionEditorPage() {
   const { noteId: urlNoteId } = useParams<{ noteId: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { registerNoteEditor, unregisterNoteEditor, isOpen: isAssistantOpen } = useAssistant();
+  const { 
+    registerNoteEditor, 
+    unregisterNoteEditor, 
+    isOpen: isAssistantOpen,
+    inlineEdit,
+    confirmInlineEdit,
+    rejectInlineEdit,
+  } = useAssistant();
+  
+  // Ref for NotionEditor imperative methods
+  const editorRef = useRef<NotionEditorRef>(null);
 
   // Active note ID - can differ from URL during soft navigation
   const [activeNoteId, setActiveNoteId] = useState<string | undefined>(urlNoteId);
@@ -502,6 +512,10 @@ export default function NotionEditorPage() {
   useEffect(() => {
     registerNoteEditor({
       onContentChange: handleContentChange,
+      getContent: () => editorRef.current?.getContent() || null,
+      getSelection: () => editorRef.current?.getSelection() || null,
+      setContent: (content: any) => editorRef.current?.setContent(content),
+      replaceSelection: (text: string) => editorRef.current?.replaceSelection(text),
     });
 
     return () => {
@@ -1247,11 +1261,19 @@ export default function NotionEditorPage() {
 
               {/* Editor - key forces remount when activeNoteId changes to ensure isolated content */}
               <NotionEditor
+                ref={editorRef}
                 key={activeNoteId}
                 content={note.content}
                 onChange={handleContentChange}
                 placeholder="Type '/' for commands..."
                 autofocus
+                // AI inline editing props
+                aiEditMode={inlineEdit.isActive}
+                aiIsStreaming={inlineEdit.isStreaming}
+                aiStreamingText={inlineEdit.streamingText}
+                aiPendingContent={inlineEdit.pendingContent}
+                onAIEditAccept={confirmInlineEdit}
+                onAIEditReject={rejectInlineEdit}
               />
             </div>
           </div>

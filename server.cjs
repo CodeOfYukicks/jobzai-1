@@ -596,7 +596,7 @@ app.post('/api/chatgpt', async (req, res) => {
 
     // Select model based on task type
     // Use GPT-4o for all tasks - latest and most capable model
-    const model = 'gpt-4o';
+    const model = 'gpt-5.2';
 
     try {
       openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -807,7 +807,7 @@ async function callClaudeAssistant(messages, systemPrompt, apiKey, res) {
   }));
 
   const postData = JSON.stringify({
-    model: 'claude-sonnet-4.5',
+    model: 'claude-sonnet-4-5',
     max_tokens: 2000,
     temperature: 0.7,
     system: systemPrompt,
@@ -832,10 +832,37 @@ async function callClaudeAssistant(messages, systemPrompt, apiKey, res) {
   let fullContent = '';
 
   const claudeReq = https.request(options, (claudeRes) => {
+    // Handle non-200 status codes by reading the error body first
     if (claudeRes.statusCode !== 200) {
-      console.error('❌ Claude API error status:', claudeRes.statusCode);
-      res.write(`data: ${JSON.stringify({ error: 'Claude API error' })}\n\n`);
-      res.end();
+      let errorBody = '';
+      claudeRes.on('data', (chunk) => {
+        errorBody += chunk.toString();
+      });
+      claudeRes.on('end', () => {
+        console.error('❌ Claude API error status:', claudeRes.statusCode);
+        console.error('❌ Claude API error body:', errorBody);
+        
+        // Try to parse the error for a better message
+        let errorMessage = `Claude API error (status ${claudeRes.statusCode})`;
+        try {
+          const errorData = JSON.parse(errorBody);
+          if (errorData.error?.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          // Use the raw error body if it's not JSON
+          if (errorBody && errorBody.length < 500) {
+            errorMessage = errorBody;
+          }
+        }
+        
+        console.error('❌ Claude API error message:', errorMessage);
+        res.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
+      });
       return;
     }
 
@@ -875,6 +902,8 @@ async function callClaudeAssistant(messages, systemPrompt, apiKey, res) {
 
     claudeRes.on('error', (err) => {
       console.error('❌ Claude stream error:', err);
+      res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+      res.write('data: [DONE]\n\n');
       res.end();
     });
   });
@@ -932,7 +961,7 @@ async function callGeminiAssistant(messages, systemPrompt, apiKey, res) {
   const options = {
     hostname: 'generativelanguage.googleapis.com',
     port: 443,
-    path: `/v1beta/models/gemini-3:streamGenerateContent?key=${apiKey}&alt=sse`,
+    path: `/v1beta/models/gemini-3-pro:streamGenerateContent?key=${apiKey}&alt=sse`,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -944,10 +973,37 @@ async function callGeminiAssistant(messages, systemPrompt, apiKey, res) {
   let fullContent = '';
 
   const geminiReq = https.request(options, (geminiRes) => {
+    // Handle non-200 status codes by reading the error body first
     if (geminiRes.statusCode !== 200) {
-      console.error('❌ Gemini API error status:', geminiRes.statusCode);
-      res.write(`data: ${JSON.stringify({ error: 'Gemini API error' })}\n\n`);
-      res.end();
+      let errorBody = '';
+      geminiRes.on('data', (chunk) => {
+        errorBody += chunk.toString();
+      });
+      geminiRes.on('end', () => {
+        console.error('❌ Gemini API error status:', geminiRes.statusCode);
+        console.error('❌ Gemini API error body:', errorBody);
+        
+        // Try to parse the error for a better message
+        let errorMessage = `Gemini API error (status ${geminiRes.statusCode})`;
+        try {
+          const errorData = JSON.parse(errorBody);
+          if (errorData.error?.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          // Use the raw error body if it's not JSON
+          if (errorBody && errorBody.length < 500) {
+            errorMessage = errorBody;
+          }
+        }
+        
+        console.error('❌ Gemini API error message:', errorMessage);
+        res.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
+      });
       return;
     }
 
@@ -981,12 +1037,14 @@ async function callGeminiAssistant(messages, systemPrompt, apiKey, res) {
     geminiRes.on('end', () => {
       res.write('data: [DONE]\n\n');
       res.end();
-      console.log('✅ [GEMINI] Gemini 3 response completed (streamed)');
+      console.log('✅ [GEMINI] Gemini 3 Pro response completed (streamed)');
       console.log(`   Response length: ${fullContent.length} chars`);
     });
 
     geminiRes.on('error', (err) => {
       console.error('❌ Gemini stream error:', err);
+      res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+      res.write('data: [DONE]\n\n');
       res.end();
     });
   });
@@ -996,6 +1054,8 @@ async function callGeminiAssistant(messages, systemPrompt, apiKey, res) {
     if (!res.headersSent) {
       res.status(500).json({ status: 'error', message: err.message });
     } else {
+      res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+      res.write('data: [DONE]\n\n');
       res.end();
     }
   });
@@ -1013,12 +1073,13 @@ app.post('/api/assistant', async (req, res) => {
     console.log('\n🤖 ════════════════════════════════════════════════════════');
     console.log('🤖 AI Assistant endpoint called');
     
-    const { message, aiProvider = 'openai', pageContext, userContext, conversationHistory, userId, pageData, selectedContextItems } = req.body;
+    const { message, aiProvider = 'openai', pageContext, userContext, conversationHistory, userId, pageData, selectedContextItems, inlineEditMode = false, selectionMode = false, selectedText = '' } = req.body;
 
     console.log('🤖 ┌─────────────────────────────────────────────────────┐');
     console.log(`🤖 │ AI Provider: ${aiProvider.toUpperCase().padEnd(39)} │`);
     console.log(`🤖 │ User: ${(userContext?.firstName || 'Unknown').padEnd(44)} │`);
     console.log(`🤖 │ Message: ${(message.substring(0, 40) + '...').padEnd(41)} │`);
+    console.log(`🤖 │ Inline Edit Mode: ${String(inlineEditMode).padEnd(33)} │`);
     console.log('🤖 └─────────────────────────────────────────────────────┘');
     
     // Get appropriate API key based on provider
@@ -1063,8 +1124,99 @@ app.post('/api/assistant', async (req, res) => {
     console.log(`📊 Page data keys: ${pageData ? Object.keys(pageData).join(', ') : 'None'}`);
     console.log(`📎 Context items: ${selectedContextItems?.length || 0} items`);
 
-    // Build system prompt with context and page data
-    const systemPrompt = buildAssistantSystemPrompt(pageContext, userContext, pageData, selectedContextItems);
+    // Build system prompt with context and page data (pass inlineEditMode to skip EDIT_NOTE markup instructions)
+    let systemPrompt = buildAssistantSystemPrompt(pageContext, userContext, pageData, selectedContextItems, inlineEditMode);
+    
+    // Add inline edit mode instructions if enabled
+    if (inlineEditMode) {
+      const inlineEditInstructions = `
+
+## 🎯 INLINE EDIT MODE ACTIVE 🎯
+
+You are editing a note directly. Your response will be applied DIRECTLY to the user's note document.
+
+### ⚠️ CRITICAL RULES - YOU MUST FOLLOW THESE ⚠️
+
+1. **OUTPUT ONLY THE CONTENT** - ZERO explanations, introductions, or commentary
+2. **FORBIDDEN PHRASES** - NEVER write ANY of these:
+   - "Here's a summary..."
+   - "Here's the rewritten..."
+   - "I've improved..."
+   - "The updated note is..."
+   - "Here are the changes..."
+   - "Let me..."
+   - Any sentence describing what you're doing
+3. **NO MARKUP** - Do NOT use [[note:...]], [[application:...]], [[EDIT_NOTE:...]] or any special markup
+4. **START IMMEDIATELY** with the actual content (heading, bullet point, text, table, etc.)
+
+### CONTENT STRUCTURE
+Use rich markdown formatting:
+- **Headings**: # ## ### for hierarchy
+- **Lists**: - or * for bullets, 1. 2. 3. for numbered
+- **Tables**: | Header | Header | with proper formatting
+- **Bold/Italic**: **bold** and *italic* for emphasis
+- **Blockquotes**: > for callouts
+
+### EXAMPLES OF CORRECT OUTPUT
+
+User: "Summarize this note"
+CORRECT:
+# Key Points
+
+- First important point
+- Second important point
+
+## Details
+The main theme is...
+
+WRONG:
+Here's a summary of your note:
+- Point 1
+- Point 2
+
+User: "Improve this"
+CORRECT:
+# Professional Summary
+
+Experienced consultant with 8+ years...
+
+WRONG:
+I've improved your note with better structure:
+# Professional Summary...
+
+---
+START YOUR RESPONSE DIRECTLY WITH THE CONTENT. NO PREAMBLE.
+`;
+
+      // Add selection-specific instructions if in selection mode
+      if (selectionMode && selectedText) {
+        inlineEditInstructions += `
+
+## 🎯 SELECTION MODE - PARTIAL EDIT 🎯
+
+The user has SELECTED specific text to edit. You must ONLY rewrite/edit that selected portion.
+
+**SELECTED TEXT:**
+"${selectedText}"
+
+**CRITICAL RULES FOR SELECTION MODE:**
+1. Output ONLY the replacement for the selected text
+2. Do NOT include any surrounding context - just the edited portion
+3. Match the approximate length unless asked to expand/shorten
+4. Preserve the tone and style of the surrounding document
+5. Do NOT add extra formatting unless specifically requested
+
+**EXAMPLE:**
+If selected text is: "This is a simple example."
+And user asks to "make it more professional"
+Output: "This serves as an illustrative example."
+(Just the replacement, nothing else!)
+
+`;
+      }
+      
+      systemPrompt = inlineEditInstructions + '\n\n' + systemPrompt;
+    }
 
     // Build messages array
     const messages = [
@@ -1107,7 +1259,7 @@ app.post('/api/assistant', async (req, res) => {
         return;
       
       case 'gemini':
-        console.log('⚡ [GEMINI] Calling Gemini 3 (latest)...');
+        console.log('⚡ [GEMINI] Calling Gemini 3 Pro (latest)...');
         await callGeminiAssistant(messages, systemPrompt, apiKey, res);
         return;
       
@@ -1120,7 +1272,7 @@ app.post('/api/assistant', async (req, res) => {
         const postData = JSON.stringify({
           model: 'gpt-5.2',
           messages: messages,
-          max_tokens: 2000,
+          max_completion_tokens: 2000,
           temperature: 0.7,
           stream: true
         });
@@ -1141,10 +1293,37 @@ app.post('/api/assistant', async (req, res) => {
         let fullContent = '';
 
         const openaiReq = https.request(options, (openaiRes) => {
+          // Handle non-200 status codes by reading the error body first
           if (openaiRes.statusCode !== 200) {
-            console.error('❌ OpenAI API error status:', openaiRes.statusCode);
-            res.write(`data: ${JSON.stringify({ error: 'OpenAI API error' })}\n\n`);
-            res.end();
+            let errorBody = '';
+            openaiRes.on('data', (chunk) => {
+              errorBody += chunk.toString();
+            });
+            openaiRes.on('end', () => {
+              console.error('❌ OpenAI API error status:', openaiRes.statusCode);
+              console.error('❌ OpenAI API error body:', errorBody);
+              
+              // Try to parse the error for a better message
+              let errorMessage = `OpenAI API error (status ${openaiRes.statusCode})`;
+              try {
+                const errorData = JSON.parse(errorBody);
+                if (errorData.error?.message) {
+                  errorMessage = errorData.error.message;
+                } else if (errorData.message) {
+                  errorMessage = errorData.message;
+                }
+              } catch (e) {
+                // Use the raw error body if it's not JSON
+                if (errorBody && errorBody.length < 500) {
+                  errorMessage = errorBody;
+                }
+              }
+              
+              console.error('❌ OpenAI API error message:', errorMessage);
+              res.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
+              res.write('data: [DONE]\n\n');
+              res.end();
+            });
             return;
           }
 
@@ -1174,15 +1353,17 @@ app.post('/api/assistant', async (req, res) => {
             }
           });
 
-      openaiRes.on('end', () => {
-        res.write('data: [DONE]\n\n');
-        res.end();
-        console.log('✅ [OPENAI] GPT-5.2 response completed (streamed)');
-        console.log(`   Response length: ${fullContent.length} chars`);
-      });
+          openaiRes.on('end', () => {
+            res.write('data: [DONE]\n\n');
+            res.end();
+            console.log('✅ [OPENAI] GPT-5.2 response completed (streamed)');
+            console.log(`   Response length: ${fullContent.length} chars`);
+          });
 
           openaiRes.on('error', (err) => {
             console.error('❌ OpenAI stream error:', err);
+            res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+            res.write('data: [DONE]\n\n');
             res.end();
           });
         });
@@ -1192,6 +1373,8 @@ app.post('/api/assistant', async (req, res) => {
           if (!res.headersSent) {
             res.status(500).json({ status: 'error', message: err.message });
           } else {
+            res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+            res.write('data: [DONE]\n\n');
             res.end();
           }
         });
@@ -1943,7 +2126,7 @@ C'est l'idéal avant de postuler à une offre importante !"
 }
 
 // Helper function to build system prompt for AI Assistant
-function buildAssistantSystemPrompt(pageContext, userContext, pageData, selectedContextItems) {
+function buildAssistantSystemPrompt(pageContext, userContext, pageData, selectedContextItems, inlineEditMode = false) {
   const pageName = pageContext?.pageName || 'Jobz.ai';
   const pageDescription = pageContext?.pageDescription || 'AI-powered job search platform';
   const firstName = userContext?.firstName || 'there';
@@ -2432,7 +2615,7 @@ For CV Comparison:
 - User is on mobile (tours work best on desktop)
 - User seems to already know how to use the feature
 
-## DIRECT NOTE EDITING (NOTES PAGE ONLY!)
+${inlineEditMode ? '' : `## DIRECT NOTE EDITING (NOTES PAGE ONLY!)
 When the user is on the **Notes** page and asks you to edit, improve, or rewrite their note content, you can propose direct edits that they can apply with one click.
 
 **Syntax:** \`[[EDIT_NOTE:action:content]]\`
@@ -2495,13 +2678,12 @@ Click 'Replace' to apply these improvements!"
 - The note content is not available in pageData
 - User is not on the Notes page
 
-## CRITICAL RULES
+`}## CRITICAL RULES
 - NEVER give generic advice when you have specific data
 - ALWAYS mention specific company names, dates, or metrics from the data
 - USE RECORD CARDS when referencing specific applications, jobs, interviews, notes, or CV analyses
 - USE GUIDED TOURS when users ask HOW to do step-by-step processes
-- USE EDIT_NOTE when users want to improve their note content (Notes page only)
-- If data shows issues (stale applications, low scores), address them proactively
+${inlineEditMode ? '' : '- USE EDIT_NOTE when users want to improve their note content (Notes page only)\n'}- If data shows issues (stale applications, low scores), address them proactively
 - Sound like an expert who knows their situation, not a generic chatbot
 - Be conversational but professional - like a smart colleague, not a robot
 - When users ask about Jobz.ai features, ALWAYS give specific step-by-step guidance using the product knowledge below

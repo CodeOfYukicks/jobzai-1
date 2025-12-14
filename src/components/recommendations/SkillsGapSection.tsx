@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { GraduationCap, AlertCircle, BookOpen, Clock, Loader2, TrendingUp } from 'lucide-react';
+import { GraduationCap, AlertCircle, BookOpen, Clock, Loader2, TrendingUp, RefreshCw, DollarSign, Briefcase, Target } from 'lucide-react';
 
 interface SkillsGapSectionProps {
   data: any;
@@ -8,6 +8,30 @@ interface SkillsGapSectionProps {
   onRefresh: () => void;
 }
 
+// Helper to get priority color
+const getPriorityStyles = (priority: string) => {
+  const p = priority?.toLowerCase();
+  if (p === 'high' || p === 'critical') {
+    return {
+      bg: 'bg-red-100 dark:bg-red-900/30',
+      text: 'text-red-700 dark:text-red-400',
+      border: 'border-red-200 dark:border-red-800'
+    };
+  }
+  if (p === 'medium') {
+    return {
+      bg: 'bg-amber-100 dark:bg-amber-900/30',
+      text: 'text-amber-700 dark:text-amber-400',
+      border: 'border-amber-200 dark:border-amber-800'
+    };
+  }
+  return {
+    bg: 'bg-blue-100 dark:bg-blue-900/30',
+    text: 'text-blue-700 dark:text-blue-400',
+    border: 'border-blue-200 dark:border-blue-800'
+  };
+};
+
 export default function SkillsGapSection({
   data,
   isLoading,
@@ -15,6 +39,11 @@ export default function SkillsGapSection({
   onRefresh
 }: SkillsGapSectionProps) {
   const skillsGap = data?.skills_gap;
+  
+  // Calculate summary stats
+  const criticalCount = skillsGap?.critical_missing_skills?.length || 0;
+  const strengthenCount = skillsGap?.skills_to_strengthen?.length || 0;
+  const emergingCount = skillsGap?.emerging_skills?.length || 0;
 
   if (isLoading) {
     return (
@@ -91,6 +120,38 @@ export default function SkillsGapSection({
           <p className="text-gray-600 dark:text-gray-400">
             Critical skills missing and learning paths to acquire them
           </p>
+        </div>
+        <button
+          onClick={onRefresh}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Refresh
+        </button>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-100 dark:border-red-900/30">
+          <div className="flex items-center gap-2 mb-1">
+            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <span className="text-xs font-medium text-red-600 dark:text-red-400">Critical Missing</span>
+          </div>
+          <p className="text-2xl font-bold text-red-700 dark:text-red-300">{criticalCount}</p>
+        </div>
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-100 dark:border-blue-900/30">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-xs font-medium text-blue-600 dark:text-blue-400">To Strengthen</span>
+          </div>
+          <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{strengthenCount}</p>
+        </div>
+        <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-100 dark:border-orange-900/30">
+          <div className="flex items-center gap-2 mb-1">
+            <Target className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+            <span className="text-xs font-medium text-orange-600 dark:text-orange-400">Emerging</span>
+          </div>
+          <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">{emergingCount}</p>
         </div>
       </div>
 

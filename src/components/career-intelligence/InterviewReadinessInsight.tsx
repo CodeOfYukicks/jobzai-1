@@ -21,6 +21,8 @@ interface InterviewReadinessData {
   preparationAreas: PreparationArea[];
   redFlags: string[];
   mockInterviewFocus: string;
+  honestFeedback?: string;
+  correctiveActions?: string[];
 }
 
 interface InterviewReadinessInsightProps {
@@ -42,6 +44,12 @@ export default function InterviewReadinessInsight({ data }: InterviewReadinessIn
     if (score >= 80) return 'text-emerald-600 dark:text-emerald-400';
     if (score >= 60) return 'text-amber-600 dark:text-amber-400';
     return 'text-pink-600 dark:text-pink-400';
+  };
+
+  const getScoreBgColor = (score: number) => {
+    if (score >= 80) return 'bg-emerald-500';
+    if (score >= 60) return 'bg-amber-500';
+    return 'bg-pink-500';
   };
 
   const getCategoryColor = (category: string) => {
@@ -95,7 +103,7 @@ export default function InterviewReadinessInsight({ data }: InterviewReadinessIn
                   initial={{ width: 0 }}
                   animate={{ width: `${data.readinessScore}%` }}
                   transition={{ duration: 1, delay: 0.3 }}
-                  className="h-full bg-gradient-to-r from-pink-500 to-rose-500 rounded-full"
+                  className={`h-full rounded-full ${getScoreBgColor(data.readinessScore)}`}
                 />
               </div>
             </div>
@@ -105,6 +113,54 @@ export default function InterviewReadinessInsight({ data }: InterviewReadinessIn
           </p>
         </div>
       </section>
+
+      {/* Honest Feedback Section - NEW */}
+      {data.honestFeedback && (
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                Interview Preparation Reality Check
+              </h4>
+              <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">
+                {data.honestFeedback}
+              </p>
+            </div>
+          </div>
+        </motion.section>
+      )}
+
+      {/* Corrective Actions - NEW */}
+      {data.correctiveActions && data.correctiveActions.length > 0 && (
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <Lightbulb className="w-4 h-4 text-amber-500" />
+            Priority Preparation Steps
+          </h4>
+          <div className="space-y-2">
+            {data.correctiveActions.map((action, idx) => (
+              <div 
+                key={idx} 
+                className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-[#2b2a2c]/40 rounded-lg"
+              >
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-pink-100 dark:bg-pink-900/30 text-xs font-bold text-pink-600 dark:text-pink-400 flex-shrink-0">
+                  {idx + 1}
+                </span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">{action}</span>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+      )}
 
       {/* Top Questions to Prepare */}
       <section>
@@ -159,7 +215,9 @@ export default function InterviewReadinessInsight({ data }: InterviewReadinessIn
                 <h5 className="text-sm font-medium text-gray-900 dark:text-white">
                   {area.area}
                 </h5>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className={`text-xs font-medium ${
+                  area.currentLevel >= 70 ? 'text-emerald-600' : area.currentLevel >= 50 ? 'text-amber-600' : 'text-red-600'
+                }`}>
                   {area.currentLevel}% ready
                 </span>
               </div>
@@ -168,7 +226,9 @@ export default function InterviewReadinessInsight({ data }: InterviewReadinessIn
                   initial={{ width: 0 }}
                   animate={{ width: `${area.currentLevel}%` }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="h-full bg-pink-500 rounded-full"
+                  className={`h-full rounded-full ${
+                    area.currentLevel >= 70 ? 'bg-emerald-500' : area.currentLevel >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                  }`}
                 />
               </div>
               <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -204,7 +264,7 @@ export default function InterviewReadinessInsight({ data }: InterviewReadinessIn
       {data.mockInterviewFocus && (
         <section className="p-4 bg-gradient-to-r from-pink-100 to-rose-100 dark:from-pink-900/30 dark:to-rose-900/30 rounded-lg">
           <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-            🎯 Recommended Mock Interview Focus
+            Recommended Mock Interview Focus
           </p>
           <p className="text-sm text-gray-900 dark:text-white">
             {data.mockInterviewFocus}
@@ -214,4 +274,3 @@ export default function InterviewReadinessInsight({ data }: InterviewReadinessIn
     </div>
   );
 }
-

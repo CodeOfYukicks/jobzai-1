@@ -44,6 +44,26 @@ export interface PendingRewrite {
   actionType: string;
 }
 
+// Inline edit state for Notion-like AI editing
+export interface InlineEditState {
+  isActive: boolean;
+  isStreaming: boolean;
+  originalContent: any | null;
+  pendingContent: any | null;
+  streamingText: string;
+  selectedRange: { from: number; to: number } | null;
+  editType: 'full' | 'selection';
+}
+
+// Editor callbacks interface with extended methods
+export interface NoteEditorCallbacks {
+  onContentChange?: (content: any) => void;
+  getContent?: () => any;
+  getSelection?: () => { from: number; to: number; text: string } | null;
+  setContent?: (content: any) => void;
+  replaceSelection?: (text: string) => void;
+}
+
 // Storage key for persisting conversations
 const STORAGE_KEY = 'jobzai_assistant_conversations';
 
@@ -74,19 +94,25 @@ interface AssistantContextType {
   switchConversation: (conversationId: string) => void;
   deleteConversation: (conversationId: string) => void;
   // Note editor integration
-  noteEditorCallbacks: {
-    onContentChange?: (content: any) => void;
-  } | null;
-  registerNoteEditor: (callbacks: { onContentChange: (content: any) => void }) => void;
+  noteEditorCallbacks: NoteEditorCallbacks | null;
+  registerNoteEditor: (callbacks: NoteEditorCallbacks) => void;
   unregisterNoteEditor: () => void;
   applyNoteEdit: ((content: string) => Promise<void>) | null;
-  // Rewrite workflow
+  // Rewrite workflow (legacy)
   rewriteInProgress: boolean;
   setRewriteInProgress: (inProgress: boolean) => void;
   pendingRewrite: PendingRewrite | null;
   setPendingRewrite: (rewrite: PendingRewrite | null) => void;
   applyRewrite: () => Promise<void>;
   rejectRewrite: () => void;
+  // Inline AI editing (Notion-like)
+  inlineEdit: InlineEditState;
+  startInlineEdit: (editType?: 'full' | 'selection') => void;
+  streamInlineChunk: (chunk: string) => void;
+  setInlinePendingContent: (content: any) => void;
+  confirmInlineEdit: (mode: 'replace' | 'insert') => Promise<void>;
+  rejectInlineEdit: () => void;
+  finishInlineStreaming: () => void;
 }
 
 const AssistantContext = createContext<AssistantContextType | undefined>(undefined);
@@ -149,13 +175,22 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const [pageData, setPageData] = useState<PageData>({});
   
   // Note editor integration
-  const [noteEditorCallbacks, setNoteEditorCallbacks] = useState<{
-    onContentChange?: (content: any) => void;
-  } | null>(null);
+  const [noteEditorCallbacks, setNoteEditorCallbacks] = useState<NoteEditorCallbacks | null>(null);
   
-  // Rewrite workflow state
+  // Rewrite workflow state (legacy)
   const [rewriteInProgress, setRewriteInProgress] = useState(false);
   const [pendingRewrite, setPendingRewrite] = useState<PendingRewrite | null>(null);
+
+  // Inline AI editing state (Notion-like)
+  const [inlineEdit, setInlineEdit] = useState<InlineEditState>({
+    isActive: false,
+    isStreaming: false,
+    originalContent: null,
+    pendingContent: null,
+    streamingText: '',
+    selectedRange: null,
+    editType: 'full',
+  });
 
   // Save conversations to localStorage whenever they change
   useEffect(() => {
@@ -282,12 +317,22 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Note editor registration
-  const registerNoteEditor = useCallback((callbacks: { onContentChange: (content: any) => void }) => {
+  const registerNoteEditor = useCallback((callbacks: NoteEditorCallbacks) => {
     setNoteEditorCallbacks(callbacks);
   }, []);
 
   const unregisterNoteEditor = useCallback(() => {
     setNoteEditorCallbacks(null);
+    // Reset inline edit state when editor is unregistered
+    setInlineEdit({
+      isActive: false,
+      isStreaming: false,
+      originalContent: null,
+      pendingContent: null,
+      streamingText: '',
+      selectedRange: null,
+      editType: 'full',
+    });
   }, []);
 
   // Apply note edit function
@@ -331,6 +376,124 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     setRewriteInProgress(false);
   }, []);
 
+  // Inline AI editing methods (Notion-like)
+  const startInlineEdit = useCallback((editType: 'full' | 'selection' = 'full') => {
+    if (!noteEditorCallbacks) {
+      console.warn('No note editor registered for inline edit');
+      return;
+    }
+
+    // Get current content and selection
+    const currentContent = noteEditorCallbacks.getContent?.() || null;
+    const selection = editType === 'selection' ? noteEditorCallbacks.getSelection?.() : null;
+
+    setInlineEdit({
+      isActive: true,
+      isStreaming: true,
+      originalContent: currentContent,
+      pendingContent: null,
+      streamingText: '',
+      selectedRange: selection ? { from: selection.from, to: selection.to } : null,
+      editType,
+    });
+  }, [noteEditorCallbacks]);
+
+  const streamInlineChunk = useCallback((chunk: string) => {
+    setInlineEdit(prev => ({
+      ...prev,
+      streamingText: prev.streamingText + chunk,
+    }));
+  }, []);
+
+  const setInlinePendingContent = useCallback((content: any) => {
+    setInlineEdit(prev => ({
+      ...prev,
+      pendingContent: content,
+    }));
+  }, []);
+
+  const finishInlineStreaming = useCallback(() => {
+    setInlineEdit(prev => ({
+      ...prev,
+      isStreaming: false,
+    }));
+  }, []);
+
+  const confirmInlineEdit = useCallback(async (mode: 'replace' | 'insert') => {
+    if (!inlineEdit.pendingContent) {
+      console.warn('Cannot confirm inline edit: no pending content');
+      return;
+    }
+
+    try {
+      // Handle selection-based replacement
+      if (inlineEdit.pendingContent.type === 'selection-replace' && noteEditorCallbacks?.replaceSelection) {
+        // Replace only the selected text - use parsed TipTap content if available
+        const contentToInsert = inlineEdit.pendingContent.content || inlineEdit.pendingContent.text;
+        await noteEditorCallbacks.replaceSelection(contentToInsert);
+      } else if (mode === 'insert' && noteEditorCallbacks?.getContent && noteEditorCallbacks?.onContentChange) {
+        // Insert mode: append new content below existing content
+        const currentContent = noteEditorCallbacks.getContent();
+        const newContent = inlineEdit.pendingContent;
+        
+        // Merge content arrays if both are TipTap documents
+        if (currentContent?.type === 'doc' && newContent?.type === 'doc') {
+          const mergedContent = {
+            type: 'doc',
+            content: [
+              ...(currentContent.content || []),
+              // Add a separator
+              { type: 'horizontalRule' },
+              ...(newContent.content || []),
+            ],
+          };
+          await noteEditorCallbacks.onContentChange(mergedContent);
+        } else {
+          // Fallback: just set the new content
+          await noteEditorCallbacks.onContentChange(newContent);
+        }
+      } else if (noteEditorCallbacks?.onContentChange) {
+        // Replace mode: full document replacement
+        await noteEditorCallbacks.onContentChange(inlineEdit.pendingContent);
+      } else {
+        console.warn('Cannot confirm inline edit: no appropriate callback');
+        return;
+      }
+      
+      // Reset inline edit state
+      setInlineEdit({
+        isActive: false,
+        isStreaming: false,
+        originalContent: null,
+        pendingContent: null,
+        streamingText: '',
+        selectedRange: null,
+        editType: 'full',
+      });
+    } catch (error) {
+      console.error('Error confirming inline edit:', error);
+      throw error;
+    }
+  }, [noteEditorCallbacks, inlineEdit.pendingContent]);
+
+  const rejectInlineEdit = useCallback(() => {
+    // Reset to original content if we have it and editor is available
+    if (noteEditorCallbacks?.setContent && inlineEdit.originalContent) {
+      noteEditorCallbacks.setContent(inlineEdit.originalContent);
+    }
+
+    // Reset inline edit state
+    setInlineEdit({
+      isActive: false,
+      isStreaming: false,
+      originalContent: null,
+      pendingContent: null,
+      streamingText: '',
+      selectedRange: null,
+      editType: 'full',
+    });
+  }, [noteEditorCallbacks, inlineEdit.originalContent]);
+
   const value: AssistantContextType = {
     isOpen,
     openAssistant,
@@ -365,6 +528,14 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     setPendingRewrite,
     applyRewrite,
     rejectRewrite,
+    // Inline AI editing
+    inlineEdit,
+    startInlineEdit,
+    streamInlineChunk,
+    setInlinePendingContent,
+    confirmInlineEdit,
+    rejectInlineEdit,
+    finishInlineStreaming,
   };
 
   return (

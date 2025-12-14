@@ -340,48 +340,41 @@ export default function RightSidebarPanel({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.15 }}
-              className="p-6 space-y-6 min-h-0 overflow-y-auto"
+              className="p-8 space-y-8 min-h-0 overflow-y-auto"
             >
-              {/* Progress Header */}
-              <div className="flex items-center gap-5">
-                <div className="relative flex h-20 w-20 flex-shrink-0 items-center justify-center">
-                  {/* Background glow */}
-                  <div className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-800/50 blur-xl" />
-                  <svg className="absolute inset-0 h-20 w-20 -rotate-90 transform">
+              {/* Progress Header - Premium Minimalist Design */}
+              <div className="flex items-center gap-8">
+                <div className="relative flex h-24 w-24 flex-shrink-0 items-center justify-center">
+                  {/* Subtle background circle */}
+                  <svg className="absolute inset-0 h-24 w-24 -rotate-90 transform">
                     <circle
-                      cx="40" cy="40" r="34"
+                      cx="48" cy="48" r="42"
                       stroke="currentColor"
-                      strokeWidth="5"
+                      strokeWidth="6"
                       fill="none"
-                      className="text-gray-100 dark:text-gray-800"
+                      className="text-gray-200 dark:text-gray-700"
                     />
                     <motion.circle
-                      cx="40" cy="40" r="34"
-                      strokeWidth="5"
+                      cx="48" cy="48" r="42"
+                      strokeWidth="6"
                       fill="none"
                       strokeLinecap="round"
-                      stroke="url(#progressGradientSidebar)"
-                      initial={{ strokeDasharray: 213.6, strokeDashoffset: 213.6 }}
-                      animate={{ strokeDashoffset: 213.6 - (213.6 * preparationProgress) / 100 }}
+                      stroke="#b7e219"
+                      initial={{ strokeDasharray: 263.9, strokeDashoffset: 263.9 }}
+                      animate={{ strokeDashoffset: 263.9 - (263.9 * preparationProgress) / 100 }}
                       transition={{ duration: 1, ease: [0.25, 0.1, 0.25, 1] }}
                     />
-                    <defs>
-                      <linearGradient id="progressGradientSidebar" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#6366f1" />
-                        <stop offset="100%" stopColor="#8b5cf6" />
-                      </linearGradient>
-                    </defs>
                   </svg>
-                  <span className="relative text-xl font-bold text-gray-900 dark:text-white">
+                  <span className="relative text-2xl font-bold text-white dark:text-white tracking-tight">
                     {preparationProgress}%
                   </span>
                 </div>
                 
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-semibold text-white dark:text-white mb-1">
                     Preparation
                   </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm font-normal text-gray-400 dark:text-gray-400">
                     {milestones.filter((m) => m.completed).length}/{milestones.length} completed
                   </p>
                 </div>

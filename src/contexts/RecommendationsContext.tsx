@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useAuth } from './AuthContext';
 
 // Type definition for recommendation types
-export type RecommendationType = 'target-companies' | 'application-timing' | 'salary-insights' | 'job-strategy' | 'career-path' | 'skills-gap' | 'market-insights';
+export type RecommendationType = 'target-companies' | 'application-timing' | 'salary-insights' | 'job-strategy' | 'career-path' | 'skills-gap' | 'market-insights' | 'alignment-analysis';
 
 export interface RecommendationState {
   targetCompanies: {
@@ -42,6 +42,12 @@ export interface RecommendationState {
     lastUpdated: Date | null;
   };
   marketInsights: {
+    isLoading: boolean;
+    error: string | null;
+    data: any | null;
+    lastUpdated: Date | null;
+  };
+  alignmentAnalysis: {
     isLoading: boolean;
     error: string | null;
     data: any | null;
@@ -100,6 +106,12 @@ const initialState: RecommendationState = {
     data: null,
     lastUpdated: null,
   },
+  alignmentAnalysis: {
+    isLoading: false,
+    error: null,
+    data: null,
+    lastUpdated: null,
+  },
 };
 
 // Helper to convert type to state key
@@ -119,6 +131,8 @@ export const getStateKey = (type: RecommendationType): keyof RecommendationState
       return 'skillsGap';
     case 'market-insights':
       return 'marketInsights';
+    case 'alignment-analysis':
+      return 'alignmentAnalysis';
     default:
       return 'targetCompanies';
   }

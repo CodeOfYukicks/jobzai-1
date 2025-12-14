@@ -1105,7 +1105,7 @@ export async function analyzeCVWithGPT4Vision(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-5.1",
+        model: "gpt-5.2",
         messages: [
           {
             role: "system",

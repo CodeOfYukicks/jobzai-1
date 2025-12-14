@@ -19,6 +19,7 @@ import JobStrategySection from '../components/recommendations/JobStrategySection
 import MarketInsightsSection from '../components/recommendations/MarketInsightsSection';
 import ApplicationTimingSection from '../components/recommendations/ApplicationTimingSection';
 import SalaryInsightsSection from '../components/recommendations/SalaryInsightsSection';
+import AlignmentAnalysisSection from '../components/recommendations/AlignmentAnalysisSection';
 
 // Map recommendation types to user-friendly names
 const RECOMMENDATION_NAMES: Record<RecommendationType, string> = {
@@ -28,7 +29,8 @@ const RECOMMENDATION_NAMES: Record<RecommendationType, string> = {
   'market-insights': 'Market Insights',
   'application-timing': 'Application Timing',
   'salary-insights': 'Salary Insights',
-  'job-strategy': 'Job Strategy'
+  'job-strategy': 'Job Strategy',
+  'alignment-analysis': 'Alignment Analysis'
 };
 
 export default function RecommendationsPage() {
@@ -89,6 +91,7 @@ export default function RecommendationsPage() {
     if (!completeUserData) return;
     
     const allTypes: RecommendationType[] = [
+      'alignment-analysis',
       'target-companies',
       'career-path',
       'skills-gap',
@@ -151,6 +154,7 @@ export default function RecommendationsPage() {
         if (completeness >= MIN_PROFILE_COMPLETENESS) {
           // Auto-load key recommendations in parallel
           const keyRecommendations: RecommendationType[] = [
+            'alignment-analysis',
             'target-companies',
             'career-path',
             'skills-gap',
@@ -334,6 +338,14 @@ export default function RecommendationsPage() {
 
         {/* Main Recommendations Sections */}
         <div className="space-y-16">
+          {/* Job Search Alignment Analysis - FIRST & MOST CRITICAL */}
+          <AlignmentAnalysisSection
+            data={recommendations.alignmentAnalysis?.data}
+            isLoading={recommendations.alignmentAnalysis?.isLoading || false}
+            error={recommendations.alignmentAnalysis?.error || null}
+            onRefresh={() => generateRecommendation('alignment-analysis')}
+          />
+
           {/* Target Companies Section - Full Width */}
           <TargetCompaniesSection
             data={recommendations.targetCompanies?.data}

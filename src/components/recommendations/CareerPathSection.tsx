@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { TrendingUp, Calendar, DollarSign, Loader2, AlertCircle, ChevronRight } from 'lucide-react';
+import { TrendingUp, Calendar, DollarSign, Loader2, AlertCircle, ChevronRight, RefreshCw, CheckCircle, AlertTriangle, Target } from 'lucide-react';
 import { useState } from 'react';
 
 interface CareerPath {
@@ -110,6 +110,30 @@ export default function CareerPathSection({
 
   const currentPath = careerPaths[selectedPath];
 
+  // Get success probability icon and color
+  const getSuccessStyles = (probability: string) => {
+    const p = probability?.toLowerCase();
+    if (p === 'high') {
+      return { 
+        icon: CheckCircle, 
+        bg: 'bg-green-100 dark:bg-green-900/30', 
+        text: 'text-green-700 dark:text-green-400' 
+      };
+    }
+    if (p === 'medium') {
+      return { 
+        icon: Target, 
+        bg: 'bg-amber-100 dark:bg-amber-900/30', 
+        text: 'text-amber-700 dark:text-amber-400' 
+      };
+    }
+    return { 
+      icon: AlertTriangle, 
+      bg: 'bg-red-100 dark:bg-red-900/30', 
+      text: 'text-red-700 dark:text-red-400' 
+    };
+  };
+
   return (
     <section className="mb-16">
       <div className="flex items-center justify-between mb-6">
@@ -119,9 +143,16 @@ export default function CareerPathSection({
             Career Path
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
-            {careerPaths.length} personalized career trajectories
+            {careerPaths.length} personalized career trajectories based on your profile
           </p>
         </div>
+        <button
+          onClick={onRefresh}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Refresh
+        </button>
       </div>
 
       {/* Path Selector */}

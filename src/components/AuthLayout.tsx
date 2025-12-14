@@ -398,7 +398,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
   // Sidebar width values
   const sidebarExpandedWidth = 256; // 16rem = 256px
-  const sidebarCollapsedWidth = 72; // ~4.5rem
+  const sidebarCollapsedWidth = 64; // 4rem = 64px
   
   // Effective display state: expand on hover even if collapsed
   const isEffectivelyExpanded = !isCollapsed || isHoveringSidebar;
@@ -542,7 +542,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   title={!isEffectivelyExpanded ? item.name : undefined}
                 >
                   <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
-                    <item.icon className={`h-[18px] w-[18px] transition-colors
+                    <item.icon className={`h-4 w-4 transition-colors
                         ${location.pathname === item.href 
                           ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
                           : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
@@ -589,7 +589,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   title={!isEffectivelyExpanded ? item.name : undefined}
                 >
                   <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
-                    <item.icon className={`h-[18px] w-[18px] transition-colors
+                    <item.icon className={`h-4 w-4 transition-colors
                         ${location.pathname === item.href 
                           ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
                           : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
@@ -636,7 +636,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   title={!isEffectivelyExpanded ? item.name : undefined}
                 >
                   <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
-                    <item.icon className={`h-[18px] w-[18px] transition-colors
+                    <item.icon className={`h-4 w-4 transition-colors
                         ${location.pathname === item.href 
                           ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
                           : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
@@ -802,7 +802,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         
         <main 
           className={`flex-1 min-h-0 flex flex-col ${
-            isCollapsed ? 'md:ml-[72px]' : 'md:ml-[256px]'
+            isCollapsed ? 'md:ml-[64px]' : 'md:ml-[256px]'
           }`}
         >
           <div className={`${needsFullHeight ? 'h-full flex flex-col flex-1 min-h-0 pt-2 md:pt-0 pb-0' : 'pt-6 md:py-6 pb-6'}`}>

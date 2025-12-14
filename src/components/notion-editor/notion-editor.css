@@ -355,3 +355,246 @@
   }
 }
 
+/* ============================================
+   AI Inline Editing Styles (Notion-like)
+   ============================================ */
+
+/* AI Edit Mode - Editor container state */
+.notion-editor.ai-edit-mode {
+  @apply relative;
+}
+
+.notion-editor.ai-edit-mode::after {
+  content: '';
+  @apply absolute inset-0 pointer-events-none
+    border-2 border-purple-400/30 dark:border-purple-500/30 rounded-lg
+    animate-pulse;
+}
+
+/* Streaming block animation */
+@keyframes aiBlockFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes aiBlockGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px rgba(139, 92, 246, 0.15);
+  }
+}
+
+/* AI streaming block - appears progressively */
+.ai-streaming-block {
+  animation: aiBlockFadeIn 0.4s ease-out forwards;
+  position: relative;
+}
+
+.ai-streaming-block::before {
+  content: '';
+  @apply absolute -left-3 top-0 bottom-0 w-1 rounded-full
+    bg-gradient-to-b from-purple-500 via-violet-500 to-purple-400;
+  animation: aiBlockGlow 2s ease-in-out infinite;
+}
+
+/* AI pending content highlight */
+.ai-pending-content {
+  @apply relative;
+  background: linear-gradient(
+    90deg,
+    rgba(139, 92, 246, 0.08) 0%,
+    rgba(139, 92, 246, 0.04) 50%,
+    transparent 100%
+  );
+  border-radius: 4px;
+  padding: 2px 0;
+}
+
+.dark .ai-pending-content {
+  background: linear-gradient(
+    90deg,
+    rgba(139, 92, 246, 0.15) 0%,
+    rgba(139, 92, 246, 0.08) 50%,
+    transparent 100%
+  );
+}
+
+/* Typing cursor effect for streaming */
+@keyframes aiTypingCursor {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.ai-typing-cursor::after {
+  content: '▎';
+  @apply text-purple-500 dark:text-purple-400;
+  animation: aiTypingCursor 0.8s ease-in-out infinite;
+  margin-left: 1px;
+}
+
+/* Original content during preview (dimmed) */
+.ai-original-content {
+  @apply opacity-40 transition-opacity duration-300;
+  filter: blur(0.5px);
+}
+
+/* Selection being replaced */
+.ai-selection-replacing {
+  @apply relative;
+}
+
+.ai-selection-replacing::before {
+  content: '';
+  @apply absolute inset-0 bg-red-500/10 dark:bg-red-500/20 rounded pointer-events-none;
+}
+
+.ai-selection-replacing > * {
+  @apply line-through opacity-50;
+  text-decoration-color: rgba(239, 68, 68, 0.5);
+  text-decoration-thickness: 2px;
+}
+
+/* New content replacing selection */
+.ai-new-selection-content {
+  @apply relative;
+}
+
+.ai-new-selection-content::before {
+  content: '';
+  @apply absolute inset-0 bg-emerald-500/10 dark:bg-emerald-500/15 rounded pointer-events-none;
+}
+
+/* Shimmer effect for loading state */
+@keyframes aiShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.ai-loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(139, 92, 246, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: aiShimmer 1.5s ease-in-out infinite;
+}
+
+/* Word-by-word reveal animation */
+@keyframes aiWordReveal {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+.ai-word-reveal {
+  display: inline-block;
+  animation: aiWordReveal 0.3s ease-out forwards;
+}
+
+/* Staggered delay for word reveals */
+.ai-word-reveal:nth-child(1) { animation-delay: 0ms; }
+.ai-word-reveal:nth-child(2) { animation-delay: 30ms; }
+.ai-word-reveal:nth-child(3) { animation-delay: 60ms; }
+.ai-word-reveal:nth-child(4) { animation-delay: 90ms; }
+.ai-word-reveal:nth-child(5) { animation-delay: 120ms; }
+.ai-word-reveal:nth-child(n+6) { animation-delay: 150ms; }
+
+/* AI edit accepted flash */
+@keyframes aiAcceptFlash {
+  0% {
+    background-color: rgba(34, 197, 94, 0.2);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.ai-edit-accepted {
+  animation: aiAcceptFlash 0.6s ease-out forwards;
+}
+
+/* AI edit rejected flash */
+@keyframes aiRejectFlash {
+  0% {
+    background-color: rgba(239, 68, 68, 0.15);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.ai-edit-rejected {
+  animation: aiRejectFlash 0.4s ease-out forwards;
+}
+
+/* Smooth content transition */
+.ai-content-transition {
+  @apply transition-all duration-300 ease-out;
+}
+
+/* Focus ring for AI edit mode */
+.notion-editor.ai-edit-mode:focus-within {
+  @apply ring-2 ring-purple-500/30 ring-offset-2 ring-offset-white dark:ring-offset-gray-900;
+}
+
+/* Premium shimmer overlay for AI writing state */
+@keyframes shimmerWave {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.ai-shimmer-overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(139, 92, 246, 0.03) 0%,
+    rgba(139, 92, 246, 0.08) 50%,
+    rgba(139, 92, 246, 0.03) 100%
+  );
+  overflow: hidden;
+}
+
+.ai-shimmer-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(139, 92, 246, 0.12) 50%,
+    transparent 100%
+  );
+  animation: shimmerWave 2s ease-in-out infinite;
+}
+

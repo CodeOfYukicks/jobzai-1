@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Users, MessageCircle, Linkedin, ArrowRight, Copy, Check } from 'lucide-react';
+import { Users, MessageCircle, Linkedin, ArrowRight, Copy, Check, AlertTriangle, Lightbulb, Building2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface Referral {
@@ -20,6 +20,9 @@ interface NetworkInsightsData {
   outreachTemplates: OutreachTemplate[];
   networkingTips: string[];
   linkedinOptimization: string[];
+  companiesAppliedConnections?: string[];
+  honestFeedback?: string;
+  correctiveActions?: string[];
 }
 
 interface NetworkInsightsInsightProps {
@@ -51,6 +54,12 @@ export default function NetworkInsightsInsight({ data }: NetworkInsightsInsightP
     return 'text-amber-600 dark:text-amber-400';
   };
 
+  const getScoreBgColor = (score: number) => {
+    if (score >= 70) return 'bg-emerald-500';
+    if (score >= 50) return 'bg-cyan-500';
+    return 'bg-amber-500';
+  };
+
   return (
     <div className="space-y-8 pt-4">
       {/* Network Score */}
@@ -76,7 +85,7 @@ export default function NetworkInsightsInsight({ data }: NetworkInsightsInsightP
                   initial={{ width: 0 }}
                   animate={{ width: `${data.connectionScore}%` }}
                   transition={{ duration: 1, delay: 0.3 }}
-                  className="h-full bg-gradient-to-r from-cyan-500 to-sky-500 rounded-full"
+                  className={`h-full rounded-full ${getScoreBgColor(data.connectionScore)}`}
                 />
               </div>
             </div>
@@ -86,6 +95,79 @@ export default function NetworkInsightsInsight({ data }: NetworkInsightsInsightP
           </p>
         </div>
       </section>
+
+      {/* Honest Feedback Section - NEW */}
+      {data.honestFeedback && (
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                Network Reality Check
+              </h4>
+              <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">
+                {data.honestFeedback}
+              </p>
+            </div>
+          </div>
+        </motion.section>
+      )}
+
+      {/* Corrective Actions - NEW */}
+      {data.correctiveActions && data.correctiveActions.length > 0 && (
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <Lightbulb className="w-4 h-4 text-amber-500" />
+            Priority Networking Actions
+          </h4>
+          <div className="space-y-2">
+            {data.correctiveActions.map((action, idx) => (
+              <div 
+                key={idx} 
+                className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-[#2b2a2c]/40 rounded-lg"
+              >
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-xs font-bold text-cyan-600 dark:text-cyan-400 flex-shrink-0">
+                  {idx + 1}
+                </span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">{action}</span>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+      )}
+
+      {/* Companies You've Applied To - Connections - NEW */}
+      {data.companiesAppliedConnections && data.companiesAppliedConnections.length > 0 && (
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-cyan-500" />
+            Connect at Companies You've Applied To
+          </h4>
+          
+          <div className="p-4 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg border border-cyan-100 dark:border-cyan-800/30">
+            <ul className="space-y-2">
+              {data.companiesAppliedConnections.map((tip, index) => (
+                <li key={index} className="text-xs text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                  <span className="text-cyan-500 mt-0.5">→</span>
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </motion.section>
+      )}
 
       {/* Referral Opportunities */}
       <section>
@@ -209,4 +291,3 @@ export default function NetworkInsightsInsight({ data }: NetworkInsightsInsightP
     </div>
   );
 }
-

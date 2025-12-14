@@ -148,7 +148,7 @@ export default function CampaignsEarlyAccessPage() {
             className="mb-6 max-w-2xl mx-auto space-y-2"
           >
             <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-              <span className="font-semibold text-purple-600 dark:text-purple-400">Your job search, on cruise control.</span> AutoPilot finds opportunities that match your profile and applies for you — automatically, 24/7.
+              <span className="font-semibold text-[#635BFF] dark:text-[#a5a0ff]">Your job search, on cruise control.</span> AutoPilot finds opportunities that match your profile and applies for you — automatically, 24/7.
             </p>
             <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
               Wake up to interview invites. Our AI scouts the hidden job market, crafts personalized applications, and lands them in hiring managers' inboxes while you sleep.

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Zap, TrendingUp, BookOpen, ExternalLink } from 'lucide-react';
+import { Zap, TrendingUp, BookOpen, ExternalLink, AlertTriangle, Lightbulb, AlertCircle } from 'lucide-react';
 
 interface CriticalSkill {
   name: string;
@@ -7,6 +7,7 @@ interface CriticalSkill {
   requiredLevel: number; // 0-100
   importance: 'critical' | 'high' | 'medium';
   salaryImpact?: string;
+  missingInApplications?: boolean;
 }
 
 interface TrendingSkill {
@@ -28,6 +29,8 @@ interface SkillsData {
   criticalSkills: CriticalSkill[];
   trendingSkills: TrendingSkill[];
   recommendedResources: Resource[];
+  honestFeedback?: string;
+  correctiveActions?: string[];
 }
 
 interface SkillsInsightProps {
@@ -71,6 +74,27 @@ export default function SkillsInsight({ data }: SkillsInsightProps) {
 
   return (
     <div className="space-y-8 pt-4">
+      {/* Honest Feedback Section - NEW */}
+      {data.honestFeedback && (
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                Skill Gap Reality Check
+              </h4>
+              <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">
+                {data.honestFeedback}
+              </p>
+            </div>
+          </div>
+        </motion.section>
+      )}
+
       {/* Critical Skills */}
       <section>
         <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -89,13 +113,19 @@ export default function SkillsInsight({ data }: SkillsInsightProps) {
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h5 className="font-medium text-gray-900 dark:text-white">
                       {skill.name}
                     </h5>
                     <span className={`px-2 py-0.5 text-[10px] font-semibold uppercase rounded-full ${getImportanceColor(skill.importance)}`}>
                       {skill.importance}
                     </span>
+                    {skill.missingInApplications && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold uppercase rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">
+                        <AlertCircle className="w-3 h-3" />
+                        Missing in Applications
+                      </span>
+                    )}
                   </div>
                   {skill.salaryImpact && (
                     <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -117,7 +147,13 @@ export default function SkillsInsight({ data }: SkillsInsightProps) {
                     initial={{ width: 0 }}
                     animate={{ width: `${skill.currentLevel}%` }}
                     transition={{ duration: 0.8, delay: index * 0.1, ease: [0.23, 1, 0.32, 1] }}
-                    className="absolute inset-y-0 left-0 bg-indigo-500 rounded-full"
+                    className={`absolute inset-y-0 left-0 rounded-full ${
+                      skill.currentLevel >= skill.requiredLevel 
+                        ? 'bg-emerald-500' 
+                        : skill.currentLevel >= skill.requiredLevel * 0.7 
+                          ? 'bg-amber-500' 
+                          : 'bg-red-500'
+                    }`}
                   />
                   {/* Required Level Marker */}
                   <div 
@@ -125,11 +161,44 @@ export default function SkillsInsight({ data }: SkillsInsightProps) {
                     style={{ left: `${skill.requiredLevel}%` }}
                   />
                 </div>
+                {/* Gap Indicator */}
+                {skill.currentLevel < skill.requiredLevel && (
+                  <p className="text-xs text-red-600 dark:text-red-400">
+                    Gap: {skill.requiredLevel - skill.currentLevel} points to close
+                  </p>
+                )}
               </div>
             </motion.div>
           ))}
         </div>
       </section>
+
+      {/* Corrective Actions - NEW */}
+      {data.correctiveActions && data.correctiveActions.length > 0 && (
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <Lightbulb className="w-4 h-4 text-amber-500" />
+            Priority Actions
+          </h4>
+          <div className="space-y-2">
+            {data.correctiveActions.map((action, idx) => (
+              <div 
+                key={idx} 
+                className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-[#2b2a2c]/40 rounded-lg"
+              >
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-xs font-bold text-emerald-600 dark:text-emerald-400 flex-shrink-0">
+                  {idx + 1}
+                </span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">{action}</span>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+      )}
 
       {/* Trending Skills */}
       {data.trendingSkills && data.trendingSkills.length > 0 && (
@@ -207,5 +276,3 @@ export default function SkillsInsight({ data }: SkillsInsightProps) {
     </div>
   );
 }
-
-

@@ -1,7 +1,7 @@
 import { useEditor, EditorContent } from '@tiptap/react';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useImperativeHandle, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
@@ -29,6 +29,7 @@ import MentionMenu from './MentionMenu';
 import MentionDetailModal from './MentionDetailModal';
 import { MentionSearchResult, searchResultToEmbedData } from '../../lib/mentionSearchService';
 import NotesAIPopover from '../interview/NotesAIPopover';
+import AIEditFloatingBar from './AIEditFloatingBar';
 
 import './notion-editor.css';
 
@@ -39,6 +40,22 @@ export interface NotionEditorProps {
   editable?: boolean;
   className?: string;
   autofocus?: boolean;
+  // AI inline editing props
+  aiEditMode?: boolean;
+  aiIsStreaming?: boolean;
+  aiStreamingText?: string;
+  aiPendingContent?: any;
+  onAIEditAccept?: (mode: 'replace' | 'insert') => void;
+  onAIEditReject?: () => void;
+}
+
+// Ref type for imperative methods
+export interface NotionEditorRef {
+  getContent: () => any;
+  setContent: (content: any) => void;
+  getSelection: () => { from: number; to: number; text: string } | null;
+  replaceSelection: (content: string | any) => void;
+  getEditor: () => ReturnType<typeof useEditor> | null;
 }
 
 interface SlashMenuItem {
@@ -48,14 +65,21 @@ interface SlashMenuItem {
   command: () => void;
 }
 
-const NotionEditor = ({
+const NotionEditor = forwardRef<NotionEditorRef, NotionEditorProps>(({
   content,
   onChange,
   placeholder = "Type '/' for commands or '@' to mention...",
   editable = true,
   className = '',
   autofocus = false,
-}: NotionEditorProps) => {
+  // AI inline editing props
+  aiEditMode = false,
+  aiIsStreaming = false,
+  aiStreamingText = '',
+  aiPendingContent,
+  onAIEditAccept,
+  onAIEditReject,
+}, ref) => {
   // Slash menu state
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashMenuPosition, setSlashMenuPosition] = useState({ top: 0, left: 0 });
@@ -82,6 +106,9 @@ const NotionEditor = ({
 
   // Ref for tracking active menu for keyboard handling
   const activeMenuRef = useRef<'slash' | 'mention' | null>(null);
+
+  // AI edit state
+  const [showAIEditFlash, setShowAIEditFlash] = useState<'accepted' | 'rejected' | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -259,6 +286,51 @@ const NotionEditor = ({
       },
     },
   });
+
+  // Expose imperative methods via ref
+  useImperativeHandle(ref, () => ({
+    getContent: () => editor?.getJSON() || null,
+    setContent: (newContent: any) => {
+      if (editor) {
+        editor.commands.setContent(newContent);
+      }
+    },
+    getSelection: () => {
+      if (!editor) return null;
+      const { from, to } = editor.state.selection;
+      const text = editor.state.doc.textBetween(from, to, ' ');
+      if (from === to) return null;
+      return { from, to, text };
+    },
+    replaceSelection: (content: string | any) => {
+      if (!editor) return;
+      const { from, to } = editor.state.selection;
+      // insertContent accepts both text and TipTap JSON
+      editor.chain().focus().deleteRange({ from, to }).insertContent(content).run();
+    },
+    getEditor: () => editor,
+  }), [editor]);
+
+  // Handle AI edit accept with flash animation
+  const handleAIEditAccept = useCallback((mode: 'replace' | 'insert') => {
+    setShowAIEditFlash('accepted');
+    setTimeout(() => setShowAIEditFlash(null), 600);
+    onAIEditAccept?.(mode);
+  }, [onAIEditAccept]);
+
+  // Handle AI edit reject with flash animation
+  const handleAIEditReject = useCallback(() => {
+    setShowAIEditFlash('rejected');
+    setTimeout(() => setShowAIEditFlash(null), 400);
+    onAIEditReject?.();
+  }, [onAIEditReject]);
+
+  // Apply AI pending content to editor when streaming finishes
+  useEffect(() => {
+    if (editor && aiPendingContent && !aiIsStreaming) {
+      // Content will be applied when user accepts
+    }
+  }, [editor, aiPendingContent, aiIsStreaming]);
 
   const slashMenuItems: SlashMenuItem[] = editor ? [
     {
@@ -562,10 +634,71 @@ const NotionEditor = ({
   }
 
   return (
-    <div ref={editorContainerRef} className="notion-editor relative">
+    <div 
+      ref={editorContainerRef} 
+      className={`notion-editor relative ${aiEditMode ? 'ai-edit-mode' : ''} ${showAIEditFlash === 'accepted' ? 'ai-edit-accepted' : ''} ${showAIEditFlash === 'rejected' ? 'ai-edit-rejected' : ''}`}
+    >
       <BubbleMenuBar editor={editor} />
       <TableBubbleMenu editor={editor} />
-      <EditorContent editor={editor} />
+      
+      {/* AI Writing Indicator - Premium shimmer overlay */}
+      <AnimatePresence>
+        {aiEditMode && aiIsStreaming && (
+          <>
+            {/* Shimmer overlay effect */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-10 pointer-events-none ai-shimmer-overlay"
+            />
+            {/* Floating "AI is writing" pill */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
+            >
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-sm shadow-lg border border-gray-200/50 dark:border-gray-700/50">
+                <div className="flex gap-1">
+                  <motion.span
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1.4, repeat: Infinity, delay: 0 }}
+                    className="w-1.5 h-1.5 rounded-full bg-purple-500"
+                  />
+                  <motion.span
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1.4, repeat: Infinity, delay: 0.2 }}
+                    className="w-1.5 h-1.5 rounded-full bg-purple-500"
+                  />
+                  <motion.span
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1.4, repeat: Infinity, delay: 0.4 }}
+                    className="w-1.5 h-1.5 rounded-full bg-purple-500"
+                  />
+                </div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  AI is writing
+                </span>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Editor content - dim when AI is editing */}
+      <div className={aiEditMode && aiIsStreaming ? 'ai-original-content' : ''}>
+        <EditorContent editor={editor} />
+      </div>
+
+      {/* AI Edit Floating Bar */}
+      <AIEditFloatingBar
+        isVisible={aiEditMode}
+        isStreaming={aiIsStreaming}
+        onAccept={handleAIEditAccept}
+        onReject={handleAIEditReject}
+        streamingText={aiStreamingText}
+      />
       
       {/* Slash Command Menu - Using Portal for better positioning */}
       {showSlashMenu && filteredSlashItems.length > 0 && typeof window !== 'undefined' && document?.body && createPortal(
@@ -653,7 +786,7 @@ const NotionEditor = ({
       />
 
       {/* AI Popover */}
-      {showAIPopover && selectedText && (
+      {showAIPopover && selectedText && !aiEditMode && (
         <NotesAIPopover
           position={aiPopoverPosition}
           selectedText={selectedText}
@@ -666,7 +799,10 @@ const NotionEditor = ({
       )}
     </div>
   );
-};
+});
+
+NotionEditor.displayName = 'NotionEditor';
 
 export default NotionEditor;
 export { NotionEditor };
+export type { NotionEditorRef };

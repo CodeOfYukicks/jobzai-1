@@ -9,6 +9,7 @@ import { doc, updateDoc, getDoc, collection, getDocs, limit, query, setDoc } fro
 import { db } from '../../lib/firebase';
 import { recordCreditHistory } from '../../lib/creditHistory';
 import { notify } from '../../lib/notify';
+import { markdownToTiptap, cleanAIMarkdown } from '../../lib/markdownToTiptap';
 import { 
   globalSearch, 
   GlobalSearchResult, 
@@ -147,12 +148,18 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
     setPendingMessage,
     pageData,
     messages, // Get conversation history
+    // Inline AI editing
+    noteEditorCallbacks,
+    startInlineEdit,
+    streamInlineChunk,
+    setInlinePendingContent,
+    finishInlineStreaming,
   } = useAssistant();
   
   const { currentUser, userData } = useAuth();
   const { profile } = useUserProfile();
 
-  // AI Provider options with company logos - LATEST model names
+  // AI Provider options with company logos - OFFICIAL model names
   const aiProviders: AIProviderOption[] = [
     {
       id: 'openai',
@@ -168,7 +175,7 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
     {
       id: 'anthropic',
       name: 'Claude Sonnet 4.5',
-      model: 'claude-sonnet-4.5',
+      model: 'claude-sonnet-4-5',
       icon: (
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
           <path d="M17.2 2L22 21.7h-4.6l-1-3.6h-5.5l-1 3.6H5.3L10 2h7.2zm-1.3 5.3l-1.9 7.1h3.9l-2-7.1z"/>
@@ -178,8 +185,8 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
     },
     {
       id: 'gemini',
-      name: 'Gemini 3',
-      model: 'gemini-3',
+      name: 'Gemini 3 Pro',
+      model: 'gemini-3-pro',
       icon: (
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
@@ -460,10 +467,49 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
     }
   }, [input]);
 
+  // Helper to detect if message is requesting a note edit
+  const isNoteEditRequest = useCallback((message: string): boolean => {
+    const lowerMessage = message.toLowerCase();
+    const editKeywords = [
+      'rewrite', 'reécrire', 'réécrire', 'réécris',
+      'summarize', 'summary', 'résume', 'résumer',
+      'improve', 'améliore', 'améliorer',
+      'update', 'mettre à jour', 'mets à jour',
+      'edit', 'édite', 'éditer', 'modifier',
+      'expand', 'développe', 'développer',
+      'shorten', 'raccourcis', 'raccourcir',
+      'reformat', 'reformate', 'reformater',
+      'restructure', 'restructure', 'restructurer',
+      'make it', 'rends', 'rend',
+      'change', 'change', 'changer',
+      'fix', 'corrige', 'corriger',
+      'add', 'ajoute', 'ajouter',
+      'write', 'écris', 'écrire',
+      'create a table', 'créer un tableau',
+      'bullet points', 'liste à puces',
+      'format', 'formate', 'formater',
+    ];
+    
+    return editKeywords.some(keyword => lowerMessage.includes(keyword));
+  }, []);
+
+  // Check if we're on a notes page
+  const isOnNotesPage = location.pathname.startsWith('/notes/');
+
   // Process and send a message
   const processSendMessage = useCallback(async (messageContent: string) => {
     const trimmedInput = messageContent.trim();
     if (!trimmedInput || isLoading) return;
+    
+    // Check if there's a text selection in the editor
+    const editorSelection = noteEditorCallbacks?.getSelection?.();
+    const hasSelection = editorSelection && editorSelection.text.trim().length > 0;
+    
+    // Check if this should be an inline edit (on notes page + edit request + editor available)
+    const shouldDoInlineEdit = isOnNotesPage && noteEditorCallbacks && isNoteEditRequest(trimmedInput);
+    
+    // Determine edit type: 'selection' if user has selected text, otherwise 'full'
+    const editType = hasSelection ? 'selection' : 'full';
 
     // Check if user has enough credits
     if (currentUser) {
@@ -498,6 +544,151 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
       content: trimmedInput,
     });
 
+    // If inline edit, start the inline edit mode
+    if (shouldDoInlineEdit) {
+      startInlineEdit(editType);
+      
+      // Add a brief status message to chat
+      const statusMessage = hasSelection 
+        ? '✨ Editing selected text...'
+        : '✨ Updating your note...';
+      const assistantMessageId = addMessage({
+        role: 'assistant',
+        content: statusMessage,
+        isStreaming: true,
+      });
+      
+      setIsLoading(true);
+      
+      try {
+        // Build the API request for inline editing
+        const userContext = {
+          firstName: profile?.firstName || userData?.name?.split(' ')[0] || 'User',
+          email: profile?.email || currentUser?.email,
+        };
+        
+        // Get current note content for context
+        const currentNoteContent = pageData?.currentNote?.content || '';
+        
+        // Build the message with selection context if available
+        let enhancedMessage = trimmedInput;
+        if (hasSelection && editorSelection) {
+          enhancedMessage = `[SELECTED TEXT TO EDIT: "${editorSelection.text}"]\n\nUser request: ${trimmedInput}`;
+        }
+        
+        const response = await fetch('/api/assistant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: enhancedMessage,
+            aiProvider: selectedAIProvider,
+            pageContext: {
+              pathname: location.pathname,
+              pageName: currentPageContext?.pageName,
+              pageDescription: currentPageContext?.pageDescription,
+            },
+            userContext,
+            userId: currentUser?.uid,
+            pageData: { currentNote: pageData?.currentNote },
+            inlineEditMode: true, // Signal to server this is an inline edit
+            selectionMode: hasSelection, // Signal selection-based edit
+            selectedText: hasSelection ? editorSelection?.text : undefined,
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to get response');
+        }
+        
+        // Stream response to editor
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('text/event-stream')) {
+          const reader = response.body?.getReader();
+          const decoder = new TextDecoder();
+          let fullContent = '';
+          let buffer = '';
+          let errorMessage = '';
+          
+          if (reader) {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
+              
+              for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (trimmedLine.startsWith('data: ')) {
+                  const data = trimmedLine.slice(6);
+                  if (data === '[DONE]') continue;
+                  try {
+                    const parsed = JSON.parse(data);
+                    // Check for error messages from the server
+                    if (parsed.error) {
+                      errorMessage = parsed.error;
+                      console.error('❌ [INLINE EDIT] Error:', parsed.error);
+                    } else if (parsed.content) {
+                      fullContent += parsed.content;
+                      // Stream to editor
+                      streamInlineChunk(parsed.content);
+                    }
+                  } catch {
+                    // Skip invalid JSON
+                  }
+                }
+              }
+            }
+          }
+          
+          // Finish streaming and set pending content
+          finishInlineStreaming();
+          
+          // Handle error case
+          if (errorMessage) {
+            updateMessage(assistantMessageId, `⚠️ Error: ${errorMessage}`, false);
+            return;
+          }
+          
+          // Handle content based on edit type
+          // Clean up AI artifacts from the content
+          const cleanedContent = cleanAIMarkdown(fullContent);
+          
+          if (hasSelection && editorSelection && noteEditorCallbacks?.replaceSelection) {
+            // For selection mode, we'll replace just the selection
+            // Parse the content to TipTap format even for selection
+            const parsedContent = markdownToTiptap(cleanedContent);
+            setInlinePendingContent({
+              type: 'selection-replace',
+              content: parsedContent,
+              text: cleanedContent, // Keep raw text as fallback
+              range: { from: editorSelection.from, to: editorSelection.to },
+            });
+          } else {
+            // For full document edit, parse markdown into TipTap JSON format
+            const pendingContent = markdownToTiptap(cleanedContent);
+            setInlinePendingContent(pendingContent);
+          }
+          
+          // Update chat message
+          const confirmMessage = hasSelection 
+            ? '✨ Review the changes to your selected text and accept or discard them.'
+            : '✨ Review the changes in your note and accept or discard them.';
+          updateMessage(assistantMessageId, confirmMessage, false);
+        }
+      } catch (error) {
+        console.error('Error in inline edit:', error);
+        updateMessage(assistantMessageId, 'Sorry, I encountered an error. Please try again.', false);
+        finishInlineStreaming();
+      } finally {
+        setIsLoading(false);
+      }
+      
+      return; // Exit early for inline edit
+    }
+
+    // Regular chat flow (non-inline edit)
     // Add placeholder for assistant response
     const assistantMessageId = addMessage({
       role: 'assistant',
@@ -629,6 +820,7 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
         const decoder = new TextDecoder();
         let fullContent = '';
         let buffer = '';
+        let errorMessage = '';
 
         if (reader) {
           while (true) {
@@ -650,7 +842,11 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
                 if (data === '[DONE]') continue;
                 try {
                   const parsed = JSON.parse(data);
-                  if (parsed.content) {
+                  // Check for error messages from the server
+                  if (parsed.error) {
+                    errorMessage = parsed.error;
+                    console.error(`❌ [RESPONSE] Error from ${providerInfo?.name}:`, parsed.error);
+                  } else if (parsed.content) {
                     fullContent += parsed.content;
                     // Update message with each chunk for smooth streaming effect
                     updateMessage(assistantMessageId, fullContent, true);
@@ -664,8 +860,13 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
         }
         
         // Mark streaming as complete
-        console.log(`✅ [RESPONSE] Received ${fullContent.length} characters from ${providerInfo?.name}`);
-        updateMessage(assistantMessageId, fullContent || 'No response received', false);
+        if (errorMessage) {
+          console.error(`❌ [RESPONSE] Error from ${providerInfo?.name}: ${errorMessage}`);
+          updateMessage(assistantMessageId, `⚠️ Error: ${errorMessage}`, false);
+        } else {
+          console.log(`✅ [RESPONSE] Received ${fullContent.length} characters from ${providerInfo?.name}`);
+          updateMessage(assistantMessageId, fullContent || 'No response received', false);
+        }
       } else {
         // Handle JSON response (fallback)
         const data = await response.json();
@@ -681,7 +882,7 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, currentUser, addMessage, setIsLoading, profile, userData, location.pathname, currentPageContext, updateMessage, pageData, messages, selectedContexts]);
+  }, [isLoading, currentUser, addMessage, setIsLoading, profile, userData, location.pathname, currentPageContext, updateMessage, pageData, messages, selectedContexts, isOnNotesPage, noteEditorCallbacks, isNoteEditRequest, startInlineEdit, streamInlineChunk, finishInlineStreaming, setInlinePendingContent, selectedAIProvider]);
 
   // Handle pending messages from QuickActions
   useEffect(() => {

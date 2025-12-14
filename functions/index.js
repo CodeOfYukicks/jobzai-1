@@ -264,7 +264,7 @@ app.post('/api/chatgpt', async (req, res) => {
         "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: "gpt-4o", // Using GPT-4o for better quality
+        model: "gpt-5.2", // Using GPT-5.2 for best quality
         messages: messages,
         response_format: { type: 'json_object' },
         max_tokens: 4000,

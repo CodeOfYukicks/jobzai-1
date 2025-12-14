@@ -79,7 +79,7 @@ export default function SidebarLink({
         }`}
       >
         <Icon
-          className={`h-5 w-5 transition-colors
+          className={`h-4 w-4 transition-colors
             ${isActive
               ? 'text-[#635BFF] dark:text-[#a5a0ff]'
               : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'

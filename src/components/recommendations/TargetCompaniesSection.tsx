@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Building, MapPin, TrendingUp, Users, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
+import { Building, MapPin, TrendingUp, Users, ExternalLink, Loader2, AlertCircle, RefreshCw, Star, Briefcase } from 'lucide-react';
 import { useState } from 'react';
 
 interface Company {
@@ -108,6 +108,14 @@ export default function TargetCompaniesSection({
     );
   }
 
+  // Calculate average match score
+  const avgMatch = companies.length > 0 
+    ? Math.round(companies.reduce((sum, c) => sum + (c.match || 0), 0) / companies.length) 
+    : 0;
+  
+  // Count high matches (80%+)
+  const highMatches = companies.filter(c => c.match >= 80).length;
+
   return (
     <section className="mb-16">
       <div className="flex items-center justify-between mb-6">
@@ -119,6 +127,38 @@ export default function TargetCompaniesSection({
           <p className="text-gray-600 dark:text-gray-400">
             {companies.length} companies that match your profile and career goals
           </p>
+        </div>
+        <button
+          onClick={onRefresh}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Refresh
+        </button>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-100 dark:border-purple-900/30">
+          <div className="flex items-center gap-2 mb-1">
+            <Building className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            <span className="text-xs font-medium text-purple-600 dark:text-purple-400">Companies Found</span>
+          </div>
+          <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{companies.length}</p>
+        </div>
+        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-100 dark:border-green-900/30">
+          <div className="flex items-center gap-2 mb-1">
+            <Star className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <span className="text-xs font-medium text-green-600 dark:text-green-400">High Match (80%+)</span>
+          </div>
+          <p className="text-2xl font-bold text-green-700 dark:text-green-300">{highMatches}</p>
+        </div>
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-100 dark:border-blue-900/30">
+          <div className="flex items-center gap-2 mb-1">
+            <Briefcase className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Avg Match Score</span>
+          </div>
+          <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{avgMatch}%</p>
         </div>
       </div>
 

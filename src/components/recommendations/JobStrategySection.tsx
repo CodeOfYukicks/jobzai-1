@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Lightbulb, CheckCircle, Loader2, AlertCircle, Network, FileText } from 'lucide-react';
+import { Lightbulb, CheckCircle, Loader2, AlertCircle, Network, FileText, RefreshCw, Star, TrendingUp, Target } from 'lucide-react';
 import { useState } from 'react';
 
 interface JobStrategySectionProps {
@@ -89,6 +89,11 @@ export default function JobStrategySection({
     { id: 'application' as const, label: 'Application', icon: Lightbulb },
   ];
 
+  // Get counts
+  const highlightSkillsCount = strategy.highlight_skills?.length || 0;
+  const developSkillsCount = strategy.develop_skills?.length || 0;
+  const atsScore = strategy.ats_optimization?.score || 0;
+
   return (
     <section className="mb-16">
       <div className="flex items-center justify-between mb-6">
@@ -100,6 +105,62 @@ export default function JobStrategySection({
           <p className="text-gray-600 dark:text-gray-400">
             Comprehensive strategy to maximize your job search success
           </p>
+        </div>
+        <button
+          onClick={onRefresh}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Refresh
+        </button>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-100 dark:border-green-900/30">
+          <div className="flex items-center gap-2 mb-1">
+            <Star className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <span className="text-xs font-medium text-green-600 dark:text-green-400">Skills to Highlight</span>
+          </div>
+          <p className="text-2xl font-bold text-green-700 dark:text-green-300">{highlightSkillsCount}</p>
+        </div>
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-100 dark:border-blue-900/30">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Skills to Develop</span>
+          </div>
+          <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{developSkillsCount}</p>
+        </div>
+        <div className={`rounded-lg p-4 border ${
+          atsScore >= 70 
+            ? 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-900/30' 
+            : atsScore >= 50 
+              ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-900/30' 
+              : 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-900/30'
+        }`}>
+          <div className="flex items-center gap-2 mb-1">
+            <Target className={`h-4 w-4 ${
+              atsScore >= 70 
+                ? 'text-green-600 dark:text-green-400' 
+                : atsScore >= 50 
+                  ? 'text-amber-600 dark:text-amber-400' 
+                  : 'text-red-600 dark:text-red-400'
+            }`} />
+            <span className={`text-xs font-medium ${
+              atsScore >= 70 
+                ? 'text-green-600 dark:text-green-400' 
+                : atsScore >= 50 
+                  ? 'text-amber-600 dark:text-amber-400' 
+                  : 'text-red-600 dark:text-red-400'
+            }`}>ATS Score</span>
+          </div>
+          <p className={`text-2xl font-bold ${
+            atsScore >= 70 
+              ? 'text-green-700 dark:text-green-300' 
+              : atsScore >= 50 
+                ? 'text-amber-700 dark:text-amber-300' 
+                : 'text-red-700 dark:text-red-300'
+          }`}>{atsScore}%</p>
         </div>
       </div>
 

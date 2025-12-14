@@ -3790,7 +3790,7 @@ Return ONLY a structured JSON object with the following schema:
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: "gpt-5.1", // Updated from gpt-4o (Nov 2025)
+          model: "gpt-5.2", // Updated to latest (Dec 2025)
           messages: [
             {
               role: "system",
