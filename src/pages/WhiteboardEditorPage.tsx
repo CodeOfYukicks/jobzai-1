@@ -6,16 +6,17 @@ import {
   MoreHorizontal,
   Trash2,
   FileText,
-  ArrowLeft,
   Check,
   X,
   Pencil,
 } from 'lucide-react';
+import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
+import { useAssistant } from '../contexts/AssistantContext';
 import { Tldraw, getSnapshot, loadSnapshot, Editor } from 'tldraw';
 import 'tldraw/tldraw.css';
 
-// Hide tldraw watermark
+// Hide tldraw watermark and control z-index for sidebar overlay
 const tldrawStyles = `
   .tlui-watermark_SEE-LICENSE {
     display: none !important;
@@ -25,6 +26,16 @@ const tldrawStyles = `
   }
   [class*="watermark"] {
     display: none !important;
+  }
+  /* Ensure tldraw UI elements don't overlap the sidebar */
+  .tldraw-container .tlui-layout {
+    z-index: 10 !important;
+  }
+  .tldraw-container .tlui-layout__top {
+    z-index: 10 !important;
+  }
+  .tldraw-container .tlui-layout__bottom {
+    z-index: 10 !important;
   }
 `;
 
@@ -50,6 +61,7 @@ export default function WhiteboardEditorPage() {
   const { whiteboardId } = useParams<{ whiteboardId: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { isOpen: isAssistantOpen } = useAssistant();
 
   const [whiteboard, setWhiteboard] = useState<WhiteboardDocument | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -310,20 +322,6 @@ export default function WhiteboardEditorPage() {
     }
   }, [currentUser, whiteboardId, navigate]);
 
-  // Go back handler
-  const handleGoBack = useCallback(() => {
-    // Save in background, don't block navigation
-    if (editorRef.current && currentUser && whiteboardId) {
-      const snapshot = getSnapshot(editorRef.current.store);
-      saveWhiteboardSnapshot(currentUser.uid, whiteboardId, snapshot).catch((error) => {
-        console.error('[WHITEBOARD] Error saving before leaving:', error);
-      });
-      // Thumbnail saving in background (fire and forget)
-      saveThumbnail().catch(() => {});
-    }
-    navigate('/resume-builder');
-  }, [navigate, currentUser, whiteboardId, saveThumbnail]);
-
   // Click outside handlers
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -341,165 +339,173 @@ export default function WhiteboardEditorPage() {
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-gray-950">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
-          <span className="text-sm text-gray-500 dark:text-gray-400">Loading whiteboard...</span>
+      <AuthLayout>
+        <div className="flex h-full items-center justify-center bg-white dark:bg-gray-950">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+            <span className="text-sm text-gray-500 dark:text-gray-400">Loading whiteboard...</span>
+          </div>
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   if (!whiteboard) {
     return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-gray-950 gap-4">
-        <FileText className="w-16 h-16 text-gray-300 dark:text-gray-600" />
-        <p className="text-gray-500 dark:text-gray-400">Whiteboard not found</p>
-        <button
-          onClick={() => navigate('/resume-builder')}
-          className="px-4 py-2 text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors"
-        >
-          Go back
-        </button>
-      </div>
+      <AuthLayout>
+        <div className="flex h-full flex-col items-center justify-center bg-white dark:bg-gray-950 gap-4">
+          <FileText className="w-16 h-16 text-gray-300 dark:text-gray-600" />
+          <p className="text-gray-500 dark:text-gray-400">Whiteboard not found</p>
+          <button
+            onClick={() => navigate('/resume-builder')}
+            className="px-4 py-2 text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors"
+          >
+            Go back
+          </button>
+        </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-white dark:bg-gray-950">
-      {/* Minimal Header */}
-      <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-white/90 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 z-50">
-        <div className="flex items-center gap-3">
-          {/* Back button */}
-          <button
-            onClick={handleGoBack}
-            className="p-2 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-
-          {/* Emoji picker */}
-          <div className="relative" ref={emojiPickerRef}>
-            <button
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="text-2xl hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-1.5 transition-colors"
+    <AuthLayout>
+      <div className={`flex flex-col h-full min-h-0 transition-all duration-300 ${isAssistantOpen ? 'mr-[440px]' : 'mr-0'}`}>
+        {/* Header */}
+        <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-white/90 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 z-40">
+          <div className="flex items-center gap-3">
+            {/* Close button */}
+            <button 
+              onClick={() => navigate('/resume-builder')}
+              className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg text-gray-500 transition-colors"
             >
-              {whiteboard.emoji || '🎨'}
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Emoji picker */}
+            <div className="relative" ref={emojiPickerRef}>
+              <button
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="text-2xl hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-1.5 transition-colors"
+              >
+                {whiteboard.emoji || '🎨'}
+              </button>
+
+              <AnimatePresence>
+                {showEmojiPicker && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    className="absolute left-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50"
+                  >
+                    <div className="grid grid-cols-8 gap-1">
+                      {commonEmojis.map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={() => handleEmojiChange(emoji)}
+                          className={`p-2 text-xl rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
+                            whiteboard.emoji === emoji ? 'bg-amber-100 dark:bg-amber-900/30' : ''
+                          }`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Title */}
+            {isEditingTitle ? (
+              <div className="flex items-center gap-2">
+                <input
+                  ref={titleInputRef}
+                  type="text"
+                  value={editedTitle}
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleTitleSave();
+                    if (e.key === 'Escape') {
+                      setIsEditingTitle(false);
+                      setEditedTitle(whiteboard.title || '');
+                    }
+                  }}
+                  autoFocus
+                  className="px-3 py-1.5 text-lg font-semibold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 rounded-lg border-none outline-none focus:ring-2 focus:ring-amber-500/50"
+                />
+                <button
+                  onClick={handleTitleSave}
+                  className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditingTitle(false);
+                    setEditedTitle(whiteboard.title || '');
+                  }}
+                  className="p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsEditingTitle(true)}
+                className="flex items-center gap-2 group"
+              >
+                <h1 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                  {whiteboard.title || 'Untitled Whiteboard'}
+                </h1>
+                <Pencil className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            )}
+          </div>
+
+          {/* Menu */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-2 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <MoreHorizontal className="w-5 h-5" />
             </button>
 
             <AnimatePresence>
-              {showEmojiPicker && (
+              {showMenu && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  className="absolute left-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50"
+                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-1 z-50"
                 >
-                  <div className="grid grid-cols-8 gap-1">
-                    {commonEmojis.map((emoji) => (
-                      <button
-                        key={emoji}
-                        onClick={() => handleEmojiChange(emoji)}
-                        className={`p-2 text-xl rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
-                          whiteboard.emoji === emoji ? 'bg-amber-100 dark:bg-amber-900/30' : ''
-                        }`}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowDeleteConfirm(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Whiteboard
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
+        </header>
 
-          {/* Title */}
-          {isEditingTitle ? (
-            <div className="flex items-center gap-2">
-              <input
-                ref={titleInputRef}
-                type="text"
-                value={editedTitle}
-                onChange={(e) => setEditedTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleTitleSave();
-                  if (e.key === 'Escape') {
-                    setIsEditingTitle(false);
-                    setEditedTitle(whiteboard.title || '');
-                  }
-                }}
-                autoFocus
-                className="px-3 py-1.5 text-lg font-semibold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 rounded-lg border-none outline-none focus:ring-2 focus:ring-amber-500/50"
-              />
-              <button
-                onClick={handleTitleSave}
-                className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-              >
-                <Check className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => {
-                  setIsEditingTitle(false);
-                  setEditedTitle(whiteboard.title || '');
-                }}
-                className="p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setIsEditingTitle(true)}
-              className="flex items-center gap-2 group"
-            >
-              <h1 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                {whiteboard.title || 'Untitled Whiteboard'}
-              </h1>
-              <Pencil className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </button>
-          )}
+        {/* Tldraw Canvas - Takes all remaining space */}
+        <div className="flex-1 relative min-h-0">
+          <div className="absolute inset-0 tldraw-container z-0">
+            <style>{tldrawStyles}</style>
+            <Tldraw
+              onMount={handleMount}
+              persistenceKey={`whiteboard-${whiteboardId}`}
+            />
+          </div>
         </div>
-
-        {/* Menu */}
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="p-2 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          >
-            <MoreHorizontal className="w-5 h-5" />
-          </button>
-
-          <AnimatePresence>
-            {showMenu && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-1 z-50"
-              >
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    setShowDeleteConfirm(true);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete Whiteboard
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </header>
-
-      {/* Tldraw Canvas - Full Height */}
-      <div className="flex-1 relative tldraw-container">
-        <style>{tldrawStyles}</style>
-        <Tldraw
-          onMount={handleMount}
-          persistenceKey={`whiteboard-${whiteboardId}`}
-        />
       </div>
 
       {/* Delete Confirmation Modal */}
@@ -551,6 +557,6 @@ export default function WhiteboardEditorPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </AuthLayout>
   );
 }

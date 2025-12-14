@@ -165,14 +165,15 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname.startsWith('/ats-analysis/') ||
     location.pathname === '/resume-builder' ||
     (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
-    location.pathname.startsWith('/notes/')
+    location.pathname.startsWith('/notes/') ||
+    location.pathname.startsWith('/whiteboard/')
   );
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [hasScrolled, setHasScrolled] = useState<boolean>(false);
   const [isHoveringSidebar, setIsHoveringSidebar] = useState(false);
 
   useEffect(() => {
-    // Auto-collapse sidebar on CV Optimizer edit pages, Applications page, Jobs page, Upcoming Interviews page, Mock Interview page, Calendar page, Interview Prep pages, Resume Builder, Resume Builder editor, Campaigns Auto, and Notes for full-width editing
+    // Auto-collapse sidebar on CV Optimizer edit pages, Applications page, Jobs page, Upcoming Interviews page, Mock Interview page, Calendar page, Interview Prep pages, Resume Builder, Resume Builder editor, Campaigns Auto, Notes, and Whiteboards for full-width editing
     if (location.pathname.startsWith('/cv-optimizer/') || 
         location.pathname === '/applications' || 
         location.pathname === '/jobs' ||
@@ -184,7 +185,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         location.pathname.startsWith('/ats-analysis/') ||
         location.pathname === '/resume-builder' ||
         (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
-        location.pathname.startsWith('/notes/')) {
+        location.pathname.startsWith('/notes/') ||
+        location.pathname.startsWith('/whiteboard/')) {
       setIsCollapsed(true);
     }
   }, [location.pathname]);
@@ -372,13 +374,15 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/dashboard' ||
     (location.pathname.startsWith('/ats-analysis/') && location.pathname.endsWith('/cv-editor')) ||
     (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
-    location.pathname.startsWith('/notes/');
+    location.pathname.startsWith('/notes/') ||
+    location.pathname.startsWith('/whiteboard/');
 
   // Check if we are in "Builder Mode" (flush sidebar, no floating)
   const isBuilderMode = location.pathname.startsWith('/resume-builder') || 
-    location.pathname.startsWith('/notes/');
+    location.pathname.startsWith('/notes/') ||
+    location.pathname.startsWith('/whiteboard/');
 
-  // Check if we need full width (no max-width constraint) - includes all ats-analysis pages, cv-analysis, professional-profile, campaigns-auto, dashboard, and notes
+  // Check if we need full width (no max-width constraint) - includes all ats-analysis pages, cv-analysis, professional-profile, campaigns-auto, dashboard, notes and whiteboards
   const needsFullWidth = needsFullHeight || 
     location.pathname.startsWith('/ats-analysis/') ||
     location.pathname === '/cv-analysis' ||
@@ -388,7 +392,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/campaigns-auto' ||
     location.pathname === '/recommendations' ||
     location.pathname === '/dashboard' ||
-    location.pathname.startsWith('/notes/');
+    location.pathname.startsWith('/notes/') ||
+    location.pathname.startsWith('/whiteboard/');
 
   // Pages that should not be wrapped in a white card so they inherit the layout background
   const isPlainBackground = location.pathname === '/recommendations' || location.pathname === '/recommendations-legacy' || location.pathname === '/dashboard';
@@ -400,8 +405,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const sidebarExpandedWidth = 256; // 16rem = 256px
   const sidebarCollapsedWidth = 64; // 4rem = 64px
   
-  // Effective display state: expand on hover even if collapsed
-  const isEffectivelyExpanded = !isCollapsed || isHoveringSidebar;
+  // Check if we're on a whiteboard page (no expand on hover)
+  const isWhiteboardPage = location.pathname.startsWith('/whiteboard/');
+  
+  // Effective display state: expand on hover even if collapsed (except on whiteboard pages)
+  const isEffectivelyExpanded = !isCollapsed || (isHoveringSidebar && !isWhiteboardPage);
   const currentSidebarWidth = isCollapsed ? sidebarCollapsedWidth : sidebarExpandedWidth;
   const displaySidebarWidth = isEffectivelyExpanded ? sidebarExpandedWidth : sidebarCollapsedWidth;
 
@@ -453,7 +461,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               )}
             </Link>
           {/* Bouton collapse - disabled on certain pages */}
-            {location.pathname !== '/applications' && location.pathname !== '/jobs' && location.pathname !== '/upcoming-interviews' && location.pathname !== '/mock-interview' && location.pathname !== '/calendar' && location.pathname !== '/campaigns-auto' && !location.pathname.startsWith('/interview-prep/') && !location.pathname.startsWith('/ats-analysis/') && location.pathname !== '/resume-builder' && !(location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) && !location.pathname.startsWith('/notes/') && (
+            {location.pathname !== '/applications' && location.pathname !== '/jobs' && location.pathname !== '/upcoming-interviews' && location.pathname !== '/mock-interview' && location.pathname !== '/calendar' && location.pathname !== '/campaigns-auto' && !location.pathname.startsWith('/interview-prep/') && !location.pathname.startsWith('/ats-analysis/') && location.pathname !== '/resume-builder' && !(location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) && !location.pathname.startsWith('/notes/') && !location.pathname.startsWith('/whiteboard/') && (
               <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
               className={`group flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200

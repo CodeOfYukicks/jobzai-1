@@ -5,6 +5,7 @@ import { Folder } from './FolderCard';
 import { Resume } from '../../pages/ResumeBuilderPage';
 import { ImportedDocument } from './PDFPreviewCard';
 import { NotionDocument } from '../../lib/notionDocService';
+import { WhiteboardDocument } from '../../types/whiteboardDoc';
 
 // Emoji options for folders
 const EMOJI_OPTIONS = ['📁', '💼', '🎯', '⭐', '🚀', '💡', '📚', '🎨', '💻', '🔥', '✨', '🎪'];
@@ -76,9 +77,11 @@ interface FolderSidebarProps {
   groupedResumes?: Record<string, Resume[]>;
   groupedDocuments?: Record<string, ImportedDocument[]>;
   groupedNotes?: Record<string, NotionDocument[]>;
+  groupedWhiteboards?: Record<string, WhiteboardDocument[]>;
   onEditResume?: (resumeId: string) => void;
   onViewDocument?: (document: ImportedDocument) => void;
   onEditNote?: (noteId: string) => void;
+  onEditWhiteboard?: (whiteboardId: string) => void;
 }
 
 const COLOR_PALETTE = [
@@ -180,6 +183,36 @@ const SidebarNoteItem = memo(({
 
 SidebarNoteItem.displayName = 'SidebarNoteItem';
 
+// Nested item component for whiteboards in expanded folders
+const SidebarWhiteboardItem = memo(({ 
+  whiteboard, 
+  onClick 
+}: { 
+  whiteboard: WhiteboardDocument; 
+  onClick: () => void;
+}) => {
+  const displayName = whiteboard.title || 'Untitled Whiteboard';
+  const emoji = whiteboard.emoji || '🎨';
+  
+  return (
+    <motion.button
+      onClick={onClick}
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -10 }}
+      whileHover={{ x: 2 }}
+      className="w-full pl-8 pr-3 py-1.5 flex items-center gap-2 text-left
+        text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200
+        hover:bg-white/40 dark:hover:bg-white/5 rounded-lg transition-all duration-150 group"
+    >
+      <span className="text-sm flex-shrink-0">{emoji}</span>
+      <span className="text-xs font-medium truncate">{displayName}</span>
+    </motion.button>
+  );
+});
+
+SidebarWhiteboardItem.displayName = 'SidebarWhiteboardItem';
+
 // All Resumes Item - List style
 const AllResumesItem = memo(({ 
   isActive, 
@@ -239,9 +272,11 @@ const FolderItem = memo(({
   resumes,
   documents,
   notes,
+  whiteboards,
   onEditResume,
   onViewDocument,
-  onEditNote
+  onEditNote,
+  onEditWhiteboard
 }: { 
   folder: Folder; 
   isActive: boolean; 
@@ -260,9 +295,11 @@ const FolderItem = memo(({
   resumes?: Resume[];
   documents?: ImportedDocument[];
   notes?: NotionDocument[];
+  whiteboards?: WhiteboardDocument[];
   onEditResume?: (resumeId: string) => void;
   onViewDocument?: (document: ImportedDocument) => void;
   onEditNote?: (noteId: string) => void;
+  onEditWhiteboard?: (whiteboardId: string) => void;
 }) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -270,7 +307,7 @@ const FolderItem = memo(({
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   
   const colorData = COLOR_PALETTE.find(c => c.value === folder.color) || COLOR_PALETTE[0];
-  const hasItems = (resumes?.length || 0) + (documents?.length || 0) + (notes?.length || 0) > 0;
+  const hasItems = (resumes?.length || 0) + (documents?.length || 0) + (notes?.length || 0) + (whiteboards?.length || 0) > 0;
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -480,6 +517,14 @@ const FolderItem = memo(({
                       key={note.id}
                       note={note}
                       onClick={() => onEditNote?.(note.id)}
+                    />
+                  ))}
+                  {/* Then whiteboards */}
+                  {whiteboards?.map(wb => (
+                    <SidebarWhiteboardItem
+                      key={wb.id}
+                      whiteboard={wb}
+                      onClick={() => onEditWhiteboard?.(wb.id)}
                     />
                   ))}
                   {/* Then resumes */}
@@ -784,9 +829,11 @@ const FolderSidebar = memo(({
   groupedResumes,
   groupedDocuments,
   groupedNotes,
+  groupedWhiteboards,
   onEditResume,
   onViewDocument,
-  onEditNote
+  onEditNote,
+  onEditWhiteboard
 }: FolderSidebarProps) => {
   const [activeMenuFolderId, setActiveMenuFolderId] = useState<string | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => loadExpandedFolders());
@@ -952,9 +999,11 @@ const FolderSidebar = memo(({
               resumes={groupedResumes?.[folder.id]}
               documents={groupedDocuments?.[folder.id]}
               notes={groupedNotes?.[folder.id]}
+              whiteboards={groupedWhiteboards?.[folder.id]}
               onEditResume={onEditResume}
               onViewDocument={onViewDocument}
               onEditNote={onEditNote}
+              onEditWhiteboard={onEditWhiteboard}
             />
           ))}
         </div>
