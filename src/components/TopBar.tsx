@@ -89,34 +89,36 @@ export default function TopBar({
           {/* Notification Center */}
           <NotificationCenter />
 
-          {/* Assistant Button */}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              // Directly check state and toggle - this prevents conflicts with backdrop/click handlers
-              if (isAssistantOpen) {
-                closeAssistant();
-              } else {
-                openAssistant();
-              }
-            }}
-            onMouseDown={(e) => {
-              // Prevent mousedown from triggering click outside handlers
-              e.stopPropagation();
-            }}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-lg
-              bg-gray-900 dark:bg-white
-              border border-gray-900 dark:border-white
-              hover:bg-gray-800 dark:hover:bg-gray-100
-              active:scale-[0.98]
-              transition-all duration-150"
-            aria-label="Assistant"
-            title="AI Assistant"
-          >
-            <Sparkles className="h-4 w-4 text-white dark:text-gray-900" />
-            <span className="text-[13px] font-medium text-white dark:text-gray-900">Assistant</span>
-          </button>
+          {/* Assistant Button with AI Glow */}
+          <div className="ai-glow-wrapper">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // Directly check state and toggle - this prevents conflicts with backdrop/click handlers
+                if (isAssistantOpen) {
+                  closeAssistant();
+                } else {
+                  openAssistant();
+                }
+              }}
+              onMouseDown={(e) => {
+                // Prevent mousedown from triggering click outside handlers
+                e.stopPropagation();
+              }}
+              className="relative flex items-center gap-1.5 h-8 px-3 rounded-lg
+                bg-gray-900 dark:bg-white
+                border border-gray-900 dark:border-white
+                hover:bg-gray-800 dark:hover:bg-gray-100
+                active:scale-[0.98]
+                transition-all duration-150"
+              aria-label="Assistant"
+              title="AI Assistant"
+            >
+              <Sparkles className="h-4 w-4 text-white dark:text-gray-900" />
+              <span className="text-[13px] font-medium text-white dark:text-gray-900">Assistant</span>
+            </button>
+          </div>
 
           {/* User Profile with Dropdown */}
           <div className="relative" ref={profileMenuRef}>

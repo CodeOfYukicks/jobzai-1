@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wand2, Loader2, Edit2, Check, X, Sparkles, Mail, Settings } from 'lucide-react';
-import { CampaignData, EmailTone } from '../NewCampaignModal';
+import { Wand2, Loader2, Edit2, Check, X, ChevronDown, Info, Mail, RefreshCw } from 'lucide-react';
+import { CampaignData } from '../NewCampaignModal';
 import { notify } from '@/lib/notify';
 import { getAuth } from 'firebase/auth';
 import MergeFieldPills from '../MergeFieldPills';
@@ -18,23 +18,52 @@ interface EmailTemplate {
   body: string;
 }
 
-export default function TemplateGenerationStep({ data, onUpdate, campaignId }: TemplateGenerationStepProps) {
+// Merge fields tooltip content
+const MERGE_FIELDS = [
+  { field: '{{firstName}}', desc: "Contact's first name" },
+  { field: '{{lastName}}', desc: "Contact's last name" },
+  { field: '{{company}}', desc: 'Company name' },
+  { field: '{{position}}', desc: 'Job title/position' },
+  { field: '{{location}}', desc: 'Location' },
+];
+
+export default function TemplateGenerationStep({ data, onUpdate }: TemplateGenerationStepProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     data.selectedTemplate?.id || null
   );
+  const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editedSubject, setEditedSubject] = useState('');
   const [editedBody, setEditedBody] = useState('');
   const [outreachGoal, setOutreachGoal] = useState<'job' | 'internship' | 'networking'>(
     data.outreachGoal || 'job'
   );
+  const [showMergeFieldsTooltip, setShowMergeFieldsTooltip] = useState(false);
   
   const subjectInputRef = useRef<HTMLInputElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+  // Close tooltip when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
+        setShowMergeFieldsTooltip(false);
+      }
+    };
+
+    if (showMergeFieldsTooltip) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMergeFieldsTooltip]);
 
   // Update outreach goal in campaign data
   const handleOutreachGoalChange = (goal: 'job' | 'internship' | 'networking') => {
@@ -94,6 +123,13 @@ export default function TemplateGenerationStep({ data, onUpdate, campaignId }: T
     }
   }, []);
 
+  // Auto-expand first template when loaded
+  useEffect(() => {
+    if (templates.length > 0 && !expandedTemplateId) {
+      setExpandedTemplateId(templates[0].id);
+    }
+  }, [templates]);
+
   const handleGenerateTemplates = async () => {
     setIsGenerating(true);
     try {
@@ -119,7 +155,12 @@ export default function TemplateGenerationStep({ data, onUpdate, campaignId }: T
 
       if (result.success && result.templates) {
         setTemplates(result.templates);
-        notify.success('Templates generated successfully!');
+        // Auto-expand and select first template
+        if (result.templates.length > 0) {
+          setExpandedTemplateId(result.templates[0].id);
+          handleSelectTemplate(result.templates[0]);
+        }
+        notify.success('Templates generated!');
       } else {
         notify.error(result.error || 'Failed to generate templates');
       }
@@ -142,10 +183,27 @@ export default function TemplateGenerationStep({ data, onUpdate, campaignId }: T
     });
   };
 
+  const handleToggleExpand = (templateId: string) => {
+    if (expandedTemplateId === templateId) {
+      // Don't collapse if it's the only one or if editing
+      if (!isEditing) {
+        setExpandedTemplateId(null);
+      }
+    } else {
+      setExpandedTemplateId(templateId);
+      // Also select when expanding
+      const template = templates.find(t => t.id === templateId);
+      if (template) {
+        handleSelectTemplate(template);
+      }
+    }
+  };
+
   const handleEditTemplate = (template: EmailTemplate) => {
     setEditedSubject(template.subject);
     setEditedBody(template.body);
     setIsEditing(true);
+    setExpandedTemplateId(template.id);
   };
 
   const handleSaveEdit = () => {
@@ -177,7 +235,14 @@ export default function TemplateGenerationStep({ data, onUpdate, campaignId }: T
     return parts.map((part, idx) => {
       if (part.match(/\{\{[^}]+\}\}/)) {
         return (
-          <span key={idx} className="inline-flex items-center px-1.5 py-0.5 rounded bg-[#b7e219]/20 text-[#b7e219] dark:text-[#b7e219] font-mono text-xs font-semibold">
+          <span 
+            key={idx} 
+            className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded-md
+              bg-[#b7e219]/15 dark:bg-[#b7e219]/20
+              text-[#b7e219] dark:text-[#b7e219]
+              border border-[#b7e219]/30
+              font-mono text-xs font-semibold"
+          >
             {part}
           </span>
         );
@@ -188,340 +253,422 @@ export default function TemplateGenerationStep({ data, onUpdate, campaignId }: T
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          AI-Generated Email Templates
-        </h3>
-        <p className="text-sm text-gray-500 dark:text-white/60">
-          Configure preferences and select a template
-        </p>
-      </div>
-
-      {/* Outreach Goal Filter */}
-      <div>
-        <label className="block text-[11px] font-medium text-gray-500 dark:text-white/50 uppercase tracking-wider mb-2">
-          Outreach Goal
-        </label>
-        <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-white/[0.04] rounded-lg">
-          <button
-            type="button"
-            onClick={() => handleOutreachGoalChange('job')}
-            className={`
-              flex-1 px-4 py-2 rounded-md text-[12px] font-semibold transition-all duration-200
-              ${outreachGoal === 'job'
-                ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }
-            `}
-          >
-            Job Search
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => handleOutreachGoalChange('internship')}
-            className={`
-              flex-1 px-4 py-2 rounded-md text-[12px] font-semibold transition-all duration-200
-              ${outreachGoal === 'internship'
-                ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }
-            `}
-          >
-            Internship
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => handleOutreachGoalChange('networking')}
-            className={`
-              flex-1 px-4 py-2 rounded-md text-[12px] font-semibold transition-all duration-200
-              ${outreachGoal === 'networking'
-                ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }
-            `}
-          >
-            Networking
-          </button>
-        </div>
-      </div>
-
-      {/* Merge Fields Info */}
-      <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
-        <div className="flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">
-              Available merge fields:
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {['{' + '{firstName}' + '}', '{' + '{lastName}' + '}', '{' + '{company}' + '}', '{' + '{position}' + '}', '{' + '{location}' + '}'].map((field, idx) => (
-                <span key={idx} className="inline-flex items-center px-2 py-1 rounded bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 font-mono text-xs font-semibold">
-                  {field}
-                </span>
-              ))}
+      {/* Header Section - Compact */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Email Templates
+            </h3>
+            {/* Merge Fields Tooltip Trigger */}
+            <div className="relative" ref={tooltipRef}>
+              <button
+                onClick={() => setShowMergeFieldsTooltip(!showMergeFieldsTooltip)}
+                className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 
+                  hover:text-gray-600 dark:hover:text-gray-300 
+                  hover:bg-gray-100 dark:hover:bg-white/[0.06]
+                  transition-all duration-200"
+                title="Available merge fields"
+              >
+                <Info className="w-4 h-4" />
+              </button>
+              
+              {/* Merge Fields Tooltip */}
+              <AnimatePresence>
+                {showMergeFieldsTooltip && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute left-0 top-full mt-2 z-50 w-72
+                      bg-white dark:bg-[#1a1a1a] 
+                      rounded-xl shadow-xl dark:shadow-2xl 
+                      border border-gray-200 dark:border-white/[0.08]
+                      p-4 backdrop-blur-xl"
+                  >
+                    <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                      Available Merge Fields
+                    </p>
+                    <div className="space-y-2">
+                      {MERGE_FIELDS.map((item) => (
+                        <div key={item.field} className="flex items-center justify-between gap-3">
+                          <code className="px-2 py-1 rounded-md text-xs font-mono font-semibold
+                            bg-[#b7e219]/10 text-[#b7e219] border border-[#b7e219]/20">
+                            {item.field}
+                          </code>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {item.desc}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
+          <p className="text-[14px] text-gray-500 dark:text-white/60 mt-1">
+            AI-generated templates personalized for each contact
+          </p>
+        </div>
+
+        {/* Regenerate Button */}
+        {templates.length > 0 && !isEditing && (
+          <button
+            onClick={handleGenerateTemplates}
+            disabled={isGenerating}
+            className="group inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-medium
+              bg-white/60 dark:bg-white/[0.06] backdrop-blur-md
+              text-gray-600 dark:text-gray-300
+              border border-white/50 dark:border-white/[0.08]
+              shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)]
+              hover:bg-white/80 dark:hover:bg-white/[0.1]
+              hover:border-gray-300 dark:hover:border-white/[0.15]
+              active:scale-[0.98]
+              transition-all duration-300 ease-out
+              disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
+            <span>Regenerate</span>
+          </button>
+        )}
+      </div>
+
+      {/* Outreach Goal Selector - Inline */}
+      <div>
+        <label className="block text-[11px] font-semibold text-gray-500 dark:text-white/50 uppercase tracking-wider mb-3">
+          Outreach Goal
+        </label>
+        <div className="inline-flex items-center gap-1 p-1 bg-gray-100 dark:bg-white/[0.04] rounded-xl">
+          {(['job', 'internship', 'networking'] as const).map((goal) => (
+            <button
+              key={goal}
+              type="button"
+              onClick={() => handleOutreachGoalChange(goal)}
+              className={`
+                px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-all duration-200
+                ${outreachGoal === goal
+                  ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }
+              `}
+            >
+              {goal === 'job' ? 'Job Search' : goal === 'internship' ? 'Internship' : 'Networking'}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Loading State */}
-      {isGenerating && (
-        <div className="flex flex-col items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-[#b7e219] mb-4" />
-          <p className="text-sm text-gray-500 dark:text-white/60">
+      {isGenerating && templates.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="relative w-16 h-16 mb-4">
+            <div className="absolute inset-0 rounded-full border-2 border-gray-200 dark:border-white/[0.08]" />
+            <div className="absolute inset-0 rounded-full border-2 border-[#b7e219] border-t-transparent animate-spin" />
+            <Wand2 className="absolute inset-0 m-auto w-6 h-6 text-[#b7e219]" />
+          </div>
+          <p className="text-[14px] text-gray-500 dark:text-white/60">
             Generating personalized templates...
           </p>
         </div>
       )}
 
-      {/* Templates Grid */}
+      {/* Templates Accordion */}
       {!isGenerating && templates.length > 0 && !isEditing && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {templates.map((template, index) => {
             const isSelected = selectedTemplateId === template.id;
+            const isExpanded = expandedTemplateId === template.id;
             
             return (
               <motion.div
                 key={template.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
+                transition={{ duration: 0.2, delay: index * 0.05 }}
                 className={`
-                  relative p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer
+                  relative rounded-2xl border-2 overflow-hidden transition-all duration-300
                   ${isSelected
-                    ? 'border-[#b7e219] bg-[#b7e219]/5 dark:bg-[#b7e219]/10 shadow-lg'
-                    : 'border-gray-200 dark:border-white/[0.08] hover:border-[#b7e219]/50 dark:hover:border-[#b7e219]/50 bg-white dark:bg-[#1a1a1a]'
+                    ? 'border-[#b7e219] shadow-[0_0_0_1px_rgba(183,226,25,0.2)] dark:shadow-[0_0_0_1px_rgba(183,226,25,0.15)]'
+                    : 'border-gray-200 dark:border-white/[0.08] hover:border-gray-300 dark:hover:border-white/[0.12]'
                   }
+                  bg-white dark:bg-[#1a1a1a]
                 `}
-                onClick={() => handleSelectTemplate(template)}
               >
-                {/* Selected Checkmark */}
-                {isSelected && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    className="absolute top-4 right-4 w-6 h-6 rounded-full bg-[#b7e219] flex items-center justify-center"
-                  >
-                    <Check className="w-4 h-4 text-gray-900" strokeWidth={3} />
-                  </motion.div>
-                )}
-
-                {/* Template Number */}
-                <div className="flex items-center gap-2 mb-3">
+                {/* Accordion Header - Always Visible */}
+                <button
+                  onClick={() => handleToggleExpand(template.id)}
+                  className="w-full flex items-center gap-4 p-4 text-left transition-colors duration-200
+                    hover:bg-gray-50/50 dark:hover:bg-white/[0.02]"
+                >
+                  {/* Template Number */}
                   <div className={`
-                    w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold
+                    w-10 h-10 rounded-xl flex items-center justify-center text-[14px] font-bold flex-shrink-0
+                    transition-all duration-300
                     ${isSelected
                       ? 'bg-[#b7e219] text-gray-900'
-                      : 'bg-gray-100 dark:bg-white/[0.05] text-gray-600 dark:text-gray-400'
+                      : 'bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400'
                     }
                   `}>
                     {index + 1}
                   </div>
-                  <span className="text-xs font-medium text-gray-500 dark:text-white/50">
-                    Template {index + 1}
-                  </span>
-                </div>
 
-                {/* Subject */}
-                <div className="mb-3">
-                  <label className="block text-xs font-medium text-gray-500 dark:text-white/50 uppercase tracking-wider mb-1">
-                    Subject
-                  </label>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {highlightMergeFields(template.subject)}
-                  </p>
-                </div>
+                  {/* Subject Preview */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-[14px] font-medium truncate transition-colors duration-200
+                      ${isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}
+                    `}>
+                      {highlightMergeFields(template.subject)}
+                    </p>
+                    {!isExpanded && (
+                      <p className="text-[12px] text-gray-500 dark:text-gray-500 truncate mt-0.5">
+                        {template.body.substring(0, 80)}...
+                      </p>
+                    )}
+                  </div>
 
-                {/* Body Preview */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-white/50 uppercase tracking-wider mb-1">
-                    Body
-                  </label>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap line-clamp-4">
-                    {highlightMergeFields(template.body)}
-                  </p>
-                </div>
+                  {/* Selected Checkmark */}
+                  {isSelected && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      className="w-6 h-6 rounded-full bg-[#b7e219] flex items-center justify-center flex-shrink-0"
+                    >
+                      <Check className="w-4 h-4 text-gray-900" strokeWidth={3} />
+                    </motion.div>
+                  )}
 
-                {/* Edit Button */}
-                {isSelected && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditTemplate(template);
-                    }}
-                    className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium
-                      bg-gray-100 dark:bg-white/[0.08] text-gray-700 dark:text-gray-300
-                      hover:bg-gray-200 dark:hover:bg-white/[0.12] transition-colors"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    Edit Template
-                  </button>
-                )}
+                  {/* Expand/Collapse Icon */}
+                  <ChevronDown 
+                    className={`w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 transition-transform duration-300
+                      ${isExpanded ? 'rotate-180' : ''}
+                    `} 
+                  />
+                </button>
+
+                {/* Accordion Content - Collapsible */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-4 pt-0">
+                        {/* Divider */}
+                        <div className="h-px bg-gray-100 dark:bg-white/[0.06] mb-4" />
+
+                        {/* Body Content */}
+                        <div className="p-4 rounded-xl bg-gray-50/50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.04]">
+                          <p className="text-[13px] text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                            {highlightMergeFields(template.body)}
+                          </p>
+                        </div>
+
+                        {/* Edit Button */}
+                        {isSelected && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditTemplate(template);
+                            }}
+                            className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-medium
+                              bg-white/60 dark:bg-white/[0.06] backdrop-blur-md
+                              text-gray-600 dark:text-gray-300
+                              border border-gray-200/50 dark:border-white/[0.08]
+                              hover:bg-white dark:hover:bg-white/[0.1]
+                              hover:border-gray-300 dark:hover:border-white/[0.15]
+                              active:scale-[0.98]
+                              transition-all duration-200"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span>Edit Template</span>
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             );
           })}
-
-          {/* Regenerate Button */}
-          <button
-            onClick={handleGenerateTemplates}
-            disabled={isGenerating}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg
-              bg-white dark:bg-[#1a1a1a] border-2 border-dashed border-gray-300 dark:border-white/[0.12]
-              text-gray-600 dark:text-gray-400 hover:border-[#b7e219] hover:text-[#b7e219]
-              transition-all duration-200"
-          >
-            <Wand2 className="w-4 h-4" />
-            <span className="text-sm font-medium">Regenerate Templates</span>
-          </button>
         </div>
       )}
 
       {/* Edit Mode */}
-      {isEditing && selectedTemplate && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="space-y-4"
-        >
-          {/* Subject Editor */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Subject Line
-            </label>
-            <MergeFieldPills onInsert={insertMergeFieldInSubject} />
-            <div className="relative mt-2">
-              <input
-                ref={subjectInputRef}
-                type="text"
-                value={editedSubject}
-                onChange={(e) => setEditedSubject(e.target.value)}
-                placeholder="Email subject..."
-                className="w-full px-4 py-3 text-sm bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08]
-                  rounded-lg focus:outline-none focus:ring-2 focus:ring-[#b7e219]/20 focus:border-[#b7e219]
-                  placeholder-gray-400 dark:placeholder-white/40"
-                style={{
-                  color: 'transparent',
-                  caretColor: '#1f2937'
-                }}
-              />
-              {/* Overlay with styled merge fields */}
-              <div className="absolute inset-0 px-4 py-3 text-sm pointer-events-none rounded-lg overflow-hidden">
-                <div className="text-gray-900 dark:text-white whitespace-nowrap overflow-hidden text-ellipsis">
-                  {editedSubject.split(/(\{\{[^}]+\}\})/g).map((part, idx) => {
-                    if (part.match(/\{\{[^}]+\}\}/)) {
-                      return (
-                        <span 
-                          key={idx}
-                          className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md
-                            bg-[#b7e219]/15 dark:bg-[#b7e219]/25
-                            text-[#b7e219] dark:text-[#b7e219]
-                            border border-[#b7e219]/40
-                            font-mono text-xs font-semibold
-                            shadow-sm"
-                        >
-                          {part}
-                        </span>
-                      );
-                    }
-                    return <span key={idx}>{part || '\u00A0'}</span>;
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Body Editor */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Email Body
-            </label>
-            <MergeFieldPills onInsert={insertMergeFieldInBody} />
-            <div className="relative mt-2">
-              <textarea
-                ref={bodyTextareaRef}
-                value={editedBody}
-                onChange={(e) => setEditedBody(e.target.value)}
-                rows={12}
-                placeholder="Email content..."
-                className="w-full px-4 py-3 text-sm bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08]
-                  rounded-lg focus:outline-none focus:ring-2 focus:ring-[#b7e219]/20 focus:border-[#b7e219]
-                  placeholder-gray-400 dark:placeholder-white/40
-                  resize-none"
-                style={{
-                  lineHeight: '1.8',
-                  color: 'transparent',
-                  caretColor: '#1f2937'
-                }}
-              />
-              {/* Overlay with styled merge fields */}
-              <div 
-                className="absolute inset-0 px-4 py-3 text-sm pointer-events-none rounded-lg overflow-hidden"
-                style={{
-                  lineHeight: '1.8'
-                }}
+      <AnimatePresence>
+        {isEditing && selectedTemplate && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-5"
+          >
+            {/* Edit Header */}
+            <div className="flex items-center justify-between">
+              <h4 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+                Edit Template
+              </h4>
+              <button
+                onClick={() => setIsEditing(false)}
+                className="p-2 rounded-lg text-gray-400 dark:text-gray-500 
+                  hover:text-gray-600 dark:hover:text-gray-300 
+                  hover:bg-gray-100 dark:hover:bg-white/[0.06]
+                  transition-colors"
               >
-                <div className="text-gray-900 dark:text-white whitespace-pre-wrap break-words">
-                  {editedBody.split(/(\{\{[^}]+\}\})/g).map((part, idx) => {
-                    if (part.match(/\{\{[^}]+\}\}/)) {
-                      return (
-                        <span 
-                          key={idx}
-                          className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md
-                            bg-[#b7e219]/15 dark:bg-[#b7e219]/25
-                            text-[#b7e219] dark:text-[#b7e219]
-                            border border-[#b7e219]/40
-                            font-mono text-xs font-semibold
-                            shadow-sm"
-                        >
-                          {part}
-                        </span>
-                      );
-                    }
-                    return <span key={idx}>{part || '\u00A0'}</span>;
-                  })}
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Subject Editor */}
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-500 dark:text-white/50 uppercase tracking-wider mb-2">
+                Subject Line
+              </label>
+              <MergeFieldPills onInsert={insertMergeFieldInSubject} />
+              <div className="relative mt-3">
+                <input
+                  ref={subjectInputRef}
+                  type="text"
+                  value={editedSubject}
+                  onChange={(e) => setEditedSubject(e.target.value)}
+                  placeholder="Email subject..."
+                  className="w-full px-4 py-3.5 text-[14px] bg-white dark:bg-[#1a1a1a] 
+                    border border-gray-200 dark:border-white/[0.08]
+                    rounded-xl focus:outline-none focus:ring-2 focus:ring-[#b7e219]/30 focus:border-[#b7e219]
+                    placeholder-gray-400 dark:placeholder-white/30
+                    transition-all duration-200"
+                  style={{
+                    color: 'transparent',
+                    caretColor: 'currentColor'
+                  }}
+                />
+                {/* Overlay with styled merge fields */}
+                <div className="absolute inset-0 px-4 py-3.5 text-[14px] pointer-events-none rounded-xl overflow-hidden">
+                  <div className="text-gray-900 dark:text-white whitespace-nowrap overflow-hidden text-ellipsis">
+                    {editedSubject.split(/(\{\{[^}]+\}\})/g).map((part, idx) => {
+                      if (part.match(/\{\{[^}]+\}\}/)) {
+                        return (
+                          <span 
+                            key={idx}
+                            className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md
+                              bg-[#b7e219]/15 dark:bg-[#b7e219]/25
+                              text-[#b7e219] dark:text-[#b7e219]
+                              border border-[#b7e219]/40
+                              font-mono text-xs font-semibold
+                              shadow-sm"
+                          >
+                            {part}
+                          </span>
+                        );
+                      }
+                      return <span key={idx}>{part || '\u00A0'}</span>;
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleSaveEdit}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg
-                bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] border border-[#9fc015]
-                font-semibold transition-all duration-200"
-            >
-              <Check className="w-4 h-4" />
-              Save Changes
-            </button>
-            <button
-              onClick={() => setIsEditing(false)}
-              className="px-4 py-2.5 rounded-lg text-gray-600 dark:text-gray-400
-                hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </motion.div>
-      )}
+            {/* Body Editor */}
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-500 dark:text-white/50 uppercase tracking-wider mb-2">
+                Email Body
+              </label>
+              <MergeFieldPills onInsert={insertMergeFieldInBody} />
+              <div className="relative mt-3">
+                <textarea
+                  ref={bodyTextareaRef}
+                  value={editedBody}
+                  onChange={(e) => setEditedBody(e.target.value)}
+                  rows={10}
+                  placeholder="Email content..."
+                  className="w-full px-4 py-4 text-[14px] bg-white dark:bg-[#1a1a1a] 
+                    border border-gray-200 dark:border-white/[0.08]
+                    rounded-xl focus:outline-none focus:ring-2 focus:ring-[#b7e219]/30 focus:border-[#b7e219]
+                    placeholder-gray-400 dark:placeholder-white/30
+                    resize-none transition-all duration-200 leading-relaxed"
+                  style={{
+                    color: 'transparent',
+                    caretColor: 'currentColor'
+                  }}
+                />
+                {/* Overlay with styled merge fields */}
+                <div 
+                  className="absolute inset-0 px-4 py-4 text-[14px] pointer-events-none rounded-xl overflow-hidden leading-relaxed"
+                >
+                  <div className="text-gray-900 dark:text-white whitespace-pre-wrap break-words">
+                    {editedBody.split(/(\{\{[^}]+\}\})/g).map((part, idx) => {
+                      if (part.match(/\{\{[^}]+\}\}/)) {
+                        return (
+                          <span 
+                            key={idx}
+                            className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md
+                              bg-[#b7e219]/15 dark:bg-[#b7e219]/25
+                              text-[#b7e219] dark:text-[#b7e219]
+                              border border-[#b7e219]/40
+                              font-mono text-xs font-semibold
+                              shadow-sm"
+                          >
+                            {part}
+                          </span>
+                        );
+                      }
+                      return <span key={idx}>{part || '\u00A0'}</span>;
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={handleSaveEdit}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl
+                  bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] 
+                  font-semibold text-[13px] shadow-sm hover:shadow-md
+                  transition-all duration-200 active:scale-[0.98]"
+              >
+                <Check className="w-4 h-4" />
+                Save Changes
+              </button>
+              <button
+                onClick={() => setIsEditing(false)}
+                className="px-5 py-3 rounded-xl text-[13px] font-medium
+                  text-gray-600 dark:text-gray-400
+                  hover:bg-gray-100 dark:hover:bg-white/[0.06] 
+                  transition-colors duration-200"
+              >
+                Cancel
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Empty State */}
       {!isGenerating && templates.length === 0 && (
-        <div className="text-center py-12">
-          <Mail className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
-          <p className="text-sm text-gray-500 dark:text-white/60 mb-4">
-            No templates generated yet
+        <div className="text-center py-16">
+          <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center mx-auto mb-4">
+            <Mail className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+          </div>
+          <h4 className="text-[15px] font-medium text-gray-900 dark:text-white mb-2">
+            No templates yet
+          </h4>
+          <p className="text-[13px] text-gray-500 dark:text-white/60 mb-6 max-w-xs mx-auto">
+            Generate AI-powered email templates personalized for your outreach
           </p>
           <button
             onClick={handleGenerateTemplates}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg
-              bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] border border-[#9fc015]
-              font-semibold transition-all duration-200"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl
+              bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] 
+              font-semibold text-[13px] shadow-sm hover:shadow-md
+              transition-all duration-200"
           >
             <Wand2 className="w-4 h-4" />
             Generate Templates
@@ -531,4 +678,3 @@ export default function TemplateGenerationStep({ data, onUpdate, campaignId }: T
     </div>
   );
 }
-
