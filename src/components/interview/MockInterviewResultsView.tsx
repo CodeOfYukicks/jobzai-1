@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2,
@@ -14,7 +14,6 @@ import {
   Zap,
   TrendingUp,
   User,
-  Bot,
   Award,
   BarChart3,
   Lightbulb,
@@ -22,6 +21,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   Sparkles,
+  X,
 } from 'lucide-react';
 import type { TranscriptEntry } from '../../types/openai-realtime';
 import type { 
@@ -29,6 +29,8 @@ import type {
   MockInterviewTranscriptHighlight,
   MockInterviewResponseAnalysis,
 } from '../../types/interview';
+import { Avatar, DEFAULT_AVATAR_CONFIG, loadAvatarConfig, type AvatarConfig } from '../assistant/avatar';
+import { useAuth } from '../../contexts/AuthContext';
 
 // ============================================
 // PROPS
@@ -194,6 +196,8 @@ interface TranscriptMessageProps {
   onResponseClick?: (analysis: MockInterviewResponseAnalysis) => void;
   activeHighlightId: string | null;
   index: number;
+  avatarConfig: AvatarConfig;
+  userProfilePhoto: string | null;
 }
 
 const TranscriptMessage: React.FC<TranscriptMessageProps> = ({
@@ -204,6 +208,8 @@ const TranscriptMessage: React.FC<TranscriptMessageProps> = ({
   onResponseClick,
   activeHighlightId,
   index,
+  avatarConfig,
+  userProfilePhoto,
 }) => {
   const [showDetails, setShowDetails] = useState(false);
   const entryHighlights = (highlights || []).filter(h => h.entryId === entry.id);
@@ -290,17 +296,27 @@ const TranscriptMessage: React.FC<TranscriptMessageProps> = ({
       className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}
     >
       {/* Avatar */}
-      <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-        isUser 
-          ? 'bg-[#b7e219]/20 border border-[#b7e219]/30' 
-          : 'bg-gray-100 dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e]'
-      }`}>
-        {isUser ? (
-          <User className="h-4 w-4 text-[#b7e219]" />
-        ) : (
-          <Bot className="h-4 w-4 text-gray-500 dark:text-white/60" />
-        )}
-      </div>
+      {isUser ? (
+        <div className={`flex-shrink-0 w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center ${
+          userProfilePhoto ? '' : 'bg-[#b7e219]/20 border border-[#b7e219]/30'
+        }`}>
+          {userProfilePhoto ? (
+            <img 
+              src={userProfilePhoto} 
+              alt="You" 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <User className="h-4 w-4 text-[#b7e219]" />
+          )}
+        </div>
+      ) : (
+        <Avatar 
+          config={avatarConfig}
+          size={32}
+          className="flex-shrink-0 rounded-lg ring-1 ring-gray-200/60 dark:ring-white/10 bg-gray-50 dark:bg-[#2a2a2b]"
+        />
+      )}
       
       {/* Message */}
       <div className={`flex-1 max-w-[85%] ${isUser ? 'text-right' : ''}`}>
@@ -624,9 +640,39 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
   elapsedTime,
   onBack,
 }) => {
+  const { currentUser } = useAuth();
   const [activeHighlightId, setActiveHighlightId] = useState<string | null>(null);
   const [selectedHighlight, setSelectedHighlight] = useState<MockInterviewTranscriptHighlight | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'responses'>('overview');
+  const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>(DEFAULT_AVATAR_CONFIG);
+  const [userProfilePhoto, setUserProfilePhoto] = useState<string | null>(null);
+
+  // Load avatar config and user profile photo
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (currentUser?.uid) {
+        try {
+          // Load AI avatar config
+          const config = await loadAvatarConfig(currentUser.uid);
+          setAvatarConfig(config);
+          
+          // Load user profile photo from Firestore
+          const { doc, getDoc } = await import('firebase/firestore');
+          const { db } = await import('../../lib/firebase');
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            if (userData.profilePhoto) {
+              setUserProfilePhoto(userData.profilePhoto);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading user data:', error);
+        }
+      }
+    };
+    loadUserData();
+  }, [currentUser?.uid]);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -671,38 +717,73 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
 
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-[#1c1c1e] overflow-hidden">
+      {/* Top Header with Close Button */}
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#3d3c3e]/60 bg-white dark:bg-[#242325]">
+        <div className="flex items-center gap-3">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onBack}
+            className="w-8 h-8 rounded-lg flex items-center justify-center
+                       text-gray-400 hover:text-gray-600 dark:text-white/40 dark:hover:text-white/70
+                       hover:bg-gray-100 dark:hover:bg-white/5 transition-all
+                       border border-gray-200 dark:border-[#3d3c3e]"
+          >
+            <X className="w-4 h-4" />
+          </motion.button>
+          <div>
+            <h1 className="text-sm font-semibold text-gray-900 dark:text-white">Interview Results</h1>
+            <p className="text-[10px] text-gray-500 dark:text-white/40">
+              {position} at {companyName} · {formatTime(elapsedTime)}
+            </p>
+          </div>
+        </div>
+        
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 text-xs font-semibold transition-colors"
+        >
+          <TrendingUp className="h-3.5 w-3.5" />
+          Practice Again
+        </button>
+      </div>
+
       {/* Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Transcript */}
         <div className="w-1/2 flex flex-col border-r border-gray-200 dark:border-[#3d3c3e]/60">
-          {/* Header */}
-          <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 dark:border-[#3d3c3e]/60 bg-white dark:bg-[#242325]">
-            <div className="flex items-center justify-between">
+          {/* Header - matches right panel height with tabs */}
+          <div className="flex-shrink-0 border-b border-gray-200 dark:border-[#3d3c3e]/60 bg-white dark:bg-[#242325]">
+            <div className="px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e]">
                   <MessageSquare className="h-4 w-4 text-gray-500 dark:text-white/60" />
                 </div>
-                <div>
-                  <h2 className="text-sm font-medium text-gray-900 dark:text-white">Transcript</h2>
-                  <p className="text-[10px] text-gray-500 dark:text-white/40">Click on responses to see details</p>
-                </div>
+                <h2 className="text-sm font-medium text-gray-900 dark:text-white">Transcript</h2>
               </div>
               
-              {/* Legend */}
-              <div className="flex items-center gap-2.5 text-[9px]">
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  <span className="text-gray-500 dark:text-white/40">Good</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  <span className="text-gray-500 dark:text-white/40">Improve</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                  <span className="text-gray-500 dark:text-white/40">Issue</span>
+              {/* Status badge to match right panel */}
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-gray-100 dark:bg-[#2b2a2c] border-gray-200 dark:border-[#3d3c3e]">
+                <span className="text-[10px] font-medium text-gray-500 dark:text-white/50">
+                  {transcript.length} messages
                 </span>
               </div>
+            </div>
+            
+            {/* Second row - Legend (matches tabs height on right panel) */}
+            <div className="px-4 pb-2 flex items-center gap-1 h-[30px]">
+              <span className="flex items-center gap-1 px-3 py-1 text-xs text-gray-500 dark:text-white/50">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Good
+              </span>
+              <span className="flex items-center gap-1 px-3 py-1 text-xs text-gray-500 dark:text-white/50">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                Improve
+              </span>
+              <span className="flex items-center gap-1 px-3 py-1 text-xs text-gray-500 dark:text-white/50">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                Issue
+              </span>
             </div>
           </div>
 
@@ -717,6 +798,8 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
                 onHighlightClick={handleHighlightClick}
                 activeHighlightId={activeHighlightId}
                 index={idx}
+                avatarConfig={avatarConfig}
+                userProfilePhoto={userProfilePhoto}
               />
             ))}
             
@@ -739,19 +822,14 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
 
         {/* Right Panel - Analysis */}
         <div className="w-1/2 flex flex-col overflow-hidden bg-white dark:bg-[#1c1c1e]">
-          {/* Header with tabs */}
+          {/* Header with tabs - matches left panel height */}
           <div className="flex-shrink-0 border-b border-gray-200 dark:border-[#3d3c3e]/60 bg-white dark:bg-[#242325]">
             <div className="px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e]">
                   <BarChart3 className="h-4 w-4 text-gray-500 dark:text-white/60" />
                 </div>
-                <div>
-                  <h2 className="text-sm font-medium text-gray-900 dark:text-white">Analysis</h2>
-                  <p className="text-[10px] text-gray-500 dark:text-white/40">
-                    {position} · {formatTime(elapsedTime)}
-                  </p>
-                </div>
+                <h2 className="text-sm font-medium text-gray-900 dark:text-white">Analysis</h2>
               </div>
               
               {/* Status */}
@@ -773,29 +851,29 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
               </div>
             </div>
             
-            {/* Tabs */}
-            <div className="px-4 flex gap-1">
+            {/* Tabs - aligned with legend row on left panel */}
+            <div className="px-4 pb-2 flex gap-1 h-[30px]">
               <button
                 onClick={() => setActiveTab('overview')}
-                className={`px-3 py-2 text-xs font-medium rounded-t-lg transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
                   activeTab === 'overview'
-                    ? 'bg-gray-50 dark:bg-[#1c1c1e] text-gray-900 dark:text-white border-t border-x border-gray-200 dark:border-[#3d3c3e]'
-                    : 'text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white/70'
+                    ? 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-900 dark:text-white'
+                    : 'text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white/70 hover:bg-gray-50 dark:hover:bg-[#2b2a2c]'
                 }`}
               >
                 Overview
               </button>
               <button
                 onClick={() => setActiveTab('responses')}
-                className={`px-3 py-2 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-1.5 ${
+                className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
                   activeTab === 'responses'
-                    ? 'bg-gray-50 dark:bg-[#1c1c1e] text-gray-900 dark:text-white border-t border-x border-gray-200 dark:border-[#3d3c3e]'
-                    : 'text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white/70'
+                    ? 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-900 dark:text-white'
+                    : 'text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white/70 hover:bg-gray-50 dark:hover:bg-[#2b2a2c]'
                 }`}
               >
                 By Response
                 {analysis?.responseAnalysis && analysis.responseAnalysis.length > 0 && (
-                  <span className="px-1.5 py-0.5 rounded text-[9px] bg-gray-200 dark:bg-[#3d3c3e]">
+                  <span className="px-1.5 py-0.5 rounded text-[9px] bg-gray-200 dark:bg-[#2b2a2c]">
                     {analysis.responseAnalysis.length}
                   </span>
                 )}
@@ -807,120 +885,238 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#1c1c1e]">
             {activeTab === 'overview' ? (
               <>
-                {/* Score Section */}
+                {/* Hero Score Card - Premium Design */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-4 rounded-xl bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e]/60"
+                  className="relative overflow-hidden rounded-2xl"
+                  style={{
+                    background: (analysis.overallScore ?? 0) >= 70 
+                      ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 95, 70, 0.12) 100%)'
+                      : (analysis.overallScore ?? 0) >= 50
+                      ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(180, 83, 9, 0.12) 100%)'
+                      : 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(153, 27, 27, 0.12) 100%)'
+                  }}
                 >
-                  <div className="flex items-start gap-5">
-                    <ScoreRing 
-                      score={analysis.overallScore ?? 0} 
-                      size="lg"
-                      delay={0.1}
-                    />
-                    
-                    <div className="flex-1 pt-1">
-                      <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded ${tierInfo.bg} mb-2`}>
-                        <Award className={`h-3 w-3 ${tierInfo.color}`} />
-                        <span className={`text-xs font-medium ${tierInfo.color}`}>{tierInfo.label}</span>
+                  <div className="absolute inset-0 bg-white/40 dark:bg-[#242325]/60 backdrop-blur-sm" />
+                  <div className="relative p-5">
+                    <div className="flex items-start gap-5">
+                      {/* Large Score Display */}
+                      <div className="flex flex-col items-center">
+                        <div className="relative">
+                          <ScoreRing 
+                            score={analysis.overallScore ?? 0} 
+                            size="lg"
+                            delay={0.1}
+                          />
+                        </div>
+                        <span className="mt-2 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-white/40">
+                          Overall
+                        </span>
                       </div>
                       
-                      <p className="text-sm text-gray-600 dark:text-white/70 leading-relaxed">
-                        {analysis.executiveSummary || 'Analysis complete.'}
-                      </p>
+                      {/* Summary */}
+                      <div className="flex-1 min-w-0">
+                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-3 ${
+                          (analysis.overallScore ?? 0) >= 70 
+                            ? 'bg-emerald-500/15 border border-emerald-500/25' 
+                            : (analysis.overallScore ?? 0) >= 50
+                            ? 'bg-amber-500/15 border border-amber-500/25'
+                            : 'bg-red-500/15 border border-red-500/25'
+                        }`}>
+                          <div className={`w-1.5 h-1.5 rounded-full ${
+                            (analysis.overallScore ?? 0) >= 70 ? 'bg-emerald-500' :
+                            (analysis.overallScore ?? 0) >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                          }`} />
+                          <span className={`text-[11px] font-semibold ${tierInfo.color}`}>
+                            {tierInfo.label}
+                          </span>
+                        </div>
+                        
+                        <p className="text-[13px] text-gray-700 dark:text-white/80 leading-relaxed">
+                          {analysis.executiveSummary || 'Analysis complete.'}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
 
-                {/* Score Breakdown */}
+                {/* Metrics Row - Clean Horizontal Layout */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="grid grid-cols-3 gap-3"
+                  className="grid grid-cols-3 gap-2"
                 >
                   {[
-                    { label: 'Content', score: analysis?.contentAnalysis?.relevanceScore ?? analysis?.contentAnalysis?.specificityScore ?? 0, icon: Target },
-                    { label: 'Expression', score: analysis?.expressionAnalysis?.clarityScore ?? analysis?.expressionAnalysis?.organizationScore ?? 0, icon: MessageCircle },
-                    { label: 'Job Fit', score: analysis?.jobFitAnalysis?.fitScore ?? 0, icon: Briefcase },
-                  ].map(({ label, score, icon: Icon }, idx) => (
-                    <motion.div
-                      key={label}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.15 + idx * 0.05 }}
-                      className="p-3 rounded-lg bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e]/60 flex flex-col items-center gap-2"
-                    >
-                      <Icon className="h-3.5 w-3.5 text-gray-400 dark:text-white/40" />
-                      <ScoreRing score={score} size="sm" delay={0.2 + idx * 0.05} />
-                      <span className="text-[10px] font-medium text-gray-500 dark:text-white/40">{label}</span>
-                    </motion.div>
-                  ))}
+                    { 
+                      label: 'Content', 
+                      score: analysis?.contentAnalysis?.relevanceScore ?? analysis?.contentAnalysis?.specificityScore ?? 0,
+                      description: 'Relevance & specificity'
+                    },
+                    { 
+                      label: 'Expression', 
+                      score: analysis?.expressionAnalysis?.clarityScore ?? analysis?.expressionAnalysis?.organizationScore ?? 0,
+                      description: 'Clarity & structure'
+                    },
+                    { 
+                      label: 'Job Fit', 
+                      score: analysis?.jobFitAnalysis?.fitScore ?? 0,
+                      description: 'Role alignment'
+                    },
+                  ].map(({ label, score, description }, idx) => {
+                    const getBarColor = (s: number) => {
+                      if (s >= 70) return 'bg-emerald-500';
+                      if (s >= 50) return 'bg-amber-500';
+                      if (s >= 30) return 'bg-orange-500';
+                      return 'bg-red-500';
+                    };
+                    
+                    return (
+                      <motion.div
+                        key={label}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.15 + idx * 0.05 }}
+                        className="p-3 rounded-xl bg-white dark:bg-[#242325] border border-gray-100 dark:border-[#3d3c3e]/40"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-medium text-gray-700 dark:text-white/70">{label}</span>
+                          <span className={`text-sm font-bold ${
+                            score >= 70 ? 'text-emerald-600 dark:text-emerald-400' :
+                            score >= 50 ? 'text-amber-600 dark:text-amber-400' :
+                            score >= 30 ? 'text-orange-600 dark:text-orange-400' :
+                            'text-red-600 dark:text-red-400'
+                          }`}>{score}</span>
+                        </div>
+                        <div className="h-1.5 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
+                          <motion.div 
+                            className={`h-full ${getBarColor(score)} rounded-full`}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${score}%` }}
+                            transition={{ duration: 0.8, delay: 0.3 + idx * 0.1, ease: "easeOut" }}
+                          />
+                        </div>
+                        <p className="text-[9px] text-gray-400 dark:text-white/30 mt-1.5">{description}</p>
+                      </motion.div>
+                    );
+                  })}
                 </motion.div>
 
-                {/* Selected Highlight */}
-                <AnimatePresence>
-                  {selectedHighlight && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className={`p-3.5 rounded-lg border-l-2 ${
-                        selectedHighlight.type === 'strength'
-                          ? 'bg-emerald-500/10 border-emerald-500'
-                          : selectedHighlight.type === 'improvement'
-                          ? 'bg-amber-500/10 border-amber-500'
-                          : 'bg-red-500/10 border-red-500'
-                      }`}>
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-1.5">
-                            <Quote className={`h-3.5 w-3.5 ${
-                              selectedHighlight.type === 'strength' ? 'text-emerald-500 dark:text-emerald-400' :
-                              selectedHighlight.type === 'improvement' ? 'text-amber-500 dark:text-amber-400' : 'text-red-500 dark:text-red-400'
-                            }`} />
-                            <span className={`text-xs font-medium ${
-                              selectedHighlight.type === 'strength' ? 'text-emerald-600 dark:text-emerald-400' :
-                              selectedHighlight.type === 'improvement' ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'
-                            }`}>
-                              {selectedHighlight.type === 'strength' ? 'Strength' : 
-                               selectedHighlight.type === 'improvement' ? 'To Improve' : 'Issue'}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => setSelectedHighlight(null)}
-                            className="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 dark:text-white/40"
-                          >
-                            <XCircle className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                        <p className="text-xs italic text-gray-500 dark:text-white/60 mb-2">
-                          "{selectedHighlight.excerpt}"
-                        </p>
-                        <p className="text-xs text-gray-700 dark:text-white/80">
-                          {selectedHighlight.feedback}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Key Moments */}
-                {analysis?.transcriptHighlights && analysis.transcriptHighlights.length > 0 && (
+                {/* STAR Method - Only show if at least one element is used */}
+                {analysis?.contentAnalysis?.starMethodUsage && (
+                  analysis.contentAnalysis.starMethodUsage.situation ||
+                  analysis.contentAnalysis.starMethodUsage.task ||
+                  analysis.contentAnalysis.starMethodUsage.action ||
+                  analysis.contentAnalysis.starMethodUsage.result
+                ) && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.25 }}
+                    className="p-3.5 rounded-xl bg-white dark:bg-[#242325] border border-gray-100 dark:border-[#3d3c3e]/40"
                   >
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Lightbulb className="h-3.5 w-3.5 text-[#b7e219]" />
-                      <span className="text-xs font-medium text-gray-900 dark:text-white">Key Moments</span>
-                      <span className="text-[10px] text-gray-500 dark:text-white/40">({analysis.transcriptHighlights.length})</span>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[11px] font-semibold text-gray-900 dark:text-white">STAR Method Usage</span>
+                        <p className="text-[9px] text-gray-400 dark:text-white/40 mt-0.5">Situation · Task · Action · Result</p>
+                      </div>
+                      <div className="flex gap-1.5">
+                        {[
+                          { key: 'S', label: 'Situation', present: analysis.contentAnalysis.starMethodUsage.situation },
+                          { key: 'T', label: 'Task', present: analysis.contentAnalysis.starMethodUsage.task },
+                          { key: 'A', label: 'Action', present: analysis.contentAnalysis.starMethodUsage.action },
+                          { key: 'R', label: 'Result', present: analysis.contentAnalysis.starMethodUsage.result },
+                        ].map(({ key, present }) => (
+                          <div
+                            key={key}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
+                              present
+                                ? 'bg-[#b7e219] text-gray-900 shadow-sm'
+                                : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-400 dark:text-white/30'
+                            }`}
+                          >
+                            {key}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    
-                    <div className="space-y-1.5">
+                  </motion.div>
+                )}
+
+                {/* Insights Grid - Strengths & Issues Side by Side */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="grid grid-cols-2 gap-3"
+                >
+                  {/* Strengths */}
+                  {analysis?.strengths && analysis.strengths.length > 0 && (
+                    <div className="rounded-xl bg-white dark:bg-[#242325] border border-gray-100 dark:border-[#3d3c3e]/40 overflow-hidden">
+                      <div className="px-3.5 py-2.5 border-b border-gray-100 dark:border-[#3d3c3e]/40 bg-emerald-500/5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-md bg-emerald-500/15 flex items-center justify-center">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                          </div>
+                          <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">What worked</span>
+                        </div>
+                      </div>
+                      <div className="p-3">
+                        <ul className="space-y-2">
+                          {analysis.strengths.slice(0, 3).map((s, i) => (
+                            <li key={i} className="flex items-start gap-2 text-[11px] text-gray-600 dark:text-white/70">
+                              <span className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
+                              <span>{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* To Improve */}
+                  {analysis?.criticalIssues && analysis.criticalIssues.length > 0 && (
+                    <div className="rounded-xl bg-white dark:bg-[#242325] border border-gray-100 dark:border-[#3d3c3e]/40 overflow-hidden">
+                      <div className="px-3.5 py-2.5 border-b border-gray-100 dark:border-[#3d3c3e]/40 bg-red-500/5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-md bg-red-500/15 flex items-center justify-center">
+                            <AlertCircle className="h-3 w-3 text-red-600 dark:text-red-400" />
+                          </div>
+                          <span className="text-[11px] font-semibold text-red-700 dark:text-red-400">To improve</span>
+                        </div>
+                      </div>
+                      <div className="p-3">
+                        <ul className="space-y-2">
+                          {analysis.criticalIssues.slice(0, 3).map((s, i) => (
+                            <li key={i} className="flex items-start gap-2 text-[11px] text-gray-600 dark:text-white/70">
+                              <span className="w-1 h-1 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
+                              <span>{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+
+                {/* Key Moments - Compact List */}
+                {analysis?.transcriptHighlights && analysis.transcriptHighlights.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.35 }}
+                    className="rounded-xl bg-white dark:bg-[#242325] border border-gray-100 dark:border-[#3d3c3e]/40 overflow-hidden"
+                  >
+                    <div className="px-3.5 py-2.5 border-b border-gray-100 dark:border-[#3d3c3e]/40">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-gray-900 dark:text-white">Key Moments</span>
+                        <span className="text-[10px] text-gray-400 dark:text-white/40">
+                          {analysis.transcriptHighlights.length} highlight{analysis.transcriptHighlights.length > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="divide-y divide-gray-50 dark:divide-[#3d3c3e]/30">
                       {analysis.transcriptHighlights.slice(0, 4).map((highlight, idx) => (
                         <button
                           key={idx}
@@ -930,17 +1126,17 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
                             const highlightIndex = entryHighlights.indexOf(highlight);
                             scrollToTranscriptEntry(highlight.entryId, highlightIndex >= 0 ? highlightIndex : 0);
                           }}
-                          className="w-full text-left p-2.5 rounded-lg bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e]/60 hover:border-gray-300 dark:hover:border-[#3d3c3e] transition-colors group"
+                          className="w-full text-left px-3.5 py-2.5 hover:bg-gray-50 dark:hover:bg-[#2b2a2c] transition-colors group"
                         >
-                          <div className="flex items-center gap-2">
-                            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                               highlight.type === 'strength' ? 'bg-emerald-500' :
                               highlight.type === 'improvement' ? 'bg-amber-500' : 'bg-red-500'
                             }`} />
-                            <p className="text-[11px] text-gray-600 dark:text-white/60 line-clamp-1 flex-1">
-                              "{highlight.excerpt.length > 45 ? highlight.excerpt.substring(0, 45) + '...' : highlight.excerpt}"
+                            <p className="text-[11px] text-gray-600 dark:text-white/70 line-clamp-1 flex-1">
+                              {highlight.excerpt.length > 50 ? highlight.excerpt.substring(0, 50) + '...' : highlight.excerpt}
                             </p>
-                            <ChevronRight className="h-3 w-3 text-gray-300 dark:text-white/20 group-hover:text-gray-400 dark:group-hover:text-white/40" />
+                            <ChevronRight className="h-3.5 w-3.5 text-gray-300 dark:text-white/20 group-hover:text-gray-400 dark:group-hover:text-white/40 flex-shrink-0" />
                           </div>
                         </button>
                       ))}
@@ -948,95 +1144,84 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
                   </motion.div>
                 )}
 
-                {/* STAR Method */}
-                {analysis?.contentAnalysis?.starMethodUsage && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="p-3 rounded-lg bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e]/60"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Target className="h-3.5 w-3.5 text-gray-400 dark:text-white/40" />
-                        <span className="text-xs font-medium text-gray-900 dark:text-white">STAR Method</span>
-                      </div>
-                      <STARIndicator star={analysis.contentAnalysis.starMethodUsage} />
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Strengths & Issues */}
-                <div className="grid grid-cols-2 gap-3">
-                  {analysis?.strengths && analysis.strengths.length > 0 && (
+                {/* Selected Highlight Detail */}
+                <AnimatePresence>
+                  {selectedHighlight && (
                     <motion.div
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.35 }}
-                      className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20"
+                      exit={{ opacity: 0, y: -10 }}
+                      className="rounded-xl overflow-hidden border border-gray-100 dark:border-[#3d3c3e]/40"
                     >
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />
-                        <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Strengths</span>
+                      <div className={`px-3.5 py-2.5 flex items-center justify-between ${
+                        selectedHighlight.type === 'strength' ? 'bg-emerald-500/10' :
+                        selectedHighlight.type === 'improvement' ? 'bg-amber-500/10' : 'bg-red-500/10'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          <Quote className={`h-3.5 w-3.5 ${
+                            selectedHighlight.type === 'strength' ? 'text-emerald-600 dark:text-emerald-400' :
+                            selectedHighlight.type === 'improvement' ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'
+                          }`} />
+                          <span className={`text-[11px] font-semibold ${
+                            selectedHighlight.type === 'strength' ? 'text-emerald-700 dark:text-emerald-400' :
+                            selectedHighlight.type === 'improvement' ? 'text-amber-700 dark:text-amber-400' : 'text-red-700 dark:text-red-400'
+                          }`}>
+                            {selectedHighlight.type === 'strength' ? 'Strength' : 
+                             selectedHighlight.type === 'improvement' ? 'To Improve' : 'Issue'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setSelectedHighlight(null)}
+                          className="p-1 rounded-lg hover:bg-white/50 dark:hover:bg-white/10 text-gray-400 dark:text-white/40"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </button>
                       </div>
-                      <ul className="space-y-1.5">
-                        {analysis.strengths.slice(0, 3).map((s, i) => (
-                          <li key={i} className="flex items-start gap-1.5 text-[11px] text-gray-600 dark:text-white/60">
-                            <span className="text-emerald-500 dark:text-emerald-400 mt-0.5">•</span>
-                            <span className="line-clamp-2">{s}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="p-3.5 bg-white dark:bg-[#242325]">
+                        <p className="text-[11px] italic text-gray-500 dark:text-white/50 mb-2 leading-relaxed">
+                          "{selectedHighlight.excerpt}"
+                        </p>
+                        <p className="text-[12px] text-gray-700 dark:text-white/80 leading-relaxed">
+                          {selectedHighlight.feedback}
+                        </p>
+                      </div>
                     </motion.div>
                   )}
+                </AnimatePresence>
 
-                  {analysis?.criticalIssues && analysis.criticalIssues.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 }}
-                      className="p-3 rounded-lg bg-red-500/10 border border-red-500/20"
-                    >
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <AlertCircle className="h-3.5 w-3.5 text-red-500 dark:text-red-400" />
-                        <span className="text-xs font-medium text-red-600 dark:text-red-400">To Fix</span>
-                      </div>
-                      <ul className="space-y-1.5">
-                        {analysis.criticalIssues.slice(0, 3).map((s, i) => (
-                          <li key={i} className="flex items-start gap-1.5 text-[11px] text-gray-600 dark:text-white/60">
-                            <span className="text-red-500 dark:text-red-400 mt-0.5">•</span>
-                            <span className="line-clamp-2">{s}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </motion.div>
-                  )}
-                </div>
-
-                {/* Action Plan */}
+                {/* Action Plan - Premium Card */}
                 {analysis?.actionPlan && analysis.actionPlan.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.45 }}
-                    className="p-3.5 rounded-lg bg-[#b7e219]/10 border border-[#b7e219]/20"
+                    transition={{ delay: 0.4 }}
+                    className="rounded-xl overflow-hidden"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(183, 226, 25, 0.08) 0%, rgba(132, 204, 22, 0.12) 100%)'
+                    }}
                   >
-                    <div className="flex items-center gap-1.5 mb-2.5">
-                      <Zap className="h-3.5 w-3.5 text-[#b7e219]" />
-                      <span className="text-xs font-medium text-gray-900 dark:text-white">Action Plan</span>
-                    </div>
-                    <div className="space-y-2">
-                      {analysis.actionPlan.map((action, i) => (
-                        <div key={i} className="flex items-start gap-2">
-                          <span className="flex-shrink-0 w-5 h-5 rounded bg-[#b7e219] text-gray-900 text-[10px] font-bold flex items-center justify-center">
-                            {i + 1}
-                          </span>
-                          <p className="text-[11px] text-gray-600 dark:text-white/70 pt-0.5">{action}</p>
+                    <div className="p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-6 h-6 rounded-lg bg-[#b7e219] flex items-center justify-center">
+                          <Zap className="h-3.5 w-3.5 text-gray-900" />
                         </div>
-                      ))}
+                        <span className="text-[12px] font-semibold text-gray-900 dark:text-white">Next Steps</span>
+                      </div>
+                      <div className="space-y-2.5">
+                        {analysis.actionPlan.map((action, i) => (
+                          <div key={i} className="flex items-start gap-3 p-2.5 rounded-lg bg-white/60 dark:bg-[#242325]/60 backdrop-blur-sm">
+                            <span className="flex-shrink-0 w-5 h-5 rounded-md bg-[#b7e219] text-gray-900 text-[10px] font-bold flex items-center justify-center shadow-sm">
+                              {i + 1}
+                            </span>
+                            <p className="text-[11px] text-gray-700 dark:text-white/80 leading-relaxed pt-0.5">{action}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </motion.div>
                 )}
+
+                <div className="h-2" />
               </>
             ) : (
               /* Response-by-Response Tab */
@@ -1060,24 +1245,6 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="flex-shrink-0 px-4 py-3 border-t border-gray-200 dark:border-[#3d3c3e]/60 bg-white dark:bg-[#242325]">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={onBack}
-            className="px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white transition-colors"
-          >
-            ← Back to Selection
-          </button>
-          <button
-            onClick={onBack}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 text-xs font-semibold transition-colors"
-          >
-            <TrendingUp className="h-3.5 w-3.5" />
-            Practice Again
-          </button>
-        </div>
-      </div>
     </div>
   );
 };

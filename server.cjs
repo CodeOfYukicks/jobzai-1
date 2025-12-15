@@ -3448,26 +3448,32 @@ Always respond with valid JSON only - no markdown, no backticks.`
       throw new Error('Failed to parse analysis response');
     }
     
+    // Helper function to safely parse scores - 0 is valid, only default for undefined/NaN
+    const parseScore = (value, defaultValue = 0) => {
+      const parsed = parseInt(value);
+      return isNaN(parsed) ? defaultValue : Math.min(100, Math.max(0, parsed));
+    };
+    
     // Validate and set defaults for required fields
     analysis.verdict = analysis.verdict || { passed: false, confidence: 'medium', hireDecision: 'no' };
-    analysis.overallScore = Math.min(100, Math.max(0, parseInt(analysis.overallScore) || 50));
+    analysis.overallScore = parseScore(analysis.overallScore, 0);
     analysis.executiveSummary = analysis.executiveSummary || 'Interview completed. Analysis pending.';
     
-    // Content analysis defaults
+    // Content analysis defaults - 0 is valid for minimal participation
     analysis.contentAnalysis = analysis.contentAnalysis || {};
-    analysis.contentAnalysis.relevanceScore = Math.min(100, Math.max(0, parseInt(analysis.contentAnalysis.relevanceScore) || 50));
-    analysis.contentAnalysis.specificityScore = Math.min(100, Math.max(0, parseInt(analysis.contentAnalysis.specificityScore) || 50));
+    analysis.contentAnalysis.relevanceScore = parseScore(analysis.contentAnalysis.relevanceScore, 0);
+    analysis.contentAnalysis.specificityScore = parseScore(analysis.contentAnalysis.specificityScore, 0);
     analysis.contentAnalysis.starMethodUsage = analysis.contentAnalysis.starMethodUsage || { situation: false, task: false, action: false, result: false };
     
-    // Expression analysis defaults
+    // Expression analysis defaults - 0 is valid for minimal participation
     analysis.expressionAnalysis = analysis.expressionAnalysis || {};
-    analysis.expressionAnalysis.organizationScore = Math.min(100, Math.max(0, parseInt(analysis.expressionAnalysis.organizationScore) || 50));
-    analysis.expressionAnalysis.clarityScore = Math.min(100, Math.max(0, parseInt(analysis.expressionAnalysis.clarityScore) || 50));
-    analysis.expressionAnalysis.confidenceScore = Math.min(100, Math.max(0, parseInt(analysis.expressionAnalysis.confidenceScore) || 50));
+    analysis.expressionAnalysis.organizationScore = parseScore(analysis.expressionAnalysis.organizationScore, 0);
+    analysis.expressionAnalysis.clarityScore = parseScore(analysis.expressionAnalysis.clarityScore, 0);
+    analysis.expressionAnalysis.confidenceScore = parseScore(analysis.expressionAnalysis.confidenceScore, 0);
     
-    // Job fit defaults
+    // Job fit defaults - 0 is valid for not demonstrating fit
     analysis.jobFitAnalysis = analysis.jobFitAnalysis || {};
-    analysis.jobFitAnalysis.fitScore = Math.min(100, Math.max(0, parseInt(analysis.jobFitAnalysis.fitScore) || 50));
+    analysis.jobFitAnalysis.fitScore = parseScore(analysis.jobFitAnalysis.fitScore, 0);
     analysis.jobFitAnalysis.matchedSkills = analysis.jobFitAnalysis.matchedSkills || [];
     analysis.jobFitAnalysis.missingSkills = analysis.jobFitAnalysis.missingSkills || [];
     
