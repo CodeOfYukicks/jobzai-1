@@ -1,6 +1,8 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowDownToLine, X, Loader2 } from 'lucide-react';
+import { ArrowDownToLine, X, Check } from 'lucide-react';
+import Avatar from '../assistant/avatar/Avatar';
+import { AvatarConfig } from '../assistant/avatar/avatarConfig';
 
 interface AIEditFloatingBarProps {
   isVisible: boolean;
@@ -11,6 +13,8 @@ interface AIEditFloatingBarProps {
   // Optional layout offsets for centering relative to content area
   sidebarWidth?: number;
   assistantWidth?: number;
+  // Avatar config for premium branding
+  avatarConfig?: AvatarConfig;
 }
 
 export default function AIEditFloatingBar({
@@ -21,6 +25,7 @@ export default function AIEditFloatingBar({
   streamingText = '',
   sidebarWidth = 0,
   assistantWidth = 0,
+  avatarConfig,
 }: AIEditFloatingBarProps) {
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -83,22 +88,47 @@ export default function AIEditFloatingBar({
               shadow-[0_4px_24px_-4px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.02)]
               dark:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.04)]"
             >
-              {/* AI Status Indicator */}
-              <div className="flex items-center gap-2.5 pl-2.5 pr-3">
-                <div className={`relative flex items-center justify-center w-7 h-7 rounded-lg transition-colors duration-300
-                  ${isStreaming 
-                    ? 'bg-purple-100 dark:bg-purple-500/20' 
-                    : 'bg-emerald-100 dark:bg-emerald-500/20'
-                  }`}
-                >
+              {/* AI Status Indicator with Avatar */}
+              <div className="flex items-center gap-2.5 pl-1.5 pr-3">
+                {/* Avatar with animated ring */}
+                <div className="relative">
                   {isStreaming ? (
-                    <Loader2 className="w-4 h-4 text-purple-600 dark:text-purple-400 animate-spin" />
-                  ) : (
                     <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="w-2.5 h-2.5 rounded-full bg-emerald-500 dark:bg-emerald-400"
-                    />
+                      animate={{ 
+                        boxShadow: [
+                          '0 0 0 0px rgba(139, 92, 246, 0.4)',
+                          '0 0 0 4px rgba(139, 92, 246, 0.15)',
+                          '0 0 0 0px rgba(139, 92, 246, 0.4)'
+                        ]
+                      }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                      className="rounded-lg"
+                    >
+                      <Avatar 
+                        config={avatarConfig}
+                        size={28}
+                        className="rounded-lg ring-1 ring-purple-200/60 dark:ring-purple-500/30"
+                      />
+                    </motion.div>
+                  ) : (
+                    <div className="relative">
+                      <Avatar 
+                        config={avatarConfig}
+                        size={28}
+                        className="rounded-lg ring-1 ring-emerald-200/60 dark:ring-emerald-500/30"
+                      />
+                      {/* Success checkmark overlay */}
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full 
+                          bg-emerald-500 dark:bg-emerald-400 
+                          flex items-center justify-center
+                          ring-2 ring-white dark:ring-[#252525]"
+                      >
+                        <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                      </motion.div>
+                    </div>
                   )}
                 </div>
                 

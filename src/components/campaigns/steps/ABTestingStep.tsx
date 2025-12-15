@@ -1,10 +1,12 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Eye, Sparkles, MessageSquare, FileText, Target, Wand2, Loader2, ArrowRight, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Eye, Sparkles, MessageSquare, FileText, Target, ArrowRight, ArrowLeft, ChevronRight } from 'lucide-react';
 import { CampaignData } from '../NewCampaignModal';
 import { notify } from '@/lib/notify';
 import { getAuth } from 'firebase/auth';
 import MergeFieldPills from '../MergeFieldPills';
+import { useAvatarConfig } from '@/hooks/useAvatarConfig';
+import Avatar from '@/components/assistant/avatar/Avatar';
 
 interface ABTestingStepProps {
   data: CampaignData;
@@ -64,6 +66,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
   );
   
   const textareaRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
+  const avatarConfig = useAvatarConfig();
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
@@ -439,34 +442,101 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
                       </div>
                     </div>
 
-                      {/* AI Generate Button - Glassmorphism */}
+                      {/* AI Generate Button - Premium Avatar */}
                       <button
                         onClick={() => generateVariant(activeSubStep, index)}
                         disabled={generatingVariantIndex === index}
-                        className="group inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-medium
+                        className="group inline-flex items-center gap-2.5 px-4 py-2 rounded-xl text-[12px] font-medium
                           bg-white/60 dark:bg-white/[0.06] backdrop-blur-md
                           text-gray-600 dark:text-gray-300
                           border border-white/50 dark:border-white/[0.08]
                           shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)]
                           hover:bg-white/80 dark:hover:bg-white/[0.1]
-                          hover:border-purple-300/50 dark:hover:border-purple-400/30
-                          hover:text-purple-600 dark:hover:text-purple-300
-                          hover:shadow-[0_4px_12px_-2px_rgba(168,85,247,0.15)] dark:hover:shadow-[0_4px_12px_-2px_rgba(168,85,247,0.2)]
+                          hover:border-[#b7e219]/40 dark:hover:border-[#b7e219]/30
+                          hover:text-gray-900 dark:hover:text-white
+                          hover:shadow-[0_4px_16px_-2px_rgba(183,226,25,0.2)] dark:hover:shadow-[0_4px_16px_-2px_rgba(183,226,25,0.15)]
                           active:scale-[0.98]
                           transition-all duration-300 ease-out
-                          disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                          disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
                       >
-                        {generatingVariantIndex === index ? (
-                          <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-500" />
-                            <span className="text-purple-600 dark:text-purple-300">Generating...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Wand2 className="w-3.5 h-3.5 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors duration-300" />
-                            <span>Generate with AI</span>
-                          </>
-                        )}
+                        {/* Avatar Container with Premium Ring */}
+                        <div className="relative flex-shrink-0">
+                          {/* Animated ring when generating */}
+                          {generatingVariantIndex === index && (
+                            <motion.div
+                              className="absolute -inset-1 rounded-full"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                            >
+                              <motion.div
+                                className="absolute inset-0 rounded-full border-2 border-transparent"
+                                style={{
+                                  background: 'linear-gradient(90deg, transparent 50%, #b7e219 50%) border-box',
+                                  WebkitMask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)',
+                                  WebkitMaskComposite: 'xor',
+                                  maskComposite: 'exclude',
+                                }}
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                              />
+                            </motion.div>
+                          )}
+                          
+                          {/* Subtle glow ring on hover (when not generating) */}
+                          <div className={`
+                            absolute -inset-0.5 rounded-full 
+                            bg-gradient-to-r from-[#b7e219]/0 via-[#b7e219]/30 to-[#b7e219]/0
+                            opacity-0 group-hover:opacity-100 
+                            transition-opacity duration-300
+                            ${generatingVariantIndex === index ? 'hidden' : ''}
+                          `} />
+                          
+                          {/* Avatar with pulse animation when generating */}
+                          <motion.div
+                            animate={generatingVariantIndex === index ? {
+                              scale: [1, 1.08, 1],
+                            } : {}}
+                            transition={{
+                              duration: 1.5,
+                              repeat: Infinity,
+                              ease: 'easeInOut'
+                            }}
+                            className="relative"
+                          >
+                            <Avatar 
+                              config={avatarConfig} 
+                              size={18} 
+                              className={`
+                                rounded-full ring-1 ring-offset-1 ring-offset-white dark:ring-offset-[#1a1a1a]
+                                ${generatingVariantIndex === index 
+                                  ? 'ring-[#b7e219]' 
+                                  : 'ring-gray-200/60 dark:ring-white/10 group-hover:ring-[#b7e219]/50'
+                                }
+                                transition-all duration-300
+                              `}
+                            />
+                          </motion.div>
+                        </div>
+                        
+                        {/* Text with generating state */}
+                        <span className={`
+                          transition-colors duration-300
+                          ${generatingVariantIndex === index 
+                            ? 'text-[#b7e219] dark:text-[#b7e219]' 
+                            : 'group-hover:text-gray-900 dark:group-hover:text-white'
+                          }
+                        `}>
+                          {generatingVariantIndex === index ? 'Generating...' : 'Generate with AI'}
+                        </span>
+                        
+                        {/* Sparkle accent on hover */}
+                        <Sparkles className={`
+                          w-3 h-3 transition-all duration-300
+                          ${generatingVariantIndex === index 
+                            ? 'text-[#b7e219] animate-pulse' 
+                            : 'text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 group-hover:text-[#b7e219]'
+                          }
+                        `} />
                       </button>
                   </div>
 

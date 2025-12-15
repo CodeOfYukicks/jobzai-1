@@ -21,7 +21,6 @@ import {
   Clock,
   ChevronRight,
   Trash2,
-  Headphones,
   Volume2,
   BarChart3,
 } from 'lucide-react';
@@ -281,6 +280,7 @@ export default function MockInterviewPage() {
   
   // Confirmation modal state
   const [showEndConfirmation, setShowEndConfirmation] = useState(false);
+  const [showBackConfirmation, setShowBackConfirmation] = useState(false);
   
   // Refs
   const transcriptEndRef = useRef<HTMLDivElement>(null);
@@ -1341,201 +1341,150 @@ export default function MockInterviewPage() {
   // ============================================
 
   const renderPreparationPhase = () => {
+    // Determine mic ready state
+    const isMicReady = micStatus === 'active';
+    const isMicSpeaking = micStatus === 'active' && micLevel > 0.1;
+
     return (
       <motion.div
         key="preparation"
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.3 }}
-        className="h-full flex items-center justify-center p-6 overflow-y-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.4 }}
+        className="h-full flex flex-col items-center justify-center p-8"
       >
-        <div className="w-full max-w-md mx-auto">
-          {/* Header */}
+        <div className="w-full max-w-sm mx-auto flex flex-col items-center">
+          
+          {/* Hero: Company Logo with Glow */}
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-center mb-10"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1, duration: 0.4 }}
+            className="relative mb-8"
           >
-            <div className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-violet-600/10 to-cyan-600/10 dark:from-violet-600/20 dark:to-cyan-600/20 border border-gray-200 dark:border-white/10 mb-4">
-              <Headphones className="h-6 w-6 text-violet-500 dark:text-violet-400" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              Before We Begin
-            </h1>
+            {/* Glow Effect */}
+            <div className="absolute inset-0 blur-2xl opacity-30 bg-gradient-to-br from-violet-500 to-cyan-500 rounded-full scale-150" />
+            
             {selectedApplication && (
-              <div className="flex items-center justify-center gap-3 mt-1">
+              <div className="relative">
                 <CompanyLogo 
                   companyName={selectedApplication.companyName} 
-                  size="lg" 
-                  className="!rounded-lg"
+                  size="xl" 
+                  className="!rounded-2xl !w-20 !h-20 shadow-2xl ring-1 ring-white/10"
                 />
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {selectedApplication.position} at {selectedApplication.companyName}
-                </p>
               </div>
             )}
           </motion.div>
 
-          {/* Instructions Grid 2x2 */}
+          {/* Position & Company */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="grid grid-cols-2 gap-3 mb-6"
+            className="text-center mb-12"
           >
-            {/* Instruction 1 - Quiet Space */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.25 }}
-              className="p-4 rounded-xl bg-white/60 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/50 dark:border-white/10 hover:border-violet-300 dark:hover:border-violet-500/30 transition-colors group"
-            >
-              <div className="w-9 h-9 rounded-lg bg-violet-500/10 dark:bg-violet-500/20 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                <Volume2 className="h-4 w-4 text-violet-500 dark:text-violet-400" />
-              </div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-                Quiet Space
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                Minimal background noise
-              </p>
-            </motion.div>
-
-            {/* Instruction 2 - Duration */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-              className="p-4 rounded-xl bg-white/60 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/50 dark:border-white/10 hover:border-cyan-300 dark:hover:border-cyan-500/30 transition-colors group"
-            >
-              <div className="w-9 h-9 rounded-lg bg-cyan-500/10 dark:bg-cyan-500/20 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                <Clock className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
-              </div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-                10 Minutes
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                Answer thoughtfully
-              </p>
-            </motion.div>
-
-            {/* Instruction 3 - Speak Naturally */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.35 }}
-              className="p-4 rounded-xl bg-white/60 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/50 dark:border-white/10 hover:border-emerald-300 dark:hover:border-emerald-500/30 transition-colors group"
-            >
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                <Mic className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
-              </div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-                Speak Naturally
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                Like a real interview
-              </p>
-            </motion.div>
-
-            {/* Instruction 4 - Feedback */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 }}
-              className="p-4 rounded-xl bg-white/60 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/50 dark:border-white/10 hover:border-amber-300 dark:hover:border-amber-500/30 transition-colors group"
-            >
-              <div className="w-9 h-9 rounded-lg bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                <BarChart3 className="h-4 w-4 text-amber-500 dark:text-amber-400" />
-              </div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-                AI Feedback
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                Detailed analysis
-              </p>
-            </motion.div>
+            {selectedApplication && (
+              <>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1 leading-tight">
+                  {selectedApplication.position}
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  at {selectedApplication.companyName}
+                </p>
+              </>
+            )}
           </motion.div>
 
-          {/* Microphone Check Section */}
+          {/* 4-Column Compact Grid */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45 }}
-            className="p-4 rounded-xl bg-white/60 dark:bg-white/[0.03] backdrop-blur-sm border border-gray-200/50 dark:border-white/10 mb-8"
+            transition={{ delay: 0.3 }}
+            className="grid grid-cols-4 gap-2 mb-10 w-full"
           >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-cyan-500/10 dark:bg-cyan-500/20">
-                <Mic className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
+            {/* Quiet Space */}
+            <div className="group relative flex flex-col items-center p-3 rounded-xl bg-white/60 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/[0.06] hover:border-violet-300 dark:hover:border-violet-500/30 hover:bg-violet-50/50 dark:hover:bg-violet-500/[0.05] transition-all cursor-default">
+              <Volume2 className="w-4 h-4 text-violet-500 dark:text-violet-400 mb-1.5 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400">Quiet</span>
+              {/* Tooltip */}
+              <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200 pointer-events-none shadow-lg z-10">
+                Find a quiet space
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-white rotate-45" />
               </div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                Microphone Check
-              </span>
-              <span className={`ml-auto text-xs font-medium px-2 py-0.5 rounded-full ${
-                micStatus === 'active' 
-                  ? micLevel > 0.1 
-                    ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
-                    : 'bg-cyan-100 dark:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400'
-                  : micStatus === 'requesting'
-                    ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400'
-                    : micStatus === 'error'
-                      ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400'
-                      : 'bg-gray-100 dark:bg-gray-500/20 text-gray-500 dark:text-gray-400'
-              }`}>
-                {micStatus === 'active' 
-                  ? micLevel > 0.1 ? 'Speaking...' : 'Ready' 
-                  : micStatus === 'requesting' 
-                    ? 'Requesting...' 
-                    : micStatus === 'error'
-                      ? 'Not Available'
-                      : 'Waiting...'}
-              </span>
             </div>
-            
-            {/* Audio Level Bar */}
-            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full"
-                animate={{ width: `${Math.max(micLevel * 100, micStatus === 'active' ? 3 : 0)}%` }}
-                transition={{ duration: 0.05 }}
-              />
+
+            {/* Duration */}
+            <div className="group relative flex flex-col items-center p-3 rounded-xl bg-white/60 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/[0.06] hover:border-cyan-300 dark:hover:border-cyan-500/30 hover:bg-cyan-50/50 dark:hover:bg-cyan-500/[0.05] transition-all cursor-default">
+              <Clock className="w-4 h-4 text-cyan-500 dark:text-cyan-400 mb-1.5 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400">10 min</span>
+              {/* Tooltip */}
+              <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200 pointer-events-none shadow-lg z-10">
+                Average duration
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-white rotate-45" />
+              </div>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              {micStatus === 'error' 
-                ? 'Please allow microphone access to continue'
-                : micStatus === 'active'
-                  ? 'Speak to test your microphone'
-                  : 'Requesting microphone access...'}
-            </p>
+
+            {/* Speak Naturally */}
+            <div className="group relative flex flex-col items-center p-3 rounded-xl bg-white/60 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/[0.06] hover:border-emerald-300 dark:hover:border-emerald-500/30 hover:bg-emerald-50/50 dark:hover:bg-emerald-500/[0.05] transition-all cursor-default">
+              <div className="relative">
+                <Mic className="w-4 h-4 text-emerald-500 dark:text-emerald-400 mb-1.5 group-hover:scale-110 transition-transform" />
+                {isMicReady && (
+                  <div className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 ${isMicSpeaking ? 'animate-pulse' : ''}`} />
+                )}
+              </div>
+              <span className={`text-[10px] font-medium ${isMicReady ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                {isMicSpeaking ? 'Speaking' : isMicReady ? 'Ready' : 'Natural'}
+              </span>
+              {/* Tooltip */}
+              <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200 pointer-events-none shadow-lg z-10">
+                Speak naturally
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-white rotate-45" />
+              </div>
+            </div>
+
+            {/* AI Feedback */}
+            <div className="group relative flex flex-col items-center p-3 rounded-xl bg-white/60 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/[0.06] hover:border-amber-300 dark:hover:border-amber-500/30 hover:bg-amber-50/50 dark:hover:bg-amber-500/[0.05] transition-all cursor-default">
+              <BarChart3 className="w-4 h-4 text-amber-500 dark:text-amber-400 mb-1.5 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400">AI</span>
+              {/* Tooltip */}
+              <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200 pointer-events-none shadow-lg z-10">
+                Detailed AI feedback
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-white rotate-45" />
+              </div>
+            </div>
           </motion.div>
 
-          {/* Actions */}
+          {/* Premium CTA */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="space-y-3"
+            transition={{ delay: 0.4 }}
+            className="w-full space-y-4"
           >
             <motion.button
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.02, boxShadow: '0 8px 30px rgba(183, 226, 25, 0.3)' }}
               whileTap={{ scale: 0.98 }}
               onClick={handleBeginInterview}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] text-gray-900 shadow-sm hover:shadow-md transition-all"
+              disabled={!isMicReady}
+              className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                isMicReady
+                  ? 'bg-[#b7e219] hover:bg-[#c5eb2d] text-gray-900 shadow-lg shadow-[#b7e219]/20'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+              }`}
             >
               <Play className="h-4 w-4" />
-              I'm Ready, Let's Start
+              Start Interview
             </motion.button>
-            
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+
+            {/* Back Link */}
+            <button
               onClick={() => setPhase('setup')}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-all"
+              className="w-full flex items-center justify-center gap-1.5 py-2 text-sm text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
             >
-              <ArrowLeft className="h-4 w-4" />
-              Go Back
-            </motion.button>
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back
+            </button>
           </motion.div>
         </div>
       </motion.div>
@@ -1564,7 +1513,14 @@ export default function MockInterviewPage() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={handleBackToSetup}
+                onClick={() => {
+                  // Show confirmation if session is active (live, ready, or connecting)
+                  if (connectionStatus === 'live' || connectionStatus === 'ready' || connectionStatus === 'connecting') {
+                    setShowBackConfirmation(true);
+                  } else {
+                    handleBackToSetup();
+                  }
+                }}
                 className="flex-shrink-0 p-2.5 rounded-xl bg-gray-100/80 dark:bg-[#2b2a2c]/80 hover:bg-gray-200/80 dark:hover:bg-[#3d3c3e]/80 border border-gray-200/50 dark:border-[#3d3c3e]/50 transition-all text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                 aria-label="Go back"
               >
@@ -1907,6 +1863,82 @@ export default function MockInterviewPage() {
                   className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 transition-colors"
                 >
                   End & Analyze
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Back Confirmation Modal */}
+      <AnimatePresence>
+        {showBackConfirmation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowBackConfirmation(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-white dark:bg-[#2b2a2c] rounded-xl w-full max-w-sm mx-4 shadow-xl border border-gray-200/50 dark:border-[#3d3c3e]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-[#3d3c3e]">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                  Leave Interview?
+                </h2>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowBackConfirmation(false)}
+                  className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </motion.button>
+              </div>
+
+              {/* Body */}
+              <div className="p-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Your interview session is still active. If you leave now, your progress will be lost and no analysis will be generated.
+                </p>
+
+                {/* Session Info */}
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-[#242325] mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-[#1a1a1b] flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">Current Session</p>
+                    <p className="text-sm font-mono font-semibold text-gray-900 dark:text-white">
+                      {formatTime(elapsedTime)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex gap-2 p-4 pt-0">
+                <button
+                  onClick={() => setShowBackConfirmation(false)}
+                  className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 transition-colors"
+                >
+                  Continue Interview
+                </button>
+                <button
+                  onClick={() => {
+                    setShowBackConfirmation(false);
+                    handleBackToSetup();
+                  }}
+                  className="flex-1 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-800/50 transition-colors"
+                >
+                  Leave
                 </button>
               </div>
             </motion.div>

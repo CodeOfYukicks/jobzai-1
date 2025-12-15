@@ -39,6 +39,7 @@ import { db, storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAssistantPageData } from '../hooks/useAssistantPageData';
 import { useAssistant } from '../contexts/AssistantContext';
+import { useAvatarConfig } from '../hooks/useAvatarConfig';
 
 // Common emojis for quick selection
 const commonEmojis = [
@@ -60,6 +61,9 @@ export default function NotionEditorPage() {
     setEditorSelection,
     editorSelection,
   } = useAssistant();
+  
+  // Avatar config for AI writing indicator
+  const { avatarConfig } = useAvatarConfig();
   
   // Ref for NotionEditor imperative methods
   const editorRef = useRef<NotionEditorRef>(null);
@@ -1289,6 +1293,8 @@ export default function NotionEditorPage() {
                 // Layout offsets for AI floating bar positioning
                 sidebarWidth={isSidebarCollapsed ? 48 : 256}
                 assistantPanelWidth={isAssistantOpen ? 440 : 0}
+                // Avatar config for premium AI writing indicator
+                avatarConfig={avatarConfig}
               />
             </div>
           </div>

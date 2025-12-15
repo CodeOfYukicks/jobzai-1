@@ -30,6 +30,8 @@ import MentionMenu from './MentionMenu';
 import MentionDetailModal from './MentionDetailModal';
 import { MentionSearchResult, searchResultToEmbedData } from '../../lib/mentionSearchService';
 import AIEditFloatingBar from './AIEditFloatingBar';
+import Avatar from '../assistant/avatar/Avatar';
+import { AvatarConfig } from '../assistant/avatar/avatarConfig';
 
 import './notion-editor.css';
 
@@ -53,6 +55,8 @@ export interface NotionEditorProps {
   // Layout offsets for floating bar positioning (to center relative to content area)
   sidebarWidth?: number;
   assistantPanelWidth?: number;
+  // Avatar config for AI writing indicator branding
+  avatarConfig?: AvatarConfig;
 }
 
 // Ref type for imperative methods
@@ -89,6 +93,7 @@ const NotionEditor = forwardRef<NotionEditorRef, NotionEditorProps>(({
   onAIEditReject,
   sidebarWidth = 0,
   assistantPanelWidth = 0,
+  avatarConfig,
 }, ref) => {
   // Slash menu state
   const [showSlashMenu, setShowSlashMenu] = useState(false);
@@ -651,32 +656,41 @@ const NotionEditor = forwardRef<NotionEditorRef, NotionEditorProps>(({
               exit={{ opacity: 0 }}
               className="absolute inset-0 z-10 pointer-events-none ai-shimmer-overlay"
             />
-            {/* Floating "AI is writing" pill */}
+            {/* Floating "AI is writing" pill with premium avatar */}
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
             >
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-sm shadow-lg border border-gray-200/50 dark:border-gray-700/50">
-                <div className="flex gap-1">
-                  <motion.span
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{ duration: 1.4, repeat: Infinity, delay: 0 }}
-                    className="w-1.5 h-1.5 rounded-full bg-purple-500"
-                  />
-                  <motion.span
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{ duration: 1.4, repeat: Infinity, delay: 0.2 }}
-                    className="w-1.5 h-1.5 rounded-full bg-purple-500"
-                  />
-                  <motion.span
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{ duration: 1.4, repeat: Infinity, delay: 0.4 }}
-                    className="w-1.5 h-1.5 rounded-full bg-purple-500"
-                  />
+              <div className="flex items-center gap-2.5 pl-1.5 pr-4 py-1.5 rounded-full 
+                bg-white/95 dark:bg-[#1f1f20]/95 backdrop-blur-md 
+                shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1),0_0_0_1px_rgba(0,0,0,0.02)]
+                dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.04)]
+                border border-gray-100/80 dark:border-white/[0.06]"
+              >
+                {/* Avatar with animated ring */}
+                <div className="relative">
+                  <motion.div
+                    animate={{ 
+                      boxShadow: [
+                        '0 0 0 0px rgba(139, 92, 246, 0.3)',
+                        '0 0 0 4px rgba(139, 92, 246, 0.1)',
+                        '0 0 0 0px rgba(139, 92, 246, 0.3)'
+                      ]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    className="rounded-full"
+                  >
+                    <Avatar 
+                      config={avatarConfig}
+                      size={24}
+                      className="rounded-full ring-1 ring-purple-200/60 dark:ring-purple-500/30"
+                    />
+                  </motion.div>
                 </div>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-[13px] font-medium text-gray-600 dark:text-gray-300 tracking-[-0.01em]">
                   AI is writing
                 </span>
               </div>
@@ -685,35 +699,42 @@ const NotionEditor = forwardRef<NotionEditorRef, NotionEditorProps>(({
         )}
       </AnimatePresence>
 
-      {/* Selection edit indicator - compact pill for selection mode */}
+      {/* Selection edit indicator - compact pill with avatar for selection mode */}
       <AnimatePresence>
         {isSelectionEdit && aiIsStreaming && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             className="absolute top-2 right-2 z-20"
           >
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 dark:bg-purple-500/20 border border-purple-300/50 dark:border-purple-500/30">
-              <div className="flex gap-0.5">
-                <motion.span
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{ duration: 1, repeat: Infinity, delay: 0 }}
-                  className="w-1 h-1 rounded-full bg-purple-500"
-                />
-                <motion.span
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{ duration: 1, repeat: Infinity, delay: 0.15 }}
-                  className="w-1 h-1 rounded-full bg-purple-500"
-                />
-                <motion.span
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{ duration: 1, repeat: Infinity, delay: 0.3 }}
-                  className="w-1 h-1 rounded-full bg-purple-500"
-                />
+            <div className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full 
+              bg-purple-50/90 dark:bg-purple-500/15 backdrop-blur-sm
+              border border-purple-200/60 dark:border-purple-500/25"
+            >
+              {/* Compact avatar with pulse */}
+              <div className="relative">
+                <motion.div
+                  animate={{ 
+                    boxShadow: [
+                      '0 0 0 0px rgba(139, 92, 246, 0.4)',
+                      '0 0 0 3px rgba(139, 92, 246, 0.15)',
+                      '0 0 0 0px rgba(139, 92, 246, 0.4)'
+                    ]
+                  }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                  className="rounded-full"
+                >
+                  <Avatar 
+                    config={avatarConfig}
+                    size={20}
+                    className="rounded-full"
+                  />
+                </motion.div>
               </div>
-              <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
-                Editing selection
+              <span className="text-[11px] font-medium text-purple-600 dark:text-purple-400">
+                Editing
               </span>
             </div>
           </motion.div>
@@ -734,6 +755,7 @@ const NotionEditor = forwardRef<NotionEditorRef, NotionEditorProps>(({
         streamingText={aiStreamingText}
         sidebarWidth={sidebarWidth}
         assistantWidth={assistantPanelWidth}
+        avatarConfig={avatarConfig}
       />
       
       {/* Slash Command Menu - Using Portal for better positioning */}

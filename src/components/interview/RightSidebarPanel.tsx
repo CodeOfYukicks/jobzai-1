@@ -2,13 +2,15 @@ import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle, ArrowRight, Activity, StickyNote, History, Calendar, 
-  ChevronRight, MessageSquare, Send, User, Bot, Loader2, 
-  ChevronDown, ChevronUp, Plus, Mic, Square, Sparkles
+  ChevronRight, MessageSquare, Send, User, Loader2, 
+  ChevronDown, ChevronUp, Plus, Mic, Square
 } from 'lucide-react';
 import NotesDocumentManager from './NotesDocumentManager';
 import { NoteDocument } from './DocumentsLibrary';
 import { notify } from '@/lib/notify';
 import ContextDocumentSelector, { ContextDocument } from './ContextDocumentSelector';
+import { useAvatarConfig } from '@/hooks/useAvatarConfig';
+import Avatar from '@/components/assistant/avatar/Avatar';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -103,6 +105,8 @@ export default function RightSidebarPanel({
   
   const effectiveChatEndRef = chatEndRef || localChatEndRef;
   const effectiveChatContainerRef = chatContainerRef || localChatContainerRef;
+  
+  const avatarConfig = useAvatarConfig();
 
   // Context section collapse state
   const [isContextExpanded, setIsContextExpanded] = useState(true);
@@ -629,9 +633,20 @@ export default function RightSidebarPanel({
 
                 {chatMessages.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center px-4">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800/50 dark:to-gray-900/30 shadow-inner">
-                      <Sparkles className="w-6 h-6 text-gray-500 dark:text-gray-400" />
-                    </div>
+                    {/* Avatar - Same style as AI Assistant modal */}
+                    <motion.div 
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.1 }}
+                      className="mb-5"
+                    >
+                      <Avatar 
+                        config={avatarConfig}
+                        size={56}
+                        className="rounded-2xl ring-1 ring-gray-200/80 dark:ring-white/10 
+                          bg-gray-50 dark:bg-[#2a2a2b]"
+                      />
+                    </motion.div>
                     <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
                       Interview Coach
                     </h3>
@@ -669,9 +684,12 @@ export default function RightSidebarPanel({
                       return (
                         <div key={index} className="flex justify-start">
                           <div className="flex items-start gap-2.5 max-w-[85%]">
-                            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-gray-100 dark:bg-gray-800">
-                              <Bot className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                            </div>
+                            <Avatar 
+                              config={avatarConfig}
+                              size={32}
+                              className="flex-shrink-0 rounded-lg ring-1 ring-gray-200/60 dark:ring-white/10 
+                                bg-gray-50 dark:bg-[#2a2a2b]"
+                            />
                             <div className="px-4 py-3 rounded-2xl rounded-tl-lg bg-gray-50 dark:bg-[#26262B] ring-1 ring-gray-200/60 dark:ring-gray-800/60">
                               <div className="flex items-center gap-2">
                                 <div className="flex gap-1">
@@ -729,25 +747,26 @@ export default function RightSidebarPanel({
                         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
                         <div className={`flex items-start gap-2.5 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                          {msg.role === 'user' && userPhotoURL ? (
-                            <img 
-                              src={userPhotoURL} 
-                              alt="You" 
-                              className="w-8 h-8 rounded-xl object-cover flex-shrink-0 ring-1 ring-gray-200/60 dark:ring-gray-800/60"
-                            />
+                          {msg.role === 'user' ? (
+                            userPhotoURL ? (
+                              <img 
+                                src={userPhotoURL} 
+                                alt="You" 
+                                className="w-8 h-8 rounded-lg object-cover flex-shrink-0 ring-1 ring-gray-200/60 dark:ring-gray-800/60"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 
+                                bg-gradient-to-br from-[#635BFF] to-[#8B7FFF]">
+                                <User className="w-3.5 h-3.5 text-white" />
+                              </div>
+                            )
                           ) : (
-                            <div 
-                              className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${
-                                msg.role === 'user' 
-                                  ? 'bg-gray-200 dark:bg-gray-800' 
-                                  : 'bg-gray-100 dark:bg-gray-800'
-                              }`}
-                            >
-                              {msg.role === 'user' 
-                                ? <User className="w-4 h-4 text-gray-600 dark:text-gray-300" /> 
-                                : <Bot className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                              }
-                            </div>
+                            <Avatar 
+                              config={avatarConfig}
+                              size={32}
+                              className="flex-shrink-0 rounded-lg ring-1 ring-gray-200/60 dark:ring-white/10 
+                                bg-gray-50 dark:bg-[#2a2a2b]"
+                            />
                           )}
                           <div 
                             className={`px-4 py-3 rounded-2xl ${

@@ -3,6 +3,8 @@ import { Play } from 'lucide-react';
 import { InterviewQuestionsHeader } from '../questions/InterviewQuestionsHeader';
 import { QuestionEntry } from '../../../types/interview';
 import QuestionsVirtualizedList from './QuestionsVirtualizedList';
+import { useAvatarConfig } from '@/hooks/useAvatarConfig';
+import Avatar from '@/components/assistant/avatar/Avatar';
 
 const QUESTION_FILTERS = [
   { id: 'all', label: 'All' },
@@ -49,6 +51,8 @@ const QuestionsTab = memo(function QuestionsTab({
   setFocusedQuestion,
   onStartLiveSession,
 }: QuestionsTabProps) {
+  const avatarConfig = useAvatarConfig();
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Loading Overlay - Minimal */}
@@ -85,17 +89,27 @@ const QuestionsTab = memo(function QuestionsTab({
           <button
             onClick={onStartLiveSession}
             className="
-              inline-flex items-center gap-2
-              px-5 py-2.5 rounded-lg
+              group inline-flex items-center gap-2
+              px-4 py-2 rounded-lg
               text-sm font-medium
               bg-slate-900 dark:bg-white
               text-white dark:text-slate-900
               hover:bg-slate-800 dark:hover:bg-slate-100
-              transition-colors duration-200
+              transition-all duration-200
+              hover:shadow-lg hover:shadow-[#b7e219]/20
             "
           >
-            <Play className="w-4 h-4 fill-current" />
-            Practice Live
+            <div className="relative flex-shrink-0">
+              {/* Lime ring glow on hover */}
+              <div className="absolute -inset-0.5 rounded-full bg-[#b7e219]/0 group-hover:bg-[#b7e219]/30 transition-all duration-300" />
+              <Avatar 
+                config={avatarConfig} 
+                size={18} 
+                className="relative rounded-full ring-1 ring-white/30 dark:ring-slate-900/30 group-hover:ring-[#b7e219]/50 transition-all duration-300"
+              />
+            </div>
+            <span>Practice Live</span>
+            <Play className="w-3 h-3 fill-current opacity-60" />
           </button>
         }
       />
