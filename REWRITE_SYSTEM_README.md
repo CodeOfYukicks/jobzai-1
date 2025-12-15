@@ -453,3 +453,4 @@ Toutes les dépendances nécessaires sont déjà installées :
 Ce système a été développé pour améliorer l'expérience utilisateur de Jobz.ai en s'inspirant des meilleures pratiques de Notion.
 
 
+

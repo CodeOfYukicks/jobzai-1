@@ -158,3 +158,4 @@ addColumnBefore: () => ({ commands, state }) => {
 The implementation uses the same patterns as the existing codebase (BubbleMenuBar) and all Tiptap extensions are properly imported and configured.
 
 
+

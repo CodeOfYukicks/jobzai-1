@@ -132,3 +132,4 @@ Si vous rencontrez des erreurs de type "model not found" :
 - Certaines APIs peuvent nécessiter un abonnement premium
 - Les logs montreront exactement quelle erreur se produit
 
+

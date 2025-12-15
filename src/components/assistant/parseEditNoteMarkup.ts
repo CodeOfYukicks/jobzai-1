@@ -105,3 +105,4 @@ export function stripEditNoteMarkup(content: string): string {
   return content.replace(EDIT_NOTE_REGEX, '').trim();
 }
 
+
