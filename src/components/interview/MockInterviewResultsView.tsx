@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2,
@@ -8,7 +8,6 @@ import {
   ChevronDown,
   Target,
   MessageSquare,
-  Briefcase,
   Quote,
   AlertCircle,
   Zap,
@@ -22,6 +21,10 @@ import {
   ThumbsDown,
   Sparkles,
   X,
+  Circle,
+  Star,
+  ArrowUpRight,
+  RefreshCw,
 } from 'lucide-react';
 import type { TranscriptEntry } from '../../types/openai-realtime';
 import type { 
@@ -31,6 +34,7 @@ import type {
 } from '../../types/interview';
 import { Avatar, DEFAULT_AVATAR_CONFIG, loadAvatarConfig, type AvatarConfig } from '../assistant/avatar';
 import { useAuth } from '../../contexts/AuthContext';
+import { CompanyLogo } from '../common/CompanyLogo';
 
 // ============================================
 // PROPS
@@ -60,14 +64,14 @@ const MiniScoreBar: React.FC<{ score: number; label: string }> = ({ score, label
 
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[8px] text-gray-500 dark:text-white/40 w-12">{label}</span>
-      <div className="flex-1 h-1 bg-gray-200 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
+      <span className="text-[8px] text-neutral-500 dark:text-neutral-500 w-10">{label}</span>
+      <div className="flex-1 h-1 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
         <div 
           className={`h-full ${getColor(score)} transition-all`}
           style={{ width: `${score}%` }}
         />
       </div>
-      <span className="text-[8px] font-medium text-gray-600 dark:text-white/50 w-6 text-right">{score}</span>
+      <span className="text-[8px] font-medium text-neutral-600 dark:text-neutral-400 w-5 text-right">{score}</span>
     </div>
   );
 };
@@ -290,13 +294,13 @@ const TranscriptMessage: React.FC<TranscriptMessageProps> = ({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.03, duration: 0.3 }}
+      transition={{ delay: index * 0.02, duration: 0.25 }}
       className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}
     >
       {/* Avatar */}
-      {isUser ? (
+        {isUser ? (
         <div className={`flex-shrink-0 w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center ${
           userProfilePhoto ? '' : 'bg-[#b7e219]/20 border border-[#b7e219]/30'
         }`}>
@@ -308,18 +312,18 @@ const TranscriptMessage: React.FC<TranscriptMessageProps> = ({
             />
           ) : (
             <User className="h-4 w-4 text-[#b7e219]" />
-          )}
-        </div>
+        )}
+      </div>
       ) : (
         <Avatar 
           config={avatarConfig}
           size={32}
-          className="flex-shrink-0 rounded-lg ring-1 ring-gray-200/60 dark:ring-white/10 bg-gray-50 dark:bg-[#2a2a2b]"
+          className="flex-shrink-0 rounded-lg ring-1 ring-neutral-200/60 dark:ring-white/10 bg-neutral-50 dark:bg-[#2a2a2b]"
         />
       )}
       
       {/* Message */}
-      <div className={`flex-1 max-w-[85%] ${isUser ? 'text-right' : ''}`}>
+      <div className={`flex-1 max-w-[88%] ${isUser ? 'text-right' : ''}`}>
         <div 
           className={`inline-block text-left rounded-xl overflow-hidden ${
             isUser && responseAnalysis
@@ -328,63 +332,63 @@ const TranscriptMessage: React.FC<TranscriptMessageProps> = ({
           }`}
         >
           <div 
-            className={`px-3.5 py-2.5 ${
+            className={`px-3.5 py-3 ${
               isUser
-                ? 'bg-gray-100 dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] border-l-0'
-                : 'bg-white dark:bg-[#242325] border border-gray-100 dark:border-[#3d3c3e]/50'
+                ? 'bg-white dark:bg-[#1e1e20] border border-neutral-200 dark:border-neutral-700/50 border-l-0'
+                : 'bg-white dark:bg-[#1e1e20] border border-neutral-100 dark:border-neutral-700/30'
             }`}
           >
             <div className="flex items-center gap-2 mb-1">
-              <span className={`text-[9px] font-semibold uppercase tracking-wider ${
-                isUser ? 'text-[#b7e219]' : 'text-gray-500 dark:text-white/50'
+              <span className={`text-[10px] font-semibold uppercase tracking-wider ${
+                isUser ? 'text-[#b7e219]' : 'text-neutral-400 dark:text-neutral-500'
               }`}>
-                {isUser ? 'You' : 'Interviewer'}
+                {isUser ? 'You' : 'AI'}
               </span>
               
               {/* Score badge for user messages */}
               {isUser && responseAnalysis && (
-                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${getScoreColor(responseAnalysis.overallResponseScore)}`}>
-                  {responseAnalysis.overallResponseScore}/100
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${getScoreColor(responseAnalysis.overallResponseScore)}`}>
+                  {responseAnalysis.overallResponseScore}
                 </span>
               )}
               
               {entryHighlights.length > 0 && (
-                <span className={`px-1.5 py-0.5 rounded text-[8px] font-semibold ${
+                <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
                   entryHighlights.some(h => h.type === 'weakness')
                     ? 'bg-red-500/20 text-red-500 dark:text-red-400'
                     : entryHighlights.some(h => h.type === 'improvement')
                     ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
                     : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
                 }`}>
-                  {entryHighlights.length} insight{entryHighlights.length > 1 ? 's' : ''}
+                  {entryHighlights.length}
                 </span>
               )}
             </div>
             
-            <p className="text-sm text-gray-700 dark:text-white/80 leading-relaxed">
+            <p className="text-[13px] text-neutral-700 dark:text-neutral-300 leading-relaxed">
               {renderHighlightedText()}
             </p>
           </div>
           
           {/* Response Analysis Panel for user messages */}
           {isUser && responseAnalysis && (
-            <div className="bg-gray-50 dark:bg-[#1c1c1e] border-t border-gray-200 dark:border-[#3d3c3e]">
+            <div className="bg-neutral-50 dark:bg-[#161618] border-t border-neutral-100 dark:border-neutral-700/30">
               <button
                 onClick={() => setShowDetails(!showDetails)}
-                className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-[#242325] transition-colors"
+                className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-neutral-100 dark:hover:bg-[#1e1e20] transition-colors"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <div className="flex gap-1.5">
-                    <div className="flex items-center gap-1 text-[9px]">
-                      <Target className="h-3 w-3 text-gray-400" />
+                    <div className="flex items-center gap-0.5 text-[9px]">
+                      <Target className="h-3 w-3 text-neutral-400" />
                       <span className={getScoreColor(responseAnalysis.contentScore)}>{responseAnalysis.contentScore}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-[9px]">
-                      <MessageCircle className="h-3 w-3 text-gray-400" />
+                    <div className="flex items-center gap-0.5 text-[9px]">
+                      <MessageCircle className="h-3 w-3 text-neutral-400" />
                       <span className={getScoreColor(responseAnalysis.expressionScore)}>{responseAnalysis.expressionScore}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-[9px]">
-                      <BarChart3 className="h-3 w-3 text-gray-400" />
+                    <div className="flex items-center gap-0.5 text-[9px]">
+                      <BarChart3 className="h-3 w-3 text-neutral-400" />
                       <span className={getScoreColor(responseAnalysis.structureScore)}>{responseAnalysis.structureScore}</span>
                     </div>
                   </div>
@@ -392,12 +396,12 @@ const TranscriptMessage: React.FC<TranscriptMessageProps> = ({
                     responseAnalysis.tone === 'confident' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' :
                     responseAnalysis.tone === 'enthusiastic' ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' :
                     responseAnalysis.tone === 'hesitant' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
-                    'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-white/60'
+                    'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
                   }`}>
                     {responseAnalysis.tone}
                   </span>
                 </div>
-                <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-3.5 w-3.5 text-neutral-400 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
               </button>
               
               <AnimatePresence>
@@ -408,24 +412,24 @@ const TranscriptMessage: React.FC<TranscriptMessageProps> = ({
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="px-3 pb-3 space-y-2">
+                    <div className="px-3 pb-2.5 space-y-2">
                       {/* Score bars */}
                       <div className="space-y-1">
                         <MiniScoreBar score={responseAnalysis.contentScore} label="Content" />
-                        <MiniScoreBar score={responseAnalysis.expressionScore} label="Expression" />
-                        <MiniScoreBar score={responseAnalysis.structureScore} label="Structure" />
+                        <MiniScoreBar score={responseAnalysis.expressionScore} label="Expr." />
+                        <MiniScoreBar score={responseAnalysis.structureScore} label="Struct." />
                       </div>
                       
                       {/* What was good */}
                       {responseAnalysis.whatWasGood && responseAnalysis.whatWasGood.length > 0 && (
-                        <div className="pt-2">
+                        <div className="pt-1.5">
                           <div className="flex items-center gap-1 mb-1">
                             <ThumbsUp className="h-3 w-3 text-emerald-500" />
                             <span className="text-[9px] font-medium text-emerald-600 dark:text-emerald-400">Good</span>
                           </div>
                           <ul className="space-y-0.5">
-                            {responseAnalysis.whatWasGood.map((item, i) => (
-                              <li key={i} className="text-[10px] text-gray-600 dark:text-white/60 pl-4 relative before:content-['•'] before:absolute before:left-1 before:text-emerald-500">
+                            {responseAnalysis.whatWasGood.slice(0, 2).map((item, i) => (
+                              <li key={i} className="text-[10px] text-neutral-600 dark:text-neutral-400 pl-3.5 relative before:content-['•'] before:absolute before:left-1 before:text-emerald-500">
                                 {item}
                               </li>
                             ))}
@@ -438,11 +442,11 @@ const TranscriptMessage: React.FC<TranscriptMessageProps> = ({
                         <div>
                           <div className="flex items-center gap-1 mb-1">
                             <ThumbsDown className="h-3 w-3 text-amber-500" />
-                            <span className="text-[9px] font-medium text-amber-600 dark:text-amber-400">To Improve</span>
+                            <span className="text-[9px] font-medium text-amber-600 dark:text-amber-400">Improve</span>
                           </div>
                           <ul className="space-y-0.5">
-                            {responseAnalysis.whatToImprove.map((item, i) => (
-                              <li key={i} className="text-[10px] text-gray-600 dark:text-white/60 pl-4 relative before:content-['•'] before:absolute before:left-1 before:text-amber-500">
+                            {responseAnalysis.whatToImprove.slice(0, 2).map((item, i) => (
+                              <li key={i} className="text-[10px] text-neutral-600 dark:text-neutral-400 pl-3.5 relative before:content-['•'] before:absolute before:left-1 before:text-amber-500">
                                 {item}
                               </li>
                             ))}
@@ -455,9 +459,9 @@ const TranscriptMessage: React.FC<TranscriptMessageProps> = ({
                         <div className="pt-1">
                           <div className="flex items-center gap-1 mb-1">
                             <Sparkles className="h-3 w-3 text-[#b7e219]" />
-                            <span className="text-[9px] font-medium text-[#b7e219]">Better Response</span>
+                            <span className="text-[9px] font-medium text-[#b7e219]">Better</span>
                           </div>
-                          <p className="text-[10px] text-gray-600 dark:text-white/60 italic bg-[#b7e219]/5 rounded p-2 border border-[#b7e219]/20">
+                          <p className="text-[10px] text-neutral-600 dark:text-neutral-400 italic bg-[#b7e219]/5 rounded p-2 border border-[#b7e219]/20">
                             "{responseAnalysis.idealResponse}"
                           </p>
                         </div>
@@ -714,537 +718,294 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
   }
 
   const tierInfo = getTierInfo(analysis.overallScore ?? 0);
+  const answeredCount = transcript.filter(e => e.role === 'user' && e.text && e.text.trim().length > 0).length;
+  const isPassed = analysis?.verdict?.passed || (analysis?.overallScore ?? 0) >= 60;
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 dark:bg-[#1c1c1e] overflow-hidden">
-      {/* Top Header with Close Button */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#3d3c3e]/60 bg-white dark:bg-[#242325]">
+    <div className="flex flex-col h-full w-full overflow-hidden bg-white dark:bg-[#1a1a1c]">
+      {/* Top Header Bar */}
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#1a1a1c]">
+        {/* Left: Close + Company Info */}
         <div className="flex items-center gap-3">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <button
             onClick={onBack}
-            className="w-8 h-8 rounded-lg flex items-center justify-center
-                       text-gray-400 hover:text-gray-600 dark:text-white/40 dark:hover:text-white/70
-                       hover:bg-gray-100 dark:hover:bg-white/5 transition-all
-                       border border-gray-200 dark:border-[#3d3c3e]"
+            className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-600 
+              dark:text-neutral-500 dark:hover:text-neutral-300
+              hover:bg-neutral-100 dark:hover:bg-white/5
+              transition-all"
           >
-            <X className="w-4 h-4" />
-          </motion.button>
-          <div>
-            <h1 className="text-sm font-semibold text-gray-900 dark:text-white">Interview Results</h1>
-            <p className="text-[10px] text-gray-500 dark:text-white/40">
-              {position} at {companyName} · {formatTime(elapsedTime)}
-            </p>
-          </div>
-        </div>
-        
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 text-xs font-semibold transition-colors"
-        >
-          <TrendingUp className="h-3.5 w-3.5" />
-          Practice Again
-        </button>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Transcript */}
-        <div className="w-1/2 flex flex-col border-r border-gray-200 dark:border-[#3d3c3e]/60">
-          {/* Header - matches right panel height with tabs */}
-          <div className="flex-shrink-0 border-b border-gray-200 dark:border-[#3d3c3e]/60 bg-white dark:bg-[#242325]">
-            <div className="px-4 py-3 flex items-center justify-between">
+            <X className="w-5 h-5" />
+          </button>
+          
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e]">
-                  <MessageSquare className="h-4 w-4 text-gray-500 dark:text-white/60" />
-                </div>
-                <h2 className="text-sm font-medium text-gray-900 dark:text-white">Transcript</h2>
-              </div>
-              
-              {/* Status badge to match right panel */}
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-gray-100 dark:bg-[#2b2a2c] border-gray-200 dark:border-[#3d3c3e]">
-                <span className="text-[10px] font-medium text-gray-500 dark:text-white/50">
-                  {transcript.length} messages
-                </span>
-              </div>
-            </div>
-            
-            {/* Second row - Legend (matches tabs height on right panel) */}
-            <div className="px-4 pb-2 flex items-center gap-1 h-[30px]">
-              <span className="flex items-center gap-1 px-3 py-1 text-xs text-gray-500 dark:text-white/50">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Good
-              </span>
-              <span className="flex items-center gap-1 px-3 py-1 text-xs text-gray-500 dark:text-white/50">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                Improve
-              </span>
-              <span className="flex items-center gap-1 px-3 py-1 text-xs text-gray-500 dark:text-white/50">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                Issue
-              </span>
-            </div>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-[#1c1c1e]">
-            {transcript.map((entry, idx) => (
-              <TranscriptMessage
-                key={entry.id || idx}
-                entry={entry}
-                highlights={analysis?.transcriptHighlights || []}
-                responseAnalysis={entry.role === 'user' ? getResponseAnalysis(entry.id || `entry-${idx}`) : undefined}
-                onHighlightClick={handleHighlightClick}
-                activeHighlightId={activeHighlightId}
-                index={idx}
-                avatarConfig={avatarConfig}
-                userProfilePhoto={userProfilePhoto}
-              />
-            ))}
-            
-            {hasMinimalResponses && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20"
-              >
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-gray-600 dark:text-white/60">
-                    Limited responses. Practice answering more questions for better analysis.
+            {/* Company Logo */}
+            <CompanyLogo companyName={companyName} size="lg" />
+                <div>
+              <h1 className="text-sm font-semibold text-neutral-900 dark:text-white">
+                {companyName}
+              </h1>
+              <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                    {position} · {formatTime(elapsedTime)}
                   </p>
                 </div>
-              </motion.div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Panel - Analysis */}
-        <div className="w-1/2 flex flex-col overflow-hidden bg-white dark:bg-[#1c1c1e]">
-          {/* Header with tabs - matches left panel height */}
-          <div className="flex-shrink-0 border-b border-gray-200 dark:border-[#3d3c3e]/60 bg-white dark:bg-[#242325]">
-            <div className="px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e]">
-                  <BarChart3 className="h-4 w-4 text-gray-500 dark:text-white/60" />
-                </div>
-                <h2 className="text-sm font-medium text-gray-900 dark:text-white">Analysis</h2>
-              </div>
-              
-              {/* Status */}
-              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${
-                (analysis?.verdict?.passed || (analysis?.overallScore ?? 0) >= 60)
-                  ? 'bg-emerald-500/10 border-emerald-500/30'
-                  : 'bg-amber-500/10 border-amber-500/30'
-              }`}>
-                {(analysis?.verdict?.passed || (analysis?.overallScore ?? 0) >= 60) ? (
-                  <CheckCircle2 className="h-3 w-3 text-emerald-500 dark:text-emerald-400" />
-                ) : (
-                  <AlertTriangle className="h-3 w-3 text-amber-500 dark:text-amber-400" />
-                )}
-                <span className={`text-[10px] font-medium ${
-                  (analysis?.verdict?.passed || (analysis?.overallScore ?? 0) >= 60) ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
-                }`}>
-                  {(analysis?.verdict?.passed || (analysis?.overallScore ?? 0) >= 60) ? 'Ready' : 'Keep Practicing'}
-                </span>
               </div>
             </div>
             
-            {/* Tabs - aligned with legend row on left panel */}
-            <div className="px-4 pb-2 flex gap-1 h-[30px]">
+        {/* Right: Practice Again - Green button like JobApplicationsPage */}
               <button
-                onClick={() => setActiveTab('overview')}
-                className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
-                  activeTab === 'overview'
-                    ? 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-900 dark:text-white'
-                    : 'text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white/70 hover:bg-gray-50 dark:hover:bg-[#2b2a2c]'
-                }`}
-              >
-                Overview
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-sm bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-md border border-[#9fc015] transition-all duration-200"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          Practice Again
               </button>
-              <button
-                onClick={() => setActiveTab('responses')}
-                className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
-                  activeTab === 'responses'
-                    ? 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-900 dark:text-white'
-                    : 'text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white/70 hover:bg-gray-50 dark:hover:bg-[#2b2a2c]'
-                }`}
-              >
-                By Response
-                {analysis?.responseAnalysis && analysis.responseAnalysis.length > 0 && (
-                  <span className="px-1.5 py-0.5 rounded text-[9px] bg-gray-200 dark:bg-[#2b2a2c]">
-                    {analysis.responseAnalysis.length}
-                  </span>
-                )}
-              </button>
-            </div>
           </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#1c1c1e]">
-            {activeTab === 'overview' ? (
-              <>
-                {/* Hero Score Card - Premium Design */}
+      {/* Main Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Column - Analysis Summary */}
+        <div className="w-1/2 border-r border-neutral-200 dark:border-neutral-800 overflow-y-auto">
+          <div className="px-8 py-6 pb-8">
+          {/* Hero - Status + Score + Summary */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="relative overflow-hidden rounded-2xl"
-                  style={{
-                    background: (analysis.overallScore ?? 0) >= 70 
-                      ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 95, 70, 0.12) 100%)'
-                      : (analysis.overallScore ?? 0) >= 50
-                      ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(180, 83, 9, 0.12) 100%)'
-                      : 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(153, 27, 27, 0.12) 100%)'
-                  }}
-                >
-                  <div className="absolute inset-0 bg-white/40 dark:bg-[#242325]/60 backdrop-blur-sm" />
-                  <div className="relative p-5">
-                    <div className="flex items-start gap-5">
-                      {/* Large Score Display */}
-                      <div className="flex flex-col items-center">
-                        <div className="relative">
-                          <ScoreRing 
-                            score={analysis.overallScore ?? 0} 
-                            size="lg"
-                            delay={0.1}
-                          />
-                        </div>
-                        <span className="mt-2 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-white/40">
-                          Overall
-                        </span>
+            className="mb-6"
+          >
+            {/* Status indicator with dot */}
+            <div className="flex items-center gap-2 mb-4">
+              <div className={`h-2 w-2 rounded-full ${isPassed ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+              <span className={`text-sm font-medium ${isPassed ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                {isPassed ? 'Passed' : 'Needs Practice'}
+              </span>
                       </div>
                       
-                      {/* Summary */}
-                      <div className="flex-1 min-w-0">
-                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-3 ${
-                          (analysis.overallScore ?? 0) >= 70 
-                            ? 'bg-emerald-500/15 border border-emerald-500/25' 
-                            : (analysis.overallScore ?? 0) >= 50
-                            ? 'bg-amber-500/15 border border-amber-500/25'
-                            : 'bg-red-500/15 border border-red-500/25'
-                        }`}>
-                          <div className={`w-1.5 h-1.5 rounded-full ${
-                            (analysis.overallScore ?? 0) >= 70 ? 'bg-emerald-500' :
-                            (analysis.overallScore ?? 0) >= 50 ? 'bg-amber-500' : 'bg-red-500'
-                          }`} />
-                          <span className={`text-[11px] font-semibold ${tierInfo.color}`}>
-                            {tierInfo.label}
-                          </span>
-                        </div>
-                        
-                        <p className="text-[13px] text-gray-700 dark:text-white/80 leading-relaxed">
-                          {analysis.executiveSummary || 'Analysis complete.'}
-                        </p>
-                      </div>
+            {/* Score + Summary side by side */}
+            <div className="flex items-start gap-4">
+              <ScoreRing score={analysis.overallScore ?? 0} size="md" delay={0.1} />
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">
+                  {tierInfo.label} · {answeredCount} response{answeredCount !== 1 ? 's' : ''}
+                </div>
+                <p className="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed">
+                        {analysis.executiveSummary || 'Analysis complete.'}
+                      </p>
                     </div>
                   </div>
                 </motion.div>
 
-                {/* Metrics Row - Clean Horizontal Layout */}
+          {/* Insights sections with dot indicators */}
+          <div className="space-y-4">
+            {/* Strengths */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="grid grid-cols-3 gap-2"
-                >
-                  {[
-                    { 
-                      label: 'Content', 
-                      score: analysis?.contentAnalysis?.relevanceScore ?? analysis?.contentAnalysis?.specificityScore ?? 0,
-                      description: 'Relevance & specificity'
-                    },
-                    { 
-                      label: 'Expression', 
-                      score: analysis?.expressionAnalysis?.clarityScore ?? analysis?.expressionAnalysis?.organizationScore ?? 0,
-                      description: 'Clarity & structure'
-                    },
-                    { 
-                      label: 'Job Fit', 
-                      score: analysis?.jobFitAnalysis?.fitScore ?? 0,
-                      description: 'Role alignment'
-                    },
-                  ].map(({ label, score, description }, idx) => {
-                    const getBarColor = (s: number) => {
-                      if (s >= 70) return 'bg-emerald-500';
-                      if (s >= 50) return 'bg-amber-500';
-                      if (s >= 30) return 'bg-orange-500';
-                      return 'bg-red-500';
-                    };
-                    
-                    return (
-                      <motion.div
-                        key={label}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15 + idx * 0.05 }}
-                        className="p-3 rounded-xl bg-white dark:bg-[#242325] border border-gray-100 dark:border-[#3d3c3e]/40"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[11px] font-medium text-gray-700 dark:text-white/70">{label}</span>
-                          <span className={`text-sm font-bold ${
-                            score >= 70 ? 'text-emerald-600 dark:text-emerald-400' :
-                            score >= 50 ? 'text-amber-600 dark:text-amber-400' :
-                            score >= 30 ? 'text-orange-600 dark:text-orange-400' :
-                            'text-red-600 dark:text-red-400'
-                          }`}>{score}</span>
-                        </div>
-                        <div className="h-1.5 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
-                          <motion.div 
-                            className={`h-full ${getBarColor(score)} rounded-full`}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${score}%` }}
-                            transition={{ duration: 0.8, delay: 0.3 + idx * 0.1, ease: "easeOut" }}
-                          />
-                        </div>
-                        <p className="text-[9px] text-gray-400 dark:text-white/30 mt-1.5">{description}</p>
-                      </motion.div>
-                    );
-                  })}
-                </motion.div>
-
-                {/* STAR Method - Only show if at least one element is used */}
-                {analysis?.contentAnalysis?.starMethodUsage && (
-                  analysis.contentAnalysis.starMethodUsage.situation ||
-                  analysis.contentAnalysis.starMethodUsage.task ||
-                  analysis.contentAnalysis.starMethodUsage.action ||
-                  analysis.contentAnalysis.starMethodUsage.result
-                ) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25 }}
-                    className="p-3.5 rounded-xl bg-white dark:bg-[#242325] border border-gray-100 dark:border-[#3d3c3e]/40"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[11px] font-semibold text-gray-900 dark:text-white">STAR Method Usage</span>
-                        <p className="text-[9px] text-gray-400 dark:text-white/40 mt-0.5">Situation · Task · Action · Result</p>
-                      </div>
-                      <div className="flex gap-1.5">
-                        {[
-                          { key: 'S', label: 'Situation', present: analysis.contentAnalysis.starMethodUsage.situation },
-                          { key: 'T', label: 'Task', present: analysis.contentAnalysis.starMethodUsage.task },
-                          { key: 'A', label: 'Action', present: analysis.contentAnalysis.starMethodUsage.action },
-                          { key: 'R', label: 'Result', present: analysis.contentAnalysis.starMethodUsage.result },
-                        ].map(({ key, present }) => (
-                          <div
-                            key={key}
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
-                              present
-                                ? 'bg-[#b7e219] text-gray-900 shadow-sm'
-                                : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-400 dark:text-white/30'
-                            }`}
-                          >
-                            {key}
+              transition={{ delay: 0.3 }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Circle className="h-3 w-3 fill-emerald-500 text-emerald-500" />
+                <h3 className="text-xs font-semibold text-neutral-900 dark:text-white uppercase tracking-wider">
+                  Strengths
+                </h3>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Insights Grid - Strengths & Issues Side by Side */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="grid grid-cols-2 gap-3"
-                >
-                  {/* Strengths */}
-                  {analysis?.strengths && analysis.strengths.length > 0 && (
-                    <div className="rounded-xl bg-white dark:bg-[#242325] border border-gray-100 dark:border-[#3d3c3e]/40 overflow-hidden">
-                      <div className="px-3.5 py-2.5 border-b border-gray-100 dark:border-[#3d3c3e]/40 bg-emerald-500/5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-md bg-emerald-500/15 flex items-center justify-center">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                          </div>
-                          <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">What worked</span>
-                        </div>
-                      </div>
-                      <div className="p-3">
-                        <ul className="space-y-2">
-                          {analysis.strengths.slice(0, 3).map((s, i) => (
-                            <li key={i} className="flex items-start gap-2 text-[11px] text-gray-600 dark:text-white/70">
-                              <span className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
-                              <span>{s}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* To Improve */}
-                  {analysis?.criticalIssues && analysis.criticalIssues.length > 0 && (
-                    <div className="rounded-xl bg-white dark:bg-[#242325] border border-gray-100 dark:border-[#3d3c3e]/40 overflow-hidden">
-                      <div className="px-3.5 py-2.5 border-b border-gray-100 dark:border-[#3d3c3e]/40 bg-red-500/5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-md bg-red-500/15 flex items-center justify-center">
-                            <AlertCircle className="h-3 w-3 text-red-600 dark:text-red-400" />
-                          </div>
-                          <span className="text-[11px] font-semibold text-red-700 dark:text-red-400">To improve</span>
-                        </div>
-                      </div>
-                      <div className="p-3">
-                        <ul className="space-y-2">
-                          {analysis.criticalIssues.slice(0, 3).map((s, i) => (
-                            <li key={i} className="flex items-start gap-2 text-[11px] text-gray-600 dark:text-white/70">
-                              <span className="w-1 h-1 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
-                              <span>{s}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-
-                {/* Key Moments - Compact List */}
-                {analysis?.transcriptHighlights && analysis.transcriptHighlights.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.35 }}
-                    className="rounded-xl bg-white dark:bg-[#242325] border border-gray-100 dark:border-[#3d3c3e]/40 overflow-hidden"
-                  >
-                    <div className="px-3.5 py-2.5 border-b border-gray-100 dark:border-[#3d3c3e]/40">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-semibold text-gray-900 dark:text-white">Key Moments</span>
-                        <span className="text-[10px] text-gray-400 dark:text-white/40">
-                          {analysis.transcriptHighlights.length} highlight{analysis.transcriptHighlights.length > 1 ? 's' : ''}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="divide-y divide-gray-50 dark:divide-[#3d3c3e]/30">
-                      {analysis.transcriptHighlights.slice(0, 4).map((highlight, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => {
-                            setSelectedHighlight(highlight);
-                            const entryHighlights = (analysis.transcriptHighlights || []).filter(h => h.entryId === highlight.entryId);
-                            const highlightIndex = entryHighlights.indexOf(highlight);
-                            scrollToTranscriptEntry(highlight.entryId, highlightIndex >= 0 ? highlightIndex : 0);
-                          }}
-                          className="w-full text-left px-3.5 py-2.5 hover:bg-gray-50 dark:hover:bg-[#2b2a2c] transition-colors group"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                              highlight.type === 'strength' ? 'bg-emerald-500' :
-                              highlight.type === 'improvement' ? 'bg-amber-500' : 'bg-red-500'
-                            }`} />
-                            <p className="text-[11px] text-gray-600 dark:text-white/70 line-clamp-1 flex-1">
-                              {highlight.excerpt.length > 50 ? highlight.excerpt.substring(0, 50) + '...' : highlight.excerpt}
-                            </p>
-                            <ChevronRight className="h-3.5 w-3.5 text-gray-300 dark:text-white/20 group-hover:text-gray-400 dark:group-hover:text-white/40 flex-shrink-0" />
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Selected Highlight Detail */}
-                <AnimatePresence>
-                  {selectedHighlight && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="rounded-xl overflow-hidden border border-gray-100 dark:border-[#3d3c3e]/40"
-                    >
-                      <div className={`px-3.5 py-2.5 flex items-center justify-between ${
-                        selectedHighlight.type === 'strength' ? 'bg-emerald-500/10' :
-                        selectedHighlight.type === 'improvement' ? 'bg-amber-500/10' : 'bg-red-500/10'
-                      }`}>
-                        <div className="flex items-center gap-2">
-                          <Quote className={`h-3.5 w-3.5 ${
-                            selectedHighlight.type === 'strength' ? 'text-emerald-600 dark:text-emerald-400' :
-                            selectedHighlight.type === 'improvement' ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'
-                          }`} />
-                          <span className={`text-[11px] font-semibold ${
-                            selectedHighlight.type === 'strength' ? 'text-emerald-700 dark:text-emerald-400' :
-                            selectedHighlight.type === 'improvement' ? 'text-amber-700 dark:text-amber-400' : 'text-red-700 dark:text-red-400'
-                          }`}>
-                            {selectedHighlight.type === 'strength' ? 'Strength' : 
-                             selectedHighlight.type === 'improvement' ? 'To Improve' : 'Issue'}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => setSelectedHighlight(null)}
-                          className="p-1 rounded-lg hover:bg-white/50 dark:hover:bg-white/10 text-gray-400 dark:text-white/40"
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <div className="p-3.5 bg-white dark:bg-[#242325]">
-                        <p className="text-[11px] italic text-gray-500 dark:text-white/50 mb-2 leading-relaxed">
-                          "{selectedHighlight.excerpt}"
-                        </p>
-                        <p className="text-[12px] text-gray-700 dark:text-white/80 leading-relaxed">
-                          {selectedHighlight.feedback}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Action Plan - Premium Card */}
-                {analysis?.actionPlan && analysis.actionPlan.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="rounded-xl overflow-hidden"
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(183, 226, 25, 0.08) 0%, rgba(132, 204, 22, 0.12) 100%)'
-                    }}
-                  >
-                    <div className="p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-6 h-6 rounded-lg bg-[#b7e219] flex items-center justify-center">
-                          <Zap className="h-3.5 w-3.5 text-gray-900" />
-                        </div>
-                        <span className="text-[12px] font-semibold text-gray-900 dark:text-white">Next Steps</span>
-                      </div>
-                      <div className="space-y-2.5">
-                        {analysis.actionPlan.map((action, i) => (
-                          <div key={i} className="flex items-start gap-3 p-2.5 rounded-lg bg-white/60 dark:bg-[#242325]/60 backdrop-blur-sm">
-                            <span className="flex-shrink-0 w-5 h-5 rounded-md bg-[#b7e219] text-gray-900 text-[10px] font-bold flex items-center justify-center shadow-sm">
-                              {i + 1}
-                            </span>
-                            <p className="text-[11px] text-gray-700 dark:text-white/80 leading-relaxed pt-0.5">{action}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
-                <div className="h-2" />
-              </>
-            ) : (
-              /* Response-by-Response Tab */
-              <div className="space-y-3">
-                {analysis?.responseAnalysis && analysis.responseAnalysis.length > 0 ? (
-                  analysis.responseAnalysis.map((respAnalysis, idx) => (
-                    <ResponseAnalysisCard key={respAnalysis.entryId || idx} analysis={respAnalysis} index={idx} />
+              <div className="pl-5 space-y-1.5">
+                {analysis?.strengths && analysis.strengths.length > 0 ? (
+                  analysis.strengths.slice(0, 4).map((s, i) => (
+                    <p key={i} className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed flex items-start gap-2">
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500 flex-shrink-0 mt-0.5" />
+                      <span>{s}</span>
+                    </p>
                   ))
                 ) : (
-                  <div className="text-center py-8">
-                    <MessageCircle className="h-8 w-8 text-gray-300 dark:text-white/20 mx-auto mb-3" />
-                    <p className="text-sm text-gray-500 dark:text-white/50">No response analysis available</p>
-                    <p className="text-xs text-gray-400 dark:text-white/30 mt-1">Try having a longer conversation for detailed feedback</p>
-                  </div>
+                  <p className="text-xs text-neutral-400 dark:text-neutral-500 italic">
+                    Answer more questions to identify strengths
+                  </p>
                 )}
-              </div>
-            )}
+                      </div>
+                    </motion.div>
 
-            <div className="h-4" />
+            {/* Focus Areas */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Circle className="h-3 w-3 fill-amber-500 text-amber-500" />
+                <h3 className="text-xs font-semibold text-neutral-900 dark:text-white uppercase tracking-wider">
+                  Focus Areas
+                </h3>
+                    </div>
+              <div className="pl-5 space-y-1.5">
+                {analysis?.criticalIssues && analysis.criticalIssues.length > 0 ? (
+                  analysis.criticalIssues.slice(0, 4).map((a, i) => (
+                    <p key={i} className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed flex items-start gap-2">
+                      <ArrowUpRight className="h-3 w-3 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <span>{a}</span>
+                    </p>
+                  ))
+                ) : (
+                  <p className="text-xs text-neutral-400 dark:text-neutral-500 italic">
+                    Great job! Keep up the good work
+                  </p>
+                )}
+                    </div>
+                  </motion.div>
+
+            {/* Expert Insight */}
+            {analysis?.actionPlan && analysis.actionPlan.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Star className="h-3 w-3 text-indigo-500" />
+                  <h3 className="text-xs font-semibold text-neutral-900 dark:text-white uppercase tracking-wider">
+                    Expert Insight
+                  </h3>
+                      </div>
+                <div className="pl-5">
+                  <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                    {analysis.actionPlan[0]}
+                  </p>
+                    </div>
+                  </motion.div>
+                )}
           </div>
+
+          {/* Metrics - Compact Grid */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="mt-6 rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-700 dark:bg-neutral-800/50"
+          >
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { 
+                  label: 'Content', 
+                  score: analysis?.contentAnalysis?.relevanceScore ?? analysis?.contentAnalysis?.specificityScore ?? 0,
+                },
+                { 
+                  label: 'Expression', 
+                  score: analysis?.expressionAnalysis?.clarityScore ?? analysis?.expressionAnalysis?.organizationScore ?? 0,
+                },
+                { 
+                  label: 'Job Fit', 
+                  score: analysis?.jobFitAnalysis?.fitScore ?? 0,
+                },
+              ].map(({ label, score }) => {
+                const getScoreTextColor = (s: number) => {
+                  if (s >= 70) return 'text-emerald-600 dark:text-emerald-400';
+                  if (s >= 50) return 'text-amber-600 dark:text-amber-400';
+                  if (s >= 30) return 'text-orange-600 dark:text-orange-400';
+                  return 'text-red-600 dark:text-red-400';
+                };
+                
+                return (
+                  <div key={label} className="text-center">
+                    <div className={`text-lg font-bold ${getScoreTextColor(score)}`}>{score}</div>
+                    <div className="text-[10px] text-neutral-500 dark:text-neutral-400">{label}</div>
+                      </div>
+                );
+              })}
+                    </div>
+                    </motion.div>
+
+          {/* STAR Method - Only show if at least one element is used */}
+          {analysis?.contentAnalysis?.starMethodUsage && (
+            analysis.contentAnalysis.starMethodUsage.situation ||
+            analysis.contentAnalysis.starMethodUsage.task ||
+            analysis.contentAnalysis.starMethodUsage.action ||
+            analysis.contentAnalysis.starMethodUsage.result
+          ) && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+              className="mt-4"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="h-3 w-3 text-neutral-500" />
+                <h3 className="text-xs font-semibold text-neutral-900 dark:text-white uppercase tracking-wider">
+                  STAR Method
+                </h3>
+                      </div>
+              <div className="flex gap-1">
+                {(['situation', 'task', 'action', 'result'] as const).map((key) => {
+                  const present = analysis.contentAnalysis.starMethodUsage?.[key];
+                  return (
+                    <div
+                      key={key}
+                      className={`flex-1 rounded py-1 text-center text-[10px] font-medium ${
+                        present
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                          : 'bg-neutral-100 text-neutral-400 dark:bg-neutral-800 dark:text-neutral-500'
+                      }`}
+                    >
+                      {key.charAt(0).toUpperCase()}
+                      </div>
+                  );
+                })}
+              </div>
+                    </motion.div>
+                  )}
+        </div>
+                </div>
+
+        {/* Right Column - Transcript */}
+        <div className="w-1/2 overflow-y-auto bg-neutral-50 dark:bg-[#141416]">
+          <div className="px-6 py-5 pb-8">
+                  <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">
+                Conversation
+              </h2>
+              <span className="text-[10px] text-neutral-400 dark:text-neutral-500">
+                {transcript.length} messages
+                          </span>
+                        </div>
+
+            {/* Messages */}
+            <div className="space-y-3">
+              {transcript.map((entry, idx) => (
+                <TranscriptMessage
+                  key={entry.id || idx}
+                  entry={entry}
+                  highlights={analysis?.transcriptHighlights || []}
+                  responseAnalysis={entry.role === 'user' ? getResponseAnalysis(entry.id || `entry-${idx}`) : undefined}
+                  onHighlightClick={handleHighlightClick}
+                  activeHighlightId={activeHighlightId}
+                  index={idx}
+                  avatarConfig={avatarConfig}
+                  userProfilePhoto={userProfilePhoto}
+                />
+              ))}
+              
+              {hasMinimalResponses && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mt-3 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20"
+                >
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-neutral-600 dark:text-neutral-400">
+                      Limited responses. Practice more for better analysis.
+                    </p>
+                    </div>
+                  </motion.div>
+                )}
+                  </div>
+          </motion.div>
+              </div>
         </div>
       </div>
-
     </div>
   );
 };
