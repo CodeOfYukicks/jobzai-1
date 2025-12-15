@@ -36,6 +36,7 @@ interface Milestone {
   id: string;
   label: string;
   description: string;
+  tooltip?: string;
   completed: boolean;
   icon: React.ReactNode;
   action: () => void;
@@ -336,107 +337,214 @@ export default function RightSidebarPanel({
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
         <AnimatePresence mode="wait">
           
-          {/* PROGRESS TAB */}
+          {/* PROGRESS TAB - Premium Minimalist Design */}
           {sidebarTab === 'progress' && (
             <motion.div
               key="progress"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.15 }}
-              className="p-8 space-y-8 min-h-0 overflow-y-auto"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="p-6 space-y-10 min-h-0 overflow-y-auto"
             >
-              {/* Progress Header - Premium Minimalist Design */}
-              <div className="flex items-center gap-8">
-                <div className="relative flex h-24 w-24 flex-shrink-0 items-center justify-center">
-                  {/* Subtle background circle */}
-                  <svg className="absolute inset-0 h-24 w-24 -rotate-90 transform">
-                    <circle
-                      cx="48" cy="48" r="42"
-                      stroke="currentColor"
-                      strokeWidth="6"
-                      fill="none"
-                      className="text-gray-200 dark:text-gray-700"
-                    />
-                    <motion.circle
-                      cx="48" cy="48" r="42"
-                      strokeWidth="6"
-                      fill="none"
-                      strokeLinecap="round"
-                      stroke="#b7e219"
-                      initial={{ strokeDasharray: 263.9, strokeDashoffset: 263.9 }}
-                      animate={{ strokeDashoffset: 263.9 - (263.9 * preparationProgress) / 100 }}
-                      transition={{ duration: 1, ease: [0.25, 0.1, 0.25, 1] }}
-                    />
+              {/* Segmented Progress Indicator */}
+              <div className="flex flex-col items-center pt-4">
+                {/* Segmented Arc - Dynamic based on milestones count */}
+                <div className="relative w-32 h-16 mb-6">
+                  <svg 
+                    viewBox="0 0 120 60" 
+                    className="w-full h-full"
+                    style={{ overflow: 'visible' }}
+                  >
+                    {milestones.map((milestone, index) => {
+                      const totalSegments = milestones.length;
+                      const gapAngle = 8; // degrees between segments
+                      const totalGapAngle = gapAngle * (totalSegments - 1);
+                      const availableAngle = 180 - totalGapAngle;
+                      const segmentAngle = availableAngle / totalSegments;
+                      
+                      const startAngle = 180 + index * (segmentAngle + gapAngle);
+                      const endAngle = startAngle + segmentAngle;
+                      
+                      const radius = 50;
+                      const cx = 60;
+                      const cy = 55;
+                      
+                      const startRad = (startAngle * Math.PI) / 180;
+                      const endRad = (endAngle * Math.PI) / 180;
+                      
+                      const x1 = cx + radius * Math.cos(startRad);
+                      const y1 = cy + radius * Math.sin(startRad);
+                      const x2 = cx + radius * Math.cos(endRad);
+                      const y2 = cy + radius * Math.sin(endRad);
+                      
+                      const pathD = `M ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2}`;
+                      
+                      return (
+                        <motion.path
+                          key={milestone.id}
+                          d={pathD}
+                          fill="none"
+                          strokeWidth="5"
+                          strokeLinecap="round"
+                          className={milestone.completed 
+                            ? '' 
+                            : 'text-gray-200/60 dark:text-gray-700/40'
+                          }
+                          stroke={milestone.completed ? '#b7e219' : 'currentColor'}
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ 
+                            duration: 0.6, 
+                            delay: index * 0.1,
+                            ease: [0.25, 0.1, 0.25, 1]
+                          }}
+                        />
+                      );
+                    })}
                   </svg>
-                  <span className="relative text-2xl font-bold text-white dark:text-white tracking-tight">
-                    {preparationProgress}%
-                  </span>
                 </div>
                 
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-white dark:text-white mb-1">
-                    Preparation
-                  </h3>
-                  <p className="text-sm font-normal text-gray-400 dark:text-gray-400">
+                {/* Progress Text */}
+                <div className="text-center">
+                  <motion.div 
+                    className="text-4xl font-light tracking-tight text-gray-900 dark:text-white"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                  >
+                    {preparationProgress}<span className="text-2xl text-gray-400 dark:text-gray-500">%</span>
+                  </motion.div>
+                  <motion.p 
+                    className="text-[13px] text-gray-500 dark:text-gray-400 mt-1"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                  >
                     {milestones.filter((m) => m.completed).length}/{milestones.length} completed
-                  </p>
+                  </motion.p>
                 </div>
               </div>
 
-              {/* Milestones */}
-              <div className="space-y-3">
-                <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-400 dark:text-gray-500">
-                  Milestones
-                </span>
-
-                <div className="space-y-2">
-                  {milestones.map((milestone, index) => (
+              {/* Milestone Cards - With Tooltip on Hover */}
+              <div className="space-y-2">
+                {milestones.map((milestone, index) => (
+                  <motion.div
+                    key={milestone.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ 
+                      delay: 0.5 + index * 0.05,
+                      duration: 0.3,
+                      ease: [0.25, 0.1, 0.25, 1]
+                    }}
+                    className="relative group/card"
+                  >
                     <motion.button
-                      key={milestone.id}
                       type="button"
                       onClick={milestone.action}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      whileHover={{ scale: 1.01, x: 4 }}
+                      whileHover={{ y: -1 }}
                       whileTap={{ scale: 0.99 }}
                       className={`
-                        group w-full flex items-center gap-3 p-3.5 rounded-xl text-left transition-all duration-200
+                        group w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-left
+                        transition-all duration-200 ease-out
                         ${milestone.completed
-                          ? 'bg-emerald-50/80 dark:bg-emerald-950/20 ring-1 ring-emerald-200/50 dark:ring-emerald-800/30'
-                          : 'bg-white dark:bg-[#26262B]/50 ring-1 ring-gray-200/60 dark:ring-gray-800/60 hover:ring-gray-300/80 dark:hover:ring-gray-700/60 hover:bg-gray-50 dark:hover:bg-[#26262B]'
+                          ? 'bg-[#b7e219]/[0.08] dark:bg-[#b7e219]/[0.06]'
+                          : 'bg-transparent hover:bg-gray-50/80 dark:hover:bg-white/[0.03]'
                         }
+                        hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:hover:shadow-[0_2px_8px_rgba(0,0,0,0.2)]
                       `}
                     >
+                      {/* Status Indicator */}
                       <div className={`
-                        flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all
+                        flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center
+                        transition-all duration-200
                         ${milestone.completed
-                          ? 'bg-emerald-500 text-white shadow-sm'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 group-hover:bg-gray-200 dark:group-hover:bg-gray-700 group-hover:text-gray-600 dark:group-hover:text-gray-300'
+                          ? 'bg-[#b7e219]'
+                          : 'bg-gray-100 dark:bg-gray-800/60 group-hover:bg-gray-200/80 dark:group-hover:bg-gray-700/60'
                         }
                       `}>
                         {milestone.completed ? (
-                          <CheckCircle className="w-4 h-4" strokeWidth={2.5} />
+                          <motion.svg 
+                            className="w-3.5 h-3.5 text-gray-900" 
+                            viewBox="0 0 24 24" 
+                            fill="none"
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ duration: 0.3, delay: 0.6 + index * 0.05 }}
+                          >
+                            <motion.path
+                              d="M5 12l5 5L20 7"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              initial={{ pathLength: 0 }}
+                              animate={{ pathLength: 1 }}
+                              transition={{ duration: 0.3, delay: 0.6 + index * 0.05 }}
+                            />
+                          </motion.svg>
                         ) : (
-                          <span className="text-xs font-semibold">{index + 1}</span>
+                          <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 
+                            group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-colors">
+                            {index + 1}
+                          </span>
                         )}
                       </div>
 
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-sm font-medium ${
-                          milestone.completed ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-800 dark:text-white'
-                        }`}>
-                          {milestone.label}
-                        </div>
-                      </div>
+                      {/* Label */}
+                      <span className={`
+                        flex-1 text-[14px] font-medium tracking-[-0.01em]
+                        transition-colors duration-200
+                        ${milestone.completed 
+                          ? 'text-[#8fb317] dark:text-[#b7e219]' 
+                          : 'text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white'
+                        }
+                      `}>
+                        {milestone.label}
+                      </span>
 
+                      {/* Arrow for incomplete */}
                       {!milestone.completed && (
-                        <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 transition-colors" />
+                        <motion.div
+                          className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                          initial={false}
+                          animate={{ x: 0 }}
+                          whileHover={{ x: 2 }}
+                        >
+                          <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                        </motion.div>
                       )}
                     </motion.button>
-                  ))}
-                </div>
+
+                    {/* Tooltip - Appears on hover */}
+                    {milestone.tooltip && (
+                      <div className="
+                        absolute left-1/2 -translate-x-1/2 bottom-full mb-2 
+                        px-3 py-2 rounded-lg
+                        bg-gray-900 dark:bg-gray-100 
+                        text-white dark:text-gray-900
+                        text-xs font-medium leading-relaxed
+                        whitespace-nowrap
+                        opacity-0 pointer-events-none
+                        group-hover/card:opacity-100 group-hover/card:pointer-events-auto
+                        transition-all duration-200 ease-out
+                        shadow-lg
+                        z-50
+                      ">
+                        {milestone.tooltip}
+                        {/* Tooltip arrow */}
+                        <div className="
+                          absolute left-1/2 -translate-x-1/2 top-full
+                          w-0 h-0 
+                          border-l-[6px] border-l-transparent
+                          border-r-[6px] border-r-transparent
+                          border-t-[6px] border-t-gray-900 dark:border-t-gray-100
+                        " />
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
               </div>
             </motion.div>
           )}

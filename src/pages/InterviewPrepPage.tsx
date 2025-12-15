@@ -3300,16 +3300,18 @@ Generate exactly ${count} questions.
     return { days: diffDays, hours: diffHours };
   };
 
-  // Calculate preparation progress
+  // Calculate preparation progress - 4 milestones
   const getProgressMilestones = () => {
     const requiredSkills = interview?.preparation?.requiredSkills || [];
     const skillsRated = Object.keys(skillRatings).length;
     const skillsComplete = requiredSkills.length > 0 ? skillsRated >= Math.min(Math.ceil(requiredSkills.length * 0.6), requiredSkills.length) : false;
+    const hasPassingSession = liveSessionHistory.some(s => s.overallScore >= 70);
 
     const milestones = [
       {
         id: 'analysis',
         label: 'Job Analysis',
+        tooltip: 'Analyze the job posting to extract key requirements and skills',
         icon: <Search className="w-4 h-4" />,
         completed: !!interview?.preparation && !!interview?.preparation?.requiredSkills?.length,
         description: 'Analyze job posting',
@@ -3318,34 +3320,29 @@ Generate exactly ${count} questions.
       {
         id: 'skills',
         label: 'Skills Assessment',
+        tooltip: 'Rate your proficiency level on each required skill in the Skills tab',
         icon: <Briefcase className="w-4 h-4" />,
         completed: skillsComplete,
         description: `Rate at least ${requiredSkills.length > 0 ? Math.ceil(requiredSkills.length * 0.6) : 3} skills (${skillsRated}/${requiredSkills.length || '?'})`,
         action: () => setTab('skills')
       },
       {
-        id: 'questions',
-        label: 'Questions Review',
-        icon: <HelpCircle className="w-4 h-4" />,
-        completed: interview?.preparation?.suggestedQuestions ? interview.preparation.suggestedQuestions.length > 0 && savedQuestionsState.length >= 2 : false,
-        description: `Save at least 2 questions (${savedQuestionsState.length} saved)`,
-        action: () => setTab('questions')
-      },
-      {
-        id: 'resources',
-        label: 'Resources',
+        id: 'elevator',
+        label: 'Elevator Pitch',
+        tooltip: 'Write your personal introduction to confidently present yourself',
         icon: <BookOpen className="w-4 h-4" />,
-        completed: (resourcesData?.reviewedTips?.length || 0) >= 4 || (resourcesData?.savedLinks?.length || 0) >= 2,
-        description: 'Review 4+ tips OR add 2+ resources',
+        completed: !!(resourcesData?.elevatorPitch?.trim()),
+        description: 'Write your pitch',
         action: () => setTab('resources')
       },
       {
         id: 'practice',
-        label: 'Practice Chat',
+        label: 'Practice Session',
+        tooltip: 'Complete a Live Interview session with a score of 70% or higher',
         icon: <MessageSquare className="w-4 h-4" />,
-        completed: chatMessages.filter(m => m.role === 'user').length >= 3 && chatMessages.filter(m => m.role === 'assistant').length >= 2,
-        description: 'Have 3+ exchanges with AI coach',
-        action: () => setTab('chat')
+        completed: hasPassingSession,
+        description: hasPassingSession ? 'Session passed!' : 'Score 70%+ in Live Interview',
+        action: () => setIsLiveSessionOpen(true)
       }
     ];
     return milestones;
@@ -3356,7 +3353,7 @@ Generate exactly ${count} questions.
     const completed = milestones.filter(m => m.completed).length;
     const total = milestones.length;
     setPreparationProgress(Math.round((completed / total) * 100));
-  }, [interview?.preparation, skillRatings, savedQuestionsState, resourcesData, chatMessages]);
+  }, [interview?.preparation, skillRatings, resourcesData, liveSessionHistory]);
 
   // Compute gaps (descending) from requiredSkills and self-ratings
   const skillGaps = useMemo(() => {
