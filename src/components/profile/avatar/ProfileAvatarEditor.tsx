@@ -256,7 +256,7 @@ export default function ProfileAvatarEditor({
         </div>
 
         {/* Scrollable Content Area - Avatar Options only */}
-        <div className="flex-1 overflow-y-auto p-4 min-h-[200px] max-h-[300px]">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 min-h-[200px] max-h-[300px]">
           {activeTab === 'glasses' && (
             <div className="mb-4">
               <button
@@ -383,7 +383,8 @@ export default function ProfileAvatarEditor({
               </button>
             </div>
           ) : (
-          <div className="grid grid-cols-4 gap-2 overflow-hidden">
+          <div className="pt-1">
+          <div className="grid grid-cols-4 gap-2.5">
             <AnimatePresence mode="wait">
               {currentOptions.map((option, index) => {
                 // Create a preview config with this specific option
@@ -418,10 +419,10 @@ export default function ProfileAvatarEditor({
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="absolute -top-1 -right-1 w-5 h-5 rounded-full 
-                          bg-indigo-500 flex items-center justify-center"
+                        className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full 
+                          bg-indigo-500 flex items-center justify-center shadow-sm"
                       >
-                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
                       </motion.div>
@@ -430,6 +431,7 @@ export default function ProfileAvatarEditor({
                 );
               })}
             </AnimatePresence>
+          </div>
           </div>
           )}
         </div>
