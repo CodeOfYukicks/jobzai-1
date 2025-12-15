@@ -1591,68 +1591,55 @@ export default function MockInterviewPage() {
               )}
             </div>
 
-            {/* Right: Status Group + Actions */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              {/* Status Group: Timer + Live Badge */}
-              {isSessionActive && (
-                <div className="flex items-center gap-2.5">
-                  {/* Timer */}
-                  <motion.div
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border transition-all ${
-                      isTimeWarning 
-                        ? 'bg-gradient-to-r from-orange-50/90 to-amber-50/90 dark:from-orange-500/15 dark:to-amber-500/15 border-orange-200/60 dark:border-orange-500/30 shadow-sm' 
-                        : 'bg-gray-50/80 dark:bg-[#2b2a2c]/80 border-gray-200/60 dark:border-[#3d3c3e]/60'
-                    }`}
-                  >
-                    <Clock className={`h-4 w-4 flex-shrink-0 ${
-                      isTimeWarning 
-                        ? 'text-orange-500 dark:text-orange-400' 
-                        : 'text-gray-500 dark:text-gray-400'
-                    }`} />
-                    <span className={`text-sm font-mono font-bold whitespace-nowrap ${
-                      isTimeWarning 
-                        ? 'text-orange-600 dark:text-orange-400' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}>
-                      {formatTime(elapsedTime)} / 10:00
-                    </span>
-                  </motion.div>
-
-                  {/* Live Status Badge */}
-                  <motion.div
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-50/90 to-green-50/90 dark:from-emerald-500/15 dark:to-green-500/15 border border-emerald-200/60 dark:border-emerald-500/30 shadow-sm"
-                  >
-                    <span className="relative flex h-2 w-2 flex-shrink-0">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
-                      Live Session
-                    </span>
-                  </motion.div>
+            {/* Right: Unified Status Bar */}
+            {isSessionActive && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                className="flex items-center h-10 rounded-full bg-[#1a1a1b] dark:bg-[#1a1a1b] border border-[#2d2d2e] shadow-lg overflow-hidden"
+              >
+                {/* Timer Section */}
+                <div className={`flex items-center gap-2 px-4 h-full border-r border-[#2d2d2e] ${
+                  isTimeWarning ? 'bg-orange-500/10' : ''
+                }`}>
+                  <Clock className={`h-3.5 w-3.5 flex-shrink-0 ${
+                    isTimeWarning 
+                      ? 'text-orange-400' 
+                      : 'text-gray-400'
+                  }`} />
+                  <span className={`text-sm font-mono font-medium tracking-tight whitespace-nowrap ${
+                    isTimeWarning 
+                      ? 'text-orange-400' 
+                      : 'text-gray-300'
+                  }`}>
+                    {formatTime(elapsedTime)} <span className="text-gray-500">/ 10:00</span>
+                  </span>
                 </div>
-              )}
 
-              {/* End Interview Button */}
-              {isSessionActive && (
+                {/* Live Status Section */}
+                <div className="flex items-center gap-2 px-4 h-full border-r border-[#2d2d2e]">
+                  <span className="relative flex h-2 w-2 flex-shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-sm font-medium text-emerald-400 whitespace-nowrap">
+                    Live Session
+                  </span>
+                </div>
+
+                {/* End Interview Button */}
                 <motion.button
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  whileHover={{ scale: 1.02, backgroundColor: 'rgba(239, 68, 68, 0.15)' }}
+                  whileHover={{ backgroundColor: 'rgba(239, 68, 68, 0.15)' }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleEndInterviewClick}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-50/90 dark:bg-red-500/10 hover:bg-red-100/90 dark:hover:bg-red-500/20 border border-red-200/60 dark:border-red-500/30 text-red-600 dark:text-red-400 text-sm font-semibold transition-all shadow-sm"
+                  className="flex items-center gap-2 px-4 h-full text-gray-300 hover:text-red-400 transition-colors"
                 >
                   <Square className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span className="whitespace-nowrap">End Interview</span>
+                  <span className="text-sm font-medium whitespace-nowrap">End Interview</span>
                 </motion.button>
-              )}
-            </div>
+              </motion.div>
+            )}
           </div>
         </div>
       </div>
@@ -1861,74 +1848,66 @@ export default function MockInterviewPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
             onClick={() => setShowEndConfirmation(false)}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: 'spring', duration: 0.3 }}
-              className="relative bg-white dark:bg-[#2b2a2c] rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden"
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-white dark:bg-[#2b2a2c] rounded-xl w-full max-w-sm mx-4 shadow-xl border border-gray-200/50 dark:border-[#3d3c3e]"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Gradient Header */}
-              <div className="h-2 bg-gradient-to-r from-violet-500 via-purple-500 to-cyan-500" />
-              
-              {/* Content */}
-              <div className="p-6">
-                {/* Close Button */}
-                <button
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-[#3d3c3e]">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                  End Interview
+                </h2>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => setShowEndConfirmation(false)}
-                  className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
                 >
-                  <X className="h-5 w-5" />
-                </button>
+                  <X className="w-4 h-4" />
+                </motion.button>
+              </div>
 
-                {/* Icon */}
-                <div className="flex justify-center mb-4">
-                  <div className="p-4 rounded-full bg-gradient-to-br from-violet-100 to-cyan-100 dark:from-violet-500/20 dark:to-cyan-500/20">
-                    <Square className="h-8 w-8 text-violet-600 dark:text-violet-400" />
-                  </div>
-                </div>
-
-                {/* Title */}
-                <h3 className="text-xl font-bold text-center text-gray-900 dark:text-white mb-2">
-                  End Interview?
-                </h3>
-
-                {/* Description */}
-                <p className="text-center text-gray-500 dark:text-gray-400 mb-6">
-                  Your interview will end and you'll receive a detailed analysis of your performance.
+              {/* Body */}
+              <div className="p-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Your session will end and you'll receive a detailed performance analysis.
                 </p>
 
-                {/* Time completed */}
-                <div className="flex justify-center mb-6">
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 dark:bg-[#3d3c3e]">
-                    <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Time: {formatTime(elapsedTime)}
-                    </span>
+                {/* Session Info */}
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-[#242325] mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-[#1a1a1b] flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">Session Duration</p>
+                    <p className="text-sm font-mono font-semibold text-gray-900 dark:text-white">
+                      {formatTime(elapsedTime)}
+                    </p>
                   </div>
                 </div>
+              </div>
 
-                {/* Buttons */}
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowEndConfirmation(false)}
-                    className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-[#4a494b] text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
-                  >
-                    Continue Interview
-                  </button>
-                  <button
-                    onClick={handleConfirmEndInterview}
-                    className="flex-1 px-4 py-3 rounded-xl bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] text-gray-900 font-semibold shadow-sm hover:shadow-md transition-all"
-                  >
-                    End & Analyze
-                  </button>
-                </div>
+              {/* Footer */}
+              <div className="flex gap-2 p-4 pt-0">
+                <button
+                  onClick={() => setShowEndConfirmation(false)}
+                  className="flex-1 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmEndInterview}
+                  className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 transition-colors"
+                >
+                  End & Analyze
+                </button>
               </div>
             </motion.div>
           </motion.div>

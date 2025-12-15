@@ -161,7 +161,7 @@ export function createArrow(
 }
 
 /**
- * Create multiple sticky notes in a grid layout
+ * Create multiple sticky notes in a well-spaced grid layout
  */
 export function createStickyNotes(
   editor: Editor,
@@ -170,9 +170,34 @@ export function createStickyNotes(
 ): TLShapeId[] {
   const viewportCenter = center || getViewportCenter(editor);
   const positions = calculateStickyNotesLayout(notes.length, viewportCenter);
+  const createdIds: TLShapeId[] = [];
   
-  const shapes = notes.map((note, index) => {
+  // Create a frame to group all sticky notes
+  const frameId = createShapeId();
+  const framePadding = 50;
+  
+  // Calculate frame bounds from positions
+  const minX = Math.min(...positions.map(p => p.x));
+  const maxX = Math.max(...positions.map(p => p.x)) + 220; // note width
+  const minY = Math.min(...positions.map(p => p.y));
+  const maxY = Math.max(...positions.map(p => p.y)) + 220; // note height
+  
+  editor.createShapes([{
+    id: frameId,
+    type: 'frame',
+    x: minX - framePadding,
+    y: minY - framePadding,
+    props: {
+      w: maxX - minX + framePadding * 2,
+      h: maxY - minY + framePadding * 2,
+      name: 'Notes',
+    },
+  }]);
+  createdIds.push(frameId);
+  
+  const noteShapes = notes.map((note, index) => {
     const noteId = createShapeId();
+    createdIds.push(noteId);
     return {
       id: noteId,
       type: 'note' as const,
@@ -181,18 +206,33 @@ export function createStickyNotes(
       props: {
         richText: toRichText(note.text),
         color: colorMap[note.color] || 'yellow',
-        size: 'm' as const,
+        size: 'l' as const,
       },
     };
   });
   
-  editor.createShapes(shapes);
+  editor.createShapes(noteShapes);
   
-  return shapes.map(s => s.id);
+  // Try to reparent notes to frame
+  try {
+    const shapesToReparent = createdIds.filter(id => id !== frameId);
+    editor.reparentShapes(shapesToReparent, frameId);
+  } catch (e) {
+    console.warn('[TLDRAW] Could not reparent sticky notes to frame:', e);
+  }
+  
+  // Select and zoom
+  editor.setSelectedShapes(createdIds);
+  setTimeout(() => {
+    editor.zoomToFit();
+  }, 100);
+  
+  return createdIds;
 }
 
 /**
  * Create a mind map from a structure
+ * Uses bound arrows for clean connections between shapes
  */
 export function createMindMap(
   editor: Editor,
@@ -200,20 +240,21 @@ export function createMindMap(
   center?: WhiteboardPosition
 ): TLShapeId[] {
   const viewportCenter = center || getViewportCenter(editor);
-  const noteWidth = 200;
-  const noteHeight = 100;
+  const noteWidth = 220;
+  const noteHeight = 120;
   const childNoteWidth = 180;
-  const childNoteHeight = 80;
+  const childNoteHeight = 90;
   
   const layout = calculateMindMapLayout(structure, viewportCenter, noteWidth, noteHeight);
   const createdIds: TLShapeId[] = [];
-  const shapes: any[] = [];
+  const noteShapes: any[] = [];
+  const arrowShapes: any[] = [];
   
   // Create frame for the entire mind map
   const frameId = createShapeId();
-  const framePadding = 100;
-  const frameRadius = 450; // A bit larger than the branch radius
-  shapes.push({
+  const framePadding = 150;
+  const frameRadius = layout.branchRadius + layout.childRadius + 100;
+  noteShapes.push({
     id: frameId,
     type: 'frame',
     x: viewportCenter.x - frameRadius - framePadding,
@@ -228,7 +269,7 @@ export function createMindMap(
   
   // Create center topic note
   const centerId = createShapeId();
-  shapes.push({
+  noteShapes.push({
     id: centerId,
     type: 'note',
     x: layout.centerPosition.x,
@@ -236,18 +277,17 @@ export function createMindMap(
     props: {
       richText: toRichText(`🎯 ${structure.centerTopic}`),
       color: 'yellow',
-      size: 'l',
+      size: 'xl',
     },
   });
   createdIds.push(centerId);
   
-  // Create branches and their children
+  // Create branch notes
   structure.branches.forEach((branch, branchIndex) => {
     const branchPosition = layout.branchPositions[branchIndex];
     const branchId = createShapeId();
     
-    // Create branch note
-    shapes.push({
+    noteShapes.push({
       id: branchId,
       type: 'note',
       x: branchPosition.x,
@@ -255,106 +295,130 @@ export function createMindMap(
       props: {
         richText: toRichText(branch.text),
         color: colorMap[branch.color || 'blue'] || 'blue',
-        size: 'm',
+        size: 'l',
       },
     });
     createdIds.push(branchId);
     
-    // Create arrow from center to branch
+    // Create children notes for this branch
+    if (branch.children && branch.children.length > 0) {
+      const childPositions = layout.childPositions.get(branchIndex) || [];
+      
+      branch.children.forEach((child, childIndex) => {
+        const childPos = childPositions[childIndex];
+        if (!childPos) return;
+        
+        const childId = createShapeId();
+        
+        noteShapes.push({
+          id: childId,
+          type: 'note',
+          x: childPos.x,
+          y: childPos.y,
+          props: {
+            richText: toRichText(child.text),
+            color: colorMap[branch.color || 'blue'] || 'blue',
+            size: 'm',
+          },
+        });
+        createdIds.push(childId);
+      });
+    }
+  });
+  
+  // Create all note shapes first
+  editor.createShapes(noteShapes);
+  
+  // Now create arrows connecting shapes (point-to-point)
+  // Arrows from center to branches
+  structure.branches.forEach((branch, branchIndex) => {
+    const branchPosition = layout.branchPositions[branchIndex];
     const arrowId = createShapeId();
-    const centerNoteCenter = {
-      x: layout.centerPosition.x + noteWidth / 2,
-      y: layout.centerPosition.y + noteHeight / 2,
-    };
-    const branchNoteCenter = {
-      x: branchPosition.x + noteWidth / 2,
-      y: branchPosition.y + noteHeight / 2,
-    };
     
-    shapes.push({
+    // Calculate center points of the notes
+    const centerX = layout.centerPosition.x + noteWidth / 2;
+    const centerY = layout.centerPosition.y + noteHeight / 2;
+    const branchCenterX = branchPosition.x + noteWidth / 2;
+    const branchCenterY = branchPosition.y + noteHeight / 2;
+    
+    // Calculate direction vector
+    const dx = branchCenterX - centerX;
+    const dy = branchCenterY - centerY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const nx = dx / distance;
+    const ny = dy / distance;
+    
+    // Offset start and end to be at the edge of the notes (not center)
+    const startOffset = noteWidth / 2 + 10; // Start just outside center note
+    const endOffset = noteWidth / 2 + 10; // End just outside branch note
+    
+    const startX = centerX + nx * startOffset;
+    const startY = centerY + ny * startOffset;
+    const endX = branchCenterX - nx * endOffset;
+    const endY = branchCenterY - ny * endOffset;
+    
+    arrowShapes.push({
       id: arrowId,
       type: 'arrow',
-      x: centerNoteCenter.x,
-      y: centerNoteCenter.y,
+      x: startX,
+      y: startY,
       props: {
         start: { x: 0, y: 0 },
-        end: { 
-          x: branchNoteCenter.x - centerNoteCenter.x, 
-          y: branchNoteCenter.y - centerNoteCenter.y 
-        },
+        end: { x: endX - startX, y: endY - startY },
+        arrowheadStart: 'none',
         arrowheadEnd: 'arrow',
-        color: 'grey',
+        color: colorMap[branch.color || 'grey'] || 'grey',
         size: 'm',
         fill: 'none',
       },
     });
     createdIds.push(arrowId);
     
-    // Create children notes for this branch
-    if (branch.children && branch.children.length > 0) {
-      const childRadius = 150;
-      const childAngleSpread = Math.PI / 3; // 60 degrees spread for children
-      const baseAngle = branchPosition.angle;
-      const childAngleStep = childAngleSpread / Math.max(branch.children.length - 1, 1);
-      const childStartAngle = baseAngle - childAngleSpread / 2;
+    // Arrows from branch to children
+    const childPositions = layout.childPositions.get(branchIndex) || [];
+    
+    childPositions.forEach((childPos) => {
+      const childArrowId = createShapeId();
       
-      branch.children.forEach((child, childIndex) => {
-        const childAngle = branch.children!.length === 1 
-          ? baseAngle 
-          : childStartAngle + childIndex * childAngleStep;
-        
-        const childX = branchPosition.x + noteWidth / 2 + Math.cos(childAngle) * childRadius - childNoteWidth / 2;
-        const childY = branchPosition.y + noteHeight / 2 + Math.sin(childAngle) * childRadius - childNoteHeight / 2;
-        
-        const childId = createShapeId();
-        shapes.push({
-          id: childId,
-          type: 'note',
-          x: childX,
-          y: childY,
-          props: {
-            richText: toRichText(child.text),
-            color: colorMap[branch.color || 'blue'] || 'blue',
-            size: 's',
-          },
-        });
-        createdIds.push(childId);
-        
-        // Arrow from branch to child
-        const childArrowId = createShapeId();
-        const branchCenter = {
-          x: branchPosition.x + noteWidth / 2,
-          y: branchPosition.y + noteHeight / 2,
-        };
-        const childCenter = {
-          x: childX + childNoteWidth / 2,
-          y: childY + childNoteHeight / 2,
-        };
-        
-        shapes.push({
-          id: childArrowId,
-          type: 'arrow',
-          x: branchCenter.x,
-          y: branchCenter.y,
-          props: {
-            start: { x: 0, y: 0 },
-            end: { 
-              x: childCenter.x - branchCenter.x, 
-              y: childCenter.y - branchCenter.y 
-            },
-            arrowheadEnd: 'arrow',
-            color: 'light-blue',
-            size: 's',
-            fill: 'none',
-          },
-        });
-        createdIds.push(childArrowId);
+      const childCenterX = childPos.x + childNoteWidth / 2;
+      const childCenterY = childPos.y + childNoteHeight / 2;
+      
+      // Calculate direction for child arrow
+      const cdx = childCenterX - branchCenterX;
+      const cdy = childCenterY - branchCenterY;
+      const cDistance = Math.sqrt(cdx * cdx + cdy * cdy);
+      const cnx = cdx / cDistance;
+      const cny = cdy / cDistance;
+      
+      const cStartOffset = noteWidth / 2 + 5;
+      const cEndOffset = childNoteWidth / 2 + 5;
+      
+      const cStartX = branchCenterX + cnx * cStartOffset;
+      const cStartY = branchCenterY + cny * cStartOffset;
+      const cEndX = childCenterX - cnx * cEndOffset;
+      const cEndY = childCenterY - cny * cEndOffset;
+      
+      arrowShapes.push({
+        id: childArrowId,
+        type: 'arrow',
+        x: cStartX,
+        y: cStartY,
+        props: {
+          start: { x: 0, y: 0 },
+          end: { x: cEndX - cStartX, y: cEndY - cStartY },
+          arrowheadStart: 'none',
+          arrowheadEnd: 'arrow',
+          color: 'light-blue',
+          size: 's',
+          fill: 'none',
+        },
       });
-    }
+      createdIds.push(childArrowId);
+    });
   });
   
-  // Create all shapes at once
-  editor.createShapes(shapes);
+  // Create all arrow shapes
+  editor.createShapes(arrowShapes);
   
   // Try to reparent all shapes to frame
   try {
@@ -364,15 +428,19 @@ export function createMindMap(
     console.warn('[TLDRAW] Could not reparent mind map shapes to frame:', e);
   }
   
-  // Select and zoom to fit
+  // Select and zoom to fit with some padding
   editor.setSelectedShapes(createdIds);
-  editor.zoomToFit();
+  setTimeout(() => {
+    editor.zoomToFit();
+    editor.zoomOut(); // Add a bit more space
+  }, 100);
   
   return createdIds;
 }
 
 /**
  * Create a flow diagram from nodes and connections
+ * Uses bound arrows for clean connections
  */
 export function createFlowDiagram(
   editor: Editor,
@@ -381,23 +449,22 @@ export function createFlowDiagram(
   center?: WhiteboardPosition
 ): TLShapeId[] {
   const viewportCenter = center || getViewportCenter(editor);
-  const nodeWidth = 200;
-  const nodeHeight = 80;
+  const nodeWidth = 240;
+  const nodeHeight = 100;
   
   const positions = calculateFlowDiagramLayout(nodes, viewportCenter, nodeWidth, nodeHeight);
   const createdIds: TLShapeId[] = [];
-  const shapes: any[] = [];
-  const nodeIdMap = new Map<string, TLShapeId>();
+  const nodeShapes: any[] = [];
   
   // Calculate frame bounds
   const allY = nodes.map((_, i) => positions.get(nodes[i].id)?.y || 0);
   const minY = Math.min(...allY);
   const maxY = Math.max(...allY) + nodeHeight;
-  const framePadding = 50;
+  const framePadding = 80;
   
   // Create frame
   const frameId = createShapeId();
-  shapes.push({
+  nodeShapes.push({
     id: frameId,
     type: 'frame',
     x: viewportCenter.x - nodeWidth / 2 - framePadding,
@@ -416,7 +483,6 @@ export function createFlowDiagram(
     if (!pos) return;
     
     const shapeId = createShapeId();
-    nodeIdMap.set(node.id, shapeId);
     
     // Choose shape type and color based on node type
     let color: TldrawColor = 'blue';
@@ -442,7 +508,7 @@ export function createFlowDiagram(
         break;
     }
     
-    shapes.push({
+    nodeShapes.push({
       id: shapeId,
       type: 'note',
       x: pos.x,
@@ -450,16 +516,16 @@ export function createFlowDiagram(
       props: {
         richText: toRichText(`${emoji}${node.text}`),
         color,
-        size: 'm',
+        size: 'l',
       },
     });
     createdIds.push(shapeId);
   });
   
   // Create all node shapes first
-  editor.createShapes(shapes);
+  editor.createShapes(nodeShapes);
   
-  // Create connections (arrows)
+  // Create connections (arrows) with point-to-point coordinates
   const arrowShapes: any[] = [];
   connections.forEach((conn) => {
     const fromPos = positions.get(conn.from);
@@ -467,10 +533,12 @@ export function createFlowDiagram(
     if (!fromPos || !toPos) return;
     
     const arrowId = createShapeId();
+    
+    // Arrow from bottom of source to top of target
     const startX = fromPos.x + nodeWidth / 2;
-    const startY = fromPos.y + nodeHeight;
+    const startY = fromPos.y + nodeHeight + 5; // Just below the source
     const endX = toPos.x + nodeWidth / 2;
-    const endY = toPos.y;
+    const endY = toPos.y - 5; // Just above the target
     
     arrowShapes.push({
       id: arrowId,
@@ -480,6 +548,7 @@ export function createFlowDiagram(
       props: {
         start: { x: 0, y: 0 },
         end: { x: endX - startX, y: endY - startY },
+        arrowheadStart: 'none',
         arrowheadEnd: 'arrow',
         color: 'grey',
         size: 'm',
@@ -499,7 +568,7 @@ export function createFlowDiagram(
       if (!fromPos || !toPos) return;
       
       const labelId = createShapeId();
-      const labelX = (fromPos.x + toPos.x) / 2 + nodeWidth / 2 + 10;
+      const labelX = (fromPos.x + toPos.x) / 2 + nodeWidth / 2 + 15;
       const labelY = (fromPos.y + nodeHeight + toPos.y) / 2 - 10;
       
       editor.createShapes([{
@@ -509,7 +578,7 @@ export function createFlowDiagram(
         y: labelY,
         props: {
           text: conn.label,
-          size: 's',
+          size: 'm',
           color: 'grey',
         },
       }]);
@@ -525,9 +594,12 @@ export function createFlowDiagram(
     console.warn('[TLDRAW] Could not reparent flow diagram shapes to frame:', e);
   }
   
-  // Select and zoom to fit
+  // Select and zoom to fit with padding
   editor.setSelectedShapes(createdIds);
-  editor.zoomToFit();
+  setTimeout(() => {
+    editor.zoomToFit();
+    editor.zoomOut();
+  }, 100);
   
   return createdIds;
 }

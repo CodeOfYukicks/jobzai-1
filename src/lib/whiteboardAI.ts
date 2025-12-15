@@ -536,44 +536,86 @@ export function generateFallbackFlowDiagram(topic: string): { nodes: FlowDiagram
 
 /**
  * Calculate layout positions for mind map branches
+ * Uses a radial layout with proper spacing to avoid overlaps
  */
 export function calculateMindMapLayout(
   structure: MindMapStructure,
   center: { x: number; y: number },
   noteWidth: number = 200,
   noteHeight: number = 100
-): { centerPosition: { x: number; y: number }; branchPositions: { x: number; y: number; angle: number }[] } {
+): { 
+  centerPosition: { x: number; y: number }; 
+  branchPositions: { x: number; y: number; angle: number }[];
+  childPositions: Map<number, { x: number; y: number; angle: number }[]>;
+  branchRadius: number;
+  childRadius: number;
+} {
   const branchCount = structure.branches.length;
-  const radius = 300; // Distance from center to branches
+  
+  // Calculate radius based on branch count to avoid overlaps
+  // More branches = larger radius
+  const baseRadius = 350;
+  const branchRadius = baseRadius + Math.max(0, branchCount - 4) * 50;
+  const childRadius = 200; // Distance from branch to children
+  
   const startAngle = -Math.PI / 2; // Start at top
   const angleStep = (2 * Math.PI) / branchCount;
   
   const branchPositions = structure.branches.map((_, index) => {
     const angle = startAngle + (index * angleStep);
     return {
-      x: center.x + Math.cos(angle) * radius - noteWidth / 2,
-      y: center.y + Math.sin(angle) * radius - noteHeight / 2,
+      x: center.x + Math.cos(angle) * branchRadius - noteWidth / 2,
+      y: center.y + Math.sin(angle) * branchRadius - noteHeight / 2,
       angle
     };
   });
   
+  // Pre-calculate child positions for each branch
+  const childPositions = new Map<number, { x: number; y: number; angle: number }[]>();
+  structure.branches.forEach((branch, branchIndex) => {
+    if (branch.children && branch.children.length > 0) {
+      const branchAngle = branchPositions[branchIndex].angle;
+      const childCount = branch.children.length;
+      const childAngleSpread = Math.min(Math.PI / 2, (Math.PI / 4) * childCount); // Dynamic spread
+      const childAngleStep = childAngleSpread / Math.max(childCount - 1, 1);
+      const childStartAngle = branchAngle - childAngleSpread / 2;
+      
+      const positions = branch.children.map((_, childIndex) => {
+        const angle = childCount === 1 
+          ? branchAngle 
+          : childStartAngle + childIndex * childAngleStep;
+        
+        return {
+          x: branchPositions[branchIndex].x + noteWidth / 2 + Math.cos(angle) * childRadius - noteWidth * 0.4,
+          y: branchPositions[branchIndex].y + noteHeight / 2 + Math.sin(angle) * childRadius - noteHeight * 0.4,
+          angle
+        };
+      });
+      childPositions.set(branchIndex, positions);
+    }
+  });
+  
   return {
     centerPosition: { x: center.x - noteWidth / 2, y: center.y - noteHeight / 2 },
-    branchPositions
+    branchPositions,
+    childPositions,
+    branchRadius,
+    childRadius
   };
 }
 
 /**
- * Calculate layout positions for sticky notes (grid layout)
+ * Calculate layout positions for sticky notes (grid layout with generous spacing)
  */
 export function calculateStickyNotesLayout(
   count: number,
   center: { x: number; y: number },
-  noteWidth: number = 200,
-  noteHeight: number = 200,
-  spacing: number = 30
+  noteWidth: number = 220,
+  noteHeight: number = 220,
+  spacing: number = 60
 ): { x: number; y: number }[] {
-  const cols = Math.ceil(Math.sqrt(count));
+  // Aim for a more horizontal layout for readability
+  const cols = Math.min(count, Math.max(3, Math.ceil(Math.sqrt(count * 1.5))));
   const rows = Math.ceil(count / cols);
   
   const totalWidth = cols * noteWidth + (cols - 1) * spacing;
@@ -589,14 +631,14 @@ export function calculateStickyNotesLayout(
 }
 
 /**
- * Calculate layout positions for flow diagram (vertical layout)
+ * Calculate layout positions for flow diagram (vertical layout with better spacing)
  */
 export function calculateFlowDiagramLayout(
   nodes: FlowDiagramNode[],
   center: { x: number; y: number },
-  nodeWidth: number = 200,
-  nodeHeight: number = 80,
-  spacing: number = 60
+  nodeWidth: number = 220,
+  nodeHeight: number = 100,
+  spacing: number = 80
 ): Map<string, { x: number; y: number }> {
   const positions = new Map<string, { x: number; y: number }>();
   
