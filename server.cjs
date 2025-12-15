@@ -1073,7 +1073,7 @@ app.post('/api/assistant', async (req, res) => {
     console.log('\n🤖 ════════════════════════════════════════════════════════');
     console.log('🤖 AI Assistant endpoint called');
     
-    const { message, aiProvider = 'openai', pageContext, userContext, conversationHistory, userId, pageData, selectedContextItems, inlineEditMode = false, selectionMode = false, selectedText = '' } = req.body;
+    const { message, aiProvider = 'openai', pageContext, userContext, conversationHistory, userId, pageData, selectedContextItems, inlineEditMode = false, selectionMode = false, selectedText = '', personaConfig = null, personaPrompt = '' } = req.body;
 
     console.log('🤖 ┌─────────────────────────────────────────────────────┐');
     console.log(`🤖 │ AI Provider: ${aiProvider.toUpperCase().padEnd(39)} │`);
@@ -1126,6 +1126,17 @@ app.post('/api/assistant', async (req, res) => {
 
     // Build system prompt with context and page data (pass inlineEditMode to skip EDIT_NOTE markup instructions)
     let systemPrompt = buildAssistantSystemPrompt(pageContext, userContext, pageData, selectedContextItems, inlineEditMode);
+    
+    // Add persona customization if provided
+    if (personaPrompt) {
+      console.log(`🎭 Persona: ${personaConfig?.name || 'Custom'} (tone: ${personaConfig?.tone || 'default'})`);
+      systemPrompt = `## AI PERSONALITY CUSTOMIZATION
+${personaPrompt}
+
+---
+
+${systemPrompt}`;
+    }
     
     // Add inline edit mode instructions if enabled
     if (inlineEditMode) {

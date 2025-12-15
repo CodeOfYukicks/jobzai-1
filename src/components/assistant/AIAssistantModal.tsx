@@ -8,7 +8,18 @@ import QuickActions from './QuickActions';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { Link, useLocation } from 'react-router-dom';
-import { Avatar, AvatarEditor, AvatarConfig, DEFAULT_AVATAR_CONFIG, loadAvatarConfig, saveAvatarConfig } from './avatar';
+import { 
+  Avatar, 
+  AvatarEditor, 
+  AvatarConfig, 
+  DEFAULT_AVATAR_CONFIG, 
+  loadAvatarConfig, 
+  saveAvatarConfig,
+  PersonaConfig,
+  DEFAULT_PERSONA_CONFIG,
+  loadPersonaConfig,
+  savePersonaConfig,
+} from './avatar';
 
 // Pages where the assistant should NOT have a backdrop (to allow interaction with content)
 const PAGES_WITHOUT_BACKDROP = ['/notes'];
@@ -216,6 +227,10 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
   const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>(DEFAULT_AVATAR_CONFIG);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   const [avatarLoaded, setAvatarLoaded] = useState(false);
+  
+  // Persona customization state
+  const [personaConfig, setPersonaConfig] = useState<PersonaConfig>(DEFAULT_PERSONA_CONFIG);
+  const [personaLoaded, setPersonaLoaded] = useState(false);
 
   // Get user's first name
   const firstName = profile?.firstName || userData?.name?.split(' ')[0] || 'there';
@@ -237,21 +252,46 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
     loadUserAvatar();
   }, [currentUser?.uid, avatarLoaded]);
   
+  // Load persona config on mount
+  useEffect(() => {
+    const loadUserPersona = async () => {
+      if (currentUser?.uid && !personaLoaded) {
+        try {
+          const config = await loadPersonaConfig(currentUser.uid);
+          setPersonaConfig(config);
+          setPersonaLoaded(true);
+        } catch (error) {
+          console.error('[Persona] Error loading config:', error);
+          setPersonaLoaded(true);
+        }
+      }
+    };
+    loadUserPersona();
+  }, [currentUser?.uid, personaLoaded]);
+  
   // Handle avatar config change
   const handleAvatarConfigChange = useCallback((newConfig: AvatarConfig) => {
     setAvatarConfig(newConfig);
   }, []);
   
-  // Handle avatar save
-  const handleAvatarSave = useCallback(async () => {
+  // Handle persona config change
+  const handlePersonaConfigChange = useCallback((newConfig: PersonaConfig) => {
+    setPersonaConfig(newConfig);
+  }, []);
+
+  // Handle avatar and persona save
+  const handleSave = useCallback(async () => {
     if (currentUser?.uid) {
       try {
-        await saveAvatarConfig(currentUser.uid, avatarConfig);
+        await Promise.all([
+          saveAvatarConfig(currentUser.uid, avatarConfig),
+          savePersonaConfig(currentUser.uid, personaConfig),
+        ]);
       } catch (error) {
-        console.error('[Avatar] Error saving config:', error);
+        console.error('[Avatar/Persona] Error saving config:', error);
       }
     }
-  }, [currentUser?.uid, avatarConfig]);
+  }, [currentUser?.uid, avatarConfig, personaConfig]);
   
   // Generate contextual insight based on current page and data
   const contextualInsight = useMemo(() => {
@@ -754,7 +794,9 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
                   config={avatarConfig}
                   onConfigChange={handleAvatarConfigChange}
                   onClose={() => setShowAvatarEditor(false)}
-                  onSave={handleAvatarSave}
+                  onSave={handleSave}
+                  personaConfig={personaConfig}
+                  onPersonaConfigChange={handlePersonaConfigChange}
                 />
               )}
             </AnimatePresence>

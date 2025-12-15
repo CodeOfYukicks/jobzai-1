@@ -25,6 +25,7 @@ import {
   fetchWhiteboards,
   fetchDocuments,
 } from '../../lib/globalSearchService';
+import { PersonaConfig, DEFAULT_PERSONA_CONFIG, loadPersonaConfig, generatePersonaPrompt } from './avatar/personaConfig';
 
 interface ChatInputProps {
   placeholder?: string;
@@ -160,6 +161,24 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
   
   const { currentUser, userData } = useAuth();
   const { profile } = useUserProfile();
+  
+  // Persona config for customizing AI personality
+  const [personaConfig, setPersonaConfig] = useState<PersonaConfig>(DEFAULT_PERSONA_CONFIG);
+  
+  // Load persona config on mount
+  useEffect(() => {
+    const loadUserPersona = async () => {
+      if (currentUser?.uid) {
+        try {
+          const config = await loadPersonaConfig(currentUser.uid);
+          setPersonaConfig(config);
+        } catch (error) {
+          console.error('[ChatInput] Error loading persona config:', error);
+        }
+      }
+    };
+    loadUserPersona();
+  }, [currentUser?.uid]);
 
   // AI Provider options with company logos - OFFICIAL model names
   const aiProviders: AIProviderOption[] = [
@@ -579,6 +598,9 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
           enhancedMessage = `[SELECTED TEXT TO EDIT: "${editorSelection.text}"]\n\nUser request: ${trimmedInput}`;
         }
         
+        // Generate persona prompt for inline edits too
+        const personaPrompt = generatePersonaPrompt(personaConfig);
+        
         const response = await fetch('/api/assistant', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -596,6 +618,8 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
             inlineEditMode: true, // Signal to server this is an inline edit
             selectionMode: hasSelection, // Signal selection-based edit
             selectedText: hasSelection ? editorSelection?.text : undefined,
+            personaConfig: personaConfig, // Include persona customization
+            personaPrompt: personaPrompt, // Pre-generated persona prompt
           }),
         });
         
@@ -788,6 +812,9 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
       console.log('🤖 [REQUEST] Message:', trimmedInput.substring(0, 50) + '...');
       console.log('🤖 ════════════════════════════════════════════════════════');
 
+      // Generate persona prompt addition for AI personality customization
+      const personaPrompt = generatePersonaPrompt(personaConfig);
+      
       const response = await fetch('/api/assistant', {
         method: 'POST',
         headers: {
@@ -806,6 +833,8 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
           userContext,
           userId: currentUser?.uid,
           pageData: pageData,
+          personaConfig: personaConfig, // Include persona customization
+          personaPrompt: personaPrompt, // Pre-generated persona prompt
         }),
       });
 

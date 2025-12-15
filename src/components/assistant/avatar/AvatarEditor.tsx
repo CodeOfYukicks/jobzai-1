@@ -22,18 +22,23 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Shuffle, Eye, Smile, Glasses, Sparkles as BrowIcon, User2 } from 'lucide-react';
 import Avatar from './Avatar';
+import PersonaEditor from './PersonaEditor';
 import { 
   AvatarConfig, 
   AVATAR_OPTIONS, 
   generateRandomConfig,
   DEFAULT_AVATAR_CONFIG 
 } from './avatarConfig';
+import { PersonaConfig, DEFAULT_PERSONA_CONFIG } from './personaConfig';
 
 interface AvatarEditorProps {
   config: AvatarConfig;
   onConfigChange: (config: AvatarConfig) => void;
   onClose: () => void;
   onSave?: () => void;
+  // Persona config props
+  personaConfig?: PersonaConfig;
+  onPersonaConfigChange?: (config: PersonaConfig) => void;
 }
 
 type TabKey = 'eyes' | 'lips' | 'brows' | 'nose' | 'glasses';
@@ -50,7 +55,9 @@ export default function AvatarEditor({
   config, 
   onConfigChange, 
   onClose,
-  onSave 
+  onSave,
+  personaConfig = DEFAULT_PERSONA_CONFIG,
+  onPersonaConfigChange,
 }: AvatarEditorProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('eyes');
 
@@ -220,7 +227,7 @@ export default function AvatarEditor({
         ))}
       </div>
 
-      {/* Options Grid */}
+      {/* Scrollable Content Area - Avatar Options only */}
       <div className="flex-1 overflow-y-auto p-4">
         {activeTab === 'glasses' && (
           <div className="mb-4">
@@ -299,26 +306,38 @@ export default function AvatarEditor({
         </div>
       </div>
 
-      {/* Save Button */}
-      {onSave && (
-        <div className="px-4 py-3 border-t border-gray-200/60 dark:border-white/5">
-          <button
-            onClick={() => {
-              onSave();
-              onClose();
-            }}
-            className="w-full py-2 rounded-lg text-sm
-              bg-gray-900 dark:bg-white
-              text-white dark:text-gray-900
-              font-medium
-              hover:bg-gray-800 dark:hover:bg-gray-100
-              active:scale-[0.98]
-              transition-all duration-150"
-          >
-            Save
-          </button>
-        </div>
-      )}
+      {/* Fixed Bottom Section - Persona Editor + Save Button */}
+      <div className="flex-shrink-0 border-t border-gray-200/60 dark:border-white/5">
+        {/* Persona Editor Section - Fixed above save */}
+        {onPersonaConfigChange && (
+          <PersonaEditor
+            config={personaConfig}
+            onConfigChange={onPersonaConfigChange}
+            avatarConfig={config}
+          />
+        )}
+
+        {/* Save Button */}
+        {onSave && (
+          <div className="px-4 py-3 border-t border-gray-200/60 dark:border-white/5">
+            <button
+              onClick={() => {
+                onSave();
+                onClose();
+              }}
+              className="w-full py-2 rounded-lg text-sm
+                bg-gray-900 dark:bg-white
+                text-white dark:text-gray-900
+                font-medium
+                hover:bg-gray-800 dark:hover:bg-gray-100
+                active:scale-[0.98]
+                transition-all duration-150"
+            >
+              Save
+            </button>
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }
