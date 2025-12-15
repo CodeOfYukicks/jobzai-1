@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { collection, query, getDocs, doc, getDoc, addDoc, updateDoc, orderBy, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,8 +27,10 @@ import {
 } from 'lucide-react';
 import { useRealtimeInterview, type JobContext, type UserProfile } from '../hooks/useRealtimeInterview';
 import type { TranscriptEntry } from '../types/openai-realtime';
+import type { MockInterviewAnalysis } from '../types/interview';
 import { AIOrb, type OrbState } from '../components/interview/AIOrb';
 import { CompanyLogo } from '../components/common/CompanyLogo';
+import { MockInterviewResultsView } from '../components/interview/MockInterviewResultsView';
 
 // ============================================
 // INTERFACES
@@ -45,7 +46,8 @@ interface JobApplication {
   status: string;
 }
 
-interface InterviewAnalysis {
+// Legacy interface for backward compatibility with old saved sessions
+interface LegacyInterviewAnalysis {
   summary: string;
   answerQuality?: {
     didTheyAnswer: string;
@@ -74,6 +76,9 @@ interface InterviewAnalysis {
   recommendation: string;
 }
 
+// Union type for analysis - supports both old and new format
+type InterviewAnalysisUnion = MockInterviewAnalysis | LegacyInterviewAnalysis;
+
 // Interface for saved mock interview sessions
 export interface MockInterviewSession {
   id: string;
@@ -83,11 +88,141 @@ export interface MockInterviewSession {
   position: string;
   elapsedTime: number;
   transcript: TranscriptEntry[];
-  analysis: InterviewAnalysis | null;
+  analysis: InterviewAnalysisUnion | null;
   createdAt?: any;
 }
 
 type Phase = 'setup' | 'preparation' | 'live' | 'results';
+
+// ============================================
+// HELPER: Detect if analysis is legacy format
+// ============================================
+
+function isLegacyAnalysis(analysis: unknown): analysis is LegacyInterviewAnalysis {
+  if (!analysis || typeof analysis !== 'object') return false;
+  const a = analysis as Record<string, unknown>;
+  // Legacy format has "scores.overall" (1-10), new format has "overallScore" (0-100)
+  return 'scores' in a && typeof a.scores === 'object' && a.scores !== null && 'overall' in (a.scores as Record<string, unknown>);
+}
+
+// ============================================
+// HELPER: Convert legacy analysis to new format
+// ============================================
+
+function convertLegacyAnalysis(legacy: LegacyInterviewAnalysis): MockInterviewAnalysis {
+  const overallScore = (legacy.scores?.overall || 5) * 10;
+  const commScore = (legacy.scores?.communication || 5) * 10;
+  const relevanceScore = (legacy.scores?.relevance || 5) * 10;
+  const structureScore = (legacy.scores?.structure || 5) * 10;
+  const confidenceScore = (legacy.scores?.confidence || 5) * 10;
+  const jobFitScore = (legacy.jobFit?.score || 5) * 10;
+  
+  return {
+    verdict: {
+      passed: overallScore >= 60,
+      confidence: overallScore >= 70 ? 'high' : overallScore >= 50 ? 'medium' : 'low',
+      hireDecision: overallScore >= 70 ? 'yes' : overallScore >= 50 ? 'maybe' : 'no',
+    },
+    overallScore,
+    executiveSummary: legacy.summary || 'No summary available.',
+    contentAnalysis: {
+      relevanceScore: relevanceScore,
+      specificityScore: relevanceScore,
+      didAnswerQuestions: legacy.answerQuality?.didTheyAnswer ? 
+        (legacy.answerQuality.didTheyAnswer.toLowerCase().includes('yes') ? 'yes' : 
+         legacy.answerQuality.didTheyAnswer.toLowerCase().includes('partial') ? 'partially' : 'no') 
+        : 'partially',
+      examplesProvided: 0,
+      examplesQuality: 'generic',
+      starMethodUsage: { situation: false, task: false, action: false, result: false },
+      contentVerdict: legacy.answerQuality?.didTheyAnswer || '',
+    },
+    expressionAnalysis: {
+      organizationScore: structureScore,
+      clarityScore: commScore,
+      confidenceScore: confidenceScore,
+      structureAssessment: structureScore >= 70 ? 'organized' : structureScore >= 40 ? 'mixed' : 'scattered',
+      rambling: false,
+      expressionVerdict: '',
+    },
+    jobFitAnalysis: {
+      fitScore: jobFitScore,
+      matchedSkills: [],
+      missingSkills: legacy.jobFit?.missingSkills || [],
+      experienceRelevance: jobFitScore >= 70 ? 'high' : jobFitScore >= 40 ? 'medium' : 'low',
+      wouldSurvive90Days: jobFitScore >= 60 ? 'likely' : jobFitScore >= 40 ? 'uncertain' : 'unlikely',
+      competitivePosition: legacy.jobFit?.assessment || '',
+      jobFitVerdict: legacy.jobFit?.assessment || '',
+    },
+    transcriptHighlights: [
+      ...(legacy.memorableQuotes?.good ? [{
+        entryId: 'quote-good',
+        excerpt: legacy.memorableQuotes.good,
+        type: 'strength' as const,
+        category: 'content' as const,
+        feedback: 'Good quote from your interview',
+      }] : []),
+      ...(legacy.memorableQuotes?.needsWork ? [{
+        entryId: 'quote-work',
+        excerpt: legacy.memorableQuotes.needsWork,
+        type: 'improvement' as const,
+        category: 'content' as const,
+        feedback: 'This could be improved',
+      }] : []),
+    ],
+    strengths: legacy.strengths || [],
+    criticalIssues: legacy.improvements || [],
+    actionPlan: legacy.recommendation ? [legacy.recommendation] : [],
+  };
+}
+
+// ============================================
+// HELPER: Normalize analysis data with defaults
+// ============================================
+
+function normalizeAnalysis(rawAnalysis: Partial<MockInterviewAnalysis>): MockInterviewAnalysis {
+  return {
+    ...rawAnalysis,
+    verdict: rawAnalysis.verdict || {
+      passed: false,
+      confidence: 'low',
+      hireDecision: 'no',
+    },
+    overallScore: rawAnalysis.overallScore ?? 0,
+    executiveSummary: rawAnalysis.executiveSummary?.trim() || 'Analysis complete. Review your performance below.',
+    contentAnalysis: rawAnalysis.contentAnalysis || {
+      relevanceScore: 0,
+      specificityScore: 0,
+      didAnswerQuestions: 'no',
+      examplesProvided: 0,
+      examplesQuality: 'none',
+      starMethodUsage: { situation: false, task: false, action: false, result: false },
+      contentVerdict: '',
+    },
+    expressionAnalysis: rawAnalysis.expressionAnalysis || {
+      organizationScore: 0,
+      clarityScore: 0,
+      confidenceScore: 0,
+      structureAssessment: 'minimal',
+      rambling: false,
+      expressionVerdict: '',
+    },
+    jobFitAnalysis: rawAnalysis.jobFitAnalysis || {
+      fitScore: 0,
+      matchedSkills: [],
+      missingSkills: [],
+      experienceRelevance: 'low',
+      wouldSurvive90Days: 'unlikely',
+      competitivePosition: '',
+      jobFitVerdict: '',
+    },
+    transcriptHighlights: rawAnalysis.transcriptHighlights || [],
+    responseAnalysis: rawAnalysis.responseAnalysis || [],
+    strengths: rawAnalysis.strengths || [],
+    criticalIssues: rawAnalysis.criticalIssues || [],
+    actionPlan: rawAnalysis.actionPlan || [],
+  } as MockInterviewAnalysis;
+}
 
 // ============================================
 // COMPONENT
@@ -95,7 +230,6 @@ type Phase = 'setup' | 'preparation' | 'live' | 'results';
 
 export default function MockInterviewPage() {
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
   
   // ============================================
   // REALTIME INTERVIEW HOOK
@@ -138,9 +272,12 @@ export default function MockInterviewPage() {
   
   // Results state
   const [finalTranscript, setFinalTranscript] = useState<TranscriptEntry[]>([]);
-  const [analysis, setAnalysis] = useState<InterviewAnalysis | null>(null);
+  const [analysis, setAnalysis] = useState<MockInterviewAnalysis | null>(null);
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  
+  // Viewing past session state (when clicking on history)
+  const [viewingSession, setViewingSession] = useState<MockInterviewSession | null>(null);
   
   // Confirmation modal state
   const [showEndConfirmation, setShowEndConfirmation] = useState(false);
@@ -314,6 +451,47 @@ export default function MockInterviewPage() {
     }
   }, [phase, elapsedTime, isTimeWarning]);
 
+  // Poll for analysis ONLY when viewing a past session that doesn't have analysis yet
+  // This is a rare edge case - normally analysis is available immediately
+  useEffect(() => {
+    // Only poll when:
+    // 1. Viewing a past session from history (viewingSession is set)
+    // 2. That session doesn't have analysis yet
+    // 3. We're in results phase with loading state
+    if (!currentUser || !viewingSession || analysis || !isLoadingAnalysis || phase !== 'results') {
+      return;
+    }
+    
+    console.log('🔄 Polling for analysis on past session:', viewingSession.id);
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        const sessionRef = doc(db, 'users', currentUser.uid, 'mockInterviewSessions', viewingSession.id);
+        const sessionDoc = await getDoc(sessionRef);
+        
+        if (sessionDoc.exists()) {
+          const data = sessionDoc.data();
+          if (data.analysis) {
+            // Analysis ready - normalize and display
+            const analysisData = normalizeAnalysis(
+              isLegacyAnalysis(data.analysis) 
+                ? convertLegacyAnalysis(data.analysis) 
+                : data.analysis as MockInterviewAnalysis
+            );
+            
+            console.log('✅ Analysis received via polling');
+            setAnalysis(analysisData);
+            setIsLoadingAnalysis(false);
+          }
+        }
+      } catch (error) {
+        console.error('Error polling for analysis:', error);
+      }
+    }, 3000); // Poll every 3 seconds
+    
+    return () => clearInterval(pollInterval);
+  }, [currentUser, viewingSession, analysis, isLoadingAnalysis, phase]);
+
   // Microphone test effect - runs during preparation phase
   useEffect(() => {
     if (phase !== 'preparation') {
@@ -415,6 +593,7 @@ export default function MockInterviewPage() {
     setLocalError(null);
     setIsTimeWarning(false);
     setCurrentSessionId(null);
+    setViewingSession(null); // Clear viewing session when going back
     setPhase('setup');
   }, [handleStopInterview]);
 
@@ -425,7 +604,7 @@ export default function MockInterviewPage() {
   // Save session to Firestore (with optional analysis - null when saving before analysis)
   const saveSessionToFirestore = useCallback(async (
     transcriptData: TranscriptEntry[],
-    analysisData: InterviewAnalysis | null = null
+    analysisData: InterviewAnalysisUnion | null = null
   ) => {
     console.log('🔄 saveSessionToFirestore called', { 
       hasUser: !!currentUser, 
@@ -479,40 +658,70 @@ export default function MockInterviewPage() {
   }, [currentUser, selectedApplication, elapsedTime]);
 
   // Update session with analysis once it completes
+  // Pattern: Update local state FIRST (immediate), then persist to Firestore (background)
   const updateSessionAnalysis = useCallback(async (
     sessionId: string,
-    analysisData: InterviewAnalysis
+    analysisData: InterviewAnalysisUnion
   ) => {
-    if (!currentUser) return;
+    // 1. Update local state IMMEDIATELY - this ensures clicking on history shows correct data
+    console.log('📊 Updating local pastSessions state:', sessionId);
+    setPastSessions(prev => prev.map(session => 
+      session.id === sessionId 
+        ? { ...session, analysis: analysisData }
+        : session
+    ));
+    
+    // 2. Save to Firestore (can be async - we don't need to wait)
+    if (!currentUser) {
+      console.warn('⚠️ No user - skipping Firestore save');
+      return;
+    }
     
     try {
       const sessionRef = doc(db, 'users', currentUser.uid, 'mockInterviewSessions', sessionId);
       await updateDoc(sessionRef, {
         analysis: analysisData,
       });
-      console.log('✅ Session analysis updated:', sessionId);
-      
-      // Update local state
-      setPastSessions(prev => prev.map(session => 
-        session.id === sessionId 
-          ? { ...session, analysis: analysisData }
-          : session
-      ));
+      console.log('✅ Analysis saved to Firestore:', sessionId);
     } catch (error) {
-      console.error('Error updating session analysis:', error);
+      console.error('❌ Error saving analysis to Firestore:', error);
+      // Note: Local state is already updated, so UI will still work
     }
   }, [currentUser]);
 
   // Analyze the interview transcript
-  // sessionIdOverride is used when called immediately after saving (to avoid stale closure)
-  const analyzeInterview = useCallback(async (sessionIdOverride?: string) => {
+  // transcriptData is passed directly to avoid stale closure issues
+  // sessionIdOverride is used when called immediately after saving
+  const analyzeInterview = useCallback(async (transcriptData: TranscriptEntry[], sessionIdOverride?: string) => {
     if (!selectedApplication) return;
+    
+    // Validate transcript is not empty and contains user responses
+    if (!transcriptData || transcriptData.length === 0) {
+      console.error('❌ Cannot analyze: transcript is empty');
+      setIsLoadingAnalysis(false);
+      notify.error('No transcript data available for analysis');
+      return;
+    }
+    
+    const userResponses = transcriptData.filter(e => e.role === 'user' && e.text && e.text.trim().length > 0);
+    if (userResponses.length === 0) {
+      console.error('❌ Cannot analyze: no user responses in transcript');
+      setIsLoadingAnalysis(false);
+      notify.error('No user responses found in transcript');
+      return;
+    }
+    
+    console.log('📊 Analyzing transcript with', transcriptData.length, 'entries and', userResponses.length, 'user responses');
     
     setIsLoadingAnalysis(true);
     
+    // Track start time to ensure minimum loading duration
+    const startTime = Date.now();
+    const MIN_LOADING_DURATION = 2000; // Minimum 2 seconds loading
+    
     try {
-      // Get transcript from state (already saved in finalTranscript)
-      const transcriptToAnalyze = finalTranscript.length > 0 ? finalTranscript : transcript;
+      // Use transcript passed as parameter to avoid stale closure
+      const transcriptToAnalyze = transcriptData;
       
       const response = await fetch('/api/analyze-live-interview', {
         method: 'POST',
@@ -525,7 +734,20 @@ export default function MockInterviewPage() {
             companyName: selectedApplication.companyName,
             position: selectedApplication.position,
             jobDescription: selectedApplication.jobDescription,
+            requirements: selectedApplication.requirements,
           },
+          // Pass user profile for context-aware analysis
+          userProfile: userProfile ? {
+            firstName: userProfile.firstName,
+            lastName: userProfile.lastName,
+            currentPosition: userProfile.currentPosition,
+            yearsOfExperience: userProfile.yearsOfExperience,
+            skills: userProfile.skills,
+            education: userProfile.education,
+            cvText: userProfile.cvText,
+            targetPosition: userProfile.targetPosition,
+            targetSectors: userProfile.targetSectors,
+          } : null,
         }),
       });
       
@@ -534,24 +756,70 @@ export default function MockInterviewPage() {
       }
       
       const analysisResult = await response.json();
-      setAnalysis(analysisResult);
+      console.log('📊 Analysis result received:', {
+        overallScore: analysisResult.overallScore,
+        hasExecutiveSummary: !!analysisResult.executiveSummary,
+        executiveSummaryLength: analysisResult.executiveSummary?.length,
+      });
       
-      // Update session with analysis (session was already created before analysis started)
-      // Use override if provided (to avoid stale closure), otherwise use state
+      // Normalize analysis with all required fields and defaults
+      const processedAnalysis = normalizeAnalysis(analysisResult);
+      
+      console.log('📊 Processed analysis:', {
+        overallScore: processedAnalysis.overallScore,
+        hasExecutiveSummary: !!processedAnalysis.executiveSummary,
+        strengthsCount: processedAnalysis.strengths?.length,
+        criticalIssuesCount: processedAnalysis.criticalIssues?.length,
+        actionPlanCount: processedAnalysis.actionPlan?.length,
+      });
+      
+      // Validate that analysis is complete and not empty
+      const isAnalysisComplete = (
+        processedAnalysis.overallScore > 0 ||
+        (processedAnalysis.executiveSummary && processedAnalysis.executiveSummary.trim().length > 50) ||
+        (processedAnalysis.strengths && processedAnalysis.strengths.length > 0) ||
+        (processedAnalysis.criticalIssues && processedAnalysis.criticalIssues.length > 0)
+      );
+      
+      if (!isAnalysisComplete) {
+        console.warn('⚠️ Analysis appears incomplete or empty');
+        notify.error('Analysis returned incomplete results. Please try again.');
+        setIsLoadingAnalysis(false);
+        return;
+      }
+      
+      // Ensure minimum loading duration for better UX
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, MIN_LOADING_DURATION - elapsedTime);
+      
+      if (remainingTime > 0) {
+        await new Promise(resolve => setTimeout(resolve, remainingTime));
+      }
+      
+      // SIMPLE PATTERN (like InterviewPrepPage):
+      // 1. Set analysis to state IMMEDIATELY (only when complete)
+      // 2. Save to Firestore in background (updates pastSessions too)
+      setAnalysis(processedAnalysis);
+      setIsLoadingAnalysis(false);
+      
+      // Save to Firestore in background - this also updates pastSessions state
       const sessionIdToUpdate = sessionIdOverride || currentSessionId;
       if (sessionIdToUpdate) {
-        console.log('📊 Updating session with analysis:', sessionIdToUpdate);
-        await updateSessionAnalysis(sessionIdToUpdate, analysisResult);
+        console.log('📊 Saving analysis to Firestore:', sessionIdToUpdate);
+        // Don't await - save in background
+        updateSessionAnalysis(sessionIdToUpdate, processedAnalysis).catch(err => {
+          console.error('Error saving analysis to Firestore:', err);
+        });
       } else {
-        console.warn('⚠️ No sessionId available to update with analysis');
+        console.warn('⚠️ No sessionId available to save analysis');
       }
     } catch (error) {
       console.error('Error analyzing interview:', error);
       notify.error('Failed to analyze interview');
-    } finally {
+      // Also update loading state in error case
       setIsLoadingAnalysis(false);
     }
-  }, [selectedApplication, finalTranscript, transcript, currentSessionId, updateSessionAnalysis]);
+  }, [selectedApplication, currentSessionId, updateSessionAnalysis, userProfile]);
 
   // Confirm and end interview - go directly to results
   const handleConfirmEndInterview = useCallback(async () => {
@@ -575,8 +843,8 @@ export default function MockInterviewPage() {
     setPhase('results');
     setIsLoadingAnalysis(true);
     
-    // Analyze interview - pass sessionId directly to avoid stale closure
-    analyzeInterview(sessionId || undefined);
+    // Analyze interview - pass transcript and sessionId directly to avoid stale closure
+    analyzeInterview(transcriptData, sessionId || undefined);
   }, [handleStopInterview, getFullTranscript, saveSessionToFirestore, analyzeInterview]);
 
   // Start interview handler - transitions to preparation phase
@@ -688,10 +956,28 @@ export default function MockInterviewPage() {
     }
   }, [currentUser]);
 
-  // Navigate to session detail page
-  const handleViewSession = useCallback((sessionId: string) => {
-    navigate(`/mock-interview/${sessionId}`);
-  }, [navigate]);
+  // View a past session - load data and switch to results phase
+  const handleViewSession = useCallback((session: MockInterviewSession) => {
+    // Convert analysis if it's in legacy format, then normalize
+    let analysisData: MockInterviewAnalysis | null = null;
+    if (session.analysis) {
+      if (isLegacyAnalysis(session.analysis)) {
+        // Legacy format - convert first, then normalize
+        analysisData = normalizeAnalysis(convertLegacyAnalysis(session.analysis));
+      } else {
+        // New format - normalize to ensure all fields are present
+        analysisData = normalizeAnalysis(session.analysis as MockInterviewAnalysis);
+      }
+    }
+    
+    // CRITICAL: Set all state together for React to batch updates properly
+    // This ensures consistent behavior with the immediate analysis display
+    setViewingSession(session);
+    setAnalysis(analysisData);
+    setFinalTranscript(session.transcript);
+    setIsLoadingAnalysis(!session.analysis); // If no analysis yet, show loading
+    setPhase('results');
+  }, []);
 
   // Get score color based on value
   const getScoreColor = (score: number) => {
@@ -869,10 +1155,25 @@ export default function MockInterviewPage() {
     </div>
   );
 
+  // Helper function to get overall score from either old or new analysis format
+  const getAnalysisOverallScore = (analysisData: InterviewAnalysisUnion | null): number | null => {
+    if (!analysisData) return null;
+    // New format uses overallScore (0-100)
+    if ('overallScore' in analysisData && typeof analysisData.overallScore === 'number') {
+      return analysisData.overallScore;
+    }
+    // Legacy format uses scores.overall (1-10)
+    if ('scores' in analysisData && analysisData.scores?.overall) {
+      return analysisData.scores.overall * 10; // Convert to 0-100 scale
+    }
+    return null;
+  };
+
   // Render a past session card
   const renderSessionCard = (session: MockInterviewSession, index: number) => {
     const isAnalyzing = !session.analysis;
-    const scoreColors = getScoreColor(session.analysis?.scores?.overall || 0);
+    const overallScore = getAnalysisOverallScore(session.analysis);
+    const scoreColors = getScoreColor(overallScore ? Math.round(overallScore / 10) : 0);
     
     return (
       <motion.div
@@ -881,7 +1182,7 @@ export default function MockInterviewPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 + index * 0.05 }}
         whileHover={{ y: -2 }}
-        onClick={() => handleViewSession(session.id)}
+        onClick={() => handleViewSession(session)}
         className={`group relative bg-white/80 dark:bg-[#2b2a2c]/60 backdrop-blur-sm rounded-xl p-4 
           border border-gray-200/60 dark:border-[#3d3c3e]/50
           hover:border-gray-300/80 dark:hover:border-gray-600/60
@@ -915,9 +1216,9 @@ export default function MockInterviewPage() {
                   <Loader2 className="w-3 h-3 animate-spin" />
                   <span>Analyzing...</span>
                 </div>
-              ) : session.analysis?.scores?.overall ? (
+              ) : overallScore !== null ? (
                 <div className={`flex-shrink-0 px-2 py-1 rounded-lg text-xs font-bold ${scoreColors.bgLight} ${scoreColors.text}`}>
-                  {session.analysis.scores.overall}/10
+                  {overallScore}/100
                 </div>
               ) : null}
             </div>
@@ -1640,337 +1941,34 @@ export default function MockInterviewPage() {
   // RENDER - RESULTS PHASE
   // ============================================
 
-  const renderResultsPhase = () => (
+  const renderResultsPhase = () => {
+    // Use viewingSession data if viewing a past session, otherwise use live data
+    const displayTranscript = viewingSession ? viewingSession.transcript : (finalTranscript.length > 0 ? finalTranscript : transcript);
+    const displayCompanyName = viewingSession ? viewingSession.companyName : (selectedApplication?.companyName || 'Company');
+    const displayPosition = viewingSession ? viewingSession.position : (selectedApplication?.position || 'Position');
+    const displayElapsedTime = viewingSession ? viewingSession.elapsedTime : elapsedTime;
+    
+    return (
     <motion.div
       key="results"
       initial={{ opacity: 0, scale: 1.02 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.4 }}
-      className="h-full flex flex-col bg-gray-50 dark:bg-[#242325]"
-    >
-      {/* Header */}
-      <div className="flex-shrink-0 bg-white dark:bg-[#242325] border-b border-gray-100 dark:border-[#3d3c3e]">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleBackToSetup}
-                className="p-2 rounded-xl bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e] border border-gray-200 dark:border-[#3d3c3e] transition-all text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </motion.button>
-              
-              <div>
-                <h1 className="text-lg font-bold text-gray-900 dark:text-white">
-                  Interview Results
-                </h1>
-                {selectedApplication && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {selectedApplication.position} at {selectedApplication.companyName}
-                  </p>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20">
-              <CheckCircle2 className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-              <span className="text-sm font-medium text-violet-700 dark:text-violet-400">
-                Completed in {formatTime(elapsedTime)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Left: Transcript */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-200 dark:border-[#3d3c3e] overflow-hidden"
-          >
-            <div className="px-5 py-4 border-b border-gray-100 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325]/50">
-              <div className="flex items-center gap-2">
-                <Mic className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Full Transcript
-                </h2>
-              </div>
-            </div>
-            
-            <div className="max-h-[500px] overflow-y-auto p-4 space-y-3">
-              {(finalTranscript.length > 0 ? finalTranscript : transcript).map((entry) => (
-                <div
-                  key={entry.id}
-                  className={`p-3 rounded-xl ${
-                    entry.role === 'assistant' 
-                      ? 'bg-gray-50 dark:bg-[#3d3c3e]/50 border border-gray-100 dark:border-[#4a494b]' 
-                      : 'bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-[10px] font-semibold uppercase tracking-wider ${
-                      entry.role === 'assistant' 
-                        ? 'text-violet-600 dark:text-violet-400' 
-                        : 'text-cyan-600 dark:text-cyan-400'
-                    }`}>
-                      {entry.role === 'assistant' ? 'AI Interviewer' : 'You'}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
-                    {entry.text}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Right: Analysis */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-200 dark:border-[#3d3c3e] overflow-hidden"
-          >
-            <div className="px-5 py-4 border-b border-gray-100 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325]/50">
-              <div className="flex items-center gap-2">
-                <svg className="h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Performance Analysis
-                </h2>
-              </div>
-            </div>
-            
-            <div className="p-5">
-              {isLoadingAnalysis ? (
-                <div className="flex flex-col items-center justify-center py-16">
-                  {/* Premium Loading Animation */}
-                  <div className="relative mb-8">
-                    {/* Outer ring */}
-                    <div className="absolute inset-0 rounded-full border-4 border-violet-200 dark:border-violet-500/20" />
-                    {/* Animated gradient ring */}
-                    <div className="w-20 h-20 rounded-full border-4 border-transparent border-t-violet-500 border-r-cyan-500 animate-spin" />
-                    {/* Center icon */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Text */}
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    Analyzing Your Performance
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-xs">
-                    Our AI is evaluating your responses and preparing detailed feedback...
-                  </p>
-                  
-                  {/* Progress dots */}
-                  <div className="flex gap-1.5 mt-6">
-                    <div className="w-2 h-2 rounded-full bg-violet-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-2 h-2 rounded-full bg-cyan-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
-                </div>
-              ) : analysis ? (
-                <div className="space-y-5 max-h-[600px] overflow-y-auto pr-2">
-                  {/* Overall Score with color coding */}
-                  <div className={`text-center p-4 rounded-xl border ${
-                    analysis.scores.overall >= 8 
-                      ? 'bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-500/10 dark:to-green-500/10 border-emerald-200 dark:border-emerald-500/20'
-                      : analysis.scores.overall >= 6
-                        ? 'bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-500/10 dark:to-yellow-500/10 border-amber-200 dark:border-amber-500/20'
-                        : 'bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-500/10 dark:to-orange-500/10 border-red-200 dark:border-red-500/20'
-                  }`}>
-                    <div className={`text-4xl font-bold mb-1 ${
-                      analysis.scores.overall >= 8 
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : analysis.scores.overall >= 6
-                          ? 'text-amber-600 dark:text-amber-400'
-                          : 'text-red-600 dark:text-red-400'
-                    }`}>
-                      {analysis.scores.overall}/10
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Overall Score</p>
-                  </div>
-
-                  {/* Individual Scores */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { label: 'Communication', score: analysis.scores.communication },
-                      { label: 'Relevance', score: analysis.scores.relevance },
-                      { label: 'Structure', score: analysis.scores.structure },
-                      { label: 'Confidence', score: analysis.scores.confidence },
-                    ].map(({ label, score }) => (
-                      <div key={label} className="p-2.5 rounded-lg bg-gray-50 dark:bg-[#3d3c3e]/50 border border-gray-100 dark:border-[#4a494b]">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{label}</span>
-                          <span className={`text-sm font-bold ${
-                            score >= 8 ? 'text-emerald-600 dark:text-emerald-400' :
-                            score >= 6 ? 'text-amber-600 dark:text-amber-400' :
-                            'text-red-600 dark:text-red-400'
-                          }`}>{score}/10</span>
-                        </div>
-                        <div className="h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full transition-all ${
-                              score >= 8 ? 'bg-emerald-500' :
-                              score >= 6 ? 'bg-amber-500' :
-                              'bg-red-500'
-                            }`}
-                            style={{ width: `${score * 10}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Job Fit Assessment */}
-                  {analysis.jobFit && (
-                    <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#3d3c3e]/30 border border-gray-200 dark:border-[#4a494b]">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
-                          <Building className="h-4 w-4 text-violet-500" />
-                          Job Fit
-                        </h3>
-                        <span className={`text-sm font-bold px-2 py-0.5 rounded ${
-                          analysis.jobFit.score >= 7 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' :
-                          analysis.jobFit.score >= 5 ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' :
-                          'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'
-                        }`}>{analysis.jobFit.score}/10</span>
-                      </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">{analysis.jobFit.assessment}</p>
-                      {analysis.jobFit.missingSkills && analysis.jobFit.missingSkills.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          <span className="text-[10px] text-gray-500 dark:text-gray-400">Missing:</span>
-                          {analysis.jobFit.missingSkills.map((skill, i) => (
-                            <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Answer Quality */}
-                  {analysis.answerQuality && (
-                    <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#3d3c3e]/30 border border-gray-200 dark:border-[#4a494b]">
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Answer Quality</h3>
-                      <div className="space-y-2 text-xs">
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-300">Did you answer? </span>
-                          <span className="text-gray-600 dark:text-gray-400">{analysis.answerQuality.didTheyAnswer}</span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-300">Specific examples: </span>
-                          <span className="text-gray-600 dark:text-gray-400">{analysis.answerQuality.specificExamples}</span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-300">STAR method: </span>
-                          <span className="text-gray-600 dark:text-gray-400">{analysis.answerQuality.starMethodUsage}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Summary */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Honest Assessment</h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
-                      {analysis.summary}
-                    </p>
-                  </div>
-
-                  {/* Memorable Quotes */}
-                  {analysis.memorableQuotes && (
-                    <div className="space-y-2">
-                      {analysis.memorableQuotes.good && (
-                        <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border-l-2 border-emerald-500">
-                          <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase">Good quote</span>
-                          <p className="text-xs text-gray-600 dark:text-gray-300 italic">"{analysis.memorableQuotes.good}"</p>
-                        </div>
-                      )}
-                      {analysis.memorableQuotes.needsWork && (
-                        <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 border-l-2 border-amber-500">
-                          <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase">Needs work</span>
-                          <p className="text-xs text-gray-600 dark:text-gray-300 italic">"{analysis.memorableQuotes.needsWork}"</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Strengths */}
-                  <div>
-                    <h3 className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-1.5 flex items-center gap-1">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      What You Did Well
-                    </h3>
-                    <ul className="space-y-1">
-                      {analysis.strengths.map((strength, i) => (
-                        <li key={i} className="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-                          <span className="text-emerald-500 mt-0.5">✓</span>
-                          {strength}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Improvements */}
-                  <div>
-                    <h3 className="text-xs font-semibold text-red-700 dark:text-red-400 mb-1.5 flex items-center gap-1">
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      What to Fix
-                    </h3>
-                    <ul className="space-y-1">
-                      {analysis.improvements.map((improvement, i) => (
-                        <li key={i} className="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-                          <span className="text-red-500 mt-0.5">✗</span>
-                          {improvement}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Action Plan */}
-                  <div className="p-3 rounded-xl bg-gradient-to-r from-violet-50 to-cyan-50 dark:from-violet-500/10 dark:to-cyan-500/10 border border-violet-100 dark:border-violet-500/20">
-                    <h3 className="text-xs font-semibold text-gray-900 dark:text-white mb-1.5">🎯 Action Plan</h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
-                      {analysis.recommendation}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    No analysis available yet.
-                  </p>
-                  <button
-                    onClick={analyzeInterview}
-                    className="mt-4 px-4 py-2 rounded-lg bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] text-gray-900 text-sm font-semibold transition-colors"
-                  >
-                    Analyze Interview
-                  </button>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </div>
-      </div>
+        className="h-full"
+      >
+        <MockInterviewResultsView
+          transcript={displayTranscript}
+          analysis={analysis}
+          isLoading={isLoadingAnalysis}
+          companyName={displayCompanyName}
+          position={displayPosition}
+          elapsedTime={displayElapsedTime}
+          onBack={handleBackToSetup}
+        />
     </motion.div>
   );
+  };
 
   // ============================================
   // RENDER

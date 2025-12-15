@@ -144,3 +144,84 @@ export interface JobContext {
   requiredSkills?: string[];
 }
 
+// ============================================
+// Mock Interview Analysis Types (Enhanced v2)
+// ============================================
+
+export interface MockInterviewVerdict {
+  passed: boolean;
+  confidence: 'high' | 'medium' | 'low';
+  hireDecision: 'yes' | 'maybe' | 'no';
+}
+
+export interface MockInterviewContentAnalysis {
+  relevanceScore: number; // 0-100
+  specificityScore: number; // 0-100
+  didAnswerQuestions: 'yes' | 'partially' | 'no';
+  questionsEvaded?: string[];
+  examplesProvided: number;
+  examplesQuality: 'vague' | 'generic' | 'specific' | 'excellent';
+  starMethodUsage: STAREvaluation;
+  contentVerdict: string;
+}
+
+export interface MockInterviewExpressionAnalysis {
+  organizationScore: number; // 0-100
+  clarityScore: number; // 0-100
+  confidenceScore: number; // 0-100
+  structureAssessment: 'organized' | 'scattered' | 'mixed';
+  fillerWordsDetected?: string[];
+  hedgingPhrases?: string[];
+  rambling: boolean;
+  expressionVerdict: string;
+}
+
+export interface MockInterviewJobFitAnalysis {
+  fitScore: number; // 0-100
+  matchedSkills: string[];
+  missingSkills: string[];
+  experienceRelevance: 'high' | 'medium' | 'low';
+  wouldSurvive90Days: 'likely' | 'unlikely' | 'uncertain';
+  competitivePosition: string;
+  jobFitVerdict: string;
+}
+
+export interface MockInterviewTranscriptHighlight {
+  entryId: string; // Reference to transcript entry ID
+  excerpt: string; // Exact quote from transcript
+  type: 'strength' | 'improvement' | 'weakness';
+  category: 'content' | 'expression' | 'relevance';
+  feedback: string; // Specific actionable feedback
+}
+
+export interface MockInterviewResponseAnalysis {
+  entryId: string; // Reference to transcript entry ID
+  responseText: string; // What the candidate said
+  questionAsked: string; // What the interviewer asked before this
+  structureScore: number; // 0-100
+  contentScore: number; // 0-100
+  expressionScore: number; // 0-100
+  overallResponseScore: number; // 0-100 average
+  tone: 'confident' | 'neutral' | 'hesitant' | 'enthusiastic';
+  whatWasGood: string[]; // Positive aspects
+  whatToImprove: string[]; // Areas for improvement
+  idealResponse: string; // What they SHOULD have said
+  detailedFeedback: string; // Full explanation
+}
+
+export interface MockInterviewAnalysis {
+  verdict: MockInterviewVerdict;
+  overallScore: number; // 0-100
+  executiveSummary: string;
+  
+  contentAnalysis: MockInterviewContentAnalysis;
+  expressionAnalysis: MockInterviewExpressionAnalysis;
+  jobFitAnalysis: MockInterviewJobFitAnalysis;
+  
+  transcriptHighlights: MockInterviewTranscriptHighlight[];
+  responseAnalysis?: MockInterviewResponseAnalysis[]; // Per-response detailed analysis
+  strengths: string[];
+  criticalIssues: string[];
+  actionPlan: string[];
+}
+

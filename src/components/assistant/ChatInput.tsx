@@ -11,6 +11,16 @@ import { recordCreditHistory } from '../../lib/creditHistory';
 import { notify } from '../../lib/notify';
 import { markdownToTiptap, cleanAIMarkdown } from '../../lib/markdownToTiptap';
 import { 
+  parseWhiteboardIntent, 
+  isWhiteboardCreationRequest,
+  parseMindMapResponse,
+  parseStickyNotesResponse,
+  parseFlowDiagramResponse,
+  generateFallbackMindMap,
+  generateFallbackStickyNotes,
+  generateFallbackFlowDiagram,
+} from '../../lib/whiteboardAI';
+import { 
   globalSearch, 
   GlobalSearchResult, 
   SearchResultType,
@@ -157,6 +167,8 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
     finishInlineStreaming,
     // Real-time editor selection
     editorSelection,
+    // Whiteboard integration
+    whiteboardEditorCallbacks,
   } = useAssistant();
   
   const { currentUser, userData } = useAuth();
@@ -516,6 +528,9 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
 
   // Check if we're on a notes page
   const isOnNotesPage = location.pathname.startsWith('/notes/');
+  
+  // Check if we're on a whiteboard page
+  const isOnWhiteboardPage = location.pathname.startsWith('/whiteboard/');
 
   // Process and send a message
   const processSendMessage = useCallback(async (messageContent: string) => {
@@ -713,6 +728,202 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
       }
       
       return; // Exit early for inline edit
+    }
+
+    // Check if this is a whiteboard creation request
+    const shouldDoWhiteboardEdit = isOnWhiteboardPage && whiteboardEditorCallbacks && isWhiteboardCreationRequest(trimmedInput);
+    
+    if (shouldDoWhiteboardEdit) {
+      // Handle whiteboard content creation
+      const intent = parseWhiteboardIntent(trimmedInput);
+      
+      const assistantMessageId = addMessage({
+        role: 'assistant',
+        content: `🎨 Creating ${intent.type.replace('_', ' ')}...`,
+        isStreaming: true,
+      });
+      
+      setIsLoading(true);
+      
+      try {
+        // Build user context
+        const userContext = {
+          firstName: profile?.firstName || userData?.name?.split(' ')[0] || 'User',
+          skills: profile?.skills,
+          currentJobTitle: profile?.currentJobTitle,
+        };
+
+        // Include selected context items with their actual data
+        const contextItems = selectedContexts.map(ctx => ({
+          id: ctx.id,
+          type: ctx.type,
+          title: ctx.title,
+          subtitle: ctx.subtitle,
+          path: ctx.path,
+          data: ctx.data,
+        }));
+
+        // Call API with whiteboard mode
+        const response = await fetch('/api/assistant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: trimmedInput,
+            aiProvider: selectedAIProvider,
+            pageContext: {
+              pathname: location.pathname,
+              pageName: currentPageContext?.pageName,
+              pageDescription: currentPageContext?.pageDescription,
+            },
+            selectedContextItems: contextItems,
+            userContext,
+            userId: currentUser?.uid,
+            pageData: pageData,
+            whiteboardMode: true,
+            whiteboardIntent: intent,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to get response');
+        }
+
+        // Get the full response
+        const contentType = response.headers.get('content-type');
+        let aiResponse = '';
+        
+        if (contentType?.includes('text/event-stream')) {
+          const reader = response.body?.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          
+          if (reader) {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
+              
+              for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (trimmedLine.startsWith('data: ')) {
+                  const data = trimmedLine.slice(6);
+                  if (data === '[DONE]') continue;
+                  try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.content) {
+                      aiResponse += parsed.content;
+                    }
+                  } catch {
+                    // Skip invalid JSON
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          const jsonResponse = await response.json();
+          aiResponse = jsonResponse.content || jsonResponse.text || '';
+        }
+
+        // Log AI response for debugging
+        console.log('[WHITEBOARD] AI Response length:', aiResponse.length);
+        console.log('[WHITEBOARD] AI Response preview:', aiResponse.substring(0, 500));
+        console.log('[WHITEBOARD] Intent:', intent.type, 'Topic:', intent.extractedTopic);
+        console.log('[WHITEBOARD] Context items:', contextItems.length, contextItems.map(c => `${c.type}:${c.title}`));
+
+        // Parse the AI response and create shapes on the whiteboard
+        let createdShapeIds: string[] = [];
+        let successMessage = '';
+        let usedFallback = false;
+
+        switch (intent.type) {
+          case 'mind_map': {
+            const parsed = parseMindMapResponse(aiResponse);
+            const mindMapStructure = parsed || generateFallbackMindMap(intent.extractedTopic || 'Ideas');
+            usedFallback = !parsed;
+            if (usedFallback) {
+              console.warn('[WHITEBOARD] Using fallback mind map - AI response parsing failed');
+            }
+            createdShapeIds = await whiteboardEditorCallbacks.createMindMap(mindMapStructure);
+            successMessage = usedFallback
+              ? `⚠️ Created basic mind map (AI parsing failed). Try being more specific in your request.`
+              : `✅ Created mind map "${mindMapStructure.centerTopic}" with ${mindMapStructure.branches.length} branches!`;
+            break;
+          }
+          case 'sticky_notes': {
+            const parsed = parseStickyNotesResponse(aiResponse);
+            const stickyNotes = parsed || generateFallbackStickyNotes(intent.extractedTopic || 'Ideas', intent.extractedCount || 5);
+            usedFallback = !parsed;
+            if (usedFallback) {
+              console.warn('[WHITEBOARD] Using fallback sticky notes - AI response parsing failed');
+            }
+            // Convert to format expected by the callback
+            const notes = stickyNotes.map(note => ({ text: note.text, color: note.color }));
+            for (const note of notes) {
+              const id = await whiteboardEditorCallbacks.addStickyNote(note.text, note.color);
+              createdShapeIds.push(id);
+            }
+            whiteboardEditorCallbacks.zoomToFit();
+            successMessage = usedFallback
+              ? `⚠️ Created ${notes.length} placeholder notes (AI parsing failed). Try again.`
+              : `✅ Created ${notes.length} sticky notes!`;
+            break;
+          }
+          case 'flow_diagram': {
+            const parsed = parseFlowDiagramResponse(aiResponse);
+            const flowDiagram = parsed || generateFallbackFlowDiagram(intent.extractedTopic || 'Process');
+            usedFallback = !parsed;
+            if (usedFallback) {
+              console.warn('[WHITEBOARD] Using fallback flow diagram - AI response parsing failed');
+            }
+            createdShapeIds = await whiteboardEditorCallbacks.createFlowDiagram(flowDiagram.nodes, flowDiagram.connections);
+            successMessage = usedFallback
+              ? `⚠️ Created basic flow diagram (AI parsing failed). Try being more specific.`
+              : `✅ Created flow diagram with ${flowDiagram.nodes.length} steps!`;
+            break;
+          }
+          case 'text': {
+            const textId = await whiteboardEditorCallbacks.addTextBox(intent.extractedTopic || trimmedInput);
+            createdShapeIds.push(textId);
+            successMessage = `✅ Added text to the whiteboard!`;
+            break;
+          }
+          case 'frame': {
+            const frameId = await whiteboardEditorCallbacks.addFrame(intent.extractedTopic || 'New Section');
+            createdShapeIds.push(frameId);
+            successMessage = `✅ Created frame "${intent.extractedTopic || 'New Section'}"!`;
+            break;
+          }
+          default: {
+            // Default: create sticky notes for brainstorm
+            const parsed = parseStickyNotesResponse(aiResponse);
+            const defaultNotes = parsed || generateFallbackStickyNotes(intent.extractedTopic || 'Ideas', 5);
+            usedFallback = !parsed;
+            for (const note of defaultNotes) {
+              const id = await whiteboardEditorCallbacks.addStickyNote(note.text, note.color);
+              createdShapeIds.push(id);
+            }
+            whiteboardEditorCallbacks.zoomToFit();
+            successMessage = usedFallback
+              ? `⚠️ Created ${defaultNotes.length} placeholder ideas (AI parsing failed).`
+              : `✅ Created ${defaultNotes.length} ideas on the whiteboard!`;
+            break;
+          }
+        }
+
+        updateMessage(assistantMessageId, successMessage, false);
+        
+      } catch (error) {
+        console.error('Error in whiteboard creation:', error);
+        updateMessage(assistantMessageId, '❌ Sorry, I encountered an error creating content on the whiteboard. Please try again.', false);
+      } finally {
+        setIsLoading(false);
+      }
+      
+      return; // Exit early for whiteboard edit
     }
 
     // Regular chat flow (non-inline edit)

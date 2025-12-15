@@ -1073,13 +1073,17 @@ app.post('/api/assistant', async (req, res) => {
     console.log('\n🤖 ════════════════════════════════════════════════════════');
     console.log('🤖 AI Assistant endpoint called');
     
-    const { message, aiProvider = 'openai', pageContext, userContext, conversationHistory, userId, pageData, selectedContextItems, inlineEditMode = false, selectionMode = false, selectedText = '', personaConfig = null, personaPrompt = '' } = req.body;
+    const { message, aiProvider = 'openai', pageContext, userContext, conversationHistory, userId, pageData, selectedContextItems, inlineEditMode = false, selectionMode = false, selectedText = '', personaConfig = null, personaPrompt = '', whiteboardMode = false, whiteboardIntent = null } = req.body;
 
     console.log('🤖 ┌─────────────────────────────────────────────────────┐');
     console.log(`🤖 │ AI Provider: ${aiProvider.toUpperCase().padEnd(39)} │`);
     console.log(`🤖 │ User: ${(userContext?.firstName || 'Unknown').padEnd(44)} │`);
     console.log(`🤖 │ Message: ${(message.substring(0, 40) + '...').padEnd(41)} │`);
     console.log(`🤖 │ Inline Edit Mode: ${String(inlineEditMode).padEnd(33)} │`);
+    console.log(`🤖 │ Whiteboard Mode: ${String(whiteboardMode).padEnd(34)} │`);
+    if (whiteboardMode && whiteboardIntent) {
+      console.log(`🤖 │ Whiteboard Intent: ${String(whiteboardIntent.type).padEnd(32)} │`);
+    }
     console.log('🤖 └─────────────────────────────────────────────────────┘');
     
     // Get appropriate API key based on provider
@@ -1123,6 +1127,28 @@ app.post('/api/assistant', async (req, res) => {
     console.log(`👤 User: ${userContext?.firstName || 'Unknown'}`);
     console.log(`📊 Page data keys: ${pageData ? Object.keys(pageData).join(', ') : 'None'}`);
     console.log(`📎 Context items: ${selectedContextItems?.length || 0} items`);
+    
+    // Log whiteboard mode details
+    if (whiteboardMode) {
+      console.log('🎨 ┌─────────────────────────────────────────────────────┐');
+      console.log('🎨 │ WHITEBOARD MODE ACTIVE                              │');
+      console.log(`🎨 │ Intent Type: ${(whiteboardIntent?.type || 'unknown').padEnd(38)} │`);
+      console.log(`🎨 │ Topic: ${(whiteboardIntent?.extractedTopic || 'none').substring(0, 42).padEnd(44)} │`);
+      console.log('🎨 └─────────────────────────────────────────────────────┘');
+      
+      if (selectedContextItems?.length > 0) {
+        console.log('🎨 Context items with data:');
+        for (const item of selectedContextItems) {
+          console.log(`🎨   - ${item.type}: ${item.title}`);
+          if (item.data) {
+            const dataPreview = JSON.stringify(item.data).substring(0, 200);
+            console.log(`🎨     Data: ${dataPreview}...`);
+          } else {
+            console.log('🎨     Data: NONE');
+          }
+        }
+      }
+    }
 
     // Build system prompt with context and page data (pass inlineEditMode to skip EDIT_NOTE markup instructions)
     let systemPrompt = buildAssistantSystemPrompt(pageContext, userContext, pageData, selectedContextItems, inlineEditMode);
@@ -1227,6 +1253,220 @@ Output: "This serves as an illustrative example."
       }
       
       systemPrompt = inlineEditInstructions + '\n\n' + systemPrompt;
+    }
+
+    // Add whiteboard mode instructions if enabled
+    if (whiteboardMode && whiteboardIntent) {
+      const contentType = whiteboardIntent.type || 'brainstorm';
+      const topic = whiteboardIntent.extractedTopic || message;
+      const count = whiteboardIntent.extractedCount || 5;
+      
+      let whiteboardPrompt = `
+## 🎨 WHITEBOARD CONTENT GENERATION MODE 🎨
+
+You are generating structured content for a visual whiteboard. Your response will be parsed and converted into visual shapes.
+
+### CONTENT TYPE: ${contentType.toUpperCase().replace('_', ' ')}
+### TOPIC: ${topic}
+`;
+
+      switch (contentType) {
+        case 'mind_map':
+          whiteboardPrompt += `
+### MIND MAP GENERATION RULES
+
+Return a JSON object with this EXACT structure:
+{
+  "centerTopic": "Main Topic (short, max 30 chars)",
+  "branches": [
+    {
+      "text": "Branch 1 Name",
+      "color": "blue",
+      "children": [
+        { "text": "Sub-item 1" },
+        { "text": "Sub-item 2" }
+      ]
+    },
+    {
+      "text": "Branch 2 Name", 
+      "color": "green",
+      "children": [
+        { "text": "Sub-item 1" }
+      ]
+    }
+  ]
+}
+
+RULES:
+- centerTopic: The main theme (max 30 characters)
+- Create 4-6 main branches covering different aspects
+- Each branch should have 2-4 children
+- Available colors: yellow, blue, green, orange, red, violet
+- Keep all text concise (max 50 characters per item)
+- Make content relevant, actionable, and specific
+- Return ONLY the JSON object, no explanations
+`;
+          break;
+
+        case 'sticky_notes':
+          whiteboardPrompt += `
+### STICKY NOTES GENERATION RULES
+
+Return a JSON array with ${count} sticky notes:
+[
+  { "text": "First idea or point (max 100 chars)", "color": "yellow" },
+  { "text": "Second idea or point", "color": "blue" },
+  { "text": "Third idea or point", "color": "green" }
+]
+
+RULES:
+- Generate exactly ${count} sticky notes
+- Available colors: yellow, blue, green, orange, red, violet
+- Keep text concise (max 100 characters per note)
+- Each note should be a distinct, actionable idea
+- Vary the colors for visual appeal
+- Make ideas specific and relevant to the topic
+- Return ONLY the JSON array, no explanations
+`;
+          break;
+
+        case 'flow_diagram':
+          whiteboardPrompt += `
+### FLOW DIAGRAM GENERATION RULES
+
+Return a JSON object with nodes and connections:
+{
+  "nodes": [
+    { "id": "start", "text": "Start", "type": "start" },
+    { "id": "step1", "text": "First Step", "type": "process" },
+    { "id": "decision1", "text": "Decision?", "type": "decision" },
+    { "id": "step2", "text": "Alternative", "type": "process" },
+    { "id": "end", "text": "End", "type": "end" }
+  ],
+  "connections": [
+    { "from": "start", "to": "step1" },
+    { "from": "step1", "to": "decision1" },
+    { "from": "decision1", "to": "step2", "label": "No" },
+    { "from": "decision1", "to": "end", "label": "Yes" },
+    { "from": "step2", "to": "end" }
+  ]
+}
+
+Node types:
+- "start": Starting point (use at beginning)
+- "end": End point (use at end)
+- "process": Action/process step (rectangles)
+- "decision": Decision point (use for branching)
+
+RULES:
+- Create 5-10 nodes for a clear flow
+- Each node needs a unique id (lowercase, no spaces)
+- Keep node text concise (max 40 characters)
+- Include at least one decision point if appropriate
+- Connection labels are optional (use for decisions)
+- Return ONLY the JSON object, no explanations
+`;
+          break;
+
+        default:
+          // Default to sticky notes for brainstorm
+          whiteboardPrompt += `
+### BRAINSTORM - STICKY NOTES FORMAT
+
+Return a JSON array with 5-6 ideas as sticky notes:
+[
+  { "text": "Key insight or idea", "color": "yellow" },
+  { "text": "Another important point", "color": "blue" },
+  { "text": "Action item or suggestion", "color": "green" }
+]
+
+RULES:
+- Generate 5-6 distinct, valuable ideas
+- Available colors: yellow, blue, green, orange, red, violet
+- Keep text concise and actionable
+- Vary the colors
+- Return ONLY the JSON array, no explanations
+`;
+      }
+
+      // Add user context if available
+      if (userContext) {
+        whiteboardPrompt += `
+### USER CONTEXT
+${userContext.currentJobTitle ? `- Current role: ${userContext.currentJobTitle}` : ''}
+${userContext.skills?.length > 0 ? `- Skills: ${userContext.skills.slice(0, 10).join(', ')}` : ''}
+${userContext.firstName ? `- Name: ${userContext.firstName}` : ''}
+
+Use this context to make the content more personalized and relevant.
+`;
+      }
+
+      // Add selected context items if available
+      if (selectedContextItems && selectedContextItems.length > 0) {
+        whiteboardPrompt += `
+### 📋 IMPORTANT CONTEXT FROM USER'S DATA - USE THIS IN YOUR RESPONSE
+`;
+        for (const item of selectedContextItems) {
+          // Extract key information based on type
+          let contextDetails = '';
+          if (item.data) {
+            const d = item.data;
+            switch (item.type) {
+              case 'job-application':
+              case 'campaign':
+                contextDetails = `
+- Company: ${d.companyName || d.company || 'N/A'}
+- Position: ${d.position || d.jobTitle || 'N/A'}
+- Job Description: ${(d.jobDescription || d.description || '').substring(0, 800)}
+- Required Skills: ${d.requirements || d.skills || 'N/A'}
+- Status: ${d.status || 'N/A'}
+`;
+                break;
+              case 'resume':
+              case 'cv-analysis':
+                contextDetails = `
+- Summary: ${(d.summary || d.professionalSummary || '').substring(0, 500)}
+- Skills: ${Array.isArray(d.skills) ? d.skills.join(', ') : (d.skills || 'N/A')}
+- Experience: ${d.yearsOfExperience || 'N/A'} years
+`;
+                break;
+              case 'interview':
+                contextDetails = `
+- Company: ${d.companyName || 'N/A'}
+- Position: ${d.position || 'N/A'}
+- Interview Type: ${d.type || d.interviewType || 'N/A'}
+- Date: ${d.date || d.scheduledDate || 'N/A'}
+`;
+                break;
+              default:
+                contextDetails = JSON.stringify(d, null, 2).substring(0, 1000);
+            }
+          }
+          
+          whiteboardPrompt += `
+#### ${item.type.toUpperCase()}: ${item.title}
+${contextDetails || 'No additional data'}
+`;
+        }
+        whiteboardPrompt += `
+⚠️ CRITICAL: Use the context above to generate SPECIFIC, RELEVANT content.
+- Reference the company name, position, and requirements
+- Tailor branches/notes to the actual job context
+- Do NOT use generic placeholders like "Idea 1", "Main Ideas", "Resource 1"
+`;
+      }
+
+      whiteboardPrompt += `
+---
+⚠️ OUTPUT REQUIREMENTS:
+1. Return ONLY valid JSON - no markdown, no \`\`\`, no explanations
+2. Start directly with { or [ character
+3. End with } or ] character
+4. ALL content must be specific and relevant to the topic/context provided
+5. NEVER use placeholder text like "Idea 1", "Task 1", "Step 1" - always use real content
+`;
+
+      systemPrompt = whiteboardPrompt + '\n\n' + systemPrompt;
     }
 
     // Build messages array
@@ -2838,14 +3078,15 @@ app.post('/api/openai-realtime-session', async (req, res) => {
 
 // ============================================
 // Live Interview Analysis Endpoint
-// Analyzes interview transcript using GPT-4
+// Comprehensive analysis of mock interview transcript
+// Evaluates content, expression, job fit with interactive highlights
 // ============================================
 
 app.post('/api/analyze-live-interview', async (req, res) => {
   try {
-    console.log('📊 Live interview analysis endpoint called');
+    console.log('📊 Live interview analysis endpoint called (Enhanced v2)');
     
-    const { transcript, jobContext } = req.body;
+    const { transcript, jobContext, userProfile } = req.body;
     
     if (!transcript || !Array.isArray(transcript) || transcript.length === 0) {
       return res.status(400).json({
@@ -2873,64 +3114,258 @@ app.post('/api/analyze-live-interview', async (req, res) => {
       });
     }
     
-    // Format transcript for analysis
-    const formattedTranscript = transcript.map(entry => {
-      const role = entry.role === 'assistant' ? 'Interviewer' : 'Candidate';
-      return `${role}: ${entry.text || '(no response)'}`;
+    // Format transcript with IDs for highlight references
+    const formattedTranscript = transcript.map((entry, idx) => {
+      const role = entry.role === 'assistant' ? 'INTERVIEWER' : 'CANDIDATE';
+      const entryId = entry.id || `entry-${idx}`;
+      return `[${entryId}] ${role}: ${entry.text || '(no response)'}`;
     }).join('\n\n');
+    
+    // Extract candidate responses only for detailed analysis
+    const candidateResponses = transcript
+      .filter(e => e.role === 'user')
+      .map((e, idx) => `Response ${idx + 1} [${e.id || `entry-${idx}`}]: "${e.text || '(no response)'}"`)
+      .join('\n');
     
     const position = jobContext?.position || 'the position';
     const company = jobContext?.companyName || 'the company';
+    const jobDescription = jobContext?.jobDescription || '';
+    const requirements = jobContext?.requirements || [];
     
-    const analysisPrompt = `Analyze this interview for ${position} at ${company}. Be HONEST and STRICT - don't inflate scores.
+    // Build user context string
+    let userContextStr = '';
+    if (userProfile) {
+      userContextStr = `
+CANDIDATE PROFILE:
+- Name: ${userProfile.firstName || ''} ${userProfile.lastName || ''}
+- Current Role: ${userProfile.currentPosition || 'Not specified'}
+- Experience: ${userProfile.yearsOfExperience || 'Not specified'} years
+- Target Position: ${userProfile.targetPosition || position}
+- Skills: ${(userProfile.skills || []).join(', ') || 'Not specified'}
+- Education: ${userProfile.education || 'Not specified'}
+${userProfile.cvText ? `\nCV Summary (first 500 chars): ${userProfile.cvText.substring(0, 500)}...` : ''}
+`;
+    }
+    
+    // Build job context string
+    let jobContextStr = `
+JOB CONTEXT:
+- Position: ${position}
+- Company: ${company}
+${jobDescription ? `- Job Description: ${jobDescription.substring(0, 800)}${jobDescription.length > 800 ? '...' : ''}` : ''}
+${requirements.length > 0 ? `- Key Requirements: ${requirements.slice(0, 10).join(', ')}` : ''}
+`;
+    
+    // Detect if the candidate barely spoke
+    const candidateWords = transcript
+      .filter(e => e.role === 'user' && e.text)
+      .map(e => e.text.trim())
+      .join(' ')
+      .split(/\s+/)
+      .filter(w => w.length > 0);
+    
+    const wordCount = candidateWords.length;
+    const hasMinimalInput = wordCount < 30;
+    
+    const minimalInputInstructions = hasMinimalInput ? `
+⚠️ CRITICAL: THE CANDIDATE PROVIDED VERY LIMITED RESPONSES (only ${wordCount} words total)
 
-TRANSCRIPT:
+MANDATORY SCORING FOR MINIMAL INPUT:
+- overallScore: MUST be 5-15 (they barely participated)
+- contentAnalysis.relevanceScore: MUST be 0-10 (no real content provided)
+- contentAnalysis.specificityScore: MUST be 0-5 (no specifics given)
+- expressionAnalysis scores: MUST be 5-15 (cannot assess expression with so few words)
+- jobFitAnalysis.fitScore: MUST be 0-10 (cannot demonstrate fit without speaking)
+
+Other requirements:
+1. executiveSummary MUST explicitly state they did not engage with the interview
+2. criticalIssues MUST include "Failed to respond to interview questions"
+3. In transcriptHighlights, include the unanswered interviewer questions as "weakness"
+4. Provide actionable feedback on HOW to structure a proper response
+
+DO NOT use default scores of 50. The scores must reflect the actual lack of participation.
+` : '';
+
+    const analysisPrompt = `You are an ELITE senior hiring manager and interview performance coach with 25+ years at top tech companies. Your job is to give PRECISE, ANALYTICAL, CONSTRUCTIVE feedback that actually helps candidates improve. Be honest but not cruel. Be specific, not generic.
+
+${userContextStr}
+${jobContextStr}
+
+═══════════════════════════════════════════════════════════════
+FULL INTERVIEW TRANSCRIPT
+═══════════════════════════════════════════════════════════════
 ${formattedTranscript}
 
-SCORING (1-10): Most people score 5-7. 8+ is RARE.
-- 1-4: Poor/Below average
-- 5-6: Average, nothing special
-- 7: Good but room to improve
-- 8+: Exceptional (rarely given)
+${minimalInputInstructions}
+═══════════════════════════════════════════════════════════════
+ANALYSIS FRAMEWORK - BE THOROUGH & SPECIFIC
+═══════════════════════════════════════════════════════════════
 
-Return this EXACT JSON structure:
+1. CONTENT ANALYSIS - Did they actually answer what was asked?
+   - Did they dodge questions or go off-topic?
+   - Did they give SPECIFIC examples with metrics/outcomes?
+   - Did they demonstrate relevant experience for THIS specific role?
+   - STAR Method: Did they structure answers with Situation, Task, Action, Result?
+   - If they didn't speak much, what questions did they fail to answer?
+
+2. EXPRESSION & DELIVERY ANALYSIS - HOW did they communicate?
+   - Organization: Was their thinking logical and structured, or scattered/rambling?
+   - Clarity: Were they concise or did they use too many words?
+   - Confidence signals: Did they use hedging language ("I think", "maybe", "kind of")?
+   - Vocabulary: Professional and precise, or vague filler words?
+   - Did they repeat themselves or go in circles?
+   - If they barely spoke, note the missed opportunity to showcase communication skills
+
+3. JOB FIT ANALYSIS - Would YOU hire them for this role?
+   - Match their demonstrated skills to the job requirements
+   - Identify CRITICAL missing competencies
+   - Be honest: Would they survive 90 days in this role?
+   - What specific skills for ${position} were NOT addressed?
+
+4. TRANSCRIPT HIGHLIGHTS - Quote EXACT phrases from their responses
+   - Find 3-6 specific quotes that are either strong or problematic
+   - Reference the entry ID in brackets [entry-X]
+   - Even if they only said "Hello" - analyze what little they said
+   - Also highlight interviewer questions that went unanswered
+
+5. RESPONSE-BY-RESPONSE ANALYSIS - Analyze EACH candidate response individually
+   For EVERY response the candidate gave (even short ones like "Hello" or "Let's get started"):
+   - Structure: How well organized was this specific response?
+   - Content: Was it specific or vague? Did it answer what was asked?
+   - Expression: Tone, vocabulary, confidence level
+   - What was GOOD about this response (even if minor)?
+   - What could be IMPROVED (be specific)?
+   - What SHOULD they have said instead (if response was weak)?
+   
+   This is CRITICAL: Users need feedback on EACH thing they said, not just overall.
+
+SCORING PRINCIPLES - READ CAREFULLY:
+1. Scores MUST reflect ACTUAL performance, not defaults
+2. If candidate barely spoke → scores should be 0-15
+3. If candidate gave vague answers → scores should be 20-40  
+4. If candidate gave decent answers → scores should be 45-65
+5. If candidate gave strong, specific answers → scores should be 70-85
+6. 86+ is EXCEPTIONAL and requires multiple specific examples with metrics
+
+SCORING GUIDE (0-100):
+- 0-15: Failed to engage - barely spoke, didn't answer questions
+- 16-35: Poor - major issues, no specifics, missed key opportunities
+- 36-55: Below Average - attempted answers but significant gaps
+- 56-70: Average - some potential but clear areas for improvement
+- 71-85: Good - solid performance with minor tweaks needed
+- 86-100: Exceptional - rare, only for outstanding interviews
+
+Return this EXACT JSON structure (adjust all scores based on ACTUAL performance):
 {
-  "summary": "3 sentences: what went well AND what didn't",
-  "answerQuality": {
-    "didTheyAnswer": "Yes/Partially/No with examples",
-    "specificExamples": "Did they give concrete examples?",
-    "starMethodUsage": "Did they use STAR method?"
+  "verdict": {
+    "passed": false,
+    "confidence": "high",
+    "reason": "Brief explanation for pass/fail decision"
   },
-  "jobFit": {
-    "score": 5,
-    "assessment": "Would you hire them for this role?",
-    "missingSkills": ["skill1", "skill2"],
-    "relevantExperience": "What relevant experience?"
+  "overallScore": 0,
+  "executiveSummary": "2-3 sentences assessing what ACTUALLY happened in the interview",
+  
+  "contentAnalysis": {
+    "relevanceScore": 0,
+    "specificityScore": 0,
+    "didAnswerQuestions": "yes|partially|no|barely",
+    "questionsEvaded": ["list any questions they didn't answer or dodged"],
+    "examplesProvided": 0,
+    "examplesQuality": "none|vague|generic|specific|excellent",
+    "starMethodUsage": {
+      "situation": false,
+      "task": false,
+      "action": false,
+      "result": false
+    },
+    "contentVerdict": "1-2 sentences on content quality based on what was said"
   },
-  "strengths": ["specific strength 1", "strength 2", "strength 3"],
-  "improvements": ["specific improvement 1", "improvement 2", "improvement 3"],
-  "scores": {
-    "communication": 5,
-    "relevance": 5,
-    "structure": 5,
-    "confidence": 5,
-    "overall": 5
+  
+  "expressionAnalysis": {
+    "organizationScore": 0,
+    "clarityScore": 0,
+    "confidenceScore": 0,
+    "structureAssessment": "organized|mixed|scattered|minimal",
+    "fillerWordsCount": 0,
+    "fillerWordsDetected": [],
+    "hedgingPhrases": [],
+    "expressionVerdict": "1-2 sentences on communication style"
   },
-  "memorableQuotes": {
-    "good": "Best thing they said",
-    "needsWork": "Something that needs work"
+  
+  "jobFitAnalysis": {
+    "fitScore": 0,
+    "matchedSkills": [],
+    "missingSkills": ["all required skills not demonstrated"],
+    "experienceRelevance": "not-demonstrated",
+    "wouldSurvive90Days": "cannot-assess",
+    "competitivePosition": "Honest comparison based on what was demonstrated"
   },
-  "recommendation": "2-3 actionable sentences"
+  
+  "transcriptHighlights": [
+    {
+      "entryId": "entry-X",
+      "excerpt": "EXACT quote from transcript (copy/paste)",
+      "type": "strength|improvement|weakness",
+      "category": "content|expression|job_fit|engagement",
+      "feedback": "Specific, actionable feedback for this exact quote"
+    }
+  ],
+  
+  "responseAnalysis": [
+    {
+      "entryId": "entry-X",
+      "responseText": "The exact text of what they said",
+      "questionAsked": "What the interviewer asked before this response",
+      "structureScore": 0,
+      "contentScore": 0,
+      "expressionScore": 0,
+      "overallResponseScore": 0,
+      "tone": "confident|neutral|hesitant|enthusiastic",
+      "whatWasGood": ["Positive aspect 1", "Positive aspect 2"],
+      "whatToImprove": ["Improvement 1", "Improvement 2"],
+      "idealResponse": "What they SHOULD have said (2-3 sentences showing a better answer)",
+      "detailedFeedback": "2-3 sentences explaining why this response was good/bad and how to improve"
+    }
+  ],
+  
+  "strengths": [
+    "Find something positive based on actual transcript content"
+  ],
+  
+  "criticalIssues": [
+    "Most important issue based on what actually happened"
+  ],
+  
+  "actionPlan": [
+    "Action 1: Specific thing to do differently next time",
+    "Action 2: What to practice before the next interview",
+    "Action 3: Concrete next step for improvement"
+  ]
 }
 
-ONLY return valid JSON, no markdown.`;
+CRITICAL RULES:
+1. SCORES MUST REFLECT ACTUAL PERFORMANCE - not defaults. If they barely spoke, scores = 0-15.
+2. Quote EXACT text from transcript in highlights - copy/paste their words
+3. Reference entry IDs that exist in the transcript (format: entry-0, entry-1, etc.)
+4. Be SPECIFIC - no generic feedback like "communicate better"
+5. If they rambled, quote the rambling. If they were silent, note the silence.
+6. Scores above 70 require strong answers with specific examples. 80+ is EXCEPTIONAL.
+7. ONLY return valid JSON - no markdown, no backticks
+8. DO NOT use placeholder scores of 50. Calculate each score based on what they actually said.
+9. If candidate only said greetings or very short responses, ALL scores should be under 20.
+10. responseAnalysis MUST include an entry for EVERY candidate response (user role entries)
+11. Even "Hello" or "Let's start" deserves analysis - analyze tone, enthusiasm, missed opportunity
+12. idealResponse should show what a GREAT candidate would have said in that situation
+13. whatWasGood should find at least one positive even in weak responses (e.g., "polite greeting")`;
 
-    console.log('📤 Sending analysis request to GPT-4...');
+    console.log('📤 Sending enhanced analysis request to GPT-4...');
     console.log('   Transcript entries:', transcript.length);
+    console.log('   Has user profile:', !!userProfile);
+    console.log('   Has job description:', !!jobDescription);
     
     // Create AbortController for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout for longer analysis
     
     let response;
     try {
@@ -2945,22 +3380,35 @@ ONLY return valid JSON, no markdown.`;
           messages: [
             {
               role: 'system',
-              content: 'You are a brutally honest senior interview coach. You give real, actionable feedback without sugarcoating. Most candidates score 5-7, not 8+. Always respond with valid JSON only, no markdown.'
+              content: `You are a precise, analytical senior interview coach. Your scoring MUST reflect actual performance:
+
+SCORING RULES (MANDATORY):
+- If candidate barely spoke or only greeted: ALL scores 0-15
+- If candidate gave vague, non-specific answers: scores 20-40
+- If candidate gave decent answers without examples: scores 40-55
+- If candidate gave good answers with some specifics: scores 55-70
+- If candidate gave excellent answers with metrics/STAR: scores 70-85
+- Scores 85+ require exceptional, specific, measurable examples
+
+NEVER use default/placeholder scores. Calculate each score based on actual transcript content.
+Quote exact phrases. Reference entry IDs. Provide actionable feedback.
+Always respond with valid JSON only - no markdown, no backticks.`
             },
             {
               role: 'user',
               content: analysisPrompt
             }
           ],
-          temperature: 0.7,
-          max_tokens: 2000,
+          temperature: 0.5, // Lower temperature for more consistent analysis
+          max_tokens: 4000, // More tokens for detailed analysis
+          response_format: { type: 'json_object' }
         }),
         signal: controller.signal
       });
     } catch (fetchError) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
-        console.error('❌ Analysis request timed out after 60s');
+        console.error('❌ Analysis request timed out after 90s');
         throw new Error('Analysis request timed out. Please try again.');
       }
       throw fetchError;
@@ -2990,31 +3438,54 @@ ONLY return valid JSON, no markdown.`;
     // Parse JSON response
     let analysis;
     try {
-      // Try to extract JSON if wrapped in markdown
+      // Try to extract JSON if wrapped in markdown (shouldn't happen with json_object mode)
       const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
       const jsonStr = jsonMatch ? jsonMatch[1] : content;
       analysis = JSON.parse(jsonStr.trim());
     } catch (parseError) {
       console.error('❌ Failed to parse analysis JSON:', parseError);
-      console.error('Content:', content);
+      console.error('Content preview:', content.substring(0, 500));
       throw new Error('Failed to parse analysis response');
     }
     
-    // Validate and set defaults
-    analysis.summary = analysis.summary || 'Interview completed.';
-    analysis.strengths = analysis.strengths || [];
-    analysis.improvements = analysis.improvements || [];
-    analysis.scores = analysis.scores || { communication: 5, relevance: 5, structure: 5, confidence: 5, overall: 5 };
-    analysis.recommendation = analysis.recommendation || 'Continue practicing your interview skills.';
+    // Validate and set defaults for required fields
+    analysis.verdict = analysis.verdict || { passed: false, confidence: 'medium', hireDecision: 'no' };
+    analysis.overallScore = Math.min(100, Math.max(0, parseInt(analysis.overallScore) || 50));
+    analysis.executiveSummary = analysis.executiveSummary || 'Interview completed. Analysis pending.';
     
-    // Ensure scores are numbers between 1-10
-    for (const key of ['communication', 'relevance', 'structure', 'confidence', 'overall']) {
-      const score = analysis.scores[key];
-      analysis.scores[key] = Math.min(10, Math.max(1, parseInt(score) || 5));
+    // Content analysis defaults
+    analysis.contentAnalysis = analysis.contentAnalysis || {};
+    analysis.contentAnalysis.relevanceScore = Math.min(100, Math.max(0, parseInt(analysis.contentAnalysis.relevanceScore) || 50));
+    analysis.contentAnalysis.specificityScore = Math.min(100, Math.max(0, parseInt(analysis.contentAnalysis.specificityScore) || 50));
+    analysis.contentAnalysis.starMethodUsage = analysis.contentAnalysis.starMethodUsage || { situation: false, task: false, action: false, result: false };
+    
+    // Expression analysis defaults
+    analysis.expressionAnalysis = analysis.expressionAnalysis || {};
+    analysis.expressionAnalysis.organizationScore = Math.min(100, Math.max(0, parseInt(analysis.expressionAnalysis.organizationScore) || 50));
+    analysis.expressionAnalysis.clarityScore = Math.min(100, Math.max(0, parseInt(analysis.expressionAnalysis.clarityScore) || 50));
+    analysis.expressionAnalysis.confidenceScore = Math.min(100, Math.max(0, parseInt(analysis.expressionAnalysis.confidenceScore) || 50));
+    
+    // Job fit defaults
+    analysis.jobFitAnalysis = analysis.jobFitAnalysis || {};
+    analysis.jobFitAnalysis.fitScore = Math.min(100, Math.max(0, parseInt(analysis.jobFitAnalysis.fitScore) || 50));
+    analysis.jobFitAnalysis.matchedSkills = analysis.jobFitAnalysis.matchedSkills || [];
+    analysis.jobFitAnalysis.missingSkills = analysis.jobFitAnalysis.missingSkills || [];
+    
+    // Highlights, strengths, issues, action plan
+    analysis.transcriptHighlights = analysis.transcriptHighlights || [];
+    analysis.strengths = analysis.strengths || [];
+    analysis.criticalIssues = analysis.criticalIssues || [];
+    analysis.actionPlan = analysis.actionPlan || [];
+    
+    // Determine passed status based on score if not set
+    if (analysis.verdict.passed === undefined) {
+      analysis.verdict.passed = analysis.overallScore >= 65;
     }
     
-    console.log('✅ Interview analysis completed successfully');
-    console.log('   Overall score:', analysis.scores.overall);
+    console.log('✅ Enhanced interview analysis completed successfully');
+    console.log('   Overall score:', analysis.overallScore);
+    console.log('   Verdict:', analysis.verdict.passed ? 'PASSED' : 'NEEDS WORK');
+    console.log('   Highlights count:', analysis.transcriptHighlights.length);
     
     res.json(analysis);
     

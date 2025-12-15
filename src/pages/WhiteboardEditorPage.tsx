@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -12,9 +12,22 @@ import {
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
-import { useAssistant } from '../contexts/AssistantContext';
+import { useAssistant, WhiteboardEditorCallbacks, MindMapStructure, FlowDiagramNode, FlowDiagramConnection, WhiteboardPosition } from '../contexts/AssistantContext';
+import { useAssistantPageData } from '../hooks/useAssistantPageData';
 import { Tldraw, getSnapshot, loadSnapshot, Editor } from 'tldraw';
 import 'tldraw/tldraw.css';
+import {
+  createStickyNote,
+  createTextBox,
+  createFrame,
+  createStickyNotes,
+  createMindMap,
+  createFlowDiagram,
+  getViewportCenter,
+  zoomToFit as tldrawZoomToFit,
+  getShapeIds,
+} from '../lib/tldrawHelpers';
+import { GeneratedStickyNote } from '../lib/whiteboardAI';
 
 // Hide tldraw watermark and control z-index for sidebar overlay
 const tldrawStyles = `
@@ -61,7 +74,7 @@ export default function WhiteboardEditorPage() {
   const { whiteboardId } = useParams<{ whiteboardId: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { isOpen: isAssistantOpen } = useAssistant();
+  const { isOpen: isAssistantOpen, registerWhiteboardEditor, unregisterWhiteboardEditor } = useAssistant();
 
   const [whiteboard, setWhiteboard] = useState<WhiteboardDocument | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -321,6 +334,71 @@ export default function WhiteboardEditorPage() {
       setShowDeleteConfirm(false);
     }
   }, [currentUser, whiteboardId, navigate]);
+
+  // Create whiteboard callbacks for AI assistant integration
+  const whiteboardCallbacks = useMemo<WhiteboardEditorCallbacks | null>(() => {
+    if (!editor) return null;
+
+    return {
+      addStickyNote: async (text: string, color?: string, position?: WhiteboardPosition): Promise<string> => {
+        const id = createStickyNote(editor, text, color || 'yellow', position);
+        return id.toString();
+      },
+      addTextBox: async (text: string, position?: WhiteboardPosition): Promise<string> => {
+        const id = createTextBox(editor, text, position);
+        return id.toString();
+      },
+      addFrame: async (title: string, bounds?: { x: number; y: number; width: number; height: number }): Promise<string> => {
+        const id = createFrame(editor, title, bounds);
+        return id.toString();
+      },
+      createMindMap: async (structure: MindMapStructure): Promise<string[]> => {
+        const ids = createMindMap(editor, structure);
+        return ids.map(id => id.toString());
+      },
+      createFlowDiagram: async (nodes: FlowDiagramNode[], connections: FlowDiagramConnection[]): Promise<string[]> => {
+        const ids = createFlowDiagram(editor, nodes, connections);
+        return ids.map(id => id.toString());
+      },
+      getViewportCenter: (): WhiteboardPosition => {
+        return getViewportCenter(editor);
+      },
+      zoomToFit: (): void => {
+        tldrawZoomToFit(editor);
+      },
+      getShapeIds: (): string[] => {
+        return getShapeIds(editor);
+      },
+      getEditor: () => editor,
+    };
+  }, [editor]);
+
+  // Register whiteboard with AI assistant
+  useEffect(() => {
+    if (whiteboardCallbacks) {
+      registerWhiteboardEditor(whiteboardCallbacks);
+      console.log('[WHITEBOARD] Registered with AI assistant');
+    }
+
+    return () => {
+      unregisterWhiteboardEditor();
+      console.log('[WHITEBOARD] Unregistered from AI assistant');
+    };
+  }, [whiteboardCallbacks, registerWhiteboardEditor, unregisterWhiteboardEditor]);
+
+  // Register page data for AI assistant context
+  const whiteboardSummary = useMemo(() => {
+    if (!whiteboard) return null;
+    
+    return {
+      title: whiteboard.title || 'Untitled Whiteboard',
+      id: whiteboardId,
+      shapeCount: editor ? getShapeIds(editor).length : 0,
+      hasContent: editor ? getShapeIds(editor).length > 0 : false,
+    };
+  }, [whiteboard, whiteboardId, editor]);
+
+  useAssistantPageData('currentWhiteboard', whiteboardSummary, !!whiteboard);
 
   // Click outside handlers
   useEffect(() => {

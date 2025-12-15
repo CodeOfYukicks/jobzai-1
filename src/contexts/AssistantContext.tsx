@@ -71,6 +71,56 @@ export interface EditorSelection {
   text: string;
 }
 
+// Position type for whiteboard shapes
+export interface WhiteboardPosition {
+  x: number;
+  y: number;
+}
+
+// Mind map branch structure
+export interface MindMapBranch {
+  text: string;
+  color?: string;
+  children?: MindMapBranch[];
+}
+
+// Mind map structure for AI generation
+export interface MindMapStructure {
+  centerTopic: string;
+  branches: MindMapBranch[];
+}
+
+// Flow diagram node
+export interface FlowDiagramNode {
+  id: string;
+  text: string;
+  type?: 'start' | 'end' | 'process' | 'decision';
+}
+
+// Flow diagram connection
+export interface FlowDiagramConnection {
+  from: string;
+  to: string;
+  label?: string;
+}
+
+// Whiteboard editor callbacks interface
+export interface WhiteboardEditorCallbacks {
+  // Basic shape creation
+  addStickyNote: (text: string, color?: string, position?: WhiteboardPosition) => Promise<string>;
+  addTextBox: (text: string, position?: WhiteboardPosition) => Promise<string>;
+  addFrame: (title: string, bounds?: { x: number; y: number; width: number; height: number }) => Promise<string>;
+  // Complex structures
+  createMindMap: (structure: MindMapStructure) => Promise<string[]>;
+  createFlowDiagram: (nodes: FlowDiagramNode[], connections: FlowDiagramConnection[]) => Promise<string[]>;
+  // Utility methods
+  getViewportCenter: () => WhiteboardPosition;
+  zoomToFit: () => void;
+  getShapeIds: () => string[];
+  // Editor instance access (for advanced operations)
+  getEditor: () => any;
+}
+
 // Storage key for persisting conversations
 const STORAGE_KEY = 'jobzai_assistant_conversations';
 
@@ -123,6 +173,10 @@ interface AssistantContextType {
   // Real-time editor selection tracking
   editorSelection: EditorSelection | null;
   setEditorSelection: (selection: EditorSelection | null) => void;
+  // Whiteboard editor integration
+  whiteboardEditorCallbacks: WhiteboardEditorCallbacks | null;
+  registerWhiteboardEditor: (callbacks: WhiteboardEditorCallbacks) => void;
+  unregisterWhiteboardEditor: () => void;
 }
 
 const AssistantContext = createContext<AssistantContextType | undefined>(undefined);
@@ -186,6 +240,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   
   // Note editor integration
   const [noteEditorCallbacks, setNoteEditorCallbacks] = useState<NoteEditorCallbacks | null>(null);
+  
+  // Whiteboard editor integration
+  const [whiteboardEditorCallbacks, setWhiteboardEditorCallbacks] = useState<WhiteboardEditorCallbacks | null>(null);
   
   // Rewrite workflow state (legacy)
   const [rewriteInProgress, setRewriteInProgress] = useState(false);
@@ -348,6 +405,15 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       selectedRange: null,
       editType: 'full',
     });
+  }, []);
+
+  // Whiteboard editor registration
+  const registerWhiteboardEditor = useCallback((callbacks: WhiteboardEditorCallbacks) => {
+    setWhiteboardEditorCallbacks(callbacks);
+  }, []);
+
+  const unregisterWhiteboardEditor = useCallback(() => {
+    setWhiteboardEditorCallbacks(null);
   }, []);
 
   // Apply note edit function
@@ -568,6 +634,10 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     // Real-time editor selection
     editorSelection,
     setEditorSelection,
+    // Whiteboard editor integration
+    whiteboardEditorCallbacks,
+    registerWhiteboardEditor,
+    unregisterWhiteboardEditor,
   };
 
   return (
