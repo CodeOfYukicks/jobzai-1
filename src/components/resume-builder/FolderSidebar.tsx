@@ -230,7 +230,7 @@ const AllResumesItem = memo(({
       whileTap={{ scale: 0.98 }}
       className={`w-full px-3 py-2 rounded-xl flex items-center gap-3 transition-all duration-200 group relative
         ${isActive 
-          ? 'bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-700 dark:text-blue-400 shadow-lg shadow-blue-500/10' 
+          ? 'bg-blue-50/60 dark:bg-blue-500/[0.08] text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/10 dark:ring-blue-400/10' 
           : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-white/5'
         }`}
     >
@@ -238,11 +238,11 @@ const AllResumesItem = memo(({
         <Layers className={`w-4 h-4 ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300'}`} />
       </div>
       <span className="flex-1 text-left text-sm font-medium truncate">
-        All Resumes
+        All Documents
       </span>
       <span className={`text-xs font-medium ${
         isActive
-          ? 'text-blue-600/70 dark:text-blue-400/70'
+          ? 'text-blue-500/70 dark:text-blue-400/60'
           : 'text-gray-500 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400'
       }`}>
         {count}
@@ -757,7 +757,7 @@ const UncategorizedItem = memo(({
       whileTap={{ scale: 0.98 }}
       className={`w-full px-3 py-2 rounded-xl flex items-center gap-3 transition-all duration-200 group relative
         ${isActive && !isDraggingOver
-          ? 'bg-gray-100/80 text-gray-900 dark:bg-[#3d3c3e]/50 dark:text-white shadow-lg shadow-gray-500/10' 
+          ? 'bg-gray-100/70 dark:bg-white/[0.06] text-gray-800 dark:text-white ring-1 ring-gray-200/50 dark:ring-white/[0.06]' 
           : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-white/5'
         }
         ${isDraggingOver 
@@ -866,7 +866,7 @@ const FolderSidebar = memo(({
           flex flex-col h-full"
       >
         {/* Expand button */}
-        <div className="flex-1 flex flex-col items-center py-4">
+        <div className="flex-1 flex flex-col items-center py-4 px-1.5">
           <motion.button
             onClick={onToggleCollapse}
             whileHover={{ scale: 1.1 }}
@@ -881,15 +881,15 @@ const FolderSidebar = memo(({
           </motion.button>
           
           {/* Collapsed folder icons */}
-          <div className="mt-4 space-y-2">
+          <div className="mt-5 space-y-3">
             <button
               onClick={() => onSelectFolder('all')}
               className={`p-2 rounded-lg transition-all ${
                 selectedFolderId === 'all' 
-                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' 
+                  ? 'bg-blue-50/80 dark:bg-blue-500/[0.12] text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20 dark:ring-blue-400/15' 
                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
               }`}
-              title="All Resumes"
+              title="All Documents"
             >
               <Layers className="w-4 h-4" />
             </button>
@@ -897,7 +897,7 @@ const FolderSidebar = memo(({
               onClick={() => onSelectFolder(null)}
               className={`p-2 rounded-lg transition-all ${
                 selectedFolderId === null 
-                  ? 'bg-gray-100 dark:bg-[#3d3c3e]/50 text-gray-700 dark:text-gray-300' 
+                  ? 'bg-gray-100/80 dark:bg-white/[0.08] text-gray-700 dark:text-gray-300 ring-1 ring-gray-200/60 dark:ring-white/[0.08]' 
                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
               }`}
               title="Uncategorized"
@@ -950,8 +950,8 @@ const FolderSidebar = memo(({
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto px-2 space-y-1">
-        {/* All Resumes */}
+      <div className="flex-1 overflow-y-auto px-2 pt-2 space-y-1">
+        {/* All Documents */}
         <AllResumesItem
           isActive={selectedFolderId === 'all'}
           count={totalCount}
