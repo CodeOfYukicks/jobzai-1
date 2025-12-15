@@ -407,10 +407,14 @@ Be warm but professional. Keep the conclusion brief (30 seconds max). Do NOT ask
     console.log('📝 Job context:', this.jobContext?.companyName, '-', this.jobContext?.position);
     console.log('📝 User profile:', this.userProfile?.firstName, this.userProfile?.lastName);
     
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:configureSession',message:'Configuring session with input_audio_transcription',data:{hasInstructions:!!instructions,instructionsLength:instructions?.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-transcription-config'})}).catch(()=>{});
+    // #endregion
+    
     // Send session.update with configuration
     // IMPORTANT: 'type: realtime' is REQUIRED or the API will reject the update!
-    // NOTE: input_audio_transcription is NOT supported by this API version (causes unknown_parameter error)
-    // User transcription must be handled differently or may not be available
+    // NOTE: input_audio_transcription is configured server-side in /api/openai-realtime-session
+    // It cannot be set via session.update (causes unknown_parameter error)
     const sessionUpdate = {
       type: 'session.update',
       session: {
@@ -422,6 +426,7 @@ Be warm but professional. Keep the conclusion brief (30 seconds max). Do NOT ask
     console.log('📤 Sending session.update with:');
     console.log('   - type: realtime (required)');
     console.log('   - instructions: ' + instructions.length + ' chars');
+    console.log('   - input_audio_transcription: configured server-side');
     this.sendEvent(sessionUpdate as ClientEvent);
     
     console.log('⏳ Waiting for session.updated confirmation before starting interview...');
@@ -1116,6 +1121,9 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         console.log('✅ Session updated successfully!');
         // Log the session config to see what was actually applied
         const session = (event as any).session;
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:session.updated',message:'Session updated - checking transcription config',data:{hasSession:!!session,inputAudioTranscription:session?.input_audio_transcription,turnDetection:session?.turn_detection?.type},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-transcription-config'})}).catch(()=>{});
+        // #endregion
         if (session) {
           console.log('📝 Session config:', {
             hasInstructions: !!session.instructions,
@@ -1130,6 +1138,10 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         
       case 'error':
         const errorMsg = event.error.message || '';
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:error',message:'Server error received',data:{errorType:event.error.type,errorCode:event.error.code,errorMsg:errorMsg},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2-api-error'})}).catch(()=>{});
+        // #endregion
         
         // Ignore "no active response" errors - these happen when cancelling and are expected
         if (errorMsg.includes('no active response')) {
@@ -1147,8 +1159,12 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
             errorMsg.includes('Unknown parameter') ||
             errorMsg.includes('Invalid value') ||
             errorMsg.includes('Missing required parameter') ||
-            errorMsg.includes('instructions')) {
-          console.warn('⚠️ SESSION CONFIG ERROR - Instructions may not be applied!');
+            errorMsg.includes('instructions') ||
+            errorMsg.includes('transcription')) {
+          console.warn('⚠️ SESSION CONFIG ERROR - Configuration may not be applied!');
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:error:config',message:'Session config error detected',data:{errorType:event.error.type,errorCode:event.error.code,errorMsg:errorMsg},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2-api-error'})}).catch(()=>{});
+          // #endregion
         } else {
           // Only show non-configuration errors to user
           this.config.onError?.(new Error(errorMsg));
@@ -1158,6 +1174,9 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
       case 'input_audio_buffer.speech_started':
         // User started speaking - implement barge-in (interrupt AI)
         this.currentUserItemId = event.item_id;
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:speech_started',message:'User started speaking',data:{itemId:event.item_id,currentUserItemId:this.currentUserItemId},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3-item-id'})}).catch(()=>{});
+        // #endregion
         console.log('🎤🎤🎤 BARGE-IN TRIGGERED 🎤🎤🎤');
         console.log('   isPlaying:', this.isPlaying, 'sources:', this.scheduledSources.length);
         console.log('   currentResponseId:', this.currentResponseId);
@@ -1216,6 +1235,9 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
       case 'conversation.item.input_audio_transcription.delta':
         // User's speech transcription streaming delta
         const transcriptDelta = (event as any).delta || (event as any).transcript;
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:transcription.delta',message:'User transcription delta received',data:{transcriptDelta:transcriptDelta,itemId:(event as any).item_id,currentUserItemId:this.currentUserItemId,fullEvent:JSON.stringify(event).substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3-H4-transcription-events'})}).catch(()=>{});
+        // #endregion
         console.log('📝 User transcription delta:', transcriptDelta);
         if (transcriptDelta) {
           const itemId = (event as any).item_id || this.currentUserItemId;
@@ -1241,6 +1263,9 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         
       case 'conversation.item.input_audio_transcription.completed':
         // User's speech was transcribed - NOW create the entry with text
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:transcription.completed',message:'User transcription completed',data:{transcript:event.transcript,itemId:event.item_id,currentUserItemId:this.currentUserItemId,transcriptLength:this.transcript.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3-H4-transcription-events'})}).catch(()=>{});
+        // #endregion
         console.log('📝 User transcription COMPLETED:', event.transcript);
         if (event.transcript && event.transcript.trim()) {
           // Create or update entry with actual transcript
@@ -1266,6 +1291,9 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
       case 'conversation.item.input_audio_transcription.failed':
         // User's speech transcription failed - log for debugging
         const transcriptionError = (event as any).error;
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:transcription.failed',message:'User transcription FAILED',data:{itemId:event.item_id,errorType:transcriptionError?.type,errorCode:transcriptionError?.code,errorMessage:transcriptionError?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H5-transcription-failed'})}).catch(()=>{});
+        // #endregion
         console.error('❌ User transcription failed:', transcriptionError);
         console.error('   Item ID:', event.item_id);
         console.error('   Error type:', transcriptionError?.type);

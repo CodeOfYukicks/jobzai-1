@@ -26,13 +26,8 @@ import {
   Volume2,
   BarChart3,
 } from 'lucide-react';
-import {
-  LiveInterviewClient,
-  createLiveInterviewClient,
-  type JobContext,
-  type UserProfile,
-} from '../lib/liveInterviewClient';
-import type { ConnectionStatus, TranscriptEntry } from '../types/openai-realtime';
+import { useRealtimeInterview, type JobContext, type UserProfile } from '../hooks/useRealtimeInterview';
+import type { TranscriptEntry } from '../types/openai-realtime';
 import { AIOrb, type OrbState } from '../components/interview/AIOrb';
 import { CompanyLogo } from '../components/common/CompanyLogo';
 
@@ -102,6 +97,23 @@ export default function MockInterviewPage() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   
+  // ============================================
+  // REALTIME INTERVIEW HOOK
+  // ============================================
+  const {
+    connectionStatus,
+    transcript,
+    error: hookError,
+    isAISpeaking,
+    elapsedTime: hookElapsedTime,
+    connect,
+    disconnect,
+    concludeInterview,
+    getFullTranscript,
+    inputAudioLevel,
+    outputAudioLevel,
+  } = useRealtimeInterview();
+  
   // Phase state
   const [phase, setPhase] = useState<Phase>('setup');
   
@@ -110,21 +122,19 @@ export default function MockInterviewPage() {
   const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
   const [isLoadingApplications, setIsLoadingApplications] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
-  const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
-  const [inputAudioLevel, setInputAudioLevel] = useState(0);
-  const [outputAudioLevel, setOutputAudioLevel] = useState(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+  
+  // Derived error (hook error or local error)
+  const error = hookError || localError;
   
   // Past sessions state
   const [pastSessions, setPastSessions] = useState<MockInterviewSession[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   
-  // Timer state
-  const [elapsedTime, setElapsedTime] = useState(0); // in seconds
+  // Timer state (use hook's elapsed time)
+  const elapsedTime = hookElapsedTime;
   const [isTimeWarning, setIsTimeWarning] = useState(false);
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Results state
   const [finalTranscript, setFinalTranscript] = useState<TranscriptEntry[]>([]);
@@ -136,7 +146,6 @@ export default function MockInterviewPage() {
   const [showEndConfirmation, setShowEndConfirmation] = useState(false);
   
   // Refs
-  const clientRef = useRef<LiveInterviewClient | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   
   // Microphone test state (for preparation phase)
@@ -297,54 +306,13 @@ export default function MockInterviewPage() {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [transcript]);
 
-  // Cleanup on unmount
+  // Timer warning effect - watch for 9 minute warning
   useEffect(() => {
-    return () => {
-      if (clientRef.current) {
-        clientRef.current.stop();
-      }
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
-    };
-  }, []);
-
-  // Timer effect - updates every second during live phase
-  useEffect(() => {
-    if (phase === 'live' && connectionStatus === 'live') {
-      // Start timer
-      timerIntervalRef.current = setInterval(() => {
-        if (clientRef.current) {
-          const elapsed = Math.floor(clientRef.current.getElapsedTime() / 1000);
-          setElapsedTime(elapsed);
-          
-          // Warning at 9 minutes (540 seconds)
-          if (elapsed >= 540 && !isTimeWarning) {
-            setIsTimeWarning(true);
-            notify.warning('1 minute remaining!', { duration: 5000 });
-          }
-          
-          // Auto-conclude at 10 minutes (600 seconds)
-          if (elapsed >= 600 && !clientRef.current.hasEnded()) {
-            console.log('⏱️ Time is up! Concluding interview...');
-            clientRef.current.concludeInterview();
-          }
-        }
-      }, 1000);
-    } else {
-      // Clear timer when not in live phase
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
-      }
+    if (phase === 'live' && elapsedTime >= 540 && !isTimeWarning) {
+      setIsTimeWarning(true);
+      notify.warning('1 minute remaining!', { duration: 5000 });
     }
-    
-    return () => {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
-    };
-  }, [phase, connectionStatus, isTimeWarning]);
+  }, [phase, elapsedTime, isTimeWarning]);
 
   // Microphone test effect - runs during preparation phase
   useEffect(() => {
@@ -358,8 +326,8 @@ export default function MockInterviewPage() {
         micStreamRef.current.getTracks().forEach(track => track.stop());
         micStreamRef.current = null;
       }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
         audioContextRef.current = null;
       }
       setMicLevel(0);
@@ -421,8 +389,8 @@ export default function MockInterviewPage() {
       if (micStreamRef.current) {
         micStreamRef.current.getTracks().forEach(track => track.stop());
       }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
       }
     };
   }, [phase]);
@@ -431,26 +399,20 @@ export default function MockInterviewPage() {
   // HANDLERS
   // ============================================
 
-  const handleStopInterview = useCallback(async () => {
-    if (clientRef.current) {
-      await clientRef.current.stop();
-      clientRef.current = null;
-    }
-  }, []);
+  const handleStopInterview = useCallback(() => {
+    disconnect();
+  }, [disconnect]);
 
   // Show confirmation modal when user clicks End Interview
   const handleEndInterviewClick = useCallback(() => {
     setShowEndConfirmation(true);
   }, []);
 
-  const handleBackToSetup = useCallback(async () => {
-    await handleStopInterview();
-    setTranscript([]);
+  const handleBackToSetup = useCallback(() => {
+    handleStopInterview();
     setFinalTranscript([]);
     setAnalysis(null);
-    setError(null);
-    setConnectionStatus('disconnected');
-    setElapsedTime(0);
+    setLocalError(null);
     setIsTimeWarning(false);
     setCurrentSessionId(null);
     setPhase('setup');
@@ -597,12 +559,12 @@ export default function MockInterviewPage() {
     setShowEndConfirmation(false);
     
     // Get transcript before stopping
-    const transcriptData = clientRef.current ? clientRef.current.getFullTranscript() : transcript;
+    const transcriptData = getFullTranscript();
     console.log('📝 Got transcript:', transcriptData.length, 'entries');
     setFinalTranscript(transcriptData);
     
     // Stop the interview
-    await handleStopInterview();
+    handleStopInterview();
     console.log('🛑 Interview stopped');
     
     // Save session immediately (before analysis) so it appears in history
@@ -615,7 +577,7 @@ export default function MockInterviewPage() {
     
     // Analyze interview - pass sessionId directly to avoid stale closure
     analyzeInterview(sessionId || undefined);
-  }, [handleStopInterview, transcript, saveSessionToFirestore, analyzeInterview]);
+  }, [handleStopInterview, getFullTranscript, saveSessionToFirestore, analyzeInterview]);
 
   // Start interview handler - transitions to preparation phase
   const handleStartInterview = useCallback(() => {
@@ -641,8 +603,7 @@ export default function MockInterviewPage() {
       return;
     }
     
-    setError(null);
-    setTranscript([]);
+    setLocalError(null);
     setCurrentSessionId(null);
     setPhase('live');
     
@@ -654,61 +615,16 @@ export default function MockInterviewPage() {
       requirements: selectedApplication.requirements,
     };
     
-    // Create client with callbacks
-    const client = createLiveInterviewClient({
-      onConnectionStatusChange: setConnectionStatus,
-      onTranscriptUpdate: setTranscript,
-      onAudioLevelChange: (level, source) => {
-        if (source === 'input') {
-          setInputAudioLevel(level);
-        } else {
-          setOutputAudioLevel(level);
-        }
-      },
-      onError: (err) => {
-        console.error('Interview client error:', err);
-        setError(err.message);
-        notify.error(err.message);
-      },
-      onSessionStarted: () => {
-        notify.success('Interview session started');
-      },
-      onSessionEnded: () => {
-        notify.info('Interview session ended');
-      },
-      onInterviewConcluded: async () => {
-        console.log('🏁 Interview concluded (auto), transitioning to results...');
-        // Get final transcript before transitioning
-        const transcriptData = clientRef.current ? clientRef.current.getFullTranscript() : [];
-        console.log('📝 Got transcript:', transcriptData.length, 'entries');
-        setFinalTranscript(transcriptData);
-        
-        // Stop the client
-        await handleStopInterview();
-        console.log('🛑 Interview stopped');
-        
-        // Save session immediately (before analysis)
-        const sessionId = await saveSessionToFirestore(transcriptData, null);
-        console.log('💾 Session saved with ID:', sessionId);
-        
-        // Transition to results phase
-        setPhase('results');
-        setIsLoadingAnalysis(true);
-        
-        // Start analysis - pass sessionId directly to avoid stale closure
-        analyzeInterview(sessionId || undefined);
-      },
-    });
-    
-    clientRef.current = client;
-    
     try {
-      await client.start(jobContext, userProfile);
-    } catch (error) {
-      console.error('Failed to start interview:', error);
-      setError(error instanceof Error ? error.message : 'Failed to start interview');
+      await connect(jobContext, userProfile);
+      notify.success('Interview session started');
+    } catch (err) {
+      console.error('Failed to start interview:', err);
+      const errorMsg = err instanceof Error ? err.message : 'Failed to start interview';
+      setLocalError(errorMsg);
+      notify.error(errorMsg);
     }
-  }, [selectedApplication, userProfile, handleStopInterview, saveSessionToFirestore, analyzeInterview]);
+  }, [selectedApplication, userProfile, connect]);
 
   // Format elapsed time as MM:SS
   const formatTime = (seconds: number): string => {
@@ -723,7 +639,7 @@ export default function MockInterviewPage() {
 
   const getOrbState = (): OrbState => {
     if (connectionStatus === 'live') {
-      if (outputAudioLevel > 0.1) return 'speaking';
+      if (isAISpeaking || outputAudioLevel > 0.1) return 'speaking';
       return 'listening';
     }
     return 'idle';
