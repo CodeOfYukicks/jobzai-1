@@ -5,17 +5,22 @@
  * 
  * HOW IT WORKS:
  * 1. Displays the current avatar with a preview
- * 2. Provides tabs for different customization categories (Eyes, Hair, etc.)
+ * 2. Provides tabs for different customization categories
  * 3. Each option shows a small preview avatar with that specific feature
  * 4. Clicking an option immediately updates the AvatarConfig
  * 5. Changes are live - no refresh needed
  * 
- * The component is designed to be modal-like and can be toggled from the main avatar.
+ * AVAILABLE OPTIONS for notionists-neutral:
+ * - eyes (5 variants)
+ * - brows (13 variants)
+ * - lips (30 variants) - this is the mouth
+ * - nose (20 variants)
+ * - glasses (11 variants + toggle)
  */
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Shuffle, Eye, Smile, Glasses, Sparkles as BrowIcon, Scissors, User2 } from 'lucide-react';
+import { X, Shuffle, Eye, Smile, Glasses, Sparkles as BrowIcon, User2 } from 'lucide-react';
 import Avatar from './Avatar';
 import { 
   AvatarConfig, 
@@ -31,15 +36,14 @@ interface AvatarEditorProps {
   onSave?: () => void;
 }
 
-type TabKey = 'eyes' | 'mouth' | 'hair' | 'glasses' | 'brows' | 'nose';
+type TabKey = 'eyes' | 'lips' | 'brows' | 'nose' | 'glasses';
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'eyes', label: 'Eyes', icon: <Eye className="w-3.5 h-3.5" /> },
-  { key: 'mouth', label: 'Mouth', icon: <Smile className="w-3.5 h-3.5" /> },
-  { key: 'hair', label: 'Hair', icon: <Scissors className="w-3.5 h-3.5" /> },
-  { key: 'glasses', label: 'Glasses', icon: <Glasses className="w-3.5 h-3.5" /> },
+  { key: 'lips', label: 'Mouth', icon: <Smile className="w-3.5 h-3.5" /> },
   { key: 'brows', label: 'Brows', icon: <BrowIcon className="w-3.5 h-3.5" /> },
   { key: 'nose', label: 'Nose', icon: <User2 className="w-3.5 h-3.5" /> },
+  { key: 'glasses', label: 'Glasses', icon: <Glasses className="w-3.5 h-3.5" /> },
 ];
 
 export default function AvatarEditor({ 
@@ -59,21 +63,18 @@ export default function AvatarEditor({
       case 'eyes':
         newConfig.eyes = [option];
         break;
-      case 'mouth':
-        newConfig.mouth = [option];
-        break;
-      case 'hair':
-        newConfig.hair = [option];
-        break;
-      case 'glasses':
-        newConfig.glasses = [option];
-        newConfig.glassesProbability = 100; // Show glasses when selected
+      case 'lips':
+        newConfig.lips = [option];
         break;
       case 'brows':
         newConfig.brows = [option];
         break;
       case 'nose':
         newConfig.nose = [option];
+        break;
+      case 'glasses':
+        newConfig.glasses = [option];
+        newConfig.glassesProbability = 100; // Show glasses when selected
         break;
     }
     
@@ -108,16 +109,29 @@ export default function AvatarEditor({
   const getCurrentSelection = (): string | undefined => {
     switch (activeTab) {
       case 'eyes': return config.eyes?.[0];
-      case 'mouth': return config.mouth?.[0];
-      case 'hair': return config.hair?.[0];
-      case 'glasses': return config.glasses?.[0];
+      case 'lips': return config.lips?.[0];
       case 'brows': return config.brows?.[0];
       case 'nose': return config.nose?.[0];
+      case 'glasses': return config.glasses?.[0];
       default: return undefined;
     }
   };
 
   const currentSelection = getCurrentSelection();
+  
+  // Base config for previews - uses FIXED values so previews are consistent
+  // Only the active tab's feature will change between previews
+  const basePreviewConfig: AvatarConfig = {
+    style: 'notionists-neutral',
+    seed: 'preview-base', // Fixed seed for consistency
+    eyes: ['variant01'],
+    lips: ['variant01'],
+    brows: ['variant01'],
+    nose: ['variant01'],
+    glasses: ['variant01'],
+    glassesProbability: activeTab === 'glasses' ? 100 : 0, // Only show glasses in glasses tab
+    flip: false,
+  };
 
   return (
     <motion.div
@@ -236,24 +250,24 @@ export default function AvatarEditor({
         )}
         
         <div className="grid grid-cols-4 gap-2">
-          <AnimatePresence mode="wait">
-            {currentOptions.map((option) => {
+          <AnimatePresence mode="popLayout">
+            {currentOptions.map((option, index) => {
               // Create a preview config with this specific option
+              // Uses fixed base config so only the current feature changes
               const previewConfig: AvatarConfig = {
-                ...config,
+                ...basePreviewConfig,
                 [activeTab]: [option],
-                ...(activeTab === 'glasses' && { glassesProbability: 100 }),
               };
               
               const isSelected = currentSelection === option;
               
               return (
                 <motion.button
-                  key={option}
+                  key={`${activeTab}-${option}`}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.15 }}
+                  transition={{ duration: 0.15, delay: index * 0.02 }}
                   onClick={() => handleOptionSelect(option)}
                   className={`relative p-2 rounded-xl transition-all
                     ${isSelected
@@ -308,4 +322,3 @@ export default function AvatarEditor({
     </motion.div>
   );
 }
-

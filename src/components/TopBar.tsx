@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Sparkles, Command, User, Settings, CreditCard, LogOut, ChevronRight } from 'lucide-react';
+import { Search, Command, User, Settings, CreditCard, LogOut, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeSwitch from './ThemeSwitch';
 import { NotificationCenter } from './NotificationCenter';
 import { useAssistant } from '../contexts/AssistantContext';
+import { useAuth } from '../contexts/AuthContext';
+import { Avatar, AvatarConfig, DEFAULT_AVATAR_CONFIG, loadAvatarConfig } from './assistant/avatar';
 
 interface TopBarProps {
   profilePhoto: string;
@@ -35,6 +37,25 @@ export default function TopBar({
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const { isOpen: isAssistantOpen, openAssistant, closeAssistant } = useAssistant();
+  const { currentUser } = useAuth();
+  
+  // Avatar config for assistant button
+  const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>(DEFAULT_AVATAR_CONFIG);
+  
+  // Load avatar config - reload when assistant closes (after potential save)
+  useEffect(() => {
+    const loadConfig = async () => {
+      if (currentUser?.uid) {
+        try {
+          const config = await loadAvatarConfig(currentUser.uid);
+          setAvatarConfig(config);
+        } catch (error) {
+          console.error('[TopBar] Error loading avatar config:', error);
+        }
+      }
+    };
+    loadConfig();
+  }, [currentUser?.uid, isAssistantOpen]); // Reload when assistant opens/closes
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -106,7 +127,7 @@ export default function TopBar({
                 // Prevent mousedown from triggering click outside handlers
                 e.stopPropagation();
               }}
-              className="relative flex items-center gap-1.5 h-8 px-3 rounded-lg
+              className="relative flex items-center gap-1.5 h-8 pl-1 pr-3 rounded-lg
                 bg-gray-900 dark:bg-white
                 border border-gray-900 dark:border-white
                 hover:bg-gray-800 dark:hover:bg-gray-100
@@ -115,7 +136,11 @@ export default function TopBar({
               aria-label="Assistant"
               title="AI Assistant"
             >
-              <Sparkles className="h-4 w-4 text-white dark:text-gray-900" />
+              <Avatar 
+                config={avatarConfig}
+                size={24}
+                className="rounded-md"
+              />
               <span className="text-[13px] font-medium text-white dark:text-gray-900">Assistant</span>
             </button>
           </div>

@@ -9,58 +9,45 @@
  * - Avatars are generated dynamically at runtime using DiceBear
  * - No images or SVGs are stored - everything is computed from the config
  * - The seed ensures reproducible random generation for consistent avatars
+ * 
+ * AVAILABLE OPTIONS for notionists-neutral:
+ * - eyes: 5 variants
+ * - brows: 13 variants
+ * - glasses: 11 variants + probability
+ * - lips: 30 variants (this is the mouth)
+ * - nose: 20 variants
  */
 
-// Available options for each avatar feature (from DiceBear notionists-neutral)
+// Available options for each avatar feature (from DiceBear notionists-neutral schema)
 export const AVATAR_OPTIONS = {
   eyes: [
-    'variant01', 'variant02', 'variant03', 'variant04', 'variant05',
-    'variant06', 'variant07', 'variant08', 'variant09', 'variant10',
-    'variant11', 'variant12'
-  ],
-  mouth: [
-    'variant01', 'variant02', 'variant03', 'variant04', 'variant05',
-    'variant06', 'variant07', 'variant08', 'variant09', 'variant10',
-    'variant11', 'variant12'
-  ],
-  nose: [
-    'variant01', 'variant02', 'variant03', 'variant04', 'variant05',
-    'variant06', 'variant07', 'variant08', 'variant09', 'variant10',
-    'variant11', 'variant12'
-  ],
-  glasses: [
     'variant01', 'variant02', 'variant03', 'variant04', 'variant05'
   ],
-  glassesProbability: [0, 50, 100], // 0 = never, 50 = sometimes, 100 = always
   brows: [
     'variant01', 'variant02', 'variant03', 'variant04', 'variant05',
     'variant06', 'variant07', 'variant08', 'variant09', 'variant10',
     'variant11', 'variant12', 'variant13'
   ],
-  lips: [
+  glasses: [
     'variant01', 'variant02', 'variant03', 'variant04', 'variant05',
     'variant06', 'variant07', 'variant08', 'variant09', 'variant10',
-    'variant11', 'variant12'
+    'variant11'
   ],
-  hair: [
+  lips: [
     'variant01', 'variant02', 'variant03', 'variant04', 'variant05',
     'variant06', 'variant07', 'variant08', 'variant09', 'variant10',
     'variant11', 'variant12', 'variant13', 'variant14', 'variant15',
     'variant16', 'variant17', 'variant18', 'variant19', 'variant20',
     'variant21', 'variant22', 'variant23', 'variant24', 'variant25',
-    'variant26', 'variant27', 'variant28', 'variant29', 'variant30',
-    'variant31', 'variant32', 'variant33', 'variant34', 'variant35',
-    'variant36', 'variant37', 'variant38', 'variant39', 'variant40',
-    'variant41', 'variant42', 'variant43', 'variant44', 'variant45',
-    'variant46', 'variant47', 'variant48', 'variant49', 'variant50',
-    'variant51', 'variant52', 'variant53', 'variant54', 'variant55',
-    'variant56', 'variant57', 'variant58', 'variant59', 'variant60',
-    'variant61', 'variant62', 'variant63'
+    'variant26', 'variant27', 'variant28', 'variant29', 'variant30'
   ],
-  beard: [
-    'variant01', 'variant02', 'variant03', 'variant04', 'variant05'
+  nose: [
+    'variant01', 'variant02', 'variant03', 'variant04', 'variant05',
+    'variant06', 'variant07', 'variant08', 'variant09', 'variant10',
+    'variant11', 'variant12', 'variant13', 'variant14', 'variant15',
+    'variant16', 'variant17', 'variant18', 'variant19', 'variant20'
   ],
-  beardProbability: [0, 50, 100],
+  glassesProbability: [0, 100], // 0 = never, 100 = always
 } as const;
 
 // Main avatar configuration interface - THIS is what gets stored in the database
@@ -68,15 +55,11 @@ export interface AvatarConfig {
   style: 'notionists-neutral';
   seed: string;
   eyes?: string[];
-  mouth?: string[];
-  nose?: string[];
+  brows?: string[];
   glasses?: string[];
   glassesProbability?: number;
-  brows?: string[];
   lips?: string[];
-  hair?: string[];
-  beard?: string[];
-  beardProbability?: number;
+  nose?: string[];
   backgroundColor?: string[];
   flip?: boolean;
 }
@@ -85,8 +68,7 @@ export interface AvatarConfig {
 export const DEFAULT_AVATAR_CONFIG: AvatarConfig = {
   style: 'notionists-neutral',
   seed: 'jobzai-assistant',
-  glassesProbability: 30,
-  beardProbability: 0,
+  glassesProbability: 0,
   flip: false,
 };
 
@@ -104,15 +86,11 @@ export function generateRandomConfig(): AvatarConfig {
     style: 'notionists-neutral',
     seed: generateRandomSeed(),
     eyes: [randomFromArray(AVATAR_OPTIONS.eyes)],
-    mouth: [randomFromArray(AVATAR_OPTIONS.mouth)],
-    nose: [randomFromArray(AVATAR_OPTIONS.nose)],
-    glasses: [randomFromArray(AVATAR_OPTIONS.glasses)],
-    glassesProbability: randomFromArray(AVATAR_OPTIONS.glassesProbability),
     brows: [randomFromArray(AVATAR_OPTIONS.brows)],
+    glasses: [randomFromArray(AVATAR_OPTIONS.glasses)],
+    glassesProbability: Math.random() > 0.7 ? 100 : 0, // 30% chance to have glasses
     lips: [randomFromArray(AVATAR_OPTIONS.lips)],
-    hair: [randomFromArray(AVATAR_OPTIONS.hair)],
-    beard: [randomFromArray(AVATAR_OPTIONS.beard)],
-    beardProbability: Math.random() > 0.7 ? 100 : 0, // 30% chance to have beard
+    nose: [randomFromArray(AVATAR_OPTIONS.nose)],
     flip: Math.random() > 0.5,
   };
 }
@@ -139,4 +117,3 @@ export async function loadAvatarConfig(userId: string): Promise<AvatarConfig> {
   }
   return DEFAULT_AVATAR_CONFIG;
 }
-

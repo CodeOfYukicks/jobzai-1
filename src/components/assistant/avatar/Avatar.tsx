@@ -10,6 +10,9 @@
  * 4. Re-renders instantly when config changes (fully reactive)
  * 
  * NO images are stored - the avatar is computed on every render from the config.
+ * 
+ * AVAILABLE OPTIONS for notionists-neutral:
+ * - eyes, brows, glasses, glassesProbability, lips, nose, backgroundColor, flip
  */
 
 import { useMemo } from 'react';
@@ -37,16 +40,13 @@ export default function Avatar({
         seed: config.seed,
         size: size,
         // Apply optional customizations if provided
+        // Note: notionists-neutral only supports: eyes, brows, glasses, lips, nose
         ...(config.eyes && { eyes: config.eyes as any }),
-        ...(config.mouth && { mouth: config.mouth as any }),
-        ...(config.nose && { nose: config.nose as any }),
+        ...(config.brows && { brows: config.brows as any }),
         ...(config.glasses && { glasses: config.glasses as any }),
         ...(config.glassesProbability !== undefined && { glassesProbability: config.glassesProbability }),
-        ...(config.brows && { brows: config.brows as any }),
         ...(config.lips && { lips: config.lips as any }),
-        ...(config.hair && { hair: config.hair as any }),
-        ...(config.beard && { beard: config.beard as any }),
-        ...(config.beardProbability !== undefined && { beardProbability: config.beardProbability }),
+        ...(config.nose && { nose: config.nose as any }),
         ...(config.backgroundColor && { backgroundColor: config.backgroundColor as any }),
         ...(config.flip !== undefined && { flip: config.flip }),
       });
@@ -80,4 +80,3 @@ export default function Avatar({
     </div>
   );
 }
-

@@ -644,7 +644,7 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
                     exit={{ opacity: 0 }}
                     className="flex-1 overflow-y-auto px-6 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700"
                   >
-                    <ChatMessages />
+                    <ChatMessages avatarConfig={avatarConfig} />
                   </motion.div>
                 ) : (
                   /* Quick Actions (when no messages) */

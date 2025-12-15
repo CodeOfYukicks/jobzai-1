@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, User, Play } from 'lucide-react';
+import { User, Play } from 'lucide-react';
 import { useAssistant, ChatMessage } from '../../contexts/AssistantContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTour, TOURS } from '../../contexts/TourContext';
 import ReactMarkdown from 'react-markdown';
 import { parseRecordMarkup, hasRecordMarkup } from './parseRecordMarkup';
@@ -9,6 +10,7 @@ import { parseEditNoteMarkup, hasEditNoteMarkup } from './parseEditNoteMarkup';
 import RecordCard from './RecordCard';
 import EditActionButton from './EditActionButton';
 import { markdownToTiptap } from '../../lib/markdownToTiptap';
+import { Avatar, AvatarConfig, DEFAULT_AVATAR_CONFIG, loadAvatarConfig } from './avatar';
 
 // Regex to detect tour trigger markup: [[START_TOUR:tour-id]]
 const TOUR_TRIGGER_REGEX = /\[\[START_TOUR:([a-zA-Z0-9_-]+)\]\]/g;
@@ -31,6 +33,8 @@ function stripTourTriggers(content: string): string {
 
 interface MessageBubbleProps {
   message: ChatMessage;
+  avatarConfig: AvatarConfig;
+  userPhotoURL?: string | null;
 }
 
 // Markdown components configuration (reusable)
@@ -303,7 +307,7 @@ function StreamingText({ content, isStreaming }: { content: string; isStreaming:
   );
 }
 
-function MessageBubble({ message }: MessageBubbleProps) {
+function MessageBubble({ message, avatarConfig, userPhotoURL }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const isAssistantStreaming = !isUser && message.isStreaming;
 
@@ -315,18 +319,30 @@ function MessageBubble({ message }: MessageBubbleProps) {
       className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}
     >
       {/* Avatar */}
-      <div className={`flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center
-        ${isUser 
-          ? 'bg-gradient-to-br from-[#635BFF] to-[#8B7FFF]' 
-          : 'bg-gray-100 dark:bg-[#2a2a2b] ring-1 ring-gray-200/60 dark:ring-white/10'
-        }`}
-      >
-        {isUser ? (
-          <User className="h-3.5 w-3.5 text-white" />
-        ) : (
-          <Sparkles className="h-3.5 w-3.5 text-gray-600 dark:text-gray-400" />
-        )}
-      </div>
+      {isUser ? (
+        // User avatar - show profile photo or fallback to icon
+        <div className="flex-shrink-0 h-8 w-8 rounded-lg overflow-hidden
+          bg-gradient-to-br from-[#635BFF] to-[#8B7FFF] flex items-center justify-center"
+        >
+          {userPhotoURL ? (
+            <img 
+              src={userPhotoURL} 
+              alt="User" 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <User className="h-3.5 w-3.5 text-white" />
+          )}
+        </div>
+      ) : (
+        // AI avatar - use DiceBear avatar
+        <Avatar 
+          config={avatarConfig}
+          size={32}
+          className="flex-shrink-0 rounded-lg ring-1 ring-gray-200/60 dark:ring-white/10 
+            bg-gray-50 dark:bg-[#2a2a2b]"
+        />
+      )}
 
       {/* Message content */}
       <div className={`flex-1 max-w-[85%] min-w-0 overflow-hidden ${isUser ? 'text-right' : ''}`}>
@@ -401,10 +417,41 @@ function formatTime(date: Date): string {
   }).format(date);
 }
 
-export default function ChatMessages() {
+interface ChatMessagesProps {
+  avatarConfig?: AvatarConfig;
+}
+
+export default function ChatMessages({ avatarConfig: propAvatarConfig }: ChatMessagesProps = {}) {
   const { messages, isLoading } = useAssistant();
+  const { currentUser, userData } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Avatar config state - use prop if provided, otherwise load from storage
+  const [localAvatarConfig, setLocalAvatarConfig] = useState<AvatarConfig>(DEFAULT_AVATAR_CONFIG);
+  
+  // Load avatar config if not provided as prop
+  useEffect(() => {
+    if (!propAvatarConfig && currentUser?.uid) {
+      const loadConfig = async () => {
+        try {
+          const config = await loadAvatarConfig(currentUser.uid);
+          setLocalAvatarConfig(config);
+        } catch (error) {
+          console.error('[ChatMessages] Error loading avatar config:', error);
+        }
+      };
+      loadConfig();
+    }
+  }, [currentUser?.uid, propAvatarConfig]);
+  
+  // Use prop config if provided, otherwise use local
+  const avatarConfig = propAvatarConfig || localAvatarConfig;
+  
+  // Get user photo URL - check multiple sources
+  const userPhotoURL = useMemo(() => {
+    return currentUser?.photoURL || (userData as any)?.photoURL || null;
+  }, [currentUser?.photoURL, userData]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -417,7 +464,12 @@ export default function ChatMessages() {
     <div ref={containerRef} className="space-y-4 py-4">
       <AnimatePresence mode="popLayout">
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+          <MessageBubble 
+            key={message.id} 
+            message={message} 
+            avatarConfig={avatarConfig}
+            userPhotoURL={userPhotoURL}
+          />
         ))}
       </AnimatePresence>
 
@@ -429,10 +481,12 @@ export default function ChatMessages() {
           exit={{ opacity: 0, y: -10 }}
           className="flex gap-3"
         >
-          <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-gray-100 dark:bg-[#2a2a2b] 
-            flex items-center justify-center ring-1 ring-gray-200/60 dark:ring-white/10">
-            <Sparkles className="h-3.5 w-3.5 text-gray-600 dark:text-gray-400" />
-          </div>
+          <Avatar 
+            config={avatarConfig}
+            size={32}
+            className="flex-shrink-0 rounded-lg ring-1 ring-gray-200/60 dark:ring-white/10 
+              bg-gray-50 dark:bg-[#2a2a2b]"
+          />
           <div className="bg-gray-100/80 dark:bg-white/[0.05] rounded-2xl rounded-tl-lg px-4 py-2.5">
             <TypingIndicator />
           </div>
