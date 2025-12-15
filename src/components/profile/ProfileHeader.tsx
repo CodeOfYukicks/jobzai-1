@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, MapPin, Edit2, Camera, Image, Check, X, Sparkles, FileText, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,6 +13,16 @@ import CoverPhotoGallery from './CoverPhotoGallery';
 import { CompactProgressRing } from './ui/ProgressRing';
 import { CompanyLogo } from '../common/CompanyLogo';
 import { InstitutionLogo } from '../common/InstitutionLogo';
+// Avatar components
+import {
+  ProfileAvatar,
+  ProfileAvatarEditor,
+  ProfileAvatarSelector,
+  ProfileAvatarConfig,
+  ProfileAvatarType,
+  DEFAULT_PROFILE_AVATAR_CONFIG,
+  generateRandomConfig,
+} from './avatar';
 
 interface ProfileHeaderProps {
   onUpdate?: (data: any) => void;
@@ -43,8 +53,16 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
   const [isCoverGalleryOpen, setIsCoverGalleryOpen] = useState(false);
   const [isHoveringPhoto, setIsHoveringPhoto] = useState(false);
   const coverButtonRef = useRef<HTMLButtonElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(null);
   const [currentEducation, setCurrentEducation] = useState<CurrentEducation | null>(null);
+  
+  // Avatar state
+  const [avatarType, setAvatarType] = useState<ProfileAvatarType>('photo');
+  const [avatarConfig, setAvatarConfig] = useState<ProfileAvatarConfig>(DEFAULT_PROFILE_AVATAR_CONFIG);
+  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
+  const [showAvatarEditor, setShowAvatarEditor] = useState(false);
+  
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -79,6 +97,14 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
           };
           setFormData(newFormData);
           setEditFormData(newFormData);
+
+          // Load avatar configuration
+          if (userData.profileAvatarType) {
+            setAvatarType(userData.profileAvatarType);
+          }
+          if (userData.profileAvatarConfig) {
+            setAvatarConfig(userData.profileAvatarConfig);
+          }
 
           // Get current position (first current experience or most recent)
           if (userData.professionalHistory && userData.professionalHistory.length > 0) {
@@ -129,10 +155,12 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
       const photoUrl = await getDownloadURL(photoRef);
 
       await updateDoc(doc(db, 'users', currentUser.uid), {
-        profilePhoto: photoUrl
+        profilePhoto: photoUrl,
+        profileAvatarType: 'photo' // Switch to photo mode when uploading
       });
 
       setFormData(prev => ({ ...prev, profilePhoto: photoUrl }));
+      setAvatarType('photo');
       if (onUpdate) {
         onUpdate({ profilePhoto: photoUrl });
       }
@@ -146,6 +174,46 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
       setSelectedPhotoFile(null);
     }
   };
+
+  // Handle avatar config change
+  const handleAvatarConfigChange = useCallback((newConfig: ProfileAvatarConfig) => {
+    setAvatarConfig(newConfig);
+  }, []);
+
+  // Save avatar to Firestore
+  const handleSaveAvatar = useCallback(async () => {
+    if (!currentUser?.uid) return;
+    
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        profileAvatarConfig: avatarConfig,
+        profileAvatarType: 'avatar'
+      });
+      setAvatarType('avatar');
+      if (onUpdate) {
+        onUpdate({ profileAvatarConfig: avatarConfig, profileAvatarType: 'avatar' });
+      }
+      notify.success('Avatar saved!');
+    } catch (error) {
+      console.error('Error saving avatar:', error);
+      notify.error('Failed to save avatar');
+    }
+  }, [currentUser, avatarConfig, onUpdate]);
+
+  // Handle selecting photo option from selector
+  const handleSelectPhoto = useCallback(() => {
+    // Trigger file input
+    fileInputRef.current?.click();
+  }, []);
+
+  // Handle selecting avatar option from selector
+  const handleSelectAvatar = useCallback(() => {
+    // If no avatar config exists, generate a random one
+    if (!avatarConfig.hair || avatarConfig.hair.length === 0) {
+      setAvatarConfig(generateRandomConfig());
+    }
+    setShowAvatarEditor(true);
+  }, [avatarConfig]);
 
   const handleCoverPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -316,7 +384,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
         </div>
       </div>
 
-      {/* Profile Photo - LinkedIn style circular, overlapping cover - OUTSIDE the cover container */}
+      {/* Profile Photo/Avatar - LinkedIn style circular, overlapping cover */}
       <div className="absolute top-32 sm:top-36 left-6 z-20">
           <motion.div
             className="relative group/photo"
@@ -325,10 +393,17 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
             whileHover={{ scale: 1.02 }}
             transition={{ duration: 0.2 }}
           >
-            {/* Circular profile photo with white ring - LinkedIn signature */}
+            {/* Circular profile photo/avatar with white ring */}
             <div className="w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-white dark:bg-[#2b2a2c] p-1 shadow-lg ring-4 ring-white dark:ring-gray-800">
               <div className="relative w-full h-full rounded-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600">
-                {formData.profilePhoto ? (
+                {/* Show Avatar or Photo based on avatarType */}
+                {avatarType === 'avatar' && avatarConfig.hair ? (
+                  <ProfileAvatar 
+                    config={avatarConfig} 
+                    size={160} 
+                    className="w-full h-full"
+                  />
+                ) : formData.profilePhoto ? (
                   <img
                     src={formData.profilePhoto}
                     alt={fullName}
@@ -340,47 +415,58 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
                   </div>
                 )}
                 
-                {/* Hover overlay for photo upload */}
+                {/* Hover overlay - Click to show selector */}
                 <AnimatePresence>
                   {isHoveringPhoto && (
-                    <motion.label
+                    <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
+                      onClick={() => setShowAvatarSelector(true)}
                       className="absolute inset-0 bg-black/50 flex items-center justify-center cursor-pointer rounded-full"
                     >
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePhotoUpload}
-                        className="hidden"
-                        disabled={isUploading}
-                      />
                       {isUploading ? (
                         <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin" />
                       ) : (
                         <div className="flex flex-col items-center gap-1 text-white">
-                          <Camera className="w-6 h-6" />
+                          <Edit2 className="w-6 h-6" />
                           <span className="text-xs font-medium">Change</span>
                         </div>
                       )}
-                    </motion.label>
+                    </motion.div>
                   )}
                 </AnimatePresence>
               </div>
             </div>
             
-            {/* Camera button - Always visible on mobile */}
-            <label className="absolute bottom-1 right-1 bg-white dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-200 p-2 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-[#4a494b] transition-colors shadow-md border border-gray-200 dark:border-[#4a494b] sm:opacity-0 sm:group-hover/photo:opacity-100">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                className="hidden"
-                disabled={isUploading}
-              />
-              <Camera className="w-4 h-4" />
-            </label>
+            {/* Edit button - Always visible on mobile */}
+            <button 
+              onClick={() => setShowAvatarSelector(true)}
+              className="absolute bottom-1 right-1 bg-white dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-200 p-2 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-[#4a494b] transition-colors shadow-md border border-gray-200 dark:border-[#4a494b] sm:opacity-0 sm:group-hover/photo:opacity-100"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+            
+            {/* Hidden file input for photo upload */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              className="hidden"
+              disabled={isUploading}
+            />
+            
+            {/* Avatar Selector Popover */}
+            <ProfileAvatarSelector
+              isOpen={showAvatarSelector}
+              onClose={() => setShowAvatarSelector(false)}
+              onSelectPhoto={handleSelectPhoto}
+              onSelectAvatar={handleSelectAvatar}
+              currentType={avatarType}
+              hasExistingPhoto={!!formData.profilePhoto}
+              hasExistingAvatar={!!(avatarConfig.hair && avatarConfig.hair.length > 0)}
+            />
           </motion.div>
       </div>
 
@@ -638,6 +724,18 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
       currentCover={formData.coverPhoto}
       triggerRef={coverButtonRef}
     />
+    
+    {/* Profile Avatar Editor */}
+    <AnimatePresence>
+      {showAvatarEditor && (
+        <ProfileAvatarEditor
+          config={avatarConfig}
+          onConfigChange={handleAvatarConfigChange}
+          onClose={() => setShowAvatarEditor(false)}
+          onSave={handleSaveAvatar}
+        />
+      )}
+    </AnimatePresence>
     </>
   );
 };

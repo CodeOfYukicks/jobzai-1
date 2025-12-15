@@ -11,6 +11,10 @@ import RecordCard from './RecordCard';
 import EditActionButton from './EditActionButton';
 import { markdownToTiptap } from '../../lib/markdownToTiptap';
 import { Avatar, AvatarConfig, DEFAULT_AVATAR_CONFIG, loadAvatarConfig } from './avatar';
+import type { ProfileAvatarConfig, ProfileAvatarType } from '../profile/avatar';
+import { ProfileAvatar, DEFAULT_PROFILE_AVATAR_CONFIG } from '../profile/avatar';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 // Regex to detect tour trigger markup: [[START_TOUR:tour-id]]
 const TOUR_TRIGGER_REGEX = /\[\[START_TOUR:([a-zA-Z0-9_-]+)\]\]/g;
@@ -35,6 +39,8 @@ interface MessageBubbleProps {
   message: ChatMessage;
   avatarConfig: AvatarConfig;
   userPhotoURL?: string | null;
+  userAvatarType?: ProfileAvatarType;
+  userAvatarConfig?: ProfileAvatarConfig;
 }
 
 // Markdown components configuration (reusable)
@@ -307,7 +313,7 @@ function StreamingText({ content, isStreaming }: { content: string; isStreaming:
   );
 }
 
-function MessageBubble({ message, avatarConfig, userPhotoURL }: MessageBubbleProps) {
+function MessageBubble({ message, avatarConfig, userPhotoURL, userAvatarType = 'photo', userAvatarConfig }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const isAssistantStreaming = !isUser && message.isStreaming;
 
@@ -320,11 +326,17 @@ function MessageBubble({ message, avatarConfig, userPhotoURL }: MessageBubblePro
     >
       {/* Avatar */}
       {isUser ? (
-        // User avatar - show profile photo or fallback to icon
+        // User avatar - show profile avatar, profile photo, or fallback to icon
         <div className="flex-shrink-0 h-8 w-8 rounded-lg overflow-hidden
           bg-gradient-to-br from-[#635BFF] to-[#8B7FFF] flex items-center justify-center"
         >
-          {userPhotoURL ? (
+          {userAvatarType === 'avatar' && userAvatarConfig?.hair ? (
+            <ProfileAvatar 
+              config={userAvatarConfig}
+              size={32}
+              className="w-full h-full"
+            />
+          ) : userPhotoURL ? (
             <img 
               src={userPhotoURL} 
               alt="User" 
@@ -430,28 +442,51 @@ export default function ChatMessages({ avatarConfig: propAvatarConfig }: ChatMes
   // Avatar config state - use prop if provided, otherwise load from storage
   const [localAvatarConfig, setLocalAvatarConfig] = useState<AvatarConfig>(DEFAULT_AVATAR_CONFIG);
   
-  // Load avatar config if not provided as prop
+  // Profile avatar state (Lorelei style for user)
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [profileAvatarType, setProfileAvatarType] = useState<ProfileAvatarType>('photo');
+  const [profileAvatarConfig, setProfileAvatarConfig] = useState<ProfileAvatarConfig>(DEFAULT_PROFILE_AVATAR_CONFIG);
+  
+  // Load avatar configs
   useEffect(() => {
-    if (!propAvatarConfig && currentUser?.uid) {
-      const loadConfig = async () => {
+    if (currentUser?.uid) {
+      const loadConfigs = async () => {
         try {
-          const config = await loadAvatarConfig(currentUser.uid);
-          setLocalAvatarConfig(config);
+          // Load assistant avatar config
+          if (!propAvatarConfig) {
+            const config = await loadAvatarConfig(currentUser.uid);
+            setLocalAvatarConfig(config);
+          }
+          
+          // Load user profile avatar config from Firestore
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            if (userData.profilePhoto) {
+              setProfilePhoto(userData.profilePhoto);
+            }
+            if (userData.profileAvatarType) {
+              setProfileAvatarType(userData.profileAvatarType);
+            }
+            if (userData.profileAvatarConfig) {
+              setProfileAvatarConfig(userData.profileAvatarConfig);
+            }
+          }
         } catch (error) {
-          console.error('[ChatMessages] Error loading avatar config:', error);
+          console.error('[ChatMessages] Error loading configs:', error);
         }
       };
-      loadConfig();
+      loadConfigs();
     }
   }, [currentUser?.uid, propAvatarConfig]);
   
   // Use prop config if provided, otherwise use local
   const avatarConfig = propAvatarConfig || localAvatarConfig;
   
-  // Get user photo URL - check multiple sources
+  // Get user photo URL - check profile photo first, then fallback to auth photo
   const userPhotoURL = useMemo(() => {
-    return currentUser?.photoURL || (userData as any)?.photoURL || null;
-  }, [currentUser?.photoURL, userData]);
+    return profilePhoto || currentUser?.photoURL || (userData as any)?.photoURL || null;
+  }, [profilePhoto, currentUser?.photoURL, userData]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -469,6 +504,8 @@ export default function ChatMessages({ avatarConfig: propAvatarConfig }: ChatMes
             message={message} 
             avatarConfig={avatarConfig}
             userPhotoURL={userPhotoURL}
+            userAvatarType={profileAvatarType}
+            userAvatarConfig={profileAvatarConfig}
           />
         ))}
       </AnimatePresence>

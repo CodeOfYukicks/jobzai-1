@@ -13,6 +13,8 @@ import TopBar from './TopBar';
 import { loadThemeFromStorage, applyTheme, type Theme } from '../lib/theme';
 import { useGlobalSearch } from '../hooks/useGlobalSearch';
 import { CommandPalette } from './GlobalSearch';
+import type { ProfileAvatarConfig, ProfileAvatarType } from './profile/avatar';
+import { DEFAULT_PROFILE_AVATAR_CONFIG, ProfileAvatar } from './profile/avatar';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -153,6 +155,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const [isHovered, setIsHovered] = useState<string | null>(null);
   const [profileCompletion, setProfileCompletion] = useState(0);
   const [profilePhoto, setProfilePhoto] = useState<string>('');
+  const [profileAvatarType, setProfileAvatarType] = useState<ProfileAvatarType>('photo');
+  const [profileAvatarConfig, setProfileAvatarConfig] = useState<ProfileAvatarConfig>(DEFAULT_PROFILE_AVATAR_CONFIG);
   const [isCollapsed, setIsCollapsed] = useState(
     location.pathname.startsWith('/cv-optimizer/') || 
     location.pathname === '/applications' || 
@@ -202,6 +206,13 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             setUserPlan(userData.plan || 'free');
             setProfileCompletion(calculateProfileCompletion(userData));
             setProfilePhoto(userData.profilePhoto || '');
+            // Load avatar data
+            if (userData.profileAvatarType) {
+              setProfileAvatarType(userData.profileAvatarType);
+            }
+            if (userData.profileAvatarConfig) {
+              setProfileAvatarConfig(userData.profileAvatarConfig);
+            }
           }
         }
       );
@@ -416,6 +427,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <div className="hidden md:block">
         <TopBar
           profilePhoto={profilePhoto}
+          profileAvatarType={profileAvatarType}
+          profileAvatarConfig={profileAvatarConfig}
           userInitial={userInitial}
           userFirstName={userFirstName}
           userEmail={currentUser?.email || ''}
@@ -785,7 +798,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               aria-label="Open profile"
               className="inline-flex items-center justify-center h-9 w-9 rounded-full overflow-hidden ring-1 ring-gray-200/70 dark:ring-[#3d3c3e]/60 bg-gray-100/50 dark:bg-[#3d3c3e]/60 active:scale-95 transition"
             >
-              {profilePhoto ? (
+              {profileAvatarType === 'avatar' && profileAvatarConfig.hair ? (
+                <ProfileAvatar config={profileAvatarConfig} size={36} className="h-full w-full" />
+              ) : profilePhoto ? (
                 <img src={profilePhoto} alt={userFirstName} className="h-full w-full object-cover" />
               ) : (
                 <User className="h-5 w-5 text-gray-600 dark:text-gray-300" />

@@ -7,9 +7,13 @@ import { NotificationCenter } from './NotificationCenter';
 import { useAssistant } from '../contexts/AssistantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Avatar, AvatarConfig, DEFAULT_AVATAR_CONFIG, loadAvatarConfig } from './assistant/avatar';
+import type { ProfileAvatarConfig, ProfileAvatarType } from './profile/avatar';
+import { ProfileAvatar, DEFAULT_PROFILE_AVATAR_CONFIG } from './profile/avatar';
 
 interface TopBarProps {
   profilePhoto: string;
+  profileAvatarType?: ProfileAvatarType;
+  profileAvatarConfig?: ProfileAvatarConfig;
   userInitial: string;
   userFirstName: string;
   userEmail: string;
@@ -23,6 +27,8 @@ interface TopBarProps {
 
 export default function TopBar({
   profilePhoto,
+  profileAvatarType = 'photo',
+  profileAvatarConfig = DEFAULT_PROFILE_AVATAR_CONFIG,
   userInitial,
   userFirstName,
   userEmail,
@@ -157,7 +163,13 @@ export default function TopBar({
                 <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#635BFF] to-[#7c75ff] 
                   flex items-center justify-center overflow-hidden
                   ring-2 ring-transparent group-hover:ring-[#635BFF]/20 transition-all">
-                  {profilePhoto ? (
+                  {profileAvatarType === 'avatar' && profileAvatarConfig.hair ? (
+                    <ProfileAvatar 
+                      config={profileAvatarConfig}
+                      size={28}
+                      className="h-full w-full"
+                    />
+                  ) : profilePhoto ? (
                     <img 
                       src={profilePhoto} 
                       alt={userFirstName}
@@ -189,7 +201,13 @@ export default function TopBar({
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#635BFF] to-[#7c75ff] 
                         flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {profilePhoto ? (
+                        {profileAvatarType === 'avatar' && profileAvatarConfig.hair ? (
+                          <ProfileAvatar 
+                            config={profileAvatarConfig}
+                            size={40}
+                            className="h-full w-full"
+                          />
+                        ) : profilePhoto ? (
                           <img 
                             src={profilePhoto} 
                             alt={userFirstName}

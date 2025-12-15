@@ -35,6 +35,8 @@ import type {
 import { Avatar, DEFAULT_AVATAR_CONFIG, loadAvatarConfig, type AvatarConfig } from '../assistant/avatar';
 import { useAuth } from '../../contexts/AuthContext';
 import { CompanyLogo } from '../common/CompanyLogo';
+import type { ProfileAvatarConfig, ProfileAvatarType } from '../profile/avatar';
+import { ProfileAvatar, DEFAULT_PROFILE_AVATAR_CONFIG } from '../profile/avatar';
 
 // ============================================
 // PROPS
@@ -202,6 +204,8 @@ interface TranscriptMessageProps {
   index: number;
   avatarConfig: AvatarConfig;
   userProfilePhoto: string | null;
+  userAvatarType: ProfileAvatarType;
+  userAvatarConfig: ProfileAvatarConfig;
 }
 
 const TranscriptMessage: React.FC<TranscriptMessageProps> = ({
@@ -214,6 +218,8 @@ const TranscriptMessage: React.FC<TranscriptMessageProps> = ({
   index,
   avatarConfig,
   userProfilePhoto,
+  userAvatarType,
+  userAvatarConfig,
 }) => {
   const [showDetails, setShowDetails] = useState(false);
   const entryHighlights = (highlights || []).filter(h => h.entryId === entry.id);
@@ -302,9 +308,15 @@ const TranscriptMessage: React.FC<TranscriptMessageProps> = ({
       {/* Avatar */}
         {isUser ? (
         <div className={`flex-shrink-0 w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center ${
-          userProfilePhoto ? '' : 'bg-[#b7e219]/20 border border-[#b7e219]/30'
+          userAvatarType === 'avatar' || userProfilePhoto ? '' : 'bg-[#b7e219]/20 border border-[#b7e219]/30'
         }`}>
-          {userProfilePhoto ? (
+          {userAvatarType === 'avatar' && userAvatarConfig.hair ? (
+            <ProfileAvatar 
+              config={userAvatarConfig}
+              size={32}
+              className="w-full h-full"
+            />
+          ) : userProfilePhoto ? (
             <img 
               src={userProfilePhoto} 
               alt="You" 
@@ -312,7 +324,7 @@ const TranscriptMessage: React.FC<TranscriptMessageProps> = ({
             />
           ) : (
             <User className="h-4 w-4 text-[#b7e219]" />
-        )}
+          )}
       </div>
       ) : (
         <Avatar 
@@ -650,6 +662,8 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
   const [activeTab, setActiveTab] = useState<'overview' | 'responses'>('overview');
   const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>(DEFAULT_AVATAR_CONFIG);
   const [userProfilePhoto, setUserProfilePhoto] = useState<string | null>(null);
+  const [userAvatarType, setUserAvatarType] = useState<ProfileAvatarType>('photo');
+  const [userAvatarConfig, setUserAvatarConfig] = useState<ProfileAvatarConfig>(DEFAULT_PROFILE_AVATAR_CONFIG);
 
   // Load avatar config and user profile photo
   useEffect(() => {
@@ -660,7 +674,7 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
           const config = await loadAvatarConfig(currentUser.uid);
           setAvatarConfig(config);
           
-          // Load user profile photo from Firestore
+          // Load user profile photo and avatar config from Firestore
           const { doc, getDoc } = await import('firebase/firestore');
           const { db } = await import('../../lib/firebase');
           const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
@@ -668,6 +682,12 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
             const userData = userDoc.data();
             if (userData.profilePhoto) {
               setUserProfilePhoto(userData.profilePhoto);
+            }
+            if (userData.profileAvatarType) {
+              setUserAvatarType(userData.profileAvatarType);
+            }
+            if (userData.profileAvatarConfig) {
+              setUserAvatarConfig(userData.profileAvatarConfig);
             }
           }
         } catch (error) {
@@ -984,6 +1004,8 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
                   index={idx}
                   avatarConfig={avatarConfig}
                   userProfilePhoto={userProfilePhoto}
+                  userAvatarType={userAvatarType}
+                  userAvatarConfig={userAvatarConfig}
                 />
               ))}
               
