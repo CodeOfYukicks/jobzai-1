@@ -12,7 +12,7 @@ import {
   Building2, CalendarDays as CalendarIcon, AlignLeft, Info,
   SearchCheck, LineChart, TrendingUp, TrendingDown, Activity, Palette, UserRound,
   Search, Filter, LayoutGrid, List, ArrowUpDown, Link2, Wand2, Loader2,
-  Eye, Zap, MoreHorizontal, Copy, MapPin, Image, Camera
+  Eye, Zap, MoreHorizontal, Copy, MapPin, Image as ImageIcon, Camera
 } from 'lucide-react';
 import { Dialog, Disclosure, Transition } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
@@ -8051,7 +8051,7 @@ URL to visit: ${jobUrl}
                           border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-sm transition-all duration-200
                           hover:shadow-md group"
                       >
-                        <Image className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+                        <ImageIcon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
                         <span>Add cover</span>
                       </button>
                     ) : (
@@ -8061,7 +8061,7 @@ URL to visit: ${jobUrl}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
                             hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
                         >
-                          <Image className="w-3.5 h-3.5" />
+                          <ImageIcon className="w-3.5 h-3.5" />
                           Change cover
                         </button>
                         

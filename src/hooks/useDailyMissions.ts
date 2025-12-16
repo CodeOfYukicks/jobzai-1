@@ -423,12 +423,18 @@ export function useDailyMissions(): UseDailyMissionsReturn {
       const updatedMissions = data.missions.map((mission: Mission) => {
         if (mission.id === missionId) {
           const isNowComplete = newProgress >= target && mission.status !== 'completed';
-          return {
+          const updatedMission: Mission = {
             ...mission,
             current: Math.min(newProgress, target),
             status: newProgress >= target ? 'completed' as const : 'active' as const,
-            completedAt: isNowComplete ? Timestamp.now() : mission.completedAt,
           };
+          // Only set completedAt if mission is now complete (avoid undefined values)
+          if (isNowComplete) {
+            updatedMission.completedAt = Timestamp.now();
+          } else if (mission.completedAt) {
+            updatedMission.completedAt = mission.completedAt;
+          }
+          return updatedMission;
         }
         return mission;
       });
