@@ -363,47 +363,8 @@ export default function CampaignsAutoPage() {
     return () => unsubscribe();
   }, [selectedCampaignId]);
 
-  // Ref to store the generate emails function for auto-trigger
-  const handleGenerateEmailsRef = useRef<(() => Promise<void>) | null>(null);
+  // Ref to track if auto-generation has been triggered for current campaign
   const autoGenerateTriggeredRef = useRef(false);
-
-  // Auto-generate emails when a new campaign is created and recipients are loaded
-  useEffect(() => {
-    // Only trigger if:
-    // 1. Flag is set (new campaign created)
-    // 2. Recipients are loaded (not loading anymore)
-    // 3. There are recipients without emails generated
-    // 4. We haven't already triggered for this campaign
-    // 5. Not already generating
-    // 6. The generate function is available
-    if (
-      shouldAutoGenerateEmails &&
-      !isLoadingRecipients &&
-      recipients.length > 0 &&
-      recipients.some(r => !r.emailGenerated) &&
-      !autoGenerateTriggeredRef.current &&
-      !isGeneratingEmails &&
-      handleGenerateEmailsRef.current
-    ) {
-      autoGenerateTriggeredRef.current = true;
-      setShouldAutoGenerateEmails(false);
-      
-      // Small delay to ensure UI is ready
-      const timer = setTimeout(() => {
-        console.log('🚀 Auto-generating emails for new campaign...');
-        if (handleGenerateEmailsRef.current) {
-          handleGenerateEmailsRef.current();
-        }
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
-    
-    // Reset the ref when campaign changes
-    if (!shouldAutoGenerateEmails) {
-      autoGenerateTriggeredRef.current = false;
-    }
-  }, [shouldAutoGenerateEmails, isLoadingRecipients, recipients, isGeneratingEmails]);
 
   // Load campaign boards (outreach boards)
   useEffect(() => {
@@ -642,6 +603,7 @@ export default function CampaignsAutoPage() {
 
   // Handle campaign created
   const handleCampaignCreated = useCallback(async (campaignId: string) => {
+    console.log('🎯 handleCampaignCreated called for campaign:', campaignId);
     setIsNewCampaignModalOpen(false);
     
     // Get the campaign data to trigger Apollo search
@@ -649,7 +611,9 @@ export default function CampaignsAutoPage() {
       const campaignDoc = await getDoc(doc(db, 'campaigns', campaignId));
       if (campaignDoc.exists()) {
         const campaignData = campaignDoc.data();
+        console.log('🔍 Starting Apollo search...');
         await handleSearchApollo(campaignId, campaignData.targeting);
+        console.log('✅ Apollo search completed, setting shouldAutoGenerateEmails to true');
         // Flag to auto-generate emails once recipients are loaded
         setShouldAutoGenerateEmails(true);
       }
@@ -758,10 +722,52 @@ export default function CampaignsAutoPage() {
     }
   }, [selectedCampaignId, currentUser, recipients, selectedCampaign, BACKEND_URL]);
 
-  // Update the ref when handleGenerateEmails changes (for auto-trigger)
+  // Auto-generate emails when a new campaign is created and recipients are loaded
   useEffect(() => {
-    handleGenerateEmailsRef.current = handleGenerateEmails;
-  }, [handleGenerateEmails]);
+    // Debug logs
+    console.log('📊 Auto-generate useEffect triggered:', {
+      shouldAutoGenerateEmails,
+      isLoadingRecipients,
+      recipientsLength: recipients.length,
+      hasUngenerated: recipients.length > 0 ? recipients.some(r => !r.emailGenerated) : 'N/A',
+      autoGenerateTriggeredRef: autoGenerateTriggeredRef.current,
+      isGeneratingEmails
+    });
+
+    // Only trigger if:
+    // 1. Flag is set (new campaign created)
+    // 2. Recipients are loaded (not loading anymore)
+    // 3. There are recipients without emails generated
+    // 4. We haven't already triggered for this campaign
+    // 5. Not already generating
+    const hasUngeneratedEmails = recipients.length > 0 && recipients.some(r => !r.emailGenerated);
+    
+    if (
+      shouldAutoGenerateEmails &&
+      !isLoadingRecipients &&
+      recipients.length > 0 &&
+      hasUngeneratedEmails &&
+      !autoGenerateTriggeredRef.current &&
+      !isGeneratingEmails
+    ) {
+      console.log('✅ All conditions met! Triggering auto-generation...');
+      autoGenerateTriggeredRef.current = true;
+      setShouldAutoGenerateEmails(false);
+      
+      // Small delay to ensure UI is ready
+      const timer = setTimeout(() => {
+        console.log('🚀 Auto-generating emails for new campaign...');
+        handleGenerateEmails();
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    // Reset the ref when campaign changes
+    if (!shouldAutoGenerateEmails) {
+      autoGenerateTriggeredRef.current = false;
+    }
+  }, [shouldAutoGenerateEmails, isLoadingRecipients, recipients, isGeneratingEmails, handleGenerateEmails]);
 
   // Handle send all emails at once
   const handleSendEmails = useCallback(async () => {

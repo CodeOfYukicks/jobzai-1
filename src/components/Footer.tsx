@@ -1,133 +1,146 @@
 import { Link } from 'react-router-dom';
-import { Facebook, Twitter, Linkedin, Instagram, Mail } from 'lucide-react';
-import FirebaseImage from './FirebaseImage';
+import { Twitter, Linkedin, Mail } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="bg-[#2A2831] text-white transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Company Info */}
-          <div className="space-y-6">
-            <Link to="/" className="inline-block hover:text-white transition-colors">
-              <FirebaseImage 
-                path="images/logo.png" 
-                alt="Jobz.ai Logo" 
-                className="h-16 w-auto"
-              />
+    <footer className="bg-white border-t border-gray-200">
+      <div className="max-w-7xl mx-auto px-6 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+          {/* Brand Column */}
+          <div className="md:col-span-4 space-y-4">
+            <Link to="/" className="inline-flex items-center gap-2">
+              <div className="w-8 h-8 bg-[#4D3E78] rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">J</span>
+              </div>
+              <span className="text-xl font-bold text-gray-900">Jobz.ai</span>
             </Link>
-            <p className="text-gray-100 dark:text-gray-200 text-sm">
+            <p className="text-gray-600 text-sm max-w-xs">
               Revolutionizing job search with AI-powered personalized applications.
             </p>
-            <div className="flex space-x-4">
-              <a href="#" className="hover:text-white transition-colors">
-                <Facebook className="h-5 w-5" />
+            <div className="flex items-center gap-4">
+              <a 
+                href="https://twitter.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <Twitter className="w-5 h-5" />
               </a>
-              <a href="#" className="hover:text-white transition-colors">
-                <Twitter className="h-5 w-5" />
+              <a 
+                href="https://linkedin.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <Linkedin className="w-5 h-5" />
               </a>
-              <a href="#" className="hover:text-white transition-colors">
-                <Linkedin className="h-5 w-5" />
-              </a>
-              <a href="#" className="hover:text-white transition-colors">
-                <Instagram className="h-5 w-5" />
+              <a 
+                href="mailto:hello@jobz.ai"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <Mail className="w-5 h-5" />
               </a>
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
-            <ul className="space-y-2">
+          {/* Links Columns */}
+          <div className="md:col-span-2">
+            <h4 className="font-semibold text-gray-900 mb-4">Product</h4>
+            <ul className="space-y-3">
               <li>
-                <a href="#features" className="text-gray-100 dark:text-gray-200 hover:text-white transition-colors">
+                <a href="#features" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                   Features
                 </a>
               </li>
               <li>
-                <a href="#pricing" className="text-gray-100 dark:text-gray-200 hover:text-white transition-colors">
+                <a href="#pricing" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                   Pricing
                 </a>
               </li>
               <li>
-                <a href="#how-it-works" className="text-gray-100 dark:text-gray-200 hover:text-white transition-colors">
-                  How It Works
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Support */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Support</h4>
-            <ul className="space-y-2">
-              <li>
-                <Link to="/privacy" className="text-gray-100 dark:text-gray-200 hover:text-white transition-colors">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link to="/terms" className="text-gray-100 dark:text-gray-200 hover:text-white transition-colors">
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
-                <Link to="/cookies" className="text-gray-100 dark:text-gray-200 hover:text-white transition-colors">
-                  Cookie Policy
+                <Link to="/signup" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  Get Started
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Newsletter */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Stay Updated</h4>
-            <p className="text-gray-100 dark:text-gray-200 text-sm mb-4">
-              Subscribe to our newsletter for the latest updates and tips.
-            </p>
-            <form className="space-y-2">
-              <div className="flex">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-l focus:outline-none focus:border-white"
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-white text-[hsl(var(--primary))] font-semibold rounded-r hover:bg-white/90 transition-colors"
-                >
-                  <Mail className="h-5 w-5" />
-                </button>
-              </div>
-            </form>
+          <div className="md:col-span-2">
+            <h4 className="font-semibold text-gray-900 mb-4">Company</h4>
+            <ul className="space-y-3">
+              <li>
+                <Link to="/about" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link to="/blog" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link to="/careers" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  Careers
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div className="md:col-span-2">
+            <h4 className="font-semibold text-gray-900 mb-4">Legal</h4>
+            <ul className="space-y-3">
+              <li>
+                <Link to="/privacy" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  Privacy
+                </Link>
+              </li>
+              <li>
+                <Link to="/terms" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  Terms
+                </Link>
+              </li>
+              <li>
+                <Link to="/cookies" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  Cookies
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div className="md:col-span-2">
+            <h4 className="font-semibold text-gray-900 mb-4">Support</h4>
+            <ul className="space-y-3">
+              <li>
+                <Link to="/help" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  Help Center
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  Contact
+                </Link>
+              </li>
+              <li>
+                <Link to="/status" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
+                  Status
+                </Link>
+              </li>
+            </ul>
           </div>
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t border-white/20">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-100 text-sm">
-              ┬® {new Date().getFullYear()} Jobz AI. All rights reserved.
-            </p>
-            <div className="mt-4 md:mt-0">
-              <ul className="flex space-x-6">
-                <li>
-                  <Link to="/privacy" className="text-gray-100 hover:text-white text-sm transition-colors">
-                    Privacy
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/terms" className="text-gray-100 hover:text-white text-sm transition-colors">
-                    Terms
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/cookies" className="text-gray-100 hover:text-white text-sm transition-colors">
-                    Cookies
-                  </Link>
-                </li>
-              </ul>
-            </div>
+        <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-gray-500 text-sm">
+            © {new Date().getFullYear()} Jobz AI. All rights reserved.
+          </p>
+          <div className="flex items-center gap-6">
+            <Link to="/privacy" className="text-gray-500 hover:text-gray-700 text-sm transition-colors">
+              Privacy Policy
+            </Link>
+            <Link to="/terms" className="text-gray-500 hover:text-gray-700 text-sm transition-colors">
+              Terms of Service
+            </Link>
           </div>
         </div>
       </div>

@@ -1,36 +1,20 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  Search, 
   Menu, 
   X, 
-  User, 
-  LogOut,
   LayoutDashboard,
   Mail,
   ScrollText,
-  Lightbulb,
   Settings,
-  CreditCard,
-  Home,
-  HelpCircle,
-  LogIn,
-  UserPlus,
-  Sun,
-  Moon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { notify } from '@/lib/notify';
 import FirebaseImage from './FirebaseImage';
-import { applyTheme, loadThemeFromStorage, type Theme } from '../lib/theme';
 
 const publicNavigation = [
   { name: 'Features', href: '#features' },
   { name: 'Pricing', href: '#pricing' },
-  { name: 'How It Works', href: '#how-it-works' }
 ];
 
 const authenticatedNavigation = [
@@ -45,17 +29,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { currentUser, logout } = useAuth();
-  const [credits, setCredits] = useState(0);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [theme, setTheme] = useState<Theme>(loadThemeFromStorage());
-  const [isDark, setIsDark] = useState(() => {
-    const savedTheme = loadThemeFromStorage();
-    if (savedTheme === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    return savedTheme === 'dark';
-  });
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -66,100 +40,6 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  useEffect(() => {
-    if (currentUser) {
-      const unsubscribe = onSnapshot(
-        doc(db, 'users', currentUser.uid),
-        (doc) => {
-          if (doc.exists()) {
-            setCredits(doc.data().credits || 0);
-          }
-        }
-      );
-
-      return () => unsubscribe();
-    }
-  }, [currentUser]);
-
-  // Listen to theme changes and update UI
-  useEffect(() => {
-    const updateThemeState = () => {
-      const savedTheme = loadThemeFromStorage();
-      setTheme(savedTheme);
-      
-      if (savedTheme === 'system') {
-        const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        setIsDark(systemIsDark);
-      } else {
-        setIsDark(savedTheme === 'dark');
-      }
-    };
-    
-    updateThemeState();
-    
-    // Listen to system theme changes
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleSystemChange = () => {
-      const savedTheme = loadThemeFromStorage();
-      if (savedTheme === 'system') {
-        updateThemeState();
-      }
-    };
-    mediaQuery.addEventListener('change', handleSystemChange);
-    
-    // Listen to localStorage changes (when theme is changed in Settings or elsewhere)
-    const handleStorageChange = () => {
-      updateThemeState();
-    };
-    
-    // Custom event for same-tab updates
-    window.addEventListener('themechange', handleStorageChange);
-    
-    return () => {
-      mediaQuery.removeEventListener('change', handleSystemChange);
-      window.removeEventListener('themechange', handleStorageChange);
-    };
-  }, []);
-
-  const handleThemeToggle = async () => {
-    // Toggle between light and dark (ignore system mode for toggle)
-    const currentTheme = loadThemeFromStorage();
-    const newTheme: Theme = (currentTheme === 'dark' || isDark) ? 'light' : 'dark';
-    
-    setTheme(newTheme);
-    setIsDark(newTheme === 'dark');
-    applyTheme(newTheme);
-    
-    // Save to Firestore if user is logged in
-    if (currentUser?.uid) {
-      try {
-        const { doc, updateDoc } = await import('firebase/firestore');
-        const { db } = await import('../lib/firebase');
-        await updateDoc(doc(db, 'users', currentUser.uid), {
-          theme: newTheme,
-          settingsUpdatedAt: new Date().toISOString()
-        });
-      } catch (error) {
-        console.error('Error saving theme to Firestore:', error);
-        // Don't show error to user, localStorage is enough for persistence
-      }
-    }
-    
-    // Dispatch custom event to update other components
-    window.dispatchEvent(new Event('themechange'));
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await logout();
-      navigate('/login');
-      notify.success('Signed out successfully');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      notify.error('Failed to sign out');
-    }
-  };
 
   const handleLogoClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -175,54 +55,44 @@ export default function Navbar() {
   const showPublicMenu = !currentUser || isLandingPage;
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-      scrolled ? 'pt-4' : 'pt-8'
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      scrolled 
+        ? 'bg-white/80 backdrop-blur-lg shadow-sm border-b border-gray-100' 
+        : 'bg-transparent'
     }`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative flex items-center justify-between h-16">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 -ml-2">
             <a 
               href="/"
               onClick={handleLogoClick}
-              className="flex items-center space-x-2"
+              className="flex items-center"
             >
               <FirebaseImage 
-                path="images/logo.png" 
-                alt="Jobz AI Logo"
-                className="h-8 w-auto"
+                path="images/logo-only.png" 
+                alt="Jobz.ai"
+                className="h-12 w-auto"
               />
             </a>
           </div>
           
           {/* Desktop Navigation - Public menu sur landing page ou si pas connecté */}
           {showPublicMenu && (
-            <div className="hidden md:flex items-center justify-center">
-              <motion.div 
-                className="bg-[#6F58B8]/60 backdrop-blur-sm rounded-lg flex items-center"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
-              >
-                {publicNavigation.map((item) => (
-                  <motion.a
-                    key={item.name}
-                    href={item.href}
-                    className="px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6F58B8]/80"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {item.name}
-                  </motion.a>
-                ))}
-                <motion.button 
-                  className="px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6F58B8]/80 rounded-r-lg"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+            <div className="hidden md:flex items-center gap-8">
+              {publicNavigation.map((item) => (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  className={`text-sm font-medium transition-colors ${
+                    scrolled || isLandingPage
+                      ? 'text-gray-600 hover:text-gray-900' 
+                      : 'text-white/90 hover:text-white'
+                  }`}
                 >
-                  <Search className="w-4 h-4" />
-                </motion.button>
-              </motion.div>
+                  {item.name}
+                </a>
+              ))}
             </div>
           )}
 
@@ -233,7 +103,7 @@ export default function Navbar() {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className="text-white/90 hover:text-white font-medium transition-colors flex items-center space-x-2"
+                  className="text-gray-600 hover:text-gray-900 font-medium transition-colors flex items-center space-x-2"
                 >
                   <item.icon className="h-5 w-5" />
                   <span>{item.name}</span>
@@ -244,18 +114,22 @@ export default function Navbar() {
 
           {/* Desktop Right Side Actions - Public menu sur landing page ou si pas connecté */}
           {showPublicMenu && (
-            <div className="hidden md:flex items-center space-x-4">
+            <div className="hidden md:flex items-center gap-4">
               <Link
                 to="/login"
-                className="px-4 py-2 text-sm font-medium text-white/90 hover:text-white transition-all duration-200 rounded-lg hover:bg-white/10"
+                className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg ${
+                  scrolled || isLandingPage
+                    ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    : 'text-white/90 hover:text-white hover:bg-white/10'
+                }`}
               >
                 Sign in
               </Link>
               <Link
                 to="/signup"
-                className="px-6 py-2.5 text-sm font-semibold text-[hsl(var(--primary))] bg-white rounded-lg transition-all duration-200 hover:bg-white/90 hover:shadow-lg active:scale-[0.98]"
+                className="px-5 py-2.5 text-sm font-medium text-white bg-[#0275de] rounded-lg transition-colors duration-200 hover:bg-[#0266c7]"
               >
-                Sign up
+                Get started free
               </Link>
             </div>
           )}
@@ -264,7 +138,11 @@ export default function Navbar() {
           <div className="flex md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="text-white p-2 rounded-lg hover:bg-white/10"
+              className={`p-2 rounded-lg transition-colors ${
+                scrolled || isLandingPage 
+                  ? 'text-gray-600 hover:bg-gray-100' 
+                  : 'text-white hover:bg-white/10'
+              }`}
             >
               {isMobileMenuOpen ? (
                 <X className="h-6 w-6" />
@@ -294,120 +172,51 @@ export default function Navbar() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute top-20 left-0 right-0 bg-[hsl(var(--primary))]/95 dark:bg-[#2A2831]/95 backdrop-blur-md md:hidden shadow-lg"
+              className="absolute top-16 left-0 right-0 bg-white md:hidden shadow-lg border-t border-gray-100"
             >
-              <div className="px-6 py-8 space-y-6">
+              <div className="px-6 py-6 space-y-4">
                 {/* Navigation Section */}
                 <div className="space-y-1">
-                  <h3 className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3">
-                    Navigation
-                  </h3>
-                  <a
-                    href="#features"
-                    className="flex items-center space-x-3 py-3 px-4 text-white rounded-lg hover:bg-white/10 transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <Home className="h-5 w-5" />
-                    <span>Features</span>
-                  </a>
-                  <a
-                    href="#pricing"
-                    className="flex items-center space-x-3 py-3 px-4 text-white rounded-lg hover:bg-white/10 transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <CreditCard className="h-5 w-5" />
-                    <span>Pricing</span>
-                  </a>
-                  <a
-                    href="#how-it-works"
-                    className="flex items-center space-x-3 py-3 px-4 text-white rounded-lg hover:bg-white/10 transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <HelpCircle className="h-5 w-5" />
-                    <span>How it Works</span>
-                  </a>
+                  {publicNavigation.map((item) => (
+                    <a
+                      key={item.name}
+                      href={item.href}
+                      className="flex items-center py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {item.name}
+                    </a>
+                  ))}
                 </div>
-
-                {/* Settings Section - Only show theme toggle when logged in AND not on landing page */}
-                {currentUser && !isLandingPage && (
-                  <div className="space-y-1">
-                    <h3 className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3">
-                      Settings
-                    </h3>
-                    <div className="flex items-center justify-between py-3 px-4 text-white rounded-lg hover:bg-white/10 transition-colors">
-                      <div className="flex items-center space-x-3">
-                        {isDark ? (
-                          <Moon className="h-5 w-5" />
-                        ) : (
-                          <Sun className="h-5 w-5" />
-                        )}
-                        <span>Theme</span>
-                      </div>
-                      <motion.button
-                        onClick={handleThemeToggle}
-                        className="relative w-12 h-6 rounded-full bg-white/20 border border-white/30 p-0.5 transition-all duration-300"
-                        whileTap={{ scale: 0.95 }}
-                        aria-label="Toggle theme"
-                      >
-                        <motion.div
-                          className="absolute top-0.5 w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-md"
-                          initial={false}
-                          animate={{
-                            x: isDark ? 24 : 2,
-                          }}
-                          transition={{
-                            type: "spring",
-                            stiffness: 500,
-                            damping: 30
-                          }}
-                        >
-                          {isDark ? (
-                            <Moon className="w-3 h-3 text-[hsl(var(--primary))]" />
-                          ) : (
-                            <Sun className="w-3 h-3 text-[hsl(var(--primary))]" />
-                          )}
-                        </motion.div>
-                      </motion.button>
-                    </div>
-                  </div>
-                )}
 
                 {/* Auth Section - Toujours afficher sur landing page ou si pas connecté */}
                 {showPublicMenu && (
-                  <div className="space-y-3 pt-4 border-t border-white/10">
-                    <h3 className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3">
-                      Account
-                    </h3>
+                  <div className="space-y-3 pt-4 border-t border-gray-100">
                     <Link
                       to="/login"
-                      className="flex items-center justify-center space-x-3 py-3 px-5 text-white rounded-lg hover:bg-white/10 transition-all duration-200"
+                      className="flex items-center justify-center py-3 px-5 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      <LogIn className="h-4 w-4" />
-                      <span className="font-medium">Sign in</span>
+                      Sign in
                     </Link>
                     <Link
                       to="/signup"
-                      className="flex items-center justify-center space-x-3 py-3 px-5 text-[hsl(var(--primary))] bg-white rounded-lg hover:bg-white/90 transition-all duration-200 active:scale-[0.98]"
+                      className="flex items-center justify-center py-3 px-5 text-white bg-[#0275de] rounded-lg hover:bg-[#0266c7] transition-colors font-medium"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      <UserPlus className="h-4 w-4" />
-                      <span className="font-semibold">Sign up</span>
+                      Get started free
                     </Link>
                   </div>
                 )}
 
                 {/* Authenticated Navigation Mobile - Seulement si connecté ET pas sur landing page */}
                 {currentUser && !isLandingPage && (
-                  <div className="space-y-1 pt-4 border-t border-white/10">
-                    <h3 className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3">
-                      Dashboard
-                    </h3>
+                  <div className="space-y-1 pt-4 border-t border-gray-100">
                     {authenticatedNavigation.map((item) => (
                       <Link
                         key={item.name}
                         to={item.href}
-                        className="flex items-center space-x-3 py-3 px-4 text-white rounded-lg hover:bg-white/10 transition-colors"
+                        className="flex items-center space-x-3 py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         <item.icon className="h-5 w-5" />
