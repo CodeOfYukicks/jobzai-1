@@ -1,13 +1,13 @@
 /**
  * BeforeAfterModal Component
  * Premium modal overlay for CV comparison with word-level diffs
- * Design: "Glassmorphism meets Code Editor"
+ * Design: Minimalist Notion/Vercel-inspired with light/dark mode
  */
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, GitCompare, Columns, Sparkles,
+  X, GitCompare, Columns,
   FileText, Briefcase, GraduationCap, Code,
   Plus, Minus, RefreshCw
 } from 'lucide-react';
@@ -35,43 +35,14 @@ interface BeforeAfterModalProps {
 const sectionConfig: Record<ComparisonSectionType, { 
   icon: typeof FileText; 
   label: string; 
-  gradient: string;
 }> = {
-  summary: { 
-    icon: FileText, 
-    label: 'Summary', 
-    gradient: 'from-blue-500 to-cyan-500'
-  },
-  experiences: { 
-    icon: Briefcase, 
-    label: 'Experience', 
-    gradient: 'from-purple-500 to-pink-500'
-  },
-  education: { 
-    icon: GraduationCap, 
-    label: 'Education', 
-    gradient: 'from-indigo-500 to-purple-500'
-  },
-  skills: { 
-    icon: Code, 
-    label: 'Skills', 
-    gradient: 'from-emerald-500 to-teal-500'
-  },
-  certifications: { 
-    icon: FileText, 
-    label: 'Certifications', 
-    gradient: 'from-amber-500 to-orange-500'
-  },
-  languages: { 
-    icon: FileText, 
-    label: 'Languages', 
-    gradient: 'from-rose-500 to-pink-500'
-  },
-  projects: { 
-    icon: FileText, 
-    label: 'Projects', 
-    gradient: 'from-violet-500 to-purple-500'
-  },
+  summary: { icon: FileText, label: 'Summary' },
+  experiences: { icon: Briefcase, label: 'Experience' },
+  education: { icon: GraduationCap, label: 'Education' },
+  skills: { icon: Code, label: 'Skills' },
+  certifications: { icon: FileText, label: 'Certifications' },
+  languages: { icon: FileText, label: 'Languages' },
+  projects: { icon: FileText, label: 'Projects' },
 };
 
 // Animated counter component
@@ -79,8 +50,8 @@ function AnimatedCounter({ value, className = '' }: { value: number; className?:
   const [displayValue, setDisplayValue] = useState(0);
   
   useEffect(() => {
-    const duration = 800;
-    const steps = 20;
+    const duration = 600;
+    const steps = 15;
     const increment = value / steps;
     let current = 0;
     
@@ -210,62 +181,43 @@ export default function BeforeAfterModal({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop with noise texture */}
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 z-50"
-            style={{
-              background: 'linear-gradient(135deg, rgba(10,10,11,0.97) 0%, rgba(20,20,25,0.98) 100%)',
-              backdropFilter: 'blur(8px)',
-            }}
+            className="fixed inset-0 z-50 bg-black/40 dark:bg-black/80 backdrop-blur-sm"
           />
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ 
-              type: 'spring', 
-              damping: 30, 
-              stiffness: 400,
-              duration: 0.4 
-            }}
-            className="fixed inset-3 sm:inset-4 md:inset-6 lg:inset-8 z-50
-                       flex flex-col overflow-hidden rounded-2xl
-                       border border-white/10"
-            style={{
-              background: 'linear-gradient(180deg, rgba(25,25,30,0.95) 0%, rgba(15,15,18,0.98) 100%)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.05)',
-            }}
+            initial={{ opacity: 0, scale: 0.98, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, y: 10 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="fixed inset-4 sm:inset-6 md:inset-8 lg:inset-12 z-50
+                       flex flex-col overflow-hidden rounded-xl
+                       bg-white dark:bg-[#0a0a0a]
+                       border border-gray-200 dark:border-white/[0.08]
+                       shadow-2xl dark:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.6)]"
           >
             {/* Header */}
-            <div className="flex-shrink-0 px-6 py-4 border-b border-white/5">
+            <div className="flex-shrink-0 px-6 py-4 border-b border-gray-100 dark:border-white/[0.08]">
               <div className="flex items-center justify-between">
                 {/* Left: Title */}
-                <div className="flex items-center gap-4">
-                  <motion.div 
-                    initial={{ rotate: -180, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    transition={{ delay: 0.2, duration: 0.5 }}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(251,191,36,0.2) 0%, rgba(245,158,11,0.1) 100%)',
-                      border: '1px solid rgba(251,191,36,0.3)',
-                    }}
-                  >
-                    <Sparkles className="w-5 h-5 text-amber-400" />
-                  </motion.div>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center
+                                  bg-[#b7e219]/10 dark:bg-[#b7e219]/15
+                                  border border-[#b7e219]/20 dark:border-[#b7e219]/30">
+                    <GitCompare className="w-4 h-4 text-[#7cb305] dark:text-[#b7e219]" />
+                  </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-white tracking-tight"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                    <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                       CV Changes Review
                     </h2>
-                    <p className="text-xs text-white/40 mt-0.5">
+                    <p className="text-xs text-gray-500 dark:text-white/40">
                       Compare your original with AI-optimized version
                     </p>
                   </div>
@@ -273,150 +225,99 @@ export default function BeforeAfterModal({
 
                 {/* Center: View Mode Toggle */}
                 <div className="absolute left-1/2 -translate-x-1/2">
-                  <LayoutGroup>
-                    <div className="relative flex items-center p-1 rounded-xl"
-                         style={{
-                           background: 'rgba(255,255,255,0.05)',
-                           border: '1px solid rgba(255,255,255,0.08)',
-                         }}>
-                      <button
-                        onClick={() => onSetViewMode('diff')}
-                        className="relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium 
-                                    transition-colors duration-200"
-                      >
-                        {viewMode === 'diff' && (
-                          <motion.div
-                            layoutId="viewModeIndicator"
-                            className="absolute inset-0 rounded-lg"
-                            style={{
-                              background: 'linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.1) 100%)',
-                              border: '1px solid rgba(251,191,36,0.3)',
-                            }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                          />
-                        )}
-                        <GitCompare className={`relative z-10 w-4 h-4 ${viewMode === 'diff' ? 'text-amber-400' : 'text-white/50'}`} />
-                        <span className={`relative z-10 ${viewMode === 'diff' ? 'text-amber-400' : 'text-white/50 hover:text-white/70'}`}>Unified</span>
-                      </button>
-                      
-                      <button
-                        onClick={() => onSetViewMode('split')}
-                        className="relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium 
-                                    transition-colors duration-200"
-                      >
-                        {viewMode === 'split' && (
-                          <motion.div
-                            layoutId="viewModeIndicator"
-                            className="absolute inset-0 rounded-lg"
-                            style={{
-                              background: 'linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(245,158,11,0.1) 100%)',
-                              border: '1px solid rgba(251,191,36,0.3)',
-                            }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                          />
-                        )}
-                        <Columns className={`relative z-10 w-4 h-4 ${viewMode === 'split' ? 'text-amber-400' : 'text-white/50'}`} />
-                        <span className={`relative z-10 ${viewMode === 'split' ? 'text-amber-400' : 'text-white/50 hover:text-white/70'}`}>Side by Side</span>
-                      </button>
-                    </div>
-                  </LayoutGroup>
+                  <div className="flex items-center p-0.5 rounded-lg
+                                  bg-gray-100 dark:bg-[#1a1a1a]
+                                  border border-gray-200 dark:border-white/[0.08]">
+                    <button
+                      onClick={() => onSetViewMode('diff')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ${
+                        viewMode === 'diff' 
+                          ? 'bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white shadow-sm' 
+                          : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
+                      }`}
+                    >
+                      <GitCompare className="w-3.5 h-3.5" />
+                      <span>Unified</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => onSetViewMode('split')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ${
+                        viewMode === 'split' 
+                          ? 'bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white shadow-sm' 
+                          : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
+                      }`}
+                    >
+                      <Columns className="w-3.5 h-3.5" />
+                      <span>Side by Side</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Right: Close Button */}
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                <button
                   onClick={onClose}
-                  className="w-9 h-9 rounded-lg flex items-center justify-center
-                             text-white/40 hover:text-white/70 transition-colors"
-                  style={{
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                  }}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center
+                             text-gray-400 dark:text-white/40 
+                             hover:text-gray-600 dark:hover:text-white/70 
+                             hover:bg-gray-100 dark:hover:bg-white/5 
+                             transition-all duration-150"
                 >
                   <X className="w-4 h-4" />
-                </motion.button>
+                </button>
               </div>
 
-              {/* Section Pills */}
-              <div className="flex items-center gap-2 mt-5 overflow-x-auto pb-1 scrollbar-hide">
-                {availableSections.map(({ type, hasChanges, changeCount }, index) => {
+              {/* Section Tabs */}
+              <div className="flex items-center gap-1 mt-4 overflow-x-auto pb-1 scrollbar-hide">
+                {availableSections.map(({ type, hasChanges, changeCount }) => {
                   const config = sectionConfig[type];
                   const Icon = config.icon;
                   const isActive = effectiveSection === type;
 
                   return (
-                    <motion.button
+                    <button
                       key={type}
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 + 0.2 }}
                       onClick={() => onSelectSection(type)}
-                      className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium 
-                                  transition-all duration-300 whitespace-nowrap ${
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium 
+                                  transition-all duration-150 whitespace-nowrap
+                                  border ${
                         isActive
-                          ? 'text-white'
-                          : 'text-white/40 hover:text-white/60'
+                          ? 'bg-gray-100 dark:bg-[#1a1a1a] text-gray-900 dark:text-white border-gray-200 dark:border-white/[0.08]'
+                          : 'text-gray-500 dark:text-white/40 border-transparent hover:text-gray-700 dark:hover:text-white/60 hover:bg-gray-50 dark:hover:bg-white/[0.03]'
                       }`}
-                      style={{
-                        background: isActive 
-                          ? 'rgba(255,255,255,0.08)' 
-                          : 'transparent',
-                        border: isActive 
-                          ? '1px solid rgba(255,255,255,0.12)' 
-                          : '1px solid transparent',
-                        boxShadow: isActive 
-                          ? '0 0 20px rgba(251,191,36,0.1)' 
-                          : 'none',
-                      }}
                     >
-                      {/* Active indicator dot */}
-                      {isActive && (
-                        <motion.span
-                          layoutId="activeSectionDot"
-                          className="absolute -left-0.5 top-1/2 -translate-y-1/2 w-1 h-4 rounded-full"
-                          style={{
-                            background: 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)',
-                          }}
-                        />
-                      )}
-                      
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-amber-400' : ''}`} />
+                      <Icon className="w-3.5 h-3.5" />
                       <span>{config.label}</span>
                       
                       {/* Change count badge */}
                       {hasChanges && changeCount > 0 && (
-                        <motion.span
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-md"
-                          style={{
-                            background: isActive 
-                              ? 'linear-gradient(135deg, rgba(251,191,36,0.3) 0%, rgba(245,158,11,0.2) 100%)'
-                              : 'rgba(255,255,255,0.1)',
-                            color: isActive ? '#fbbf24' : 'rgba(255,255,255,0.5)',
-                          }}
+                        <span 
+                          className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
+                            isActive 
+                              ? 'bg-[#b7e219]/20 text-[#7cb305] dark:text-[#b7e219]' 
+                              : 'bg-gray-200 dark:bg-white/[0.08] text-gray-500 dark:text-white/50'
+                          }`}
                         >
                           {changeCount}
-                        </motion.span>
+                        </span>
                       )}
-                    </motion.button>
+                    </button>
                   );
                 })}
               </div>
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-[#0a0a0a]">
               <div className="h-full overflow-y-auto custom-scrollbar">
                 <div className="p-6">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={effectiveSection}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3, ease: 'easeOut' }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
                     >
                       {renderSectionContent()}
                     </motion.div>
@@ -425,83 +326,65 @@ export default function BeforeAfterModal({
               </div>
             </div>
 
-            {/* Footer - Stats Summary */}
-            <div className="flex-shrink-0 px-6 py-4 border-t border-white/5">
+            {/* Footer */}
+            <div className="flex-shrink-0 px-6 py-3 
+                            bg-gray-50 dark:bg-[#1a1a1a] 
+                            border-t border-gray-100 dark:border-white/[0.08]">
               <div className="flex items-center justify-between">
                 {/* Stats */}
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="flex items-center gap-6"
-                >
+                <div className="flex items-center gap-5">
                   {/* Added */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-md flex items-center justify-center"
-                         style={{ background: 'rgba(16,185,129,0.15)' }}>
-                      <Plus className="w-3.5 h-3.5 text-emerald-400" />
-                    </div>
-                    <span className="text-sm">
-                      <AnimatedCounter value={totalChanges.added} className="font-semibold text-emerald-400" />
-                      <span className="text-white/40 ml-1.5">additions</span>
+                  <div className="flex items-center gap-1.5">
+                    <Plus className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+                    <span className="text-xs">
+                      <AnimatedCounter value={totalChanges.added} className="font-medium text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-gray-500 dark:text-white/40 ml-1">additions</span>
                     </span>
                   </div>
 
                   {/* Removed */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-md flex items-center justify-center"
-                         style={{ background: 'rgba(248,113,113,0.15)' }}>
-                      <Minus className="w-3.5 h-3.5 text-red-400" />
-                    </div>
-                    <span className="text-sm">
-                      <AnimatedCounter value={totalChanges.removed} className="font-semibold text-red-400" />
-                      <span className="text-white/40 ml-1.5">removals</span>
+                  <div className="flex items-center gap-1.5">
+                    <Minus className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
+                    <span className="text-xs">
+                      <AnimatedCounter value={totalChanges.removed} className="font-medium text-red-600 dark:text-red-400" />
+                      <span className="text-gray-500 dark:text-white/40 ml-1">removals</span>
                     </span>
                   </div>
 
                   {/* Modified */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-md flex items-center justify-center"
-                         style={{ background: 'rgba(251,191,36,0.15)' }}>
-                      <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
-                    </div>
-                    <span className="text-sm">
-                      <AnimatedCounter value={totalChanges.modified} className="font-semibold text-amber-400" />
-                      <span className="text-white/40 ml-1.5">modifications</span>
+                  <div className="flex items-center gap-1.5">
+                    <RefreshCw className="w-3.5 h-3.5 text-[#7cb305] dark:text-[#b7e219]" />
+                    <span className="text-xs">
+                      <AnimatedCounter value={totalChanges.modified} className="font-medium text-[#7cb305] dark:text-[#b7e219]" />
+                      <span className="text-gray-500 dark:text-white/40 ml-1">modifications</span>
                     </span>
                   </div>
-                </motion.div>
+                </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   {onRevertAll && (
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                    <button
                       onClick={onRevertAll}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg
-                                 text-sm font-medium text-red-400 transition-colors"
-                      style={{
-                        background: 'rgba(248,113,113,0.1)',
-                        border: '1px solid rgba(248,113,113,0.2)',
-                      }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium 
+                                 text-red-600 dark:text-red-400 
+                                 hover:bg-red-50 dark:hover:bg-red-500/10 
+                                 border border-red-200 dark:border-red-500/20
+                                 transition-colors"
                     >
                       Revert All
-                    </motion.button>
+                    </button>
                   )}
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  <button
                     onClick={onClose}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-lg
-                               text-sm font-semibold text-black transition-all"
-                    style={{
-                      background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-                      boxShadow: '0 4px 14px rgba(251,191,36,0.3)',
-                    }}
+                    className="px-4 py-1.5 rounded-lg text-xs font-semibold 
+                               bg-[#7cb305] dark:bg-[#b7e219] 
+                               text-white dark:text-[#0a0a0a]
+                               hover:bg-[#6ba104] dark:hover:bg-[#a5cb17]
+                               active:scale-[0.98] transition-all"
                   >
                     Done
-                  </motion.button>
+                  </button>
                 </div>
               </div>
             </div>
@@ -516,11 +399,17 @@ export default function BeforeAfterModal({
               background: transparent;
             }
             .custom-scrollbar::-webkit-scrollbar-thumb {
-              background: rgba(255,255,255,0.1);
+              background: rgba(0,0,0,0.1);
               border-radius: 3px;
             }
+            .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+              background: rgba(255,255,255,0.08);
+            }
             .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-              background: rgba(255,255,255,0.2);
+              background: rgba(0,0,0,0.2);
+            }
+            .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+              background: rgba(255,255,255,0.12);
             }
             .scrollbar-hide::-webkit-scrollbar {
               display: none;

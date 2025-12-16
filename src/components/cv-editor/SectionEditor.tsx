@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { 
   Plus, Trash2, Calendar, Edit3,
   Wand2, TrendingUp, Target, Hash, FileText, Zap,
-  X, Check, Loader2, Sparkles, GripVertical, Star
+  X, Check, Loader2, Sparkles, GripVertical, Star, Upload, User, Image
 } from 'lucide-react';
-import { CVSection, CVExperience, CVEducation, CVSkill, CVCertification, CVProject, CVLanguage, CVLayoutSettings } from '../../types/cvEditor';
+import { CVSection, CVExperience, CVEducation, CVSkill, CVCertification, CVProject, CVLanguage, CVLayoutSettings, CVTemplate } from '../../types/cvEditor';
 import { generateId } from '../../lib/cvEditorUtils';
 import { rewriteSection } from '../../lib/cvSectionAI';
 import { notify } from '@/lib/notify';
@@ -19,6 +19,9 @@ import {
   LanguageInlineForm
 } from './inline-editors';
 import AIEnhancePanel from './inline-editors/AIEnhancePanel';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../../lib/firebase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface SectionEditorProps {
   section: CVSection;
@@ -39,7 +42,12 @@ interface SectionEditorProps {
   // Layout settings for controlling skill level display
   layoutSettings?: CVLayoutSettings;
   onLayoutSettingsChange?: (settings: Partial<CVLayoutSettings>) => void;
+  // Current template to show/hide photo option
+  template?: CVTemplate;
 }
+
+// Templates that support profile photos
+const PHOTO_TEMPLATES: CVTemplate[] = ['swiss-photo', 'corporate-photo'];
 
 // AI action buttons for each section
 const AI_ACTIONS = [
@@ -60,13 +68,17 @@ export default function SectionEditor({
   externalEditItemId,
   onExternalEditProcessed,
   layoutSettings,
-  onLayoutSettingsChange
+  onLayoutSettingsChange,
+  template
 }: SectionEditorProps) {
+  const { currentUser } = useAuth();
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [originalContent, setOriginalContent] = useState<string>('');
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [currentAction, setCurrentAction] = useState<string>('');
   const [showDiff, setShowDiff] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   
   // Inline editing state
   const [inlineEditingId, setInlineEditingId] = useState<string | null>(null);
@@ -74,6 +86,47 @@ export default function SectionEditor({
 
   // Conversation history for AI interactions (per section type)
   const [conversationHistory, setConversationHistory] = useState<Record<string, string[]>>({});
+
+  // Check if current template supports photos
+  const supportsPhoto = template && PHOTO_TEMPLATES.includes(template);
+
+  // Handle photo file upload
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !currentUser?.uid) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      notify.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      notify.error('Image must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const fileName = `cv-photo-${Date.now()}.${file.name.split('.').pop()}`;
+      const photoRef = ref(storage, `profile-photos/${currentUser.uid}/${fileName}`);
+      await uploadBytes(photoRef, file, { contentType: file.type });
+      const photoUrl = await getDownloadURL(photoRef);
+      
+      onChange({ photoUrl });
+      notify.success('Photo uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      notify.error('Failed to upload photo');
+    } finally {
+      setIsUploadingPhoto(false);
+      // Reset input
+      if (photoInputRef.current) {
+        photoInputRef.current.value = '';
+      }
+    }
+  };
 
   // Handle external edit request from preview click
   useEffect(() => {
@@ -376,6 +429,103 @@ export default function SectionEditor({
               placeholder="San Francisco, CA"
             />
           </div>
+
+          {/* Profile Photo Section - Only for photo templates */}
+          {supportsPhoto && (
+            <div className="p-4 bg-gradient-to-r from-[#635BFF]/5 to-[#635BFF]/10 dark:from-[#635BFF]/10 dark:to-[#635BFF]/20 rounded-xl border border-[#635BFF]/20 dark:border-[#635BFF]/30">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3 tracking-wide uppercase flex items-center gap-2">
+                <Image className="w-4 h-4 text-[#635BFF] dark:text-[#a5a0ff]" />
+                Profile Photo
+              </label>
+              <div className="flex items-start gap-4">
+                {/* Photo Preview */}
+                <div className="relative flex-shrink-0">
+                  {data.photoUrl ? (
+                    <div className="relative group">
+                      <img 
+                        src={data.photoUrl} 
+                        alt="Profile" 
+                        className="w-20 h-20 rounded-xl object-cover border-2 border-white dark:border-gray-700 shadow-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => onChange({ photoUrl: '' })}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold transition-colors shadow-md opacity-0 group-hover:opacity-100"
+                        title="Remove photo"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-20 h-20 rounded-xl bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center shadow-sm">
+                      <User className="w-8 h-8 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload & URL Options */}
+                <div className="flex-1 space-y-3">
+                  {/* Upload Button */}
+                  <div>
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                      id="cv-photo-upload"
+                    />
+                    <label
+                      htmlFor="cv-photo-upload"
+                      className={`
+                        inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm cursor-pointer transition-all
+                        ${isUploadingPhoto 
+                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' 
+                          : 'bg-[#635BFF] hover:bg-[#5249e6] text-white shadow-sm hover:shadow-md'
+                        }
+                      `}
+                    >
+                      {isUploadingPhoto ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          Upload Photo
+                        </>
+                      )}
+                    </label>
+                    <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      JPG, PNG or GIF. Max 5MB.
+                    </p>
+                  </div>
+
+                  {/* Or divider */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+                    <span className="text-xs text-gray-400 uppercase">or</span>
+                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+                  </div>
+
+                  {/* URL Input */}
+                  <div>
+                    <input
+                      type="url"
+                      value={data.photoUrl || ''}
+                      onChange={(e) => onChange({ photoUrl: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-[#635BFF] dark:focus:border-[#a5a0ff] focus:ring-2 focus:ring-[#635BFF]/20 dark:focus:ring-[#635BFF]/30 transition-all duration-200"
+                      placeholder="https://example.com/photo.jpg"
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Or paste an image URL directly
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">

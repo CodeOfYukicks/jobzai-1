@@ -10,6 +10,7 @@ export interface CVPersonalInfo {
   portfolio?: string;
   github?: string;
   title?: string; // Professional title/headline
+  photoUrl?: string; // Profile photo URL for templates with photo support
 }
 
 export interface CVExperience {
@@ -99,7 +100,15 @@ export interface CVData {
   };
 }
 
-export type CVTemplate = 'modern-professional' | 'executive-classic' | 'tech-minimalist' | 'creative-balance';
+export type CVTemplate = 
+  | 'modern-professional' 
+  | 'executive-classic' 
+  | 'tech-minimalist' 
+  | 'creative-balance'
+  | 'harvard-classic'    // Academic style, no photo
+  | 'swiss-photo'        // Swiss/German bi-column with round photo
+  | 'corporate-photo'    // Modern header with square photo
+  | 'elegant-simple';    // Ultra-minimalist ATS-friendly
 
 // Color scheme types for template customization
 export type CVColorScheme = 

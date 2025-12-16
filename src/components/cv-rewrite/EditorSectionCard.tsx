@@ -5,6 +5,7 @@ import {
   CheckCircle, X, Loader2, ChevronDown, ChevronUp, Trash2, Sparkles 
 } from 'lucide-react';
 import { notify } from '@/lib/notify';
+import { Avatar, DEFAULT_AVATAR_CONFIG } from '../assistant/avatar';
 
 interface AIAction {
   id: string;
@@ -550,9 +551,22 @@ export default function EditorSectionCard({
                   <button
                     type="button"
                     onClick={() => setIsSectionMenuOpen(prev => !prev)}
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-[#26262B] border border-gray-200/70 dark:border-gray-700/70 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-purple-300 dark:hover:border-purple-600 hover:text-purple-600 dark:hover:text-purple-300 transition-all shadow-sm"
+                    className="group inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl 
+                      bg-white/70 dark:bg-white/[0.06] 
+                      backdrop-blur-xl 
+                      border border-white/40 dark:border-white/[0.08] 
+                      shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.25)]
+                      hover:bg-white/80 dark:hover:bg-white/[0.1] 
+                      hover:border-white/60 dark:hover:border-white/[0.12]
+                      hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)]
+                      text-xs font-semibold text-gray-700 dark:text-gray-200 
+                      transition-all duration-300 ease-out"
                   >
-                    <Sparkles className="w-4 h-4 text-purple-500" />
+                    <Avatar 
+                      config={DEFAULT_AVATAR_CONFIG} 
+                      size={18} 
+                      className="rounded-md shadow-sm group-hover:scale-105 transition-transform duration-200"
+                    />
                     <span>AI Toolkit</span>
                   </button>
                   <AnimatePresence>
@@ -562,7 +576,7 @@ export default function EditorSectionCard({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -4 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 w-48 rounded-2xl border border-gray-200/80 dark:border-gray-800/80 bg-white dark:bg-[#111116] shadow-2xl shadow-purple-500/10 overflow-hidden z-10"
+                        className="absolute right-0 mt-2 w-48 rounded-xl border border-white/40 dark:border-white/[0.08] bg-white/90 dark:bg-[#1a1a1e]/90 backdrop-blur-xl shadow-[0_16px_48px_rgba(0,0,0,0.12)] dark:shadow-[0_16px_48px_rgba(0,0,0,0.4)] overflow-hidden z-10"
                       >
                         {AI_ACTIONS.map((action) => (
                           <button
@@ -573,9 +587,9 @@ export default function EditorSectionCard({
                               handleAIAction(action);
                             }}
                             disabled={isGenerating}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-100 hover:bg-purple-50 dark:hover:bg-purple-900/30 disabled:opacity-50"
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-100 hover:bg-black/5 dark:hover:bg-white/[0.06] disabled:opacity-50 transition-colors"
                           >
-                            <span className="text-purple-500">{action.icon}</span>
+                            <span className="text-gray-500 dark:text-gray-400">{action.icon}</span>
                             <span>{action.label}</span>
                           </button>
                         ))}
@@ -609,9 +623,21 @@ export default function EditorSectionCard({
                     <button
                       type="button"
                       onClick={() => setIsSectionMenuOpen(prev => !prev)}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-[#26262B] border border-gray-200/70 dark:border-gray-700/70 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-purple-300 dark:hover:border-purple-600 hover:text-purple-600 dark:hover:text-purple-300 transition-all shadow-sm"
+                      className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg 
+                        bg-white/70 dark:bg-white/[0.06] 
+                        backdrop-blur-xl 
+                        border border-white/40 dark:border-white/[0.08] 
+                        shadow-[0_6px_24px_rgba(0,0,0,0.05)] dark:shadow-[0_6px_24px_rgba(0,0,0,0.2)]
+                        hover:bg-white/80 dark:hover:bg-white/[0.1] 
+                        hover:border-white/60 dark:hover:border-white/[0.12]
+                        text-xs font-semibold text-gray-700 dark:text-gray-200 
+                        transition-all duration-300 ease-out"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                      <Avatar 
+                        config={DEFAULT_AVATAR_CONFIG} 
+                        size={16} 
+                        className="rounded-md shadow-sm group-hover:scale-105 transition-transform duration-200"
+                      />
                       <span>AI Toolkit</span>
                     </button>
                     <AnimatePresence>
@@ -621,7 +647,7 @@ export default function EditorSectionCard({
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95, y: -4 }}
                           transition={{ duration: 0.15 }}
-                          className="absolute right-0 mt-2 w-48 rounded-xl border border-gray-200/80 dark:border-gray-800/80 bg-white dark:bg-[#111116] shadow-2xl shadow-purple-500/10 overflow-hidden z-50"
+                          className="absolute right-0 mt-2 w-48 rounded-xl border border-white/40 dark:border-white/[0.08] bg-white/90 dark:bg-[#1a1a1e]/90 backdrop-blur-xl shadow-[0_16px_48px_rgba(0,0,0,0.12)] dark:shadow-[0_16px_48px_rgba(0,0,0,0.4)] overflow-hidden z-50"
                         >
                           {AI_ACTIONS.map((action) => (
                             <button
@@ -632,9 +658,9 @@ export default function EditorSectionCard({
                                 handleAIAction(action);
                               }}
                               disabled={isGenerating}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-100 hover:bg-purple-50 dark:hover:bg-purple-900/30 disabled:opacity-50"
+                              className="w-full flex items-center gap-2 px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-100 hover:bg-black/5 dark:hover:bg-white/[0.06] disabled:opacity-50 transition-colors"
                             >
-                              <span className="text-purple-500">{action.icon}</span>
+                              <span className="text-gray-500 dark:text-gray-400">{action.icon}</span>
                               <span>{action.label}</span>
                             </button>
                           ))}
@@ -652,15 +678,19 @@ export default function EditorSectionCard({
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="mb-5 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border border-purple-200/60 dark:border-purple-900/60 rounded-xl p-5"
+                    className="mb-5 rounded-xl p-5 border border-white/40 dark:border-white/[0.08] bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.25)]"
                   >
                     <div className="flex items-start gap-4 mb-4">
-                      <Wand2 className="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
+                      <Avatar 
+                        config={DEFAULT_AVATAR_CONFIG} 
+                        size={24} 
+                        className="rounded-md shadow-sm flex-shrink-0"
+                      />
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-purple-900 dark:text-purple-300 mb-3">
+                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
                           AI Suggestion
                         </p>
-                        <div className="bg-white dark:bg-[#1A1A1D] rounded-lg p-4 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap border border-purple-100/60 dark:border-purple-900/60 leading-relaxed">
+                        <div className="bg-white/60 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg p-4 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap border border-white/30 dark:border-white/[0.06] leading-relaxed">
                           {aiSuggestion}
                         </div>
                       </div>
@@ -668,14 +698,14 @@ export default function EditorSectionCard({
                     <div className="flex items-center gap-3">
                       <button
                         onClick={acceptSuggestion}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-all shadow-sm hover:shadow-md"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-md hover:shadow-lg"
                       >
                         <CheckCircle className="w-4 h-4" />
                         Accept Changes
                       </button>
                       <button
                         onClick={rejectSuggestion}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-white/60 dark:bg-white/[0.04] backdrop-blur-sm text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-white/80 dark:hover:bg-white/[0.08] transition-all border border-white/40 dark:border-white/[0.08]"
                       >
                         <X className="w-4 h-4" />
                         Discard
@@ -688,19 +718,26 @@ export default function EditorSectionCard({
               {/* Generating State */}
               {isGenerating && (
                 <div className="mb-5 relative">
-                  <div className="rounded-2xl border border-purple-300/40 dark:border-purple-900/60 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-[#14041F] dark:via-[#0A0A10] dark:to-[#12051C] px-5 py-4 shadow-[0_10px_40px_rgba(76,29,149,0.18)]">
+                  <div className="rounded-xl border border-white/40 dark:border-white/[0.08] bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl px-5 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.25)]">
                     <div className="flex items-center gap-4">
                       <div className="relative">
-                        <div className="absolute inset-0 blur-xl bg-purple-400/40 animate-pulse rounded-full" />
-                        <div className="relative w-10 h-10 rounded-full bg-white dark:bg-[#1A1A1F] border border-purple-200/60 dark:border-purple-800 flex items-center justify-center shadow-lg">
-                          <Loader2 className="w-4 h-4 text-purple-600 dark:text-purple-300 animate-spin" />
+                        <div className="absolute inset-0 blur-lg bg-gray-300/40 dark:bg-white/10 animate-pulse rounded-full" />
+                        <div className="relative">
+                          <Avatar 
+                            config={DEFAULT_AVATAR_CONFIG} 
+                            size={40} 
+                            className="rounded-lg shadow-md"
+                          />
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white dark:bg-gray-900 border border-white/60 dark:border-white/[0.1] flex items-center justify-center shadow-sm">
+                            <Loader2 className="w-2.5 h-2.5 text-gray-600 dark:text-gray-300 animate-spin" />
+                          </div>
                         </div>
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-purple-900 dark:text-purple-200 tracking-wide">
+                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 tracking-wide">
                           Polishing with AI {aiActionContext?.label ? `(${aiActionContext.label})` : ''}
                         </p>
-                        <p className="text-xs text-purple-900/70 dark:text-purple-200/70">
+                        <p className="text-xs text-gray-600/80 dark:text-gray-400/80">
                           Your original content stays untouched until you confirm the changes.
                         </p>
                       </div>

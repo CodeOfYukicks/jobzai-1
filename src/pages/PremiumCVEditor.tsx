@@ -33,6 +33,10 @@ import ModernProfessional from '../components/cv-editor/templates/ModernProfessi
 import ExecutiveClassic from '../components/cv-editor/templates/ExecutiveClassic';
 import TechMinimalist from '../components/cv-editor/templates/TechMinimalist';
 import CreativeBalance from '../components/cv-editor/templates/CreativeBalance';
+import HarvardClassic from '../components/cv-editor/templates/HarvardClassic';
+import SwissPhoto from '../components/cv-editor/templates/SwissPhoto';
+import CorporatePhoto from '../components/cv-editor/templates/CorporatePhoto';
+import ElegantSimple from '../components/cv-editor/templates/ElegantSimple';
 import { useAssistantPageData } from '../hooks/useAssistantPageData';
 
 // Initial empty CV data structure
@@ -46,7 +50,8 @@ const initialCVData: CVData = {
     linkedin: '',
     portfolio: '',
     github: '',
-    title: ''
+    title: '',
+    photoUrl: ''
   },
   summary: '',
   experiences: [],
@@ -71,7 +76,11 @@ const TEMPLATES: { value: CVTemplate; label: string; description: string }[] = [
   { value: 'modern-professional', label: 'Modern Professional', description: 'Clean and ATS-optimized' },
   { value: 'executive-classic', label: 'Executive Classic', description: 'Traditional and elegant' },
   { value: 'tech-minimalist', label: 'Tech Minimalist', description: 'Google/Linear inspired' },
-  { value: 'creative-balance', label: 'Creative Balance', description: 'Modern with personality' }
+  { value: 'creative-balance', label: 'Creative Balance', description: 'Modern with personality' },
+  { value: 'harvard-classic', label: 'Harvard', description: 'Academic & ATS-perfect' },
+  { value: 'swiss-photo', label: 'Swiss', description: 'Clean bi-column with photo' },
+  { value: 'corporate-photo', label: 'Corporate', description: 'Professional header with photo' },
+  { value: 'elegant-simple', label: 'Elegant', description: 'Ultra-minimal single column' }
 ];
 
 export default function PremiumCVEditor() {
@@ -1664,6 +1673,14 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                           return <TechMinimalist cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
                         case 'creative-balance':
                           return <CreativeBalance cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                        case 'harvard-classic':
+                          return <HarvardClassic cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                        case 'swiss-photo':
+                          return <SwissPhoto cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                        case 'corporate-photo':
+                          return <CorporatePhoto cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                        case 'elegant-simple':
+                          return <ElegantSimple cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
                         case 'modern-professional':
                         default:
                           return <ModernProfessional cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;

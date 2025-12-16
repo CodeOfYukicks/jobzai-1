@@ -17,6 +17,13 @@ interface SessionRecord {
     tier: 'excellent' | 'good' | 'needs-improvement' | 'poor';
 }
 
+export interface HistorySessionData {
+    questions: QuestionEntry[];
+    answers: Record<number, string>;
+    analysis: InterviewAnalysis;
+    date: string;
+}
+
 interface LiveInterviewSessionProps {
     isOpen: boolean;
     onClose: () => void;
@@ -31,6 +38,7 @@ interface LiveInterviewSessionProps {
     companyName?: string;
     position?: string;
     previousSessions?: SessionRecord[];
+    historySession?: HistorySessionData;
 }
 
 type SessionState = 'config' | 'intro' | 'question' | 'results';
@@ -45,39 +53,51 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
     companyName,
     position,
     previousSessions = [],
+    historySession,
 }) => {
-    const [sessionState, setSessionState] = useState<SessionState>('config');
+    const isHistoryMode = !!historySession;
+    const [sessionState, setSessionState] = useState<SessionState>(isHistoryMode ? 'results' : 'config');
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [answers, setAnswers] = useState<Record<number, string>>({});
-    const [analysis, setAnalysis] = useState<InterviewAnalysis | null>(null);
+    const [answers, setAnswers] = useState<Record<number, string>>(historySession?.answers || {});
+    const [analysis, setAnalysis] = useState<InterviewAnalysis | null>(historySession?.analysis || null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
     const [detectedLanguage, setDetectedLanguage] = useState<string | null>(null);
-    const [sessionQuestions, setSessionQuestions] = useState<QuestionEntry[]>(questions);
+    const [sessionQuestions, setSessionQuestions] = useState<QuestionEntry[]>(historySession?.questions || questions);
     const [selectedInterviewType, setSelectedInterviewType] = useState<InterviewType | undefined>(undefined);
 
     // Update session questions when questions prop changes
     React.useEffect(() => {
-        if (questions.length > 0) {
+        if (!isHistoryMode && questions.length > 0) {
             setSessionQuestions(questions);
         }
-    }, [questions]);
+    }, [questions, isHistoryMode]);
 
     // Reset state when session opens/closes
     React.useEffect(() => {
         if (isOpen) {
-            // Always start with config screen to let user choose type and count
-            setSessionState('config');
-            setCurrentQuestionIndex(0);
-            setAnswers({});
-            setAnalysis(null);
-            setIsAnalyzing(false);
-            setIsGeneratingQuestions(false);
-            setDetectedLanguage(null);
-            setSessionQuestions([]); // Reset to empty, will be populated after config
-            setSelectedInterviewType(undefined);
+            if (historySession) {
+                // History mode: start directly in results with pre-loaded data
+                setSessionState('results');
+                setSessionQuestions(historySession.questions);
+                setAnswers(historySession.answers);
+                setAnalysis(historySession.analysis);
+                setIsAnalyzing(false);
+                setIsGeneratingQuestions(false);
+            } else {
+                // Normal mode: start with config screen
+                setSessionState('config');
+                setCurrentQuestionIndex(0);
+                setAnswers({});
+                setAnalysis(null);
+                setIsAnalyzing(false);
+                setIsGeneratingQuestions(false);
+                setDetectedLanguage(null);
+                setSessionQuestions([]); // Reset to empty, will be populated after config
+                setSelectedInterviewType(undefined);
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, historySession]);
 
     const handleConfigStart = async (type: InterviewType, count: QuestionCount) => {
         setSelectedInterviewType(type); // Store the selected interview type
@@ -205,6 +225,11 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
     };
 
     const handleRetry = () => {
+        // In history mode, close the view and let parent handle re-opening a new session
+        if (isHistoryMode) {
+            onClose();
+            return;
+        }
         setSessionState('config');
         setCurrentQuestionIndex(0);
         setAnswers({});
@@ -226,8 +251,31 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
                     {/* Header - Compact */}
                     <div className="flex items-center justify-between px-4 py-2 border-b border-black/5 dark:border-white/5">
                         <div className="flex items-center gap-2">
-                            <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                            <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">Live Session</span>
+                            {isHistoryMode ? (
+                                <>
+                                    <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                                    <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                                        Session History
+                                    </span>
+                                    {historySession?.date && (
+                                        <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                                            — {new Date(historySession.date).toLocaleDateString('en-US', {
+                                                weekday: 'long',
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}
+                                        </span>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                                    <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">Live Session</span>
+                                </>
+                            )}
                         </div>
                         <button
                             onClick={onClose}

@@ -73,7 +73,8 @@ const initialCVData: CVData = {
     linkedin: '',
     portfolio: '',
     github: '',
-    title: ''
+    title: '',
+    photoUrl: ''
   },
   summary: '',
   experiences: [],

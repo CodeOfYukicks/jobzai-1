@@ -3238,7 +3238,8 @@ END:VCALENDAR`;
                 <span>{currentBoardType === 'campaigns' ? 'Add Contact' : 'Add Application'}</span>
               </motion.button>
 
-              {/* Settings Button */}
+              {/* Settings Button - Only show for jobs board */}
+              {currentBoardType !== 'campaigns' && (
               <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -3255,6 +3256,7 @@ END:VCALENDAR`;
                           <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#635BFF] rounded-full border-2 border-white dark:border-[#242325]" />
                 )}
               </motion.button>
+              )}
                     </>
                   )}
             </div>

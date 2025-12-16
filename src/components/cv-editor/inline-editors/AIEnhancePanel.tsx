@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { rewriteSection } from '../../../lib/cvSectionAI';
 import { notify } from '@/lib/notify';
+import { Avatar, DEFAULT_AVATAR_CONFIG } from '../../assistant/avatar';
 
 interface AIEnhancePanelProps {
   sectionType: 'experience' | 'project' | 'summary';
@@ -220,26 +221,40 @@ export default function AIEnhancePanel({
 
   return (
     <div className="mb-3">
-      {/* Collapsed State - Premium Button - Always show, even without job context */}
+      {/* Collapsed State - Premium Glassmorphism Button */}
       {!isExpanded && !suggestion && (
         <motion.button
           type="button"
           onClick={() => setIsExpanded(true)}
-          className="group relative w-full overflow-hidden rounded-lg border border-purple-200/50 dark:border-purple-700/50 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-200"
-          whileHover={{ scale: 1.005 }}
-          whileTap={{ scale: 0.995 }}
+          className="group relative w-full overflow-hidden rounded-xl 
+            bg-white/70 dark:bg-white/[0.06] 
+            backdrop-blur-xl 
+            border border-white/40 dark:border-white/[0.08] 
+            shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.25)]
+            hover:bg-white/80 dark:hover:bg-white/[0.1] 
+            hover:border-white/60 dark:hover:border-white/[0.12]
+            hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)]
+            transition-all duration-300 ease-out"
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
         >
-          {/* Gradient Background */}
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30" />
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+          {/* Subtle shimmer effect on hover */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 dark:via-white/[0.04] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
           
           {/* Content */}
-          <div className="relative flex items-center justify-center gap-2 py-2 px-4">
-            <Sparkles className="w-3.5 h-3.5 text-purple-700 dark:text-purple-300 group-hover:text-purple-800 dark:group-hover:text-purple-200 transition-colors" />
-            <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 group-hover:text-purple-800 dark:group-hover:text-purple-200 transition-colors">
-              {jobContext ? 'Enhance with AI' : 'Enhance with AI (General)'}
+          <div className="relative flex items-center justify-center gap-2.5 py-2.5 px-4">
+            {/* Mini AI Avatar */}
+            <div className="relative">
+              <Avatar 
+                config={DEFAULT_AVATAR_CONFIG} 
+                size={18} 
+                className="rounded-md shadow-sm group-hover:scale-105 transition-transform duration-200"
+              />
+            </div>
+            <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+              {jobContext ? 'Enhance with AI' : 'Enhance with AI'}
             </span>
-            <ChevronDown className="w-3 h-3 text-purple-600 dark:text-purple-400 group-hover:text-purple-800 dark:group-hover:text-purple-200 transition-colors" />
+            <ChevronDown className="w-3 h-3 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
           </div>
         </motion.button>
       )}
@@ -254,19 +269,21 @@ export default function AIEnhancePanel({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="p-3 rounded-lg border border-gray-200/80 dark:border-[#3d3c3e]/60 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-800/40 dark:to-gray-900/20">
+            <div className="p-3 rounded-xl border border-white/40 dark:border-white/[0.08] bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.25)]">
               {/* Header */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-1 rounded-md bg-gray-700 dark:bg-gray-600">
-                    <Sparkles className="w-3 h-3 text-white" />
-                  </div>
-                  <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wide">AI Enhancement</span>
+                  <Avatar 
+                    config={DEFAULT_AVATAR_CONFIG} 
+                    size={20} 
+                    className="rounded-md shadow-sm"
+                  />
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 tracking-wide">AI Enhancement</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsExpanded(false)}
-                  className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
+                  className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -274,7 +291,7 @@ export default function AIEnhancePanel({
 
               {/* Conversation History */}
               {conversationHistory && conversationHistory.length > 0 && (
-                <div className="mb-3 pb-3 border-b border-gray-200/60 dark:border-[#3d3c3e]/50">
+                <div className="mb-3 pb-3 border-b border-white/20 dark:border-white/[0.06]">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Previous requests:</span>
                     {onResetHistory && (
@@ -295,9 +312,9 @@ export default function AIEnhancePanel({
                     {conversationHistory.map((msg, idx) => (
                       <span 
                         key={idx} 
-                        className="inline-flex items-center gap-1 text-[10px] px-2 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-700/50 rounded"
+                        className="inline-flex items-center gap-1 text-[10px] px-2 py-1 bg-white/50 dark:bg-white/[0.06] text-gray-600 dark:text-gray-300 border border-white/30 dark:border-white/[0.08] rounded-md backdrop-blur-sm"
                       >
-                        <span className="opacity-60">{idx + 1}.</span>
+                        <span className="opacity-50">{idx + 1}.</span>
                         <span className="font-medium">{msg.length > 35 ? msg.substring(0, 35) + '...' : msg}</span>
                       </span>
                     ))}
@@ -307,21 +324,21 @@ export default function AIEnhancePanel({
 
               {/* Empty Content Message */}
               {!currentContent.trim() && (
-                <div className="mb-3 p-3 rounded-lg border border-amber-200/60 dark:border-amber-800/40 bg-gradient-to-br from-amber-50/80 to-orange-50/50 dark:from-amber-900/20 dark:to-orange-900/10">
+                <div className="mb-3 p-3 rounded-lg border border-amber-300/30 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-500/[0.06] backdrop-blur-sm">
                   <div className="flex items-start gap-2">
-                    <div className="p-1 rounded-md bg-amber-100 dark:bg-amber-900/40 mt-0.5">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-700 dark:text-amber-300" />
+                    <div className="p-1 rounded-md bg-amber-100/80 dark:bg-amber-500/20 mt-0.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1">
                         No content yet
                       </p>
-                      <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 leading-relaxed">
+                      <p className="text-[11px] text-amber-700/80 dark:text-amber-300/70 leading-relaxed">
                         {sectionType === 'experience' 
-                          ? 'Add your achievements first, or use the chatbox below to describe your work and we\'ll create professional bullet points for you.'
+                          ? 'Add your achievements first, or use the chatbox below to describe your work.'
                           : sectionType === 'project'
-                          ? 'Add your project details first, or use the chatbox below to describe your project and we\'ll create professional content for you.'
-                          : 'Add your summary content first, or use the chatbox below to describe your professional background and we\'ll create a compelling summary for you.'}
+                          ? 'Add your project details first, or use the chatbox below to describe your project.'
+                          : 'Add your summary content first, or use the chatbox below to describe your background.'}
                       </p>
                     </div>
                   </div>
@@ -341,10 +358,10 @@ export default function AIEnhancePanel({
                       onClick={() => handleQuickAction(action.id)}
                       disabled={isLoading}
                       className={`
-                        group relative flex flex-col items-center gap-1 p-2 rounded-lg border transition-all duration-200
+                        group relative flex flex-col items-center gap-1 p-2 rounded-lg border backdrop-blur-sm transition-all duration-200
                         ${isActive 
-                          ? 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-[#2b2a2c] shadow-sm' 
-                          : 'border-gray-200/60 dark:border-[#3d3c3e]/60 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                          ? 'border-gray-300/60 dark:border-white/[0.12] bg-white/80 dark:bg-white/[0.08] shadow-sm' 
+                          : 'border-white/30 dark:border-white/[0.05] bg-white/40 dark:bg-white/[0.02] hover:border-white/50 dark:hover:border-white/[0.1] hover:bg-white/60 dark:hover:bg-white/[0.06]'
                         }
                         disabled:opacity-50 disabled:cursor-not-allowed
                       `}
@@ -370,16 +387,16 @@ export default function AIEnhancePanel({
                     value={customPrompt}
                     onChange={(e) => setCustomPrompt(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleCustomRequest()}
-                    placeholder={currentContent.trim() ? "Custom request... (e.g., 'make it more technical')" : "Describe your work... (e.g., 'I worked as full stack dev in a project for a retail client, please create two bullet points for me')"}
+                    placeholder={currentContent.trim() ? "Custom request... (e.g., 'make it more technical')" : "Describe your work..."}
                     disabled={isLoading}
-                    className="w-full px-3 py-2 pr-8 text-xs bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200 disabled:opacity-50"
+                    className="w-full px-3 py-2.5 pr-8 text-xs bg-white/60 dark:bg-white/[0.04] backdrop-blur-sm border border-white/40 dark:border-white/[0.06] rounded-lg placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-gray-300/60 dark:focus:border-white/[0.12] focus:ring-2 focus:ring-white/30 dark:focus:ring-white/[0.05] transition-all duration-200 disabled:opacity-50 text-gray-700 dark:text-gray-200"
                   />
                 </div>
                 <button
                   type="button"
                   onClick={handleCustomRequest}
                   disabled={isLoading || !customPrompt.trim()}
-                  className="px-3 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow"
+                  className="px-3.5 py-2.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   {isLoading && activeAction === 'custom' ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -409,17 +426,19 @@ export default function AIEnhancePanel({
             exit={{ opacity: 0, y: -10 }}
             className="overflow-hidden"
           >
-            <div className="p-3 rounded-xl border border-gray-200/80 dark:border-[#3d3c3e]/60 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-800/40 dark:to-gray-900/20 shadow-sm">
+            <div className="p-3 rounded-xl border border-white/40 dark:border-white/[0.08] bg-white/70 dark:bg-white/[0.04] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.25)]">
               {/* Header */}
               <div className="flex items-center gap-2 mb-3">
-                <div className="p-1 rounded-md bg-gray-700 dark:bg-gray-600">
-                  <Sparkles className="w-3 h-3 text-white" />
-                </div>
-                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wide">AI Suggestion</span>
+                <Avatar 
+                  config={DEFAULT_AVATAR_CONFIG} 
+                  size={20} 
+                  className="rounded-md shadow-sm"
+                />
+                <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 tracking-wide">AI Suggestion</span>
               </div>
 
               {/* Suggestion Content */}
-              <div className="p-3 bg-white dark:bg-[#242325]/50 rounded-lg border border-gray-200/60 dark:border-[#3d3c3e]/50 mb-3">
+              <div className="p-3 bg-white/60 dark:bg-white/[0.04] backdrop-blur-sm rounded-lg border border-white/30 dark:border-white/[0.06] mb-3">
                 <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                   {suggestion}
                 </p>
@@ -433,7 +452,7 @@ export default function AIEnhancePanel({
                     setSuggestion(null);
                     setIsExpanded(true);
                   }}
-                  className="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                  className="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                 >
                   <RefreshCw className="w-3 h-3" />
                   Try again
@@ -443,7 +462,7 @@ export default function AIEnhancePanel({
                   <button
                     type="button"
                     onClick={handleReject}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-[#2b2a2c] border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white/60 dark:bg-white/[0.04] backdrop-blur-sm border border-white/40 dark:border-white/[0.08] rounded-lg hover:bg-white/80 dark:hover:bg-white/[0.08] hover:border-white/60 dark:hover:border-white/[0.12] transition-all duration-200"
                   >
                     <X className="w-3 h-3" />
                     Reject
@@ -451,7 +470,7 @@ export default function AIEnhancePanel({
                   <button
                     type="button"
                     onClick={handleApply}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white dark:text-gray-900 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 rounded-lg shadow-sm hover:shadow transition-all duration-200"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white dark:text-gray-900 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
                   >
                     <Check className="w-3 h-3" />
                     Apply

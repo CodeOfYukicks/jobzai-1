@@ -1,9 +1,8 @@
 /**
  * WordDiff Component
- * Renders word-level diff with animated highlighting - Premium dark design
+ * Renders word-level diff with subtle highlighting - Light/dark mode support
  */
 
-import { motion } from 'framer-motion';
 import { DiffSegment, WordDiffResult } from '../../../types/cvComparison';
 
 interface WordDiffProps {
@@ -12,7 +11,7 @@ interface WordDiffProps {
   showAnimations?: boolean;
 }
 
-export default function WordDiff({ diff, className = '', showAnimations = true }: WordDiffProps) {
+export default function WordDiff({ diff, className = '' }: WordDiffProps) {
   if (!diff || diff.segments.length === 0) {
     return null;
   }
@@ -23,8 +22,6 @@ export default function WordDiff({ diff, className = '', showAnimations = true }
         <DiffSegmentRenderer
           key={index}
           segment={segment}
-          index={index}
-          showAnimations={showAnimations}
         />
       ))}
     </span>
@@ -33,16 +30,12 @@ export default function WordDiff({ diff, className = '', showAnimations = true }
 
 interface DiffSegmentRendererProps {
   segment: DiffSegment;
-  index: number;
-  showAnimations: boolean;
 }
 
-function DiffSegmentRenderer({ segment, index, showAnimations }: DiffSegmentRendererProps) {
-  const baseDelay = index * 0.015;
-
+function DiffSegmentRenderer({ segment }: DiffSegmentRendererProps) {
   if (segment.type === 'unchanged') {
     return (
-      <span className="text-white/70">
+      <span className="text-gray-700 dark:text-white/70">
         {segment.value}
       </span>
     );
@@ -50,41 +43,22 @@ function DiffSegmentRenderer({ segment, index, showAnimations }: DiffSegmentRend
 
   if (segment.type === 'removed') {
     return (
-      <motion.span
-        initial={showAnimations ? { opacity: 0, y: -3 } : false}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: baseDelay, duration: 0.25 }}
-        className="inline-block px-0.5 mx-0.5 rounded text-red-400 line-through"
-        style={{
-          background: 'rgba(248,113,113,0.15)',
-          textDecorationColor: 'rgba(248,113,113,0.5)',
-        }}
-      >
+      <span className="inline px-0.5 mx-0.5 rounded 
+                       text-red-600 dark:text-red-400 
+                       line-through 
+                       bg-red-100 dark:bg-red-500/10">
         {segment.value}
-      </motion.span>
+      </span>
     );
   }
 
   if (segment.type === 'added') {
     return (
-      <motion.span
-        initial={showAnimations ? { opacity: 0, y: 3, scale: 0.95 } : false}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ 
-          delay: baseDelay, 
-          duration: 0.3, 
-          type: 'spring', 
-          stiffness: 200,
-          damping: 20 
-        }}
-        className="inline-block px-0.5 mx-0.5 rounded font-medium text-emerald-400"
-        style={{
-          background: 'rgba(16,185,129,0.15)',
-          borderBottom: '2px solid rgba(16,185,129,0.5)',
-        }}
-      >
+      <span className="inline px-0.5 mx-0.5 rounded 
+                       text-emerald-600 dark:text-emerald-400 
+                       bg-emerald-100 dark:bg-emerald-500/10">
         {segment.value}
-      </motion.span>
+      </span>
     );
   }
 
@@ -104,7 +78,7 @@ export function WordDiffCompact({ diff, className = '' }: WordDiffProps) {
       {diff.segments.map((segment, index) => {
         if (segment.type === 'unchanged') {
           return (
-            <span key={index} className="text-white/50">
+            <span key={index} className="text-gray-500 dark:text-white/50">
               {segment.value}
             </span>
           );
@@ -114,8 +88,8 @@ export function WordDiffCompact({ diff, className = '' }: WordDiffProps) {
           return (
             <span
               key={index}
-              className="text-red-400 line-through text-xs px-0.5 rounded"
-              style={{ background: 'rgba(248,113,113,0.1)' }}
+              className="text-red-600 dark:text-red-400 line-through text-xs px-0.5 rounded 
+                         bg-red-100 dark:bg-red-500/10"
             >
               {segment.value}
             </span>
@@ -126,8 +100,8 @@ export function WordDiffCompact({ diff, className = '' }: WordDiffProps) {
           return (
             <span
               key={index}
-              className="text-emerald-400 font-medium text-xs px-0.5 rounded"
-              style={{ background: 'rgba(16,185,129,0.1)' }}
+              className="text-emerald-600 dark:text-emerald-400 text-xs px-0.5 rounded 
+                         bg-emerald-100 dark:bg-emerald-500/10"
             >
               {segment.value}
             </span>
@@ -155,34 +129,34 @@ export function WordDiffWithGutter({ diff, lineNumber }: { diff: WordDiffResult;
     <div className="flex items-start group">
       {/* Line number gutter */}
       {lineNumber !== undefined && (
-        <span className="w-8 flex-shrink-0 text-right pr-3 text-xs text-white/20 font-mono select-none">
+        <span className="w-8 flex-shrink-0 text-right pr-3 text-xs text-gray-300 dark:text-white/20 font-mono select-none">
           {lineNumber}
         </span>
       )}
       
       {/* Change indicator */}
-      <span className={`w-4 flex-shrink-0 text-center text-xs font-bold select-none ${
+      <span className={`w-4 flex-shrink-0 text-center text-xs font-medium select-none ${
         hasAdditions && hasRemovals 
-          ? 'text-amber-400' 
+          ? 'text-[#7cb305] dark:text-[#b7e219]' 
           : hasAdditions 
-            ? 'text-emerald-400' 
+            ? 'text-emerald-600 dark:text-emerald-400' 
             : hasRemovals 
-              ? 'text-red-400' 
-              : 'text-white/10'
+              ? 'text-red-600 dark:text-red-400' 
+              : 'text-gray-300 dark:text-white/10'
       }`}>
         {hasAdditions && hasRemovals ? '~' : hasAdditions ? '+' : hasRemovals ? '-' : ' '}
       </span>
       
       {/* Content */}
-      <span className="flex-1 font-mono text-sm">
-        <WordDiff diff={diff} showAnimations={false} />
+      <span className="flex-1 text-sm">
+        <WordDiff diff={diff} />
       </span>
     </div>
   );
 }
 
 /**
- * Split view word diff - shows before/after with connecting animation
+ * Split view word diff - shows before/after
  */
 interface SplitWordDiffProps {
   original: string;
@@ -190,29 +164,23 @@ interface SplitWordDiffProps {
   diff: WordDiffResult;
 }
 
-export function SplitWordDiff({ original, modified, diff }: SplitWordDiffProps) {
+export function SplitWordDiff({ diff }: SplitWordDiffProps) {
   return (
-    <div className="grid grid-cols-2 gap-4 items-start">
+    <div className="grid grid-cols-2 gap-3 items-start">
       {/* Before */}
-      <motion.div
-        initial={{ opacity: 0, x: -10 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="p-3 rounded-lg text-sm font-mono"
-        style={{
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px solid rgba(255,255,255,0.05)',
-        }}
-      >
+      <div className="p-3 rounded-lg text-sm
+                      bg-white dark:bg-[#1a1a1a]
+                      border border-gray-200 dark:border-white/[0.08]">
         {diff.segments.map((segment, idx) => {
           if (segment.type === 'unchanged') {
-            return <span key={idx} className="text-white/50">{segment.value}</span>;
+            return <span key={idx} className="text-gray-500 dark:text-white/50">{segment.value}</span>;
           }
           if (segment.type === 'removed') {
             return (
               <span 
                 key={idx} 
-                className="text-red-400 line-through px-0.5 rounded"
-                style={{ background: 'rgba(248,113,113,0.15)' }}
+                className="text-red-600 dark:text-red-400 line-through px-0.5 rounded 
+                           bg-red-100 dark:bg-red-500/10"
               >
                 {segment.value}
               </span>
@@ -220,31 +188,22 @@ export function SplitWordDiff({ original, modified, diff }: SplitWordDiffProps) 
           }
           return null;
         })}
-      </motion.div>
+      </div>
       
       {/* After */}
-      <motion.div
-        initial={{ opacity: 0, x: 10 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="p-3 rounded-lg text-sm font-mono"
-        style={{
-          background: 'rgba(16,185,129,0.03)',
-          border: '1px solid rgba(16,185,129,0.15)',
-        }}
-      >
+      <div className="p-3 rounded-lg text-sm
+                      bg-white dark:bg-[#1a1a1a]
+                      border border-emerald-200 dark:border-emerald-500/15">
         {diff.segments.map((segment, idx) => {
           if (segment.type === 'unchanged') {
-            return <span key={idx} className="text-white/70">{segment.value}</span>;
+            return <span key={idx} className="text-gray-700 dark:text-white/70">{segment.value}</span>;
           }
           if (segment.type === 'added') {
             return (
               <span 
                 key={idx} 
-                className="text-emerald-400 font-medium px-0.5 rounded"
-                style={{ 
-                  background: 'rgba(16,185,129,0.15)',
-                  borderBottom: '2px solid rgba(16,185,129,0.5)',
-                }}
+                className="text-emerald-600 dark:text-emerald-400 px-0.5 rounded 
+                           bg-emerald-100 dark:bg-emerald-500/10"
               >
                 {segment.value}
               </span>
@@ -252,7 +211,7 @@ export function SplitWordDiff({ original, modified, diff }: SplitWordDiffProps) 
           }
           return null;
         })}
-      </motion.div>
+      </div>
     </div>
   );
 }

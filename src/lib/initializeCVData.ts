@@ -19,7 +19,8 @@ function convertStructuredDataToCVData(structuredData: any): CVData {
       linkedin: structuredData.personalInfo?.linkedin || '',
       portfolio: structuredData.personalInfo?.portfolio || '',
       github: structuredData.personalInfo?.github || '',
-      title: structuredData.personalInfo?.title || structuredData.personalInfo?.jobTitle || ''
+      title: structuredData.personalInfo?.title || structuredData.personalInfo?.jobTitle || '',
+      photoUrl: structuredData.personalInfo?.photoUrl || ''
     },
     summary: structuredData.summary || '',
     // Note: experiences is plural in structured_data
@@ -110,7 +111,8 @@ export async function initializeCVData(
       linkedin: userData?.linkedin || '',
       portfolio: userData?.portfolio || '',
       github: userData?.github || '',
-      title: userData?.currentPosition || userData?.jobTitle || ''
+      title: userData?.currentPosition || userData?.jobTitle || '',
+      photoUrl: ''
     },
     summary: userData?.summary || userData?.bio || '',
     experiences: [],
@@ -528,7 +530,8 @@ export async function loadOrInitializeCVData(
               linkedin: parsedData.personalInfo?.linkedin || userData?.linkedin || '',
               portfolio: parsedData.personalInfo?.portfolio || userData?.portfolio || '',
               github: parsedData.personalInfo?.github || userData?.github || '',
-              title: parsedData.personalInfo?.title || userData?.currentPosition || userData?.jobTitle || ''
+              title: parsedData.personalInfo?.title || userData?.currentPosition || userData?.jobTitle || '',
+              photoUrl: parsedData.personalInfo?.photoUrl || ''
             },
             summary: parsedData.summary || '',
             experiences: parsedData.experiences || [],
@@ -607,7 +610,8 @@ export async function loadOrInitializeCVData(
                 linkedin: parsedData.personalInfo?.linkedin || userData?.linkedin || '',
                 portfolio: parsedData.personalInfo?.portfolio || userData?.portfolio || '',
                 github: parsedData.personalInfo?.github || userData?.github || '',
-                title: parsedData.personalInfo?.title || userData?.currentPosition || userData?.jobTitle || ''
+                title: parsedData.personalInfo?.title || userData?.currentPosition || userData?.jobTitle || '',
+                photoUrl: parsedData.personalInfo?.photoUrl || ''
               },
               summary: parsedData.summary || userData?.summary || '',
               experiences: parsedData.experiences?.length > 0 ? parsedData.experiences : 

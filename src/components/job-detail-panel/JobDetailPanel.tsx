@@ -752,7 +752,6 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
                           { id: 'meetings', label: 'Meetings', icon: null, badge: (job.meetings?.length || job.interviews?.length) || 0 },
                           { id: 'activity', label: 'Timeline', icon: null, badge: null },
                           { id: 'notes', label: 'Notes', icon: StickyNote, badge: job.stickyNotes?.length || 0 },
-                          { id: 'ai-tools', label: 'Compose', icon: Sparkles, badge: null },
                         ] : [
                           // Jobs-specific tabs
                           { id: 'overview', label: 'Overview', icon: null, badge: null },
@@ -979,6 +978,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
                                   <AddInterviewForm
                                     onAdd={handleAddInterview}
                                     onCancel={() => setShowAddInterviewForm(false)}
+                                    isCampaignMode={true}
                                   />
                                 )}
                               </AnimatePresence>

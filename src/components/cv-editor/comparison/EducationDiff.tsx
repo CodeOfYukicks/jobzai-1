@@ -1,6 +1,6 @@
 /**
  * EducationDiff Component
- * Education section comparison view - Premium dark design
+ * Education section comparison view - Light/dark mode support
  */
 
 import { useMemo } from 'react';
@@ -24,26 +24,24 @@ export default function EducationDiff({ comparison, viewMode }: EducationDiffPro
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="space-y-5"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
+      className="space-y-4"
     >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-               style={{
-                 background: 'linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(79,70,229,0.1) 100%)',
-                 border: '1px solid rgba(99,102,241,0.2)',
-               }}>
-            <GraduationCap className="w-5 h-5 text-indigo-400" />
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center
+                          bg-[#b7e219]/10 dark:bg-[#b7e219]/15
+                          border border-[#b7e219]/20 dark:border-[#b7e219]/25">
+            <GraduationCap className="w-4 h-4 text-[#7cb305] dark:text-[#b7e219]" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-white">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-white">
               Education
             </h3>
-            <p className="text-xs text-white/40 mt-0.5">
+            <p className="text-xs text-gray-500 dark:text-white/40">
               {items.length} entr{items.length !== 1 ? 'ies' : 'y'} • 
               {comparison.hasChanges 
                 ? ` ${changeStats.modified} modified` 
@@ -55,19 +53,19 @@ export default function EducationDiff({ comparison, viewMode }: EducationDiffPro
         {/* Mini stats */}
         <div className="flex items-center gap-3">
           {changeStats.added > 0 && (
-            <span className="flex items-center gap-1 text-xs text-emerald-400">
+            <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
               <Plus className="w-3 h-3" />
               {changeStats.added}
             </span>
           )}
           {changeStats.removed > 0 && (
-            <span className="flex items-center gap-1 text-xs text-red-400">
+            <span className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
               <Minus className="w-3 h-3" />
               {changeStats.removed}
             </span>
           )}
           {changeStats.modified > 0 && (
-            <span className="flex items-center gap-1 text-xs text-amber-400">
+            <span className="flex items-center gap-1 text-xs text-[#7cb305] dark:text-[#b7e219]">
               <RefreshCw className="w-3 h-3" />
               {changeStats.modified}
             </span>
@@ -76,7 +74,7 @@ export default function EducationDiff({ comparison, viewMode }: EducationDiffPro
       </div>
 
       {/* Education Items */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         {items.map((item, index) => (
           <EducationItemDiff
             key={item.id}
@@ -99,36 +97,40 @@ interface EducationItemDiffProps {
 function EducationItemDiff({ item, index, viewMode }: EducationItemDiffProps) {
   const data = item.modified || item.original;
   
-  const getStatusStyles = () => {
+  const getStatusClasses = () => {
     switch (item.status) {
       case 'added':
         return {
-          border: '1px solid rgba(16,185,129,0.3)',
-          background: 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.03) 100%)',
+          border: 'border-emerald-200 dark:border-emerald-500/20',
           indicator: 'bg-emerald-500',
+          iconBg: 'bg-emerald-100 dark:bg-emerald-500/10',
+          iconColor: 'text-emerald-600 dark:text-emerald-400',
         };
       case 'removed':
         return {
-          border: '1px solid rgba(248,113,113,0.3)',
-          background: 'linear-gradient(135deg, rgba(248,113,113,0.08) 0%, rgba(248,113,113,0.03) 100%)',
+          border: 'border-red-200 dark:border-red-500/20',
           indicator: 'bg-red-500',
+          iconBg: 'bg-red-100 dark:bg-red-500/10',
+          iconColor: 'text-red-600 dark:text-red-400',
         };
       case 'modified':
         return {
-          border: '1px solid rgba(251,191,36,0.3)',
-          background: 'linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(251,191,36,0.03) 100%)',
-          indicator: 'bg-amber-500',
+          border: 'border-[#b7e219]/30 dark:border-[#b7e219]/30',
+          indicator: 'bg-[#7cb305] dark:bg-[#b7e219]',
+          iconBg: 'bg-[#b7e219]/10 dark:bg-[#b7e219]/15',
+          iconColor: 'text-[#7cb305] dark:text-[#b7e219]',
         };
       default:
         return {
-          border: '1px solid rgba(255,255,255,0.06)',
-          background: 'rgba(255,255,255,0.02)',
-          indicator: 'bg-white/20',
+          border: 'border-gray-200 dark:border-white/[0.08]',
+          indicator: 'bg-gray-300 dark:bg-white/20',
+          iconBg: '',
+          iconColor: '',
         };
     }
   };
 
-  const styles = getStatusStyles();
+  const styles = getStatusClasses();
 
   const StatusIcon = {
     added: Plus,
@@ -142,35 +144,26 @@ function EducationItemDiff({ item, index, viewMode }: EducationItemDiffProps) {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="rounded-xl overflow-hidden"
-      style={{ border: styles.border, background: styles.background }}
-    >
-      <div className="px-4 py-4 flex items-start gap-3">
+    <div className={`rounded-lg overflow-hidden bg-white dark:bg-[#1a1a1a] border ${styles.border}`}>
+      <div className="px-4 py-3 flex items-start gap-3">
         {/* Status indicator */}
-        <div className={`w-1 h-12 rounded-full ${styles.indicator}`} />
+        <div className={`w-0.5 h-10 rounded-full ${styles.indicator}`} />
         
         {StatusIcon && (
-          <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0
-                          ${item.status === 'added' ? 'bg-emerald-500/15 text-emerald-400' : ''}
-                          ${item.status === 'removed' ? 'bg-red-500/15 text-red-400' : ''}
-                          ${item.status === 'modified' ? 'bg-amber-500/15 text-amber-400' : ''}`}>
-            <StatusIcon className="w-3.5 h-3.5" />
+          <div className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 ${styles.iconBg} ${styles.iconColor}`}>
+            <StatusIcon className="w-3 h-3" />
           </div>
         )}
         
         <div className="min-w-0 flex-1">
-          <h4 className="text-sm font-semibold text-white">
+          <h4 className="text-sm font-medium text-gray-900 dark:text-white">
             {viewMode === 'diff' && item.degreeDiff ? (
               <WordDiff diff={item.degreeDiff} showAnimations={false} />
             ) : (
               data?.degree
             )}
           </h4>
-          <div className="flex items-center gap-2 text-xs text-white/40 mt-1">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-white/40 mt-0.5">
             <Building2 className="w-3 h-3 flex-shrink-0" />
             <span className="truncate">
               {viewMode === 'diff' && item.institutionDiff ? (
@@ -181,7 +174,7 @@ function EducationItemDiff({ item, index, viewMode }: EducationItemDiffProps) {
             </span>
           </div>
           {data?.field && (
-            <p className="text-xs text-white/30 mt-1">
+            <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">
               {viewMode === 'diff' && item.fieldDiff ? (
                 <WordDiff diff={item.fieldDiff} showAnimations={false} />
               ) : (
@@ -190,14 +183,14 @@ function EducationItemDiff({ item, index, viewMode }: EducationItemDiffProps) {
             </p>
           )}
           {(data?.startDate || data?.endDate) && (
-            <div className="flex items-center gap-2 text-xs text-white/30 mt-1">
+            <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-white/30 mt-0.5">
               <Calendar className="w-3 h-3" />
               <span>{data.startDate || ''} {data.startDate && data.endDate ? '—' : ''} {data.endDate || ''}</span>
             </div>
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -223,11 +216,11 @@ function EducationSplitView({ item, index }: { item: EducationComparisonItem; in
     if (!diff || !original) return original || null;
     return diff.segments.map((segment, idx) => {
       if (segment.type === 'unchanged') {
-        return <span key={idx} className="text-white/60">{segment.value}</span>;
+        return <span key={idx} className="text-gray-500 dark:text-white/60">{segment.value}</span>;
       }
       if (segment.type === 'removed') {
         return (
-          <span key={idx} className="bg-red-500/15 text-red-400 line-through px-0.5 rounded">
+          <span key={idx} className="bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 line-through px-0.5 rounded">
             {segment.value}
           </span>
         );
@@ -241,12 +234,11 @@ function EducationSplitView({ item, index }: { item: EducationComparisonItem; in
     if (!diff || !modified) return modified || null;
     return diff.segments.map((segment, idx) => {
       if (segment.type === 'unchanged') {
-        return <span key={idx} className="text-white/70">{segment.value}</span>;
+        return <span key={idx} className="text-gray-700 dark:text-white/70">{segment.value}</span>;
       }
       if (segment.type === 'added') {
         return (
-          <span key={idx} className="bg-emerald-500/15 text-emerald-400 font-medium px-0.5 rounded
-                                     border-b border-emerald-500/50">
+          <span key={idx} className="bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-0.5 rounded">
             {segment.value}
           </span>
         );
@@ -256,79 +248,64 @@ function EducationSplitView({ item, index }: { item: EducationComparisonItem; in
   };
   
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="grid grid-cols-2 gap-4"
-    >
+    <div className="grid grid-cols-2 gap-3">
       {/* Before */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-white/20" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-white/40">
+          <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-white/20" />
+          <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-white/40">
             Before
           </span>
-          <span className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
         </div>
-        <div className="p-4 rounded-xl"
-             style={{
-               background: 'rgba(255,255,255,0.02)',
-               border: '1px solid rgba(255,255,255,0.06)',
-             }}>
+        <div className="p-4 rounded-lg bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08]">
           {item.original ? (
             <>
-              <h4 className="text-sm font-semibold text-white/70 leading-relaxed">
+              <h4 className="text-sm font-medium text-gray-600 dark:text-white/70 leading-relaxed">
                 {item.status === 'modified' ? renderBeforeText(degreeDiff, item.original.degree) : item.original.degree}
               </h4>
-              <p className="text-xs text-white/40 mt-1 leading-relaxed">
+              <p className="text-xs text-gray-500 dark:text-white/40 mt-1 leading-relaxed">
                 {item.status === 'modified' ? renderBeforeText(institutionDiff, item.original.institution) : item.original.institution}
               </p>
               {item.original.field && (
-                <p className="text-xs text-white/30 mt-0.5 leading-relaxed">
+                <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5 leading-relaxed">
                   {item.status === 'modified' ? renderBeforeText(fieldDiff, item.original.field) : item.original.field}
                 </p>
               )}
             </>
           ) : (
-            <p className="text-xs text-white/20 italic">(new entry →)</p>
+            <p className="text-xs text-gray-400 dark:text-white/20 italic">(new entry →)</p>
           )}
         </div>
       </div>
 
       {/* After */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span className="text-[10px] font-medium uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
             After
           </span>
-          <span className="flex-1 h-px bg-gradient-to-r from-emerald-500/30 to-transparent" />
         </div>
-        <div className="p-4 rounded-xl"
-             style={{
-               background: 'linear-gradient(135deg, rgba(16,185,129,0.05) 0%, rgba(16,185,129,0.02) 100%)',
-               border: '1px solid rgba(16,185,129,0.15)',
-             }}>
+        <div className="p-4 rounded-lg bg-white dark:bg-[#1a1a1a] border border-emerald-200 dark:border-emerald-500/15">
           {item.modified ? (
             <>
-              <h4 className="text-sm font-semibold text-white leading-relaxed">
+              <h4 className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
                 {item.status === 'modified' ? renderAfterText(degreeDiff, item.modified.degree) : item.modified.degree}
               </h4>
-              <p className="text-xs text-white/50 mt-1 leading-relaxed">
+              <p className="text-xs text-gray-600 dark:text-white/50 mt-1 leading-relaxed">
                 {item.status === 'modified' ? renderAfterText(institutionDiff, item.modified.institution) : item.modified.institution}
               </p>
               {item.modified.field && (
-                <p className="text-xs text-white/40 mt-0.5 leading-relaxed">
+                <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5 leading-relaxed">
                   {item.status === 'modified' ? renderAfterText(fieldDiff, item.modified.field) : item.modified.field}
                 </p>
               )}
             </>
           ) : (
-            <p className="text-xs text-red-400/50 italic line-through">(← removed)</p>
+            <p className="text-xs text-red-400 dark:text-red-400/50 italic line-through">(← removed)</p>
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

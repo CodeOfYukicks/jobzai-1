@@ -10,6 +10,10 @@ import ModernProfessional from '../cv-editor/templates/ModernProfessional';
 import ExecutiveClassic from '../cv-editor/templates/ExecutiveClassic';
 import TechMinimalist from '../cv-editor/templates/TechMinimalist';
 import CreativeBalance from '../cv-editor/templates/CreativeBalance';
+import HarvardClassic from '../cv-editor/templates/HarvardClassic';
+import SwissPhoto from '../cv-editor/templates/SwissPhoto';
+import CorporatePhoto from '../cv-editor/templates/CorporatePhoto';
+import ElegantSimple from '../cv-editor/templates/ElegantSimple';
 import { Resume } from '../../pages/ResumeBuilderPage';
 
 interface CVPreviewCardProps {
@@ -64,6 +68,14 @@ const getTemplateComponent = (template?: string) => {
       return TechMinimalist;
     case 'creative-balance':
       return CreativeBalance;
+    case 'harvard-classic':
+      return HarvardClassic;
+    case 'swiss-photo':
+      return SwissPhoto;
+    case 'corporate-photo':
+      return CorporatePhoto;
+    case 'elegant-simple':
+      return ElegantSimple;
     case 'modern-professional':
     default:
       return ModernProfessional;

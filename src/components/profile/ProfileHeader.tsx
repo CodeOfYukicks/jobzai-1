@@ -60,6 +60,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
   // Avatar state
   const [avatarType, setAvatarType] = useState<ProfileAvatarType>('photo');
   const [avatarConfig, setAvatarConfig] = useState<ProfileAvatarConfig>(DEFAULT_PROFILE_AVATAR_CONFIG);
+  const [editingAvatarConfig, setEditingAvatarConfig] = useState<ProfileAvatarConfig>(DEFAULT_PROFILE_AVATAR_CONFIG);
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   
@@ -175,30 +176,32 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
     }
   };
 
-  // Handle avatar config change
+  // Handle avatar config change (only updates editing state, not the displayed avatar)
   const handleAvatarConfigChange = useCallback((newConfig: ProfileAvatarConfig) => {
-    setAvatarConfig(newConfig);
+    setEditingAvatarConfig(newConfig);
   }, []);
 
-  // Save avatar to Firestore
+  // Save avatar to Firestore (applies editing config to main config)
   const handleSaveAvatar = useCallback(async () => {
     if (!currentUser?.uid) return;
     
     try {
       await updateDoc(doc(db, 'users', currentUser.uid), {
-        profileAvatarConfig: avatarConfig,
+        profileAvatarConfig: editingAvatarConfig,
         profileAvatarType: 'avatar'
       });
+      // Update the displayed avatar config
+      setAvatarConfig(editingAvatarConfig);
       setAvatarType('avatar');
       if (onUpdate) {
-        onUpdate({ profileAvatarConfig: avatarConfig, profileAvatarType: 'avatar' });
+        onUpdate({ profileAvatarConfig: editingAvatarConfig, profileAvatarType: 'avatar' });
       }
       notify.success('Avatar saved!');
     } catch (error) {
       console.error('Error saving avatar:', error);
       notify.error('Failed to save avatar');
     }
-  }, [currentUser, avatarConfig, onUpdate]);
+  }, [currentUser, editingAvatarConfig, onUpdate]);
 
   // Handle selecting photo option from selector
   const handleSelectPhoto = useCallback(() => {
@@ -208,9 +211,12 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
 
   // Handle selecting avatar option from selector
   const handleSelectAvatar = useCallback(() => {
-    // If no avatar config exists, generate a random one
+    // Initialize editing config from current config or generate a new one
     if (!avatarConfig.hair || avatarConfig.hair.length === 0) {
-      setAvatarConfig(generateRandomConfig());
+      const newConfig = generateRandomConfig();
+      setEditingAvatarConfig(newConfig);
+    } else {
+      setEditingAvatarConfig(avatarConfig);
     }
     setShowAvatarEditor(true);
   }, [avatarConfig]);
@@ -729,7 +735,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
     <AnimatePresence>
       {showAvatarEditor && (
         <ProfileAvatarEditor
-          config={avatarConfig}
+          config={editingAvatarConfig}
           onConfigChange={handleAvatarConfigChange}
           onClose={() => setShowAvatarEditor(false)}
           onSave={handleSaveAvatar}

@@ -23,7 +23,7 @@ export const COLOR_HEX_MAP: Record<CVColorScheme, string> = {
 };
 
 // Template definitions with metadata
-// Only Modern and Creative support accent colors
+// Only Modern, Creative, and Corporate support accent colors
 export const TEMPLATE_INFO: CVTemplateInfo[] = [
   { 
     value: 'modern-professional', 
@@ -52,6 +52,34 @@ export const TEMPLATE_INFO: CVTemplateInfo[] = [
     description: 'Modern with personality',
     styleDescriptor: 'colorful · bold',
     availableColors: ['emerald', 'teal', 'blue', 'orange'] // Emerald first
+  },
+  { 
+    value: 'harvard-classic', 
+    label: 'Harvard', 
+    description: 'Academic & ATS-perfect',
+    styleDescriptor: 'academic · serif',
+    availableColors: [] // No colors - traditional academic style
+  },
+  { 
+    value: 'swiss-photo', 
+    label: 'Swiss', 
+    description: 'Clean bi-column with photo',
+    styleDescriptor: 'photo · minimal',
+    availableColors: [] // No colors - Swiss minimalist with photo
+  },
+  { 
+    value: 'corporate-photo', 
+    label: 'Corporate', 
+    description: 'Professional header with photo',
+    styleDescriptor: 'photo · colorful',
+    availableColors: ['blue', 'emerald', 'teal', 'orange', 'charcoal'] // Blue first for corporate
+  },
+  { 
+    value: 'elegant-simple', 
+    label: 'Elegant', 
+    description: 'Ultra-minimal single column',
+    styleDescriptor: 'simple · spacious',
+    availableColors: [] // No colors - pure elegant simplicity
   },
 ];
 
@@ -295,6 +323,245 @@ function TemplatePreview({ template, accentColor }: { template: CVTemplate; acce
                   <div className="h-1.5 rounded-full" style={{ width: '18px', backgroundColor: `${accentColor}30` }} />
                   <div className="h-1.5 rounded-full" style={{ width: '22px', backgroundColor: `${accentColor}30` }} />
                   <div className="h-1.5 rounded-full" style={{ width: '16px', backgroundColor: `${accentColor}30` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      // Harvard Classic: Academic style, centered name in caps, serif aesthetic
+      case 'harvard-classic':
+        return (
+          <div className="w-full h-full p-2 flex flex-col">
+            {/* Centered header with thin border */}
+            <div className="text-center pb-1.5 mb-1.5 border-b border-gray-400">
+              <div className="h-2 w-24 mx-auto rounded-sm bg-gray-800 mb-0.5" />
+              {/* Contact with pipes */}
+              <div className="flex justify-center items-center gap-1 mt-1">
+                <div className="h-0.5 w-10 bg-gray-400 rounded-sm" />
+                <div className="h-2 w-px bg-gray-300" />
+                <div className="h-0.5 w-8 bg-gray-400 rounded-sm" />
+                <div className="h-2 w-px bg-gray-300" />
+                <div className="h-0.5 w-12 bg-gray-400 rounded-sm" />
+              </div>
+            </div>
+
+            {/* Single column content */}
+            <div className="space-y-1.5 flex-1">
+              {/* Education first (Harvard style) */}
+              <div>
+                <div className="h-1 w-10 rounded-sm mb-0.5 bg-gray-700 border-b border-gray-300" />
+                <div className="flex justify-between">
+                  <div className="h-1.5 bg-gray-500 rounded-sm w-14" />
+                  <div className="h-1 bg-gray-300 rounded-sm w-8" />
+                </div>
+                <div className="h-1 bg-gray-400 rounded-sm w-12 mt-0.5" />
+              </div>
+
+              {/* Experience */}
+              <div>
+                <div className="h-1 w-12 rounded-sm mb-0.5 bg-gray-700 border-b border-gray-300" />
+                <div className="flex justify-between">
+                  <div className="h-1.5 bg-gray-500 rounded-sm w-16" />
+                  <div className="h-1 bg-gray-300 rounded-sm w-10" />
+                </div>
+                <div className="space-y-0.5 mt-0.5 ml-2">
+                  <div className="h-0.5 bg-gray-200 rounded-sm w-full" />
+                  <div className="h-0.5 bg-gray-200 rounded-sm w-11/12" />
+                </div>
+              </div>
+
+              {/* Skills inline */}
+              <div className="mt-auto">
+                <div className="h-1 w-8 rounded-sm mb-0.5 bg-gray-700 border-b border-gray-300" />
+                <div className="h-1 bg-gray-300 rounded-sm w-full" />
+              </div>
+            </div>
+          </div>
+        );
+
+      // Swiss Photo: Two-column with round photo on left sidebar
+      case 'swiss-photo':
+        return (
+          <div className="w-full h-full p-2 flex gap-2">
+            {/* Left sidebar with photo */}
+            <div className="flex-shrink-0" style={{ width: '30%' }}>
+              {/* Round photo placeholder */}
+              <div className="w-8 h-8 mx-auto rounded-full bg-gray-200 border-2 border-gray-300 mb-1.5 flex items-center justify-center">
+                <div className="w-4 h-4 rounded-full bg-gray-300" />
+              </div>
+              {/* Name stacked */}
+              <div className="h-1.5 w-full rounded-sm bg-gray-700 mb-0.5" />
+              <div className="h-1.5 w-4/5 mx-auto rounded-sm bg-gray-600 mb-1.5" />
+              {/* Contact stacked */}
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                  <div className="h-0.5 w-full bg-gray-300 rounded-sm" />
+                </div>
+                <div className="flex items-center gap-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                  <div className="h-0.5 w-4/5 bg-gray-300 rounded-sm" />
+                </div>
+              </div>
+              {/* Skills in sidebar */}
+              <div className="mt-2">
+                <div className="h-1 w-8 rounded-sm mb-0.5 bg-gray-600" />
+                <div className="space-y-0.5">
+                  <div className="h-0.5 bg-gray-200 rounded-sm w-full" />
+                  <div className="h-0.5 bg-gray-200 rounded-sm w-4/5" />
+                  <div className="h-0.5 bg-gray-200 rounded-sm w-3/4" />
+                </div>
+              </div>
+            </div>
+
+            {/* Right main content */}
+            <div className="flex-1 border-l border-gray-200 pl-2">
+              <div className="space-y-1.5">
+                {/* Profile */}
+                <div>
+                  <div className="h-1 w-8 rounded-sm mb-0.5 bg-gray-600" />
+                  <div className="space-y-0.5">
+                    <div className="h-0.5 bg-gray-200 rounded-sm w-full" />
+                    <div className="h-0.5 bg-gray-200 rounded-sm w-11/12" />
+                  </div>
+                </div>
+                {/* Experience */}
+                <div>
+                  <div className="h-1 w-10 rounded-sm mb-0.5 bg-gray-600" />
+                  <div className="flex justify-between mb-0.5">
+                    <div className="h-1 bg-gray-500 rounded-sm w-14" />
+                    <div className="h-0.5 bg-gray-300 rounded-sm w-8" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="h-0.5 bg-gray-200 rounded-sm w-full" />
+                    <div className="h-0.5 bg-gray-200 rounded-sm w-4/5" />
+                  </div>
+                </div>
+                {/* Education */}
+                <div>
+                  <div className="h-1 w-10 rounded-sm mb-0.5 bg-gray-600" />
+                  <div className="h-1 bg-gray-500 rounded-sm w-12" />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      // Corporate Photo: Header with square photo, accent color sidebar
+      case 'corporate-photo':
+        return (
+          <div className="w-full h-full p-2 flex flex-col">
+            {/* Header with photo */}
+            <div className="flex items-center gap-2 mb-2">
+              {/* Square photo */}
+              <div className="w-7 h-7 rounded-md bg-gray-200 border border-gray-300 flex items-center justify-center flex-shrink-0">
+                <div className="w-3.5 h-3.5 rounded bg-gray-300" />
+              </div>
+              <div className="flex-1">
+                <div className="h-2 w-20 rounded-sm bg-gray-800 mb-0.5" />
+                <div className="h-1 w-14 rounded-sm" style={{ backgroundColor: accentColor }} />
+                {/* Contact row */}
+                <div className="flex gap-1 mt-1">
+                  <div className="flex items-center gap-0.5">
+                    <div className="w-1 h-1 rounded-full" style={{ backgroundColor: accentColor }} />
+                    <div className="h-0.5 w-8 bg-gray-300 rounded-sm" />
+                  </div>
+                  <div className="flex items-center gap-0.5">
+                    <div className="w-1 h-1 rounded-full" style={{ backgroundColor: accentColor }} />
+                    <div className="h-0.5 w-6 bg-gray-300 rounded-sm" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Accent bar */}
+            <div className="h-0.5 w-full rounded-full mb-2" style={{ backgroundColor: accentColor }} />
+
+            {/* Two column layout */}
+            <div className="flex gap-2 flex-1">
+              {/* Left main */}
+              <div className="flex-1" style={{ flex: '0 0 65%' }}>
+                <div className="mb-1.5">
+                  <div className="h-1 w-12 rounded-sm mb-0.5" style={{ backgroundColor: accentColor }} />
+                  <div className="space-y-0.5">
+                    <div className="h-0.5 bg-gray-200 rounded-sm w-full" />
+                    <div className="h-0.5 bg-gray-200 rounded-sm w-11/12" />
+                  </div>
+                </div>
+                <div>
+                  <div className="h-1 w-14 rounded-sm mb-0.5" style={{ backgroundColor: accentColor }} />
+                  <div className="h-1 bg-gray-500 rounded-sm w-16 mb-0.5" />
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-0.5">
+                      <div className="w-0.5 h-0.5" style={{ backgroundColor: accentColor }} />
+                      <div className="h-0.5 bg-gray-200 rounded-sm w-full" />
+                    </div>
+                    <div className="flex items-center gap-0.5">
+                      <div className="w-0.5 h-0.5" style={{ backgroundColor: accentColor }} />
+                      <div className="h-0.5 bg-gray-200 rounded-sm w-4/5" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Right sidebar */}
+              <div style={{ flex: '0 0 32%' }}>
+                <div className="h-1 w-8 rounded-sm mb-0.5" style={{ backgroundColor: accentColor }} />
+                <div className="flex flex-wrap gap-0.5">
+                  <div className="h-1.5 rounded px-1" style={{ width: '16px', backgroundColor: `${accentColor}20` }} />
+                  <div className="h-1.5 rounded px-1" style={{ width: '20px', backgroundColor: `${accentColor}20` }} />
+                  <div className="h-1.5 rounded px-1" style={{ width: '14px', backgroundColor: `${accentColor}20` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      // Elegant Simple: Ultra-minimal single column with generous spacing
+      case 'elegant-simple':
+        return (
+          <div className="w-full h-full p-2 flex flex-col">
+            {/* Clean header */}
+            <div className="mb-3">
+              <div className="h-2.5 w-24 rounded-sm bg-gray-800 mb-1" />
+              <div className="h-1 w-16 rounded-sm bg-gray-400 mb-1" />
+              {/* Inline contact with dots */}
+              <div className="h-0.5 w-full bg-gray-300 rounded-sm" />
+            </div>
+
+            {/* Sections with left border */}
+            <div className="space-y-2.5 flex-1">
+              {/* About */}
+              <div>
+                <div className="h-0.5 w-6 rounded-sm bg-gray-400 mb-1 tracking-widest" />
+                <div className="border-l-2 border-gray-200 pl-2">
+                  <div className="space-y-0.5">
+                    <div className="h-0.5 bg-gray-200 rounded-sm w-full" />
+                    <div className="h-0.5 bg-gray-200 rounded-sm w-11/12" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Experience */}
+              <div>
+                <div className="h-0.5 w-10 rounded-sm bg-gray-400 mb-1" />
+                <div className="border-l-2 border-gray-200 pl-2">
+                  <div className="flex justify-between mb-0.5">
+                    <div className="h-1 bg-gray-600 rounded-sm w-14" />
+                    <div className="h-0.5 bg-gray-300 rounded-sm w-8" />
+                  </div>
+                  <div className="h-0.5 bg-gray-400 rounded-sm w-12 mb-0.5" />
+                  <div className="flex items-center gap-1">
+                    <div className="h-0.5 bg-gray-200 rounded-sm w-0.5" />
+                    <div className="h-0.5 bg-gray-200 rounded-sm w-full" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Skills */}
+              <div className="mt-auto">
+                <div className="h-0.5 w-6 rounded-sm bg-gray-400 mb-1" />
+                <div className="border-l-2 border-gray-200 pl-2">
+                  <div className="h-0.5 bg-gray-300 rounded-sm w-full" />
                 </div>
               </div>
             </div>

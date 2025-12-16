@@ -8,6 +8,10 @@ import ModernProfessional from './templates/ModernProfessional';
 import ExecutiveClassic from './templates/ExecutiveClassic';
 import TechMinimalist from './templates/TechMinimalist';
 import CreativeBalance from './templates/CreativeBalance';
+import HarvardClassic from './templates/HarvardClassic';
+import SwissPhoto from './templates/SwissPhoto';
+import CorporatePhoto from './templates/CorporatePhoto';
+import ElegantSimple from './templates/ElegantSimple';
 import ZoomControls from './ZoomControls';
 
 interface PreviewContainerProps {
@@ -89,6 +93,14 @@ export default function PreviewContainer({
         return TechMinimalist;
       case 'creative-balance':
         return CreativeBalance;
+      case 'harvard-classic':
+        return HarvardClassic;
+      case 'swiss-photo':
+        return SwissPhoto;
+      case 'corporate-photo':
+        return CorporatePhoto;
+      case 'elegant-simple':
+        return ElegantSimple;
       case 'modern-professional':
       default:
         return ModernProfessional;

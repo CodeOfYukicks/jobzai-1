@@ -39,7 +39,7 @@ import { Suspense } from 'react';
 import { OverviewTab, QuestionsTab, SkillsTab, ResourcesTab, ChatTab } from '../components/interview/tabs';
 import { LazySection } from '../components/interview/utils/LazySection';
 import RightSidebarPanel from '../components/interview/RightSidebarPanel';
-import { LiveInterviewSession } from '../components/interview/live/LiveInterviewSession';
+import { LiveInterviewSession, HistorySessionData } from '../components/interview/live/LiveInterviewSession';
 import { LiveInterviewResults } from '../components/interview/live/LiveInterviewResults';
 import { InterviewType, QuestionCount } from '../components/interview/live/LiveSessionConfig';
 import ContextDocumentSelector, { ContextDocument } from '../components/interview/ContextDocumentSelector';
@@ -464,7 +464,7 @@ export default function InterviewPrepPage() {
   const tldrawWhiteboardRef = useRef<{ toggleFullscreen: () => void; addStarStoryToBoard: (skill: string, story: { situation: string; action: string; result: string }) => Promise<void> } | null>(null);
   const [isLiveSessionOpen, setIsLiveSessionOpen] = useState(false);
   const [liveSessionHistory, setLiveSessionHistory] = useState<LiveSessionRecord[]>([]);
-  const [selectedHistorySession, setSelectedHistorySession] = useState<LiveSessionRecord | null>(null);
+  const [historySessionData, setHistorySessionData] = useState<HistorySessionData | null>(null);
   const [contextDocuments, setContextDocuments] = useState<ContextDocument[]>([]);
   const [documentTextCache, setDocumentTextCache] = useState<Record<string, string>>({});
 
@@ -4103,7 +4103,17 @@ Return ONLY the pitch text, no explanations or formatting.`;
         activeNoteDocumentId={activeNoteDocumentId}
         onDocumentsChange={handleDocumentsChange}
         liveSessionHistory={liveSessionHistory}
-        onViewHistorySession={setSelectedHistorySession}
+        onViewHistorySession={(session) => {
+          // Prepare history session data for full-page view
+          const historyData: HistorySessionData = {
+            questions: questionEntries.slice(0, session.questionsCount),
+            answers: session.answers,
+            analysis: session.analysis,
+            date: session.date,
+          };
+          setHistorySessionData(historyData);
+          setIsLiveSessionOpen(true);
+        }}
         highlightedDocumentId={highlightedDocumentId}
         // Chat props
         chatMessages={chatMessages}
@@ -7223,7 +7233,10 @@ Return ONLY the pitch text, no explanations or formatting.`;
 
       <LiveInterviewSession
         isOpen={isLiveSessionOpen}
-        onClose={() => setIsLiveSessionOpen(false)}
+        onClose={() => {
+          setIsLiveSessionOpen(false);
+          setHistorySessionData(null);
+        }}
         questions={filteredQuestions}
         jobContext={{
           companyName: application?.companyName || '',
@@ -7236,58 +7249,8 @@ Return ONLY the pitch text, no explanations or formatting.`;
         companyName={application?.companyName}
         position={application?.position}
         previousSessions={liveSessionHistory}
+        historySession={historySessionData || undefined}
       />
-
-      {/* History Session Modal */}
-      {selectedHistorySession && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="relative h-[90vh] w-[95vw] max-w-7xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-[#0c0c0e]">
-            <div className="flex h-full flex-col">
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4 dark:border-white/10">
-                <div>
-                  <h2 className="text-xl font-bold text-neutral-900 dark:text-white">
-                    Practice Session Results
-                  </h2>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    {new Date(selectedHistorySession.date).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedHistorySession(null)}
-                  className="rounded-full p-2 text-neutral-500 transition-colors hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
-                >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto">
-                <LiveInterviewResults
-                  questions={questionEntries.slice(0, selectedHistorySession.questionsCount)}
-                  answers={selectedHistorySession.answers}
-                  analysis={selectedHistorySession.analysis}
-                  onClose={() => setSelectedHistorySession(null)}
-                  onRetry={() => {
-                    setSelectedHistorySession(null);
-                    setIsLiveSessionOpen(true);
-                  }}
-                  previousSessions={liveSessionHistory.filter(s => s.id !== selectedHistorySession.id)}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </AuthLayout>
   );
 }

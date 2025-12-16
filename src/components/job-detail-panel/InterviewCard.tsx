@@ -44,12 +44,18 @@ const parseDate = (dateValue: any): Date => {
   return new Date();
 };
 
-const interviewTypeConfig = {
+const interviewTypeConfig: Record<string, { label: string; color: string }> = {
+  // Interview types (Jobs board)
   technical: { label: 'Technical', color: 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800' },
   hr: { label: 'HR', color: 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800' },
   manager: { label: 'Manager', color: 'bg-violet-50 text-violet-700 border-violet-100 dark:bg-violet-900/20 dark:text-violet-300 dark:border-violet-800' },
   final: { label: 'Final', color: 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800' },
   other: { label: 'Other', color: 'bg-gray-50 text-gray-700 border-gray-100 dark:bg-[#2b2a2c] dark:text-gray-300 dark:border-[#3d3c3e]' },
+  // Meeting types (Campaigns board)
+  coffee_chat: { label: 'Coffee Chat', color: 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800' },
+  call: { label: 'Phone Call', color: 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800' },
+  video_call: { label: 'Video Call', color: 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800' },
+  in_person: { label: 'In Person', color: 'bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800' },
 };
 
 const statusConfig = {
@@ -64,12 +70,16 @@ interface InterviewCardProps {
   onDelete?: (interviewId: string) => void;
 }
 
+// Meeting types (for campaigns)
+const meetingTypes = ['coffee_chat', 'call', 'video_call', 'in_person'];
+
 export const InterviewCard = ({ interview, jobApplication, onDelete }: InterviewCardProps) => {
   const navigate = useNavigate();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const typeConfig = interviewTypeConfig[interview.type];
-  const statusConf = statusConfig[interview.status];
+  const typeConfig = interviewTypeConfig[interview.type] || interviewTypeConfig.other;
+  const statusConf = statusConfig[interview.status] || statusConfig.scheduled;
   const date = parseDate(interview.date);
+  const isMeeting = meetingTypes.includes(interview.type);
 
   const handlePrepareInterview = () => {
     if (!jobApplication?.id) return;
@@ -135,7 +145,7 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
                 )}
               </div>
               <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                Interview
+                {isMeeting ? 'Meeting' : 'Interview'}
               </h3>
             </div>
 
@@ -207,7 +217,8 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
             </div>
           )}
 
-          {/* Actions */}
+          {/* Actions - Only show for interviews (not meetings) */}
+          {!isMeeting && (
           <div className="flex items-center gap-3 pt-2">
             {interview.status === 'scheduled' && (
               <motion.button
@@ -258,6 +269,7 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
               </button>
             )}
           </div>
+          )}
         </div>
       </div>
 
@@ -300,22 +312,22 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
 
                   {/* Title - Refined typography */}
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center mb-2 tracking-tight">
-                    Delete Interview?
+                    Delete {isMeeting ? 'Meeting' : 'Interview'}?
                   </h3>
 
                   {/* Message - Minimalist */}
                   <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-8 leading-relaxed">
-                    Are you sure you want to delete this interview? This action cannot be undone.
+                    Are you sure you want to delete this {isMeeting ? 'meeting' : 'interview'}? This action cannot be undone.
                   </p>
 
-                  {/* Interview Info - Ultra minimalist */}
+                  {/* Interview/Meeting Info - Ultra minimalist */}
                   <div className="mb-8 pb-6 border-b border-gray-100 dark:border-[#3d3c3e]">
                     <div className="text-center space-y-1">
                       <div className="font-medium text-sm text-gray-900 dark:text-white">
                         {format(date, 'MMM d, yyyy')} at {interview.time}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                        {typeConfig.label} Interview
+                        {typeConfig.label} {isMeeting ? '' : 'Interview'}
                       </div>
                     </div>
                   </div>

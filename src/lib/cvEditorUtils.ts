@@ -413,6 +413,26 @@ export function getTemplateMetadata(template: CVTemplate): {
       name: 'Creative Balance',
       description: 'Modern design with personality while remaining professional',
       features: ['Visual hierarchy', 'Subtle colors', 'Creative touches', 'ATS-compliant']
+    },
+    'harvard-classic': {
+      name: 'Harvard Classic',
+      description: 'Academic-style resume inspired by Harvard OCS format',
+      features: ['100% ATS-safe', 'Academic style', 'Serif typography', 'Education-first']
+    },
+    'swiss-photo': {
+      name: 'Swiss Photo',
+      description: 'Clean Swiss-style bi-column layout with profile photo',
+      features: ['Profile photo', 'Two columns', 'Minimalist Swiss design', 'Grid-based']
+    },
+    'corporate-photo': {
+      name: 'Corporate Photo',
+      description: 'Professional corporate design with header photo',
+      features: ['Profile photo', 'Accent colors', 'Corporate style', 'Skills sidebar']
+    },
+    'elegant-simple': {
+      name: 'Elegant Simple',
+      description: 'Ultra-minimal single column for maximum ATS compatibility',
+      features: ['100% ATS-safe', 'Single column', 'Generous spacing', 'No distractions']
     }
   };
   

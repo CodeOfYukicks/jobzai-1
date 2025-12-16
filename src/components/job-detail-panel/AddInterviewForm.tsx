@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Plus, Calendar, Clock, MapPin, MessageSquare, User, Check } from 'lucide-react';
-import { Interview } from '../../types/job';
+import { Interview, MEETING_TYPE_LABELS, MeetingType } from '../../types/job';
 
 interface AddInterviewFormProps {
   onAdd: (interview: Omit<Interview, 'id'>) => Promise<void>;
   onCancel: () => void;
+  isCampaignMode?: boolean;
 }
 
-export const AddInterviewForm = ({ onAdd, onCancel }: AddInterviewFormProps) => {
+export const AddInterviewForm = ({ onAdd, onCancel, isCampaignMode = false }: AddInterviewFormProps) => {
   const [formData, setFormData] = useState<Omit<Interview, 'id'>>({
     date: new Date().toISOString().split('T')[0],
     time: '09:00',
-    type: 'technical',
+    type: isCampaignMode ? 'coffee_chat' : 'technical',
     status: 'scheduled',
     location: '',
     notes: '',
@@ -62,10 +63,10 @@ export const AddInterviewForm = ({ onAdd, onCancel }: AddInterviewFormProps) => 
         <div className="flex items-center justify-between mb-4">
           <div>
             <h5 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
-              Schedule Interview
+              {isCampaignMode ? 'Schedule Meeting' : 'Schedule Interview'}
             </h5>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Add details about your upcoming interview
+              {isCampaignMode ? 'Add details about your upcoming meeting' : 'Add details about your upcoming interview'}
             </p>
           </div>
           <button
@@ -123,11 +124,21 @@ export const AddInterviewForm = ({ onAdd, onCancel }: AddInterviewFormProps) => 
                   onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as Interview['type'] }))}
                   className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-[#3d3c3e] rounded-xl bg-gray-50 dark:bg-[#242325]/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none appearance-none"
                 >
-                  <option value="technical">Technical Interview</option>
-                  <option value="hr">HR Screening</option>
-                  <option value="manager">Hiring Manager</option>
-                  <option value="final">Final Round</option>
-                  <option value="other">Other</option>
+                  {isCampaignMode ? (
+                    <>
+                      {(Object.entries(MEETING_TYPE_LABELS) as [MeetingType, string][]).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      <option value="technical">Technical Interview</option>
+                      <option value="hr">HR Screening</option>
+                      <option value="manager">Hiring Manager</option>
+                      <option value="final">Final Round</option>
+                      <option value="other">Other</option>
+                    </>
+                  )}
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -153,7 +164,8 @@ export const AddInterviewForm = ({ onAdd, onCancel }: AddInterviewFormProps) => 
             </div>
           </div>
 
-          {/* Interviewers */}
+          {/* Interviewers - Only for Jobs board (not campaigns since contact is already known) */}
+          {!isCampaignMode && (
           <div className="space-y-1">
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               Interviewers
@@ -203,6 +215,7 @@ export const AddInterviewForm = ({ onAdd, onCancel }: AddInterviewFormProps) => 
               )}
             </div>
           </div>
+          )}
 
           {/* Notes */}
           <div className="space-y-1">
@@ -243,7 +256,7 @@ export const AddInterviewForm = ({ onAdd, onCancel }: AddInterviewFormProps) => 
               ) : (
                 <>
                   <Check className="w-3.5 h-3.5" />
-                  <span>Schedule Interview</span>
+                  <span>{isCampaignMode ? 'Schedule Meeting' : 'Schedule Interview'}</span>
                 </>
               )}
             </button>

@@ -557,6 +557,7 @@ export default function EditorPanel({
                                         onExternalEditProcessed={handleExternalItemProcessed}
                                         layoutSettings={layoutSettings}
                                         onLayoutSettingsChange={onLayoutSettingsChange}
+                                        template={template}
                                       />
                                     </div>
                                   </motion.div>
