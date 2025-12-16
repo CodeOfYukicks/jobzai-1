@@ -1,10 +1,23 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 export default function Hero() {
   const [videoUrl, setVideoUrl] = useState<string>('');
+  const [isPlaying, setIsPlaying] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
 
   useEffect(() => {
     const loadVideo = async () => {
@@ -93,7 +106,7 @@ export default function Hero() {
             onClick={scrollToFeatures}
             className="inline-flex items-center justify-center h-11 px-5 text-[15px] font-medium text-[#0275de] bg-[#e6f3fe] hover:bg-[#d6ebfd] rounded-lg transition-colors duration-200"
           >
-            Request a demo
+            See how it works
           </button>
         </motion.div>
 
@@ -106,51 +119,73 @@ export default function Hero() {
         transition={{ duration: 0.7, delay: 0.4 }}
         className="relative w-full max-w-7xl mx-auto mt-2 px-6"
       >
-        <div className="relative rounded-xl shadow-2xl overflow-hidden border border-gray-200 bg-white">
-          {/* Browser Chrome - like Notion */}
-          <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-gray-200">
+        <div className="relative rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-hidden border border-gray-200/80 bg-white">
+          {/* Browser Chrome - macOS style */}
+          <div className="flex items-center gap-3 px-3 py-2 bg-[#fafafa] border-b border-gray-100">
             {/* Traffic lights */}
-            <div className="flex gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#FF5F57]"></div>
-              <div className="w-3 h-3 rounded-full bg-[#FFBD2E]"></div>
-              <div className="w-3 h-3 rounded-full bg-[#28CA41]"></div>
+            <div className="flex items-center gap-[5px]">
+              <div className="w-[10px] h-[10px] rounded-full bg-[#FF5F56]"></div>
+              <div className="w-[10px] h-[10px] rounded-full bg-[#FFBD2E]"></div>
+              <div className="w-[10px] h-[10px] rounded-full bg-[#27C93F]"></div>
             </div>
             {/* Navigation arrows */}
-            <div className="flex gap-1 text-gray-400">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <div className="flex items-center gap-1 text-gray-300">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </div>
             {/* Tab */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-md border border-gray-200 text-sm text-gray-600">
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-white rounded-md border border-gray-200/70 shadow-sm">
               <div className="w-4 h-4 rounded bg-[#635BFF] flex items-center justify-center">
-                <span className="text-white text-[10px] font-bold">J</span>
+                <span className="text-white text-[9px] font-bold">J</span>
               </div>
-              <span>Jobz.ai</span>
+              <span className="text-[12px] text-gray-600">Jobz.ai</span>
             </div>
-            <div className="text-gray-400 text-lg">+</div>
+            <span className="text-gray-300 text-base">+</span>
           </div>
           
           {/* Video Content */}
-          {videoUrl ? (
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-auto"
-            >
-              <source src={videoUrl} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          ) : (
-            <div className="aspect-[16/9] bg-gray-100 flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
-            </div>
-          )}
+          <div className="relative">
+            {videoUrl ? (
+              <video
+                ref={videoRef}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-auto"
+              >
+                <source src={videoUrl} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            ) : (
+              <div className="aspect-[16/9] bg-gray-100 flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+              </div>
+            )}
+            
+            {/* Play/Pause Button */}
+            {videoUrl && (
+              <button
+                onClick={togglePlay}
+                className="absolute bottom-4 left-4 w-9 h-9 flex items-center justify-center bg-white hover:bg-gray-50 rounded-full shadow-md transition-all duration-200"
+              >
+                {isPlaying ? (
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="black">
+                    <rect x="6" y="4" width="4" height="16" rx="1" />
+                    <rect x="14" y="4" width="4" height="16" rx="1" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 ml-0.5" viewBox="0 0 24 24" fill="black">
+                    <path d="M8 5.14v14l11-7-11-7z" />
+                  </svg>
+                )}
+              </button>
+            )}
+          </div>
         </div>
         
         {/* Subtle shadow underneath */}
