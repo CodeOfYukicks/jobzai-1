@@ -119,6 +119,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
   const [currentStep, setCurrentStep] = useState<Step>('targeting');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [campaignId, setCampaignId] = useState<string | null>(null);
+  const [nameError, setNameError] = useState(false);
   
   const [campaignData, setCampaignData] = useState<CampaignData>({
     name: '',
@@ -137,17 +138,12 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
     emailGenerationMode: undefined,
     selectedTemplate: undefined,
     abTestConfig: { hooks: [''], bodies: [''], ctas: [''] },
-    outreachGoal: 'job',
+    outreachGoal: undefined, // Now required, set in step 1
     attachCV: false,
     cvAttachment: undefined
   });
 
-  // When mode changes to auto, ensure outreachGoal is set
-  useEffect(() => {
-    if (campaignData.emailGenerationMode === 'auto' && !campaignData.outreachGoal) {
-      updateCampaignData({ outreachGoal: 'job' });
-    }
-  }, [campaignData.emailGenerationMode]);
+  // outreachGoal is now set in step 1 (Targeting), no need for auto-setting
 
   // Get dynamic steps based on generation mode
   const getSteps = (): Step[] => {
@@ -177,6 +173,10 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
   const validateCurrentStep = (): boolean => {
     switch (currentStep) {
       case 'targeting':
+        if (!campaignData.outreachGoal) {
+          notify.error('Please select an outreach goal');
+          return false;
+        }
         if (campaignData.personTitles.length === 0) {
           notify.error('Please add at least one job title');
           return false;
@@ -248,6 +248,14 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
   const handleLaunchCampaign = async () => {
     if (!currentUser) return;
     
+    // Validate campaign name
+    if (!campaignData.name.trim()) {
+      setNameError(true);
+      notify.error('Please give your campaign a name');
+      return;
+    }
+    setNameError(false);
+    
     setIsSubmitting(true);
     try {
       const campaignDoc: any = {
@@ -273,6 +281,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
           language: campaignData.language
         },
         emailGenerationMode: campaignData.emailGenerationMode || 'auto',
+        outreachGoal: campaignData.outreachGoal || 'job', // Used by AI for email generation
         stats: {
           contactsFound: 0,
           emailsGenerated: 0,
@@ -330,7 +339,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
   const canProceed = (): boolean => {
     switch (currentStep) {
       case 'targeting':
-        return campaignData.personTitles.length > 0 && campaignData.personLocations.length > 0;
+        return !!campaignData.outreachGoal && campaignData.personTitles.length > 0 && campaignData.personLocations.length > 0;
       case 'gmail':
         return campaignData.gmailConnected;
       case 'mode':
@@ -402,18 +411,45 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                 
                 {/* Title with editable name */}
                 <div className="flex-1 min-w-0">
-                  <input
-                    type="text"
-                    value={campaignData.name}
-                    onChange={(e) => updateCampaignData({ name: e.target.value })}
-                    placeholder="Untitled Campaign"
-                    className="w-full text-[14px] font-medium text-gray-900 dark:text-white tracking-tight 
-                      bg-transparent border-none outline-none focus:ring-0 p-0
-                      placeholder-gray-400 dark:placeholder-white/30"
-                  />
-                  <p className="text-[12px] text-gray-500 dark:text-white/40 mt-0.5">
-                    {STEP_CONFIG[currentStep].subtitle}
-                  </p>
+                  <div className={`
+                    relative rounded-lg transition-all duration-200
+                    ${nameError 
+                      ? 'ring-2 ring-red-500 dark:ring-red-400 bg-red-50/50 dark:bg-red-500/[0.08] -mx-2 px-2 py-1' 
+                      : ''
+                    }
+                  `}>
+                    <input
+                      type="text"
+                      value={campaignData.name}
+                      onChange={(e) => {
+                        updateCampaignData({ name: e.target.value });
+                        if (nameError) setNameError(false);
+                      }}
+                      placeholder="Untitled Campaign"
+                      className={`
+                        w-full text-[14px] font-medium tracking-tight 
+                        bg-transparent border-none outline-none focus:ring-0 p-0
+                        ${nameError 
+                          ? 'text-red-600 dark:text-red-400 placeholder-red-400 dark:placeholder-red-400/60' 
+                          : 'text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30'
+                        }
+                      `}
+                    />
+                    {nameError && (
+                      <motion.p 
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-[11px] text-red-500 dark:text-red-400 mt-0.5"
+                      >
+                        Campaign name is required
+                      </motion.p>
+                    )}
+                  </div>
+                  {!nameError && (
+                    <p className="text-[12px] text-gray-500 dark:text-white/40 mt-0.5">
+                      {STEP_CONFIG[currentStep].subtitle}
+                    </p>
+                  )}
                 </div>
               </div>
 

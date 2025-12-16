@@ -61,6 +61,7 @@ import { searchApolloContacts, type ApolloTargeting } from '../lib/apolloService
 import { CompanyLogo } from '../components/common/CompanyLogo';
 import SelectBoardModal from '../components/boards/SelectBoardModal';
 import { KanbanBoard } from '../types/job';
+import { ProfileAvatar, generateGenderedAvatarConfig } from '../components/profile/avatar';
 
 type RecipientStatus = 'pending' | 'email_generated' | 'email_ready' | 'sent' | 'opened' | 'replied';
 
@@ -209,7 +210,7 @@ export default function CampaignsAutoPage() {
   const [isGeneratingEmails, setIsGeneratingEmails] = useState(false);
   const [isSendingEmails, setIsSendingEmails] = useState(false);
   const [isCheckingReplies, setIsCheckingReplies] = useState(false);
-  const [emailProgress, setEmailProgress] = useState<{ generated: number; total: number } | null>(null);
+  const [emailProgress, setEmailProgress] = useState<{ initialPending: number; startTime: number } | null>(null);
   const [sendProgress, setSendProgress] = useState<{ sent: number; remaining: number } | null>(null);
 
   // Email preview modal
@@ -672,8 +673,9 @@ export default function CampaignsAutoPage() {
       return;
     }
     
+    const pendingCount = recipients.filter(r => !r.emailGenerated).length;
     setIsGeneratingEmails(true);
-    setEmailProgress({ generated: 0, total: recipients.filter(r => !r.emailGenerated).length });
+    setEmailProgress({ initialPending: pendingCount, startTime: Date.now() });
     
     try {
       const auth = getAuth();
@@ -698,7 +700,6 @@ export default function CampaignsAutoPage() {
       console.log('Response data:', data);
       
       if (data.success) {
-        setEmailProgress({ generated: data.generated, total: data.total });
         notify.success(`Generated ${data.generated} emails!`);
       } else {
         notify.error(data.error || 'Failed to generate emails');
@@ -712,7 +713,7 @@ export default function CampaignsAutoPage() {
     }
   }, [selectedCampaignId, currentUser, recipients, selectedCampaign, BACKEND_URL]);
 
-  // Handle send emails in batch
+  // Handle send all emails at once
   const handleSendEmails = useCallback(async () => {
     if (!selectedCampaignId || !currentUser) return;
     
@@ -734,7 +735,7 @@ export default function CampaignsAutoPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ batchSize: 10 })
+        body: JSON.stringify({ batchSize: 100 }) // Send all at once (up to 100)
       });
       
       const data = await response.json();
@@ -742,7 +743,7 @@ export default function CampaignsAutoPage() {
       if (data.success) {
         setSendProgress({ sent: data.sent, remaining: data.remaining });
         if (data.sent > 0) {
-          notify.success(`Sent ${data.sent} emails!`);
+          notify.success(`Sent ${data.sent} emails successfully!`);
         } else {
           notify.info(data.message || 'No emails to send');
         }
@@ -757,6 +758,20 @@ export default function CampaignsAutoPage() {
       setSendProgress(null);
     }
   }, [selectedCampaignId, currentUser, selectedCampaign, BACKEND_URL]);
+
+  // Handle remove recipient from campaign
+  const handleRemoveRecipient = useCallback(async (recipientId: string) => {
+    if (!selectedCampaignId) return;
+    
+    try {
+      await deleteDoc(doc(db, 'campaigns', selectedCampaignId, 'recipients', recipientId));
+      notify.success('Recipient removed from campaign');
+      setOpenMenuRecipientId(null);
+    } catch (error) {
+      console.error('Error removing recipient:', error);
+      notify.error('Failed to remove recipient');
+    }
+  }, [selectedCampaignId]);
 
   // Handle view reply content
   const handleViewReply = useCallback(async (recipient: CampaignRecipient) => {
@@ -1741,7 +1756,7 @@ export default function CampaignsAutoPage() {
                       )}
                       <span>
                         {isGeneratingEmails 
-                          ? `${emailProgress ? `${emailProgress.generated}/${emailProgress.total}` : '...'}` 
+                          ? `${emailProgress ? `${emailProgress.initialPending - recipients.filter(r => !r.emailGenerated).length}/${emailProgress.initialPending}` : '...'}` 
                           : recipients.filter(r => !r.emailGenerated).length === 0
                             ? 'All Generated'
                             : `Generate (${recipients.filter(r => !r.emailGenerated).length})`
@@ -1812,34 +1827,6 @@ export default function CampaignsAutoPage() {
                 <thead className="sticky top-0 z-20">
                   <tr className="border-b border-gray-200/80 dark:border-white/[0.05] bg-gradient-to-b from-white via-white to-gray-50/50 
                     dark:from-[#2b2a2c] dark:via-[#2b2a2c] dark:to-[#2a2829] backdrop-blur-md">
-                    {/* Checkbox Column Header */}
-                    <th 
-                      style={{ width: `${columnWidths.checkbox}%` }} 
-                      className="px-3 py-3.5 bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
-                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
-                        transition-colors duration-200"
-                    >
-                      <div className="flex items-center justify-center">
-                        <button
-                          onClick={handleSelectAll}
-                          className={`w-4.5 h-4.5 rounded-[4px] border-2 flex items-center justify-center transition-all duration-200 
-                            ${selectedRows.size === filteredRecipients.length && filteredRecipients.length > 0
-                              ? 'bg-gradient-to-br from-violet-500 to-purple-600 border-violet-500 shadow-sm shadow-violet-500/25'
-                              : selectedRows.size > 0
-                                ? 'bg-gradient-to-br from-violet-500/50 to-purple-600/50 border-violet-400'
-                                : 'border-gray-300 dark:border-[#4a494b] hover:border-violet-400 dark:hover:border-violet-500'
-                            }`}
-                        >
-                          {selectedRows.size === filteredRecipients.length && filteredRecipients.length > 0 ? (
-                            <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                          ) : selectedRows.size > 0 ? (
-                            <Minus className="w-3 h-3 text-white" strokeWidth={3} />
-                          ) : null}
-                        </button>
-                      </div>
-                    </th>
-                    
                     {/* Contact Header */}
                     <th 
                       style={{ width: `${columnWidths.contact}%` }} 
@@ -2042,11 +2029,6 @@ export default function CampaignsAutoPage() {
                   {isLoadingRecipients ? (
                     Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="animate-pulse">
-                        <td className="px-3 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
-                          <div className="flex items-center justify-center">
-                            <div className="w-4 h-4 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
-                          </div>
-                        </td>
                         <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200/60 to-gray-300/40 dark:from-white/[0.08] dark:to-white/[0.04]" />
@@ -2134,57 +2116,25 @@ export default function CampaignsAutoPage() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.2, delay: 0.015 * Math.min(index, 20) }}
                         className={`group relative transition-all duration-200 ease-out
-                          ${selectedRows.has(recipient.id) 
-                            ? 'bg-violet-50/60 dark:bg-violet-500/[0.08] border-l-violet-500 dark:border-l-violet-400' 
-                            : index % 2 === 0 
-                              ? 'bg-white dark:bg-[#2b2a2c]' 
-                              : 'bg-gray-50/40 dark:bg-[#2a2829]'
+                          ${index % 2 === 0 
+                            ? 'bg-white dark:bg-[#2b2a2c]' 
+                            : 'bg-gray-50/40 dark:bg-[#2a2829]'
                           }
                           hover:bg-gray-50/90 dark:hover:bg-white/[0.02] 
                           hover:shadow-[0_1px_3px_-1px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_1px_3px_-1px_rgba(0,0,0,0.4)]
                           active:bg-gray-100/80 dark:active:bg-white/[0.03]
-                          border-l-[3px] ${selectedRows.has(recipient.id) ? '' : getStatusBorderColor(recipient.status)}`}
+                          border-l-[3px] ${getStatusBorderColor(recipient.status)}`}
                       >
-                        {/* Checkbox Cell */}
-                        <td className="px-3 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
-                          <div className="flex items-center justify-center">
-                            <button
-                              onClick={() => handleSelectRow(recipient.id)}
-                              className={`w-4.5 h-4.5 rounded-[4px] border-2 flex items-center justify-center transition-all duration-200 
-                                ${selectedRows.has(recipient.id)
-                                  ? 'bg-gradient-to-br from-violet-500 to-purple-600 border-violet-500 shadow-sm shadow-violet-500/25 scale-105'
-                                  : 'border-gray-300 dark:border-[#4a494b] hover:border-violet-400 dark:hover:border-violet-500 hover:scale-105'
-                                }`}
-                            >
-                              {selectedRows.has(recipient.id) && (
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                >
-                                  <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                                </motion.div>
-                              )}
-                            </button>
-                          </div>
-                        </td>
-                        
                         {/* Contact Cell with Avatar */}
                         <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
                           <div className="flex items-center gap-3">
-                            {/* Premium Avatar */}
+                            {/* Premium Gendered Avatar */}
                             <div className="relative flex-shrink-0">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-white
-                                bg-gradient-to-br ${
-                                  index % 5 === 0 ? 'from-violet-500 to-purple-600' :
-                                  index % 5 === 1 ? 'from-blue-500 to-cyan-600' :
-                                  index % 5 === 2 ? 'from-emerald-500 to-teal-600' :
-                                  index % 5 === 3 ? 'from-amber-500 to-orange-600' :
-                                  'from-rose-500 to-pink-600'
-                                } shadow-sm`}
-                              >
-                                {recipient.firstName?.charAt(0)}{recipient.lastName?.charAt(0)}
-                              </div>
+                              <ProfileAvatar
+                                config={generateGenderedAvatarConfig(recipient.firstName, recipient.id)}
+                                size={32}
+                                className="rounded-full shadow-sm"
+                              />
                               {recipient.status === 'replied' && (
                                 <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0a0a0a] flex items-center justify-center">
                                   <Check className="w-2 h-2 text-white" strokeWidth={3} />
@@ -2369,6 +2319,16 @@ export default function CampaignsAutoPage() {
                                     <FolderKanban className="w-4 h-4" />
                                     <span>Add to Board</span>
                                   </button>
+                                  <div className="h-px bg-gray-100 dark:bg-white/[0.06] my-1" />
+                                  <button
+                                    onClick={() => handleRemoveRecipient(recipient.id)}
+                                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 
+                                      hover:bg-red-50 dark:hover:bg-red-500/10 active:bg-red-100 dark:active:bg-red-500/15
+                                      transition-all duration-150"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    <span>Remove</span>
+                                  </button>
                                 </motion.div>
                               )}
                             </div>
@@ -2410,73 +2370,6 @@ export default function CampaignsAutoPage() {
           </motion.div>
           )}
           
-          {/* Floating Bulk Actions Bar */}
-          <AnimatePresence>
-            {selectedRows.size > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
-              >
-                <div className="flex items-center gap-3 px-4 py-3 bg-gray-900 dark:bg-white/95 rounded-xl shadow-2xl shadow-gray-900/20 dark:shadow-black/40 
-                  border border-gray-800 dark:border-gray-200 backdrop-blur-xl"
-                  style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" }}
-                >
-                  {/* Selection count */}
-                  <div className="flex items-center gap-2 pr-3 border-r border-gray-700 dark:border-gray-300">
-                    <div className="w-6 h-6 rounded-full bg-violet-500 flex items-center justify-center">
-                      <span className="text-[11px] font-bold text-white">{selectedRows.size}</span>
-                    </div>
-                    <span className="text-[13px] font-medium text-gray-300 dark:text-gray-700">selected</span>
-                  </div>
-                  
-                  {/* Actions */}
-                  <div className="flex items-center gap-1">
-                    <button 
-                      onClick={handleGenerateEmails}
-                      disabled={isGeneratingEmails}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium
-                        text-gray-300 dark:text-gray-700 hover:text-white dark:hover:text-gray-900 
-                        hover:bg-violet-600 dark:hover:bg-violet-100 transition-colors"
-                    >
-                      <Wand2 className="w-4 h-4" />
-                      Generate
-                    </button>
-                    <button 
-                      onClick={handleSendEmails}
-                      disabled={isSendingEmails}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium
-                        text-gray-300 dark:text-gray-700 hover:text-white dark:hover:text-gray-900 
-                        hover:bg-emerald-600 dark:hover:bg-emerald-100 transition-colors"
-                    >
-                      <Send className="w-4 h-4" />
-                      Send
-                    </button>
-                    <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium
-                      text-gray-300 dark:text-gray-700 hover:text-white dark:hover:text-gray-900 
-                      hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors"
-                    >
-                      <Download className="w-4 h-4" />
-                      Export
-                    </button>
-                  </div>
-                  
-                  {/* Clear selection */}
-                  <button 
-                    onClick={() => setSelectedRows(new Set())}
-                    className="ml-2 p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-white dark:hover:text-gray-900 
-                      hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors"
-                    title="Clear selection"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           {/* Empty State - Only show when NO campaigns AND NO recipients exist */}
           {campaigns.length === 0 && recipients.length === 0 && !isLoadingRecipients && (
             <div className="flex-1 flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-[#2b2a2c] border-y border-gray-200 dark:border-[#3d3c3e]">

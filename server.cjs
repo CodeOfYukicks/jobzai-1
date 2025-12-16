@@ -6956,8 +6956,7 @@ SUBJECT: [short subject]
       { role: "system", content: systemPrompt },
       { role: "user", content: `SENDER CONTEXT:\n${userContext}\n\nGenerate a personalized email for ${recipient.firstName} at ${recipient.company}. Sign with "${userProfile.firstName || 'Me'}".` }
     ],
-    temperature: 0.85,
-    max_tokens: 400
+    max_completion_tokens: 400
   });
   
   const content = completion.choices[0]?.message?.content || '';

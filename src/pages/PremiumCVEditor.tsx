@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -143,6 +143,9 @@ export default function PremiumCVEditor() {
   // Track if analysis is currently running
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   
+  // AbortController ref for cancelling ongoing analysis requests
+  const analysisAbortControllerRef = useRef<AbortController | null>(null);
+  
   // Store CV snapshot from last analysis for comparison
   const [lastAnalyzedCVSnapshot, setLastAnalyzedCVSnapshot] = useState<CVData | null>(null);
   
@@ -238,6 +241,15 @@ export default function PremiumCVEditor() {
 
   // Run AI analysis function - can be called automatically or manually
   const runAnalysis = useCallback(async () => {
+    // Cancel any previous ongoing analysis
+    if (analysisAbortControllerRef.current) {
+      analysisAbortControllerRef.current.abort();
+    }
+    
+    // Create new AbortController for this analysis
+    const abortController = new AbortController();
+    analysisAbortControllerRef.current = abortController;
+    
     setIsAnalyzing(true);
     
     try {
@@ -272,8 +284,15 @@ export default function PremiumCVEditor() {
       const analysisResult = await analyzeCVWithAI({
         cvData,
         jobContext,
-        previousAnalysis
+        previousAnalysis,
+        signal: abortController.signal
       });
+      
+      // Check if request was aborted before updating state
+      if (abortController.signal.aborted) {
+        console.log('Analysis was cancelled, skipping state update');
+        return;
+      }
       
       // Store current CV snapshot for next comparison
       setLastAnalyzedCVSnapshot(JSON.parse(JSON.stringify(cvData)));
@@ -298,6 +317,12 @@ export default function PremiumCVEditor() {
       
       console.log('✅ AI review analysis completed');
     } catch (error: any) {
+      // Ignore abort errors - these are expected when navigating away or starting new analysis
+      if (error.name === 'AbortError' || error.name === 'CanceledError' || abortController.signal.aborted) {
+        console.log('Analysis request was cancelled');
+        return;
+      }
+      
       console.error('❌ AI review analysis error:', error);
       notify.error('Failed to analyze CV. Please try again.');
       // Mark as analyzed even on error to prevent re-triggering
@@ -328,6 +353,15 @@ export default function PremiumCVEditor() {
       runAnalysis();
     }
   }, [cvData.personalInfo.firstName, cvData.personalInfo.lastName, cvData.summary, cvData.experiences.length, cvData.education.length, reviewState.hasAnalyzed, isAnalyzing, runAnalysis]);
+
+  // Cleanup: cancel any ongoing analysis when component unmounts
+  useEffect(() => {
+    return () => {
+      if (analysisAbortControllerRef.current) {
+        analysisAbortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Load ATS analysis data
   const loadATSData = async (analysisId: string) => {

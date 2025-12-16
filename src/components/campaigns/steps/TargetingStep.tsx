@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Briefcase, MapPin, Users, Building2, X, Plus, 
-  Sparkles, ChevronDown, Check, Loader2, Ban
+  Sparkles, ChevronDown, Check, Loader2, Ban, Info,
+  GraduationCap, UserPlus
 } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
@@ -81,6 +82,12 @@ function mapExperienceToSeniority(years: string | undefined): Seniority[] {
   return ['manager', 'director'];
 }
 
+const OUTREACH_GOALS = [
+  { id: 'job', label: 'Job Search', icon: Briefcase, description: 'Find job opportunities' },
+  { id: 'internship', label: 'Internship', icon: GraduationCap, description: 'Secure internship positions' },
+  { id: 'networking', label: 'Networking', icon: UserPlus, description: 'Build professional connections' },
+] as const;
+
 export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
   const { currentUser } = useAuth();
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -98,6 +105,25 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
   const [excludeInput, setExcludeInput] = useState('');
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [showIndustryDropdown, setShowIndustryDropdown] = useState(false);
+  const [showGoalTooltip, setShowGoalTooltip] = useState(false);
+  const goalTooltipRef = useRef<HTMLDivElement>(null);
+
+  // Close tooltip when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (goalTooltipRef.current && !goalTooltipRef.current.contains(event.target as Node)) {
+        setShowGoalTooltip(false);
+      }
+    };
+
+    if (showGoalTooltip) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showGoalTooltip]);
 
   // Load user profile for smart suggestions
   useEffect(() => {
@@ -259,6 +285,88 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
         <p className="text-[14px] text-gray-500 dark:text-white/50 leading-relaxed">
           Define your target audience for Apollo lead sourcing.
         </p>
+      </div>
+
+      {/* Outreach Goal - Required, First Field */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <label className="block text-[12px] text-gray-500 dark:text-white/40 uppercase tracking-wider font-medium">
+            Outreach Goal <span className="text-red-500">*</span>
+          </label>
+          {/* Info tooltip */}
+          <div className="relative" ref={goalTooltipRef}>
+            <button
+              onClick={() => setShowGoalTooltip(!showGoalTooltip)}
+              className="p-1 rounded-md text-gray-400 dark:text-gray-500 
+                hover:text-gray-600 dark:hover:text-gray-300 
+                hover:bg-gray-100 dark:hover:bg-white/[0.06]
+                transition-all duration-200"
+              title="What is this?"
+            >
+              <Info className="w-3.5 h-3.5" />
+            </button>
+            
+            <AnimatePresence>
+              {showGoalTooltip && (
+                <motion.div
+                  initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute left-0 top-full mt-2 z-50 w-72
+                    bg-white dark:bg-[#1a1a1a] 
+                    rounded-xl shadow-xl dark:shadow-2xl 
+                    border border-gray-200 dark:border-white/[0.08]
+                    p-4 backdrop-blur-xl"
+                >
+                  <p className="text-[12px] text-gray-700 dark:text-gray-300 leading-relaxed">
+                    The AI will tailor your outreach emails based on this goal.
+                  </p>
+                  <ul className="mt-3 space-y-2 text-[11px] text-gray-500 dark:text-gray-400">
+                    <li className="flex items-start gap-2">
+                      <Briefcase className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                      <span><strong className="text-gray-700 dark:text-gray-300">Job Search</strong> - Focus on job opportunities and career advancement</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <GraduationCap className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                      <span><strong className="text-gray-700 dark:text-gray-300">Internship</strong> - Emphasize learning experiences and skill development</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <UserPlus className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                      <span><strong className="text-gray-700 dark:text-gray-300">Networking</strong> - Build professional connections and industry insights</span>
+                    </li>
+                  </ul>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+        
+        {/* Goal Pills */}
+        <div className="flex items-center gap-2">
+          {OUTREACH_GOALS.map((goal) => {
+            const Icon = goal.icon;
+            const isSelected = data.outreachGoal === goal.id;
+            
+            return (
+              <button
+                key={goal.id}
+                type="button"
+                onClick={() => onUpdate({ outreachGoal: goal.id })}
+                className={`
+                  flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-200
+                  ${isSelected
+                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
+                    : 'bg-gray-100 dark:bg-white/[0.04] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/[0.08] hover:bg-gray-200/80 dark:hover:bg-white/[0.08]'
+                  }
+                `}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{goal.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Smart Suggestions from Profile */}

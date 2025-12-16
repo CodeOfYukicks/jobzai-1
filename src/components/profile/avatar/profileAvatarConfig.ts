@@ -195,3 +195,162 @@ export const AVATAR_PRESETS = {
   } as ProfileAvatarConfig,
 };
 
+// ============================================================================
+// GENDERED AVATAR GENERATION FOR CAMPAIGN CONTACTS
+// ============================================================================
+
+// Common feminine first names (French, English, Spanish, Italian, German, etc.)
+const FEMININE_NAMES = new Set([
+  // French
+  'marie', 'sophie', 'julie', 'emma', 'léa', 'sarah', 'anna', 'laura', 'claire',
+  'camille', 'alice', 'charlotte', 'chloé', 'manon', 'lucie', 'pauline', 'marine',
+  'mathilde', 'margot', 'céline', 'nathalie', 'valérie', 'isabelle', 'florence',
+  'catherine', 'françoise', 'christine', 'anne', 'brigitte', 'sylvie', 'patricia',
+  'sandrine', 'véronique', 'audrey', 'aurélie', 'emilie', 'caroline', 'elodie',
+  'laetitia', 'virginie', 'stéphanie', 'delphine', 'mélanie', 'laurence', 'morgane',
+  'amandine', 'justine', 'clemence', 'helene', 'amelie', 'juliette', 'lea', 'chloe',
+  // English
+  'emily', 'jessica', 'jennifer', 'amanda', 'michelle', 'stephanie', 'elizabeth',
+  'lisa', 'ashley', 'nicole', 'samantha', 'katherine', 'rebecca', 'rachel', 'megan',
+  'hannah', 'olivia', 'abigail', 'madison', 'victoria', 'grace', 'natalie', 'julia',
+  'lauren', 'amber', 'brittany', 'danielle', 'christina', 'kimberly', 'melissa',
+  'heather', 'mary', 'patricia', 'linda', 'barbara', 'susan', 'margaret', 'dorothy',
+  'nancy', 'karen', 'betty', 'helen', 'sandra', 'donna', 'carol', 'ruth', 'sharon',
+  'diana', 'cynthia', 'angela', 'cheryl', 'deborah', 'kate', 'catherine', 'kelly',
+  // Spanish/Italian
+  'maria', 'ana', 'carmen', 'rosa', 'elena', 'lucia', 'paula', 'sara', 'marta',
+  'cristina', 'andrea', 'alba', 'silvia', 'beatriz', 'rocio', 'pilar', 'teresa',
+  'isabel', 'patricia', 'nuria', 'monica', 'susana', 'raquel', 'sonia', 'alicia',
+  'giulia', 'francesca', 'chiara', 'valentina', 'alessia', 'federica', 'elisa',
+  'claudia', 'simona', 'paola', 'daniela', 'roberta', 'alessandra', 'veronica',
+  // German
+  'anna', 'julia', 'laura', 'lisa', 'sarah', 'lena', 'marie', 'sophie', 'lea',
+  'katharina', 'nina', 'jana', 'melanie', 'stefanie', 'sabine', 'andrea', 'monika',
+  'petra', 'ursula', 'renate', 'brigitte', 'helga', 'ingrid', 'gisela', 'heike',
+  // International
+  'eva', 'katarina', 'natasha', 'olga', 'tatiana', 'irina', 'svetlana', 'marina',
+  'yuki', 'sakura', 'mei', 'lin', 'fatima', 'aisha', 'layla', 'yasmin', 'priya',
+  'ananya', 'deepika', 'pooja', 'neha', 'shruti', 'kavita', 'sunita', 'anjali',
+]);
+
+// Hair variants that look more feminine (longer styles)
+const FEMININE_HAIR_VARIANTS = [
+  'variant17', 'variant18', 'variant19', 'variant20', 'variant21', 'variant22',
+  'variant23', 'variant24', 'variant25', 'variant26', 'variant27', 'variant28',
+  'variant29', 'variant30', 'variant31', 'variant32', 'variant33', 'variant34',
+  'variant35', 'variant36', 'variant37', 'variant38', 'variant39', 'variant40',
+  'variant41', 'variant42', 'variant43', 'variant44', 'variant45', 'variant46',
+  'variant47', 'variant48'
+];
+
+// Hair variants that look more masculine (shorter styles)
+const MASCULINE_HAIR_VARIANTS = [
+  'variant01', 'variant02', 'variant03', 'variant04', 'variant05', 'variant06',
+  'variant07', 'variant08', 'variant09', 'variant10', 'variant11', 'variant12',
+  'variant13', 'variant14', 'variant15', 'variant16'
+];
+
+/**
+ * Simple seeded random number generator for deterministic avatar generation.
+ * Uses a hash of the seed string to produce consistent random values.
+ */
+function seededRandom(seed: string): () => number {
+  // Simple hash function
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    const char = seed.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  
+  // Linear congruential generator
+  let state = Math.abs(hash) || 1;
+  return () => {
+    state = (state * 1664525 + 1013904223) % 4294967296;
+    return state / 4294967296;
+  };
+}
+
+/**
+ * Infer gender from first name using known feminine names and heuristics.
+ * Returns 'female' or 'male'.
+ */
+export function inferGenderFromName(firstName: string): 'female' | 'male' {
+  if (!firstName) return 'male';
+  
+  const normalizedName = firstName.toLowerCase().trim();
+  
+  // Check against known feminine names
+  if (FEMININE_NAMES.has(normalizedName)) {
+    return 'female';
+  }
+  
+  // Heuristics based on name endings (common in Romance languages)
+  const feminineEndings = ['a', 'ie', 'ine', 'elle', 'ette', 'yne', 'ina', 'ina', 'ia'];
+  for (const ending of feminineEndings) {
+    if (normalizedName.endsWith(ending) && normalizedName.length > ending.length + 1) {
+      return 'female';
+    }
+  }
+  
+  // Default to male
+  return 'male';
+}
+
+/**
+ * Generate a deterministic, gender-appropriate avatar configuration.
+ * Uses the recipientId as a seed for consistent avatar generation.
+ * 
+ * @param firstName - The recipient's first name (used to infer gender)
+ * @param recipientId - A unique identifier for the recipient (used as random seed)
+ * @returns A ProfileAvatarConfig object for rendering with ProfileAvatar component
+ */
+export function generateGenderedAvatarConfig(
+  firstName: string,
+  recipientId: string
+): ProfileAvatarConfig {
+  const gender = inferGenderFromName(firstName);
+  const random = seededRandom(recipientId);
+  
+  // Helper to pick random item from array using seeded random
+  const pickRandom = <T>(arr: readonly T[] | T[]): T => 
+    arr[Math.floor(random() * arr.length)];
+  
+  // Only happy mouths for a friendly appearance
+  const happyMouths = LORELEI_OPTIONS.mouth.filter(m => m.startsWith('happy'));
+  
+  // Select hair based on gender
+  const hairVariants = gender === 'female' ? FEMININE_HAIR_VARIANTS : MASCULINE_HAIR_VARIANTS;
+  
+  // Background colors - use softer colors
+  const softBackgrounds = ['f3f4f6', 'e5e3df', 'f5f0e6', 'faf8f5', 'e0f2fe', 'dcfce7', 'fef3e2'];
+  
+  const config: ProfileAvatarConfig = {
+    style: 'lorelei',
+    seed: `campaign-${recipientId}`,
+    hair: [pickRandom(hairVariants)],
+    eyes: [pickRandom(LORELEI_OPTIONS.eyes)],
+    mouth: [pickRandom(happyMouths)],
+    eyebrows: [pickRandom(LORELEI_OPTIONS.eyebrows)],
+    nose: [pickRandom(LORELEI_OPTIONS.nose)],
+    head: [pickRandom(LORELEI_OPTIONS.head)],
+    glasses: [pickRandom(LORELEI_OPTIONS.glasses)],
+    glassesProbability: random() > 0.75 ? 100 : 0, // 25% chance of glasses
+    backgroundColor: [pickRandom(softBackgrounds)],
+    frecklesProbability: random() > 0.9 ? 100 : 0, // 10% chance
+  };
+  
+  // Gender-specific traits
+  if (gender === 'female') {
+    config.earrings = [pickRandom(LORELEI_OPTIONS.earrings)];
+    config.earringsProbability = random() > 0.5 ? 100 : 0; // 50% chance for women
+    config.beardProbability = 0;
+  } else {
+    config.earringsProbability = 0;
+    config.beard = [pickRandom(LORELEI_OPTIONS.beard)];
+    config.beardProbability = random() > 0.7 ? 100 : 0; // 30% chance for men
+  }
+  
+  return config;
+}
+

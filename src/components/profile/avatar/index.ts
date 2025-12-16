@@ -12,5 +12,7 @@ export {
   AVATAR_PRESETS,
   generateRandomConfig,
   generateRandomSeed,
+  generateGenderedAvatarConfig,
+  inferGenderFromName,
 } from './profileAvatarConfig';
 

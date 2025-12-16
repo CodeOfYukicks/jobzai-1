@@ -1,4 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Check, Loader2, ZoomIn, ZoomOut } from 'lucide-react';
+import Cropper from 'react-easy-crop';
+import type { Area, Point } from 'react-easy-crop';
 
 interface ProfilePhotoCropperProps {
   isOpen: boolean;
@@ -9,9 +13,59 @@ interface ProfilePhotoCropperProps {
   exportSize?: number; // default 512
 }
 
-const clamp = (value: number, min: number, max: number) => {
-  return Math.min(Math.max(value, min), max);
-};
+// Helper function to create image element
+const createImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = document.createElement('img');
+    image.addEventListener('load', () => resolve(image));
+    image.addEventListener('error', (error) => reject(error));
+    image.crossOrigin = 'anonymous';
+    image.src = url;
+  });
+
+// Get cropped image as blob
+async function getCroppedImg(imageSrc: string, pixelCrop: Area, exportSize: number): Promise<Blob> {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  if (!ctx) {
+    throw new Error('No 2d context');
+  }
+
+  // Set canvas size to the export size (square)
+  canvas.width = exportSize;
+  canvas.height = exportSize;
+
+  // Draw the cropped image scaled to exportSize
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    exportSize,
+    exportSize
+  );
+
+  // Return as blob
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Canvas is empty'));
+        }
+      },
+      'image/jpeg',
+      0.92
+    );
+  });
+}
 
 const ProfilePhotoCropper = ({
   isOpen,
@@ -21,20 +75,17 @@ const ProfilePhotoCropper = ({
   exportSize = 512
 }: ProfilePhotoCropperProps) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [imgNatural, setImgNatural] = useState<{ width: number; height: number } | null>(null);
-  const [scale, setScale] = useState(1);
-  const [minScale, setMinScale] = useState(1);
-  const [maxScale, setMaxScale] = useState(3);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStart = useRef<{ x: number; y: number } | null>(null);
-  const offsetStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Set up object URL for the selected file
   useEffect(() => {
     if (!file) {
       setImageUrl(null);
-      setImgNatural(null);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
       return;
     }
     const url = URL.createObjectURL(file);
@@ -44,227 +95,144 @@ const ProfilePhotoCropper = ({
     };
   }, [file]);
 
-  // Crop area size (square) - responsive within modal
-  const cropSize = 320; // displayed crop square size in px
+  // Handle crop complete callback
+  const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
 
-  // Load image to get natural dimensions and compute minScale to fully cover crop
-  useEffect(() => {
-    if (!imageUrl) return;
-    const img = new Image();
-    img.onload = () => {
-      const width = img.naturalWidth;
-      const height = img.naturalHeight;
-      setImgNatural({ width, height });
-      const scaleNeeded = Math.max(cropSize / width, cropSize / height);
-      const minS = scaleNeeded;
-      const maxS = Math.max(minS * 3, minS + 1); // allow zoom up to 3x min or +1
-      setMinScale(minS);
-      setMaxScale(maxS);
-      setScale(scaleNeeded);
-      // Center the image initially
-      const initialW = width * scaleNeeded;
-      const initialH = height * scaleNeeded;
-      setOffset({
-        x: (cropSize - initialW) / 2,
-        y: (cropSize - initialH) / 2
-      });
-    };
-    img.src = imageUrl;
-  }, [imageUrl]);
+  // Handle save
+  const handleSave = async () => {
+    if (!imageUrl || !croppedAreaPixels) return;
 
-  // Clamp offset so image fully covers crop area (no empty space)
-  const clampOffset = (x: number, y: number, s: number) => {
-    if (!imgNatural) return { x, y };
-    const imgW = imgNatural.width * s;
-    const imgH = imgNatural.height * s;
-    const minX = Math.min(0, cropSize - imgW);
-    const minY = Math.min(0, cropSize - imgH);
-    const maxX = 0;
-    const maxY = 0;
-    return {
-      x: clamp(x, minX, maxX),
-      y: clamp(y, minY, maxY),
-    };
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-    dragStart.current = { x: e.clientX, y: e.clientY };
-    offsetStart.current = { ...offset };
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !dragStart.current) return;
-    const dx = e.clientX - dragStart.current.x;
-    const dy = e.clientY - dragStart.current.y;
-    const newOffset = clampOffset(offsetStart.current.x + dx, offsetStart.current.y + dy, scale);
-    setOffset(newOffset);
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    dragStart.current = null;
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length !== 1) return;
-    const t = e.touches[0];
-    setIsDragging(true);
-    dragStart.current = { x: t.clientX, y: t.clientY };
-    offsetStart.current = { ...offset };
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || !dragStart.current || e.touches.length !== 1) return;
-    const t = e.touches[0];
-    const dx = t.clientX - dragStart.current.x;
-    const dy = t.clientY - dragStart.current.y;
-    const newOffset = clampOffset(offsetStart.current.x + dx, offsetStart.current.y + dy, scale);
-    setOffset(newOffset);
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-    dragStart.current = null;
-  };
-
-  const handleZoomChange = (value: number) => {
-    if (!imgNatural) return;
-    // Zoom around center of crop area: adjust offset to keep center stable
-    const prevScale = scale;
-    const nextScale = clamp(value, minScale, maxScale);
-    if (nextScale === prevScale) return;
-
-    const imgWPrev = imgNatural.width * prevScale;
-    const imgHPrev = imgNatural.height * prevScale;
-    const imgWNext = imgNatural.width * nextScale;
-    const imgHNext = imgNatural.height * nextScale;
-
-    const centerX = cropSize / 2;
-    const centerY = cropSize / 2;
-    // Distance from top-left to center stays proportional with scale
-    const dxPrev = centerX - offset.x;
-    const dyPrev = centerY - offset.y;
-    const ratio = nextScale / prevScale;
-    const dxNext = dxPrev * ratio;
-    const dyNext = dyPrev * ratio;
-    const newOffsetX = centerX - dxNext;
-    const newOffsetY = centerY - dyNext;
-    const clamped = clampOffset(newOffsetX, newOffsetY, nextScale);
-
-    setScale(nextScale);
-    setOffset(clamped);
-  };
-
-  const handleConfirm = async () => {
-    if (!imgNatural || !imageUrl) return;
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = async () => {
-      // Create canvas at exportSize x exportSize, map displayed positions with factor
-      const canvas = document.createElement('canvas');
-      canvas.width = exportSize;
-      canvas.height = exportSize;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      const factor = exportSize / cropSize;
-      const drawX = offset.x * factor;
-      const drawY = offset.y * factor;
-      const drawW = imgNatural.width * scale * factor;
-      const drawH = imgNatural.height * scale * factor;
-      ctx.clearRect(0, 0, exportSize, exportSize);
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, drawX, drawY, drawW, drawH);
-      canvas.toBlob((blob) => {
-        if (blob) {
-          onCropped(blob);
-        }
-      }, 'image/jpeg', 0.92);
-    };
-    img.src = imageUrl;
+    setIsSaving(true);
+    try {
+      const croppedBlob = await getCroppedImg(imageUrl, croppedAreaPixels, exportSize);
+      onCropped(croppedBlob);
+    } catch (error) {
+      console.error('Error cropping image:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!isOpen || !file) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-xl mx-4">
-        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Adjust your photo</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Drag to reposition and use the slider to zoom</p>
-        </div>
-        <div className="px-5 py-5">
-          <div
-            className="relative mx-auto"
-            style={{ width: `${cropSize}px`, height: `${cropSize}px` }}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-          >
-            {/* Crop square frame */}
-            <div
-              className="relative overflow-hidden rounded-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700"
-              style={{ width: `${cropSize}px`, height: `${cropSize}px` }}
-              onMouseDown={handleMouseDown}
-              onTouchStart={handleTouchStart}
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          className="relative w-full max-w-lg mx-4 bg-white dark:bg-[#2b2a2c] rounded-2xl shadow-2xl overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-[#3d3c3e]">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Crop Your Photo
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                Drag to reposition and zoom to adjust
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
             >
-              {/* Image */}
-              {imageUrl && (
-                <img
-                  src={imageUrl}
-                  alt="Crop"
-                  draggable={false}
-                  style={{
-                    position: 'absolute',
-                    left: `${offset.x}px`,
-                    top: `${offset.y}px`,
-                    width: imgNatural ? `${imgNatural.width * scale}px` : '100%',
-                    height: imgNatural ? `${imgNatural.height * scale}px` : '100%',
-                    userSelect: 'none',
-                    touchAction: 'none',
-                  }}
-                />
-              )}
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Crop Area */}
+          <div className="relative h-80 bg-gray-900">
+            {imageUrl && (
+              <Cropper
+                image={imageUrl}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+                cropShape="round"
+                showGrid={false}
+                style={{
+                  containerStyle: {
+                    backgroundColor: '#1a1a1a',
+                  },
+                }}
+              />
+            )}
+          </div>
+
+          {/* Zoom Control */}
+          <div className="px-5 py-4 border-t border-gray-200 dark:border-[#3d3c3e]">
+            <div className="flex items-center gap-3">
+              <ZoomOut className="w-4 h-4 text-gray-400" />
+              <input
+                type="range"
+                min={1}
+                max={3}
+                step={0.1}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="flex-1 h-2 bg-gray-200 dark:bg-[#3d3c3e] rounded-full appearance-none cursor-pointer
+                  [&::-webkit-slider-thumb]:appearance-none
+                  [&::-webkit-slider-thumb]:w-4
+                  [&::-webkit-slider-thumb]:h-4
+                  [&::-webkit-slider-thumb]:rounded-full
+                  [&::-webkit-slider-thumb]:bg-[#635BFF]
+                  [&::-webkit-slider-thumb]:cursor-pointer
+                  [&::-webkit-slider-thumb]:shadow-md
+                  [&::-moz-range-thumb]:w-4
+                  [&::-moz-range-thumb]:h-4
+                  [&::-moz-range-thumb]:rounded-full
+                  [&::-moz-range-thumb]:bg-[#635BFF]
+                  [&::-moz-range-thumb]:border-0
+                  [&::-moz-range-thumb]:cursor-pointer"
+              />
+              <ZoomIn className="w-4 h-4 text-gray-400" />
             </div>
           </div>
-          {/* Zoom slider */}
-          <div className="mt-5">
-            <input
-              type="range"
-              min={minScale}
-              max={maxScale}
-              step={0.01}
-              value={scale}
-              onChange={(e) => handleZoomChange(parseFloat(e.target.value))}
-              className="w-full accent-purple-600"
-            />
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325]">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#635BFF] hover:bg-[#5249e6] disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-colors"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  Save Photo
+                </>
+              )}
+            </button>
           </div>
-        </div>
-        <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-200"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleConfirm}
-            className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium"
-          >
-            Save
-          </button>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 
 export default ProfilePhotoCropper;
-
-
-
-

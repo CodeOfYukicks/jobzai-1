@@ -1,11 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { 
   Plus, Trash2, Calendar, Edit3,
   Wand2, TrendingUp, Target, Hash, FileText, Zap,
-  X, Check, Loader2, Sparkles, GripVertical, Star, Upload, User, Image
+  X, Check, Loader2, Sparkles, GripVertical, Star, Upload, User, Image, ZoomIn, ZoomOut
 } from 'lucide-react';
+import Cropper from 'react-easy-crop';
+import type { Area, Point } from 'react-easy-crop';
 import { CVSection, CVExperience, CVEducation, CVSkill, CVCertification, CVProject, CVLanguage, CVLayoutSettings, CVTemplate } from '../../types/cvEditor';
 import { generateId } from '../../lib/cvEditorUtils';
 import { rewriteSection } from '../../lib/cvSectionAI';
@@ -22,6 +24,58 @@ import AIEnhancePanel from './inline-editors/AIEnhancePanel';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+
+// Helper function to create cropped image blob
+const createImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = document.createElement('img');
+    image.addEventListener('load', () => resolve(image));
+    image.addEventListener('error', (error) => reject(error));
+    image.crossOrigin = 'anonymous';
+    image.src = url;
+  });
+
+async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<Blob> {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  if (!ctx) {
+    throw new Error('No 2d context');
+  }
+
+  // Set canvas size to the cropped area
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+
+  // Draw the cropped image
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  );
+
+  // Return as blob
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Canvas is empty'));
+        }
+      },
+      'image/jpeg',
+      0.9
+    );
+  });
+}
 
 interface SectionEditorProps {
   section: CVSection;
@@ -78,6 +132,13 @@ export default function SectionEditor({
   const [currentAction, setCurrentAction] = useState<string>('');
   const [showDiff, setShowDiff] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  
+  // Photo crop modal states
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   
   // Inline editing state
@@ -90,10 +151,10 @@ export default function SectionEditor({
   // Check if current template supports photos
   const supportsPhoto = template && PHOTO_TEMPLATES.includes(template);
 
-  // Handle photo file upload
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle photo file selection - opens crop modal
+  const handlePhotoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !currentUser?.uid) return;
+    if (!file) return;
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -107,24 +168,61 @@ export default function SectionEditor({
       return;
     }
 
+    // Read file and open crop modal
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageToCrop(reader.result as string);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setShowCropModal(true);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input
+    if (photoInputRef.current) {
+      photoInputRef.current.value = '';
+    }
+  };
+
+  // Handle crop complete callback
+  const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  // Handle crop cancel
+  const handleCropCancel = () => {
+    setShowCropModal(false);
+    setImageToCrop(null);
+    setCroppedAreaPixels(null);
+  };
+
+  // Handle crop save - upload cropped image
+  const handleCropSave = async () => {
+    if (!imageToCrop || !croppedAreaPixels || !currentUser?.uid) return;
+
     setIsUploadingPhoto(true);
     try {
-      const fileName = `cv-photo-${Date.now()}.${file.name.split('.').pop()}`;
+      // Create cropped blob
+      const croppedBlob = await getCroppedImg(imageToCrop, croppedAreaPixels);
+      
+      // Upload to Firebase
+      const fileName = `cv-photo-${Date.now()}.jpg`;
       const photoRef = ref(storage, `profile-photos/${currentUser.uid}/${fileName}`);
-      await uploadBytes(photoRef, file, { contentType: file.type });
+      await uploadBytes(photoRef, croppedBlob, { contentType: 'image/jpeg' });
       const photoUrl = await getDownloadURL(photoRef);
       
       onChange({ photoUrl });
       notify.success('Photo uploaded successfully');
+      
+      // Close modal and reset
+      setShowCropModal(false);
+      setImageToCrop(null);
+      setCroppedAreaPixels(null);
     } catch (error) {
       console.error('Error uploading photo:', error);
       notify.error('Failed to upload photo');
     } finally {
       setIsUploadingPhoto(false);
-      // Reset input
-      if (photoInputRef.current) {
-        photoInputRef.current.value = '';
-      }
     }
   };
 
@@ -349,6 +447,7 @@ export default function SectionEditor({
   switch (section.type) {
     case 'personal':
       return (
+        <>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -463,65 +562,41 @@ export default function SectionEditor({
                   )}
                 </div>
 
-                {/* Upload & URL Options */}
-                <div className="flex-1 space-y-3">
-                  {/* Upload Button */}
-                  <div>
-                    <input
-                      ref={photoInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      className="hidden"
-                      id="cv-photo-upload"
-                    />
-                    <label
-                      htmlFor="cv-photo-upload"
-                      className={`
-                        inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm cursor-pointer transition-all
-                        ${isUploadingPhoto 
-                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' 
-                          : 'bg-[#635BFF] hover:bg-[#5249e6] text-white shadow-sm hover:shadow-md'
-                        }
-                      `}
-                    >
-                      {isUploadingPhoto ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-4 h-4" />
-                          Upload Photo
-                        </>
-                      )}
-                    </label>
-                    <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                      JPG, PNG or GIF. Max 5MB.
-                    </p>
-                  </div>
-
-                  {/* Or divider */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-                    <span className="text-xs text-gray-400 uppercase">or</span>
-                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-                  </div>
-
-                  {/* URL Input */}
-                  <div>
-                    <input
-                      type="url"
-                      value={data.photoUrl || ''}
-                      onChange={(e) => onChange({ photoUrl: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-[#635BFF] dark:focus:border-[#a5a0ff] focus:ring-2 focus:ring-[#635BFF]/20 dark:focus:ring-[#635BFF]/30 transition-all duration-200"
-                      placeholder="https://example.com/photo.jpg"
-                    />
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Or paste an image URL directly
-                    </p>
-                  </div>
+                {/* Upload Button */}
+                <div className="flex-1">
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoSelect}
+                    className="hidden"
+                    id="cv-photo-upload"
+                  />
+                  <label
+                    htmlFor="cv-photo-upload"
+                    className={`
+                      inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm cursor-pointer transition-all
+                      ${isUploadingPhoto 
+                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' 
+                        : 'bg-[#635BFF] hover:bg-[#5249e6] text-white shadow-sm hover:shadow-md'
+                      }
+                    `}
+                  >
+                    {isUploadingPhoto ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        Upload Photo
+                      </>
+                    )}
+                  </label>
+                  <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    JPG, PNG or GIF. Max 5MB.
+                  </p>
                 </div>
               </div>
             </div>
@@ -540,6 +615,118 @@ export default function SectionEditor({
             />
           </div>
         </div>
+
+        {/* Photo Crop Modal */}
+        <AnimatePresence>
+          {showCropModal && imageToCrop && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+              onClick={handleCropCancel}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="relative w-full max-w-lg mx-4 bg-white dark:bg-[#2b2a2c] rounded-2xl shadow-2xl overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-[#3d3c3e]">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Crop Your Photo
+                  </h3>
+                  <button
+                    onClick={handleCropCancel}
+                    className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Crop Area */}
+                <div className="relative h-80 bg-gray-900">
+                  <Cropper
+                    image={imageToCrop}
+                    crop={crop}
+                    zoom={zoom}
+                    aspect={1}
+                    onCropChange={setCrop}
+                    onCropComplete={onCropComplete}
+                    onZoomChange={setZoom}
+                    cropShape="round"
+                    showGrid={false}
+                    style={{
+                      containerStyle: {
+                        backgroundColor: '#1a1a1a',
+                      },
+                    }}
+                  />
+                </div>
+
+                {/* Zoom Control */}
+                <div className="px-5 py-4 border-t border-gray-200 dark:border-[#3d3c3e]">
+                  <div className="flex items-center gap-3">
+                    <ZoomOut className="w-4 h-4 text-gray-400" />
+                    <input
+                      type="range"
+                      min={1}
+                      max={3}
+                      step={0.1}
+                      value={zoom}
+                      onChange={(e) => setZoom(Number(e.target.value))}
+                      className="flex-1 h-2 bg-gray-200 dark:bg-[#3d3c3e] rounded-full appearance-none cursor-pointer
+                        [&::-webkit-slider-thumb]:appearance-none
+                        [&::-webkit-slider-thumb]:w-4
+                        [&::-webkit-slider-thumb]:h-4
+                        [&::-webkit-slider-thumb]:rounded-full
+                        [&::-webkit-slider-thumb]:bg-[#635BFF]
+                        [&::-webkit-slider-thumb]:cursor-pointer
+                        [&::-webkit-slider-thumb]:shadow-md
+                        [&::-moz-range-thumb]:w-4
+                        [&::-moz-range-thumb]:h-4
+                        [&::-moz-range-thumb]:rounded-full
+                        [&::-moz-range-thumb]:bg-[#635BFF]
+                        [&::-moz-range-thumb]:border-0
+                        [&::-moz-range-thumb]:cursor-pointer"
+                    />
+                    <ZoomIn className="w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325]">
+                  <button
+                    onClick={handleCropCancel}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCropSave}
+                    disabled={isUploadingPhoto}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#635BFF] hover:bg-[#5249e6] disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-colors"
+                  >
+                    {isUploadingPhoto ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Save Photo
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        </>
       );
 
     case 'summary':

@@ -20,9 +20,9 @@ const MERGE_FIELDS: MergeField[] = [
 
 export default function MergeFieldPills({ onInsert }: MergeFieldPillsProps) {
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-xs font-medium text-gray-500 dark:text-white/50">
-        Insert:
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <span className="text-[10px] font-medium text-gray-400 dark:text-white/40 uppercase tracking-wider mr-1">
+        Insert
       </span>
       {MERGE_FIELDS.map((field) => {
         const Icon = field.icon;
@@ -31,16 +31,16 @@ export default function MergeFieldPills({ onInsert }: MergeFieldPillsProps) {
             key={field.name}
             type="button"
             onClick={() => onInsert(field.name)}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
-              bg-gray-100 dark:bg-white/[0.06] 
-              text-gray-700 dark:text-gray-300
-              hover:bg-[#b7e219]/20 hover:text-[#b7e219] dark:hover:text-[#b7e219]
-              border border-gray-200 dark:border-white/[0.08]
-              hover:border-[#b7e219]
-              cursor-pointer transition-all duration-200
-              hover:scale-105 active:scale-95"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium
+              bg-gray-100 dark:bg-white/[0.05] 
+              text-gray-600 dark:text-gray-400
+              hover:bg-gray-200/80 dark:hover:bg-white/[0.08]
+              hover:text-gray-700 dark:hover:text-gray-300
+              border border-gray-200/80 dark:border-white/[0.06]
+              cursor-pointer transition-all duration-150
+              active:scale-95"
           >
-            <Icon className="w-3 h-3" />
+            <Icon className="w-2.5 h-2.5" />
             <span>{field.label}</span>
           </button>
         );
@@ -48,4 +48,3 @@ export default function MergeFieldPills({ onInsert }: MergeFieldPillsProps) {
     </div>
   );
 }
-

@@ -16,6 +16,7 @@ interface CVReviewRequest {
   cvData: CVData;
   jobContext?: JobContext;
   previousAnalysis?: PreviousAnalysisContext;
+  signal?: AbortSignal;
 }
 
 /**
@@ -23,8 +24,13 @@ interface CVReviewRequest {
  */
 export async function analyzeCVWithAI(request: CVReviewRequest): Promise<CVReviewResult> {
   try {
-    const response = await axios.post('/api/cv-review', request, {
-      timeout: 90000 // 90 seconds for complex analysis
+    const response = await axios.post('/api/cv-review', {
+      cvData: request.cvData,
+      jobContext: request.jobContext,
+      previousAnalysis: request.previousAnalysis
+    }, {
+      timeout: 90000, // 90 seconds for complex analysis
+      signal: request.signal
     });
 
     if (response.data.status === 'success') {
@@ -34,6 +40,20 @@ export async function analyzeCVWithAI(request: CVReviewRequest): Promise<CVRevie
     }
   } catch (error: any) {
     console.error('Error analyzing CV:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      responseData: error.response?.data,
+      isCancel: axios.isCancel(error)
+    });
+    
+    // If request was cancelled, don't throw or use fallback
+    if (axios.isCancel(error)) {
+      console.log('Request was cancelled, using fallback analysis');
+      return generateFallbackAnalysis(request.cvData, request.jobContext, request.previousAnalysis);
+    }
     
     // If API fails, return fallback analysis
     if (error.code === 'ECONNREFUSED' || error.response?.status === 404) {

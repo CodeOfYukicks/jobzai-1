@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Eye, Sparkles, MessageSquare, FileText, Target, ArrowRight, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Eye, Sparkles, MessageSquare, FileText, Target, ChevronRight, Shuffle, Mail, ChevronDown } from 'lucide-react';
 import { CampaignData } from '../NewCampaignModal';
 import { notify } from '@/lib/notify';
 import { getAuth } from 'firebase/auth';
@@ -61,9 +61,6 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
   const [activeSubStep, setActiveSubStep] = useState<SubStep>('hooks');
   const [previewIndices, setPreviewIndices] = useState({ hook: 0, body: 0, cta: 0 });
   const [generatingVariantIndex, setGeneratingVariantIndex] = useState<number | null>(null);
-  const [outreachGoal, setOutreachGoal] = useState<'job' | 'internship' | 'networking'>(
-    data.outreachGoal || 'job'
-  );
   
   const textareaRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
   const avatarConfig = useAvatarConfig();
@@ -77,12 +74,6 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
   const currentSubStepIndex = SUB_STEPS.indexOf(activeSubStep);
   const activeSectionConfig = sections.find(s => s.id === activeSubStep)!;
   const activeVariants = abTestConfig[activeSubStep];
-
-  // Update outreach goal in campaign data
-  const handleOutreachGoalChange = (goal: 'job' | 'internship' | 'networking') => {
-    setOutreachGoal(goal);
-    onUpdate({ outreachGoal: goal });
-  };
 
   const updateVariants = (section: SubStep, variants: string[]) => {
     onUpdate({
@@ -170,7 +161,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
           type: section === 'hooks' ? 'hook' : section === 'bodies' ? 'body' : 'cta',
           tone: data.emailTone || 'casual',
           language: data.language || 'en',
-          outreachGoal: outreachGoal,
+          outreachGoal: data.outreachGoal || 'job',
           existingVariants
         })
       });
@@ -191,31 +182,28 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
     }
   };
 
-  // Navigation between sub-steps
-  const handleNextSubStep = () => {
-    const nextIndex = currentSubStepIndex + 1;
-    if (nextIndex < SUB_STEPS.length) {
-      setActiveSubStep(SUB_STEPS[nextIndex]);
-    }
-  };
-
-  const handlePrevSubStep = () => {
-    const prevIndex = currentSubStepIndex - 1;
-    if (prevIndex >= 0) {
-      setActiveSubStep(SUB_STEPS[prevIndex]);
-    }
-  };
-
   // Check if current section has at least one valid variant
   const currentSectionValid = activeVariants.some(v => v.trim());
 
-  // Generate preview email
-  const generatePreview = () => {
-    const hook = abTestConfig.hooks[previewIndices.hook] || '';
-    const body = abTestConfig.bodies[previewIndices.body] || '';
-    const cta = abTestConfig.ctas[previewIndices.cta] || '';
-    
-    return `${hook}\n\n${body}\n\n${cta}`;
+  // Highlight merge fields in preview with subtle styling
+  const highlightMergeFieldsInPreview = (text: string) => {
+    const parts = text.split(/(\{\{[^}]+\}\})/g);
+    return parts.map((part, idx) => {
+      if (part.match(/\{\{[^}]+\}\}/)) {
+        return (
+          <span 
+            key={idx} 
+            className="inline-flex items-center px-1 py-0.5 mx-0.5 rounded
+              bg-violet-500/10 dark:bg-violet-400/15
+              text-violet-600 dark:text-violet-400
+              text-[12px] font-medium"
+          >
+            {part}
+          </span>
+        );
+      }
+      return <span key={idx}>{part}</span>;
+    });
   };
 
   // Check if configuration is valid (for preview)
@@ -227,60 +215,12 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
     );
   };
 
-  // Render merge field highlighted text
-  const renderHighlightedText = (text: string) => {
-    return text.split(/(\{\{[^}]+\}\})/g).map((part, idx) => {
-      if (part.match(/\{\{[^}]+\}\}/)) {
-  return (
-          <span 
-            key={idx}
-            className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md
-              bg-[#b7e219]/15 dark:bg-[#b7e219]/25
-              text-[#b7e219] dark:text-[#b7e219]
-              border border-[#b7e219]/40
-              font-mono text-xs font-semibold
-              shadow-sm"
-          >
-            {part}
-          </span>
-        );
-      }
-      return <span key={idx}>{part || '\u00A0'}</span>;
-    });
-  };
-
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* Header Section - Compact */}
-      <div className="flex-shrink-0 space-y-6 mb-8">
-        {/* Outreach Goal Selector */}
-        <div>
-          <label className="block text-[11px] font-semibold text-gray-500 dark:text-white/50 uppercase tracking-wider mb-3">
-            Outreach Goal
-          </label>
-          <div className="inline-flex items-center gap-1 p-1 bg-gray-100 dark:bg-white/[0.04] rounded-xl">
-            {(['job', 'internship', 'networking'] as const).map((goal) => (
-          <button
-                key={goal}
-            type="button"
-                onClick={() => handleOutreachGoalChange(goal)}
-            className={`
-                  px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-all duration-200
-                  ${outreachGoal === goal
-                ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }
-            `}
-          >
-                {goal === 'job' ? 'Job Search' : goal === 'internship' ? 'Internship' : 'Networking'}
-          </button>
-            ))}
-        </div>
-      </div>
-
-        {/* Sub-step Progress Indicator */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      {/* Header Section */}
+      <div className="flex-shrink-0 space-y-5 mb-6">
+        {/* Sub-step Progress Indicator - Simplified */}
+        <div className="flex items-center gap-2">
             {sections.map((section, idx) => {
           const Icon = section.icon;
               const isActive = activeSubStep === section.id;
@@ -292,23 +232,23 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
               key={section.id}
                   onClick={() => setActiveSubStep(section.id)}
               className={`
-                    flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[13px] font-medium
+                  flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium
                 transition-all duration-200
                 ${isActive
-                      ? 'bg-[#b7e219]/10 dark:bg-[#b7e219]/15 text-gray-900 dark:text-white ring-1 ring-[#b7e219]/50'
+                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
                       : isPast
-                        ? 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.04]'
-                        : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.04]'
+                      ? 'bg-gray-100 dark:bg-white/[0.06] text-gray-700 dark:text-gray-300 hover:bg-gray-200/80 dark:hover:bg-white/[0.08]'
+                      : 'bg-gray-50 dark:bg-white/[0.03] text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.05]'
                     }
                   `}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-[#b7e219]' : ''}`} />
+                <Icon className="w-4 h-4" />
               <span className="hidden sm:inline">{section.title}</span>
                   {variantCount > 0 && (
               <span className={`
-                      inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold
+                    inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold
                 ${isActive
-                  ? 'bg-[#b7e219] text-gray-900'
+                      ? 'bg-white/20 dark:bg-gray-900/20 text-white dark:text-gray-900'
                   : 'bg-gray-200 dark:bg-white/[0.08] text-gray-600 dark:text-gray-400'
                 }
               `}>
@@ -321,36 +261,35 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
             </button>
           );
         })}
-          </div>
         </div>
 
-        {/* Info Tip - Compact */}
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-purple-50 dark:bg-purple-500/10 border border-purple-200/50 dark:border-purple-500/20">
-          <Sparkles className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
-          <p className="text-[12px] text-purple-700 dark:text-purple-300">
+        {/* Info Tip - Subtle */}
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/[0.06]">
+          <Sparkles className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+          <p className="text-[12px] text-gray-500 dark:text-gray-400">
             Each email will randomly combine one hook, one body, and one CTA. We'll track which combinations perform best.
           </p>
         </div>
       </div>
 
-      {/* Active Section Editor - Full Width */}
+      {/* Active Section Editor */}
       <div className="flex-1 min-h-0">
       <AnimatePresence mode="wait">
         <motion.div
             key={activeSubStep}
-            initial={{ opacity: 0, x: 30 }}
+            initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-            className="space-y-6"
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            className="space-y-5"
         >
           {/* Section Header */}
             <div className="flex items-start justify-between">
             <div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-0.5">
                 {activeSectionConfig.title}
                 </h3>
-                <p className="text-[14px] text-gray-500 dark:text-white/60">
+                <p className="text-[13px] text-gray-500 dark:text-white/60">
                   {activeSectionConfig.subtitle} <span className="text-gray-400 dark:text-white/40">({activeSectionConfig.recommended})</span>
               </p>
             </div>
@@ -359,22 +298,22 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
                 onClick={() => addVariant(activeSubStep)}
                 disabled={activeVariants.length >= activeSectionConfig.maxVariants}
                 className={`
-                  inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold
+                  inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] font-medium
                   transition-all duration-200
                 ${activeVariants.length >= activeSectionConfig.maxVariants
                   ? 'bg-gray-100 dark:bg-white/[0.04] text-gray-400 dark:text-gray-600 cursor-not-allowed'
-                    : 'bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] shadow-sm hover:shadow-md'
+                    : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 shadow-sm'
                 }
               `}
             >
-              <Plus className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5" />
               Add Variant
             </button>
           </div>
 
-            {/* Shared Merge Fields - Once at the top */}
-            <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/[0.06]">
-              <p className="text-[11px] font-medium text-gray-500 dark:text-white/50 uppercase tracking-wider mb-3">
+            {/* Shared Merge Fields */}
+            <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/[0.06]">
+              <p className="text-[10px] font-medium text-gray-400 dark:text-white/40 uppercase tracking-wider mb-2.5">
                 Personalization Fields
               </p>
               <MergeFieldPills onInsert={(field) => {
@@ -398,17 +337,16 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
                   transition={{ duration: 0.2, delay: index * 0.05 }}
                   className="group relative"
               >
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-3">
                   {/* Variant Number */}
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-white/[0.06] dark:to-white/[0.02] 
-                      flex items-center justify-center text-[15px] font-bold text-gray-500 dark:text-gray-400 
-                      flex-shrink-0 mt-1 border border-gray-200/50 dark:border-white/[0.06]">
+                    <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.06] 
+                      flex items-center justify-center text-[13px] font-bold text-gray-500 dark:text-gray-400 
+                      flex-shrink-0 mt-1">
                     {index + 1}
                   </div>
 
-                    {/* Textarea Container */}
-                  <div className="flex-1 space-y-3">
-                    <div className="relative">
+                    {/* Textarea Container - Fixed cursor issue */}
+                    <div className="flex-1 space-y-2.5">
                       <textarea
                         ref={(el) => {
                             const key = `${activeSubStep}-${index}`;
@@ -421,122 +359,50 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
                         value={variant}
                           onChange={(e) => updateVariant(activeSubStep, index, e.target.value)}
                         placeholder={activeSectionConfig.placeholder}
-                          rows={activeSubStep === 'bodies' ? 5 : 3}
-                          className="w-full px-5 py-4 text-[14px] bg-white dark:bg-[#1a1a1a] 
+                        rows={activeSubStep === 'bodies' ? 4 : 2}
+                        className="w-full px-4 py-3 text-[13px] bg-white dark:bg-[#1a1a1a] 
+                          text-gray-900 dark:text-white
                             border border-gray-200 dark:border-white/[0.08]
-                            rounded-xl focus:outline-none focus:ring-2 focus:ring-[#b7e219]/30 focus:border-[#b7e219]
-                            text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30
+                          rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-white/[0.1] focus:border-gray-300 dark:focus:border-white/[0.15]
+                          placeholder-gray-400 dark:placeholder-white/30
                             resize-none transition-all duration-200 leading-relaxed"
-                        style={{
-                          color: 'transparent',
-                            caretColor: 'currentColor'
-                        }}
                       />
-                      {/* Overlay with styled merge fields */}
-                      <div 
-                          className="absolute inset-0 px-5 py-4 text-[14px] pointer-events-none rounded-xl overflow-hidden leading-relaxed"
-                      >
-                        <div className="text-gray-900 dark:text-white whitespace-pre-wrap break-words">
-                            {renderHighlightedText(variant)}
-                          </div>
-                      </div>
-                    </div>
 
-                      {/* AI Generate Button - Premium Avatar */}
+                      {/* AI Generate Button */}
                       <button
                         onClick={() => generateVariant(activeSubStep, index)}
                         disabled={generatingVariantIndex === index}
-                        className="group inline-flex items-center gap-2.5 px-4 py-2 rounded-xl text-[12px] font-medium
-                          bg-white/60 dark:bg-white/[0.06] backdrop-blur-md
-                          text-gray-600 dark:text-gray-300
-                          border border-white/50 dark:border-white/[0.08]
-                          shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)]
-                          hover:bg-white/80 dark:hover:bg-white/[0.1]
-                          hover:border-[#b7e219]/40 dark:hover:border-[#b7e219]/30
+                        className="group/btn inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-medium
+                          bg-gray-100 dark:bg-white/[0.05]
+                          text-gray-600 dark:text-gray-400
+                          border border-gray-200/80 dark:border-white/[0.06]
+                          hover:bg-gray-200/80 dark:hover:bg-white/[0.08]
                           hover:text-gray-900 dark:hover:text-white
-                          hover:shadow-[0_4px_16px_-2px_rgba(183,226,25,0.2)] dark:hover:shadow-[0_4px_16px_-2px_rgba(183,226,25,0.15)]
                           active:scale-[0.98]
-                          transition-all duration-300 ease-out
-                          disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
+                          transition-all duration-200
+                          disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        {/* Avatar Container with Premium Ring */}
-                        <div className="relative flex-shrink-0">
-                          {/* Animated ring when generating */}
-                          {generatingVariantIndex === index && (
-                            <motion.div
-                              className="absolute -inset-1 rounded-full"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                            >
-                              <motion.div
-                                className="absolute inset-0 rounded-full border-2 border-transparent"
-                                style={{
-                                  background: 'linear-gradient(90deg, transparent 50%, #b7e219 50%) border-box',
-                                  WebkitMask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)',
-                                  WebkitMaskComposite: 'xor',
-                                  maskComposite: 'exclude',
-                                }}
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                              />
-                            </motion.div>
-                          )}
-                          
-                          {/* Subtle glow ring on hover (when not generating) */}
-                          <div className={`
-                            absolute -inset-0.5 rounded-full 
-                            bg-gradient-to-r from-[#b7e219]/0 via-[#b7e219]/30 to-[#b7e219]/0
-                            opacity-0 group-hover:opacity-100 
-                            transition-opacity duration-300
-                            ${generatingVariantIndex === index ? 'hidden' : ''}
-                          `} />
-                          
-                          {/* Avatar with pulse animation when generating */}
+                        {/* Avatar */}
                           <motion.div
                             animate={generatingVariantIndex === index ? {
-                              scale: [1, 1.08, 1],
+                            scale: [1, 1.1, 1],
                             } : {}}
                             transition={{
-                              duration: 1.5,
+                            duration: 1.2,
                               repeat: Infinity,
                               ease: 'easeInOut'
                             }}
-                            className="relative"
                           >
                             <Avatar 
                               config={avatarConfig} 
-                              size={18} 
-                              className={`
-                                rounded-full ring-1 ring-offset-1 ring-offset-white dark:ring-offset-[#1a1a1a]
-                                ${generatingVariantIndex === index 
-                                  ? 'ring-[#b7e219]' 
-                                  : 'ring-gray-200/60 dark:ring-white/10 group-hover:ring-[#b7e219]/50'
-                                }
-                                transition-all duration-300
-                              `}
+                            size={16} 
+                            className="rounded-full"
                             />
                           </motion.div>
-                        </div>
                         
-                        {/* Text with generating state */}
-                        <span className={`
-                          transition-colors duration-300
-                          ${generatingVariantIndex === index 
-                            ? 'text-[#b7e219] dark:text-[#b7e219]' 
-                            : 'group-hover:text-gray-900 dark:group-hover:text-white'
-                          }
-                        `}>
+                        <span>
                           {generatingVariantIndex === index ? 'Generating...' : 'Generate with AI'}
                         </span>
-                        
-                        {/* Sparkle accent on hover */}
-                        <Sparkles className={`
-                          w-3 h-3 transition-all duration-300
-                          ${generatingVariantIndex === index 
-                            ? 'text-[#b7e219] animate-pulse' 
-                            : 'text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 group-hover:text-[#b7e219]'
-                          }
-                        `} />
                       </button>
                   </div>
 
@@ -544,7 +410,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
                   {activeVariants.length > 1 && (
                     <button
                         onClick={() => removeVariant(activeSubStep, index)}
-                        className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-1
+                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-1
                         text-gray-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400
                         hover:bg-red-50 dark:hover:bg-red-500/10 transition-all duration-200
                         opacity-0 group-hover:opacity-100"
@@ -557,133 +423,231 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
             ))}
       </div>
       
-            {/* Internal Navigation */}
-            <div className="flex items-center justify-between pt-6 border-t border-gray-200/50 dark:border-white/[0.06]">
+            {/* Progress Dots */}
+            <div className="flex items-center justify-center gap-2 pt-4">
+              {SUB_STEPS.map((step, idx) => (
               <button
-                onClick={handlePrevSubStep}
-                disabled={currentSubStepIndex === 0}
-                className={`
-                  inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-medium
-                  transition-all duration-200
-                  ${currentSubStepIndex === 0
-                    ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.06]'
-                  }
-                `}
-              >
-                <ArrowLeft className="w-4 h-4" />
-                {currentSubStepIndex > 0 ? sections[currentSubStepIndex - 1].title : 'Back'}
-              </button>
-
-              <div className="flex items-center gap-2">
-                {SUB_STEPS.map((step, idx) => (
-                  <div
                     key={step}
+                  onClick={() => setActiveSubStep(step)}
                     className={`
-                      w-2 h-2 rounded-full transition-all duration-200
+                    h-2 rounded-full transition-all duration-200
                       ${idx === currentSubStepIndex
-                        ? 'w-6 bg-[#b7e219]'
+                      ? 'w-6 bg-gray-900 dark:bg-white'
                         : idx < currentSubStepIndex
-                          ? 'bg-[#b7e219]/50'
-                          : 'bg-gray-300 dark:bg-gray-600'
+                        ? 'w-2 bg-gray-400 dark:bg-gray-500 hover:bg-gray-500 dark:hover:bg-gray-400'
+                        : 'w-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
                       }
                     `}
                   />
                 ))}
-      </div>
-
-              {currentSubStepIndex < SUB_STEPS.length - 1 ? (
-        <button
-                  onClick={handleNextSubStep}
-                  disabled={!currentSectionValid}
-          className={`
-                    inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-semibold
-            transition-all duration-200
-                    ${currentSectionValid
-                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 shadow-sm'
-              : 'bg-gray-100 dark:bg-white/[0.04] text-gray-400 dark:text-gray-600 cursor-not-allowed'
-            }
-          `}
-        >
-                  {sections[currentSubStepIndex + 1].title}
-                  <ArrowRight className="w-4 h-4" />
-        </button>
-              ) : (
-                <div className="w-[120px]" /> 
-              )}
             </div>
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Preview Section - Sticky Bottom */}
-      <div className="flex-shrink-0 mt-8 pt-6 border-t border-gray-200/50 dark:border-white/[0.06]">
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-white/[0.03] dark:to-white/[0.01] 
-          border border-gray-200/60 dark:border-white/[0.06]">
+      {/* Preview Section - Email-like UI */}
+      <div className="flex-shrink-0 mt-6 pt-5 border-t border-gray-200/50 dark:border-white/[0.06]">
+        {/* Preview Header */}
               <div className="flex items-center justify-between mb-4">
-            <h4 className="text-[14px] font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <Eye className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+          <h4 className="text-[13px] font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Eye className="w-4 h-4 text-gray-400 dark:text-gray-500" />
               Live Preview
                 </h4>
             
-            {/* Mini Selectors */}
+          {/* Variant Combination Selector */}
             {hasContent() && (
               <div className="flex items-center gap-2">
-                <select
-                  value={previewIndices.hook}
-                  onChange={(e) => setPreviewIndices(prev => ({ ...prev, hook: parseInt(e.target.value) }))}
-                  className="px-2.5 py-1.5 text-[11px] font-medium bg-white dark:bg-[#1a1a1a] 
-                    border border-gray-200 dark:border-white/[0.08] rounded-lg 
-                    text-gray-700 dark:text-gray-300 cursor-pointer"
-                >
-                  {abTestConfig.hooks.map((_, idx) => (
-                    <option key={idx} value={idx}>Hook {idx + 1}</option>
-                  ))}
-                </select>
-                <span className="text-gray-300 dark:text-gray-600">+</span>
-                <select
-                  value={previewIndices.body}
-                  onChange={(e) => setPreviewIndices(prev => ({ ...prev, body: parseInt(e.target.value) }))}
-                  className="px-2.5 py-1.5 text-[11px] font-medium bg-white dark:bg-[#1a1a1a] 
-                    border border-gray-200 dark:border-white/[0.08] rounded-lg 
-                    text-gray-700 dark:text-gray-300 cursor-pointer"
-                >
-                  {abTestConfig.bodies.map((_, idx) => (
-                    <option key={idx} value={idx}>Body {idx + 1}</option>
-                  ))}
-                </select>
-                <span className="text-gray-300 dark:text-gray-600">+</span>
-                <select
-                  value={previewIndices.cta}
-                  onChange={(e) => setPreviewIndices(prev => ({ ...prev, cta: parseInt(e.target.value) }))}
-                  className="px-2.5 py-1.5 text-[11px] font-medium bg-white dark:bg-[#1a1a1a] 
-                    border border-gray-200 dark:border-white/[0.08] rounded-lg 
-                    text-gray-700 dark:text-gray-300 cursor-pointer"
-                >
-                  {abTestConfig.ctas.map((_, idx) => (
-                    <option key={idx} value={idx}>CTA {idx + 1}</option>
-                  ))}
-                </select>
+              {/* Pill Selectors */}
+              <div className="flex items-center gap-1 p-1 bg-gray-100/80 dark:bg-white/[0.04] rounded-lg">
+                {/* Hook Selector */}
+                <div className="relative group">
+                  <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-semibold
+                    bg-amber-500/10 text-amber-600 dark:text-amber-400 
+                    hover:bg-amber-500/20 transition-all duration-200">
+                    <MessageSquare className="w-3 h-3" />
+                    <span>H{previewIndices.hook + 1}</span>
+                    <ChevronDown className="w-3 h-3 opacity-50" />
+                  </button>
+                  <div className="absolute top-full left-0 mt-1 z-20 hidden group-hover:block">
+                    <div className="py-1 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl border border-gray-200 dark:border-white/[0.08]">
+                      {abTestConfig.hooks.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setPreviewIndices(prev => ({ ...prev, hook: idx }))}
+                          className={`w-full px-3 py-1.5 text-[11px] font-medium text-left transition-colors
+                            ${previewIndices.hook === idx 
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' 
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06]'
+                            }`}
+                        >
+                          Hook {idx + 1}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <span className="text-gray-300 dark:text-gray-600 text-[10px]">+</span>
+
+                {/* Body Selector */}
+                <div className="relative group">
+                  <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-semibold
+                    bg-blue-500/10 text-blue-600 dark:text-blue-400 
+                    hover:bg-blue-500/20 transition-all duration-200">
+                    <FileText className="w-3 h-3" />
+                    <span>B{previewIndices.body + 1}</span>
+                    <ChevronDown className="w-3 h-3 opacity-50" />
+                  </button>
+                  <div className="absolute top-full left-0 mt-1 z-20 hidden group-hover:block">
+                    <div className="py-1 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl border border-gray-200 dark:border-white/[0.08]">
+                      {abTestConfig.bodies.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setPreviewIndices(prev => ({ ...prev, body: idx }))}
+                          className={`w-full px-3 py-1.5 text-[11px] font-medium text-left transition-colors
+                            ${previewIndices.body === idx 
+                              ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' 
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06]'
+                            }`}
+                        >
+                          Body {idx + 1}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <span className="text-gray-300 dark:text-gray-600 text-[10px]">+</span>
+
+                {/* CTA Selector */}
+                <div className="relative group">
+                  <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-semibold
+                    bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 
+                    hover:bg-emerald-500/20 transition-all duration-200">
+                    <Target className="w-3 h-3" />
+                    <span>C{previewIndices.cta + 1}</span>
+                    <ChevronDown className="w-3 h-3 opacity-50" />
+                  </button>
+                  <div className="absolute top-full right-0 mt-1 z-20 hidden group-hover:block">
+                    <div className="py-1 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl border border-gray-200 dark:border-white/[0.08]">
+                      {abTestConfig.ctas.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setPreviewIndices(prev => ({ ...prev, cta: idx }))}
+                          className={`w-full px-3 py-1.5 text-[11px] font-medium text-left transition-colors
+                            ${previewIndices.cta === idx 
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06]'
+                            }`}
+                        >
+                          CTA {idx + 1}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Shuffle Button */}
+              <button
+                onClick={() => setPreviewIndices({
+                  hook: Math.floor(Math.random() * abTestConfig.hooks.length),
+                  body: Math.floor(Math.random() * abTestConfig.bodies.length),
+                  cta: Math.floor(Math.random() * abTestConfig.ctas.length),
+                })}
+                className="p-2 rounded-lg text-gray-400 dark:text-gray-500 
+                  hover:text-gray-600 dark:hover:text-gray-300 
+                  hover:bg-gray-100 dark:hover:bg-white/[0.06]
+                  transition-all duration-200"
+                title="Randomize combination"
+              >
+                <Shuffle className="w-4 h-4" />
+              </button>
               </div>
             )}
               </div>
 
-          {/* Preview Content */}
+        {/* Email Preview Card */}
           {hasContent() ? (
-            <div className="p-4 rounded-xl bg-white dark:bg-[#0a0a0a] border border-gray-200/50 dark:border-white/[0.06] 
-              max-h-[150px] overflow-y-auto">
-              <p className="text-[13px] text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                {renderHighlightedText(generatePreview())}
+          <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f]">
+            {/* Email Header */}
+            <div className="px-4 py-3 bg-gray-50 dark:bg-white/[0.02] border-b border-gray-200/50 dark:border-white/[0.06]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
+                  <Mail className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-medium text-gray-900 dark:text-white truncate">
+                    To: <span className="text-gray-500 dark:text-gray-400">{'{{firstName}} {{lastName}}'}</span>
+                  </p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-500">
+                    at <span className="text-gray-600 dark:text-gray-400">{'{{company}}'}</span>
+                  </p>
+                </div>
+                <div className="text-[10px] text-gray-400 dark:text-gray-600">
+                  Preview
+                </div>
+              </div>
+            </div>
+
+            {/* Email Body - Segmented View */}
+            <div className="p-4 space-y-0 max-h-[180px] overflow-y-auto">
+              {/* Hook Section */}
+              {abTestConfig.hooks[previewIndices.hook]?.trim() && (
+                <div className="group relative">
+                  <div className="absolute -left-2 top-0 bottom-0 w-0.5 bg-amber-400/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <p className="text-[13px] text-gray-800 dark:text-gray-200 leading-relaxed pl-0 group-hover:pl-2 transition-all duration-200">
+                    {highlightMergeFieldsInPreview(abTestConfig.hooks[previewIndices.hook])}
+                  </p>
+                </div>
+              )}
+              
+              {/* Body Section */}
+              {abTestConfig.bodies[previewIndices.body]?.trim() && (
+                <div className="group relative mt-3">
+                  <div className="absolute -left-2 top-0 bottom-0 w-0.5 bg-blue-400/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <p className="text-[13px] text-gray-800 dark:text-gray-200 leading-relaxed pl-0 group-hover:pl-2 transition-all duration-200">
+                    {highlightMergeFieldsInPreview(abTestConfig.bodies[previewIndices.body])}
+                  </p>
+                </div>
+              )}
+              
+              {/* CTA Section */}
+              {abTestConfig.ctas[previewIndices.cta]?.trim() && (
+                <div className="group relative mt-3">
+                  <div className="absolute -left-2 top-0 bottom-0 w-0.5 bg-emerald-400/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <p className="text-[13px] text-gray-800 dark:text-gray-200 leading-relaxed pl-0 group-hover:pl-2 transition-all duration-200">
+                    {highlightMergeFieldsInPreview(abTestConfig.ctas[previewIndices.cta])}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Combination Stats */}
+            <div className="px-4 py-2.5 bg-gray-50 dark:bg-white/[0.02] border-t border-gray-200/50 dark:border-white/[0.06]">
+              <p className="text-[10px] text-gray-500 dark:text-gray-500">
+                <span className="font-medium text-gray-700 dark:text-gray-300">
+                  {abTestConfig.hooks.filter(h => h.trim()).length * 
+                   abTestConfig.bodies.filter(b => b.trim()).length * 
+                   abTestConfig.ctas.filter(c => c.trim()).length}
+                </span>
+                {' '}possible combinations will be tested
               </p>
             </div>
+            </div>
           ) : (
-            <div className="text-center py-8">
-              <p className="text-[13px] text-gray-400 dark:text-white/40">
-                Add variants to see preview
+          <div className="rounded-xl border border-dashed border-gray-200 dark:border-white/[0.08] bg-gray-50/50 dark:bg-white/[0.01] p-8 text-center">
+            <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-white/[0.04] flex items-center justify-center mx-auto mb-3">
+              <Eye className="w-5 h-5 text-gray-400 dark:text-gray-600" />
+            </div>
+            <p className="text-[13px] font-medium text-gray-600 dark:text-gray-400 mb-1">
+              No preview available
+            </p>
+            <p className="text-[11px] text-gray-400 dark:text-gray-600">
+              Add variants above to see how your email will look
           </p>
         </div>
       )}
-        </div>
       </div>
     </div>
   );

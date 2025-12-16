@@ -37,9 +37,6 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
   const [isEditing, setIsEditing] = useState(false);
   const [editedSubject, setEditedSubject] = useState('');
   const [editedBody, setEditedBody] = useState('');
-  const [outreachGoal, setOutreachGoal] = useState<'job' | 'internship' | 'networking'>(
-    data.outreachGoal || 'job'
-  );
   const [showMergeFieldsTooltip, setShowMergeFieldsTooltip] = useState(false);
   
   const subjectInputRef = useRef<HTMLInputElement>(null);
@@ -64,12 +61,6 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showMergeFieldsTooltip]);
-
-  // Update outreach goal in campaign data
-  const handleOutreachGoalChange = (goal: 'job' | 'internship' | 'networking') => {
-    setOutreachGoal(goal);
-    onUpdate({ outreachGoal: goal });
-  };
 
   // Insert merge field at cursor position
   const insertMergeFieldInSubject = (fieldName: string) => {
@@ -146,7 +137,7 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
           tone: data.emailTone || 'casual',
           language: data.language || 'en',
           keyPoints: data.keyPoints || '',
-          outreachGoal: outreachGoal,
+          outreachGoal: data.outreachGoal || 'job',
           count: 3
         })
       });
@@ -229,7 +220,7 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
 
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
 
-  // Highlight merge fields in text
+  // Highlight merge fields in text - subtle violet styling
   const highlightMergeFields = (text: string) => {
     const parts = text.split(/(\{\{[^}]+\}\})/g);
     return parts.map((part, idx) => {
@@ -238,10 +229,10 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
           <span 
             key={idx} 
             className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded-md
-              bg-[#b7e219]/15 dark:bg-[#b7e219]/20
-              text-[#b7e219] dark:text-[#b7e219]
-              border border-[#b7e219]/30
-              font-mono text-xs font-semibold"
+              bg-violet-500/10 dark:bg-violet-400/15
+              text-violet-600 dark:text-violet-400
+              border border-violet-200/50 dark:border-violet-500/20
+              font-mono text-xs font-medium"
           >
             {part}
           </span>
@@ -293,8 +284,8 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
                     <div className="space-y-2">
                       {MERGE_FIELDS.map((item) => (
                         <div key={item.field} className="flex items-center justify-between gap-3">
-                          <code className="px-2 py-1 rounded-md text-xs font-mono font-semibold
-                            bg-[#b7e219]/10 text-[#b7e219] border border-[#b7e219]/20">
+                          <code className="px-2 py-1 rounded-md text-xs font-mono font-medium
+                            bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-200/50 dark:border-violet-500/20">
                             {item.field}
                           </code>
                           <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -308,7 +299,7 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
               </AnimatePresence>
             </div>
           </div>
-          <p className="text-[14px] text-gray-500 dark:text-white/60 mt-1">
+          <p className="text-[13px] text-gray-500 dark:text-white/60 mt-1">
             AI-generated templates personalized for each contact
           </p>
         </div>
@@ -318,15 +309,13 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
           <button
             onClick={handleGenerateTemplates}
             disabled={isGenerating}
-            className="group inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-medium
-              bg-white/60 dark:bg-white/[0.06] backdrop-blur-md
+            className="group inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-[12px] font-medium
+              bg-gray-100 dark:bg-white/[0.06]
               text-gray-600 dark:text-gray-300
-              border border-white/50 dark:border-white/[0.08]
-              shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)]
-              hover:bg-white/80 dark:hover:bg-white/[0.1]
-              hover:border-gray-300 dark:hover:border-white/[0.15]
+              border border-gray-200/80 dark:border-white/[0.08]
+              hover:bg-gray-200/80 dark:hover:bg-white/[0.1]
               active:scale-[0.98]
-              transition-all duration-300 ease-out
+              transition-all duration-200
               disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
@@ -335,46 +324,21 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
         )}
       </div>
 
-      {/* Outreach Goal Selector - Inline */}
-      <div>
-        <label className="block text-[11px] font-semibold text-gray-500 dark:text-white/50 uppercase tracking-wider mb-3">
-          Outreach Goal
-        </label>
-        <div className="inline-flex items-center gap-1 p-1 bg-gray-100 dark:bg-white/[0.04] rounded-xl">
-          {(['job', 'internship', 'networking'] as const).map((goal) => (
-            <button
-              key={goal}
-              type="button"
-              onClick={() => handleOutreachGoalChange(goal)}
-              className={`
-                px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-all duration-200
-                ${outreachGoal === goal
-                  ? 'bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }
-              `}
-            >
-              {goal === 'job' ? 'Job Search' : goal === 'internship' ? 'Internship' : 'Networking'}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Loading State */}
       {isGenerating && templates.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16">
-          <div className="relative w-16 h-16 mb-4">
+          <div className="relative w-14 h-14 mb-4">
             <div className="absolute inset-0 rounded-full border-2 border-gray-200 dark:border-white/[0.08]" />
-            <div className="absolute inset-0 rounded-full border-2 border-[#b7e219] border-t-transparent animate-spin" />
-            <Wand2 className="absolute inset-0 m-auto w-6 h-6 text-[#b7e219]" />
+            <div className="absolute inset-0 rounded-full border-2 border-gray-400 dark:border-gray-500 border-t-transparent animate-spin" />
+            <Wand2 className="absolute inset-0 m-auto w-5 h-5 text-gray-500 dark:text-gray-400" />
           </div>
-          <p className="text-[14px] text-gray-500 dark:text-white/60">
+          <p className="text-[13px] text-gray-500 dark:text-white/60">
             Generating personalized templates...
           </p>
         </div>
       )}
 
-      {/* Templates Accordion */}
+      {/* Templates List */}
       {!isGenerating && templates.length > 0 && !isEditing && (
         <div className="space-y-3">
           {templates.map((template, index) => {
@@ -388,61 +352,51 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: index * 0.05 }}
                 className={`
-                  relative rounded-2xl border-2 overflow-hidden transition-all duration-300
+                  relative overflow-hidden transition-all duration-200
                   ${isSelected
-                    ? 'border-[#b7e219] shadow-[0_0_0_1px_rgba(183,226,25,0.2)] dark:shadow-[0_0_0_1px_rgba(183,226,25,0.15)]'
-                    : 'border-gray-200 dark:border-white/[0.08] hover:border-gray-300 dark:hover:border-white/[0.12]'
+                    ? 'border-l-[3px] border-l-[#b7e219] border-y border-r border-y-transparent border-r-transparent bg-white dark:bg-[#1f1f1f] shadow-lg shadow-black/[0.06] dark:shadow-black/30 ring-1 ring-black/[0.04] dark:ring-white/[0.06] rounded-xl'
+                    : 'border border-gray-200/80 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02] hover:bg-white dark:hover:bg-white/[0.04] hover:shadow-md rounded-xl'
                   }
-                  bg-white dark:bg-[#1a1a1a]
                 `}
               >
                 {/* Accordion Header - Always Visible */}
                 <button
                   onClick={() => handleToggleExpand(template.id)}
-                  className="w-full flex items-center gap-4 p-4 text-left transition-colors duration-200
-                    hover:bg-gray-50/50 dark:hover:bg-white/[0.02]"
+                  className="w-full flex items-center gap-4 p-4 text-left transition-colors duration-200"
                 >
-                  {/* Template Number */}
-                  <div className={`
-                    w-10 h-10 rounded-xl flex items-center justify-center text-[14px] font-bold flex-shrink-0
-                    transition-all duration-300
-                    ${isSelected
-                      ? 'bg-[#b7e219] text-gray-900'
-                      : 'bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400'
-                    }
-                  `}>
+                  {/* Template Number - Always neutral */}
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[13px] font-bold flex-shrink-0
+                    bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400">
                     {index + 1}
                   </div>
 
                   {/* Subject Preview */}
                   <div className="flex-1 min-w-0">
-                    <p className={`text-[14px] font-medium truncate transition-colors duration-200
+                    <p className={`text-[13px] font-medium truncate transition-colors duration-200
                       ${isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}
                     `}>
                       {highlightMergeFields(template.subject)}
                     </p>
                     {!isExpanded && (
-                      <p className="text-[12px] text-gray-500 dark:text-gray-500 truncate mt-0.5">
+                      <p className="text-[11px] text-gray-500 dark:text-gray-500 truncate mt-0.5">
                         {template.body.substring(0, 80)}...
                       </p>
                     )}
                   </div>
 
-                  {/* Selected Checkmark */}
+                  {/* Selected Dot Indicator */}
                   {isSelected && (
                     <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
                       transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                      className="w-6 h-6 rounded-full bg-[#b7e219] flex items-center justify-center flex-shrink-0"
-                    >
-                      <Check className="w-4 h-4 text-gray-900" strokeWidth={3} />
-                    </motion.div>
+                      className="w-2.5 h-2.5 rounded-full bg-[#b7e219] shadow-sm flex-shrink-0"
+                    />
                   )}
 
                   {/* Expand/Collapse Icon */}
                   <ChevronDown 
-                    className={`w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 transition-transform duration-300
+                    className={`w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0 transition-transform duration-300
                       ${isExpanded ? 'rotate-180' : ''}
                     `} 
                   />
@@ -455,7 +409,7 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                      transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                       className="overflow-hidden"
                     >
                       <div className="px-4 pb-4 pt-0">
@@ -463,8 +417,8 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
                         <div className="h-px bg-gray-100 dark:bg-white/[0.06] mb-4" />
 
                         {/* Body Content */}
-                        <div className="p-4 rounded-xl bg-gray-50/50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.04]">
-                          <p className="text-[13px] text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                        <div className="p-4 rounded-lg bg-gray-50/80 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.04]">
+                          <p className="text-[12px] text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                             {highlightMergeFields(template.body)}
                           </p>
                         </div>
@@ -476,17 +430,16 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
                               e.stopPropagation();
                               handleEditTemplate(template);
                             }}
-                            className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-medium
-                              bg-white/60 dark:bg-white/[0.06] backdrop-blur-md
+                            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium
+                              bg-gray-100 dark:bg-white/[0.06]
                               text-gray-600 dark:text-gray-300
                               border border-gray-200/50 dark:border-white/[0.08]
-                              hover:bg-white dark:hover:bg-white/[0.1]
-                              hover:border-gray-300 dark:hover:border-white/[0.15]
+                              hover:bg-gray-200/80 dark:hover:bg-white/[0.1]
                               active:scale-[0.98]
                               transition-all duration-200"
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
-                            <span>Edit Template</span>
+                            <Edit2 className="w-3 h-3" />
+                            <span>Edit</span>
                           </button>
                         )}
                       </div>
@@ -511,12 +464,12 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
           >
             {/* Edit Header */}
             <div className="flex items-center justify-between">
-              <h4 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+              <h4 className="text-[14px] font-semibold text-gray-900 dark:text-white">
                 Edit Template
               </h4>
               <button
                 onClick={() => setIsEditing(false)}
-                className="p-2 rounded-lg text-gray-400 dark:text-gray-500 
+                className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 
                   hover:text-gray-600 dark:hover:text-gray-300 
                   hover:bg-gray-100 dark:hover:bg-white/[0.06]
                   transition-colors"
@@ -527,120 +480,63 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
 
             {/* Subject Editor */}
             <div>
-              <label className="block text-[11px] font-semibold text-gray-500 dark:text-white/50 uppercase tracking-wider mb-2">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-white/50 uppercase tracking-wider mb-2">
                 Subject Line
               </label>
               <MergeFieldPills onInsert={insertMergeFieldInSubject} />
-              <div className="relative mt-3">
-                <input
-                  ref={subjectInputRef}
-                  type="text"
-                  value={editedSubject}
-                  onChange={(e) => setEditedSubject(e.target.value)}
-                  placeholder="Email subject..."
-                  className="w-full px-4 py-3.5 text-[14px] bg-white dark:bg-[#1a1a1a] 
-                    border border-gray-200 dark:border-white/[0.08]
-                    rounded-xl focus:outline-none focus:ring-2 focus:ring-[#b7e219]/30 focus:border-[#b7e219]
-                    placeholder-gray-400 dark:placeholder-white/30
-                    transition-all duration-200"
-                  style={{
-                    color: 'transparent',
-                    caretColor: 'currentColor'
-                  }}
-                />
-                {/* Overlay with styled merge fields */}
-                <div className="absolute inset-0 px-4 py-3.5 text-[14px] pointer-events-none rounded-xl overflow-hidden">
-                  <div className="text-gray-900 dark:text-white whitespace-nowrap overflow-hidden text-ellipsis">
-                    {editedSubject.split(/(\{\{[^}]+\}\})/g).map((part, idx) => {
-                      if (part.match(/\{\{[^}]+\}\}/)) {
-                        return (
-                          <span 
-                            key={idx}
-                            className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md
-                              bg-[#b7e219]/15 dark:bg-[#b7e219]/25
-                              text-[#b7e219] dark:text-[#b7e219]
-                              border border-[#b7e219]/40
-                              font-mono text-xs font-semibold
-                              shadow-sm"
-                          >
-                            {part}
-                          </span>
-                        );
-                      }
-                      return <span key={idx}>{part || '\u00A0'}</span>;
-                    })}
-                  </div>
-                </div>
-              </div>
+              <input
+                ref={subjectInputRef}
+                type="text"
+                value={editedSubject}
+                onChange={(e) => setEditedSubject(e.target.value)}
+                placeholder="Email subject..."
+                className="w-full mt-2.5 px-3.5 py-2.5 text-[13px] bg-white dark:bg-[#1a1a1a] 
+                  text-gray-900 dark:text-white
+                  border border-gray-200 dark:border-white/[0.08]
+                  rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-white/[0.1] focus:border-gray-300 dark:focus:border-white/[0.15]
+                  placeholder-gray-400 dark:placeholder-white/30
+                  transition-all duration-200"
+              />
             </div>
 
             {/* Body Editor */}
             <div>
-              <label className="block text-[11px] font-semibold text-gray-500 dark:text-white/50 uppercase tracking-wider mb-2">
+              <label className="block text-[11px] font-medium text-gray-500 dark:text-white/50 uppercase tracking-wider mb-2">
                 Email Body
               </label>
               <MergeFieldPills onInsert={insertMergeFieldInBody} />
-              <div className="relative mt-3">
-                <textarea
-                  ref={bodyTextareaRef}
-                  value={editedBody}
-                  onChange={(e) => setEditedBody(e.target.value)}
-                  rows={10}
-                  placeholder="Email content..."
-                  className="w-full px-4 py-4 text-[14px] bg-white dark:bg-[#1a1a1a] 
-                    border border-gray-200 dark:border-white/[0.08]
-                    rounded-xl focus:outline-none focus:ring-2 focus:ring-[#b7e219]/30 focus:border-[#b7e219]
-                    placeholder-gray-400 dark:placeholder-white/30
-                    resize-none transition-all duration-200 leading-relaxed"
-                  style={{
-                    color: 'transparent',
-                    caretColor: 'currentColor'
-                  }}
-                />
-                {/* Overlay with styled merge fields */}
-                <div 
-                  className="absolute inset-0 px-4 py-4 text-[14px] pointer-events-none rounded-xl overflow-hidden leading-relaxed"
-                >
-                  <div className="text-gray-900 dark:text-white whitespace-pre-wrap break-words">
-                    {editedBody.split(/(\{\{[^}]+\}\})/g).map((part, idx) => {
-                      if (part.match(/\{\{[^}]+\}\}/)) {
-                        return (
-                          <span 
-                            key={idx}
-                            className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md
-                              bg-[#b7e219]/15 dark:bg-[#b7e219]/25
-                              text-[#b7e219] dark:text-[#b7e219]
-                              border border-[#b7e219]/40
-                              font-mono text-xs font-semibold
-                              shadow-sm"
-                          >
-                            {part}
-                          </span>
-                        );
-                      }
-                      return <span key={idx}>{part || '\u00A0'}</span>;
-                    })}
-                  </div>
-                </div>
-              </div>
+              <textarea
+                ref={bodyTextareaRef}
+                value={editedBody}
+                onChange={(e) => setEditedBody(e.target.value)}
+                rows={8}
+                placeholder="Email content..."
+                className="w-full mt-2.5 px-3.5 py-3 text-[13px] bg-white dark:bg-[#1a1a1a] 
+                  text-gray-900 dark:text-white
+                  border border-gray-200 dark:border-white/[0.08]
+                  rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-white/[0.1] focus:border-gray-300 dark:focus:border-white/[0.15]
+                  placeholder-gray-400 dark:placeholder-white/30
+                  resize-none transition-all duration-200 leading-relaxed"
+              />
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-3 pt-2">
+            {/* Actions - Refined proportions */}
+            <div className="flex items-center gap-2 pt-1">
               <button
                 onClick={handleSaveEdit}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl
-                  bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] 
-                  font-semibold text-[13px] shadow-sm hover:shadow-md
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg
+                  bg-gray-900 dark:bg-white text-white dark:text-gray-900
+                  hover:bg-gray-800 dark:hover:bg-gray-100
+                  font-medium text-[12px] shadow-sm
                   transition-all duration-200 active:scale-[0.98]"
               >
-                <Check className="w-4 h-4" />
+                <Check className="w-3.5 h-3.5" />
                 Save Changes
               </button>
               <button
                 onClick={() => setIsEditing(false)}
-                className="px-5 py-3 rounded-xl text-[13px] font-medium
-                  text-gray-600 dark:text-gray-400
+                className="px-4 py-2 rounded-lg text-[12px] font-medium
+                  text-gray-500 dark:text-gray-400
                   hover:bg-gray-100 dark:hover:bg-white/[0.06] 
                   transition-colors duration-200"
               >
@@ -654,23 +550,24 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
       {/* Empty State */}
       {!isGenerating && templates.length === 0 && (
         <div className="text-center py-16">
-          <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center mx-auto mb-4">
-            <Mail className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+          <div className="w-14 h-14 rounded-xl bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center mx-auto mb-4">
+            <Mail className="w-6 h-6 text-gray-400 dark:text-gray-500" />
           </div>
-          <h4 className="text-[15px] font-medium text-gray-900 dark:text-white mb-2">
+          <h4 className="text-[14px] font-medium text-gray-900 dark:text-white mb-1.5">
             No templates yet
           </h4>
-          <p className="text-[13px] text-gray-500 dark:text-white/60 mb-6 max-w-xs mx-auto">
+          <p className="text-[12px] text-gray-500 dark:text-white/60 mb-5 max-w-xs mx-auto">
             Generate AI-powered email templates personalized for your outreach
           </p>
           <button
             onClick={handleGenerateTemplates}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl
-              bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] 
-              font-semibold text-[13px] shadow-sm hover:shadow-md
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg
+              bg-gray-900 dark:bg-white text-white dark:text-gray-900
+              hover:bg-gray-800 dark:hover:bg-gray-100
+              font-medium text-[12px] shadow-sm
               transition-all duration-200"
           >
-            <Wand2 className="w-4 h-4" />
+            <Wand2 className="w-3.5 h-3.5" />
             Generate Templates
           </button>
         </div>
