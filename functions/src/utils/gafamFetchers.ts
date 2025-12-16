@@ -486,3 +486,4 @@ export async function fetchAllGAFAM(config: GAFAMConfig = {}): Promise<Normalize
 	console.log(`[GAFAM] Total jobs fetched: ${allJobs.length}`, results);
 	return allJobs;
 }
+

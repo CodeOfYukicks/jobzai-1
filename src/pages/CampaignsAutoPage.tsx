@@ -212,6 +212,7 @@ export default function CampaignsAutoPage() {
   const [isCheckingReplies, setIsCheckingReplies] = useState(false);
   const [emailProgress, setEmailProgress] = useState<{ initialPending: number; startTime: number } | null>(null);
   const [sendProgress, setSendProgress] = useState<{ sent: number; remaining: number } | null>(null);
+  const [shouldAutoGenerateEmails, setShouldAutoGenerateEmails] = useState(false);
 
   // Email preview modal
   const [emailPreviewRecipient, setEmailPreviewRecipient] = useState<CampaignRecipient | null>(null);
@@ -361,6 +362,48 @@ export default function CampaignsAutoPage() {
 
     return () => unsubscribe();
   }, [selectedCampaignId]);
+
+  // Ref to store the generate emails function for auto-trigger
+  const handleGenerateEmailsRef = useRef<(() => Promise<void>) | null>(null);
+  const autoGenerateTriggeredRef = useRef(false);
+
+  // Auto-generate emails when a new campaign is created and recipients are loaded
+  useEffect(() => {
+    // Only trigger if:
+    // 1. Flag is set (new campaign created)
+    // 2. Recipients are loaded (not loading anymore)
+    // 3. There are recipients without emails generated
+    // 4. We haven't already triggered for this campaign
+    // 5. Not already generating
+    // 6. The generate function is available
+    if (
+      shouldAutoGenerateEmails &&
+      !isLoadingRecipients &&
+      recipients.length > 0 &&
+      recipients.some(r => !r.emailGenerated) &&
+      !autoGenerateTriggeredRef.current &&
+      !isGeneratingEmails &&
+      handleGenerateEmailsRef.current
+    ) {
+      autoGenerateTriggeredRef.current = true;
+      setShouldAutoGenerateEmails(false);
+      
+      // Small delay to ensure UI is ready
+      const timer = setTimeout(() => {
+        console.log('🚀 Auto-generating emails for new campaign...');
+        if (handleGenerateEmailsRef.current) {
+          handleGenerateEmailsRef.current();
+        }
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    // Reset the ref when campaign changes
+    if (!shouldAutoGenerateEmails) {
+      autoGenerateTriggeredRef.current = false;
+    }
+  }, [shouldAutoGenerateEmails, isLoadingRecipients, recipients, isGeneratingEmails]);
 
   // Load campaign boards (outreach boards)
   useEffect(() => {
@@ -607,6 +650,8 @@ export default function CampaignsAutoPage() {
       if (campaignDoc.exists()) {
         const campaignData = campaignDoc.data();
         await handleSearchApollo(campaignId, campaignData.targeting);
+        // Flag to auto-generate emails once recipients are loaded
+        setShouldAutoGenerateEmails(true);
       }
     } catch (error) {
       console.error('Error fetching campaign for Apollo search:', error);
@@ -712,6 +757,11 @@ export default function CampaignsAutoPage() {
       setEmailProgress(null);
     }
   }, [selectedCampaignId, currentUser, recipients, selectedCampaign, BACKEND_URL]);
+
+  // Update the ref when handleGenerateEmails changes (for auto-trigger)
+  useEffect(() => {
+    handleGenerateEmailsRef.current = handleGenerateEmails;
+  }, [handleGenerateEmails]);
 
   // Handle send all emails at once
   const handleSendEmails = useCallback(async () => {
@@ -1298,7 +1348,7 @@ export default function CampaignsAutoPage() {
                 <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
               </div>
             ) : (
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-[#242325]/50 dark:via-[#2b2a2c]/30 dark:to-purple-900/20 border-b border-white/20 dark:border-[#3d3c3e]/20">
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-[#242325]/50 dark:via-[#2b2a2c]/30 dark:to-purple-900/20 border-b border-white/20 dark:border-[#3d3c3e]/20 pointer-events-none">
                 <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
                    style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
                 />

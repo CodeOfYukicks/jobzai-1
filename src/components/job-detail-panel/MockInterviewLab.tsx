@@ -638,3 +638,4 @@ export const MockInterviewLab = ({ job }: MockInterviewLabProps) => {
         </div>
     );
 };
+

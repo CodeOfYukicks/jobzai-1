@@ -364,3 +364,4 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
   );
 }
 
+
