@@ -69,7 +69,7 @@ export function SearchSuggestionsDropdown({
               </div>
               {recentSearches.map((search, index) => (
                 <SuggestionItem
-                  key={search.query}
+                  key={`recent-${search.query}-${search.timestamp}`}
                   icon={<Clock className="w-4 h-4" />}
                   text={search.query}
                   isSelected={selectedIndex === index}
@@ -117,7 +117,7 @@ export function SearchSuggestionsDropdown({
               </div>
               {popularSearches.map((search, index) => (
                 <SuggestionItem
-                  key={search.text}
+                  key={`popular-${search.id || search.text}-${index}`}
                   icon={<TrendingUp className="w-4 h-4" />}
                   text={search.text}
                   isSelected={selectedIndex === index}

@@ -81,41 +81,41 @@ interface NewCampaignModalProps {
 
 type Step = 'targeting' | 'gmail' | 'mode' | 'template' | 'abtest' | 'cvAttachment';
 
-const STEP_CONFIG = {
-  targeting: {
-    title: 'Targeting',
-    subtitle: 'Define your ideal opportunities',
-    number: 1
-  },
-  gmail: {
-    title: 'Connect Gmail',
-    subtitle: 'Authorize email sending',
-    number: 2
-  },
-  mode: {
-    title: 'Generation Mode',
-    subtitle: 'Choose how to create emails',
-    number: 3
-  },
-  template: {
-    title: 'Email Templates',
-    subtitle: 'AI-generated templates with preferences',
-    number: 4
-  },
-  abtest: {
-    title: 'A/B Testing',
-    subtitle: 'Create email variants with preferences',
-    number: 4
-  },
-  cvAttachment: {
-    title: 'CV Attachment',
-    subtitle: 'Attach your resume (optional)',
-    number: 5
-  }
-};
-
 export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }: NewCampaignModalProps) {
   const { currentUser } = useAuth();
+
+  const STEP_CONFIG = {
+    targeting: {
+      title: 'Targeting',
+      subtitle: 'Define your target audience',
+      number: 1
+    },
+    gmail: {
+      title: 'Gmail',
+      subtitle: 'Connect your email account',
+      number: 2
+    },
+    mode: {
+      title: 'Email Mode',
+      subtitle: 'Choose how emails are generated',
+      number: 3
+    },
+    template: {
+      title: 'Template',
+      subtitle: 'Create your email template',
+      number: 4
+    },
+    abtest: {
+      title: 'A/B Testing',
+      subtitle: 'Create email variants',
+      number: 4
+    },
+    cvAttachment: {
+      title: 'CV Attachment',
+      subtitle: 'Attach your resume',
+      number: 5
+    }
+  };
   const [currentStep, setCurrentStep] = useState<Step>('targeting');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [campaignId, setCampaignId] = useState<string | null>(null);
@@ -174,36 +174,36 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
     switch (currentStep) {
       case 'targeting':
         if (!campaignData.outreachGoal) {
-          notify.error('Please select an outreach goal');
+          notify.error('This field is required');
           return false;
         }
         if (campaignData.personTitles.length === 0) {
-          notify.error('Please add at least one job title');
+          notify.error('This field is required');
           return false;
         }
         if (campaignData.personLocations.length === 0) {
-          notify.error('Please select at least one location');
+          notify.error('This field is required');
           return false;
         }
         return true;
       
       case 'gmail':
         if (!campaignData.gmailConnected) {
-          notify.error('Please connect your Gmail account');
+          notify.error('Connect Gmail to send emails');
           return false;
         }
         return true;
       
       case 'mode':
         if (!campaignData.emailGenerationMode) {
-          notify.error('Please select an email generation mode');
+          notify.error('This field is required');
           return false;
         }
         return true;
       
       case 'template':
         if (!campaignData.selectedTemplate) {
-          notify.error('Please select or generate a template');
+          notify.error('This field is required');
           return false;
         }
         return true;
@@ -214,7 +214,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
             !config.hooks.some(h => h.trim()) ||
             !config.bodies.some(b => b.trim()) ||
             !config.ctas.some(c => c.trim())) {
-          notify.error('Please add at least one variant for each section');
+          notify.error('This field is required');
           return false;
         }
         return true;
@@ -251,7 +251,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
     // Validate campaign name
     if (!campaignData.name.trim()) {
       setNameError(true);
-      notify.error('Please give your campaign a name');
+      notify.error('This field is required');
       return;
     }
     setNameError(false);
@@ -329,7 +329,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
       onClose();
     } catch (error) {
       console.error('Error creating campaign:', error);
-      notify.error('Failed to create campaign');
+      notify.error('Failed to save. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -441,7 +441,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                         animate={{ opacity: 1, y: 0 }}
                         className="text-[11px] text-red-500 dark:text-red-400 mt-0.5"
                       >
-                        Campaign name is required
+                        This field is required
                       </motion.p>
                     )}
                   </div>
@@ -566,7 +566,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Launching...</span>
+                      <span>Loading...</span>
                     </>
                   ) : currentStepIndex === steps.length - 1 ? (
                     <>

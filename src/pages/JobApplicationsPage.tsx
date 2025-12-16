@@ -68,6 +68,7 @@ import { BoardSettingsModal, BoardsOverview, MoveToBoardModal, DeleteBoardModal 
 import { RelationshipGoalSelector } from '../components/outreach';
 import { WarmthIndicator } from '../components/outreach';
 import { useAssistantPageData, summarizeApplications } from '../hooks/useAssistantPageData';
+import { ProfileAvatar, generateGenderedAvatarConfigByName } from '../components/profile/avatar';
 
 export default function JobApplicationsPage() {
   const { currentUser } = useAuth();
@@ -5572,9 +5573,11 @@ END:VCALENDAR`;
                                 className="p-4 rounded-2xl bg-gradient-to-br from-[#8B5CF6]/5 to-[#EC4899]/5 border border-[#8B5CF6]/20 dark:border-[#8B5CF6]/10"
                               >
                                 <div className="flex items-center gap-4">
-                                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-purple-500/30">
-                                    {(formData.contactName || 'N').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                                  </div>
+                                  <ProfileAvatar
+                                    config={generateGenderedAvatarConfigByName(formData.contactName || 'Unknown')}
+                                    size={56}
+                                    className="rounded-2xl shadow-lg"
+                                  />
                                   <div className="flex-1 min-w-0">
                                     <h4 className="font-bold text-gray-900 dark:text-white truncate text-lg">
                                       {formData.contactName || 'Contact Name'}

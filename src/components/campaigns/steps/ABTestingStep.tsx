@@ -25,40 +25,40 @@ interface SectionConfig {
   recommended: string;
 }
 
-const sections: SectionConfig[] = [
-  {
-    id: 'hooks',
-    icon: MessageSquare,
-    title: 'Opening Hooks',
-    subtitle: 'First sentences to grab attention',
-    placeholder: 'Hi {{firstName}}, I noticed your work at {{company}}...',
-    maxVariants: 5,
-    recommended: '3-5 variants',
-  },
-  {
-    id: 'bodies',
-    icon: FileText,
-    title: 'Email Bodies',
-    subtitle: 'Main message content',
-    placeholder: 'I wanted to reach out because...',
-    maxVariants: 3,
-    recommended: '2-3 variants',
-  },
-  {
-    id: 'ctas',
-    icon: Target,
-    title: 'Call-to-Actions',
-    subtitle: 'Closing and next steps',
-    placeholder: 'Would you be open to a quick call this week?',
-    maxVariants: 3,
-    recommended: '2-3 variants',
-  },
-];
-
 const SUB_STEPS: SubStep[] = ['hooks', 'bodies', 'ctas'];
 
 export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
   const [activeSubStep, setActiveSubStep] = useState<SubStep>('hooks');
+
+  const sections: SectionConfig[] = [
+    {
+      id: 'hooks',
+      icon: MessageSquare,
+      title: 'Opening Hooks',
+      subtitle: 'Attention-grabbing first lines',
+      placeholder: 'e.g., I noticed your team is hiring...',
+      maxVariants: 5,
+      recommended: '3-5',
+    },
+    {
+      id: 'bodies',
+      icon: FileText,
+      title: 'Email Bodies',
+      subtitle: 'Main message content',
+      placeholder: 'e.g., With my background in...',
+      maxVariants: 3,
+      recommended: '2-3',
+    },
+    {
+      id: 'ctas',
+      icon: Target,
+      title: 'Call to Actions',
+      subtitle: 'Closing statements',
+      placeholder: 'e.g., Would you be open to a quick call?',
+      maxVariants: 3,
+      recommended: '2-3',
+    },
+  ];
   const [previewIndices, setPreviewIndices] = useState({ hook: 0, body: 0, cta: 0 });
   const [generatingVariantIndex, setGeneratingVariantIndex] = useState<number | null>(null);
   

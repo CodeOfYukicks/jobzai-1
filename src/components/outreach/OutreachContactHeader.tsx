@@ -16,36 +16,13 @@ import { JobApplication, WarmthLevel } from '../../types/job';
 import { WarmthIndicator } from './WarmthIndicator';
 import { OutreachChannelBadge } from './OutreachChannelBadge';
 import { CompanyLogo } from '../common/CompanyLogo';
+import { ProfileAvatar, generateGenderedAvatarConfigByName } from '../profile/avatar';
 
 interface OutreachContactHeaderProps {
   contact: JobApplication;
   onWarmthChange?: (level: WarmthLevel) => void;
   compact?: boolean;
 }
-
-// Generate avatar color based on name
-const getAvatarColor = (name: string): string => {
-  const colors = [
-    'from-violet-500 to-purple-600',
-    'from-blue-500 to-indigo-600',
-    'from-emerald-500 to-teal-600',
-    'from-amber-500 to-orange-600',
-    'from-pink-500 to-rose-600',
-    'from-cyan-500 to-blue-600',
-  ];
-  const index = name.charCodeAt(0) % colors.length;
-  return colors[index];
-};
-
-// Get initials from name
-const getInitials = (name: string): string => {
-  return name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-};
 
 export function OutreachContactHeader({ 
   contact, 
@@ -55,8 +32,6 @@ export function OutreachContactHeader({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   
   const contactName = contact.contactName || 'Unknown Contact';
-  const initials = getInitials(contactName);
-  const avatarColor = getAvatarColor(contactName);
   
   const handleCopy = async (text: string, field: string) => {
     try {
@@ -72,9 +47,11 @@ export function OutreachContactHeader({
     return (
       <div className="flex items-center gap-3">
         {/* Compact avatar */}
-        <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white font-semibold text-sm shadow-lg`}>
-          {initials}
-        </div>
+        <ProfileAvatar
+          config={generateGenderedAvatarConfigByName(contactName)}
+          size={40}
+          className="rounded-full shadow-lg"
+        />
         
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-gray-900 dark:text-white truncate">
@@ -100,9 +77,12 @@ export function OutreachContactHeader({
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-purple-500/20`}
         >
-          {initials}
+          <ProfileAvatar
+            config={generateGenderedAvatarConfigByName(contactName)}
+            size={64}
+            className="rounded-2xl shadow-lg"
+          />
         </motion.div>
         
         <div className="flex-1 min-w-0">

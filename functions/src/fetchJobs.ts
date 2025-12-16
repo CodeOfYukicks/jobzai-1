@@ -248,10 +248,10 @@ export const fetchJobsFromATS = onSchedule(
 		};
 
 		try {
-			// 🚀 OPTIMIZED: Process fewer sources per run to avoid timeout
-			// Cloud Scheduler HTTP timeout is ~30s, so we process in smaller batches
-			const chunkSize = 15; // Process 15 providers at a time
-			const MAX_SOURCES_PER_RUN = 150; // Reduced to finish within timeout
+		// 🚀 OPTIMIZED: Process more sources per run with better parallelism
+		// Cloud Scheduler HTTP timeout is ~30s, but we have 540s function timeout
+		const chunkSize = 20; // Process 20 providers at a time (increased from 15)
+		const MAX_SOURCES_PER_RUN = 250; // Increased from 150 to process more sources per run
 			
 			// Select sources to process this run (rotate through all sources over multiple runs)
 			// With 1062 sources and 150/run, need ~7 runs = runs every 3h to cover all in 24h

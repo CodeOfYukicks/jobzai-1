@@ -8,7 +8,16 @@
 import * as admin from 'firebase-admin';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onRequest } from 'firebase-functions/v2/https';
-import { fetchRemoteOK, fetchWeWorkRemotely, fetchAdzuna } from './jobAggregators';
+import { 
+	fetchRemoteOK, 
+	fetchWeWorkRemotely, 
+	fetchAdzuna,
+	fetchHNWhosHiring,
+	fetchWellFound,
+	fetchBuiltIn,
+	fetchLandingJobs,
+	fetchStartupJobs,
+} from './jobAggregators';
 import { cleanDescription } from '../utils/cleanDescription';
 import { NormalizedATSJob } from '../types';
 import { 
@@ -158,14 +167,69 @@ export const fetchFromAggregators = onSchedule(
 			results.weWorkRemotely = { fetched: wwrJobs.length, ...wwrResult };
 			totalWritten += wwrResult.written;
 			
-			// 3. Adzuna (if API key is configured)
+			// 3. HackerNews Who's Hiring
+			console.log('[Aggregators] Fetching HN Who\'s Hiring...');
+			try {
+				const hnJobs = await fetchHNWhosHiring();
+				const hnResult = await processAggregatorJobs(db, hnJobs, 'hn-whoishiring');
+				results.hnWhosHiring = { fetched: hnJobs.length, ...hnResult };
+				totalWritten += hnResult.written;
+			} catch (e: any) {
+				console.warn('[Aggregators] HN Who\'s Hiring error:', e.message);
+			}
+			
+			// 4. WellFound (AngelList)
+			console.log('[Aggregators] Fetching WellFound...');
+			try {
+				const wellFoundJobs = await fetchWellFound();
+				const wellFoundResult = await processAggregatorJobs(db, wellFoundJobs, 'wellfound');
+				results.wellFound = { fetched: wellFoundJobs.length, ...wellFoundResult };
+				totalWritten += wellFoundResult.written;
+			} catch (e: any) {
+				console.warn('[Aggregators] WellFound error:', e.message);
+			}
+			
+			// 5. BuiltIn
+			console.log('[Aggregators] Fetching BuiltIn...');
+			try {
+				const builtInJobs = await fetchBuiltIn();
+				const builtInResult = await processAggregatorJobs(db, builtInJobs, 'builtin');
+				results.builtIn = { fetched: builtInJobs.length, ...builtInResult };
+				totalWritten += builtInResult.written;
+			} catch (e: any) {
+				console.warn('[Aggregators] BuiltIn error:', e.message);
+			}
+			
+			// 6. Landing.jobs (Europe)
+			console.log('[Aggregators] Fetching Landing.jobs...');
+			try {
+				const landingJobs = await fetchLandingJobs();
+				const landingResult = await processAggregatorJobs(db, landingJobs, 'landingjobs');
+				results.landingJobs = { fetched: landingJobs.length, ...landingResult };
+				totalWritten += landingResult.written;
+			} catch (e: any) {
+				console.warn('[Aggregators] Landing.jobs error:', e.message);
+			}
+			
+			// 7. Startup.jobs
+			console.log('[Aggregators] Fetching Startup.jobs...');
+			try {
+				const startupJobs = await fetchStartupJobs();
+				const startupResult = await processAggregatorJobs(db, startupJobs, 'startupjobs');
+				results.startupJobs = { fetched: startupJobs.length, ...startupResult };
+				totalWritten += startupResult.written;
+			} catch (e: any) {
+				console.warn('[Aggregators] Startup.jobs error:', e.message);
+			}
+			
+			// 8. Adzuna (if API key is configured)
 			try {
 				const settingsDoc = await db.collection('settings').doc('adzuna').get();
 				if (settingsDoc.exists) {
 					const { appId, apiKey } = settingsDoc.data() || {};
 					if (appId && apiKey) {
 						console.log('[Aggregators] Fetching Adzuna...');
-						const queries = ['software engineer', 'developer', 'product manager'];
+						const queries = ['software engineer', 'developer', 'product manager', 'salesforce'];
 						let adzunaTotal = 0;
 						
 						for (const query of queries) {

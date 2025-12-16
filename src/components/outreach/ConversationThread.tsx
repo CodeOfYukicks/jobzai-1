@@ -1,6 +1,9 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isValid, isToday, isYesterday } from 'date-fns';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   Mail, 
   Linkedin, 
@@ -14,6 +17,8 @@ import {
   Clock,
 } from 'lucide-react';
 import { OutreachMessage, OutreachChannel, OutreachMessageStatus, OUTREACH_CHANNEL_CONFIG } from '../../types/job';
+import { ProfileAvatar, generateGenderedAvatarConfigByName, ProfileAvatarConfig, DEFAULT_PROFILE_AVATAR_CONFIG } from '../profile/avatar';
+import type { ProfileAvatarType } from '../profile/avatar';
 
 interface ConversationThreadProps {
   messages: OutreachMessage[];
@@ -106,14 +111,48 @@ const MessageBubble = ({
   contactName,
   contactInitials,
   onReply,
+  userAvatarType,
+  userAvatarConfig,
+  userPhotoURL,
 }: { 
   message: OutreachMessage; 
   contactName: string;
   contactInitials: string;
   onReply?: (message: OutreachMessage) => void;
+  userAvatarType?: ProfileAvatarType;
+  userAvatarConfig?: ProfileAvatarConfig;
+  userPhotoURL?: string | null;
 }) => {
   const isSent = message.type === 'sent';
   const config = OUTREACH_CHANNEL_CONFIG[message.channel];
+  
+  // Render user avatar based on type
+  const renderUserAvatar = () => {
+    if (userAvatarType === 'avatar' && userAvatarConfig && userAvatarConfig.hair && userAvatarConfig.hair.length > 0) {
+      return (
+        <ProfileAvatar
+          config={userAvatarConfig}
+          size={32}
+          className="rounded-full flex-shrink-0"
+        />
+      );
+    } else if (userPhotoURL) {
+      return (
+        <img
+          src={userPhotoURL}
+          alt="You"
+          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+        />
+      );
+    } else {
+      // Fallback to gradient with "You" text
+      return (
+        <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold bg-gradient-to-br from-[#8B5CF6] to-[#EC4899] text-white">
+          You
+        </div>
+      );
+    }
+  };
   
   return (
     <motion.div
@@ -122,15 +161,15 @@ const MessageBubble = ({
       className={`flex gap-3 ${isSent ? 'flex-row-reverse' : ''}`}
     >
       {/* Avatar */}
-      <div className={`
-        flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold
-        ${isSent 
-          ? 'bg-gradient-to-br from-[#8B5CF6] to-[#EC4899] text-white' 
-          : 'bg-gray-200 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-300'
-        }
-      `}>
-        {isSent ? 'You' : contactInitials}
-      </div>
+      {isSent ? (
+        renderUserAvatar()
+      ) : (
+        <ProfileAvatar
+          config={generateGenderedAvatarConfigByName(contactName)}
+          size={32}
+          className="rounded-full flex-shrink-0"
+        />
+      )}
       
       {/* Message content */}
       <div className={`flex-1 max-w-[80%] ${isSent ? 'items-end' : 'items-start'} flex flex-col`}>
@@ -212,6 +251,42 @@ export function ConversationThread({
   onReply,
 }: ConversationThreadProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { currentUser } = useAuth();
+  
+  // User avatar state
+  const [userAvatarType, setUserAvatarType] = useState<ProfileAvatarType>('photo');
+  const [userAvatarConfig, setUserAvatarConfig] = useState<ProfileAvatarConfig>(DEFAULT_PROFILE_AVATAR_CONFIG);
+  const [userPhotoURL, setUserPhotoURL] = useState<string | null>(null);
+  
+  // Load user avatar config from Firestore
+  useEffect(() => {
+    if (currentUser?.uid) {
+      const loadUserAvatar = async () => {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            if (userData.profilePhoto) {
+              setUserPhotoURL(userData.profilePhoto);
+            }
+            if (userData.profileAvatarType) {
+              setUserAvatarType(userData.profileAvatarType);
+            }
+            if (userData.profileAvatarConfig) {
+              setUserAvatarConfig(userData.profileAvatarConfig);
+            }
+            // Fallback to auth photoURL
+            if (!userData.profilePhoto && currentUser.photoURL) {
+              setUserPhotoURL(currentUser.photoURL);
+            }
+          }
+        } catch (error) {
+          console.error('[ConversationThread] Error loading user avatar:', error);
+        }
+      };
+      loadUserAvatar();
+    }
+  }, [currentUser?.uid, currentUser?.photoURL]);
   
   // Get initials from contact name if not provided
   const initials = contactInitials || contactName
@@ -287,6 +362,9 @@ export function ConversationThread({
                 contactName={contactName}
                 contactInitials={initials}
                 onReply={onReply}
+                userAvatarType={userAvatarType}
+                userAvatarConfig={userAvatarConfig}
+                userPhotoURL={userPhotoURL}
               />
             ))}
           </div>

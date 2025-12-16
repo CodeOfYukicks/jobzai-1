@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { CalendarEvent } from './types';
 import { CompanyLogo } from '../common/CompanyLogo';
+import { ProfileAvatar, generateGenderedAvatarConfigByName } from '../profile/avatar';
 
 // Google Calendar icon component
 const GoogleCalendarIcon = ({ className = "w-3.5 h-3.5" }: { className?: string }) => (
@@ -218,14 +219,13 @@ const UpcomingEventCard = ({
             </div>
           ) : isCampaign && contactName ? (
             // Show person avatar for campaigns
-            <div 
-              className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold text-sm"
-              style={{ backgroundColor: boardColor || '#06B6D4' }}
-            >
-              {contactName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
-            </div>
+            <ProfileAvatar
+              config={generateGenderedAvatarConfigByName(contactName)}
+              size={40}
+              className="rounded-lg"
+            />
           ) : (
-            <CompanyLogo companyName={companyName} size="md" />
+            <CompanyLogo companyName={companyName} size="lg" />
           )}
         </div>
 

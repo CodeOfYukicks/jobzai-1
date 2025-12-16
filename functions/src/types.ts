@@ -10,7 +10,12 @@ export type ATSProvider =
 	| 'teamtailor'
 	| 'workable'
 	| 'remoteok'
-	| 'adzuna';
+	| 'adzuna'
+	// GAFAM Direct
+	| 'google'
+	| 'meta'
+	| 'amazon'
+	| 'apple';
 
 export interface UserProfile {
 	name: string;

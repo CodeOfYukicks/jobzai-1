@@ -282,7 +282,8 @@ export default function JobBoardPage() {
 					}));
 					setJobs(mappedJobs);
 					setLastDoc(null);
-					if (!selectedJob && mappedJobs.length > 0) setSelectedJob(mappedJobs[0]);
+					// Only set selected job if none is selected yet
+					setSelectedJob(prev => prev ?? (mappedJobs.length > 0 ? mappedJobs[0] : null));
 				} else {
 					setJobs([]);
 				}
@@ -294,7 +295,8 @@ export default function JobBoardPage() {
 				setJobs(items);
 				setLastDoc(snap.docs[snap.docs.length - 1]);
 				if (items.length < PAGE_SIZE) setHasMore(false);
-				if (!selectedJob && items.length > 0) setSelectedJob(items[0]);
+				// Only set selected job if none is selected yet
+				setSelectedJob(prev => prev ?? (items.length > 0 ? items[0] : null));
 			}
 		} catch (err) {
 			console.error('Error loading jobs:', err);
@@ -303,7 +305,7 @@ export default function JobBoardPage() {
 			setLoading(false);
 			setInitialLoading(false);
 		}
-	}, [debouncedSearch, filters, mode, selectedJob, hasFilters]);
+	}, [debouncedSearch, filters, mode, hasFilters]);
 
 	// Load More
 	const loadMore = useCallback(async () => {

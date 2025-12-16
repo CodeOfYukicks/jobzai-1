@@ -298,19 +298,36 @@ export function inferGenderFromName(firstName: string): 'female' | 'male' {
 }
 
 /**
+ * Generate a consistent seed from a person's full name.
+ * This ensures the same person always gets the same avatar across the site,
+ * regardless of whether they're a campaign recipient or a job application contact.
+ * 
+ * @param fullName - The person's full name (e.g., "John Doe")
+ * @returns A consistent seed string
+ */
+export function generateNameBasedSeed(fullName: string): string {
+  // Normalize the name: lowercase, remove extra spaces, trim
+  const normalized = fullName.toLowerCase().trim().replace(/\s+/g, '-');
+  return `person-${normalized}`;
+}
+
+/**
  * Generate a deterministic, gender-appropriate avatar configuration.
- * Uses the recipientId as a seed for consistent avatar generation.
+ * Uses either an ID or name-based seed for consistent avatar generation.
+ * 
+ * For consistency across the site (campaigns → job applications), 
+ * prefer using generateGenderedAvatarConfigByName() with the full name.
  * 
  * @param firstName - The recipient's first name (used to infer gender)
- * @param recipientId - A unique identifier for the recipient (used as random seed)
+ * @param seedOrId - A unique identifier or seed for the recipient
  * @returns A ProfileAvatarConfig object for rendering with ProfileAvatar component
  */
 export function generateGenderedAvatarConfig(
   firstName: string,
-  recipientId: string
+  seedOrId: string
 ): ProfileAvatarConfig {
   const gender = inferGenderFromName(firstName);
-  const random = seededRandom(recipientId);
+  const random = seededRandom(seedOrId);
   
   // Helper to pick random item from array using seeded random
   const pickRandom = <T>(arr: readonly T[] | T[]): T => 
@@ -327,7 +344,7 @@ export function generateGenderedAvatarConfig(
   
   const config: ProfileAvatarConfig = {
     style: 'lorelei',
-    seed: `campaign-${recipientId}`,
+    seed: `gendered-${seedOrId}`,
     hair: [pickRandom(hairVariants)],
     eyes: [pickRandom(LORELEI_OPTIONS.eyes)],
     mouth: [pickRandom(happyMouths)],
@@ -352,5 +369,19 @@ export function generateGenderedAvatarConfig(
   }
   
   return config;
+}
+
+/**
+ * Generate a deterministic, gender-appropriate avatar configuration using full name.
+ * This ensures the same person always gets the same avatar across the entire site,
+ * whether they're a campaign recipient, job application contact, or calendar event.
+ * 
+ * @param fullName - The person's full name (e.g., "John Doe" or "Marie Dupont")
+ * @returns A ProfileAvatarConfig object for rendering with ProfileAvatar component
+ */
+export function generateGenderedAvatarConfigByName(fullName: string): ProfileAvatarConfig {
+  const firstName = fullName.split(' ')[0] || fullName;
+  const seed = generateNameBasedSeed(fullName);
+  return generateGenderedAvatarConfig(firstName, seed);
 }
 

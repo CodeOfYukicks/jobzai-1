@@ -66,11 +66,32 @@ export {
 } from './discovery';
 
 // 🌐 JOB AGGREGATORS
-// External job aggregators (RemoteOK, WeWorkRemotely, Adzuna)
+// External job aggregators (RemoteOK, WeWorkRemotely, Adzuna, HN Who's Hiring, etc.)
 export {
 	fetchFromAggregators,
 	fetchAggregatorsManual,
 } from './aggregators';
+
+// 🏢 GAFAM DIRECT FETCHERS
+// Dedicated fetchers for Google, Meta, Amazon, Apple (not using standard ATS)
+export {
+	fetchGoogleCareers,
+	fetchMetaCareers,
+	fetchAmazonJobs,
+	fetchAppleJobs,
+	fetchAllGAFAM,
+} from './utils/gafamFetchers';
+
+// 📋 ADDITIONAL ATS FETCHERS
+// European and SMB ATS platforms (Teamtailor, BreezyHR, Recruitee, Personio, Workable)
+export {
+	fetchTeamtailor,
+	fetchBreezyHR,
+	fetchRecruitee,
+	fetchPersonio,
+	fetchWorkable,
+	fetchAllAdditionalATS,
+} from './utils/additionalATSFetchers';
 
 // 🤖 LEGACY: Master + Batch Architecture (kept for backwards compatibility)
 // Will be deprecated in favor of the distributed queue system

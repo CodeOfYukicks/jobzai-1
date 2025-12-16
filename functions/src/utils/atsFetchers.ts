@@ -1,5 +1,8 @@
 import { NormalizedATSJob, ATSProviderConfig } from "../types";
 import { normalizeATSJob } from "./normalize";
+// Use require for node-fetch v2 (CommonJS)
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const nodeFetch = require('node-fetch');
 
 /* --------------------------------------------------------- */
 /*                           FETCH                           */
@@ -235,21 +238,30 @@ export async function fetchWorkday(companySlug: string, domain: string = 'wd5', 
 	const url = `https://${companySlug}.${domain}.myworkdayjobs.com/wday/cxs/${companySlug}/${site}/jobs`;
 	const allJobs: NormalizedATSJob[] = [];
 	const pageSize = 50; // Increased from 20 for faster fetching
-	const MAX_JOBS = 5000; // Increased from 2000 to get more jobs
+	const MAX_JOBS = 10000; // Increased from 5000 to get more jobs from large employers
 	const MAX_RETRIES = 3;
 
 	console.log(`[ATS][Workday] Starting fetch for ${companySlug} (site=${site}, domain=${domain})`);
 
-	// Helper: Fetch with exponential backoff
+	// Base URL for Origin/Referer headers
+	const baseUrl = `https://${companySlug}.${domain}.myworkdayjobs.com`;
+	
+	// Helper: Fetch with exponential backoff (use node-fetch for better compatibility)
 	const fetchWithRetry = async (fetchUrl: string, body: any, retries = MAX_RETRIES): Promise<any> => {
+		const headers = { 
+			"Content-Type": "application/json",
+			"Accept": "application/json, text/plain, */*",
+			"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+			"Accept-Language": "en-US,en;q=0.9",
+			"Origin": baseUrl,
+			"Referer": `${baseUrl}/${site}`,
+		};
+		
 		for (let attempt = 1; attempt <= retries; attempt++) {
 			try {
-				const resp = await fetch(fetchUrl, {
+				const resp = await nodeFetch(fetchUrl, {
 					method: "POST",
-					headers: { 
-						"Content-Type": "application/json",
-						"Accept": "application/json",
-					},
+					headers,
 					body: JSON.stringify(body),
 				});
 				
@@ -303,8 +315,8 @@ export async function fetchWorkday(companySlug: string, domain: string = 'wd5', 
 		}
 		console.log(`[ATS][Workday] Will fetch ${targetJobs} of ${total} total jobs (${offsets.length} pages)`);
 
-		// 3. Fetch remaining pages in parallel chunks (concurrency 3)
-		const chunkSize = 3;
+		// 3. Fetch remaining pages in parallel chunks (concurrency 5)
+		const chunkSize = 5; // Increased from 3 for faster fetching
 		for (let i = 0; i < offsets.length; i += chunkSize) {
 			const chunk = offsets.slice(i, i + chunkSize);
 			
@@ -383,13 +395,13 @@ function normalizeWorkdayJobFast(j: any, companySlug: string, domain: string, si
 	);
 }
 
-// Helper function to add timeout to fetch requests
-async function fetchWithTimeout(url: string, options: any = {}, timeoutMs: number = 5000): Promise<Response> {
+// Helper function to add timeout to fetch requests (using node-fetch)
+async function fetchWithTimeout(url: string, options: any = {}, timeoutMs: number = 5000): Promise<any> {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
 	try {
-		const response = await fetch(url, { ...options, signal: controller.signal });
+		const response = await nodeFetch(url, { ...options, signal: controller.signal as any });
 		clearTimeout(timeoutId);
 		return response;
 	} catch (error) {

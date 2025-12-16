@@ -3,6 +3,7 @@ import { Trash2, Calendar, MapPin, Users, FolderInput, Mail, Linkedin, Phone, Se
 import { JobApplication, BoardType, WARMTH_LEVEL_COLORS, WARMTH_LEVEL_LABELS, OUTREACH_CHANNEL_CONFIG, WarmthLevel } from '../../types/job';
 import { StepChip } from './StepChip';
 import { CompanyLogo } from '../common/CompanyLogo';
+import { ProfileAvatar, generateGenderedAvatarConfigByName } from '../profile/avatar';
 
 function formatDate(dateString: string): string {
   try {
@@ -22,29 +23,6 @@ function formatShortDate(dateString: string): string {
   }
 }
 
-// Generate avatar color based on name
-const getAvatarColor = (name: string): string => {
-  const colors = [
-    'from-violet-500 to-purple-600',
-    'from-blue-500 to-indigo-600',
-    'from-emerald-500 to-teal-600',
-    'from-amber-500 to-orange-600',
-    'from-pink-500 to-rose-600',
-    'from-cyan-500 to-blue-600',
-  ];
-  const index = name.charCodeAt(0) % colors.length;
-  return colors[index];
-};
-
-// Get initials from name
-const getInitials = (name: string): string => {
-  return name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-};
 
 // Warmth icon component
 const WarmthIcon = ({ level }: { level: WarmthLevel }) => {
@@ -142,8 +120,6 @@ function CampaignCard({
   inactiveDays?: number;
 }) {
   const contactName = app.contactName || 'Unknown Contact';
-  const initials = getInitials(contactName);
-  const avatarColor = getAvatarColor(contactName);
   const messageCount = app.conversationHistory?.length || 0;
   const meetingCount = app.meetings?.length || app.interviews?.length || 0;
   const channelConfig = app.outreachChannel ? OUTREACH_CHANNEL_CONFIG[app.outreachChannel] : null;
@@ -188,9 +164,11 @@ function CampaignCard({
         {/* Section 1: Header - Contact Name avec avatar */}
         <div className="flex items-start gap-3 mb-3 flex-shrink-0">
           {/* Contact Avatar */}
-          <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-sm shadow-md border border-gray-100 dark:border-[#3d3c3e] flex-shrink-0`}>
-            {initials}
-          </div>
+          <ProfileAvatar
+            config={generateGenderedAvatarConfigByName(contactName)}
+            size={48}
+            className="rounded-lg shadow-md border border-gray-100 dark:border-[#3d3c3e] flex-shrink-0"
+          />
           <div className="flex-1 min-w-0">
             <h3
               className="text-base font-medium text-gray-900 dark:text-white leading-tight"

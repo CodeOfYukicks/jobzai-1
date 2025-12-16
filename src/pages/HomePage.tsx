@@ -1,4 +1,4 @@
-﻿import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Check, BrainCog, Mail, Lock, LineChart, Target, Users, Rocket, Search, Calendar, Globe, Save, Bell, Share2, Clock } from 'lucide-react';
 import { useEffect } from 'react';

@@ -1,0 +1,127 @@
+{
+  "prep": {
+    "title": "Interviewvorbereitung",
+    "subtitle": "Bereiten Sie sich optimal vor",
+    "tabs": {
+      "overview": "Übersicht",
+      "questions": "Fragen",
+      "skills": "Kompetenzbewertung",
+      "resources": "Ressourcen",
+      "chat": "KI-Coach"
+    },
+    "practiceNow": "Jetzt üben",
+    "startMockInterview": "Interview simulieren",
+    "viewHistory": "Verlauf anzeigen",
+    "noInterviews": "Keine Interviews geplant",
+    "scheduleInterview": "Interview planen",
+    "prepareFor": "Vorbereitung für {{company}}",
+    "daysUntil": "{{count}} Tag bis zum Interview",
+    "daysUntil_plural": "{{count}} Tage bis zum Interview",
+    "today": "Interview ist heute!",
+    "tomorrow": "Interview ist morgen!"
+  },
+  "mock": {
+    "title": "Probe-Interview",
+    "subtitle": "Übung macht den Meister",
+    "ready": "Wenn Sie bereit sind",
+    "speaking": "Ich höre zu...",
+    "thinking": "Analyse läuft...",
+    "feedback": "Hier ist meine Analyse",
+    "tryAgain": "Erneut versuchen",
+    "nextQuestion": "Nächste Frage",
+    "previousQuestion": "Vorherige Frage",
+    "endSession": "Beenden",
+    "startSession": "Starten",
+    "pauseSession": "Pausieren",
+    "resumeSession": "Fortsetzen",
+    "questionOf": "Frage {{current}} von {{total}}",
+    "timeRemaining": "Verbleibende Zeit",
+    "yourAnswer": "Ihre Antwort",
+    "suggestedAnswer": "Empfohlene Antwort",
+    "tips": "Verbesserungstipps",
+    "recordAnswer": "Antwort aufnehmen",
+    "typeAnswer": "Antwort eingeben",
+    "skipQuestion": "Frage überspringen",
+    "selectType": "Interviewtyp auswählen",
+    "types": {
+      "behavioral": "Verhaltensbasiert",
+      "technical": "Technisch",
+      "situational": "Situationsbezogen",
+      "competency": "Kompetenzbasiert",
+      "case": "Fallstudie"
+    },
+    "difficulty": {
+      "easy": "Einfach",
+      "medium": "Mittel",
+      "hard": "Schwer"
+    }
+  },
+  "results": {
+    "title": "Interview-Ergebnisse",
+    "subtitle": "Zusammenfassung Ihrer Leistung",
+    "overallScore": "Gesamtpunktzahl",
+    "strengths": "Ihre Stärken",
+    "areasToImprove": "Verbesserungsbereiche",
+    "detailedFeedback": "Detaillierte Analyse",
+    "questionBreakdown": "Aufschlüsselung nach Fragen",
+    "timeSpent": "Aufgewendete Zeit",
+    "averageScore": "Durchschnittspunktzahl",
+    "bestAnswer": "Beste Antwort",
+    "needsWork": "Verbesserungsbedarf",
+    "viewFullReport": "Vollständigen Bericht anzeigen",
+    "shareResults": "Ergebnisse teilen",
+    "retakeInterview": "Interview wiederholen",
+    "practiceMore": "Weiter üben",
+    "downloadReport": "Bericht herunterladen"
+  },
+  "questions": {
+    "title": "Interview-Fragen",
+    "common": "Häufige Fragen",
+    "behavioral": "Verhaltensfragen",
+    "technical": "Technische Fragen",
+    "situational": "Situationsfragen",
+    "tellMeAbout": "Erzählen Sie mir von sich",
+    "whyCompany": "Warum möchten Sie bei uns arbeiten?",
+    "strengths": "Was sind Ihre Stärken?",
+    "weaknesses": "Was sind Ihre Entwicklungsbereiche?",
+    "whereInFiveYears": "Wo sehen Sie sich in 5 Jahren?",
+    "generateMore": "Weitere Fragen generieren",
+    "saveQuestion": "Frage speichern",
+    "practiceThis": "Diese Frage üben"
+  },
+  "upcoming": {
+    "title": "Anstehende Interviews",
+    "noUpcoming": "Keine anstehenden Interviews",
+    "addNew": "Interview hinzufügen",
+    "reschedule": "Verschieben",
+    "cancel": "Interview absagen",
+    "prepare": "Vorbereiten",
+    "viewDetails": "Details anzeigen",
+    "setReminder": "Erinnerung setzen",
+    "interviewWith": "Interview bei {{company}}",
+    "round": "Runde {{number}}",
+    "format": {
+      "inPerson": "Persönlich",
+      "video": "Videoanruf",
+      "phone": "Telefonisch",
+      "onsite": "Vor Ort"
+    }
+  },
+  "notes": {
+    "title": "Interview-Notizen",
+    "addNote": "Notiz hinzufügen",
+    "editNote": "Notiz bearbeiten",
+    "deleteNote": "Notiz löschen",
+    "placeholder": "Schreiben Sie Ihre Notizen hier...",
+    "savedAutomatically": "Notizen automatisch gespeichert"
+  },
+  "resources": {
+    "title": "Ressourcen",
+    "companyResearch": "Unternehmensrecherche",
+    "industryNews": "Branchennachrichten",
+    "interviewTips": "Interview-Tipps",
+    "salaryInfo": "Gehaltsinformationen",
+    "reviews": "Unternehmensbewertungen",
+    "linkedinProfiles": "Wichtige Personen auf LinkedIn"
+  }
+}

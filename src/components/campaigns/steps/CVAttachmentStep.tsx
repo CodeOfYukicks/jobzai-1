@@ -151,7 +151,7 @@ export default function CVAttachmentStep({ data, onUpdate }: CVAttachmentStepPro
           CV Attachment
         </h3>
         <p className="text-[13px] text-gray-500 dark:text-white/60">
-          Attach your resume to each outreach email
+          Attach your resume to emails
         </p>
       </div>
 

@@ -1,0 +1,127 @@
+{
+  "prep": {
+    "title": "Préparez votre entretien",
+    "subtitle": "Mettez toutes les chances de votre côté",
+    "tabs": {
+      "overview": "Vue d'ensemble",
+      "questions": "Questions types",
+      "skills": "Évaluation des compétences",
+      "resources": "Ressources utiles",
+      "chat": "Coach IA"
+    },
+    "practiceNow": "S'entraîner",
+    "startMockInterview": "Simuler un entretien",
+    "viewHistory": "Voir l'historique",
+    "noInterviews": "Aucun entretien prévu",
+    "scheduleInterview": "Planifier un entretien",
+    "prepareFor": "Préparer l'entretien chez {{company}}",
+    "daysUntil": "{{count}} jour avant l'entretien",
+    "daysUntil_plural": "{{count}} jours avant l'entretien",
+    "today": "C'est aujourd'hui !",
+    "tomorrow": "C'est demain !"
+  },
+  "mock": {
+    "title": "Entretien simulé",
+    "subtitle": "L'entraînement fait la différence",
+    "ready": "Quand vous êtes prêt",
+    "speaking": "Je vous écoute...",
+    "thinking": "Analyse en cours...",
+    "feedback": "Voici mon analyse",
+    "tryAgain": "Réessayer",
+    "nextQuestion": "Question suivante",
+    "previousQuestion": "Question précédente",
+    "endSession": "Terminer",
+    "startSession": "Commencer",
+    "pauseSession": "Pause",
+    "resumeSession": "Reprendre",
+    "questionOf": "Question {{current}} sur {{total}}",
+    "timeRemaining": "Temps restant",
+    "yourAnswer": "Votre réponse",
+    "suggestedAnswer": "Réponse suggérée",
+    "tips": "Conseils d'amélioration",
+    "recordAnswer": "Enregistrer votre réponse",
+    "typeAnswer": "Saisir votre réponse",
+    "skipQuestion": "Passer cette question",
+    "selectType": "Choisir le type d'entretien",
+    "types": {
+      "behavioral": "Comportemental",
+      "technical": "Technique",
+      "situational": "Mise en situation",
+      "competency": "Compétences",
+      "case": "Étude de cas"
+    },
+    "difficulty": {
+      "easy": "Facile",
+      "medium": "Intermédiaire",
+      "hard": "Difficile"
+    }
+  },
+  "results": {
+    "title": "Résultats de l'entretien",
+    "subtitle": "Bilan de votre performance",
+    "overallScore": "Score global",
+    "strengths": "Vos points forts",
+    "areasToImprove": "Axes d'amélioration",
+    "detailedFeedback": "Analyse détaillée",
+    "questionBreakdown": "Détail par question",
+    "timeSpent": "Temps passé",
+    "averageScore": "Score moyen",
+    "bestAnswer": "Meilleure réponse",
+    "needsWork": "À travailler",
+    "viewFullReport": "Voir le rapport complet",
+    "shareResults": "Partager les résultats",
+    "retakeInterview": "Refaire l'entretien",
+    "practiceMore": "Continuer à s'entraîner",
+    "downloadReport": "Télécharger le rapport"
+  },
+  "questions": {
+    "title": "Questions d'entretien",
+    "common": "Questions classiques",
+    "behavioral": "Questions comportementales",
+    "technical": "Questions techniques",
+    "situational": "Mises en situation",
+    "tellMeAbout": "Parlez-moi de vous",
+    "whyCompany": "Pourquoi voulez-vous rejoindre notre entreprise ?",
+    "strengths": "Quels sont vos points forts ?",
+    "weaknesses": "Quels sont vos axes d'amélioration ?",
+    "whereInFiveYears": "Où vous voyez-vous dans 5 ans ?",
+    "generateMore": "Générer d'autres questions",
+    "saveQuestion": "Enregistrer la question",
+    "practiceThis": "S'entraîner sur cette question"
+  },
+  "upcoming": {
+    "title": "Prochains entretiens",
+    "noUpcoming": "Aucun entretien prévu",
+    "addNew": "Ajouter un entretien",
+    "reschedule": "Reporter",
+    "cancel": "Annuler l'entretien",
+    "prepare": "Préparer",
+    "viewDetails": "Voir les détails",
+    "setReminder": "Créer un rappel",
+    "interviewWith": "Entretien chez {{company}}",
+    "round": "{{number}}e tour",
+    "format": {
+      "inPerson": "En personne",
+      "video": "Visioconférence",
+      "phone": "Par téléphone",
+      "onsite": "Sur site"
+    }
+  },
+  "notes": {
+    "title": "Notes d'entretien",
+    "addNote": "Ajouter une note",
+    "editNote": "Modifier la note",
+    "deleteNote": "Supprimer la note",
+    "placeholder": "Rédigez vos notes ici...",
+    "savedAutomatically": "Notes enregistrées automatiquement"
+  },
+  "resources": {
+    "title": "Ressources",
+    "companyResearch": "Recherche sur l'entreprise",
+    "industryNews": "Actualités du secteur",
+    "interviewTips": "Conseils d'entretien",
+    "salaryInfo": "Informations salariales",
+    "reviews": "Avis sur l'entreprise",
+    "linkedinProfiles": "Personnes clés sur LinkedIn"
+  }
+}

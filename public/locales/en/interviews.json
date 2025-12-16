@@ -1,0 +1,127 @@
+{
+  "prep": {
+    "title": "Interview Preparation",
+    "subtitle": "Prepare for your upcoming interview",
+    "tabs": {
+      "overview": "Overview",
+      "questions": "Questions",
+      "skills": "Skills Assessment",
+      "resources": "Resources",
+      "chat": "AI Coach"
+    },
+    "practiceNow": "Practice Now",
+    "startMockInterview": "Start Mock Interview",
+    "viewHistory": "View History",
+    "noInterviews": "No interviews scheduled yet",
+    "scheduleInterview": "Schedule Interview",
+    "prepareFor": "Prepare for {{company}}",
+    "daysUntil": "{{count}} day until interview",
+    "daysUntil_plural": "{{count}} days until interview",
+    "today": "Interview today!",
+    "tomorrow": "Interview tomorrow"
+  },
+  "mock": {
+    "title": "Mock Interview",
+    "subtitle": "Practice makes perfect",
+    "ready": "Ready when you are",
+    "speaking": "Listening...",
+    "thinking": "Processing your answer...",
+    "feedback": "Here's my feedback",
+    "tryAgain": "Try Again",
+    "nextQuestion": "Next Question",
+    "previousQuestion": "Previous Question",
+    "endSession": "End Session",
+    "startSession": "Start Session",
+    "pauseSession": "Pause",
+    "resumeSession": "Resume",
+    "questionOf": "Question {{current}} of {{total}}",
+    "timeRemaining": "Time remaining",
+    "yourAnswer": "Your Answer",
+    "suggestedAnswer": "Suggested Answer",
+    "tips": "Tips for improvement",
+    "recordAnswer": "Record your answer",
+    "typeAnswer": "Type your answer",
+    "skipQuestion": "Skip this question",
+    "selectType": "Select interview type",
+    "types": {
+      "behavioral": "Behavioral",
+      "technical": "Technical",
+      "situational": "Situational",
+      "competency": "Competency-based",
+      "case": "Case Study"
+    },
+    "difficulty": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    }
+  },
+  "results": {
+    "title": "Interview Results",
+    "subtitle": "Your performance summary",
+    "overallScore": "Overall Score",
+    "strengths": "Your Strengths",
+    "areasToImprove": "Areas to Improve",
+    "detailedFeedback": "Detailed Feedback",
+    "questionBreakdown": "Question Breakdown",
+    "timeSpent": "Time Spent",
+    "averageScore": "Average Score",
+    "bestAnswer": "Best Answer",
+    "needsWork": "Needs Work",
+    "viewFullReport": "View Full Report",
+    "shareResults": "Share Results",
+    "retakeInterview": "Retake Interview",
+    "practiceMore": "Practice More",
+    "downloadReport": "Download Report"
+  },
+  "questions": {
+    "title": "Interview Questions",
+    "common": "Common Questions",
+    "behavioral": "Behavioral Questions",
+    "technical": "Technical Questions",
+    "situational": "Situational Questions",
+    "tellMeAbout": "Tell me about yourself",
+    "whyCompany": "Why do you want to work here?",
+    "strengths": "What are your strengths?",
+    "weaknesses": "What are your weaknesses?",
+    "whereInFiveYears": "Where do you see yourself in 5 years?",
+    "generateMore": "Generate More Questions",
+    "saveQuestion": "Save Question",
+    "practiceThis": "Practice This"
+  },
+  "upcoming": {
+    "title": "Upcoming Interviews",
+    "noUpcoming": "No upcoming interviews",
+    "addNew": "Add Interview",
+    "reschedule": "Reschedule",
+    "cancel": "Cancel Interview",
+    "prepare": "Prepare",
+    "viewDetails": "View Details",
+    "setReminder": "Set Reminder",
+    "interviewWith": "Interview with {{company}}",
+    "round": "Round {{number}}",
+    "format": {
+      "inPerson": "In-Person",
+      "video": "Video Call",
+      "phone": "Phone Call",
+      "onsite": "Onsite"
+    }
+  },
+  "notes": {
+    "title": "Interview Notes",
+    "addNote": "Add Note",
+    "editNote": "Edit Note",
+    "deleteNote": "Delete Note",
+    "placeholder": "Write your notes here...",
+    "savedAutomatically": "Notes saved automatically"
+  },
+  "resources": {
+    "title": "Resources",
+    "companyResearch": "Company Research",
+    "industryNews": "Industry News",
+    "interviewTips": "Interview Tips",
+    "salaryInfo": "Salary Information",
+    "reviews": "Company Reviews",
+    "linkedinProfiles": "Key People on LinkedIn"
+  }
+}

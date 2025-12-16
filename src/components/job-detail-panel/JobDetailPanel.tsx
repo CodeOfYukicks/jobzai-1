@@ -27,6 +27,7 @@ import {
   Send,
   Loader2,
   RefreshCw,
+  Mic,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isValid } from 'date-fns';
@@ -41,6 +42,7 @@ import { AIToolsTab } from './AIToolsTab';
 import { NotesTab } from './NotesTab';
 import { EnhancedJobSummary } from './EnhancedJobSummary';
 import { ResumeLab } from './ResumeLab';
+import { MockInterviewLab } from './MockInterviewLab';
 import { LinkedDocumentsTab } from './LinkedDocumentsTab';
 import { ContactTab } from './ContactTab';
 import { notify } from '@/lib/notify';
@@ -50,6 +52,7 @@ import { MessageComposer } from '../outreach/MessageComposer';
 import { PremiumChatComposer } from '../outreach/PremiumChatComposer';
 import { OutreachMessage } from '../../types/job';
 import { getAuth } from 'firebase/auth';
+import { ProfileAvatar, generateGenderedAvatarConfigByName } from '../profile/avatar';
 
 // Helper function to safely parse dates from Firestore
 const parseDate = (dateValue: any): Date => {
@@ -197,7 +200,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
   const [isEditing, setIsEditing] = useState(false);
   const [editedJob, setEditedJob] = useState<Partial<JobApplication>>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'contact' | 'interviews' | 'meetings' | 'messages' | 'activity' | 'ai-tools' | 'notes' | 'resume-lab' | 'linked-documents'>(boardType === 'campaigns' ? 'contact' : 'overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'contact' | 'interviews' | 'meetings' | 'messages' | 'activity' | 'ai-tools' | 'notes' | 'resume-lab' | 'mock-interview' | 'linked-documents'>(boardType === 'campaigns' ? 'contact' : 'overview');
   const [showAddInterviewForm, setShowAddInterviewForm] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showMessageComposer, setShowMessageComposer] = useState(false);
@@ -638,9 +641,11 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
                             <div className="flex items-center gap-3 mb-3">
                               {/* Company Logo or Contact Avatar */}
                               {isCampaignMode ? (
-                                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg`}>
-                                  {(job.contactName || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                                </div>
+                                <ProfileAvatar
+                                  config={generateGenderedAvatarConfigByName(job.contactName || 'Unknown')}
+                                  size={48}
+                                  className="rounded-xl shadow-lg"
+                                />
                               ) : (
                               <CompanyLogo
                                 companyName={job.companyName}
@@ -760,6 +765,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
                           { id: 'notes', label: 'Notes', icon: StickyNote, badge: job.stickyNotes?.length || 0 },
                           { id: 'ai-tools', label: 'Document Studio', icon: Sparkles, badge: null },
                           { id: 'resume-lab', label: 'Resume Lab', icon: Target, badge: (job.cvAnalysisIds?.length || (job.cvAnalysisId ? 1 : 0)) || 'link' },
+                          { id: 'mock-interview', label: 'Mock Interview', icon: Mic, badge: null },
                           { id: 'linked-documents', label: 'Linked Documents', icon: FileText, badge: ((job.linkedResumeIds?.length || 0) + (job.linkedNoteIds?.length || 0) + (job.linkedDocumentIds?.length || 0) + (job.linkedWhiteboardIds?.length || 0)) > 0 ? ((job.linkedResumeIds?.length || 0) + (job.linkedNoteIds?.length || 0) + (job.linkedDocumentIds?.length || 0) + (job.linkedWhiteboardIds?.length || 0)) : null },
                         ]).map((tab) => (
                           <button
@@ -797,9 +803,9 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
 
                     {/* Two-Column Layout */}
                     <div className="flex-1 px-8 py-6">
-                      <div className={`grid grid-cols-1 ${activeTab === 'ai-tools' || activeTab === 'notes' || activeTab === 'resume-lab' || activeTab === 'linked-documents' ? 'lg:grid-cols-1' : 'lg:grid-cols-3'} gap-6`}>
+                      <div className={`grid grid-cols-1 ${activeTab === 'ai-tools' || activeTab === 'notes' || activeTab === 'resume-lab' || activeTab === 'mock-interview' || activeTab === 'linked-documents' ? 'lg:grid-cols-1' : 'lg:grid-cols-3'} gap-6`}>
                         {/* Left Column - Main Content */}
-                        <div className={`${activeTab === 'ai-tools' || activeTab === 'notes' || activeTab === 'resume-lab' || activeTab === 'linked-documents' ? 'lg:col-span-1' : 'lg:col-span-2'} space-y-6`}>
+                        <div className={`${activeTab === 'ai-tools' || activeTab === 'notes' || activeTab === 'resume-lab' || activeTab === 'mock-interview' || activeTab === 'linked-documents' ? 'lg:col-span-1' : 'lg:col-span-2'} space-y-6`}>
                           {activeTab === 'overview' && (
                             <div className="space-y-8">
                               {/* Quick Stats / Highlights */}
@@ -1160,13 +1166,23 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
                             />
                           )}
 
+                          {activeTab === 'mock-interview' && (
+                            <MockInterviewLab 
+                              job={{
+                                id: job.id,
+                                position: job.position,
+                                companyName: job.companyName,
+                              }}
+                            />
+                          )}
+
                           {activeTab === 'linked-documents' && (
                             <LinkedDocumentsTab job={job} onUpdate={onUpdate} />
                           )}
                         </div>
 
                         {/* Right Column - Sidebar (hidden for AI Tools, Notes, Resume Lab, and Linked Documents tabs) */}
-                        {activeTab !== 'ai-tools' && activeTab !== 'notes' && activeTab !== 'resume-lab' && activeTab !== 'linked-documents' && (
+                        {activeTab !== 'ai-tools' && activeTab !== 'notes' && activeTab !== 'resume-lab' && activeTab !== 'mock-interview' && activeTab !== 'linked-documents' && (
                           <div className="lg:col-span-1 space-y-4">
                             {/* Status Card */}
                             <SectionCard title="Application Status">

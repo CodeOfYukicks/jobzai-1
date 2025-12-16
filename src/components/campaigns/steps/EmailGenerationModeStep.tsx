@@ -18,48 +18,39 @@ interface ModeOption {
   recommended?: boolean;
 }
 
-const modes: ModeOption[] = [
-  {
-    id: 'template',
-    icon: Wand2,
-    title: 'AI Template',
-    description: 'Configure preferences and generate customizable templates',
-    features: [
-      'Set tone, language, and key points',
-      'AI generates 2-3 template options',
-      'Edit and customize before sending',
-      'Use merge fields for personalization'
-    ],
-    recommended: true,
-  },
-  {
-    id: 'abtest',
-    icon: TestTube2,
-    title: 'A/B Testing',
-    description: 'Configure preferences and test multiple variants',
-    features: [
-      'Set tone, language, and key points',
-      'Create 3-5 different hooks',
-      'Test 2-3 body variations',
-      'Track which combinations perform best'
-    ],
-  },
-  {
-    id: 'auto',
-    icon: Sparkles,
-    title: 'Auto-Generate',
-    description: 'AI creates unique emails automatically - launch directly',
-    features: [
-      'Fully personalized per contact',
-      'No configuration needed',
-      'AI analyzes each profile',
-      'Fastest setup - 3 steps only'
-    ],
-  },
-];
-
 export default function EmailGenerationModeStep({ data, onUpdate }: EmailGenerationModeStepProps) {
   const selectedMode = data.emailGenerationMode;
+
+  const modes: ModeOption[] = [
+    {
+      id: 'template',
+      icon: Wand2,
+      title: 'Template Mode',
+      description: 'Use a single AI-generated template with merge fields',
+      features: [
+        'Best for consistent messaging'
+      ],
+      recommended: true,
+    },
+    {
+      id: 'abtest',
+      icon: TestTube2,
+      title: 'A/B Testing',
+      description: 'Test multiple hooks, bodies, and CTAs',
+      features: [
+        'Optimize performance'
+      ],
+    },
+    {
+      id: 'auto',
+      icon: Sparkles,
+      title: 'Fully Personalized',
+      description: 'AI generates unique emails for each contact',
+      features: [
+        'Maximum personalization'
+      ],
+    },
+  ];
 
   const handleSelectMode = (mode: GenerationMode) => {
     onUpdate({ emailGenerationMode: mode });
@@ -70,10 +61,10 @@ export default function EmailGenerationModeStep({ data, onUpdate }: EmailGenerat
       {/* Header */}
       <div className="text-center mb-4">
         <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Choose Your Email Generation Mode
+          Email Generation Mode
         </h3>
         <p className="text-[13px] text-gray-500 dark:text-white/60">
-          Select how you want to create emails for your campaign
+          Choose how emails will be created
         </p>
       </div>
 

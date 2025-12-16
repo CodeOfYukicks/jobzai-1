@@ -13,6 +13,8 @@ export {
   generateRandomConfig,
   generateRandomSeed,
   generateGenderedAvatarConfig,
+  generateGenderedAvatarConfigByName,
+  generateNameBasedSeed,
   inferGenderFromName,
 } from './profileAvatarConfig';
 

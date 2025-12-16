@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { collection, query, getDocs, doc, getDoc, addDoc, updateDoc, orderBy, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -229,6 +230,13 @@ function normalizeAnalysis(rawAnalysis: Partial<MockInterviewAnalysis>): MockInt
 
 export default function MockInterviewPage() {
   const { currentUser } = useAuth();
+  const location = useLocation();
+  
+  // Navigation state from JobDetailPanel
+  const navigationState = location.state as { 
+    viewSessionId?: string; 
+    selectedJobId?: string;
+  } | null;
   
   // ============================================
   // REALTIME INTERVIEW HOOK
@@ -437,6 +445,47 @@ export default function MockInterviewPage() {
     
     loadPastSessions();
   }, [currentUser]);
+
+  // Handle navigation state from JobDetailPanel
+  useEffect(() => {
+    if (!navigationState) return;
+    
+    // Handle viewing a specific session
+    if (navigationState.viewSessionId && pastSessions.length > 0 && !isLoadingSessions) {
+      const session = pastSessions.find(s => s.id === navigationState.viewSessionId);
+      if (session) {
+        // Convert analysis if it's in legacy format, then normalize
+        let analysisData: MockInterviewAnalysis | null = null;
+        if (session.analysis) {
+          if (isLegacyAnalysis(session.analysis)) {
+            analysisData = normalizeAnalysis(convertLegacyAnalysis(session.analysis));
+          } else {
+            analysisData = normalizeAnalysis(session.analysis as MockInterviewAnalysis);
+          }
+        }
+        
+        setViewingSession(session);
+        setAnalysis(analysisData);
+        setFinalTranscript(session.transcript);
+        setIsLoadingAnalysis(!session.analysis);
+        setPhase('results');
+        
+        // Clear the navigation state to prevent re-triggering
+        window.history.replaceState({}, document.title);
+      }
+    }
+    
+    // Handle pre-selecting a job for new interview
+    if (navigationState.selectedJobId && applications.length > 0 && !isLoadingApplications) {
+      const app = applications.find(a => a.id === navigationState.selectedJobId);
+      if (app) {
+        setSelectedApplication(app);
+        
+        // Clear the navigation state to prevent re-triggering
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [navigationState, pastSessions, isLoadingSessions, applications, isLoadingApplications]);
 
   // Auto-scroll transcript
   useEffect(() => {

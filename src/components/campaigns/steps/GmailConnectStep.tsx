@@ -32,10 +32,10 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
       {/* Header */}
       <div className="text-center">
         <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
-          Connect your Gmail
+          Connect Gmail
         </h3>
         <p className="text-[12px] text-gray-500 dark:text-white/50">
-          Authorize Jobz.ai to send emails on your behalf
+          Send emails directly from your account
         </p>
       </div>
 
@@ -101,8 +101,8 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
                   <Mail className="w-6 h-6 text-gray-400 dark:text-white/40" />
                 </div>
                 <div>
-                  <p className="text-[13px] font-medium text-gray-900 dark:text-white">No Gmail account connected</p>
-                  <p className="text-[11px] text-gray-500 dark:text-white/40">Click below to authorize access</p>
+                  <p className="text-[13px] font-medium text-gray-900 dark:text-white">Gmail not connected</p>
+                  <p className="text-[11px] text-gray-500 dark:text-white/40">Connect to send emails</p>
                 </div>
               </div>
 
@@ -155,7 +155,7 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
                         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                       />
                     </svg>
-                    <span>Connect with Google</span>
+                    <span>Connect Gmail</span>
                   </>
                 )}
               </button>
@@ -211,7 +211,7 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
         bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.04]">
         <Shield className="w-3.5 h-3.5 text-gray-400 dark:text-white/30 flex-shrink-0 mt-0.5" />
         <p className="text-[10px] text-gray-500 dark:text-white/50 leading-relaxed">
-          We only request send permissions. You can revoke access anytime.
+          We never store your password. Connection uses secure OAuth 2.0.
         </p>
       </div>
     </div>

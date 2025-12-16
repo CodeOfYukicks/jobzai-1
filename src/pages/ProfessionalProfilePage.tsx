@@ -688,7 +688,7 @@ const ProfessionalProfilePage = () => {
           </div>
 
           {/* Main Content - Premium Layout */}
-          <div className="relative w-full max-w-[1400px] mx-auto space-y-5 pt-6 px-4 pb-24">
+          <div className="relative w-full max-w-[1400px] mx-auto space-y-5 pt-6 px-4 sm:px-8 lg:px-12 xl:px-16 pb-24">
             {/* Profile Header - Pass completion percentage and CV import */}
             <ProfileHeader 
               onUpdate={updateFormData} 

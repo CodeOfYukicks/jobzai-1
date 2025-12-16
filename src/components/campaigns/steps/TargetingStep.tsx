@@ -15,16 +15,6 @@ interface TargetingStepProps {
   onUpdate: (updates: Partial<CampaignData>) => void;
 }
 
-// Apollo-compatible options
-const SENIORITY_OPTIONS: { value: Seniority; label: string }[] = [
-  { value: 'entry', label: 'Entry Level' },
-  { value: 'senior', label: 'Senior' },
-  { value: 'manager', label: 'Manager' },
-  { value: 'director', label: 'Director' },
-  { value: 'vp', label: 'VP' },
-  { value: 'c_suite', label: 'C-Suite' }
-];
-
 const COMPANY_SIZE_OPTIONS: { value: CompanySize; label: string }[] = [
   { value: '1-10', label: '1-10' },
   { value: '11-50', label: '11-50' },
@@ -33,21 +23,6 @@ const COMPANY_SIZE_OPTIONS: { value: CompanySize; label: string }[] = [
   { value: '501-1000', label: '501-1000' },
   { value: '1001-5000', label: '1001-5000' },
   { value: '5001+', label: '5000+' }
-];
-
-const INDUSTRY_OPTIONS = [
-  'Technology',
-  'Finance & Banking',
-  'Healthcare',
-  'Consulting',
-  'Retail & E-commerce',
-  'Manufacturing',
-  'Education',
-  'Media & Entertainment',
-  'Real Estate',
-  'Energy & Utilities',
-  'Telecommunications',
-  'Automotive'
 ];
 
 const LOCATION_SUGGESTIONS = [
@@ -82,14 +57,39 @@ function mapExperienceToSeniority(years: string | undefined): Seniority[] {
   return ['manager', 'director'];
 }
 
-const OUTREACH_GOALS = [
-  { id: 'job', label: 'Job Search', icon: Briefcase, description: 'Find job opportunities' },
-  { id: 'internship', label: 'Internship', icon: GraduationCap, description: 'Secure internship positions' },
-  { id: 'networking', label: 'Networking', icon: UserPlus, description: 'Build professional connections' },
-] as const;
-
 export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
   const { currentUser } = useAuth();
+
+  // Apollo-compatible options
+  const SENIORITY_OPTIONS: { value: Seniority; label: string }[] = [
+    { value: 'entry', label: 'Entry Level' },
+    { value: 'senior', label: 'Senior' },
+    { value: 'manager', label: 'Manager' },
+    { value: 'director', label: 'Director' },
+    { value: 'vp', label: 'VP' },
+    { value: 'c_suite', label: 'C-Suite' }
+  ];
+
+  const INDUSTRY_OPTIONS = [
+    { key: 'technology', label: 'Technology' },
+    { key: 'finance', label: 'Finance' },
+    { key: 'healthcare', label: 'Healthcare' },
+    { key: 'consulting', label: 'Consulting' },
+    { key: 'retail', label: 'Retail' },
+    { key: 'manufacturing', label: 'Manufacturing' },
+    { key: 'education', label: 'Education' },
+    { key: 'media', label: 'Media' },
+    { key: 'realEstate', label: 'Real Estate' },
+    { key: 'energy', label: 'Energy' },
+    { key: 'telecom', label: 'Telecom' },
+    { key: 'automotive', label: 'Automotive' }
+  ];
+
+  const OUTREACH_GOALS = [
+    { id: 'job', label: 'Job Search', icon: Briefcase, description: 'Looking for job opportunities' },
+    { id: 'internship', label: 'Internship', icon: GraduationCap, description: 'Seeking internship positions' },
+    { id: 'networking', label: 'Networking', icon: UserPlus, description: 'Building professional connections' },
+  ] as const;
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [suggestions, setSuggestions] = useState<{
     titles: string[];
@@ -280,10 +280,10 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
       {/* Header */}
       <div>
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          Who do you want to reach?
+          Define Your Target Audience
         </h3>
         <p className="text-[14px] text-gray-500 dark:text-white/50 leading-relaxed">
-          Define your target audience for Apollo lead sourcing.
+          Specify who you want to reach out to
         </p>
       </div>
 
@@ -516,7 +516,7 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
             onChange={(e) => setLocationInput(e.target.value)}
             onFocus={() => setShowLocationDropdown(true)}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addLocation(locationInput))}
-            placeholder="e.g., Paris, France"
+            placeholder="e.g., Paris, London, Remote"
             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/[0.04] 
               border border-gray-200 dark:border-white/[0.08] rounded-lg
               text-[14px] text-gray-900 dark:text-white 
@@ -575,7 +575,7 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
       {/* Company Size */}
       <div className="space-y-2">
         <label className="block text-[12px] text-gray-500 dark:text-white/40 uppercase tracking-wider font-medium">
-          Company Size (employees)
+          Company Size
         </label>
         <div className="flex flex-wrap gap-2">
           {COMPANY_SIZE_OPTIONS.map(option => (
@@ -625,18 +625,18 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
               >
                 {INDUSTRY_OPTIONS.map(industry => (
                   <button
-                    key={industry}
-                    onClick={() => toggleIndustry(industry)}
+                    key={industry.key}
+                    onClick={() => toggleIndustry(industry.key)}
                     className="w-full flex items-center justify-between px-4 py-2.5 text-[14px] text-left
                       hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                   >
-                    <span className={data.industries.includes(industry) 
+                    <span className={data.industries.includes(industry.key) 
                       ? 'text-gray-900 dark:text-white' 
                       : 'text-gray-600 dark:text-white/60'
                     }>
-                      {industry}
+                      {industry.label}
                     </span>
-                    {data.industries.includes(industry) && (
+                    {data.industries.includes(industry.key) && (
                       <Check className="w-4 h-4 text-gray-900 dark:text-white" />
                     )}
                   </button>
@@ -648,19 +648,22 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
         
         {data.industries.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
-            {data.industries.map(ind => (
-              <span
-                key={ind}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 
-                  bg-gray-100 dark:bg-white/[0.08] rounded-full
-                  text-[12px] font-medium text-gray-700 dark:text-white"
-              >
-                {ind}
-                <button onClick={() => toggleIndustry(ind)} className="hover:text-red-500 transition-colors">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            ))}
+            {data.industries.map(ind => {
+              const industryOption = INDUSTRY_OPTIONS.find(i => i.key === ind);
+              return (
+                <span
+                  key={ind}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 
+                    bg-gray-100 dark:bg-white/[0.08] rounded-full
+                    text-[12px] font-medium text-gray-700 dark:text-white"
+                >
+                  {industryOption?.label || ind}
+                  <button onClick={() => toggleIndustry(ind)} className="hover:text-red-500 transition-colors">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              );
+            })}
           </div>
         )}
       </div>
@@ -711,7 +714,7 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
           </button>
         </div>
         <p className="text-[11px] text-gray-400 dark:text-white/30">
-          These companies will be excluded from your search
+          These companies won't be included in your campaign
         </p>
       </div>
 

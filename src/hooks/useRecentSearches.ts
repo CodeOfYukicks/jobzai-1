@@ -19,10 +19,16 @@ export function useRecentSearches() {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        setRecentSearches(parsed);
+        // Filter out any invalid entries (missing query property)
+        const validSearches = Array.isArray(parsed) 
+          ? parsed.filter((s: any) => s && typeof s.query === 'string' && s.query.trim())
+          : [];
+        setRecentSearches(validSearches);
       }
     } catch (error) {
       console.error('Error loading recent searches:', error);
+      // Clear corrupted data
+      localStorage.removeItem(STORAGE_KEY);
     }
   }, []);
 
@@ -37,8 +43,8 @@ export function useRecentSearches() {
     };
 
     setRecentSearches(prev => {
-      // Remove duplicate if exists
-      const filtered = prev.filter(s => s.query.toLowerCase() !== query.toLowerCase());
+      // Remove duplicate if exists, also filter out any invalid entries
+      const filtered = prev.filter(s => s?.query && s.query.toLowerCase() !== query.toLowerCase());
       // Add new search at the beginning
       const updated = [newSearch, ...filtered].slice(0, MAX_RECENT_SEARCHES);
       

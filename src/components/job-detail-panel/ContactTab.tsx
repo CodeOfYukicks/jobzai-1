@@ -24,6 +24,7 @@ import {
 import { format, parseISO, isValid } from 'date-fns';
 import { JobApplication, WarmthLevel, RelationshipGoal, WARMTH_LEVEL_LABELS, WARMTH_LEVEL_COLORS, RELATIONSHIP_GOAL_LABELS, RELATIONSHIP_GOAL_COLORS, OUTREACH_CHANNEL_CONFIG, OutreachChannel } from '../../types/job';
 import { CompanyLogo } from '../common/CompanyLogo';
+import { ProfileAvatar, generateGenderedAvatarConfigByName } from '../profile/avatar';
 
 interface ContactTabProps {
   job: JobApplication;
@@ -32,29 +33,6 @@ interface ContactTabProps {
   onEdit?: (updates: Partial<JobApplication>) => void;
 }
 
-// Generate avatar color based on name
-const getAvatarColor = (name: string): string => {
-  const colors = [
-    'from-violet-500 to-purple-600',
-    'from-blue-500 to-indigo-600',
-    'from-emerald-500 to-teal-600',
-    'from-amber-500 to-orange-600',
-    'from-pink-500 to-rose-600',
-    'from-cyan-500 to-blue-600',
-  ];
-  const index = name.charCodeAt(0) % colors.length;
-  return colors[index];
-};
-
-// Get initials from name
-const getInitials = (name: string): string => {
-  return name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-};
 
 // Warmth icon component
 const WarmthIcon = ({ level }: { level: WarmthLevel }) => {
@@ -91,8 +69,6 @@ export function ContactTab({ job, isEditing, editedJob, onEdit }: ContactTabProp
   const [copiedField, setCopiedField] = useState<string | null>(null);
   
   const contactName = job.contactName || 'Unknown Contact';
-  const initials = getInitials(contactName);
-  const avatarColor = getAvatarColor(contactName);
   const channelConfig = job.outreachChannel ? OUTREACH_CHANNEL_CONFIG[job.outreachChannel] : null;
   const warmthColors = job.warmthLevel ? WARMTH_LEVEL_COLORS[job.warmthLevel] : null;
   const goalColors = job.relationshipGoal ? RELATIONSHIP_GOAL_COLORS[job.relationshipGoal] : null;
@@ -124,9 +100,11 @@ export function ContactTab({ job, isEditing, editedJob, onEdit }: ContactTabProp
       >
         <div className="flex items-start gap-5">
           {/* Large Avatar */}
-          <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-purple-500/20 flex-shrink-0`}>
-            {initials}
-          </div>
+          <ProfileAvatar
+            config={generateGenderedAvatarConfigByName(contactName)}
+            size={80}
+            className="rounded-2xl shadow-lg flex-shrink-0"
+          />
           
           <div className="flex-1 min-w-0">
             {/* Name */}
