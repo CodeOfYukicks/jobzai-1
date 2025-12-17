@@ -146,7 +146,7 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
                   px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
                   ${isSelected
                     ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
                   }
                 `}
               >
@@ -173,7 +173,7 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
                 min: e.target.value 
               })}
               placeholder="Min"
-              className="w-full px-4 py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+              className="w-full px-4 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200/80 dark:border-[#3d3c3e]/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
             />
           </div>
           <div>
@@ -185,7 +185,7 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
                 max: e.target.value 
               })}
               placeholder="Max"
-              className="w-full px-4 py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+              className="w-full px-4 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200/80 dark:border-[#3d3c3e]/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
             />
           </div>
           <div>
@@ -195,7 +195,7 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
                 ...formData.salaryExpectations, 
                 currency: e.target.value 
               })}
-              className="w-full px-4 py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_0.75rem_center] bg-[length:1rem] pr-10"
+              className="w-full px-4 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200/80 dark:border-[#3d3c3e]/50 rounded-xl text-gray-900 dark:text-white text-[15px] focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_0.75rem_center] bg-[length:1rem] pr-10"
             >
               {currencies.map((curr) => (
                 <option key={curr.value} value={curr.value}>{curr.label}</option>
@@ -220,7 +220,7 @@ const ProfessionalObjectivesSection = ({ onUpdate }: SectionProps) => {
           type="date"
           value={formData.availabilityDate}
           onChange={(e) => handleChange('availabilityDate', e.target.value)}
-          className="w-full md:w-auto px-4 py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+          className="w-full md:w-auto px-4 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200/80 dark:border-[#3d3c3e]/50 rounded-xl text-gray-900 dark:text-white text-[15px] focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
         />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
           When can you start a new position?

@@ -14,10 +14,10 @@ const ProfileSidebar = ({}: ProfileSidebarProps) => {
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3, ease: 'easeOut' }}
-        className="h-full bg-white dark:bg-gray-50 rounded-lg border border-gray-200/60 dark:border-gray-700/60 shadow-sm overflow-hidden flex flex-col"
+        className="h-full bg-white dark:bg-gray-50 rounded-lg border border-gray-200/60 dark:border-[#3d3c3e]/60 shadow-sm overflow-hidden flex flex-col"
       >
         {/* Header avec onglets */}
-        <div className="border-b border-gray-200/60 dark:border-gray-700/60">
+        <div className="border-b border-gray-200/60 dark:border-[#3d3c3e]/60">
           <div className="flex">
             <button
               onClick={() => setActiveTab('tab1')}

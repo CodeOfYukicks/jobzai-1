@@ -400,7 +400,7 @@ const ProfileHeader = ({ onUpdate, completionPercentage = 0, onImportCV, isImpor
             transition={{ duration: 0.2 }}
           >
             {/* Circular profile photo/avatar with white ring */}
-            <div className="w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-white dark:bg-[#2b2a2c] p-1 shadow-lg ring-4 ring-white dark:ring-gray-800">
+            <div className="w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-white dark:bg-[#2b2a2c] p-1 shadow-lg ring-4 ring-white dark:ring-[#2b2a2c]">
               <div className="relative w-full h-full rounded-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600">
                 {/* Show Avatar or Photo based on avatarType */}
                 {avatarType === 'avatar' && avatarConfig.hair ? (

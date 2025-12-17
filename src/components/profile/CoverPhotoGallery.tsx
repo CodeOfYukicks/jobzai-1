@@ -201,7 +201,7 @@ const GalleryTab = ({ onSelectColor, onSelectImage, isFetching }: GalleryTabProp
                 {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className="aspect-[4/1] rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse"
+                    className="aspect-[4/1] rounded-lg bg-gray-100 dark:bg-[#2b2a2c] animate-pulse"
                   />
                 ))}
               </div>
@@ -214,7 +214,7 @@ const GalleryTab = ({ onSelectColor, onSelectImage, isFetching }: GalleryTabProp
                     disabled={isFetching}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="group relative aspect-[4/1] rounded-lg overflow-hidden border-2 border-transparent hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-lg bg-gray-100 dark:bg-gray-800"
+                    className="group relative aspect-[4/1] rounded-lg overflow-hidden border-2 border-transparent hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-lg bg-gray-100 dark:bg-[#2b2a2c]"
                   >
                     <img
                       src={photo.urls.thumb}
@@ -304,7 +304,7 @@ const UploadTab = ({ onFileSelect, isFetching }: UploadTabProps) => {
         />
 
         <div className="flex flex-col items-center gap-4">
-          <div className={`p-4 rounded-2xl transition-colors ${isDragOver ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-gray-100 dark:bg-gray-800'}`}>
+          <div className={`p-4 rounded-2xl transition-colors ${isDragOver ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-gray-100 dark:bg-[#2b2a2c]'}`}>
             <Upload className={`w-8 h-8 transition-colors ${isDragOver ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400 dark:text-gray-500'}`} />
           </div>
           
@@ -480,7 +480,7 @@ const UnsplashTab = ({ onSelectPhoto, isFetching }: UnsplashTabProps) => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search photos..."
-            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all"
+            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all"
             disabled={isSearching || isFetching}
           />
           {isSearching && (
@@ -530,7 +530,7 @@ const UnsplashTab = ({ onSelectPhoto, isFetching }: UnsplashTabProps) => {
                 disabled={isFetching}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="group relative aspect-[4/1] rounded-lg overflow-hidden border-2 border-transparent hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-lg bg-gray-100 dark:bg-gray-800"
+                className="group relative aspect-[4/1] rounded-lg overflow-hidden border-2 border-transparent hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-lg bg-gray-100 dark:bg-[#2b2a2c]"
               >
                 <img
                   src={photo.urls.thumb}
@@ -564,7 +564,7 @@ const UnsplashTab = ({ onSelectPhoto, isFetching }: UnsplashTabProps) => {
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <div
                 key={i}
-                className="aspect-[4/1] rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse"
+                className="aspect-[4/1] rounded-lg bg-gray-100 dark:bg-[#2b2a2c] animate-pulse"
               />
             ))}
           </div>
@@ -592,7 +592,7 @@ const UnsplashTab = ({ onSelectPhoto, isFetching }: UnsplashTabProps) => {
                 disabled={isFetching}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="group relative aspect-[4/1] rounded-lg overflow-hidden border-2 border-transparent hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-lg bg-gray-100 dark:bg-gray-800"
+                className="group relative aspect-[4/1] rounded-lg overflow-hidden border-2 border-transparent hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-lg bg-gray-100 dark:bg-[#2b2a2c]"
               >
                 <img
                   src={photo.urls.thumb}
@@ -615,7 +615,7 @@ const UnsplashTab = ({ onSelectPhoto, isFetching }: UnsplashTabProps) => {
                 disabled={isSearching || isFetching}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#2b2a2c] rounded-lg hover:bg-gray-200 dark:hover:bg-[#3d3c3e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSearching ? (
                   <span className="flex items-center gap-2">
@@ -731,7 +731,7 @@ const LinkTab = ({ onSubmitUrl, isFetching }: LinkTabProps) => {
                 onChange={(e) => handleUrlChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="https://example.com/image.jpg"
-                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all"
+                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all"
                 disabled={isFetching}
               />
             </div>
@@ -740,7 +740,7 @@ const LinkTab = ({ onSubmitUrl, isFetching }: LinkTabProps) => {
               disabled={!url || isValidating || isFetching}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2.5 bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isValidating ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -1046,7 +1046,7 @@ const CoverPhotoGallery = ({
   const renderPanelContent = () => (
     <>
       {/* Header with tabs */}
-      <div className="px-4 py-3 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-gray-200/50 dark:border-[#3d3c3e]/50 flex items-center justify-between">
         {/* Tabs */}
         <div className="flex items-center gap-0.5">
           {tabs.map((tab) => (

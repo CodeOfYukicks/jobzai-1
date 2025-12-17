@@ -44,10 +44,10 @@ export const SectionDivider = ({ title, className = '' }: SectionDividerProps) =
     return (
       <div className={`relative py-4 ${className}`}>
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-200/60 dark:border-gray-700/40" />
+          <div className="w-full border-t border-gray-200/60 dark:border-[#3d3c3e]/40" />
         </div>
         <div className="relative flex justify-start">
-          <span className="pr-3 bg-white dark:bg-gray-800 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <span className="pr-3 bg-white dark:bg-[#2b2a2c] text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             {title}
           </span>
         </div>
@@ -57,7 +57,7 @@ export const SectionDivider = ({ title, className = '' }: SectionDividerProps) =
 
   return (
     <div className={`py-4 ${className}`}>
-      <div className="w-full border-t border-gray-200/60 dark:border-gray-700/40" />
+      <div className="w-full border-t border-gray-200/60 dark:border-[#3d3c3e]/40" />
     </div>
   );
 };
@@ -88,7 +88,7 @@ export const EmptyState = ({ icon, title, description, action }: EmptyStateProps
   return (
     <div className="flex flex-col items-center justify-center py-10 text-center">
       {icon && (
-        <div className="p-3 mb-4 rounded-xl bg-gray-100 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500">
+        <div className="p-3 mb-4 rounded-xl bg-gray-100 dark:bg-[#3d3c3e]/50 text-gray-400 dark:text-gray-500">
           {icon}
         </div>
       )}
@@ -109,8 +109,8 @@ export const EmptyState = ({ icon, title, description, action }: EmptyStateProps
 export const FieldSkeleton = () => {
   return (
     <div className="animate-pulse space-y-2">
-      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24" />
-      <div className="h-11 bg-gray-100 dark:bg-gray-800 rounded-xl" />
+      <div className="h-4 bg-gray-200 dark:bg-[#3d3c3e] rounded w-24" />
+      <div className="h-11 bg-gray-100 dark:bg-[#2b2a2c] rounded-xl" />
     </div>
   );
 };
@@ -122,12 +122,12 @@ export const SectionSkeleton = () => {
       <FieldSkeleton />
       <FieldSkeleton />
       <div className="animate-pulse">
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-3" />
+        <div className="h-4 bg-gray-200 dark:bg-[#3d3c3e] rounded w-32 mb-3" />
         <div className="grid grid-cols-2 gap-2">
-          <div className="h-14 bg-gray-100 dark:bg-gray-800 rounded-xl" />
-          <div className="h-14 bg-gray-100 dark:bg-gray-800 rounded-xl" />
-          <div className="h-14 bg-gray-100 dark:bg-gray-800 rounded-xl" />
-          <div className="h-14 bg-gray-100 dark:bg-gray-800 rounded-xl" />
+          <div className="h-14 bg-gray-100 dark:bg-[#2b2a2c] rounded-xl" />
+          <div className="h-14 bg-gray-100 dark:bg-[#2b2a2c] rounded-xl" />
+          <div className="h-14 bg-gray-100 dark:bg-[#2b2a2c] rounded-xl" />
+          <div className="h-14 bg-gray-100 dark:bg-[#2b2a2c] rounded-xl" />
         </div>
       </div>
     </div>

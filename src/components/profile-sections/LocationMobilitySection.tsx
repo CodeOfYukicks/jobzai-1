@@ -126,8 +126,8 @@ const LocationMobilitySection = ({ onUpdate }: SectionProps) => {
                 className={`
                   relative p-4 rounded-xl text-center transition-all duration-200
                   ${isSelected
-                    ? 'bg-gray-100 dark:bg-gray-700/60 ring-1 ring-gray-900/10 dark:ring-white/10'
-                    : 'bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/80 dark:hover:bg-gray-700/40'
+                    ? 'bg-gray-100 dark:bg-[#4a494b] ring-1 ring-gray-900/10 dark:ring-white/20'
+                    : 'bg-gray-50 dark:bg-[#3d3c3e] hover:bg-gray-100 dark:hover:bg-[#4a494b]'
                   }
                 `}
               >

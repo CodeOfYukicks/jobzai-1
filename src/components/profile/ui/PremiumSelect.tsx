@@ -77,13 +77,13 @@ export const PremiumSelect = ({
               ${sizeStyles[size]}
               ${variant === 'outlined' ? 'border' : ''}
               ${selected
-                ? 'bg-gray-100 dark:bg-gray-700/60 ring-1 ring-gray-900/10 dark:ring-white/10'
-                : 'bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/80 dark:hover:bg-gray-700/40'
+                ? 'bg-gray-100 dark:bg-[#4a494b] ring-1 ring-gray-900/10 dark:ring-white/20'
+                : 'bg-gray-50 dark:bg-[#3d3c3e] hover:bg-gray-100 dark:hover:bg-[#4a494b]'
               }
               ${variant === 'outlined' && selected
-                ? 'border-gray-300 dark:border-gray-600'
+                ? 'border-gray-300 dark:border-[#5a595c]'
                 : variant === 'outlined'
-                  ? 'border-gray-200/60 dark:border-gray-700/40 hover:border-gray-300 dark:hover:border-gray-600'
+                  ? 'border-gray-200/60 dark:border-[#4a494b]/60 hover:border-gray-300 dark:hover:border-[#5a595c]'
                   : ''
               }
             `}
@@ -179,7 +179,7 @@ export const PremiumChipSelect = ({
               transition-all duration-200
               ${selected
                 ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
               }
             `}
           >
@@ -213,14 +213,14 @@ export const PremiumToggle = ({
     >
       <div className={`
         relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0 mt-0.5
-        ${checked ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'}
+        ${checked ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-[#3d3c3e]'}
       `}>
         <motion.div
           animate={{ x: checked ? 20 : 2 }}
           transition={{ type: "spring", stiffness: 500, damping: 30 }}
           className={`
             absolute top-1 w-4 h-4 rounded-full
-            ${checked ? 'bg-white dark:bg-gray-900' : 'bg-white dark:bg-gray-400'}
+            ${checked ? 'bg-white dark:bg-gray-900' : 'bg-white dark:bg-gray-500'}
             shadow-sm
           `}
         />

@@ -22,8 +22,8 @@ export const PremiumTag = ({
   size = 'md'
 }: PremiumTagProps) => {
   const variantStyles = {
-    default: 'bg-gray-100 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300',
-    outlined: 'bg-transparent border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300',
+    default: 'bg-gray-100 dark:bg-[#3d3c3e]/60 text-gray-700 dark:text-gray-300',
+    outlined: 'bg-transparent border border-gray-200 dark:border-[#3d3c3e] text-gray-700 dark:text-gray-300',
     success: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400',
     warning: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400',
     error: 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
@@ -117,13 +117,13 @@ export const PremiumTagInput = ({
       <div className="relative">
         <div className={`
           flex flex-wrap gap-2 p-3
-          bg-white dark:bg-gray-800/50
-          border border-gray-200/80 dark:border-gray-700/50
+          bg-white dark:bg-[#2b2a2c]
+          border border-gray-200/80 dark:border-[#3d3c3e]
           rounded-xl
           min-h-[52px]
           transition-all duration-200
           focus-within:ring-2 focus-within:ring-gray-900/5 dark:focus-within:ring-white/10
-          focus-within:border-gray-300 dark:focus-within:border-gray-600
+          focus-within:border-gray-300 dark:focus-within:border-[#4a494b]
         `}>
           <AnimatePresence mode="popLayout">
             {tags.map((tag, index) => (
@@ -166,14 +166,14 @@ export const PremiumTagInput = ({
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden"
+              className="absolute z-10 w-full mt-1 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-xl shadow-lg overflow-hidden"
             >
               {filteredSuggestions.map((suggestion) => (
                 <button
                   key={suggestion}
                   type="button"
                   onClick={() => addTag(suggestion)}
-                  className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 transition-colors"
                 >
                   {suggestion}
                 </button>
@@ -219,7 +219,7 @@ export const PremiumAddButton = ({
         inline-flex items-center gap-1.5 font-medium
         text-gray-600 dark:text-gray-400
         hover:text-gray-900 dark:hover:text-white
-        hover:bg-gray-100 dark:hover:bg-gray-700/50
+        hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50
         rounded-lg transition-all duration-200
         ${sizeStyles[size]}
       `}

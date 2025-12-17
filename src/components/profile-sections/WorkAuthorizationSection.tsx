@@ -189,35 +189,35 @@ const WorkAuthorizationSection = ({ onUpdate }: SectionProps) => {
                 value={formData.fullAddress.street}
                 onChange={(e) => handleAddressChange('street', e.target.value)}
                 placeholder="Street address"
-                className="col-span-full px-4 py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+                className="col-span-full px-4 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200/80 dark:border-[#3d3c3e]/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
               />
               <input
                 type="text"
                 value={formData.fullAddress.city}
                 onChange={(e) => handleAddressChange('city', e.target.value)}
                 placeholder="City"
-                className="px-4 py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+                className="px-4 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200/80 dark:border-[#3d3c3e]/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
               />
               <input
                 type="text"
                 value={formData.fullAddress.state}
                 onChange={(e) => handleAddressChange('state', e.target.value)}
                 placeholder="State / Province"
-                className="px-4 py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+                className="px-4 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200/80 dark:border-[#3d3c3e]/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
               />
               <input
                 type="text"
                 value={formData.fullAddress.zipCode}
                 onChange={(e) => handleAddressChange('zipCode', e.target.value)}
                 placeholder="ZIP / Postal code"
-                className="px-4 py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+                className="px-4 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200/80 dark:border-[#3d3c3e]/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
               />
               <input
                 type="text"
                 value={formData.fullAddress.country}
                 onChange={(e) => handleAddressChange('country', e.target.value)}
                 placeholder="Country"
-                className="px-4 py-2.5 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+                className="px-4 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200/80 dark:border-[#3d3c3e]/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
               />
             </div>
           </div>
@@ -246,8 +246,8 @@ const WorkAuthorizationSection = ({ onUpdate }: SectionProps) => {
                 className={`
                   relative text-left p-4 rounded-xl transition-all duration-200
                   ${isSelected
-                    ? 'bg-gray-100 dark:bg-gray-700/60 ring-1 ring-gray-900/10 dark:ring-white/10'
-                    : 'bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/80 dark:hover:bg-gray-700/40'
+                    ? 'bg-gray-100 dark:bg-[#4a494b] ring-1 ring-gray-900/10 dark:ring-white/20'
+                    : 'bg-gray-50 dark:bg-[#3d3c3e] hover:bg-gray-100 dark:hover:bg-[#4a494b]'
                   }
                 `}
               >
@@ -282,7 +282,7 @@ const WorkAuthorizationSection = ({ onUpdate }: SectionProps) => {
               onChange={(e) => handleChange('workAuthorizationDetails', e.target.value)}
               placeholder="Please describe your work authorization status..."
               rows={3}
-              className="w-full px-4 py-3 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all resize-none"
+              className="w-full px-4 py-3 bg-white dark:bg-[#2b2a2c] border border-gray-200/80 dark:border-[#3d3c3e]/50 rounded-xl text-gray-900 dark:text-white text-[15px] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all resize-none"
             />
           </motion.div>
         )}
@@ -304,12 +304,12 @@ const WorkAuthorizationSection = ({ onUpdate }: SectionProps) => {
             min="0"
             value={formData.noticePeriod || ''}
             onChange={(e) => handleChange('noticePeriod', parseInt(e.target.value) || 0)}
-            className="w-20 px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-center text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+            className="w-20 px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200/80 dark:border-[#3d3c3e]/50 rounded-xl text-gray-900 dark:text-white text-center text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
           />
           <select
             value={formData.noticePeriodUnit}
             onChange={(e) => handleChange('noticePeriodUnit', e.target.value)}
-            className="px-3 py-2 bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/50 rounded-xl text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_0.5rem_center] bg-[length:1rem] pr-8"
+            className="px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200/80 dark:border-[#3d3c3e]/50 rounded-xl text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_0.5rem_center] bg-[length:1rem] pr-8"
           >
             {noticePeriodUnits.map(unit => (
               <option key={unit.id} value={unit.id}>{unit.label}</option>
@@ -344,14 +344,14 @@ const WorkAuthorizationSection = ({ onUpdate }: SectionProps) => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   layout
-                  className="group flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700/50"
+                  className="group flex items-start justify-between p-4 bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-xl border border-gray-100 dark:border-[#3d3c3e]/50"
                 >
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white text-sm">{ref.name}</p>
                     <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">{ref.title} at {ref.company}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{ref.email}</p>
                     {ref.relationship && (
-                      <span className="inline-block mt-2 px-2 py-0.5 text-xs bg-gray-200/60 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 rounded-full">
+                      <span className="inline-block mt-2 px-2 py-0.5 text-xs bg-gray-200/60 dark:bg-[#3d3c3e]/60 text-gray-600 dark:text-gray-300 rounded-full">
                         {ref.relationship}
                       </span>
                     )}
@@ -375,7 +375,7 @@ const WorkAuthorizationSection = ({ onUpdate }: SectionProps) => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="p-4 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/30"
+              className="p-4 border border-dashed border-gray-200 dark:border-[#3d3c3e] rounded-xl bg-gray-50/50 dark:bg-[#2b2a2c]/30"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <input
@@ -383,40 +383,40 @@ const WorkAuthorizationSection = ({ onUpdate }: SectionProps) => {
                   value={newReference.name}
                   onChange={(e) => setNewReference(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Full name *"
-                  className="px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200/80 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+                  className="px-4 py-2.5 bg-white dark:bg-[#3d3c3e] border border-gray-200/80 dark:border-[#4a494b]/50 rounded-xl text-gray-900 dark:text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
                 />
                 <input
                   type="text"
                   value={newReference.title}
                   onChange={(e) => setNewReference(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="Job title"
-                  className="px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200/80 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+                  className="px-4 py-2.5 bg-white dark:bg-[#3d3c3e] border border-gray-200/80 dark:border-[#4a494b]/50 rounded-xl text-gray-900 dark:text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
                 />
                 <input
                   type="text"
                   value={newReference.company}
                   onChange={(e) => setNewReference(prev => ({ ...prev, company: e.target.value }))}
                   placeholder="Company"
-                  className="px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200/80 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+                  className="px-4 py-2.5 bg-white dark:bg-[#3d3c3e] border border-gray-200/80 dark:border-[#4a494b]/50 rounded-xl text-gray-900 dark:text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
                 />
                 <input
                   type="email"
                   value={newReference.email}
                   onChange={(e) => setNewReference(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="Email *"
-                  className="px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200/80 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+                  className="px-4 py-2.5 bg-white dark:bg-[#3d3c3e] border border-gray-200/80 dark:border-[#4a494b]/50 rounded-xl text-gray-900 dark:text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
                 />
                 <input
                   type="tel"
                   value={newReference.phone}
                   onChange={(e) => setNewReference(prev => ({ ...prev, phone: e.target.value }))}
                   placeholder="Phone number"
-                  className="px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200/80 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
+                  className="px-4 py-2.5 bg-white dark:bg-[#3d3c3e] border border-gray-200/80 dark:border-[#4a494b]/50 rounded-xl text-gray-900 dark:text-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all"
                 />
                 <select
                   value={newReference.relationship}
                   onChange={(e) => setNewReference(prev => ({ ...prev, relationship: e.target.value }))}
-                  className="px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200/80 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_0.75rem_center] bg-[length:1rem] pr-10"
+                  className="px-4 py-2.5 bg-white dark:bg-[#3d3c3e] border border-gray-200/80 dark:border-[#4a494b]/50 rounded-xl text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/5 dark:focus:ring-white/10 transition-all appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_0.75rem_center] bg-[length:1rem] pr-10"
                 >
                   <option value="">Relationship</option>
                   {relationshipTypes.map(type => (
@@ -427,7 +427,7 @@ const WorkAuthorizationSection = ({ onUpdate }: SectionProps) => {
               <div className="flex justify-end gap-2 mt-4">
                 <button
                   onClick={() => setShowAddReference(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
                 >
                   Cancel
                 </button>

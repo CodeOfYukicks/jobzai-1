@@ -21,12 +21,12 @@ export const CollapsibleSection = ({
   children
 }: CollapsibleSectionProps) => {
   return (
-    <div className="border-t border-gray-100 dark:border-gray-700/50 first:border-t-0">
+    <div className="border-t border-gray-100 dark:border-[#3d3c3e]/50 first:border-t-0">
       {/* Header */}
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between py-3 px-1 text-left group hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
+        className="w-full flex items-center justify-between py-3 px-1 text-left group hover:bg-gray-50 dark:hover:bg-[#2b2a2c]/50 rounded-lg transition-colors"
       >
         <div className="flex items-center gap-2.5">
           {Icon && (

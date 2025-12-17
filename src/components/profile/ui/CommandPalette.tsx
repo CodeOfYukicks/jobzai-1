@@ -205,9 +205,9 @@ const CommandPalette = ({
             transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
             className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-xl z-50"
           >
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-white dark:bg-[#1e1d1f] rounded-2xl shadow-2xl border border-gray-200 dark:border-[#3d3c3e] overflow-hidden">
               {/* Search input */}
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-[#3d3c3e]">
                 <Search className="w-5 h-5 text-gray-400" />
                 <input
                   ref={inputRef}
@@ -219,7 +219,7 @@ const CommandPalette = ({
                   className="flex-1 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-400 outline-none text-base"
                 />
                 <div className="flex items-center gap-1 text-xs text-gray-400">
-                  <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded font-mono">esc</kbd>
+                  <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-[#2b2a2c] rounded font-mono">esc</kbd>
                   <span>to close</span>
                 </div>
               </div>
@@ -255,7 +255,7 @@ const CommandPalette = ({
                               transition-colors duration-100
                               ${isSelected 
                                 ? 'bg-indigo-50 dark:bg-indigo-900/30' 
-                                : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                                : 'hover:bg-gray-50 dark:hover:bg-[#2b2a2c]'
                               }
                             `}
                           >
@@ -263,7 +263,7 @@ const CommandPalette = ({
                               p-2 rounded-lg
                               ${isSelected 
                                 ? 'bg-indigo-100 dark:bg-indigo-800/50 text-indigo-600 dark:text-indigo-400' 
-                                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                                : 'bg-gray-100 dark:bg-[#2b2a2c] text-gray-500 dark:text-gray-400'
                               }
                             `}>
                               {command.icon}
@@ -285,7 +285,7 @@ const CommandPalette = ({
                               )}
                             </div>
                             {command.shortcut && (
-                              <kbd className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded font-mono">
+                              <kbd className="px-2 py-1 text-xs bg-gray-100 dark:bg-[#2b2a2c] text-gray-500 dark:text-gray-400 rounded font-mono">
                                 {command.shortcut}
                               </kbd>
                             )}
@@ -301,14 +301,14 @@ const CommandPalette = ({
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between px-4 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <div className="flex items-center justify-between px-4 py-2 border-t border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#2b2a2c]/50">
                 <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                   <div className="flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded font-mono">↑↓</kbd>
+                    <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-[#3d3c3e] rounded font-mono">↑↓</kbd>
                     <span>navigate</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded font-mono">↵</kbd>
+                    <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-[#3d3c3e] rounded font-mono">↵</kbd>
                     <span>select</span>
                   </div>
                 </div>

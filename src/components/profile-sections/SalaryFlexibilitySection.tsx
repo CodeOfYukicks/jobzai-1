@@ -90,7 +90,7 @@ const SalaryFlexibilitySection = ({ onUpdate }: SectionProps) => {
 
   if (isLoading) {
     return (
-      <section className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+      <section className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 shadow-sm">
         <div className="animate-pulse space-y-4">
           <div className="h-4 bg-gray-200 rounded w-1/4"></div>
           <div className="h-10 bg-gray-200 rounded"></div>
@@ -100,7 +100,7 @@ const SalaryFlexibilitySection = ({ onUpdate }: SectionProps) => {
   }
 
   return (
-    <section id="salary-flexibility" className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+    <section id="salary-flexibility" className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 shadow-sm">
       <div className="flex items-center gap-3 mb-6">
         <DollarSign className="w-6 h-6 text-purple-600" />
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -123,7 +123,7 @@ const SalaryFlexibilitySection = ({ onUpdate }: SectionProps) => {
                   p-4 rounded-lg border-2 transition-all duration-200 text-left
                   ${formData.salaryFlexibility === level.id
                     ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                    : 'border-gray-200 dark:border-gray-600 hover:border-purple-200 dark:hover:border-purple-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                    : 'border-gray-200 dark:border-[#4a494b] hover:border-purple-200 dark:hover:border-purple-600 bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100'
                   }
                 `}
               >
@@ -153,7 +153,7 @@ const SalaryFlexibilitySection = ({ onUpdate }: SectionProps) => {
                   p-3 rounded-lg border-2 transition-all duration-200 text-left
                   ${formData.compensationPriorities.includes(option.id)
                     ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                    : 'border-gray-200 dark:border-gray-600 hover:border-purple-200 dark:hover:border-purple-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                    : 'border-gray-200 dark:border-[#4a494b] hover:border-purple-200 dark:hover:border-purple-600 bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100'
                   }
                 `}
               >
@@ -178,7 +178,7 @@ const SalaryFlexibilitySection = ({ onUpdate }: SectionProps) => {
                   p-3 rounded-lg border-2 transition-all duration-200 text-left
                   ${formData.willingToTrade.includes(option.id)
                     ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-                    : 'border-gray-200 dark:border-gray-600 hover:border-green-200 dark:hover:border-green-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                    : 'border-gray-200 dark:border-[#4a494b] hover:border-green-200 dark:hover:border-green-600 bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100'
                   }
                 `}
               >

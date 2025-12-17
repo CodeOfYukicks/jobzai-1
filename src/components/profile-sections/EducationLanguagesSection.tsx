@@ -450,7 +450,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                       <div className="absolute top-3 right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => setEditingEducationIndex(index)}
-                          className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                                className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
                           title="Edit"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -459,7 +459,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                         <div className="relative">
                           <button
                             onClick={() => setOpenEducationMenuIndex(isMenuOpen ? null : index)}
-                            className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                                className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
                           >
                             <MoreVertical className="w-4 h-4" />
                           </button>
@@ -468,7 +468,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                             <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-lg overflow-hidden z-20">
                               <button
                                 onClick={() => duplicateEducation(index)}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]"
                               >
                                 <Copy className="w-4 h-4" />
                                 Duplicate
@@ -571,7 +571,7 @@ const EducationLanguagesSection = ({ onUpdate }: SectionProps) => {
                   </div>
                     <button
                       onClick={() => handleRemoveLanguage(index)}
-                    className="p-1.5 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all"
+                    className="p-1.5 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-all"
                     >
                     <X className="w-4 h-4" />
                     </button>

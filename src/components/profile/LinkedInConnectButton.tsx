@@ -239,7 +239,7 @@ export const LinkedInImportModal = ({
           >
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden">
               {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3d3c3e]">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-[#0A66C2] rounded-xl">
                     <Linkedin className="w-5 h-5 text-white" />
@@ -284,7 +284,7 @@ export const LinkedInImportModal = ({
                       transition-all
                       ${error 
                         ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-900/20' 
-                        : 'border-gray-300 dark:border-gray-600 hover:border-[#0A66C2] dark:hover:border-[#0A66C2] bg-gray-50 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-[#3d3c3e]'
+                        : 'border-gray-300 dark:border-[#4a494b] hover:border-[#0A66C2] dark:hover:border-[#0A66C2] bg-gray-50 dark:bg-[#2b2a2c] hover:bg-blue-50 dark:hover:bg-[#3d3c3e]'
                       }
                     `}>
                       <Upload className={`w-10 h-10 mb-3 ${error ? 'text-red-400' : 'text-gray-400'}`} />
@@ -305,7 +305,7 @@ export const LinkedInImportModal = ({
                 ) : (
                   <div className="space-y-4">
                     {/* Uploaded File */}
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#2b2a2c] rounded-xl">
                       <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
                         <FileText className="w-5 h-5 text-red-600 dark:text-red-400" />
                       </div>
@@ -373,10 +373,10 @@ export const LinkedInImportModal = ({
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#2b2a2c]/50">
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
@@ -389,7 +389,7 @@ export const LinkedInImportModal = ({
                     flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors
                     ${parsedData && !isParsing
                       ? 'bg-[#0A66C2] text-white hover:bg-[#004182]'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-200 dark:bg-[#3d3c3e] text-gray-400 dark:text-gray-500 cursor-not-allowed'
                     }
                   `}
                 >

@@ -57,7 +57,7 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
 
   if (isLoading) {
     return (
-      <section className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+      <section className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 shadow-sm">
         <div className="animate-pulse space-y-4">
           <div className="h-4 bg-gray-200 rounded w-1/4"></div>
           <div className="h-10 bg-gray-200 rounded"></div>
@@ -69,7 +69,7 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
   }
 
   return (
-    <section id="personal" className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+    <section id="personal" className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 shadow-sm">
       <div className="flex items-center gap-3 mb-6">
         <User className="w-6 h-6 text-purple-600" />
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -88,7 +88,7 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
             value={formData.firstName}
             onChange={(e) => handleChange('firstName', e.target.value)}
             placeholder="Enter your first name"
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
           />
         </div>
 
@@ -102,7 +102,7 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
             value={formData.lastName}
             onChange={(e) => handleChange('lastName', e.target.value)}
             placeholder="Enter your last name"
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
           />
         </div>
 
@@ -115,7 +115,7 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
             type="text"
             value={`${formData.firstName} ${formData.lastName}`.trim()}
             readOnly
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 cursor-not-allowed"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-[#4a494b] bg-gray-50 dark:bg-[#3d3c3e]/50 text-gray-900 dark:text-gray-100 cursor-not-allowed"
           />
         </div>
 
@@ -129,7 +129,7 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
             value={formData.email}
             onChange={(e) => handleChange('email', e.target.value)}
             placeholder="Enter your email"
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
           />
         </div>
 
@@ -141,7 +141,7 @@ const PersonalInformationSection = ({ onUpdate }: PersonalInformationSectionProp
           <select
             value={formData.gender}
             onChange={(e) => handleChange('gender', e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
           >
             <option value="">Select gender</option>
             <option value="male">Male</option>

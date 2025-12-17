@@ -144,8 +144,8 @@ export const BulletInput = ({
               rows={1}
               className="
                 flex-1 px-3 py-2 
-                bg-white dark:bg-gray-800
-                border border-gray-300 dark:border-gray-600
+                bg-white dark:bg-[#2b2a2c]
+                border border-gray-300 dark:border-[#4a494b]
                 rounded-lg
                 text-gray-900 dark:text-gray-100
                 text-sm
@@ -187,8 +187,8 @@ export const BulletInput = ({
           animate={{ opacity: 1 }}
           className="text-xs text-gray-400 dark:text-gray-500 mt-2 flex items-center gap-4"
         >
-          <span>Press <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs">Enter</kbd> to add</span>
-          <span><kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs">Backspace</kbd> on empty to remove</span>
+          <span>Press <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded text-xs">Enter</kbd> to add</span>
+          <span><kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded text-xs">Backspace</kbd> on empty to remove</span>
         </motion.p>
       )}
     </div>

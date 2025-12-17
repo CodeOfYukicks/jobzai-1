@@ -95,7 +95,7 @@ const ProfileCompletionBanner = ({
               
               {/* Progress Bar */}
               <div className="w-full">
-                <div className="h-1.5 bg-gray-200/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-full overflow-hidden relative">
+                <div className="h-1.5 bg-gray-200/50 dark:bg-[#3d3c3e]/50 backdrop-blur-sm rounded-full overflow-hidden relative">
                   <motion.div 
                     className="absolute inset-0 bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 rounded-full"
                     initial={{ width: 0 }}
@@ -123,7 +123,7 @@ const ProfileCompletionBanner = ({
               onClick={() => setIsDismissed(true)}
               whileHover={{ scale: 1.1, rotate: 90 }}
               whileTap={{ scale: 0.9 }}
-              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-lg hover:bg-white/50 dark:hover:bg-gray-700/50 backdrop-blur-sm"
+              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-lg hover:bg-white/50 dark:hover:bg-[#3d3c3e]/50 backdrop-blur-sm"
               aria-label="Dismiss"
             >
               <X className="w-4 h-4" />

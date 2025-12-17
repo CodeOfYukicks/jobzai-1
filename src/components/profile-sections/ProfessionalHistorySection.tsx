@@ -394,7 +394,7 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
                           <div key={experience.originalIndex} className="relative">
                             {/* Timeline dot (only for multiple positions) */}
                             {hasMultiplePositions && (
-                              <div className="absolute -left-[3.25rem] top-1 w-2.5 h-2.5 rounded-full bg-gray-400 dark:bg-gray-500 border-2 border-white dark:border-gray-800" />
+                              <div className="absolute -left-[3.25rem] top-1 w-2.5 h-2.5 rounded-full bg-gray-400 dark:bg-gray-500 border-2 border-white dark:border-[#2b2a2c]" />
                             )}
                             
                             {isEditing ? (
@@ -551,7 +551,7 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
                                 <div className="absolute top-0 right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button
                                     onClick={() => setEditingIndex(experience.originalIndex)}
-                                    className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                                    className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
                                     title="Edit"
                                   >
                                     <Edit2 className="w-4 h-4" />
@@ -560,7 +560,7 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
                                   <div className="relative">
                                     <button
                                       onClick={() => setOpenMenuIndex(isMenuOpen ? null : experience.originalIndex)}
-                                      className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                                      className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
                                     >
                                       <MoreVertical className="w-4 h-4" />
                                     </button>
@@ -569,7 +569,7 @@ const ProfessionalHistorySectionV2 = ({ onUpdate }: SectionProps) => {
                                       <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-lg overflow-hidden z-20">
                                         <button
                                           onClick={() => duplicateExperience(experience.originalIndex)}
-                                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]"
                                         >
                                           <Copy className="w-4 h-4" />
                                           Duplicate

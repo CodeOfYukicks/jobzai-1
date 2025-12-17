@@ -155,8 +155,8 @@ const CareerDriversSection = ({ onUpdate }: SectionProps) => {
                 className={`
                   relative p-3.5 rounded-xl text-left transition-all duration-200
                   ${isSelected
-                    ? 'bg-gray-100 dark:bg-gray-700/60 ring-1 ring-gray-900/10 dark:ring-white/10'
-                    : 'bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100/80 dark:hover:bg-gray-700/40'
+                    ? 'bg-gray-100 dark:bg-[#4a494b] ring-1 ring-gray-900/10 dark:ring-white/20'
+                    : 'bg-gray-50 dark:bg-[#3d3c3e] hover:bg-gray-100 dark:hover:bg-[#4a494b]'
                   }
                   ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
                 `}
@@ -222,7 +222,7 @@ const CareerDriversSection = ({ onUpdate }: SectionProps) => {
                   px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200
                   ${isSelected
                     ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
                   }
                 `}
               >
@@ -252,7 +252,7 @@ const CareerDriversSection = ({ onUpdate }: SectionProps) => {
                   px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200
                   ${isSelected
                     ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
                   }
                 `}
               >

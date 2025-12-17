@@ -60,7 +60,7 @@ const PreferencesPrioritiesSection = ({ onUpdate }: SectionProps) => {
   };
 
   return (
-    <section id="preferences" className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+    <section id="preferences" className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 shadow-sm">
       <div className="flex items-center gap-3 mb-6">
         <Settings className="w-6 h-6 text-purple-600" />
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Preferences & Priorities</h2>
@@ -81,7 +81,7 @@ const PreferencesPrioritiesSection = ({ onUpdate }: SectionProps) => {
                   flex-1 py-2 rounded-lg border-2 transition-all duration-200
                   ${formData.workLifeBalance === value
                     ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                    : 'border-gray-200 dark:border-gray-600 hover:border-purple-200 dark:hover:border-purple-600 bg-white dark:bg-gray-700'
+                    : 'border-gray-200 dark:border-[#4a494b] hover:border-purple-200 dark:hover:border-purple-600 bg-white dark:bg-[#3d3c3e]'
                   }
                 `}
               >
@@ -99,7 +99,7 @@ const PreferencesPrioritiesSection = ({ onUpdate }: SectionProps) => {
           <textarea
             value={formData.companyCulture}
             onChange={(e) => handleChange('companyCulture', e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
             rows={3}
             placeholder="Describe your ideal company culture..."
           />
@@ -113,7 +113,7 @@ const PreferencesPrioritiesSection = ({ onUpdate }: SectionProps) => {
           <textarea
             value={formData.careerGrowth}
             onChange={(e) => handleChange('careerGrowth', e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
             rows={3}
             placeholder="Describe your career growth expectations..."
           />
@@ -131,7 +131,7 @@ const PreferencesPrioritiesSection = ({ onUpdate }: SectionProps) => {
             <input
               type="text"
               placeholder="Add a sector to avoid and press Enter"
-              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && e.currentTarget.value.trim()) {
                   e.preventDefault();

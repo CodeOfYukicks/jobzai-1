@@ -174,8 +174,8 @@ const CoverPhotoCropper = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-4xl mx-4">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="relative bg-white dark:bg-[#2b2a2c] rounded-xl shadow-xl border border-gray-200 dark:border-[#3d3c3e] w-full max-w-4xl mx-4">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-[#3d3c3e]">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Adjust your cover</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Drag to reposition and use the slider to zoom</p>
         </div>
@@ -190,7 +190,7 @@ const CoverPhotoCropper = ({
             onTouchEnd={handleTouchEnd}
           >
             <div
-              className="relative overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700"
+              className="relative overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-[#3d3c3e]"
               style={{ width: `${cropWidth}px`, height: `${cropHeight}px` }}
               onMouseDown={handleMouseDown}
               onTouchStart={handleTouchStart}
@@ -225,10 +225,10 @@ const CoverPhotoCropper = ({
             />
           </div>
         </div>
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-2">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-[#3d3c3e] flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-200"
+            className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-[#3d3c3e] dark:hover:bg-gray-600 text-gray-900 dark:text-gray-200"
           >
             Cancel
           </button>

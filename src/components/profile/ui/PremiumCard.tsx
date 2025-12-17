@@ -38,10 +38,10 @@ const PremiumCard = ({
       transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
       className={`
         relative overflow-hidden
-        bg-white dark:bg-gray-800/95
+        bg-white dark:bg-[#2b2a2c]/95
         backdrop-blur-xl
         rounded-2xl
-        border border-gray-200/80 dark:border-gray-700/50
+        border border-gray-200/80 dark:border-[#3d3c3e]/50
         shadow-sm hover:shadow-md
         transition-all duration-300
         ${highlight ? 'ring-2 ring-indigo-500/20 dark:ring-indigo-400/20' : ''}
@@ -49,7 +49,7 @@ const PremiumCard = ({
       `}
     >
       {/* Subtle gradient overlay for premium feel */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/50 via-transparent to-transparent dark:from-gray-800/50 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-white/50 via-transparent to-transparent dark:from-[#2b2a2c]/50 pointer-events-none" />
       
       {/* Highlight glow effect */}
       {highlight && (
@@ -61,7 +61,7 @@ const PremiumCard = ({
         className={`
           relative px-5 py-4
           ${isCollapsible ? 'cursor-pointer select-none' : ''}
-          ${!isCollapsed ? 'border-b border-gray-100 dark:border-gray-700/50' : ''}
+          ${!isCollapsed ? 'border-b border-gray-100 dark:border-[#3d3c3e]/50' : ''}
         `}
         onClick={() => isCollapsible && setIsCollapsed(!isCollapsed)}
       >
@@ -73,7 +73,7 @@ const PremiumCard = ({
                 p-2 rounded-xl
                 ${isComplete 
                   ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400' 
-                  : 'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400'
+                  : 'bg-gray-100 dark:bg-[#3d3c3e]/50 text-gray-600 dark:text-gray-400'
                 }
                 transition-colors duration-300
               `}>
@@ -132,7 +132,7 @@ const PremiumCard = ({
               <motion.div
                 animate={{ rotate: isCollapsed ? 0 : 180 }}
                 transition={{ duration: 0.2 }}
-                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-400 dark:text-gray-500"
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50 text-gray-400 dark:text-gray-500"
               >
                 <ChevronDown className="w-4 h-4" />
               </motion.div>
@@ -178,7 +178,7 @@ export const PremiumCardEmptyState = ({
 }) => (
   <div className="flex flex-col items-center justify-center py-8 text-center">
     {icon && (
-      <div className="p-3 rounded-xl bg-gray-100 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500 mb-3">
+      <div className="p-3 rounded-xl bg-gray-100 dark:bg-[#3d3c3e]/50 text-gray-400 dark:text-gray-500 mb-3">
         {icon}
       </div>
     )}
@@ -227,7 +227,7 @@ export const PremiumCardAISuggestion = ({
         {onDismiss && (
           <button
             onClick={onDismiss}
-            className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
           >
             Dismiss
           </button>

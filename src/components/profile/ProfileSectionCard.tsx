@@ -94,7 +94,7 @@ const ProfileSectionCard = ({
             {onAdd && (
               <button
                 onClick={onAdd}
-                className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
                 title="Add"
               >
                 <Plus className="w-5 h-5" />
@@ -105,7 +105,7 @@ const ProfileSectionCard = ({
             {onEdit && (
               <button
                 onClick={onEdit}
-                className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
                 title="Edit section"
               >
                 <Edit2 className="w-5 h-5" />
@@ -119,7 +119,7 @@ const ProfileSectionCard = ({
                   e.stopPropagation();
                   setIsCollapsed(!isCollapsed);
                 }}
-                className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
               >
                 <ChevronDown 
                   className="w-5 h-5 transition-transform duration-200" 
@@ -154,7 +154,7 @@ const ProfileSectionCard = ({
                   {onDismissSuggestion && (
                     <button
                       onClick={onDismissSuggestion}
-                      className="px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                      className="px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
                     >
                       Dismiss
                     </button>

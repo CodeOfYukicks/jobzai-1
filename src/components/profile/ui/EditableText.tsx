@@ -150,7 +150,7 @@ const EditableText = ({
               ${inputStyles}
               min-h-[80px] resize-none
               px-3 py-2 rounded-lg
-              bg-white dark:bg-gray-800
+              bg-white dark:bg-[#2b2a2c]
               border-2 border-indigo-500 dark:border-indigo-400
               shadow-sm shadow-indigo-500/10
               text-gray-900 dark:text-white
@@ -172,7 +172,7 @@ const EditableText = ({
             className={`
               ${inputStyles}
               px-3 py-1.5 rounded-lg
-              bg-white dark:bg-gray-800
+              bg-white dark:bg-[#2b2a2c]
               border-2 border-indigo-500 dark:border-indigo-400
               shadow-sm shadow-indigo-500/10
               text-gray-900 dark:text-white
@@ -197,7 +197,7 @@ const EditableText = ({
             animate={{ scale: 1 }}
             transition={{ delay: 0.05 }}
             onClick={handleCancel}
-            className="p-1 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            className="p-1 rounded-md bg-gray-200 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
           >
             <X className="w-3.5 h-3.5" />
           </motion.button>
@@ -231,7 +231,7 @@ const EditableText = ({
         className={`
           ${baseStyles[Component]}
           ${isEmpty ? 'text-gray-400 dark:text-gray-500 italic' : 'text-gray-900 dark:text-white'}
-          ${!disabled ? 'hover:bg-gray-100/50 dark:hover:bg-gray-700/50' : ''}
+          ${!disabled ? 'hover:bg-gray-100/50 dark:hover:bg-[#3d3c3e]/50' : ''}
           px-3 py-1.5 -mx-3 -my-1.5 rounded-lg
           transition-all duration-200
           ${className}
@@ -247,7 +247,7 @@ const EditableText = ({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+            className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 rounded-md bg-gray-100 dark:bg-[#3d3c3e] text-gray-500 dark:text-gray-400"
           >
             <Pencil className="w-3.5 h-3.5" />
           </motion.div>

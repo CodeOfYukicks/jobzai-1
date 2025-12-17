@@ -43,7 +43,7 @@ const ProfileLandingPage = ({
               </span>
               <span className="text-sm text-gray-500 dark:text-gray-500">complete</span>
             </div>
-            <div className="relative w-40 h-3 bg-gray-200/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-full overflow-hidden shadow-inner">
+            <div className="relative w-40 h-3 bg-gray-200/50 dark:bg-[#3d3c3e]/50 backdrop-blur-sm rounded-full overflow-hidden shadow-inner">
               <motion.div 
                 className="absolute inset-0 bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 rounded-full"
                 initial={{ width: 0 }}
@@ -104,7 +104,7 @@ const ProfileLandingPage = ({
                 className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 relative ${
                   isRecommended
                     ? 'bg-gradient-to-br from-purple-500/20 to-indigo-500/20 dark:from-purple-500/30 dark:to-indigo-500/30'
-                    : 'bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm'
+                    : 'bg-gray-100/80 dark:bg-[#3d3c3e]/80 backdrop-blur-sm'
                 }`}
                 whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.1 }}
                 transition={{ duration: 0.5 }}
@@ -137,7 +137,7 @@ const ProfileLandingPage = ({
                 className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm transition-all duration-300 ${
                   isRecommended
                     ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40'
-                    : 'bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200/80 dark:hover:bg-gray-600/80'
+                    : 'bg-gray-100/80 dark:bg-[#3d3c3e]/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200/80 dark:hover:bg-gray-600/80'
                 }`}
               >
                 <span>Start Step Mode</span>
@@ -178,7 +178,7 @@ const ProfileLandingPage = ({
                 className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 relative ${
                   !isRecommended && completionPercentage > 50
                     ? 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20 dark:from-indigo-500/30 dark:to-purple-500/30'
-                    : 'bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm'
+                    : 'bg-gray-100/80 dark:bg-[#3d3c3e]/80 backdrop-blur-sm'
                 }`}
                 whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.1 }}
                 transition={{ duration: 0.5 }}
@@ -211,7 +211,7 @@ const ProfileLandingPage = ({
                 className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm transition-all duration-300 border-2 ${
                   !isRecommended && completionPercentage > 50
                     ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-transparent shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40'
-                    : 'bg-transparent border-gray-300/50 dark:border-gray-600/50 backdrop-blur-sm text-gray-700 dark:text-gray-300 hover:border-purple-400/50 dark:hover:border-purple-500/50 hover:bg-gray-100/50 dark:hover:bg-gray-700/50'
+                    : 'bg-transparent border-gray-300/50 dark:border-[#4a494b]/50 backdrop-blur-sm text-gray-700 dark:text-gray-300 hover:border-purple-400/50 dark:hover:border-purple-500/50 hover:bg-gray-100/50 dark:hover:bg-[#3d3c3e]/50'
                 }`}
               >
                 <span>Go to Profile</span>

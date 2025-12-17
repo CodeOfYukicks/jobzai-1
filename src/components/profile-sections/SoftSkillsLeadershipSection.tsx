@@ -118,7 +118,7 @@ const SoftSkillsLeadershipSection = ({ onUpdate }: SectionProps) => {
 
   if (isLoading) {
     return (
-      <section className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+      <section className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 shadow-sm">
         <div className="animate-pulse space-y-4">
           <div className="h-4 bg-gray-200 rounded w-1/4"></div>
           <div className="h-10 bg-gray-200 rounded"></div>
@@ -128,7 +128,7 @@ const SoftSkillsLeadershipSection = ({ onUpdate }: SectionProps) => {
   }
 
   return (
-    <section id="soft-skills-leadership" className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+    <section id="soft-skills-leadership" className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 shadow-sm">
       <div className="flex items-center gap-3 mb-6">
         <Users className="w-6 h-6 text-purple-600" />
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -153,7 +153,7 @@ const SoftSkillsLeadershipSection = ({ onUpdate }: SectionProps) => {
                     p-3 rounded-lg border-2 transition-all duration-200 text-left
                     ${formData.softSkills.includes(skill.id)
                       ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                      : 'border-gray-200 dark:border-gray-600 hover:border-purple-200 dark:hover:border-purple-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                      : 'border-gray-200 dark:border-[#4a494b] hover:border-purple-200 dark:hover:border-purple-600 bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100'
                     }
                   `}
                 >
@@ -171,7 +171,7 @@ const SoftSkillsLeadershipSection = ({ onUpdate }: SectionProps) => {
         </div>
 
         {/* Management Experience */}
-        <div className="border-t dark:border-gray-700 pt-6">
+        <div className="border-t dark:border-[#3d3c3e] pt-6">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">
             Management Experience
           </label>
@@ -195,7 +195,7 @@ const SoftSkillsLeadershipSection = ({ onUpdate }: SectionProps) => {
                   <select
                     value={formData.managementExperience.teamSize}
                     onChange={(e) => updateManagementExperience('teamSize', e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                   >
                     <option value="">Select team size</option>
                     {teamSizes.map((size) => (
@@ -210,7 +210,7 @@ const SoftSkillsLeadershipSection = ({ onUpdate }: SectionProps) => {
                   <select
                     value={formData.managementExperience.teamType}
                     onChange={(e) => updateManagementExperience('teamType', e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                   >
                     <option value="">Select team type</option>
                     {teamTypes.map((type) => (
@@ -225,7 +225,7 @@ const SoftSkillsLeadershipSection = ({ onUpdate }: SectionProps) => {
 
         {/* Mentoring & Recruiting */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="flex items-center space-x-2 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+          <label className="flex items-center space-x-2 p-4 border border-gray-200 dark:border-[#3d3c3e] rounded-lg">
             <input
               type="checkbox"
               checked={formData.mentoringExperience}
@@ -238,7 +238,7 @@ const SoftSkillsLeadershipSection = ({ onUpdate }: SectionProps) => {
             </div>
           </label>
 
-          <label className="flex items-center space-x-2 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+          <label className="flex items-center space-x-2 p-4 border border-gray-200 dark:border-[#3d3c3e] rounded-lg">
             <input
               type="checkbox"
               checked={formData.recruitingExperience}

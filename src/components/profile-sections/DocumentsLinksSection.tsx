@@ -197,10 +197,10 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200/60 dark:border-gray-700/50 rounded-xl"
+            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-xl"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center">
                 <FileText className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               </div>
               <div>
@@ -216,7 +216,7 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
                 href={formData.cvUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all"
+                className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-all"
               >
                 <ExternalLink className="w-4 h-4" />
               </a>
@@ -254,16 +254,16 @@ const DocumentsLinksSection = ({ onUpdate }: SectionProps) => {
             className={`
               flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all
               ${isDragging
-                ? 'border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-800/50'
-                : 'border-gray-200/80 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800/30'
+                ? 'border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-[#2b2a2c]/50'
+                : 'border-gray-200/80 dark:border-[#3d3c3e]/50 hover:border-gray-300 dark:hover:border-[#4a494b] bg-white dark:bg-[#2b2a2c]/30'
               }
             `}
           >
             <div className={`
               w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors
               ${isDragging 
-                ? 'bg-gray-200 dark:bg-gray-700' 
-                : 'bg-gray-100 dark:bg-gray-700/60'
+                ? 'bg-gray-200 dark:bg-[#3d3c3e]' 
+                : 'bg-gray-100 dark:bg-[#3d3c3e]/60'
               }
             `}>
               <Upload className={`w-6 h-6 ${isUploading ? 'animate-bounce text-gray-600 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'}`} />
