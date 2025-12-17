@@ -100,6 +100,45 @@ export const fetchJobsWorker = onDocumentCreated(
 				const { fetchAshby } = require('../utils/atsFetchers');
 				jobs = await fetchAshby(company);
 			}
+			// GAFAM - Big Tech Direct Fetchers
+			else if (provider === 'google') {
+				const { fetchGoogleCareers } = require('../utils/gafamFetchers');
+				jobs = await fetchGoogleCareers();
+			} else if (provider === 'meta') {
+				const { fetchMetaCareers } = require('../utils/gafamFetchers');
+				jobs = await fetchMetaCareers();
+			} else if (provider === 'amazon') {
+				const { fetchAmazonJobs } = require('../utils/gafamFetchers');
+				jobs = await fetchAmazonJobs();
+			} else if (provider === 'apple') {
+				const { fetchAppleJobs } = require('../utils/gafamFetchers');
+				jobs = await fetchAppleJobs();
+			} else if (provider === 'microsoft') {
+				const { fetchMicrosoftJobs } = require('../utils/gafamFetchers');
+				jobs = await fetchMicrosoftJobs();
+			}
+			// Enterprise Tech
+			else if (provider === 'salesforce') {
+				const { fetchSalesforceJobs } = require('../utils/gafamFetchers');
+				jobs = await fetchSalesforceJobs();
+			} else if (provider === 'sap') {
+				const { fetchSAPJobs } = require('../utils/gafamFetchers');
+				jobs = await fetchSAPJobs();
+			} else if (provider === 'oracle') {
+				const { fetchOracleJobs } = require('../utils/gafamFetchers');
+				jobs = await fetchOracleJobs();
+			}
+			// Enterprise Consulting
+			else if (provider === 'accenture') {
+				const { fetchAccentureJobs } = require('../utils/gafamFetchers');
+				jobs = await fetchAccentureJobs();
+			} else if (provider === 'deloitte') {
+				const { fetchDeloitteJobs } = require('../utils/gafamFetchers');
+				jobs = await fetchDeloitteJobs();
+			} else if (provider === 'capgemini') {
+				const { fetchCapgeminiJobs } = require('../utils/gafamFetchers');
+				jobs = await fetchCapgeminiJobs();
+			}
 
 			console.log(`[WORKER] Fetched ${jobs.length} jobs from ${provider}/${company}`);
 

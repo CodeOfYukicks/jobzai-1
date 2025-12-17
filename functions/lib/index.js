@@ -11,8 +11,8 @@ var __rest = (this && this.__rest) || function (s, e) {
     return t;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.dbStats = exports.runDynamicBatch = exports.fetchJobsBatch4 = exports.fetchJobsBatch3 = exports.fetchJobsBatch2 = exports.fetchJobsBatch1 = exports.masterTrigger = exports.fetchAllAdditionalATS = exports.fetchWorkable = exports.fetchPersonio = exports.fetchRecruitee = exports.fetchBreezyHR = exports.fetchTeamtailor = exports.fetchAllGAFAM = exports.fetchAppleJobs = exports.fetchAmazonJobs = exports.fetchMetaCareers = exports.fetchGoogleCareers = exports.fetchAggregatorsManual = exports.fetchFromAggregators = exports.activateDiscoveredCompany = exports.getDiscoveredCompanies = exports.manualDiscovery = exports.scheduledDiscovery = exports.enrichApolloContact = exports.searchApolloContacts = exports.getDatabaseStats = exports.manualCleanup = exports.scheduledCleanup = exports.processDynamicBatch = exports.retryFailedTasks = exports.processTaskManual = exports.processFetchTask = exports.getQueueStatus = exports.createFetchTasksManual = exports.createFetchTasks = exports.enrichSkillsWorker = exports.fetchJobsWorker = exports.scheduleFetchJobs = exports.backfillUserEmbeddings = exports.backfillJobsV5Manual = exports.getUserInteractionStats = exports.getSavedJobs = exports.trackJobInteraction = exports.getMatchedJobs = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.updateJobEmbeddingOnEnrichment = exports.generateJobEmbedding = exports.fetchJobsFromATS = void 0;
-exports.downloadCV = exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.reEnrichAllJobsV4 = exports.enrichSingleJob = exports.enrichJobsManual = exports.testNewFunction = exports.queueStatus = exports.testFetchTask = exports.fetchAggregators = exports.cleanupJobs = void 0;
+exports.fetchBreezyHR = exports.fetchTeamtailor = exports.fetchGAFAMManual = exports.fetchAllBigTechAndEnterprise = exports.fetchAllEnterprise = exports.fetchCapgeminiJobs = exports.fetchDeloitteJobs = exports.fetchAccentureJobs = exports.fetchOracleJobs = exports.fetchSAPJobs = exports.fetchSalesforceJobs = exports.fetchAllGAFAM = exports.fetchMicrosoftJobs = exports.fetchAppleJobs = exports.fetchAmazonJobs = exports.fetchMetaCareers = exports.fetchGoogleCareers = exports.fetchAggregatorsManual = exports.fetchFromAggregators = exports.activateDiscoveredCompany = exports.getDiscoveredCompanies = exports.manualDiscovery = exports.scheduledDiscovery = exports.enrichApolloContact = exports.searchApolloContacts = exports.getDatabaseStats = exports.manualCleanup = exports.scheduledCleanup = exports.processDynamicBatch = exports.retryFailedTasks = exports.processTaskManual = exports.processFetchTask = exports.getQueueStatus = exports.createFetchTasksManual = exports.createFetchTasks = exports.enrichSkillsWorker = exports.fetchJobsWorker = exports.scheduleFetchJobs = exports.backfillUserEmbeddings = exports.backfillJobsV5Manual = exports.getUserInteractionStats = exports.getSavedJobs = exports.trackJobInteraction = exports.getMatchedJobs = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.updateJobEmbeddingOnEnrichment = exports.generateJobEmbedding = exports.fetchGAFAMEnterprise = exports.fetchJobsFromATS = void 0;
+exports.downloadCV = exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.reEnrichAllJobsV4 = exports.enrichSingleJob = exports.enrichJobsManual = exports.testNewFunction = exports.queueStatus = exports.testFetchTask = exports.fetchAggregators = exports.cleanupJobs = exports.dbStats = exports.runDynamicBatch = exports.fetchJobsBatch4 = exports.fetchJobsBatch3 = exports.fetchJobsBatch2 = exports.fetchJobsBatch1 = exports.masterTrigger = exports.fetchAllAdditionalATS = exports.fetchWorkable = exports.fetchPersonio = exports.fetchRecruitee = void 0;
 // Version 3.0 - Scalable Queue-based Architecture (Dec 2025)
 // Supports 1000+ companies with distributed task processing
 const admin = require("firebase-admin");
@@ -21,6 +21,8 @@ if (!admin.apps.length) {
 }
 var fetchJobs_1 = require("./fetchJobs");
 Object.defineProperty(exports, "fetchJobsFromATS", { enumerable: true, get: function () { return fetchJobs_1.fetchJobsFromATS; } });
+var fetchGAFAMEnterprise_1 = require("./fetchGAFAMEnterprise");
+Object.defineProperty(exports, "fetchGAFAMEnterprise", { enumerable: true, get: function () { return fetchGAFAMEnterprise_1.fetchGAFAMEnterprise; } });
 var generateJobEmbedding_1 = require("./generateJobEmbedding");
 Object.defineProperty(exports, "generateJobEmbedding", { enumerable: true, get: function () { return generateJobEmbedding_1.generateJobEmbedding; } });
 Object.defineProperty(exports, "updateJobEmbeddingOnEnrichment", { enumerable: true, get: function () { return generateJobEmbedding_1.updateJobEmbeddingOnEnrichment; } });
@@ -85,14 +87,30 @@ Object.defineProperty(exports, "activateDiscoveredCompany", { enumerable: true, 
 var aggregators_1 = require("./aggregators");
 Object.defineProperty(exports, "fetchFromAggregators", { enumerable: true, get: function () { return aggregators_1.fetchFromAggregators; } });
 Object.defineProperty(exports, "fetchAggregatorsManual", { enumerable: true, get: function () { return aggregators_1.fetchAggregatorsManual; } });
-// 🏢 GAFAM DIRECT FETCHERS
-// Dedicated fetchers for Google, Meta, Amazon, Apple (not using standard ATS)
+// 🏢 GAFAM + ENTERPRISE DIRECT FETCHERS
+// Dedicated fetchers for Big Tech (Google, Meta, Amazon, Apple, Microsoft)
+// and Enterprise Consulting (Salesforce, Accenture, Deloitte, Capgemini, SAP, Oracle)
 var gafamFetchers_1 = require("./utils/gafamFetchers");
+// GAFAM / MAANG
 Object.defineProperty(exports, "fetchGoogleCareers", { enumerable: true, get: function () { return gafamFetchers_1.fetchGoogleCareers; } });
 Object.defineProperty(exports, "fetchMetaCareers", { enumerable: true, get: function () { return gafamFetchers_1.fetchMetaCareers; } });
 Object.defineProperty(exports, "fetchAmazonJobs", { enumerable: true, get: function () { return gafamFetchers_1.fetchAmazonJobs; } });
 Object.defineProperty(exports, "fetchAppleJobs", { enumerable: true, get: function () { return gafamFetchers_1.fetchAppleJobs; } });
+Object.defineProperty(exports, "fetchMicrosoftJobs", { enumerable: true, get: function () { return gafamFetchers_1.fetchMicrosoftJobs; } });
 Object.defineProperty(exports, "fetchAllGAFAM", { enumerable: true, get: function () { return gafamFetchers_1.fetchAllGAFAM; } });
+// Enterprise Tech
+Object.defineProperty(exports, "fetchSalesforceJobs", { enumerable: true, get: function () { return gafamFetchers_1.fetchSalesforceJobs; } });
+Object.defineProperty(exports, "fetchSAPJobs", { enumerable: true, get: function () { return gafamFetchers_1.fetchSAPJobs; } });
+Object.defineProperty(exports, "fetchOracleJobs", { enumerable: true, get: function () { return gafamFetchers_1.fetchOracleJobs; } });
+// Enterprise Consulting
+Object.defineProperty(exports, "fetchAccentureJobs", { enumerable: true, get: function () { return gafamFetchers_1.fetchAccentureJobs; } });
+Object.defineProperty(exports, "fetchDeloitteJobs", { enumerable: true, get: function () { return gafamFetchers_1.fetchDeloitteJobs; } });
+Object.defineProperty(exports, "fetchCapgeminiJobs", { enumerable: true, get: function () { return gafamFetchers_1.fetchCapgeminiJobs; } });
+// Aggregated
+Object.defineProperty(exports, "fetchAllEnterprise", { enumerable: true, get: function () { return gafamFetchers_1.fetchAllEnterprise; } });
+Object.defineProperty(exports, "fetchAllBigTechAndEnterprise", { enumerable: true, get: function () { return gafamFetchers_1.fetchAllBigTechAndEnterprise; } });
+// Manual HTTP endpoint
+Object.defineProperty(exports, "fetchGAFAMManual", { enumerable: true, get: function () { return gafamFetchers_1.fetchGAFAMManual; } });
 // 📋 ADDITIONAL ATS FETCHERS
 // European and SMB ATS platforms (Teamtailor, BreezyHR, Recruitee, Personio, Workable)
 var additionalATSFetchers_1 = require("./utils/additionalATSFetchers");

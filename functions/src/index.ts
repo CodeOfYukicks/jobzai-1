@@ -7,6 +7,7 @@ if (!admin.apps.length) {
 }
 
 export { fetchJobsFromATS } from './fetchJobs';
+export { fetchGAFAMEnterprise } from './fetchGAFAMEnterprise';
 export { generateJobEmbedding, updateJobEmbeddingOnEnrichment } from './generateJobEmbedding';
 export { generateUserEmbedding } from './generateUserEmbedding';
 export { matchJobsForUsers } from './matchJobsForUsers';
@@ -72,14 +73,30 @@ export {
 	fetchAggregatorsManual,
 } from './aggregators';
 
-// 🏢 GAFAM DIRECT FETCHERS
-// Dedicated fetchers for Google, Meta, Amazon, Apple (not using standard ATS)
+// 🏢 GAFAM + ENTERPRISE DIRECT FETCHERS
+// Dedicated fetchers for Big Tech (Google, Meta, Amazon, Apple, Microsoft)
+// and Enterprise Consulting (Salesforce, Accenture, Deloitte, Capgemini, SAP, Oracle)
 export {
+	// GAFAM / MAANG
 	fetchGoogleCareers,
 	fetchMetaCareers,
 	fetchAmazonJobs,
 	fetchAppleJobs,
+	fetchMicrosoftJobs,
 	fetchAllGAFAM,
+	// Enterprise Tech
+	fetchSalesforceJobs,
+	fetchSAPJobs,
+	fetchOracleJobs,
+	// Enterprise Consulting
+	fetchAccentureJobs,
+	fetchDeloitteJobs,
+	fetchCapgeminiJobs,
+	// Aggregated
+	fetchAllEnterprise,
+	fetchAllBigTechAndEnterprise,
+	// Manual HTTP endpoint
+	fetchGAFAMManual,
 } from './utils/gafamFetchers';
 
 // 📋 ADDITIONAL ATS FETCHERS
