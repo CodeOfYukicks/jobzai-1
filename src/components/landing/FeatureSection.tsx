@@ -493,7 +493,7 @@ function TryForFree() {
       className="pt-8 pb-16"
     >
       {/* Title */}
-      <h2 className="text-4xl lg:text-5xl font-black text-gray-900 mb-10">
+      <h2 className="text-5xl lg:text-6xl font-black text-gray-900 mb-10 tracking-tight">
         Try for free.
       </h2>
 
@@ -769,7 +769,7 @@ export default function FeatureSection() {
           viewport={{ once: true }}
           className="mb-10"
         >
-          <h2 className="text-4xl lg:text-5xl font-black text-gray-900">
+          <h2 className="text-5xl lg:text-6xl font-black text-gray-900 tracking-tight">
             Introducing <span className="italic">Jobz.ai</span>
           </h2>
         </motion.div>
@@ -809,9 +809,6 @@ export default function FeatureSection() {
       {/* Press Quote - Back to container */}
       <div className="max-w-6xl mx-auto px-6">
         <PressQuote />
-        
-        {/* Marketing Stats */}
-        <MarketingStats />
       </div>
     </section>
   );
