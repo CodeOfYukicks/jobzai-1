@@ -276,7 +276,7 @@ export default function HubPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="mb-6"
+            className="mb-10 md:mb-12"
           >
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-3">
               <span className="text-gray-900 dark:text-gray-100">
@@ -292,39 +292,45 @@ export default function HubPage() {
             </p>
           </motion.div>
 
-          {/* Stats Row - Key Metrics First */}
-          <div className="grid grid-cols-3 gap-3 md:gap-4 mb-8">
+          {/* Stats Row - Premium Minimalist Cards */}
+          <div className="grid grid-cols-3 gap-3 md:gap-4 mb-10 md:mb-12">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-gradient-to-br from-[#635BFF] to-[#8B5CF6] rounded-2xl p-4 md:p-5 relative overflow-hidden shadow-lg shadow-[#635BFF]/20"
+              className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl p-4 md:p-5 relative overflow-hidden 
+                border border-gray-200/50 dark:border-white/10 
+                hover:bg-white/80 dark:hover:bg-white/8 transition-all duration-300"
             >
-              <div className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-1">Applications</div>
-              <div className="text-3xl md:text-4xl font-black text-white">{totalApplications}</div>
-              <Briefcase className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 text-white/15" />
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Applications</div>
+              <div className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">{totalApplications}</div>
+              <Briefcase className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 text-gray-300 dark:text-white/10" />
             </motion.div>
           
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="bg-gradient-to-br from-[#10B981] to-[#14B8A6] rounded-2xl p-4 md:p-5 relative overflow-hidden shadow-lg shadow-[#10B981]/20"
+              className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl p-4 md:p-5 relative overflow-hidden 
+                border border-gray-200/50 dark:border-white/10 
+                hover:bg-white/80 dark:hover:bg-white/8 transition-all duration-300"
             >
-              <div className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-1">Success Rate</div>
-              <div className="text-3xl md:text-4xl font-black text-white">{successRate.toFixed(0)}%</div>
-              <LineChart className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 text-white/15" />
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Success Rate</div>
+              <div className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">{successRate.toFixed(0)}%</div>
+              <LineChart className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 text-gray-300 dark:text-white/10" />
             </motion.div>
             
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-gradient-to-br from-[#EC4899] to-[#F472B6] rounded-2xl p-4 md:p-5 relative overflow-hidden shadow-lg shadow-[#EC4899]/20"
+              className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl p-4 md:p-5 relative overflow-hidden 
+                border border-gray-200/50 dark:border-white/10 
+                hover:bg-white/80 dark:hover:bg-white/8 transition-all duration-300"
             >
-              <div className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-1">Interviews</div>
-              <div className="text-3xl md:text-4xl font-black text-white">{activeInterviews}</div>
-              <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 text-white/15" />
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Interviews</div>
+              <div className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">{activeInterviews}</div>
+              <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 text-gray-300 dark:text-white/10" />
             </motion.div>
           </div>
 
@@ -333,7 +339,7 @@ export default function HubPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
-            className="mb-8"
+            className="mb-10 md:mb-12"
           >
             <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
               {[
@@ -375,7 +381,7 @@ export default function HubPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.35 }}
-            className="relative mb-10"
+            className="relative mb-12 md:mb-16"
           >
             <EditableWidgetGrid />
           </motion.div>
