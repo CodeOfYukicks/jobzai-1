@@ -9,6 +9,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { CampaignData, Seniority, CompanySize } from '../NewCampaignModal';
+import LocationAutocomplete from '../LocationAutocomplete';
 
 interface TargetingStepProps {
   data: CampaignData;
@@ -25,18 +26,7 @@ const COMPANY_SIZE_OPTIONS: { value: CompanySize; label: string }[] = [
   { value: '5001+', label: '5000+' }
 ];
 
-const LOCATION_SUGGESTIONS = [
-  'Remote',
-  'Paris, France',
-  'London, United Kingdom',
-  'New York, USA',
-  'San Francisco, USA',
-  'Berlin, Germany',
-  'Amsterdam, Netherlands',
-  'Toronto, Canada',
-  'Singapore',
-  'Dubai, UAE'
-];
+// Location suggestions are now handled by LocationAutocomplete component
 
 interface UserProfile {
   targetPosition?: string;
@@ -101,9 +91,7 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
   
   // Input states
   const [titleInput, setTitleInput] = useState('');
-  const [locationInput, setLocationInput] = useState('');
   const [excludeInput, setExcludeInput] = useState('');
-  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [showIndustryDropdown, setShowIndustryDropdown] = useState(false);
   const [showGoalTooltip, setShowGoalTooltip] = useState(false);
   const goalTooltipRef = useRef<HTMLDivElement>(null);
@@ -177,8 +165,6 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
     if (location.trim() && !data.personLocations.includes(location.trim())) {
       onUpdate({ personLocations: [...data.personLocations, location.trim()] });
     }
-    setLocationInput('');
-    setShowLocationDropdown(false);
   };
 
   const removeLocation = (location: string) => {
@@ -261,11 +247,6 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
     availableSuggestions.industries.length > 0 ||
     availableSuggestions.seniorities.length > 0 ||
     availableSuggestions.skills.length > 0;
-
-  const filteredLocations = LOCATION_SUGGESTIONS.filter(loc =>
-    loc.toLowerCase().includes(locationInput.toLowerCase()) &&
-    !data.personLocations.includes(loc)
-  );
 
   if (isLoadingProfile) {
     return (
@@ -493,61 +474,12 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
         <label className="block text-[12px] text-gray-500 dark:text-white/40 uppercase tracking-wider font-medium">
           Locations <span className="text-red-500">*</span>
         </label>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {data.personLocations.map(loc => (
-            <span
-              key={loc}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 
-                bg-gray-100 dark:bg-white/[0.08] rounded-full
-                text-[13px] font-medium text-gray-700 dark:text-white"
-            >
-              <MapPin className="w-3 h-3" />
-              {loc}
-              <button onClick={() => removeLocation(loc)} className="hover:text-red-500 transition-colors">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </span>
-          ))}
-        </div>
-        <div className="relative">
-          <input
-            type="text"
-            value={locationInput}
-            onChange={(e) => setLocationInput(e.target.value)}
-            onFocus={() => setShowLocationDropdown(true)}
-            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addLocation(locationInput))}
-            placeholder="e.g., Paris, London, Remote"
-            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/[0.04] 
-              border border-gray-200 dark:border-white/[0.08] rounded-lg
-              text-[14px] text-gray-900 dark:text-white 
-              placeholder:text-gray-400 dark:placeholder:text-white/30
-              focus:outline-none focus:border-gray-300 dark:focus:border-white/20"
-          />
-          <AnimatePresence>
-            {showLocationDropdown && filteredLocations.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="absolute z-50 w-full mt-2 py-2 bg-white dark:bg-[#1a1a1a] 
-                  border border-gray-200 dark:border-white/[0.1] rounded-xl shadow-xl max-h-48 overflow-y-auto"
-              >
-                {filteredLocations.map(loc => (
-                  <button
-                    key={loc}
-                    onClick={() => addLocation(loc)}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-[14px] text-left
-                      text-gray-600 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/[0.04] 
-                      hover:text-gray-900 dark:hover:text-white transition-colors"
-                  >
-                    <MapPin className="w-3.5 h-3.5" />
-                    {loc}
-                  </button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        <LocationAutocomplete
+          selectedLocations={data.personLocations}
+          onAddLocation={addLocation}
+          onRemoveLocation={removeLocation}
+          placeholder="e.g., Paris, London, Remote"
+        />
       </div>
 
       {/* Seniority */}
