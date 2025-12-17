@@ -381,13 +381,6 @@ function SavingsCalculator() {
           <p className="text-gray-500 text-[15px] mb-4">
             Bring all your tools and teams under one roof. Calculate savings below.
           </p>
-          <Link
-            to="/pricing"
-            className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#0275de] hover:text-[#0266c7] transition-colors"
-          >
-            See pricing plans
-            <ArrowRight className="w-4 h-4" />
-          </Link>
         </div>
 
         {/* Right - Tool Icons in a row */}

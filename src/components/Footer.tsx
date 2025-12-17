@@ -53,11 +53,6 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#pricing" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
-                  Pricing
-                </a>
-              </li>
-              <li>
                 <Link to="/signup" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
                   Get Started
                 </Link>

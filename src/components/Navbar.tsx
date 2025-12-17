@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Menu, 
@@ -7,13 +7,34 @@ import {
   Mail,
   ScrollText,
   Settings,
+  ChevronDown,
+  Sparkles,
+  Send,
+  Briefcase,
+  Target,
+  MessageSquare,
+  BarChart3,
+  Zap,
+  Brain,
+  FileText,
+  Users,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import FirebaseImage from './FirebaseImage';
 
 const publicNavigation = [
-  { name: 'Features', href: '#features' },
+  {
+    name: 'Products',
+    items: [
+      { name: 'Auto Apply', description: 'Mass spontaneous applications', href: '#auto-apply', icon: Send },
+      { name: 'Job Tracker', description: 'Track all your applications', href: '#tracker', icon: Target },
+      { name: 'AI Assistant', description: 'Your personal career copilot', href: '#ai', icon: Sparkles },
+    ]
+  },
+  { name: 'Job Board', href: '#jobs' },
+  { name: 'Interview Prep', href: '#interview' },
+  { name: 'Career Intelligence', href: '#insights' },
   { name: 'Pricing', href: '#pricing' },
 ];
 
@@ -29,6 +50,8 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { currentUser } = useAuth();
 
   useEffect(() => {
@@ -39,6 +62,18 @@ export default function Navbar() {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpenDropdown(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -60,10 +95,10 @@ export default function Navbar() {
         ? 'bg-white/80 backdrop-blur-lg shadow-sm border-b border-gray-100' 
         : 'bg-transparent'
     }`}>
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex-shrink-0 -ml-2">
+      <div className="w-full px-4 sm:px-6">
+        <div className="relative flex items-center justify-between h-14">
+          {/* Logo - Left */}
+          <div className="flex-shrink-0">
             <a 
               href="/"
               onClick={handleLogoClick}
@@ -72,26 +107,73 @@ export default function Navbar() {
               <FirebaseImage 
                 path="images/logo-only.png" 
                 alt="Jobz.ai"
-                className="h-12 w-auto"
+                className="h-10 w-auto"
               />
             </a>
           </div>
           
-          {/* Desktop Navigation - Public menu sur landing page ou si pas connecté */}
+          {/* Desktop Navigation - Centered */}
           {showPublicMenu && (
-            <div className="hidden md:flex items-center gap-8">
+            <div className="hidden md:flex items-center gap-0.5 absolute left-1/2 -translate-x-1/2" ref={dropdownRef}>
               {publicNavigation.map((item) => (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  className={`text-sm font-medium transition-colors ${
-                    scrolled || isLandingPage
-                      ? 'text-gray-600 hover:text-gray-900' 
-                      : 'text-white/90 hover:text-white'
-                  }`}
-                >
-                  {item.name}
-                </a>
+                'items' in item ? (
+                  // Dropdown menu
+                  <div key={item.name} className="relative">
+                    <button
+                      onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
+                      className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors ${
+                        scrolled || isLandingPage
+                          ? 'text-gray-600 hover:text-gray-900' 
+                          : 'text-white/90 hover:text-white'
+                      }`}
+                    >
+                      {item.name}
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openDropdown === item.name ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    <AnimatePresence>
+                      {openDropdown === item.name && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 8 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-gray-100 py-2 overflow-hidden"
+                        >
+                          {item.items.map((subItem) => (
+                            <a
+                              key={subItem.name}
+                              href={subItem.href}
+                              onClick={() => setOpenDropdown(null)}
+                              className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                            >
+                              <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
+                                <subItem.icon className="w-4.5 h-4.5 text-gray-700" />
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">{subItem.name}</div>
+                                <div className="text-xs text-gray-500 mt-0.5">{subItem.description}</div>
+                              </div>
+                            </a>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  // Regular link
+                  <a
+                    key={item.name}
+                    href={item.href}
+                    className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                      scrolled || isLandingPage
+                        ? 'text-gray-600 hover:text-gray-900' 
+                        : 'text-white/90 hover:text-white'
+                    }`}
+                  >
+                    {item.name}
+                  </a>
+                )
               ))}
             </div>
           )}
@@ -114,22 +196,22 @@ export default function Navbar() {
 
           {/* Desktop Right Side Actions - Public menu sur landing page ou si pas connecté */}
           {showPublicMenu && (
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-3">
               <Link
                 to="/login"
-                className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg ${
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                   scrolled || isLandingPage
-                    ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    : 'text-white/90 hover:text-white hover:bg-white/10'
+                    ? 'text-gray-600 hover:text-gray-900'
+                    : 'text-white/90 hover:text-white'
                 }`}
               >
-                Sign in
+                Log in
               </Link>
               <Link
                 to="/signup"
-                className="px-5 py-2.5 text-sm font-medium text-white bg-[#0275de] rounded-lg transition-colors duration-200 hover:bg-[#0266c7]"
+                className="px-4 py-1.5 text-sm font-medium text-white bg-[#7066fd] rounded-md transition-colors duration-200 hover:bg-[#5b52e0]"
               >
-                Get started free
+                Get Started
               </Link>
             </div>
           )}
@@ -138,7 +220,7 @@ export default function Navbar() {
           <div className="flex md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`p-1.5 rounded-md transition-colors ${
                 scrolled || isLandingPage 
                   ? 'text-gray-600 hover:bg-gray-100' 
                   : 'text-white hover:bg-white/10'
@@ -172,39 +254,59 @@ export default function Navbar() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute top-16 left-0 right-0 bg-white md:hidden shadow-lg border-t border-gray-100"
+              className="absolute top-14 left-0 right-0 bg-white md:hidden shadow-lg border-t border-gray-100"
             >
               <div className="px-6 py-6 space-y-4">
                 {/* Navigation Section */}
                 <div className="space-y-1">
                   {publicNavigation.map((item) => (
-                    <a
-                      key={item.name}
-                      href={item.href}
-                      className="flex items-center py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {item.name}
-                    </a>
+                    'items' in item ? (
+                      // Dropdown section in mobile
+                      <div key={item.name} className="space-y-1">
+                        <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          {item.name}
+                        </div>
+                        {item.items.map((subItem) => (
+                          <a
+                            key={subItem.name}
+                            href={subItem.href}
+                            className="flex items-center gap-3 py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <subItem.icon className="w-5 h-5 text-gray-500" />
+                            <span className="font-medium">{subItem.name}</span>
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <a
+                        key={item.name}
+                        href={item.href}
+                        className="flex items-center py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {item.name}
+                      </a>
+                    )
                   ))}
                 </div>
 
                 {/* Auth Section - Toujours afficher sur landing page ou si pas connecté */}
                 {showPublicMenu && (
-                  <div className="space-y-3 pt-4 border-t border-gray-100">
+                  <div className="space-y-2 pt-4 border-t border-gray-100">
                     <Link
                       to="/login"
-                      className="flex items-center justify-center py-3 px-5 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                      className="flex items-center justify-center py-2.5 px-4 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium text-sm"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      Sign in
+                      Log in
                     </Link>
                     <Link
                       to="/signup"
-                      className="flex items-center justify-center py-3 px-5 text-white bg-[#0275de] rounded-lg hover:bg-[#0266c7] transition-colors font-medium"
+                      className="flex items-center justify-center py-2.5 px-4 text-white bg-[#7066fd] rounded-md hover:bg-[#5b52e0] transition-colors font-medium text-sm"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      Get started free
+                      Get Started
                     </Link>
                   </div>
                 )}
