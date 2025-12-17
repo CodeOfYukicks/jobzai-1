@@ -4,8 +4,16 @@ import { generateEmbedding } from './utils/embeddings';
 const REGION = 'us-central1';
 
 /**
- * V5.0 - Enhanced profile text builder for semantic matching
+ * V6.0 - Enhanced profile text builder for semantic matching
  * Creates a rich text representation of the user's professional profile
+ * 
+ * V6.0 ADDITIONS:
+ * - Professional summary from CV import
+ * - Client companies for consulting roles
+ * - Full responsibilities text
+ * - Achievements
+ * - Education field
+ * - Profile tags
  */
 interface ExtendedUserProfile {
 	// Personal
@@ -13,20 +21,25 @@ interface ExtendedUserProfile {
 	lastName?: string;
 	headline?: string;
 	
+	// V6.0: Professional summary from CV
+	professionalSummary?: string;
+	
 	// Professional
 	targetPosition?: string;
 	yearsOfExperience?: string | number;
 	skills?: string[];
 	tools?: string[];
 	softSkills?: string[];
-	certifications?: Array<{ name: string; issuer?: string }>;
+	certifications?: Array<{ name: string; issuer?: string; year?: string }>;
 	
-	// History
+	// History - V6.0: Added client and achievements
 	professionalHistory?: Array<{
 		title: string;
 		company: string;
+		client?: string; // V6.0: Client for consulting roles
 		industry?: string;
 		responsibilities?: string[];
+		achievements?: string[]; // V6.0: Achievements
 	}>;
 	
 	// Location
@@ -39,17 +52,40 @@ interface ExtendedUserProfile {
 	careerPriorities?: string[];
 	primaryMotivator?: string;
 	preferredEnvironment?: string[];
+	productType?: string[]; // V6.0: B2B, B2C preferences
+	functionalDomain?: string[]; // V6.0: Frontend, Backend, etc.
 	
 	// Languages
 	languages?: Array<{ language: string; level: string }>;
+	
+	// Education - V6.0
+	educationLevel?: string;
+	educationField?: string;
+	educations?: Array<{
+		degree: string;
+		field: string;
+		institution: string;
+	}>;
+	
+	// V6.0: Profile tags from CV import
+	profileTags?: string[];
 	
 	// Existing fields
 	embedding?: number[];
 	profileEmbeddingUpdatedAt?: any;
 }
 
-function buildProfileTextV5(u: ExtendedUserProfile): string {
+/**
+ * V6.0 - Build rich text representation for embedding generation
+ * Includes professional summary, client companies, full responsibilities, and more
+ */
+function buildProfileTextV6(u: ExtendedUserProfile): string {
 	const parts: string[] = [];
+	
+	// V6.0: Professional summary (most important for semantic matching)
+	if (u.professionalSummary) {
+		parts.push(`Summary: ${u.professionalSummary}`);
+	}
 	
 	// Professional headline/target
 	if (u.headline) {
@@ -64,26 +100,48 @@ function buildProfileTextV5(u: ExtendedUserProfile): string {
 		parts.push(`Experience: ${u.yearsOfExperience} years`);
 	}
 	
-	// Professional history - most important for semantic matching
+	// Professional history - V6.0: Enhanced with clients and achievements
 	if (u.professionalHistory?.length) {
-		const historyText = u.professionalHistory.slice(0, 5).map(exp => {
-			const expParts = [`${exp.title} at ${exp.company}`];
-			if (exp.industry) expParts.push(`(${exp.industry})`);
-			if (exp.responsibilities?.length) {
-				expParts.push(`- ${exp.responsibilities.slice(0, 3).join('; ')}`);
+		const historyText = u.professionalHistory.slice(0, 6).map(exp => {
+			const expParts: string[] = [];
+			
+			// Title and company
+			let positionLine = `${exp.title} at ${exp.company}`;
+			// V6.0: Include client for consulting roles
+			if (exp.client) {
+				positionLine += ` (Client: ${exp.client})`;
 			}
-			return expParts.join(' ');
-		}).join('\n');
-		parts.push(`Experience:\n${historyText}`);
+			expParts.push(positionLine);
+			
+			// Industry
+			if (exp.industry) {
+				expParts.push(`Industry: ${exp.industry}`);
+			}
+			
+			// V6.0: Include more responsibilities for better semantic matching
+			if (exp.responsibilities?.length) {
+				const respText = exp.responsibilities.slice(0, 5).join('; ');
+				expParts.push(`Responsibilities: ${respText}`);
+			}
+			
+			// V6.0: Include achievements
+			if (exp.achievements?.length) {
+				const achievText = exp.achievements.slice(0, 3).join('; ');
+				expParts.push(`Achievements: ${achievText}`);
+			}
+			
+			return expParts.join('\n');
+		}).join('\n\n');
+		parts.push(`Work Experience:\n${historyText}`);
 	}
 	
 	// Technical skills and tools
 	const allTechnicalSkills = [
-		...(u.skills || []),
-		...(u.tools || [])
+		...(u.tools || []), // Tools first (more technical)
+		...(u.skills || [])
 	];
 	if (allTechnicalSkills.length) {
-		parts.push(`Technical Skills: ${allTechnicalSkills.slice(0, 20).join(', ')}`);
+		parts.push(`Technical Skills: ${allTechnicalSkills.slice(0, 25).join(', ')}`);
 	}
 	
 	// Soft skills
@@ -91,15 +149,42 @@ function buildProfileTextV5(u: ExtendedUserProfile): string {
 		parts.push(`Soft Skills: ${u.softSkills.slice(0, 10).join(', ')}`);
 	}
 	
-	// Certifications
+	// V6.0: Certifications with issuer for better context
 	if (u.certifications?.length) {
-		const certNames = u.certifications.map(c => c.name).slice(0, 5);
-		parts.push(`Certifications: ${certNames.join(', ')}`);
+		const certText = u.certifications.slice(0, 8).map(c => {
+			let cert = c.name;
+			if (c.issuer) cert += ` (${c.issuer})`;
+			return cert;
+		}).join(', ');
+		parts.push(`Certifications: ${certText}`);
+	}
+	
+	// V6.0: Education with field
+	if (u.educations?.length) {
+		const eduText = u.educations.slice(0, 3).map(e => 
+			`${e.degree} in ${e.field} from ${e.institution}`
+		).join('; ');
+		parts.push(`Education: ${eduText}`);
+	} else if (u.educationLevel || u.educationField) {
+		const eduParts = [u.educationLevel, u.educationField].filter(Boolean);
+		if (eduParts.length) {
+			parts.push(`Education: ${eduParts.join(' in ')}`);
+		}
 	}
 	
 	// Target sectors/industries
 	if (u.targetSectors?.length) {
 		parts.push(`Target Industries: ${u.targetSectors.join(', ')}`);
+	}
+	
+	// V6.0: Functional domain preferences
+	if (u.functionalDomain?.length) {
+		parts.push(`Domain Expertise: ${u.functionalDomain.join(', ')}`);
+	}
+	
+	// V6.0: Product type preferences
+	if (u.productType?.length) {
+		parts.push(`Product Focus: ${u.productType.join(', ')}`);
 	}
 	
 	// Career priorities and preferences
@@ -127,11 +212,17 @@ function buildProfileTextV5(u: ExtendedUserProfile): string {
 		parts.push(`Languages: ${langs}`);
 	}
 	
+	// V6.0: Profile tags (AI-generated summary)
+	if (u.profileTags?.length) {
+		parts.push(`Profile Keywords: ${u.profileTags.slice(0, 15).join(', ')}`);
+	}
+	
 	return parts.join('\n\n');
 }
 
 /**
- * Fields to watch for embedding regeneration
+ * V6.0 - Fields to watch for embedding regeneration
+ * Added: professionalSummary, educations, educationField, functionalDomain, productType, profileTags
  */
 const EMBEDDING_TRIGGER_FIELDS = [
 	'targetPosition',
@@ -145,7 +236,14 @@ const EMBEDDING_TRIGGER_FIELDS = [
 	'primaryMotivator',
 	'preferredEnvironment',
 	'certifications',
-	'headline'
+	'headline',
+	// V6.0 new fields
+	'professionalSummary',
+	'educations',
+	'educationField',
+	'functionalDomain',
+	'productType',
+	'profileTags',
 ];
 
 export const generateUserEmbedding = onDocumentWritten(
@@ -176,7 +274,8 @@ export const generateUserEmbedding = onDocumentWritten(
 			(after.skills?.length || 0) > 0 ||
 			(after.tools?.length || 0) > 0 ||
 			(after.professionalHistory?.length || 0) > 0 ||
-			after.targetPosition;
+			after.targetPosition ||
+			after.professionalSummary; // V6.0: Summary is also sufficient
 		
 		if (!hasMinimumData) {
 			console.log('Skipping embedding for user', ref.id, '- insufficient profile data');
@@ -184,8 +283,9 @@ export const generateUserEmbedding = onDocumentWritten(
 		}
 
 		try {
-			const text = buildProfileTextV5(after);
-			console.log('Generating embedding for user', ref.id, 'text length:', text.length);
+			// V6.0: Use enhanced profile text builder
+			const text = buildProfileTextV6(after);
+			console.log('🎯 V6.0 Generating embedding for user', ref.id, 'text length:', text.length);
 			
 			const vec = await generateEmbedding(text);
 			
@@ -194,7 +294,7 @@ export const generateUserEmbedding = onDocumentWritten(
 				profileEmbeddingUpdatedAt: new Date().toISOString()
 			}, { merge: true });
 			
-			console.log('✅ User embedding generated for', ref.id);
+			console.log('✅ V6.0 User embedding generated for', ref.id);
 		} catch (e) {
 			console.error('❌ Failed generating user embedding', ref.id, e);
 		}

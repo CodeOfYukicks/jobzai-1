@@ -1,5 +1,13 @@
 /**
- * Job Matching API v5.1 - Hybrid Rule-based + Semantic + Profile Tags Matching
+ * Job Matching API v6.0 - Enhanced Matching with Weighted Skills & Company Network
+ * 
+ * V6.0 ADDITIONS:
+ * - Weighted Skills System: Core skills x3, Important x2, Secondary x1, Certification boosts
+ * - Company Network Score: Match with past employers and consulting clients
+ * - Precise Seniority: Calculate exact years from professional history
+ * - Culture Fit Score: Startup/Enterprise, Remote-first, B2B/B2C preferences
+ * - Education Match: Field of study matching
+ * - Skill Gaps Analysis: Identify missing skills for job
  * 
  * V5.1 ADDITIONS:
  * - Profile Tags Score: AI-generated tags from CV import (seniority, tech, industry, role, domain, work style)
@@ -10,19 +18,17 @@
  * - Collaborative filtering (popular jobs among similar users)
  * - Feedback loop (saved/dismissed jobs influence scoring)
  * 
- * CRITICAL FIXES from v2.0:
- * - Role function matching (engineering vs sales vs consulting etc.)
- * - Language requirements HARD FILTER (job excluded if user doesn't speak required language)
- * - PENALTIES for jobs with empty/poor enrichment data
- * - Enrichment quality penalty (jobs with low data quality penalized)
- * 
- * Scoring system (max 181 points rule-based):
+ * Scoring system (max 209 points rule-based - V6.0):
  * - Role Function: +25 (match) / -20 (mismatch)
- * - Skills/Tech: +30 (match) / -10 (job has no tech data)
+ * - Weighted Skills: +35 (core x3, important x2, secondary x1, cert boost)
  * - Profile Tags: +25 (V5.1 - seniority +6, tech +6, industry +4, role +4, domain +3, work style +2)
  * - Location: +15 (match)
- * - Experience: +10 (match)
+ * - Precise Seniority: +15 (exact years match)
  * - Industry: +10 (match)
+ * - Title Match: +10 (match)
+ * - Company Network: +10 (NEW - past employer/client match)
+ * - Culture Fit: +8 (NEW - environment preferences)
+ * - Education Match: +5 (NEW - field of study)
  * - History Bonus: +10 (past experience)
  * - Collaborative: +8 (popular with similar users)
  * - Other bonuses: salary, recency, career priorities, feedback
@@ -34,6 +40,7 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { cosineSimilarity } from './utils/cosine';
+import { buildUserMatchingProfile, UserMatchingProfile } from './utils/buildUserMatchingProfile';
 
 const REGION = 'us-central1';
 
@@ -61,6 +68,7 @@ interface UserProfileData {
     professionalHistory?: Array<{
         title: string;
         company: string;
+        client?: string; // V6.0: Client company for consulting roles
         startDate: string;
         endDate: string;
         current: boolean;
@@ -69,6 +77,16 @@ interface UserProfileData {
         location?: string;
         responsibilities?: string[];
         achievements?: string[];
+    }>;
+
+    // V6.0: Professional summary from CV import
+    professionalSummary?: string;
+    
+    // V6.0: Education details
+    educations?: Array<{
+        degree: string;
+        field: string;
+        institution: string;
     }>;
 
     // Education & Languages
@@ -181,10 +199,19 @@ interface MatchBreakdown {
     collaborativeScore: number;
     // V5.1 Profile Tags
     profileTagsScore: number;
+    // V6.0 New scores
+    companyNetworkScore: number;
+    cultureFitScore: number;
+    educationMatchScore: number;
+    certificationBoost: number;
+    // V6.0 Skill gaps (for UI)
+    skillGaps?: string[];
+    matchedCoreSkills?: string[];
     // Penalties
     dataQualityPenalty: number;
     dealBreakerPenalty: number;
     sectorAvoidPenalty: number;
+    domainMismatchPenalty: number; // V6.0: Tech vs Finance mismatch
 }
 
 // Collaborative data structure
@@ -440,28 +467,25 @@ function calculateRoleFunctionScore(user: UserProfileData, job: EnrichedJob): { 
 }
 
 /**
- * Skills & Technologies Match (max +30 / penalty -10 for no data)
+ * V6.0 Weighted Skills & Technologies Match (max +35 / penalty -10 for no data)
+ * 
+ * Scoring:
+ * - Core skill match: 3 points each (max 18 from 6 core skills)
+ * - Important skill match: 2 points each (max 10 from 5 important skills)
+ * - Secondary skill match: 1 point each (max 7 from 7 secondary skills)
+ * - Certification boost: Added separately
+ * 
+ * Also returns skill gaps for UI
  */
-function calculateSkillsScore(user: UserProfileData, job: EnrichedJob): { score: number; reasons: string[] } {
+function calculateWeightedSkillsScore(
+    user: UserProfileData, 
+    job: EnrichedJob,
+    matchingProfile?: UserMatchingProfile
+): { score: number; reasons: string[]; skillGaps: string[]; matchedCoreSkills: string[]; certBoost: number } {
     const reasons: string[] = [];
-
-    // Collect all user skills
-    const userSkills = [
-        ...(user.skills || []),
-        ...(user.tools || []),
-        ...(user.softSkills || []),
-        ...(user.certifications?.map(c => c.name) || [])
-    ].map(normalizeString);
-
-    // Extract keywords from responsibilities
-    const responsibilityKeywords: string[] = [];
-    user.professionalHistory?.forEach(exp => {
-        exp.responsibilities?.forEach(resp => {
-            responsibilityKeywords.push(...extractKeywords(resp));
-        });
-    });
-
-    const allUserTerms = [...new Set([...userSkills, ...responsibilityKeywords])];
+    const skillGaps: string[] = [];
+    const matchedCoreSkills: string[] = [];
+    let certBoost = 0;
 
     // Job requirements
     const jobTerms = [
@@ -469,42 +493,429 @@ function calculateSkillsScore(user: UserProfileData, job: EnrichedJob): { score:
         ...(job.skills || [])
     ].map(normalizeString);
 
-    // PENALTY: User has skills but job has NO tech data
-    if (allUserTerms.length > 0 && jobTerms.length === 0) {
+    // PENALTY: Job has NO tech data
+    if (jobTerms.length === 0) {
         reasons.push('Job has no technical requirements listed');
-        return { score: -10, reasons };
+        return { score: -10, reasons, skillGaps: [], matchedCoreSkills: [], certBoost: 0 };
     }
 
-    // User has no skills data - neutral
-    if (allUserTerms.length === 0) {
-        return { score: 5, reasons: ['No skills data to match'] };
-    }
+    // If no matching profile, fallback to simple matching
+    if (!matchingProfile || matchingProfile.weightedSkills.length === 0) {
+        // Collect all user skills (fallback)
+        const userSkills = [
+            ...(user.skills || []),
+            ...(user.tools || []),
+            ...(user.softSkills || []),
+        ].map(normalizeString);
 
-    let matchCount = 0;
-    const matchedSkills: string[] = [];
+        if (userSkills.length === 0) {
+            return { score: 5, reasons: ['No skills data to match'], skillGaps: jobTerms.slice(0, 5), matchedCoreSkills: [], certBoost: 0 };
+        }
 
-    for (const userTerm of allUserTerms) {
+        let matchCount = 0;
+        const matchedSkills: string[] = [];
+
+        for (const userSkill of userSkills) {
+            for (const jobTerm of jobTerms) {
+                if (fuzzyMatch(userSkill, jobTerm)) {
+                    matchCount++;
+                    if (!matchedSkills.includes(jobTerm)) {
+                        matchedSkills.push(jobTerm);
+                    }
+                    break;
+                }
+            }
+        }
+
+        const matchPercentage = Math.min(matchCount / Math.max(jobTerms.length, 1), 1);
+        const score = Math.round(matchPercentage * 30);
+
+        if (matchedSkills.length > 0) {
+            reasons.push(`Skills: ${matchedSkills.slice(0, 4).join(', ')}${matchedSkills.length > 4 ? '...' : ''}`);
+        }
+
+        // Skill gaps
         for (const jobTerm of jobTerms) {
-            if (fuzzyMatch(userTerm, jobTerm)) {
-                matchCount++;
-                if (!matchedSkills.includes(jobTerm)) {
-                    matchedSkills.push(jobTerm);
+            if (!matchedSkills.some(m => fuzzyMatch(m, jobTerm))) {
+                skillGaps.push(jobTerm);
+            }
+        }
+
+        return { score, reasons, skillGaps: skillGaps.slice(0, 5), matchedCoreSkills: matchedSkills, certBoost: 0 };
+    }
+
+    // V6.0 Weighted scoring
+    let totalScore = 0;
+    const matchedByWeight: { core: string[]; important: string[]; secondary: string[] } = {
+        core: [],
+        important: [],
+        secondary: [],
+    };
+
+    // Check each job requirement against weighted skills
+    const unmatchedJobTerms: string[] = [];
+    
+    for (const jobTerm of jobTerms) {
+        let matched = false;
+        
+        // Check against user's weighted skills
+        for (const weightedSkill of matchingProfile.weightedSkills) {
+            if (fuzzyMatch(weightedSkill.normalizedSkill, jobTerm)) {
+                matched = true;
+                
+                // Score based on weight
+                if (weightedSkill.category === 'core') {
+                    totalScore += 3;
+                    matchedByWeight.core.push(weightedSkill.skill);
+                    matchedCoreSkills.push(weightedSkill.skill);
+                } else if (weightedSkill.category === 'important') {
+                    totalScore += 2;
+                    matchedByWeight.important.push(weightedSkill.skill);
+                } else {
+                    totalScore += 1;
+                    matchedByWeight.secondary.push(weightedSkill.skill);
                 }
                 break;
             }
         }
+        
+        if (!matched) {
+            unmatchedJobTerms.push(jobTerm);
+        }
     }
 
-    const matchPercentage = Math.min(matchCount / Math.max(jobTerms.length, 1), 1);
-    const score = Math.round(matchPercentage * 30);
-
-    if (matchedSkills.length > 0) {
-        reasons.push(`Skills: ${matchedSkills.slice(0, 4).join(', ')}${matchedSkills.length > 4 ? '...' : ''}`);
-    } else if (jobTerms.length > 0) {
-        reasons.push('No matching skills found');
+    // Calculate certification boost
+    if (matchingProfile.certificationBoosts.length > 0) {
+        const jobText = `${job.title} ${job.description || ''}`.toLowerCase();
+        
+        for (const cert of matchingProfile.certificationBoosts) {
+            const certMatches = cert.keywords.some(keyword => jobText.includes(keyword));
+            if (certMatches) {
+                certBoost += cert.boost;
+                reasons.push(`Certification: ${cert.certification}`);
+            }
+        }
+        // Cap certification boost at 15
+        certBoost = Math.min(certBoost, 15);
     }
 
-    return { score, reasons };
+    // Cap skill score at 35
+    const cappedSkillScore = Math.min(totalScore, 35);
+
+    // Build reasons
+    if (matchedByWeight.core.length > 0) {
+        const uniqueCore = [...new Set(matchedByWeight.core)].slice(0, 3);
+        reasons.push(`Core skills: ${uniqueCore.join(', ')}`);
+    }
+    if (matchedByWeight.important.length > 0 && matchedByWeight.core.length < 2) {
+        const uniqueImportant = [...new Set(matchedByWeight.important)].slice(0, 2);
+        reasons.push(`Skills: ${uniqueImportant.join(', ')}`);
+    }
+    
+    if (reasons.length === 0 && jobTerms.length > 0) {
+        reasons.push('Limited skill match');
+    }
+
+    // Skill gaps for UI
+    skillGaps.push(...unmatchedJobTerms.slice(0, 5));
+
+    return { 
+        score: cappedSkillScore, 
+        reasons, 
+        skillGaps, 
+        matchedCoreSkills: [...new Set(matchedCoreSkills)],
+        certBoost 
+    };
+}
+
+/**
+ * V6.0 Company Network Score (max +10)
+ * Matches job company against user's past employers and consulting clients
+ */
+function calculateCompanyNetworkScore(user: UserProfileData, job: EnrichedJob): { score: number; reasons: string[] } {
+    const reasons: string[] = [];
+    
+    if (!user.professionalHistory || user.professionalHistory.length === 0) {
+        return { score: 0, reasons: [] };
+    }
+    
+    const jobCompany = normalizeString(job.company || '');
+    
+    // Collect all user companies (employers + clients)
+    const userCompanies: string[] = [];
+    const userClients: string[] = [];
+    
+    for (const exp of user.professionalHistory) {
+        if (exp.company) {
+            userCompanies.push(normalizeString(exp.company));
+        }
+        if (exp.client) {
+            userClients.push(normalizeString(exp.client));
+        }
+    }
+    
+    // Direct employer match
+    if (userCompanies.some(c => fuzzyMatch(c, jobCompany))) {
+        reasons.push(`Previous employer: ${job.company}`);
+        return { score: 10, reasons };
+    }
+    
+    // Client match (for consultants)
+    if (userClients.some(c => fuzzyMatch(c, jobCompany))) {
+        reasons.push(`Past client: ${job.company}`);
+        return { score: 8, reasons };
+    }
+    
+    // Check if job is at a competitor/similar company (same industry)
+    const userIndustries = user.professionalHistory
+        .map(h => h.industry)
+        .filter(Boolean)
+        .map(i => normalizeString(i!));
+    
+    const jobIndustries = (job.industries || []).map(normalizeString);
+    
+    const industryOverlap = userIndustries.some(ui => 
+        jobIndustries.some(ji => fuzzyMatch(ui, ji))
+    );
+    
+    if (industryOverlap && userCompanies.length > 0) {
+        return { score: 3, reasons: ['Industry experience'] };
+    }
+    
+    return { score: 0, reasons: [] };
+}
+
+/**
+ * V6.0 Culture Fit Score (max +8)
+ * Matches user environment preferences with job signals
+ */
+function calculateCultureFitScore(user: UserProfileData, job: EnrichedJob): { score: number; reasons: string[] } {
+    const reasons: string[] = [];
+    let score = 0;
+    
+    const userPrefs = user.preferredEnvironment || [];
+    const userProductTypes = user.productType || [];
+    
+    if (userPrefs.length === 0 && userProductTypes.length === 0) {
+        return { score: 2, reasons: [] }; // Neutral if no preferences
+    }
+    
+    const jobText = `${job.company} ${job.description || ''} ${job.title}`.toLowerCase();
+    
+    // Company size/stage matching
+    const companySignals = {
+        startup: /startup|early stage|seed|series a|small team|founding|fast-paced environment/i.test(jobText),
+        scaleup: /scale-up|scaleup|series b|series c|growth stage|hypergrowth|rapidly growing/i.test(jobText),
+        enterprise: /enterprise|fortune 500|multinational|corporate|large company|global company|established/i.test(jobText),
+    };
+    
+    for (const pref of userPrefs) {
+        const prefLower = pref.toLowerCase();
+        
+        if ((prefLower.includes('startup') && companySignals.startup) ||
+            (prefLower.includes('scale') && companySignals.scaleup) ||
+            ((prefLower.includes('big') || prefLower.includes('corp') || prefLower.includes('enterprise')) && companySignals.enterprise)) {
+            score += 4;
+            reasons.push(`${pref} environment`);
+            break;
+        }
+    }
+    
+    // Product type matching (B2B, B2C, etc.)
+    const productSignals = {
+        b2b: /\bb2b\b|business to business|enterprise customers|saas|business customers/i.test(jobText),
+        b2c: /\bb2c\b|consumer|retail|end users|customer-facing|direct to consumer/i.test(jobText),
+        internal: /internal tools|back office|internal platform|employee experience/i.test(jobText),
+    };
+    
+    for (const productType of userProductTypes) {
+        const typeLower = productType.toLowerCase();
+        
+        if ((typeLower.includes('b2b') && productSignals.b2b) ||
+            (typeLower.includes('b2c') && productSignals.b2c) ||
+            (typeLower.includes('internal') && productSignals.internal)) {
+            score += 4;
+            if (reasons.length < 2) {
+                reasons.push(`${productType} focus`);
+            }
+            break;
+        }
+    }
+    
+    return { score: Math.min(score, 8), reasons: reasons.slice(0, 1) };
+}
+
+/**
+ * V6.0 Education Match Score (max +5)
+ * Matches user's education field with job requirements
+ */
+function calculateEducationMatchScore(user: UserProfileData, job: EnrichedJob): { score: number; reasons: string[] } {
+    const reasons: string[] = [];
+    
+    // Get user's education field
+    const userEducationField = user.educationField || user.educations?.[0]?.field || '';
+    const userEducationLevel = user.educationLevel || user.educations?.[0]?.degree || '';
+    
+    if (!userEducationField && !userEducationLevel) {
+        return { score: 1, reasons: [] }; // Minimal neutral score
+    }
+    
+    const jobText = `${job.title} ${job.description || ''}`.toLowerCase();
+    const normalizedField = normalizeString(userEducationField);
+    
+    // Education field matching
+    const fieldKeywords: Record<string, string[]> = {
+        'computer science': ['computer science', 'software', 'engineering', 'cs degree', 'technical degree'],
+        'business': ['business', 'mba', 'commerce', 'management', 'economics'],
+        'data science': ['data science', 'statistics', 'mathematics', 'analytics'],
+        'design': ['design', 'ux', 'ui', 'creative', 'arts'],
+        'finance': ['finance', 'accounting', 'economics', 'cfa'],
+        'marketing': ['marketing', 'communications', 'advertising'],
+        'engineering': ['engineering', 'mechanical', 'electrical', 'civil'],
+    };
+    
+    // Check if job mentions education requirements
+    const requiresDegree = /degree|bachelor|master|phd|diploma|graduate/i.test(jobText);
+    
+    if (requiresDegree) {
+        // Check field match
+        for (const [field, keywords] of Object.entries(fieldKeywords)) {
+            if (normalizedField.includes(field) || keywords.some(k => normalizedField.includes(k))) {
+                // Check if job also mentions this field
+                if (keywords.some(k => jobText.includes(k))) {
+                    reasons.push(`Education: ${userEducationField}`);
+                    return { score: 5, reasons };
+                }
+            }
+        }
+        
+        // Has degree but field doesn't match specifically
+        if (userEducationLevel) {
+            return { score: 2, reasons: [] };
+        }
+    }
+    
+    return { score: 1, reasons: [] };
+}
+
+/**
+ * V6.0 Precise Seniority Score (max +15)
+ * Calculates exact years from professional history and matches against job requirements
+ */
+function calculatePreciseSeniorityScore(user: UserProfileData, job: EnrichedJob, matchingProfile?: UserMatchingProfile): { score: number; reasons: string[] } {
+    const reasons: string[] = [];
+    const jobLevels = job.experienceLevels || [];
+    const jobSeniority = (job.seniority || '').toLowerCase();
+
+    // Use matchingProfile if available for precise years
+    let userYears: number;
+    let userLevel: string;
+    
+    if (matchingProfile) {
+        userYears = matchingProfile.totalYearsExperience;
+        userLevel = matchingProfile.inferredSeniority;
+    } else {
+        // Fallback: Calculate from user data
+        userYears = typeof user.yearsOfExperience === 'string'
+            ? parseInt(user.yearsOfExperience) || 0
+            : user.yearsOfExperience || 0;
+
+        // Infer from history if needed
+        if (user.professionalHistory && user.professionalHistory.length > 0 && userYears === 0) {
+            let totalMonths = 0;
+            const now = new Date();
+            
+            for (const exp of user.professionalHistory) {
+                if (!exp.startDate) continue;
+                const startParts = exp.startDate.split('-');
+                if (startParts.length < 2) continue;
+                
+                const start = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, 1);
+                const end = exp.current || !exp.endDate 
+                    ? now 
+                    : new Date(parseInt(exp.endDate.split('-')[0]), parseInt(exp.endDate.split('-')[1] || '1') - 1, 1);
+                
+                if (end >= start) {
+                    totalMonths += (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+                }
+            }
+            userYears = Math.round(totalMonths / 12 * 10) / 10;
+        }
+        
+        // Infer level from years
+        if (userYears >= 12) userLevel = 'executive';
+        else if (userYears >= 8) userLevel = 'lead';
+        else if (userYears >= 5) userLevel = 'senior';
+        else if (userYears >= 2) userLevel = 'mid';
+        else userLevel = 'junior';
+    }
+    
+    // Extract years requirement from job description
+    const description = job.description || '';
+    const yearsMatch = description.match(/(\d+)\+?\s*(?:years?|ans?|yrs?)\s*(?:of\s+)?(?:experience|expérience)?/i);
+    const jobYearsRequired = yearsMatch ? parseInt(yearsMatch[1]) : null;
+    
+    // Match against job levels
+    const levelMap: Record<string, string[]> = {
+        'junior': ['internship', 'entry', 'junior', 'graduate', 'entry-level'],
+        'mid': ['mid', 'intermediate', 'mid-level'],
+        'senior': ['senior', 'experienced', 'sr'],
+        'lead': ['lead', 'principal', 'staff', 'architect'],
+        'executive': ['director', 'head', 'vp', 'executive', 'chief'],
+    };
+    
+    // Check level match
+    const userLevelKeywords = levelMap[userLevel] || [];
+    const levelMatches = jobLevels.some(jl => 
+        userLevelKeywords.some(ul => jl.toLowerCase().includes(ul))
+    ) || userLevelKeywords.some(ul => jobSeniority.includes(ul));
+    
+    if (levelMatches) {
+        reasons.push(`${userLevel} level (${userYears}y exp)`);
+        return { score: 15, reasons };
+    }
+    
+    // Check years requirement match
+    if (jobYearsRequired !== null) {
+        const diff = Math.abs(userYears - jobYearsRequired);
+        
+        if (diff <= 1) {
+            reasons.push(`${userYears}y exp (need ${jobYearsRequired}y)`);
+            return { score: 15, reasons };
+        }
+        if (diff <= 2) {
+            reasons.push(`${userYears}y exp (close to ${jobYearsRequired}y)`);
+            return { score: 10, reasons };
+        }
+        if (diff <= 4) {
+            return { score: 5, reasons: [`Experience gap: ${jobYearsRequired}y required`] };
+        }
+        // Large gap
+        return { score: 2, reasons: [] };
+    }
+    
+    // No specific level info in job - check adjacent levels
+    if (jobLevels.length > 0) {
+        const levels = ['junior', 'mid', 'senior', 'lead', 'executive'];
+        const userLevelIndex = levels.indexOf(userLevel);
+        
+        // Check if any job level is adjacent
+        for (const jobLevel of jobLevels) {
+            const jobLevelNorm = jobLevel.toLowerCase();
+            for (let i = 0; i < levels.length; i++) {
+                if (levelMap[levels[i]].some(l => jobLevelNorm.includes(l))) {
+                    const diff = Math.abs(userLevelIndex - i);
+                    if (diff <= 1) {
+                        reasons.push('Experience level match');
+                        return { score: 10, reasons };
+                    }
+                }
+            }
+        }
+    }
+    
+    // Default neutral
+    return { score: 5, reasons: ['No level specified'] };
 }
 
 /**
@@ -1309,6 +1720,125 @@ function calculateDataQualityPenalty(job: EnrichedJob): { penalty: number; reaso
 }
 
 /**
+ * V6.0 Domain Mismatch Penalty (up to -35)
+ * CRITICAL: Prevents accounting jobs from matching with tech consultants
+ * 
+ * Detects when job is in a completely different professional domain than the user
+ * e.g., Salesforce consultant should NOT match with Accounting Consolidation jobs
+ */
+function calculateDomainMismatchPenalty(user: UserProfileData, job: EnrichedJob, matchingProfile?: UserMatchingProfile): { penalty: number; reasons: string[] } {
+    const reasons: string[] = [];
+    let penalty = 0;
+    
+    // Get user's technical domain
+    const userDomain = matchingProfile?.primaryDomain || 'other';
+    const userTools = (user.tools || []).map(t => t.toLowerCase());
+    const userSkills = (user.skills || []).map(s => s.toLowerCase());
+    const allUserTech = [...userTools, ...userSkills];
+    
+    // Job text for analysis
+    const jobTitle = (job.title || '').toLowerCase();
+    const jobDesc = (job.description || '').toLowerCase();
+    const jobText = `${jobTitle} ${jobDesc}`;
+    const jobTechs = (job.technologies || []).map(t => t.toLowerCase());
+    const jobSkills = (job.skills || []).map(s => s.toLowerCase());
+    
+    // Define incompatible domain pairs
+    // Tech domains (Salesforce, Web Dev, Data Engineering, etc.)
+    const techDomainKeywords = ['salesforce', 'apex', 'lightning', 'crm', 'developer', 'engineer', 'software', 'programming', 'coding', 'react', 'javascript', 'python', 'java', 'aws', 'cloud', 'devops', 'data engineer', 'machine learning', 'ai', 'frontend', 'backend', 'fullstack', 'mobile', 'ios', 'android'];
+    
+    // Finance/Accounting domains
+    const financeDomainKeywords = ['accounting', 'accountant', 'consolidation', 'financial reporting', 'ifrs', 'gaap', 'audit', 'auditor', 'controller', 'bookkeeping', 'tax', 'treasury', 'ledger', 'accounts payable', 'accounts receivable', 'cpa', 'chartered accountant', 'finance controller'];
+    
+    // HR domains
+    const hrDomainKeywords = ['hr manager', 'human resources', 'talent acquisition', 'recruiter', 'recruiting', 'compensation', 'benefits', 'payroll specialist', 'employee relations', 'hr business partner', 'hrbp'];
+    
+    // Legal domains
+    const legalDomainKeywords = ['attorney', 'lawyer', 'legal counsel', 'paralegal', 'litigation', 'contract law', 'corporate law', 'compliance officer', 'regulatory'];
+    
+    // Medical/Healthcare domains  
+    const medicalDomainKeywords = ['doctor', 'nurse', 'physician', 'medical', 'healthcare', 'clinical', 'patient care', 'pharmacy', 'therapist', 'surgeon'];
+    
+    // Check if user is in tech domain
+    const userIsTech = techDomainKeywords.some(kw => 
+        allUserTech.some(t => t.includes(kw) || kw.includes(t))
+    ) || ['frontend', 'backend', 'fullstack', 'data', 'devops', 'mobile'].includes(userDomain);
+    
+    // Check if user is Salesforce specific
+    const userIsSalesforce = allUserTech.some(t => 
+        t.includes('salesforce') || t.includes('apex') || t.includes('lightning') || 
+        t.includes('visualforce') || t.includes('soql') || t.includes('sfdc')
+    );
+    
+    // Check job domain
+    const jobIsFinance = financeDomainKeywords.some(kw => jobTitle.includes(kw) || jobText.includes(kw));
+    const jobIsHR = hrDomainKeywords.some(kw => jobTitle.includes(kw));
+    const jobIsLegal = legalDomainKeywords.some(kw => jobTitle.includes(kw));
+    const jobIsMedical = medicalDomainKeywords.some(kw => jobTitle.includes(kw));
+    const jobIsTech = techDomainKeywords.some(kw => 
+        jobTitle.includes(kw) || jobTechs.some(t => t.includes(kw))
+    );
+    
+    // Apply penalties for domain mismatches
+    if (userIsTech || userIsSalesforce) {
+        // Tech user seeing non-tech job
+        if (jobIsFinance && !jobText.includes('salesforce') && !jobText.includes('software')) {
+            penalty = 35;
+            reasons.push('Accounting/Finance domain - not your field');
+        } else if (jobIsHR && !jobTitle.includes('tech') && !jobTitle.includes('it')) {
+            penalty = 30;
+            reasons.push('HR domain - not your field');
+        } else if (jobIsLegal) {
+            penalty = 35;
+            reasons.push('Legal domain - not your field');
+        } else if (jobIsMedical) {
+            penalty = 35;
+            reasons.push('Medical domain - not your field');
+        }
+    }
+    
+    // Salesforce consultant seeing non-Salesforce consulting
+    if (userIsSalesforce && job.roleFunction === 'consulting') {
+        const jobMentionsSalesforce = jobText.includes('salesforce') || jobText.includes('crm') || 
+                                       jobTechs.some(t => t.includes('salesforce'));
+        const jobMentionsFinance = jobIsFinance || jobText.includes('consolidation') || 
+                                   jobText.includes('accounting') || jobText.includes('financial');
+        
+        if (!jobMentionsSalesforce && jobMentionsFinance) {
+            // This is finance/accounting consulting, not Salesforce consulting
+            penalty = Math.max(penalty, 30);
+            if (!reasons.includes('Accounting/Finance domain - not your field')) {
+                reasons.push('Finance consulting - you do Salesforce consulting');
+            }
+        }
+    }
+    
+    // Check for completely mismatched tech stacks
+    if (userIsTech && jobTechs.length > 0) {
+        // Job requires specific tech that user doesn't have
+        const majorMismatchTech = ['sap', 'oracle erp', 'netsuite', 'workday', 'peoplesoft'];
+        const jobRequiresMismatch = majorMismatchTech.some(tech => 
+            jobTechs.some(jt => jt.includes(tech)) || jobTitle.includes(tech)
+        );
+        const userHasMismatch = majorMismatchTech.some(tech => 
+            allUserTech.some(ut => ut.includes(tech))
+        );
+        
+        if (jobRequiresMismatch && !userHasMismatch) {
+            penalty = Math.max(penalty, 20);
+            const mismatchTech = majorMismatchTech.find(tech => 
+                jobTechs.some(jt => jt.includes(tech)) || jobTitle.includes(tech)
+            );
+            if (mismatchTech && !reasons.some(r => r.includes('not your field'))) {
+                reasons.push(`Requires ${mismatchTech.toUpperCase()} - different tech stack`);
+            }
+        }
+    }
+    
+    return { penalty, reasons };
+}
+
+/**
  * Deal Breaker Penalty (up to -30)
  */
 function calculateDealBreakerPenalty(user: UserProfileData, job: EnrichedJob): { penalty: number; reasons: string[] } {
@@ -1384,7 +1914,8 @@ function calculateMatchScore(
     user: UserProfileData, 
     job: EnrichedJob,
     savedJobsData: EnrichedJob[] = [],
-    collaborativeData: CollaborativeData = { popularJobIds: new Set(), popularCompanies: new Set() }
+    collaborativeData: CollaborativeData = { popularJobIds: new Set(), popularCompanies: new Set() },
+    matchingProfile?: UserMatchingProfile
 ): { matched: MatchedJob | null; excluded: boolean; excludeReason?: string } {
     // HARD FILTER: Language requirements
     const langCheck = shouldExcludeByLanguage(user, job);
@@ -1394,15 +1925,26 @@ function calculateMatchScore(
 
     // Calculate all rule-based scores
     const roleFunction = calculateRoleFunctionScore(user, job);
-    const skills = calculateSkillsScore(user, job);
+    
+    // V6.0: Weighted skills with certification boost
+    const skills = calculateWeightedSkillsScore(user, job, matchingProfile);
+    
     const location = calculateLocationScore(user, job);
-    const experience = calculateExperienceScore(user, job);
+    
+    // V6.0: Precise seniority using matchingProfile
+    const experience = calculatePreciseSeniorityScore(user, job, matchingProfile);
+    
     const industry = calculateIndustryScore(user, job);
     const title = calculateTitleScore(user, job);
     const history = calculateHistoryBonus(user, job);
     const environment = calculateEnvironmentBonus(user, job);
     
-    // V5.0 new scores
+    // V6.0 New scores
+    const companyNetwork = calculateCompanyNetworkScore(user, job);
+    const cultureFit = calculateCultureFitScore(user, job);
+    const educationMatch = calculateEducationMatchScore(user, job);
+    
+    // V5.0 scores
     const salary = calculateSalaryScore(user, job);
     const recency = calculateRecencyBonus(user, job);
     const careerPriorities = calculateCareerPrioritiesScore(user, job);
@@ -1421,21 +1963,41 @@ function calculateMatchScore(
     const dataQuality = calculateDataQualityPenalty(job);
     const dealBreaker = calculateDealBreakerPenalty(user, job);
     const sectorAvoid = calculateSectorAvoidPenalty(user, job);
+    
+    // V6.0: Domain mismatch penalty (e.g., Salesforce consultant seeing accounting jobs)
+    const domainMismatch = calculateDomainMismatchPenalty(user, job, matchingProfile);
 
     // =============================================================================
-    // V5.1 HYBRID SCORING: 60% Rule-based + 40% Semantic
+    // V6.0 HYBRID SCORING: 60% Rule-based + 40% Semantic
     // =============================================================================
     
-    // Calculate rule-based score (max 181 points before semantic, including collaborative + profileTags)
+    // Calculate rule-based score (max 209 points - V6.0 with new scores)
+    // Role: 25, Skills: 35, Location: 15, Experience: 15, Industry: 10, Title: 10
+    // CompanyNetwork: 10, CultureFit: 8, Education: 5, History: 10, Environment: 5
+    // Collaborative: 8, ProfileTags: 25, Salary: 10, Recency: 5, CareerPriorities: 8, Feedback: 10
+    // CertBoost: up to 15 (included in skills calc)
     const ruleBasedPositive = 
-        roleFunction.score + skills.score + location.score + 
-        experience.score + industry.score + title.score + 
-        history.score + environment.score +
-        salary.score + recency.score + careerPriorities.score +
-        feedback.score + collaborative.score + profileTags.score;
+        roleFunction.score + 
+        skills.score + skills.certBoost + // V6.0: Include certification boost
+        location.score + 
+        experience.score + // V6.0: Precise seniority (max 15)
+        industry.score + 
+        title.score + 
+        companyNetwork.score + // V6.0 NEW
+        cultureFit.score + // V6.0 NEW
+        educationMatch.score + // V6.0 NEW
+        history.score + 
+        environment.score +
+        salary.score + 
+        recency.score + 
+        careerPriorities.score +
+        feedback.score + 
+        collaborative.score + 
+        profileTags.score;
     
-    // Scale rule-based to 100 (max 181 points with collaborative + profileTags)
-    const ruleBasedScore = Math.round((Math.max(ruleBasedPositive, 0) / 181) * 100);
+    // Scale rule-based to 100 (max 209 points with V6.0 additions)
+    const MAX_RULE_BASED_SCORE = 209;
+    const ruleBasedScore = Math.round((Math.max(ruleBasedPositive, 0) / MAX_RULE_BASED_SCORE) * 100);
     
     // Semantic score is already 0-40, scale to 0-100
     const semanticScore100 = Math.round((semantic.score / 40) * 100);
@@ -1453,20 +2015,29 @@ function calculateMatchScore(
         hybridScore = ruleBasedScore;
     }
 
-    // Apply penalties
-    const totalPenalty = dataQuality.penalty + dealBreaker.penalty + sectorAvoid.penalty;
+    // Apply penalties (V6.0: includes domain mismatch)
+    const totalPenalty = dataQuality.penalty + dealBreaker.penalty + sectorAvoid.penalty + domainMismatch.penalty;
     const finalScore = Math.max(0, Math.min(100, hybridScore - totalPenalty));
 
-    // Collect reasons
+    // Collect reasons - V6.0: Prioritize new high-value signals
     const allReasons: string[] = [];
-    // Prioritize collaborative reasons (social proof)
+    
+    // Company network first (strong signal)
+    if (companyNetwork.score >= 8) allReasons.push(...companyNetwork.reasons);
+    
+    // Collaborative reasons (social proof)
     if (collaborative.score > 3) allReasons.push(...collaborative.reasons);
-    // Then semantic match reasons (if strong)
+    
+    // Semantic match reasons (if strong)
     if (semantic.score >= 28) allReasons.push(...semantic.reasons);
+    
     // V5.1 Profile Tags reasons (personalized matching from CV analysis)
     if (profileTags.score > 5) allReasons.push(...profileTags.reasons);
+    
     // Then feedback reasons (user interest signal)
     if (feedback.score > 3) allReasons.push(...feedback.reasons);
+    
+    // Core matching signals
     if (roleFunction.score > 0) allReasons.push(...roleFunction.reasons);
     if (skills.score > 0) allReasons.push(...skills.reasons);
     if (location.score > 0) allReasons.push(...location.reasons);
@@ -1475,7 +2046,12 @@ function calculateMatchScore(
     if (title.score > 0) allReasons.push(...title.reasons);
     if (history.score > 0) allReasons.push(...history.reasons);
     if (environment.score > 0) allReasons.push(...environment.reasons);
-    // V5.0 new reasons
+    
+    // V6.0 new reasons
+    if (cultureFit.score > 3) allReasons.push(...cultureFit.reasons);
+    if (educationMatch.score > 2) allReasons.push(...educationMatch.reasons);
+    
+    // V5.0 reasons
     if (salary.score > 5) allReasons.push(...salary.reasons);
     if (recency.score > 0) allReasons.push(...recency.reasons);
     if (careerPriorities.score > 2) allReasons.push(...careerPriorities.reasons);
@@ -1488,20 +2064,22 @@ function calculateMatchScore(
     if (dataQuality.penalty > 0) negativeReasons.push(...dataQuality.reasons);
     if (dealBreaker.penalty > 0) negativeReasons.push(...dealBreaker.reasons);
     if (sectorAvoid.penalty > 0) negativeReasons.push(...sectorAvoid.reasons);
+    // V6.0: Domain mismatch is critical - show at top of warnings
+    if (domainMismatch.penalty > 0) negativeReasons.unshift(...domainMismatch.reasons);
 
     const matchedJob: MatchedJob = {
         ...job,
         matchScore: finalScore,
         matchDetails: {
             roleFunctionScore: roleFunction.score,
-            skillsScore: skills.score,
+            skillsScore: skills.score + skills.certBoost, // V6.0: Include cert boost in total
             locationScore: location.score,
             experienceScore: experience.score,
             industryScore: industry.score,
             titleScore: title.score,
             historyBonus: history.score,
             environmentBonus: environment.score,
-            // V5.0 new scores
+            // V5.0 scores
             salaryScore: salary.score,
             recencyBonus: recency.score,
             careerPrioritiesScore: careerPriorities.score,
@@ -1510,10 +2088,19 @@ function calculateMatchScore(
             collaborativeScore: collaborative.score,
             // V5.1 Profile Tags
             profileTagsScore: profileTags.score,
+            // V6.0 New scores
+            companyNetworkScore: companyNetwork.score,
+            cultureFitScore: cultureFit.score,
+            educationMatchScore: educationMatch.score,
+            certificationBoost: skills.certBoost,
+            // V6.0 Skill gaps for UI
+            skillGaps: skills.skillGaps,
+            matchedCoreSkills: skills.matchedCoreSkills,
             // Penalties
             dataQualityPenalty: dataQuality.penalty,
             dealBreakerPenalty: dealBreaker.penalty,
             sectorAvoidPenalty: sectorAvoid.penalty,
+            domainMismatchPenalty: domainMismatch.penalty, // V6.0
         },
         matchReasons: allReasons.slice(0, 5),
         excludeReasons: negativeReasons.length > 0 ? negativeReasons.slice(0, 3) : undefined,
@@ -1677,6 +2264,10 @@ export const getMatchedJobs = onRequest({
             console.log('Collaborative data fetch failed (non-critical):', collabError);
         }
 
+        // V6.0: Build user matching profile for enhanced scoring
+        const matchingProfile = buildUserMatchingProfile(userData);
+        console.log(`🎯 V6.0 Matching Profile: ${matchingProfile.inferredSeniority} level, ${matchingProfile.totalYearsExperience}y exp, ${matchingProfile.coreSkills.length} core skills, ${matchingProfile.profileCompleteness}% complete`);
+
         // Calculate match scores with hard filters
         const matchedJobs: MatchedJob[] = [];
         let excludedByLanguage = 0;
@@ -1693,7 +2284,8 @@ export const getMatchedJobs = onRequest({
                 continue;
             }
 
-            const result = calculateMatchScore(userData, job, savedJobsData, collaborativeData);
+            // V6.0: Pass matchingProfile to scoring function
+            const result = calculateMatchScore(userData, job, savedJobsData, collaborativeData, matchingProfile);
 
             if (result.excluded) {
                 excludedByLanguage++;
@@ -1742,7 +2334,7 @@ export const getMatchedJobs = onRequest({
             excludeReasons: job.excludeReasons,
         }));
 
-        // Profile analysis
+        // Profile analysis - V6.0 Enhanced with matching profile data
         const userRoleFunction = inferUserRoleFunction(userData);
         const userLanguages = getUserLanguages(userData);
 
@@ -1758,6 +2350,16 @@ export const getMatchedJobs = onRequest({
             savedJobsCount: userData.savedJobs?.length || 0,
             dismissedJobsCount: userData.dismissedJobs?.length || 0,
             appliedJobsCount: userData.appliedJobs?.length || 0,
+            // V6.0 Enhanced matching profile
+            matchingProfile: {
+                inferredSeniority: matchingProfile.inferredSeniority,
+                totalYearsExperience: matchingProfile.totalYearsExperience,
+                primaryDomain: matchingProfile.primaryDomain,
+                coreSkillsCount: matchingProfile.coreSkills.length,
+                certificationsCount: matchingProfile.certificationBoosts.length,
+                companiesInNetwork: matchingProfile.relevantCompanies.length,
+                profileCompleteness: matchingProfile.profileCompleteness,
+            },
         };
 
         const stats = {
@@ -1780,7 +2382,7 @@ export const getMatchedJobs = onRequest({
         });
 
     } catch (error: any) {
-        console.error('❌ Error in getMatchedJobs v4.0:', error);
+        console.error('❌ Error in getMatchedJobs v6.0:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to get matched jobs',

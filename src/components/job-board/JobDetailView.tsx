@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import { CompanyLogo } from '../common/CompanyLogo';
-import { Job } from '../../types/job-board';
+import { Job, buildMatchSummary } from '../../types/job-board';
 import { KanbanBoard } from '../../types/job';
-import { Building2, MapPin, Clock, Share2, Bookmark, Heart, Target, Briefcase, GraduationCap, Code, AlertTriangle, Users, X, Link2, Linkedin, Mail, MessageCircle } from 'lucide-react';
+import { Building2, MapPin, Clock, Share2, Bookmark, Heart, Target, Briefcase, GraduationCap, Code, AlertTriangle, Users, X, Link2, Linkedin, Mail, MessageCircle, Award, Brain, DollarSign, Wrench, TrendingUp, Sparkles, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy } from 'firebase/firestore';
@@ -492,138 +492,9 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                     </div>
                 </div>
 
-                {/* Match Score Breakdown V4.0 - Only show if job has match details */}
+                {/* V6.0 Match Score Breakdown - Enhanced with Why This Matches & Skill Gaps */}
                 {job.matchScore !== undefined && job.matchDetails && (
-                    <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                                job.matchScore >= 70 ? 'bg-emerald-500' :
-                                job.matchScore >= 50 ? 'bg-blue-500' :
-                                job.matchScore >= 35 ? 'bg-amber-500' : 'bg-gray-400'
-                            }`}>
-                                <span className="text-white font-bold text-lg">{job.matchScore}</span>
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                                    {job.matchScore >= 70 ? 'Excellent Match' :
-                                     job.matchScore >= 50 ? 'Good Match' :
-                                     job.matchScore >= 35 ? 'Partial Match' : 'Low Match'}
-                                </h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    {job.roleFunction && job.roleFunction !== 'other' 
-                                        ? `${job.roleFunction.charAt(0).toUpperCase() + job.roleFunction.slice(1)} role`
-                                        : 'Based on your profile'}
-                                </p>
-                            </div>
-                        </div>
-                        
-                        {/* Match Reasons */}
-                        {job.matchReasons && job.matchReasons.length > 0 && (
-                            <div className="mb-4 flex flex-wrap gap-2">
-                                {job.matchReasons.map((reason, idx) => (
-                                    <span 
-                                        key={idx} 
-                                        className="text-xs px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
-                                    >
-                                        ✓ {reason}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                        
-                        {/* Exclude Reasons (warnings) */}
-                        {job.excludeReasons && job.excludeReasons.length > 0 && (
-                            <div className="mb-4 flex flex-wrap gap-2">
-                                {job.excludeReasons.map((reason, idx) => (
-                                    <span 
-                                        key={idx} 
-                                        className="text-xs px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 flex items-center gap-1"
-                                    >
-                                        <AlertTriangle className="w-3 h-3" />
-                                        {reason}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* V4.0 Score Grid - 6 columns */}
-                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                            <MatchScoreItem 
-                                icon={<Users className="w-4 h-4" />}
-                                label="Role Fit" 
-                                score={job.matchDetails.roleFunctionScore} 
-                                maxScore={25}
-                                canBeNegative={true}
-                            />
-                            <MatchScoreItem 
-                                icon={<Code className="w-4 h-4" />}
-                                label="Skills" 
-                                score={job.matchDetails.skillsScore} 
-                                maxScore={30}
-                                canBeNegative={true}
-                            />
-                            <MatchScoreItem 
-                                icon={<MapPin className="w-4 h-4" />}
-                                label="Location" 
-                                score={job.matchDetails.locationScore} 
-                                maxScore={15}
-                            />
-                            <MatchScoreItem 
-                                icon={<GraduationCap className="w-4 h-4" />}
-                                label="Level" 
-                                score={job.matchDetails.experienceScore} 
-                                maxScore={10}
-                            />
-                            <MatchScoreItem 
-                                icon={<Briefcase className="w-4 h-4" />}
-                                label="Industry" 
-                                score={job.matchDetails.industryScore} 
-                                maxScore={10}
-                            />
-                            <MatchScoreItem 
-                                icon={<Target className="w-4 h-4" />}
-                                label="Title" 
-                                score={job.matchDetails.titleScore} 
-                                maxScore={10}
-                            />
-                        </div>
-                        
-                        {/* Bonuses & Penalties Summary */}
-                        <div className="mt-3 pt-3 border-t border-indigo-200 dark:border-indigo-700 flex flex-wrap gap-3 text-xs">
-                            {job.matchDetails.historyBonus > 0 && (
-                                <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                                    +{job.matchDetails.historyBonus} history bonus
-                                </span>
-                            )}
-                            {job.matchDetails.environmentBonus > 2 && (
-                                <span className="text-blue-600 dark:text-blue-400 font-medium">
-                                    +{job.matchDetails.environmentBonus} environment fit
-                                </span>
-                            )}
-                            {job.matchDetails.dataQualityPenalty > 0 && (
-                                <span className="text-amber-600 dark:text-amber-400 font-medium">
-                                    -{job.matchDetails.dataQualityPenalty} data quality
-                                </span>
-                            )}
-                            {job.matchDetails.dealBreakerPenalty > 0 && (
-                                <span className="text-red-600 dark:text-red-400 font-medium">
-                                    -{job.matchDetails.dealBreakerPenalty} deal breaker
-                                </span>
-                            )}
-                            {job.matchDetails.sectorAvoidPenalty > 0 && (
-                                <span className="text-red-600 dark:text-red-400 font-medium">
-                                    -{job.matchDetails.sectorAvoidPenalty} sector avoid
-                                </span>
-                            )}
-                        </div>
-                        
-                        {/* Language Requirements Warning */}
-                        {job.languageRequirements && job.languageRequirements.length > 0 && (
-                            <div className="mt-3 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg">
-                                ⚠️ Requires: {job.languageRequirements.map(l => l.charAt(0).toUpperCase() + l.slice(1)).join(', ')}
-                            </div>
-                        )}
-                    </div>
+                    <MatchExplanationSection job={job} />
                 )}
 
                 <div className="h-px bg-gray-100 dark:bg-[#2b2a2c] mb-8" />
@@ -707,12 +578,11 @@ function BriefcaseIcon(props: any) {
     return <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
 }
 
-function MatchScoreItem({ icon, label, score, maxScore, canBeNegative = false }: { 
+function MatchScoreItem({ icon, label, score, maxScore }: { 
     icon: React.ReactNode, 
     label: string, 
     score: number, 
     maxScore: number,
-    canBeNegative?: boolean
 }) {
     const isNegative = score < 0;
     const displayScore = Math.abs(score);
@@ -745,6 +615,345 @@ function MatchScoreItem({ icon, label, score, maxScore, canBeNegative = false }:
             }`}>
                 {isNegative ? `-${displayScore}` : `${score}/${maxScore}`}
             </div>
+        </div>
+    );
+}
+
+/**
+ * V6.0 Match Explanation Section
+ * Enhanced UI showing why this job matches the user, skill gaps, and detailed breakdown
+ */
+function MatchExplanationSection({ job }: { job: Job }) {
+    const [isExpanded, setIsExpanded] = useState(false);
+    
+    // Build match summary from details
+    const matchSummary = useMemo(() => 
+        buildMatchSummary(job.matchScore || 0, job.matchDetails, job.matchReasons),
+        [job.matchScore, job.matchDetails, job.matchReasons]
+    );
+    
+    const getScoreColor = (score: number) => {
+        if (score >= 70) return 'bg-emerald-500';
+        if (score >= 50) return 'bg-blue-500';
+        if (score >= 35) return 'bg-amber-500';
+        return 'bg-gray-400';
+    };
+    
+    const getScoreLabel = (score: number) => {
+        if (score >= 70) return 'Excellent Match';
+        if (score >= 50) return 'Good Match';
+        if (score >= 35) return 'Partial Match';
+        return 'Low Match';
+    };
+    
+    // Get icon for reason type
+    const getReasonIcon = (type: string) => {
+        switch (type) {
+            case 'skill': return <Wrench className="w-4 h-4" />;
+            case 'experience': return <TrendingUp className="w-4 h-4" />;
+            case 'location': return <MapPin className="w-4 h-4" />;
+            case 'culture': return <Users className="w-4 h-4" />;
+            case 'salary': return <DollarSign className="w-4 h-4" />;
+            case 'network': return <Building2 className="w-4 h-4" />;
+            case 'certification': return <Award className="w-4 h-4" />;
+            case 'semantic': return <Brain className="w-4 h-4" />;
+            case 'collaborative': return <Sparkles className="w-4 h-4" />;
+            default: return <Zap className="w-4 h-4" />;
+        }
+    };
+    
+    const getStrengthColor = (strength: string) => {
+        switch (strength) {
+            case 'strong': return 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
+            case 'moderate': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800';
+            default: return 'bg-gray-100 dark:bg-gray-800/30 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700';
+        }
+    };
+
+    return (
+        <div className="mb-8 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800 overflow-hidden">
+            {/* Header */}
+            <div className="p-6 pb-4">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${getScoreColor(job.matchScore || 0)} shadow-lg`}>
+                            <span className="text-white font-bold text-xl">{job.matchScore}</span>
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                                {getScoreLabel(job.matchScore || 0)}
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                {job.roleFunction && job.roleFunction !== 'other' 
+                                    ? `${job.roleFunction.charAt(0).toUpperCase() + job.roleFunction.slice(1).replace(/_/g, ' ')} role`
+                                    : 'Based on your profile'}
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="p-2 rounded-lg hover:bg-white/50 dark:hover:bg-[#2b2a2c]/50 transition-colors text-gray-500"
+                    >
+                        {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                    </button>
+                </div>
+                
+                {/* Why This Matches - Top Reasons */}
+                {matchSummary && matchSummary.topReasons.length > 0 && (
+                    <div className="mb-4">
+                        <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                            Why this job matches you
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                            {matchSummary.topReasons.map((reason, idx) => (
+                                <span 
+                                    key={idx}
+                                    className={`inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border ${getStrengthColor(reason.strength)}`}
+                                >
+                                    {getReasonIcon(reason.type)}
+                                    {reason.text}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                
+                {/* Fallback: Simple Match Reasons */}
+                {(!matchSummary || matchSummary.topReasons.length === 0) && job.matchReasons && job.matchReasons.length > 0 && (
+                    <div className="mb-4 flex flex-wrap gap-2">
+                        {job.matchReasons.map((reason, idx) => (
+                            <span 
+                                key={idx} 
+                                className="text-sm px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                            >
+                                ✓ {reason}
+                            </span>
+                        ))}
+                    </div>
+                )}
+                
+                {/* V6.0: Matched Skills */}
+                {job.matchDetails?.matchedCoreSkills && job.matchDetails.matchedCoreSkills.length > 0 && (
+                    <div className="mb-4">
+                        <h4 className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                            <Wrench className="w-3 h-3" />
+                            Your matching skills
+                        </h4>
+                        <div className="flex flex-wrap gap-1.5">
+                            {job.matchDetails.matchedCoreSkills.slice(0, 8).map((skill, idx) => (
+                                <span 
+                                    key={idx}
+                                    className="text-xs px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                                >
+                                    {skill}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                
+                {/* V6.0: Skill Gaps */}
+                {job.matchDetails?.skillGaps && job.matchDetails.skillGaps.length > 0 && (
+                    <div className="mb-4">
+                        <h4 className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" />
+                            Skills to develop
+                        </h4>
+                        <div className="flex flex-wrap gap-1.5">
+                            {job.matchDetails.skillGaps.slice(0, 5).map((skill, idx) => (
+                                <span 
+                                    key={idx}
+                                    className="text-xs px-2 py-1 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                                >
+                                    {skill}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                
+                {/* Exclude Reasons (warnings) */}
+                {job.excludeReasons && job.excludeReasons.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                        {job.excludeReasons.map((reason, idx) => (
+                            <span 
+                                key={idx} 
+                                className="text-xs px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 flex items-center gap-1 border border-red-200 dark:border-red-800"
+                            >
+                                <AlertTriangle className="w-3 h-3" />
+                                {reason}
+                            </span>
+                        ))}
+                    </div>
+                )}
+            </div>
+            
+            {/* Expandable Detailed Breakdown */}
+            <AnimatePresence>
+                {isExpanded && job.matchDetails && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="border-t border-indigo-200 dark:border-indigo-800"
+                    >
+                        <div className="p-6 pt-4">
+                            {/* Score Grid - V6.0 Enhanced with new scores */}
+                            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                                Detailed Score Breakdown
+                            </h4>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 mb-4">
+                                <MatchScoreItem 
+                                    icon={<Users className="w-4 h-4" />}
+                                    label="Role Fit" 
+                                    score={job.matchDetails.roleFunctionScore} 
+                                    maxScore={25}
+                                />
+                                <MatchScoreItem 
+                                    icon={<Code className="w-4 h-4" />}
+                                    label="Skills" 
+                                    score={job.matchDetails.skillsScore} 
+                                    maxScore={35}
+                                />
+                                <MatchScoreItem 
+                                    icon={<MapPin className="w-4 h-4" />}
+                                    label="Location" 
+                                    score={job.matchDetails.locationScore} 
+                                    maxScore={15}
+                                />
+                                <MatchScoreItem 
+                                    icon={<TrendingUp className="w-4 h-4" />}
+                                    label="Level" 
+                                    score={job.matchDetails.experienceScore} 
+                                    maxScore={15}
+                                />
+                                <MatchScoreItem 
+                                    icon={<Briefcase className="w-4 h-4" />}
+                                    label="Industry" 
+                                    score={job.matchDetails.industryScore} 
+                                    maxScore={10}
+                                />
+                                <MatchScoreItem 
+                                    icon={<Target className="w-4 h-4" />}
+                                    label="Title" 
+                                    score={job.matchDetails.titleScore} 
+                                    maxScore={10}
+                                />
+                            </div>
+                            
+                            {/* V6.0 New Scores Grid */}
+                            {(job.matchDetails.companyNetworkScore !== undefined || 
+                              job.matchDetails.cultureFitScore !== undefined || 
+                              job.matchDetails.certificationBoost !== undefined) && (
+                                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 mb-4">
+                                    {job.matchDetails.companyNetworkScore !== undefined && job.matchDetails.companyNetworkScore > 0 && (
+                                        <MatchScoreItem 
+                                            icon={<Building2 className="w-4 h-4" />}
+                                            label="Network" 
+                                            score={job.matchDetails.companyNetworkScore} 
+                                            maxScore={10}
+                                        />
+                                    )}
+                                    {job.matchDetails.cultureFitScore !== undefined && job.matchDetails.cultureFitScore > 0 && (
+                                        <MatchScoreItem 
+                                            icon={<Users className="w-4 h-4" />}
+                                            label="Culture" 
+                                            score={job.matchDetails.cultureFitScore} 
+                                            maxScore={8}
+                                        />
+                                    )}
+                                    {job.matchDetails.educationMatchScore !== undefined && job.matchDetails.educationMatchScore > 0 && (
+                                        <MatchScoreItem 
+                                            icon={<GraduationCap className="w-4 h-4" />}
+                                            label="Education" 
+                                            score={job.matchDetails.educationMatchScore} 
+                                            maxScore={5}
+                                        />
+                                    )}
+                                    {job.matchDetails.certificationBoost !== undefined && job.matchDetails.certificationBoost > 0 && (
+                                        <MatchScoreItem 
+                                            icon={<Award className="w-4 h-4" />}
+                                            label="Certs" 
+                                            score={job.matchDetails.certificationBoost} 
+                                            maxScore={15}
+                                        />
+                                    )}
+                                    {job.matchDetails.semanticScore > 0 && (
+                                        <MatchScoreItem 
+                                            icon={<Brain className="w-4 h-4" />}
+                                            label="AI Match" 
+                                            score={job.matchDetails.semanticScore} 
+                                            maxScore={40}
+                                        />
+                                    )}
+                                    {job.matchDetails.collaborativeScore > 0 && (
+                                        <MatchScoreItem 
+                                            icon={<Sparkles className="w-4 h-4" />}
+                                            label="Popular" 
+                                            score={job.matchDetails.collaborativeScore} 
+                                            maxScore={8}
+                                        />
+                                    )}
+                                </div>
+                            )}
+                            
+                            {/* Bonuses & Penalties Summary */}
+                            <div className="flex flex-wrap gap-3 text-xs">
+                                {job.matchDetails.historyBonus > 0 && (
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                        +{job.matchDetails.historyBonus} history bonus
+                                    </span>
+                                )}
+                                {job.matchDetails.environmentBonus > 2 && (
+                                    <span className="text-blue-600 dark:text-blue-400 font-medium">
+                                        +{job.matchDetails.environmentBonus} environment fit
+                                    </span>
+                                )}
+                                {job.matchDetails.profileTagsScore && job.matchDetails.profileTagsScore > 5 && (
+                                    <span className="text-purple-600 dark:text-purple-400 font-medium">
+                                        +{job.matchDetails.profileTagsScore} profile match
+                                    </span>
+                                )}
+                                {job.matchDetails.salaryScore > 5 && (
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                        +{job.matchDetails.salaryScore} salary match
+                                    </span>
+                                )}
+                                {job.matchDetails.dataQualityPenalty > 0 && (
+                                    <span className="text-amber-600 dark:text-amber-400 font-medium">
+                                        -{job.matchDetails.dataQualityPenalty} data quality
+                                    </span>
+                                )}
+                                {job.matchDetails.dealBreakerPenalty > 0 && (
+                                    <span className="text-red-600 dark:text-red-400 font-medium">
+                                        -{job.matchDetails.dealBreakerPenalty} deal breaker
+                                    </span>
+                                )}
+                                {job.matchDetails.sectorAvoidPenalty > 0 && (
+                                    <span className="text-red-600 dark:text-red-400 font-medium">
+                                        -{job.matchDetails.sectorAvoidPenalty} sector avoid
+                                    </span>
+                                )}
+                                {job.matchDetails.domainMismatchPenalty && job.matchDetails.domainMismatchPenalty > 0 && (
+                                    <span className="text-red-600 dark:text-red-400 font-medium">
+                                        -{job.matchDetails.domainMismatchPenalty} domain mismatch
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            
+            {/* Language Requirements Warning */}
+            {job.languageRequirements && job.languageRequirements.length > 0 && (
+                <div className="px-6 pb-4">
+                    <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg border border-amber-200 dark:border-amber-800">
+                        ⚠️ Requires: {job.languageRequirements.map(l => l.charAt(0).toUpperCase() + l.slice(1)).join(', ')}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
