@@ -519,9 +519,10 @@ function MarketingStats() {
       description: 'Use AI to discover and apply to job opportunities that are never posted publicly.',
       stat: '85%',
       statLabel: 'of opportunities never reach job boards',
-      bgColor: 'bg-[#e8f5e9]',
+      bgColor: 'bg-white',
       textColor: 'text-gray-900',
-      statColor: 'text-emerald-600',
+      labelColor: 'text-gray-500',
+      statColor: 'text-[#0275de]',
     },
     {
       label: 'Case Study',
@@ -529,8 +530,9 @@ function MarketingStats() {
       description: 'AI-powered outreach achieves first interviews within',
       stat: '24h',
       statLabel: '',
-      bgColor: 'bg-[#f4511e]',
+      bgColor: 'bg-[#0275de]',
       textColor: 'text-white',
+      labelColor: 'text-blue-200',
       statColor: 'text-white',
     },
     {
@@ -539,8 +541,9 @@ function MarketingStats() {
       description: 'Generate personalized applications with just a few clicks. Let AI handle the heavy lifting.',
       stat: '',
       statLabel: '',
-      bgColor: 'bg-[#4a3f6b]',
+      bgColor: 'bg-gray-900',
       textColor: 'text-white',
+      labelColor: 'text-gray-400',
       statColor: 'text-white',
     },
     {
@@ -549,9 +552,10 @@ function MarketingStats() {
       description: 'Track your applications in real-time with our intuitive dashboard.',
       stat: '',
       statLabel: '',
-      bgColor: 'bg-[#fef3e2]',
+      bgColor: 'bg-white',
       textColor: 'text-gray-900',
-      statColor: 'text-orange-600',
+      labelColor: 'text-gray-500',
+      statColor: 'text-[#0275de]',
     },
   ];
 
@@ -564,10 +568,10 @@ function MarketingStats() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: index * 0.1 }}
-          className={`${item.bgColor} rounded-2xl p-8 min-h-[280px] flex flex-col`}
+          className={`${item.bgColor} rounded-2xl p-8 min-h-[280px] flex flex-col shadow-sm`}
         >
           {/* Label */}
-          <p className={`text-xs font-semibold uppercase tracking-wider mb-3 ${item.textColor} opacity-70`}>
+          <p className={`text-xs font-semibold uppercase tracking-wider mb-3 ${item.labelColor}`}>
             {item.label}
           </p>
           
@@ -588,7 +592,7 @@ function MarketingStats() {
                 {item.stat}
               </p>
               {item.statLabel && (
-                <p className={`text-sm mt-1 ${item.textColor} opacity-70`}>
+                <p className={`text-sm mt-1 ${item.labelColor}`}>
                   {item.statLabel}
                 </p>
               )}
