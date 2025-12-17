@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Menu, 
@@ -14,27 +14,30 @@ import {
   Target,
   MessageSquare,
   BarChart3,
-  Zap,
-  Brain,
-  FileText,
-  Users,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import FirebaseImage from './FirebaseImage';
 
+// Products dropdown content - 3 columns structure
+const productFeatures = {
+  features: [
+    { name: 'Auto Apply', description: 'Mass spontaneous applications', href: '#auto-apply', icon: Send },
+    { name: 'Job Tracker', description: 'Track all your applications', href: '#tracker', icon: Target },
+    { name: 'AI Assistant', description: 'Your personal career copilot', href: '#ai', icon: Sparkles },
+  ],
+  more: [
+    { name: 'Job Board', description: 'Find your next opportunity', href: '#jobs', icon: Briefcase },
+    { name: 'Interview Prep', description: 'Practice with AI mock interviews', href: '#interview', icon: MessageSquare },
+    { name: 'Career Intelligence', description: 'Data-driven career insights', href: '#insights', icon: BarChart3 },
+  ]
+};
+
 const publicNavigation = [
-  {
-    name: 'Products',
-    items: [
-      { name: 'Auto Apply', description: 'Mass spontaneous applications', href: '#auto-apply', icon: Send },
-      { name: 'Job Tracker', description: 'Track all your applications', href: '#tracker', icon: Target },
-      { name: 'AI Assistant', description: 'Your personal career copilot', href: '#ai', icon: Sparkles },
-    ]
-  },
+  { name: 'Products', hasDropdown: true },
+  { name: 'AI', href: '#ai' },
   { name: 'Job Board', href: '#jobs' },
   { name: 'Interview Prep', href: '#interview' },
-  { name: 'Career Intelligence', href: '#insights' },
   { name: 'Pricing', href: '#pricing' },
 ];
 
@@ -52,6 +55,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { currentUser } = useAuth();
 
   useEffect(() => {
@@ -64,16 +68,27 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close dropdown when clicking outside
+  // Hover handlers with delay
+  const handleMouseEnter = useCallback((name: string) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    setOpenDropdown(name);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setOpenDropdown(null);
+    }, 150);
+  }, []);
+
+  // Cleanup timeout on unmount
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setOpenDropdown(null);
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
       }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -116,50 +131,21 @@ export default function Navbar() {
           {showPublicMenu && (
             <div className="hidden md:flex items-center gap-0.5 absolute left-1/2 -translate-x-1/2" ref={dropdownRef}>
               {publicNavigation.map((item) => (
-                'items' in item ? (
-                  // Dropdown menu
-                  <div key={item.name} className="relative">
-                    <button
-                      onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
-                      className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors ${
-                        scrolled || isLandingPage
-                          ? 'text-gray-600 hover:text-gray-900' 
-                          : 'text-white/90 hover:text-white'
-                      }`}
-                    >
-                      {item.name}
-                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openDropdown === item.name ? 'rotate-180' : ''}`} />
-                    </button>
-                    
-                    <AnimatePresence>
-                      {openDropdown === item.name && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 8 }}
-                          transition={{ duration: 0.15 }}
-                          className="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-gray-100 py-2 overflow-hidden"
-                        >
-                          {item.items.map((subItem) => (
-                            <a
-                              key={subItem.name}
-                              href={subItem.href}
-                              onClick={() => setOpenDropdown(null)}
-                              className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
-                            >
-                              <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
-                                <subItem.icon className="w-4.5 h-4.5 text-gray-700" />
-                              </div>
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">{subItem.name}</div>
-                                <div className="text-xs text-gray-500 mt-0.5">{subItem.description}</div>
-                              </div>
-                            </a>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
+                'hasDropdown' in item ? (
+                  // Dropdown trigger
+                  <button
+                    key={item.name}
+                    onMouseEnter={() => handleMouseEnter(item.name)}
+                    onMouseLeave={handleMouseLeave}
+                    className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors ${
+                      scrolled || isLandingPage
+                        ? 'text-gray-900 hover:text-gray-600'
+                        : 'text-white/90 hover:text-white'
+                    }`}
+                  >
+                    {item.name}
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${openDropdown === item.name ? 'rotate-180' : ''}`} />
+                  </button>
                 ) : (
                   // Regular link
                   <a
@@ -167,7 +153,7 @@ export default function Navbar() {
                     href={item.href}
                     className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                       scrolled || isLandingPage
-                        ? 'text-gray-600 hover:text-gray-900' 
+                        ? 'text-gray-900 hover:text-gray-600' 
                         : 'text-white/90 hover:text-white'
                     }`}
                   >
@@ -201,7 +187,7 @@ export default function Navbar() {
                 to="/login"
                 className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                   scrolled || isLandingPage
-                    ? 'text-gray-600 hover:text-gray-900'
+                    ? 'text-gray-900 hover:text-gray-600'
                     : 'text-white/90 hover:text-white'
                 }`}
               >
@@ -236,6 +222,84 @@ export default function Navbar() {
         </div>
       </div>
 
+      {/* Products Dropdown - Notion Style (Full Width) */}
+      <AnimatePresence>
+        {openDropdown === 'Products' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="hidden md:block absolute top-14 left-0 right-0 bg-white border-b border-gray-200 shadow-sm"
+            style={{ zIndex: 40 }}
+            onMouseEnter={() => handleMouseEnter('Products')}
+            onMouseLeave={handleMouseLeave}
+          >
+            <div className="px-10 py-8">
+              <div className="flex">
+                {/* Column 1 - Features */}
+                <div className="flex-1 pr-16">
+                  <div className="text-xs font-medium text-gray-400 mb-4">Features</div>
+                  <div className="space-y-4">
+                    {productFeatures.features.map((feature) => (
+                      <a
+                        key={feature.name}
+                        href={feature.href}
+                        className="block group"
+                      >
+                        <div className="text-sm font-medium text-gray-900 group-hover:text-[#7066fd] transition-colors">{feature.name}</div>
+                        <div className="text-sm text-gray-500">{feature.description}</div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Column 2 - Explore */}
+                <div className="flex-1 pr-16">
+                  <div className="text-xs font-medium text-gray-400 mb-4">Explore</div>
+                  <div className="space-y-4">
+                    {productFeatures.more.map((feature) => (
+                      <a
+                        key={feature.name}
+                        href={feature.href}
+                        className="block group"
+                      >
+                        <div className="text-sm font-medium text-gray-900 group-hover:text-[#7066fd] transition-colors">{feature.name}</div>
+                        <div className="text-sm text-gray-500">{feature.description}</div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Column 3 - Get Started */}
+                <div className="w-[280px] pl-8 border-l border-gray-200">
+                  <div className="text-xs font-medium text-gray-400 mb-4">Get started</div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Land your dream job faster with AI-powered tools.
+                  </p>
+                  <Link
+                    to="/signup"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#7066fd] rounded-md hover:bg-[#5b52e0] transition-colors"
+                  >
+                    Get Started
+                  </Link>
+                  {/* Illustration */}
+                  <div className="mt-6">
+                    <svg className="w-32 h-24 text-gray-200" viewBox="0 0 128 96" fill="none">
+                      <rect x="10" y="20" width="40" height="50" rx="4" stroke="currentColor" strokeWidth="2"/>
+                      <rect x="20" y="30" width="20" height="4" rx="1" fill="currentColor"/>
+                      <rect x="20" y="40" width="15" height="4" rx="1" fill="currentColor"/>
+                      <circle cx="90" cy="45" r="25" stroke="currentColor" strokeWidth="2"/>
+                      <path d="M80 45 L88 53 L100 38" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Menu mobile avec overlay */}
       <AnimatePresence>
         {isMobileMenuOpen && (
@@ -259,36 +323,50 @@ export default function Navbar() {
               <div className="px-6 py-6 space-y-4">
                 {/* Navigation Section */}
                 <div className="space-y-1">
-                  {publicNavigation.map((item) => (
-                    'items' in item ? (
-                      // Dropdown section in mobile
-                      <div key={item.name} className="space-y-1">
-                        <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                          {item.name}
-                        </div>
-                        {item.items.map((subItem) => (
-                          <a
-                            key={subItem.name}
-                            href={subItem.href}
-                            className="flex items-center gap-3 py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                          >
-                            <subItem.icon className="w-5 h-5 text-gray-500" />
-                            <span className="font-medium">{subItem.name}</span>
-                          </a>
-                        ))}
-                      </div>
-                    ) : (
+                  {/* Features Section */}
+                  <div className="space-y-1">
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      Features
+                    </div>
+                    {productFeatures.features.map((feature) => (
                       <a
-                        key={item.name}
-                        href={item.href}
-                        className="flex items-center py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                        key={feature.name}
+                        href={feature.href}
+                        className="flex items-center gap-3 py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
-                        {item.name}
+                        <feature.icon className="w-5 h-5 text-gray-500" />
+                        <span className="font-medium">{feature.name}</span>
                       </a>
-                    )
-                  ))}
+                    ))}
+                  </div>
+                  
+                  {/* Explore Section */}
+                  <div className="space-y-1 pt-2">
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      Explore
+                    </div>
+                    {productFeatures.more.map((feature) => (
+                      <a
+                        key={feature.name}
+                        href={feature.href}
+                        className="flex items-center gap-3 py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <feature.icon className="w-5 h-5 text-gray-500" />
+                        <span className="font-medium">{feature.name}</span>
+                      </a>
+                    ))}
+                  </div>
+
+                  {/* Pricing */}
+                  <a
+                    href="#pricing"
+                    className="flex items-center py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Pricing
+                  </a>
                 </div>
 
                 {/* Auth Section - Toujours afficher sur landing page ou si pas connecté */}
