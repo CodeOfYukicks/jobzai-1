@@ -89,7 +89,8 @@ export function useRealtimeInterview(): UseRealtimeInterviewReturn {
   
   // Refs for resources
   const wsRef = useRef<WebSocket | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null); // For capture (48kHz)
+  const playbackContextRef = useRef<AudioContext | null>(null); // For playback (24kHz) - eliminates resampling artifacts
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const workletNodeRef = useRef<AudioWorkletNode | null>(null);
   const playbackGainRef = useRef<GainNode | null>(null);
@@ -110,6 +111,12 @@ export function useRealtimeInterview(): UseRealtimeInterviewReturn {
   const audioQueueRef = useRef<AudioBuffer[]>([]);
   const isPlayingRef = useRef<boolean>(false);
   const nextPlayTimeRef = useRef<number>(0);
+  
+  // Audio accumulation buffer for smoother playback (reduces chunk boundary artifacts)
+  const pendingSamplesRef = useRef<Float32Array[]>([]);
+  const pendingSamplesLengthRef = useRef<number>(0);
+  const CHUNK_ACCUMULATION_MS = 100; // Accumulate 100ms of audio before playing
+  const SAMPLES_PER_CHUNK = Math.floor(24000 * CHUNK_ACCUMULATION_MS / 1000); // ~2400 samples
 
   // ============================================
   // TRANSCRIPT MANAGEMENT
@@ -240,7 +247,7 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
   // ============================================
 
   const playNextInQueue = useCallback(() => {
-    if (!audioContextRef.current || !playbackGainRef.current || audioQueueRef.current.length === 0) {
+    if (!playbackContextRef.current || !playbackGainRef.current || audioQueueRef.current.length === 0) {
       isPlayingRef.current = false;
       setIsAISpeaking(false);
       setOutputAudioLevel(0);
@@ -251,11 +258,11 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
     setIsAISpeaking(true);
     
     const buffer = audioQueueRef.current.shift()!;
-    const source = audioContextRef.current.createBufferSource();
+    const source = playbackContextRef.current.createBufferSource();
     source.buffer = buffer;
     source.connect(playbackGainRef.current);
     
-    const currentTime = audioContextRef.current.currentTime;
+    const currentTime = playbackContextRef.current.currentTime;
     const startTime = Math.max(currentTime, nextPlayTimeRef.current);
     
     source.start(startTime);
@@ -281,8 +288,46 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
     };
   }, []);
 
+  // Flush accumulated samples into an AudioBuffer and queue it
+  const flushPendingSamples = useCallback(() => {
+    if (!playbackContextRef.current || pendingSamplesRef.current.length === 0) return;
+    
+    // Concatenate all pending samples into one buffer
+    const totalLength = pendingSamplesLengthRef.current;
+    const combined = new Float32Array(totalLength);
+    let offset = 0;
+    for (const chunk of pendingSamplesRef.current) {
+      combined.set(chunk, offset);
+      offset += chunk.length;
+    }
+    
+    // Apply fade-in/fade-out to reduce clicks at boundaries
+    const fadeLength = Math.min(64, Math.floor(totalLength / 10)); // ~2.7ms fade at 24kHz
+    for (let i = 0; i < fadeLength; i++) {
+      const fadeIn = i / fadeLength;
+      combined[i] *= fadeIn;
+      combined[totalLength - 1 - i] *= fadeIn;
+    }
+    
+    // Create audio buffer
+    const audioBuffer = playbackContextRef.current.createBuffer(1, totalLength, 24000);
+    audioBuffer.getChannelData(0).set(combined);
+    
+    audioQueueRef.current.push(audioBuffer);
+    
+    // Clear pending samples
+    pendingSamplesRef.current = [];
+    pendingSamplesLengthRef.current = 0;
+    
+    // Start playback if not already playing
+    if (!isPlayingRef.current) {
+      nextPlayTimeRef.current = playbackContextRef.current.currentTime + 0.1;
+      playNextInQueue();
+    }
+  }, [playNextInQueue]);
+
   const queueAudioChunk = useCallback(async (base64Audio: string) => {
-    if (!audioContextRef.current) return;
+    if (!playbackContextRef.current) return;
     
     try {
       // Decode base64 to PCM16
@@ -299,36 +344,35 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
         float32[i] = pcm16[i] / 32768;
       }
       
-      // Create audio buffer (24kHz mono from OpenAI)
-      const audioBuffer = audioContextRef.current.createBuffer(1, float32.length, 24000);
-      audioBuffer.getChannelData(0).set(float32);
+      // Accumulate samples instead of playing immediately
+      pendingSamplesRef.current.push(float32);
+      pendingSamplesLengthRef.current += float32.length;
       
-      audioQueueRef.current.push(audioBuffer);
-      
-      // Start playback if not already playing
-      if (!isPlayingRef.current) {
-        nextPlayTimeRef.current = audioContextRef.current.currentTime + 0.05;
-        playNextInQueue();
+      // Flush when we have enough samples (reduces boundary artifacts)
+      if (pendingSamplesLengthRef.current >= SAMPLES_PER_CHUNK) {
+        flushPendingSamples();
       }
     } catch (err) {
       console.error('Error decoding audio:', err);
     }
-  }, [playNextInQueue]);
+  }, [flushPendingSamples]);
 
   const stopAudioPlayback = useCallback(() => {
     audioQueueRef.current = [];
+    pendingSamplesRef.current = [];
+    pendingSamplesLengthRef.current = 0;
     isPlayingRef.current = false;
     nextPlayTimeRef.current = 0;
     setIsAISpeaking(false);
     setOutputAudioLevel(0);
     
     // Mute instantly
-    if (playbackGainRef.current && audioContextRef.current) {
-      playbackGainRef.current.gain.setValueAtTime(0, audioContextRef.current.currentTime);
+    if (playbackGainRef.current && playbackContextRef.current) {
+      playbackGainRef.current.gain.setValueAtTime(0, playbackContextRef.current.currentTime);
       // Restore after a moment for new audio
       setTimeout(() => {
-        if (playbackGainRef.current && audioContextRef.current) {
-          playbackGainRef.current.gain.setValueAtTime(1, audioContextRef.current.currentTime);
+        if (playbackGainRef.current && playbackContextRef.current) {
+          playbackGainRef.current.gain.setValueAtTime(1, playbackContextRef.current.currentTime);
         }
       }, 100);
     }
@@ -386,11 +430,12 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
       case 'input_audio_buffer.speech_started':
         console.log('🎤 User started speaking');
         // Generate stable ID for this user entry
-        currentUserIdRef.current = event.item_id || `user_${Date.now()}`;
+        const userId = event.item_id || `user_${Date.now()}`;
+        currentUserIdRef.current = userId;
         
         // Create placeholder entry immediately to reserve correct position in transcript
         // This ensures user entries always appear before AI responses
-        addOrUpdateTranscript(currentUserIdRef.current, 'user', '', false);
+        addOrUpdateTranscript(userId, 'user', '', false);
         
         // Clear silence timeout
         if (silenceTimeoutRef.current) {
@@ -498,6 +543,8 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
       case 'response.audio.done':
       case 'response.output_audio.done':
         console.log('🔊 AI audio done');
+        // Flush any remaining accumulated samples
+        flushPendingSamples();
         break;
 
       // ========== RESPONSE LIFECYCLE ==========
@@ -535,7 +582,7 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
         }
         break;
     }
-  }, [addOrUpdateTranscript, setTranscriptComplete, stopAudioPlayback, sendEvent, queueAudioChunk]);
+  }, [addOrUpdateTranscript, setTranscriptComplete, stopAudioPlayback, sendEvent, queueAudioChunk, flushPendingSamples]);
 
   const triggerGreeting = useCallback(() => {
     if (!jobContextRef.current || !userProfileRef.current) return;
@@ -578,7 +625,7 @@ Be warm but professional. Your name is Alex.`,
         },
       });
       
-      // Create audio context
+      // Create audio context for capture (48kHz for microphone)
       audioContextRef.current = new AudioContext({ sampleRate: 48000 });
       
       // Resume if suspended
@@ -586,9 +633,16 @@ Be warm but professional. Your name is Alex.`,
         await audioContextRef.current.resume();
       }
       
-      // Create playback gain node
-      playbackGainRef.current = audioContextRef.current.createGain();
-      playbackGainRef.current.connect(audioContextRef.current.destination);
+      // Create separate audio context for playback at 24kHz (matches OpenAI output)
+      // This eliminates resampling artifacts that cause crackling/buzzing
+      playbackContextRef.current = new AudioContext({ sampleRate: 24000 });
+      if (playbackContextRef.current.state === 'suspended') {
+        await playbackContextRef.current.resume();
+      }
+      
+      // Create playback gain node on the playback context
+      playbackGainRef.current = playbackContextRef.current.createGain();
+      playbackGainRef.current.connect(playbackContextRef.current.destination);
       
       // Load audio worklet
       await audioContextRef.current.audioWorklet.addModule('/audio-worklet-processor.js');
@@ -795,10 +849,14 @@ Be warm but professional. Your name is Alex.`,
       mediaStreamRef.current = null;
     }
     
-    // Close audio context (check state to avoid "already closed" error)
+    // Close audio contexts (check state to avoid "already closed" error)
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
       audioContextRef.current.close().catch(() => {});
       audioContextRef.current = null;
+    }
+    if (playbackContextRef.current && playbackContextRef.current.state !== 'closed') {
+      playbackContextRef.current.close().catch(() => {});
+      playbackContextRef.current = null;
     }
     
     // Close WebSocket
