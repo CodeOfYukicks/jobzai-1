@@ -8,6 +8,7 @@ interface FloatingElementProps {
   icon: React.ElementType;
   color: string;
   bgColor: string;
+  barColor: string;
   delay: number;
   x: string | number;
   y: string | number;
@@ -15,7 +16,7 @@ interface FloatingElementProps {
   scale?: number;
 }
 
-const FloatingElement = ({ icon: Icon, color, bgColor, delay, x, y, rotation = 0, scale = 1 }: FloatingElementProps) => {
+const FloatingElement = ({ icon: Icon, color, bgColor, barColor, delay, x, y, rotation = 0, scale = 1 }: FloatingElementProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
@@ -31,30 +32,21 @@ const FloatingElement = ({ icon: Icon, color, bgColor, delay, x, y, rotation = 0
         type: "spring",
         stiffness: 50
       }}
-      className="absolute hidden lg:flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow duration-300"
+      className="absolute flex items-center justify-center shadow-sm hover:shadow-md transition-shadow duration-300"
       style={{
-        width: 80,
-        height: 80,
-        borderRadius: 24,
+        width: 64,
+        height: 64,
+        borderRadius: 12,
         backgroundColor: bgColor,
         zIndex: 0,
         rotate: rotation,
       }}
     >
-      <motion.div
-        animate={{ 
-          y: [-8, 8, -8],
-          rotate: [0, 5, 0, -5, 0]
-        }}
-        transition={{ 
-          duration: 6, 
-          ease: "easeInOut", 
-          repeat: Infinity,
-          delay: delay + 1
-        }}
-      >
-        <Icon size={40} color={color} strokeWidth={1.5} />
-      </motion.div>
+      <div 
+        className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl"
+        style={{ backgroundColor: barColor }}
+      />
+      <Icon size={32} color={color} strokeWidth={1.5} />
     </motion.div>
   );
 };
@@ -106,52 +98,45 @@ export default function Hero() {
 
   const floatingElements = [
     {
-      icon: FileText,
-      color: "#2563EB", // Blue 600
-      bgColor: "#DBEAFE", // Blue 100
-      x: "-380px",
-      y: "-80px",
+      icon: Mail,
+      color: "#059669", // Emerald 600
+      bgColor: "#ECFDF5", // Emerald 50
+      barColor: "#10B981", // Emerald 500
+      x: "-500px",
+      y: "-100px",
       delay: 0.2,
       rotation: -12,
     },
     {
       icon: Calendar,
       color: "#DC2626", // Red 600
-      bgColor: "#FEE2E2", // Red 100
-      x: "380px",
+      bgColor: "#FEF2F2", // Red 50
+      barColor: "#EF4444", // Red 500
+      x: "500px",
       y: "-100px",
       delay: 0.3,
       rotation: 12,
     },
     {
-      icon: Sparkles,
-      color: "#9333EA", // Purple 600
-      bgColor: "#F3E8FF", // Purple 100
-      x: "-320px",
-      y: "140px",
+      icon: FileText,
+      color: "#2563EB", // Blue 600
+      bgColor: "#EFF6FF", // Blue 50
+      barColor: "#3B82F6", // Blue 500
+      x: "-560px",
+      y: "100px",
       delay: 0.4,
-      rotation: -6,
-      scale: 0.9
+      rotation: -15,
     },
     {
       icon: Target,
       color: "#D97706", // Amber 600
-      bgColor: "#FEF3C7", // Amber 100
-      x: "340px",
-      y: "120px",
+      bgColor: "#FFFBEB", // Amber 50
+      barColor: "#F59E0B", // Amber 500
+      x: "560px",
+      y: "100px",
       delay: 0.5,
-      rotation: 8,
+      rotation: 15,
       scale: 0.9
-    },
-    {
-      icon: Mail,
-      color: "#059669", // Emerald 600
-      bgColor: "#D1FAE5", // Emerald 100
-      x: "0px",
-      y: "-180px",
-      delay: 0.6,
-      rotation: 0,
-      scale: 0.8
     }
   ];
 
@@ -164,23 +149,23 @@ export default function Hero() {
       {/* Main Content Container */}
       <div className="relative w-full max-w-7xl mx-auto px-6 flex flex-col items-center">
         
-        {/* Floating Elements Container - Centered relative to content */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[400px] pointer-events-none z-0">
-          {floatingElements.map((el, index) => (
-            <div key={index} className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <FloatingElement {...el} />
-            </div>
-          ))}
-        </div>
-
         {/* Content Wrapper */}
-        <div className="relative z-10 max-w-4xl mx-auto text-center">
+        <div className="relative z-10 max-w-4xl mx-auto text-center pointer-events-none">
+          {/* Floating Elements - Positioned relative to this content wrapper */}
+          <div className="absolute inset-0 flex items-center justify-center z-[-1] pointer-events-none">
+             {floatingElements.map((el, index) => (
+              <div key={index} className="absolute">
+                <FloatingElement {...el} />
+              </div>
+            ))}
+          </div>
+
           {/* Badge */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mb-8"
+            className="mb-8 pointer-events-auto"
           >
             <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100/80 backdrop-blur-sm border border-gray-200 text-gray-700 text-sm font-medium">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
@@ -193,7 +178,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-gray-900 leading-[1.1] mb-6"
+            className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-gray-900 leading-[1.1] mb-6 pointer-events-auto"
           >
             Your job search.
             <br />
@@ -205,7 +190,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-8 leading-relaxed"
+            className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-8 leading-relaxed pointer-events-auto"
           >
             Send hundreds of personalized applications in minutes.
             <br className="hidden sm:block" />
@@ -217,7 +202,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16"
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16 pointer-events-auto"
           >
             <Link 
               to="/signup"
