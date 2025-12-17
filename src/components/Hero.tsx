@@ -160,19 +160,15 @@ export default function Hero() {
             ))}
           </div>
 
-          {/* AI Badge - Minimal */}
+          {/* AI Badge - Glassmorphism */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
             className="mb-8 pointer-events-auto"
           >
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-gray-900 text-white text-sm font-medium tracking-tight">
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 backdrop-blur-md border border-white/60 shadow-sm text-sm font-medium text-gray-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#7066fd] animate-pulse"></span>
               AI-powered
             </span>
           </motion.div>
@@ -198,7 +194,7 @@ export default function Hero() {
           >
             Send hundreds of personalized applications in minutes.
             <br className="hidden sm:block" />
-            Then track, optimize, and prepare for interviews — all from one dashboard.
+            Track every opportunity. Prepare smarter. Get more interviews.
           </motion.p>
 
           {/* CTAs */}

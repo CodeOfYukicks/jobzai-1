@@ -8,29 +8,33 @@ import {
   ScrollText,
   Settings,
   ChevronDown,
-  Sparkles,
-  Send,
-  Briefcase,
-  Target,
-  MessageSquare,
-  BarChart3,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import FirebaseImage from './FirebaseImage';
 
-// Products dropdown content - 3 columns structure
+// Products dropdown content - 4 columns structure (matching AuthLayout)
 const productFeatures = {
-  features: [
-    { name: 'Auto Apply', description: 'Mass spontaneous applications', href: '#auto-apply', icon: Send },
-    { name: 'Job Tracker', description: 'Track all your applications', href: '#tracker', icon: Target },
-    { name: 'AI Assistant', description: 'Your personal career copilot', href: '#ai', icon: Sparkles },
+  apply: [
+    { name: 'Job Board', description: 'Find your next opportunity', href: '#jobs' },
+    { name: 'AutoPilot', description: 'Mass auto-apply in minutes', href: '#autopilot' },
+    { name: 'Campaigns', description: 'Targeted outreach campaigns', href: '#campaigns' },
+    { name: 'Resume Lab', description: 'AI-powered CV optimization', href: '#resume-lab' },
   ],
-  more: [
-    { name: 'Job Board', description: 'Find your next opportunity', href: '#jobs', icon: Briefcase },
-    { name: 'Interview Prep', description: 'Practice with AI mock interviews', href: '#interview', icon: MessageSquare },
-    { name: 'Career Intelligence', description: 'Data-driven career insights', href: '#insights', icon: BarChart3 },
-  ]
+  track: [
+    { name: 'Application Tracker', description: 'Track all applications', href: '#tracker' },
+    { name: 'Calendar', description: 'Schedule & plan interviews', href: '#calendar' },
+  ],
+  prepare: [
+    { name: 'Interview Hub', description: 'Prepare for upcoming interviews', href: '#interview-hub' },
+    { name: 'Mock Interview', description: 'Practice with AI interviewer', href: '#mock-interview' },
+    { name: 'Document Manager', description: 'Manage all your resumes', href: '#documents' },
+  ],
+  improve: [
+    { name: 'Professional Profile', description: 'Build your personal brand', href: '#profile' },
+    { name: 'Recommendations', description: 'AI-powered suggestions', href: '#recommendations' },
+    { name: 'Dashboard', description: 'Overview & analytics', href: '#dashboard' },
+  ],
 };
 
 const publicNavigation = [
@@ -230,68 +234,108 @@ export default function Navbar() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="hidden md:block absolute top-14 left-0 right-0 bg-white border-b border-gray-200 shadow-sm"
+            className="hidden md:block absolute top-14 left-0 right-0 bg-white border-b border-gray-200"
             style={{ zIndex: 40 }}
             onMouseEnter={() => handleMouseEnter('Products')}
             onMouseLeave={handleMouseLeave}
           >
-            <div className="px-10 py-8">
-              <div className="flex">
-                {/* Column 1 - Features */}
-                <div className="flex-1 pr-16">
-                  <div className="text-xs font-medium text-gray-400 mb-4">Features</div>
-                  <div className="space-y-4">
-                    {productFeatures.features.map((feature) => (
-                      <a
-                        key={feature.name}
-                        href={feature.href}
-                        className="block group"
-                      >
-                        <div className="text-sm font-medium text-gray-900 group-hover:text-[#7066fd] transition-colors">{feature.name}</div>
-                        <div className="text-sm text-gray-500">{feature.description}</div>
+            <div className="max-w-[1400px] mx-auto px-8 py-10">
+              <div className="flex gap-16">
+                {/* Column 1 - Apply */}
+                <div className="flex-1">
+                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-5">Apply</div>
+                  <div className="space-y-5">
+                    {productFeatures.apply.map((item) => (
+                      <a key={item.name} href={item.href} className="block group">
+                        <div className="text-[15px] font-semibold text-gray-900 group-hover:text-[#7066fd] transition-colors">{item.name}</div>
+                        <div className="text-sm text-gray-500 mt-0.5">{item.description}</div>
                       </a>
                     ))}
                   </div>
                 </div>
 
-                {/* Column 2 - Explore */}
-                <div className="flex-1 pr-16">
-                  <div className="text-xs font-medium text-gray-400 mb-4">Explore</div>
-                  <div className="space-y-4">
-                    {productFeatures.more.map((feature) => (
-                      <a
-                        key={feature.name}
-                        href={feature.href}
-                        className="block group"
-                      >
-                        <div className="text-sm font-medium text-gray-900 group-hover:text-[#7066fd] transition-colors">{feature.name}</div>
-                        <div className="text-sm text-gray-500">{feature.description}</div>
+                {/* Column 2 - Track */}
+                <div className="flex-1">
+                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-5">Track</div>
+                  <div className="space-y-5">
+                    {productFeatures.track.map((item) => (
+                      <a key={item.name} href={item.href} className="block group">
+                        <div className="text-[15px] font-semibold text-gray-900 group-hover:text-[#7066fd] transition-colors">{item.name}</div>
+                        <div className="text-sm text-gray-500 mt-0.5">{item.description}</div>
                       </a>
                     ))}
                   </div>
                 </div>
 
-                {/* Column 3 - Get Started */}
-                <div className="w-[280px] pl-8 border-l border-gray-200">
-                  <div className="text-xs font-medium text-gray-400 mb-4">Get started</div>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Land your dream job faster with AI-powered tools.
-                  </p>
-                  <Link
-                    to="/signup"
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#7066fd] rounded-md hover:bg-[#5b52e0] transition-colors"
-                  >
-                    Get Started
-                  </Link>
-                  {/* Illustration */}
-                  <div className="mt-6">
-                    <svg className="w-32 h-24 text-gray-200" viewBox="0 0 128 96" fill="none">
-                      <rect x="10" y="20" width="40" height="50" rx="4" stroke="currentColor" strokeWidth="2"/>
-                      <rect x="20" y="30" width="20" height="4" rx="1" fill="currentColor"/>
-                      <rect x="20" y="40" width="15" height="4" rx="1" fill="currentColor"/>
-                      <circle cx="90" cy="45" r="25" stroke="currentColor" strokeWidth="2"/>
-                      <path d="M80 45 L88 53 L100 38" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                {/* Column 3 - Prepare */}
+                <div className="flex-1">
+                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-5">Prepare</div>
+                  <div className="space-y-5">
+                    {productFeatures.prepare.map((item) => (
+                      <a key={item.name} href={item.href} className="block group">
+                        <div className="text-[15px] font-semibold text-gray-900 group-hover:text-[#7066fd] transition-colors">{item.name}</div>
+                        <div className="text-sm text-gray-500 mt-0.5">{item.description}</div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Column 4 - Improve */}
+                <div className="flex-1">
+                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-5">Improve</div>
+                  <div className="space-y-5">
+                    {productFeatures.improve.map((item) => (
+                      <a key={item.name} href={item.href} className="block group">
+                        <div className="text-[15px] font-semibold text-gray-900 group-hover:text-[#7066fd] transition-colors">{item.name}</div>
+                        <div className="text-sm text-gray-500 mt-0.5">{item.description}</div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Column 5 - CTA Box with Avatars */}
+                <div className="w-[260px] flex-shrink-0">
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+                    <div className="text-sm font-medium text-gray-900 mb-2">
+                      Join 10,000+ job seekers
+                    </div>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Land your dream job faster with AI-powered tools.
+                    </p>
+                    <Link
+                      to="/signup"
+                      className="inline-flex items-center justify-center w-full px-4 py-2.5 text-sm font-medium text-white bg-[#7066fd] rounded-lg hover:bg-[#5b52e0] transition-colors"
+                    >
+                      Get Started
+                    </Link>
+                    {/* DiceBear Avatars */}
+                    <div className="mt-5 flex items-center justify-center">
+                      <div className="flex -space-x-2">
+                        <img 
+                          src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=b6e3f4" 
+                          alt="" 
+                          className="w-8 h-8 rounded-full ring-2 ring-white"
+                        />
+                        <img 
+                          src="https://api.dicebear.com/7.x/notionists/svg?seed=Aneka&backgroundColor=c0aede" 
+                          alt="" 
+                          className="w-8 h-8 rounded-full ring-2 ring-white"
+                        />
+                        <img 
+                          src="https://api.dicebear.com/7.x/notionists/svg?seed=Leo&backgroundColor=ffd5dc" 
+                          alt="" 
+                          className="w-8 h-8 rounded-full ring-2 ring-white"
+                        />
+                        <img 
+                          src="https://api.dicebear.com/7.x/notionists/svg?seed=Sara&backgroundColor=d1f4d1" 
+                          alt="" 
+                          className="w-8 h-8 rounded-full ring-2 ring-white"
+                        />
+                        <div className="w-8 h-8 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-600">
+                          +5k
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -320,53 +364,87 @@ export default function Navbar() {
               exit={{ opacity: 0, y: -10 }}
               className="absolute top-14 left-0 right-0 bg-white md:hidden shadow-lg border-t border-gray-100"
             >
-              <div className="px-6 py-6 space-y-4">
+              <div className="px-6 py-6 space-y-4 max-h-[70vh] overflow-y-auto">
                 {/* Navigation Section */}
-                <div className="space-y-1">
-                  {/* Features Section */}
-                  <div className="space-y-1">
+                <div className="space-y-4">
+                  {/* Apply Section */}
+                  <div>
                     <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Features
+                      Apply
                     </div>
-                    {productFeatures.features.map((feature) => (
+                    {productFeatures.apply.map((item) => (
                       <a
-                        key={feature.name}
-                        href={feature.href}
-                        className="flex items-center gap-3 py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        key={item.name}
+                        href={item.href}
+                        className="block py-2.5 px-4 text-gray-900 font-medium hover:text-[#7066fd] transition-colors"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
-                        <feature.icon className="w-5 h-5 text-gray-500" />
-                        <span className="font-medium">{feature.name}</span>
+                        {item.name}
                       </a>
                     ))}
                   </div>
                   
-                  {/* Explore Section */}
-                  <div className="space-y-1 pt-2">
+                  {/* Track Section */}
+                  <div>
                     <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Explore
+                      Track
                     </div>
-                    {productFeatures.more.map((feature) => (
+                    {productFeatures.track.map((item) => (
                       <a
-                        key={feature.name}
-                        href={feature.href}
-                        className="flex items-center gap-3 py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        key={item.name}
+                        href={item.href}
+                        className="block py-2.5 px-4 text-gray-900 font-medium hover:text-[#7066fd] transition-colors"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
-                        <feature.icon className="w-5 h-5 text-gray-500" />
-                        <span className="font-medium">{feature.name}</span>
+                        {item.name}
+                      </a>
+                    ))}
+                  </div>
+
+                  {/* Prepare Section */}
+                  <div>
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      Prepare
+                    </div>
+                    {productFeatures.prepare.map((item) => (
+                      <a
+                        key={item.name}
+                        href={item.href}
+                        className="block py-2.5 px-4 text-gray-900 font-medium hover:text-[#7066fd] transition-colors"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {item.name}
+                      </a>
+                    ))}
+                  </div>
+
+                  {/* Improve Section */}
+                  <div>
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      Improve
+                    </div>
+                    {productFeatures.improve.map((item) => (
+                      <a
+                        key={item.name}
+                        href={item.href}
+                        className="block py-2.5 px-4 text-gray-900 font-medium hover:text-[#7066fd] transition-colors"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {item.name}
                       </a>
                     ))}
                   </div>
 
                   {/* Pricing */}
-                  <a
-                    href="#pricing"
-                    className="flex items-center py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Pricing
-                  </a>
+                  <div className="pt-2 border-t border-gray-100">
+                    <a
+                      href="#pricing"
+                      className="block py-2.5 px-4 text-gray-900 font-medium hover:text-[#7066fd] transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Pricing
+                    </a>
+                  </div>
                 </div>
 
                 {/* Auth Section - Toujours afficher sur landing page ou si pas connecté */}

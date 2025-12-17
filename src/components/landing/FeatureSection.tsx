@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, FileText, BarChart3, MessageSquare, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
+import FirebaseImage from '../FirebaseImage';
 
 // Savings calculator data - tools replaced by Jobz.ai with their market prices
 const savingsTools = [
@@ -482,6 +483,145 @@ function SavingsCalculator() {
   );
 }
 
+// Try For Free Section - Notion Style
+function TryForFree() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="pt-8 pb-16"
+    >
+      {/* Title */}
+      <h2 className="text-4xl lg:text-5xl font-black text-gray-900 mb-10">
+        Try for free.
+      </h2>
+
+      {/* Cards Grid - 2 columns, auto rows */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] lg:grid-rows-[1fr_1fr] gap-4 lg:auto-rows-fr">
+        {/* Main Card - AutoPilot - spans both rows */}
+        <div className="bg-white rounded-2xl overflow-hidden shadow-sm lg:row-span-2 flex flex-col">
+          <div className="p-8 pb-6">
+            {/* Icon - Simple black */}
+            <svg viewBox="0 0 40 40" fill="none" className="w-12 h-12 mb-5">
+              <rect x="4" y="4" width="32" height="32" rx="6" stroke="#1a1a1a" strokeWidth="2.5"/>
+              <path d="M12 20h16M20 12v16" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round"/>
+            </svg>
+            
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+              Get started with AutoPilot
+            </h3>
+            <p className="text-gray-500 text-base mb-5">
+              Your AI workspace for mass job applications.
+            </p>
+            
+            <Link
+              to="/signup"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors w-fit"
+            >
+              Start free trial
+            </Link>
+          </div>
+
+          {/* Image - Full width */}
+          <div className="px-8 pb-4">
+            <div className="rounded-xl overflow-hidden bg-[#f5f0e8]">
+              <FirebaseImage 
+                path="images/try-autopilot.png" 
+                alt="AutoPilot Screenshot" 
+                className="w-full h-auto object-cover"
+              />
+            </div>
+          </div>
+
+          {/* Sub-section like Notion's "Design system" */}
+          <div className="px-8 py-6 border-t border-gray-100 mt-auto">
+            <h4 className="text-xl font-bold text-gray-900 mb-2">Mass Applications</h4>
+            <p className="text-gray-500 text-sm leading-relaxed">
+              Send hundreds of personalized applications automatically.<br/>
+              AI tailors each message to the company and role.
+            </p>
+          </div>
+        </div>
+
+        {/* Job Tracker Card - row 1, col 2 */}
+        <div className="bg-white rounded-2xl overflow-hidden shadow-sm relative flex flex-col">
+          <div className="p-6 pr-[55%] flex-1">
+            {/* Icon - Simple line */}
+            <svg viewBox="0 0 32 32" fill="none" className="w-10 h-10 mb-3">
+              <rect x="3" y="3" width="26" height="26" rx="4" stroke="#1a1a1a" strokeWidth="2"/>
+              <path d="M3 11h26" stroke="#1a1a1a" strokeWidth="2"/>
+              <path d="M11 11v18" stroke="#1a1a1a" strokeWidth="2"/>
+            </svg>
+            
+            <h3 className="text-xl font-bold text-gray-900 mb-1">
+              Job Tracker
+            </h3>
+            <p className="text-gray-500 text-sm mb-4">
+              Track all your applications in one place.
+            </p>
+            
+            <Link
+              to="/signup"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors w-fit"
+            >
+              Try free
+            </Link>
+          </div>
+          
+          {/* Screenshot - absolute, top to bottom, clipped at bottom */}
+          <div className="absolute right-0 top-5 bottom-0 w-[52%] overflow-hidden">
+            <div className="rounded-tl-xl shadow-2xl overflow-hidden h-[120%]">
+              <FirebaseImage 
+                path="images/try-job-tracker.png" 
+                alt="Job Tracker Screenshot" 
+                className="w-full h-full object-cover object-left-top"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Mock Interview Card - row 2, col 2 */}
+        <div className="bg-white rounded-2xl overflow-hidden shadow-sm relative flex flex-col">
+          <div className="p-6 pr-[55%] flex-1">
+            {/* Icon - Simple line */}
+            <svg viewBox="0 0 32 32" fill="none" className="w-10 h-10 mb-3">
+              <rect x="2" y="5" width="28" height="22" rx="3" stroke="#1a1a1a" strokeWidth="2"/>
+              <circle cx="16" cy="16" r="4" stroke="#1a1a1a" strokeWidth="2"/>
+              <path d="M16 5v3M16 24v3" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            
+            <h3 className="text-xl font-bold text-gray-900 mb-1">
+              Mock Interview
+            </h3>
+            <p className="text-gray-500 text-sm mb-4">
+              Practice with AI-powered interviews.
+            </p>
+            
+            <Link
+              to="/signup"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors w-fit"
+            >
+              Try free
+            </Link>
+          </div>
+          
+          {/* Screenshot - absolute, top to bottom, clipped at bottom */}
+          <div className="absolute right-0 top-5 bottom-0 w-[52%] overflow-hidden">
+            <div className="rounded-tl-xl shadow-2xl overflow-hidden h-[120%]">
+              <FirebaseImage 
+                path="images/try-mock-interview.png" 
+                alt="Mock Interview Screenshot" 
+                className="w-full h-full object-cover object-left-top"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 // Press Quote Component
 function PressQuote() {
   return (
@@ -659,6 +799,11 @@ export default function FeatureSection() {
         <div className="max-w-6xl mx-auto px-6">
           <SavingsCalculator />
         </div>
+      </div>
+
+      {/* Try For Free Section */}
+      <div className="max-w-6xl mx-auto px-6">
+        <TryForFree />
       </div>
 
       {/* Press Quote - Back to container */}
