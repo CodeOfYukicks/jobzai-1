@@ -4,13 +4,13 @@ import rehypeRaw from 'rehype-raw';
 import { CompanyLogo } from '../common/CompanyLogo';
 import { Job } from '../../types/job-board';
 import { KanbanBoard } from '../../types/job';
-import { Building2, MapPin, Clock, Share2, Bookmark, Heart, Sparkles, Target, Briefcase, GraduationCap, Code, AlertTriangle, Users, X, Link2, Linkedin, Mail, MessageCircle } from 'lucide-react';
+import { Building2, MapPin, Clock, Share2, Bookmark, Heart, Target, Briefcase, GraduationCap, Code, AlertTriangle, Users, X, Link2, Linkedin, Mail, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { notify } from '@/lib/notify';
-import { extractJobInfo, DetailedJobInfo, generateJobInsightsFromDescription, generateJobTagsFromDescription, generateBasicInsightsFromJobData, generateBasicSummaryFromJobData, JobDataForFallback } from '../../lib/jobExtractor';
+import { generateJobSummaryAndInsights, generateBasicInsightsFromJobData, generateBasicSummaryFromJobData, JobDataForFallback } from '../../lib/jobExtractor';
 import { useJobInteractions } from '../../hooks/useJobInteractions';
 import SelectBoardModal from '../boards/SelectBoardModal';
 
@@ -162,65 +162,9 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
     };
 
     // Core function to add job to wishlist with a specific boardId
+    // SIMPLIFIED: Uses job data we already have instead of re-scraping the website
     const addJobToWishlist = async (boardId?: string) => {
         if (!currentUser || !job) return;
-
-        // Helper function to create a promise with timeout
-        const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, errorMsg: string): Promise<T> => {
-            return Promise.race([
-                promise,
-                new Promise<T>((_, reject) => 
-                    setTimeout(() => reject(new Error(errorMsg)), timeoutMs)
-                )
-            ]);
-        };
-
-        // Helper to apply local fallback and update Firestore
-        const applyLocalFallback = async (docRef: { id: string }, reason: string) => {
-            console.log(`🔧 Applying local fallback (${reason}):`, {
-                jobId: docRef.id,
-                title: job.title,
-                company: job.company
-            });
-
-            // Prepare job data for local fallback
-            const jobDataForFallback: JobDataForFallback = {
-                title: job.title,
-                company: job.company,
-                location: job.location,
-                description: job.description,
-                tags: job.tags,
-                type: job.type,
-                seniority: job.seniority,
-                salaryRange: job.salaryRange,
-                remote: job.remote,
-            };
-
-            // Generate local insights and summary
-            const localInsights = generateBasicInsightsFromJobData(jobDataForFallback);
-            const localSummary = generateBasicSummaryFromJobData(jobDataForFallback);
-
-            console.log('✅ Local fallback generated:', {
-                jobId: docRef.id,
-                hasSummary: !!localSummary,
-                hasInsights: !!localInsights
-            });
-
-            // Update the document with local data
-            try {
-                const { updateDoc, doc } = await import('firebase/firestore');
-                await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
-                    description: localSummary,
-                    jobInsights: localInsights,
-                    _fallbackUsed: true, // Mark that we used local fallback
-                    _fallbackReason: reason,
-                    updatedAt: serverTimestamp()
-                });
-                notify.info('Basic job summary created from listing data', { duration: 3000 });
-            } catch (updateError) {
-                console.error('❌ Failed to apply local fallback:', updateError);
-            }
-        };
 
         try {
             setIsAddingToWishlist(true);
@@ -240,6 +184,23 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                 return;
             }
 
+            // Prepare complete job data for AI analysis (we already have all this from the Job Board!)
+            const jobDataForAnalysis: JobDataForFallback = {
+                title: job.title,
+                company: job.company,
+                location: job.location,
+                description: job.description,
+                tags: job.tags,
+                skills: job.skills,
+                technologies: job.technologies,
+                industries: job.industries,
+                type: job.type,
+                seniority: job.seniority,
+                salaryRange: job.salaryRange,
+                remote: job.remote,
+                roleFunction: job.roleFunction,
+            };
+
             // Create application immediately with basic info for fast feedback
             const basicApplication = {
                 companyName: job.company,
@@ -248,7 +209,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                 status: 'wishlist',
                 appliedDate: new Date().toISOString().split('T')[0],
                 url: job.applyUrl || '',
-                description: '', // Will be filled by AI in background
+                description: '', // Will be filled by AI
                 fullJobDescription: job.description || '',
                 notes: '',
                 createdAt: serverTimestamp(),
@@ -264,197 +225,72 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                     date: new Date().toISOString().split('T')[0],
                     notes: 'Added from Job Board'
                 }],
-                // Include boardId if provided
                 ...(boardId && { boardId })
             };
 
-            // Add to Firestore immediately
+            // Add to Firestore immediately for fast UX
             const docRef = await addDoc(applicationsRef, basicApplication);
 
-            // Update UI state immediately for fast feedback
+            // Update UI state immediately
             setIsInWishlist(true);
             setIsAddingToWishlist(false);
             notify.success('Added to wishlist! 💜');
 
-            // Run AI extraction in background (async, non-blocking)
-            const AI_TIMEOUT_MS = 30000; // 30 seconds timeout for AI calls
+            // Generate AI summary and insights in background (ONE API call)
+            // No need to scrape - we use job.description we already have!
+            console.log('🤖 [addJobToWishlist] Generating AI summary from existing job data...', {
+                jobId: docRef.id,
+                title: job.title,
+                descriptionLength: job.description?.length || 0
+            });
 
-            if (job.applyUrl) {
-                // Show analyzing message
-                notify.info('🤖 Analyzing job with AI...', { duration: 3000 });
+            notify.info('🤖 Analyzing job details...', { duration: 2000 });
 
-                try {
-                    // Extract job info with AI asynchronously using URL (with timeout)
-                    const extractedData = await withTimeout(
-                        extractJobInfo(job.applyUrl, { detailed: true }),
-                        AI_TIMEOUT_MS,
-                        'URL extraction timed out'
-                    );
-                    
-                    const detailedData = extractedData as DetailedJobInfo;
-                    console.log('✅ Successfully extracted job info from URL:', { 
-                        jobId: docRef.id, 
-                        hasInsights: !!detailedData.jobInsights 
-                    });
+            try {
+                // Single API call to generate everything
+                const result = await generateJobSummaryAndInsights(jobDataForAnalysis);
 
-                    // Format the summary for description - structured format with 3 bullet points
-                    let formattedDescription = detailedData.summary;
-                    if (formattedDescription) {
-                        // Ensure proper formatting (unescape JSON escapes)
-                        formattedDescription = formattedDescription
-                            .replace(/\\n/g, '\n')
-                            .replace(/\\"/g, '"')
-                            .replace(/\\'/g, "'")
-                            .trim();
-
-                        // Ensure bullets are properly formatted (• or -)
-                        if (!formattedDescription.includes('•') && !formattedDescription.includes('-')) {
-                            const lines = formattedDescription.split('\n').filter((line: string) => line.trim().length > 0);
-                            if (lines.length > 0) {
-                                formattedDescription = lines.map((line: string) => {
-                                    const trimmed = line.trim();
-                                    if (!trimmed.startsWith('•') && !trimmed.startsWith('-')) {
-                                        return `• ${trimmed}`;
-                                    }
-                                    return trimmed;
-                                }).join('\n');
-                            }
-                        }
-                    }
-
-                    // Update the document with AI data
-                    const { updateDoc, doc } = await import('firebase/firestore');
-                    await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
-                        description: formattedDescription || '',
-                        fullJobDescription: detailedData.fullJobDescription || job.description || '',
-                        ...(detailedData.jobInsights && { jobInsights: detailedData.jobInsights }),
-                        ...(detailedData.jobTags && { jobTags: detailedData.jobTags }),
-                        updatedAt: serverTimestamp()
-                    });
-
-                    notify.success('AI analysis complete! ✨', { duration: 2000 });
-                } catch (extractError) {
-                    console.error('❌ Error extracting job info from URL:', {
-                        error: extractError,
-                        jobId: docRef.id,
-                        url: job.applyUrl
-                    });
-
-                    // Show error toast for URL extraction failure
-                    const errorMsg = extractError instanceof Error ? extractError.message : 'Unknown error';
-                    notify.warning(`AI analysis failed: ${errorMsg.substring(0, 50)}. Trying alternative...`, { duration: 3000 });
-
-                    // Fallback 1: Try to generate insights from description via ChatGPT
-                    if (job.description && job.description.trim().length > 50) {
-                        console.log('🔄 Attempting fallback: generating insights from description via API...');
-                        try {
-                            const [jobInsights, jobTags] = await withTimeout(
-                                Promise.all([
-                                    generateJobInsightsFromDescription(job.description, job.title, job.company),
-                                    generateJobTagsFromDescription(job.description, job.title, job.company, job.location || '')
-                                ]),
-                                AI_TIMEOUT_MS,
-                                'Description analysis timed out'
-                            );
-
-                            console.log('✅ Successfully generated jobInsights from description (fallback):', {
-                                jobId: docRef.id,
-                                hasInsights: !!jobInsights,
-                                hasTags: !!jobTags
-                            });
-
-                            // Update the document with AI-generated insights and tags
-                            const { updateDoc, doc } = await import('firebase/firestore');
-                            await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
-                                jobInsights: jobInsights,
-                                ...(jobTags && { jobTags: jobTags }),
-                                updatedAt: serverTimestamp()
-                            });
-
-                            notify.success('AI analysis complete! ✨', { duration: 2000 });
-                        } catch (fallbackError) {
-                            console.error('❌ API fallback also failed:', {
-                                error: fallbackError,
-                                jobId: docRef.id
-                            });
-                            notify.warning('AI service unavailable. Using local analysis...', { duration: 3000 });
-                            
-                            // Fallback 2: Use local fallback
-                            await applyLocalFallback(docRef, 'API_FALLBACK_FAILED');
-                        }
-                    } else {
-                        // No description available, use local fallback directly
-                        console.warn('⚠️ No description available for API fallback, using local fallback');
-                        await applyLocalFallback(docRef, 'NO_DESCRIPTION_FOR_API');
-                    }
-                }
-            } else if (job.description && job.description.trim().length > 50) {
-                // No URL available, try to generate from description via API
-                console.log('📝 No applyUrl available, generating insights from description:', {
+                console.log('✅ [addJobToWishlist] AI analysis complete:', {
                     jobId: docRef.id,
-                    title: job.title,
-                    company: job.company,
-                    descriptionLength: job.description.length
+                    hasSummary: !!result.summary,
+                    hasInsights: !!result.jobInsights,
+                    hasTags: !!result.jobTags
                 });
 
-                // Show analyzing message
-                notify.info('Analyzing job details from description...', { duration: 3000 });
-
-                try {
-                    // Generate jobInsights and tags from description (with timeout)
-                    const [jobInsights, jobTags] = await withTimeout(
-                        Promise.all([
-                            generateJobInsightsFromDescription(job.description, job.title, job.company),
-                            generateJobTagsFromDescription(job.description, job.title, job.company, job.location || '')
-                        ]),
-                        AI_TIMEOUT_MS,
-                        'Description analysis timed out'
-                    );
-
-                    console.log('✅ Successfully generated jobInsights from description:', {
-                        jobId: docRef.id,
-                        hasInsights: !!jobInsights,
-                        hasTags: !!jobTags,
-                        sections: Object.keys(jobInsights).filter(key => jobInsights[key as keyof typeof jobInsights] && jobInsights[key as keyof typeof jobInsights] !== 'Details not specified in posting')
-                    });
-
-                    // Update the document with AI-generated insights and tags
-                    const { updateDoc, doc } = await import('firebase/firestore');
-                    await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
-                        jobInsights: jobInsights,
-                        ...(jobTags && { jobTags: jobTags }),
-                        updatedAt: serverTimestamp()
-                    });
-
-                    notify.success('AI analysis complete! ✨', { duration: 2000 });
-                } catch (insightsError) {
-                    console.error('❌ Error generating jobInsights from description:', {
-                        error: insightsError,
-                        jobId: docRef.id,
-                        title: job.title,
-                        company: job.company
-                    });
-                    
-                    const errorMsg = insightsError instanceof Error ? insightsError.message : 'Unknown error';
-                    notify.warning(`AI analysis failed: ${errorMsg.substring(0, 50)}. Using local analysis...`, { duration: 3000 });
-                    
-                    // Use local fallback
-                    await applyLocalFallback(docRef, 'DESCRIPTION_API_FAILED');
-                }
-            } else {
-                // No URL and no substantial description - use local fallback
-                console.log('⚠️ No applyUrl or substantial description available, using local fallback:', {
-                    jobId: docRef.id,
-                    hasApplyUrl: !!job.applyUrl,
-                    hasDescription: !!(job.description && job.description.trim().length > 0),
-                    descriptionLength: job.description?.length || 0
+                // Update Firestore with AI-generated data
+                const { updateDoc, doc } = await import('firebase/firestore');
+                await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
+                    description: result.summary,
+                    jobInsights: result.jobInsights,
+                    ...(result.jobTags && { jobTags: result.jobTags }),
+                    updatedAt: serverTimestamp()
                 });
 
-                await applyLocalFallback(docRef, 'NO_URL_OR_DESCRIPTION');
+                notify.success('AI analysis complete! ✨', { duration: 2000 });
+            } catch (aiError) {
+                // AI failed - but the job is already saved with basic info
+                console.error('❌ [addJobToWishlist] AI analysis failed:', aiError);
+                
+                // Use local fallback (no API call, instant)
+                const localSummary = generateBasicSummaryFromJobData(jobDataForAnalysis);
+                const localInsights = generateBasicInsightsFromJobData(jobDataForAnalysis);
+
+                try {
+                    const { updateDoc, doc } = await import('firebase/firestore');
+                    await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
+                        description: localSummary,
+                        jobInsights: localInsights,
+                        _fallbackUsed: true,
+                        updatedAt: serverTimestamp()
+                    });
+                    notify.info('Job summary created from listing data', { duration: 2000 });
+                } catch (updateError) {
+                    console.error('❌ Failed to update with fallback:', updateError);
+                }
             }
         } catch (error) {
             console.error('Error adding to wishlist:', error);
-            setIsInWishlist(false); // Revert state on error
+            setIsInWishlist(false);
             notify.error('Failed to add to wishlist');
             setIsAddingToWishlist(false);
         }

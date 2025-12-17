@@ -960,10 +960,23 @@ export interface JobDataForFallback {
   location?: string;
   description?: string;
   tags?: string[];
+  skills?: string[];
+  technologies?: string[];
+  industries?: string[];
   type?: string;
   seniority?: string;
   salaryRange?: string;
   remote?: string;
+  roleFunction?: string;
+}
+
+/**
+ * Result from the combined summary and insights generation
+ */
+export interface JobSummaryAndInsightsResult {
+  summary: string;  // 3 bullet points summary
+  jobInsights: DetailedJobInfo['jobInsights'];
+  jobTags?: JobTags;
 }
 
 /**
@@ -977,102 +990,164 @@ export interface JobDataForFallback {
 export function generateBasicInsightsFromJobData(
   jobData: JobDataForFallback
 ): DetailedJobInfo['jobInsights'] {
-  const { title, company, location, description, tags, type, seniority, salaryRange, remote } = jobData;
+  const { title, company, location, description, tags, skills, technologies, type, seniority, salaryRange, remote, industries, roleFunction } = jobData;
   
   // Extract key responsibilities from description if available
-  let keyResponsibilities = 'Details not available - please check the job posting directly';
+  let keyResponsibilities = `${title} role at ${company}`;
+  if (location) keyResponsibilities += ` (${location})`;
+  
   if (description && description.trim().length > 50) {
     // Try to find responsibility-related content
     const responsibilityPatterns = [
       /responsibilities?:?\s*([\s\S]*?)(?=requirements?|qualifications?|skills?|experience|about|benefits|$)/i,
       /what you['']?ll do:?\s*([\s\S]*?)(?=what you|requirements?|qualifications?|skills?|$)/i,
       /your role:?\s*([\s\S]*?)(?=requirements?|qualifications?|skills?|about|$)/i,
+      /key duties:?\s*([\s\S]*?)(?=requirements?|qualifications?|skills?|about|$)/i,
     ];
     
     for (const pattern of responsibilityPatterns) {
       const match = description.match(pattern);
       if (match && match[1] && match[1].trim().length > 20) {
         // Clean and truncate
-        keyResponsibilities = match[1].trim().substring(0, 300);
-        if (match[1].length > 300) keyResponsibilities += '...';
+        keyResponsibilities = match[1].trim().substring(0, 400);
+        if (match[1].length > 400) keyResponsibilities += '...';
         break;
       }
     }
     
     // If no pattern matched, use first part of description
-    if (keyResponsibilities.includes('Details not available')) {
-      const firstPart = description.substring(0, 300).trim();
+    if (keyResponsibilities.includes('role at')) {
+      const firstPart = description.substring(0, 400).trim();
       if (firstPart.length > 50) {
-        keyResponsibilities = firstPart + (description.length > 300 ? '...' : '');
+        keyResponsibilities = firstPart + (description.length > 400 ? '...' : '');
       }
     }
   }
   
-  // Build required skills from tags
-  let requiredSkills = 'Skills not specified';
+  // Build required skills from all available sources (tags, skills, technologies)
+  let requiredSkills = '';
+  const allSkills: string[] = [];
+  
+  // Prioritize technologies
+  if (technologies && technologies.length > 0) {
+    allSkills.push(...technologies.slice(0, 5));
+  }
+  // Then add skills
+  if (skills && skills.length > 0) {
+    const newSkills = skills.filter(s => !allSkills.includes(s));
+    allSkills.push(...newSkills.slice(0, 4));
+  }
+  // Then add tags
   if (tags && tags.length > 0) {
-    requiredSkills = `Key skills: ${tags.slice(0, 7).join(', ')}`;
+    const newTags = tags.filter(t => !allSkills.includes(t));
+    allSkills.push(...newTags.slice(0, 3));
+  }
+  
+  if (allSkills.length > 0) {
+    requiredSkills = `Key skills: ${allSkills.slice(0, 8).join(', ')}`;
   } else if (description) {
     // Try to extract from description
     const skillsMatch = description.match(/skills?:?\s*([\s\S]*?)(?=experience|responsibilities?|qualifications?|about|$)/i);
     if (skillsMatch && skillsMatch[1] && skillsMatch[1].trim().length > 10) {
-      requiredSkills = skillsMatch[1].trim().substring(0, 200);
+      requiredSkills = skillsMatch[1].trim().substring(0, 250);
+    } else {
+      requiredSkills = 'See full job description for required skills';
+    }
+  } else {
+    requiredSkills = 'Skills not specified in listing';
+  }
+  
+  // Build experience level with more context
+  const experienceParts: string[] = [];
+  if (seniority) experienceParts.push(seniority);
+  if (type) experienceParts.push(type);
+  if (roleFunction) experienceParts.push(`${roleFunction} role`);
+  
+  let experienceLevel = experienceParts.length > 0 
+    ? experienceParts.join(' • ')
+    : 'Experience level not specified';
+  
+  // Try to extract years from description
+  if (description) {
+    const yearsMatch = description.match(/(\d+)\+?\s*years?/i);
+    if (yearsMatch) {
+      experienceLevel += ` • ${yearsMatch[0]} experience`;
     }
   }
   
-  // Build experience level
-  let experienceLevel = 'Experience level not specified';
-  if (seniority) {
-    experienceLevel = `Level: ${seniority}`;
-  }
-  if (type) {
-    experienceLevel += experienceLevel.includes('Level') ? ` | Type: ${type}` : `Type: ${type}`;
-  }
-  
-  // Build compensation/benefits
-  let compensationBenefits = 'Compensation details not specified';
+  // Build compensation/benefits with more detail
+  const compensationParts: string[] = [];
   if (salaryRange && salaryRange.trim().length > 0) {
-    compensationBenefits = `Salary: ${salaryRange}`;
+    compensationParts.push(`Salary: ${salaryRange}`);
   }
   if (remote) {
-    const remoteInfo = remote === 'remote' ? 'Remote work available' : 
-                       remote === 'hybrid' ? 'Hybrid work model' : 
-                       remote === 'on-site' ? 'On-site position' : '';
-    if (remoteInfo) {
-      compensationBenefits += compensationBenefits.includes('not specified') 
-        ? remoteInfo 
-        : ` | ${remoteInfo}`;
-    }
+    const remoteLower = remote.toLowerCase();
+    if (remoteLower.includes('remote')) compensationParts.push('Remote work available');
+    else if (remoteLower.includes('hybrid')) compensationParts.push('Hybrid work model');
+    else if (remoteLower.includes('on-site') || remoteLower.includes('onsite')) compensationParts.push('On-site position');
+  }
+  if (location) {
+    compensationParts.push(`Location: ${location}`);
   }
   
-  // Company culture - try to extract from description
-  let companyCulture = 'Company culture details not available in listing';
+  const compensationBenefits = compensationParts.length > 0 
+    ? compensationParts.join(' • ')
+    : 'Compensation details not specified - check full job posting';
+  
+  // Company culture - include industry context
+  let companyCulture = '';
+  if (industries && industries.length > 0) {
+    companyCulture = `Industry: ${industries.join(', ')}`;
+  }
+  
   if (description) {
     const culturePatterns = [
       /about (?:us|the company|our company):?\s*([\s\S]*?)(?=responsibilities?|requirements?|qualifications?|$)/i,
       /company culture:?\s*([\s\S]*?)(?=responsibilities?|requirements?|qualifications?|$)/i,
       /who we are:?\s*([\s\S]*?)(?=responsibilities?|requirements?|what you|$)/i,
+      /our values:?\s*([\s\S]*?)(?=responsibilities?|requirements?|what you|$)/i,
     ];
     
     for (const pattern of culturePatterns) {
       const match = description.match(pattern);
       if (match && match[1] && match[1].trim().length > 20) {
-        companyCulture = match[1].trim().substring(0, 250);
-        if (match[1].length > 250) companyCulture += '...';
+        const cultureText = match[1].trim().substring(0, 300);
+        companyCulture = companyCulture 
+          ? `${companyCulture}. ${cultureText}${match[1].length > 300 ? '...' : ''}`
+          : cultureText + (match[1].length > 300 ? '...' : '');
         break;
       }
     }
   }
   
+  if (!companyCulture) {
+    companyCulture = `${company} - see full job posting for company details`;
+  }
+  
   // Growth opportunities - try to extract from description
-  let growthOpportunities = 'Growth opportunity details not available in listing';
+  let growthOpportunities = 'Growth opportunity details not specified';
   if (description) {
     const growthPatterns = [
-      /growth|career development|advancement|learning|training/i
+      /career (?:growth|development|advancement|progression):?\s*([\s\S]*?)(?=responsibilities?|requirements?|qualifications?|$)/i,
+      /(?:learning|training|development) opportunities?:?\s*([\s\S]*?)(?=responsibilities?|requirements?|qualifications?|$)/i,
+      /what we offer:?\s*([\s\S]*?)(?=responsibilities?|requirements?|qualifications?|how to apply|$)/i,
     ];
     
-    if (growthPatterns.some(p => p.test(description))) {
-      growthOpportunities = 'Potential growth opportunities mentioned in job posting - see full description';
+    for (const pattern of growthPatterns) {
+      const match = description.match(pattern);
+      if (match && match[1] && match[1].trim().length > 20) {
+        growthOpportunities = match[1].trim().substring(0, 250);
+        if (match[1].length > 250) growthOpportunities += '...';
+        break;
+      }
+    }
+    
+    // Generic check if growth-related keywords are mentioned
+    if (growthOpportunities === 'Growth opportunity details not specified') {
+      const hasGrowthMention = /growth|career development|advancement|learning|training|mentorship|professional development/i.test(description);
+      if (hasGrowthMention) {
+        growthOpportunities = 'Growth and development opportunities mentioned - see full job description';
+      }
     }
   }
   
@@ -1094,32 +1169,333 @@ export function generateBasicInsightsFromJobData(
  * @returns Formatted summary string with bullet points
  */
 export function generateBasicSummaryFromJobData(jobData: JobDataForFallback): string {
-  const { title, company, location, tags, type, seniority, remote, salaryRange } = jobData;
+  const { title, company, location, tags, skills, technologies, type, seniority, remote, salaryRange, industries, roleFunction } = jobData;
   
   const bulletPoints: string[] = [];
   
-  // First bullet: Role overview
+  // First bullet: Role overview with location and remote info
   let roleOverview = `${title} position at ${company}`;
-  if (location) roleOverview += ` based in ${location}`;
-  if (remote === 'remote') roleOverview += ' (Remote)';
-  else if (remote === 'hybrid') roleOverview += ' (Hybrid)';
+  if (location) roleOverview += ` in ${location}`;
+  if (remote) {
+    const remoteLower = remote.toLowerCase();
+    if (remoteLower.includes('remote')) roleOverview += ' (Remote)';
+    else if (remoteLower.includes('hybrid')) roleOverview += ' (Hybrid)';
+  }
   bulletPoints.push(roleOverview);
   
-  // Second bullet: Job type and level
+  // Second bullet: Job type, level, and industry context
   const details: string[] = [];
+  if (seniority) details.push(seniority);
   if (type) details.push(type);
-  if (seniority) details.push(`${seniority} level`);
+  if (roleFunction && roleFunction !== 'other') {
+    details.push(`${roleFunction.charAt(0).toUpperCase() + roleFunction.slice(1)} role`);
+  }
+  if (industries && industries.length > 0) {
+    details.push(industries[0]);
+  }
   if (salaryRange) details.push(salaryRange);
+  
   if (details.length > 0) {
     bulletPoints.push(details.join(' • '));
   }
   
-  // Third bullet: Key skills/tags
+  // Third bullet: Key skills/technologies (prioritize technologies, then skills, then tags)
+  const allSkills: string[] = [];
+  if (technologies && technologies.length > 0) {
+    allSkills.push(...technologies.slice(0, 4));
+  }
+  if (skills && skills.length > 0) {
+    const newSkills = skills.filter(s => !allSkills.includes(s));
+    allSkills.push(...newSkills.slice(0, 3));
+  }
   if (tags && tags.length > 0) {
-    bulletPoints.push(`Key skills: ${tags.slice(0, 5).join(', ')}`);
+    const newTags = tags.filter(t => !allSkills.includes(t));
+    allSkills.push(...newTags.slice(0, 2));
   }
   
-  // Format as bullet points
+  if (allSkills.length > 0) {
+    bulletPoints.push(`Key skills: ${allSkills.slice(0, 6).join(', ')}`);
+  }
+  
+  // Format as bullet points (ensure we have at least 2 points)
+  if (bulletPoints.length < 2) {
+    bulletPoints.push(`Opportunity at ${company} - see full description for details`);
+  }
+  
   return bulletPoints.map(point => `• ${point}`).join('\n');
 }
 
+/**
+ * Generate job summary, insights, and tags from existing job data in ONE API call
+ * This is the SIMPLIFIED approach - uses job.description we already have from the Job Board
+ * No need to scrape the website with Puppeteer/Perplexity!
+ * 
+ * @param jobData - Job data from the job board (already available)
+ * @returns Combined summary, jobInsights, and jobTags
+ */
+export async function generateJobSummaryAndInsights(
+  jobData: JobDataForFallback
+): Promise<JobSummaryAndInsightsResult> {
+  const { title, company, location, description, tags, skills, technologies, industries, type, seniority, salaryRange, remote, roleFunction } = jobData;
+  
+  // If no description or too short, use local fallback immediately
+  if (!description || description.trim().length < 100) {
+    console.log('📋 [generateJobSummaryAndInsights] Description too short, using local fallback');
+    return {
+      summary: generateBasicSummaryFromJobData(jobData),
+      jobInsights: generateBasicInsightsFromJobData(jobData),
+      jobTags: generateBasicTagsFromJobData(jobData),
+    };
+  }
+
+  // Build context from all available job data
+  const contextParts: string[] = [];
+  if (tags && tags.length > 0) contextParts.push(`Tags: ${tags.join(', ')}`);
+  if (skills && skills.length > 0) contextParts.push(`Skills: ${skills.join(', ')}`);
+  if (technologies && technologies.length > 0) contextParts.push(`Technologies: ${technologies.join(', ')}`);
+  if (industries && industries.length > 0) contextParts.push(`Industries: ${industries.join(', ')}`);
+  if (type) contextParts.push(`Employment Type: ${type}`);
+  if (seniority) contextParts.push(`Seniority: ${seniority}`);
+  if (salaryRange) contextParts.push(`Salary: ${salaryRange}`);
+  if (remote) contextParts.push(`Remote Policy: ${remote}`);
+  if (roleFunction) contextParts.push(`Role Function: ${roleFunction}`);
+
+  const additionalContext = contextParts.length > 0 ? `\n\nADDITIONAL METADATA:\n${contextParts.join('\n')}` : '';
+
+  const prompt = `You are an expert career analyst. Analyze this job posting and extract structured information.
+
+JOB POSTING:
+- Title: ${title}
+- Company: ${company}
+- Location: ${location || 'Not specified'}
+
+FULL DESCRIPTION:
+${description.substring(0, 6000)}${additionalContext}
+
+Return ONLY a valid JSON object with this exact structure:
+
+{
+  "summary": "• First key point about the role (what you'll do)\\n• Second key point (key requirements/skills)\\n• Third key point (what makes this opportunity interesting)",
+  "jobInsights": {
+    "keyResponsibilities": "2-3 main duties and responsibilities (50-100 words)",
+    "requiredSkills": "Top 5-7 critical skills needed (50-80 words)",
+    "experienceLevel": "Years of experience required, seniority level (30-50 words)",
+    "compensationBenefits": "Salary, benefits, perks if mentioned (40-70 words). Use 'Not specified' if unavailable.",
+    "companyCulture": "Work environment, values, team culture (50-80 words). Use 'Details not specified in posting' if unavailable.",
+    "growthOpportunities": "Career development, learning opportunities (40-70 words). Use 'Details not specified in posting' if unavailable."
+  },
+  "jobTags": {
+    "industry": ["Technology", "SaaS"],
+    "sector": "Technology",
+    "seniority": "Senior",
+    "employmentType": ["Full-time", "Remote"],
+    "technologies": ["React", "TypeScript"],
+    "skills": ["Leadership", "Communication"],
+    "location": {
+      "city": "Paris",
+      "country": "France",
+      "remote": true,
+      "hybrid": false
+    }
+  }
+}
+
+CRITICAL RULES:
+- The summary MUST be exactly 3 bullet points starting with •
+- Extract ONLY information explicitly mentioned in the description
+- Do NOT invent or hallucinate information
+- Keep insights concise but informative
+- Return ONLY valid JSON - no markdown, no code blocks
+`;
+
+  try {
+    console.log('🤖 [generateJobSummaryAndInsights] Calling ChatGPT for combined analysis...');
+    
+    const response = await fetch('/api/chatgpt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'cv-edit', prompt }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const text = await response.text();
+    if (!text) {
+      throw new Error('Empty response from API');
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        data = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+      } else {
+        throw new Error('Failed to parse API response as JSON');
+      }
+    }
+
+    if (data.status !== 'success') {
+      throw new Error(data.message || 'API returned error status');
+    }
+
+    // Extract content from response
+    let content = data.content;
+    if (typeof content === 'string') {
+      try {
+        content = JSON.parse(content);
+      } catch {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          content = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('Could not parse content from response');
+        }
+      }
+    }
+
+    console.log('✅ [generateJobSummaryAndInsights] ChatGPT analysis complete');
+
+    // Validate and format summary
+    let summary = content.summary || '';
+    if (summary && !summary.includes('•')) {
+      // Format as bullet points if not already
+      const lines = summary.split('\n').filter((line: string) => line.trim().length > 0);
+      summary = lines.map((line: string) => {
+        const trimmed = line.trim();
+        return trimmed.startsWith('•') || trimmed.startsWith('-') ? trimmed.replace(/^-/, '•') : `• ${trimmed}`;
+      }).join('\n');
+    }
+
+    // Build jobInsights with defaults
+    const jobInsights = {
+      keyResponsibilities: content.jobInsights?.keyResponsibilities?.trim() || 'Details not specified in posting',
+      requiredSkills: content.jobInsights?.requiredSkills?.trim() || 'Details not specified in posting',
+      experienceLevel: content.jobInsights?.experienceLevel?.trim() || 'Details not specified in posting',
+      compensationBenefits: content.jobInsights?.compensationBenefits?.trim() || 'Not specified',
+      companyCulture: content.jobInsights?.companyCulture?.trim() || 'Details not specified in posting',
+      growthOpportunities: content.jobInsights?.growthOpportunities?.trim() || 'Details not specified in posting',
+    };
+
+    // Build jobTags if available
+    let jobTags: JobTags | undefined;
+    if (content.jobTags) {
+      const tags = content.jobTags;
+      jobTags = {
+        industry: Array.isArray(tags.industry) ? tags.industry.filter((i: unknown) => typeof i === 'string') : [],
+        sector: typeof tags.sector === 'string' ? tags.sector.trim() : '',
+        seniority: typeof tags.seniority === 'string' ? tags.seniority.trim() : '',
+        employmentType: Array.isArray(tags.employmentType) ? tags.employmentType.filter((e: unknown) => typeof e === 'string') : [],
+        technologies: Array.isArray(tags.technologies) ? tags.technologies.filter((t: unknown) => typeof t === 'string') : [],
+        skills: Array.isArray(tags.skills) ? tags.skills.filter((s: unknown) => typeof s === 'string') : [],
+        location: {
+          city: typeof tags.location?.city === 'string' ? tags.location.city.trim() : undefined,
+          country: typeof tags.location?.country === 'string' ? tags.location.country.trim() : undefined,
+          remote: typeof tags.location?.remote === 'boolean' ? tags.location.remote : false,
+          hybrid: typeof tags.location?.hybrid === 'boolean' ? tags.location.hybrid : false,
+        },
+      };
+    }
+
+    return {
+      summary: summary || generateBasicSummaryFromJobData(jobData),
+      jobInsights,
+      jobTags,
+    };
+  } catch (error) {
+    console.error('❌ [generateJobSummaryAndInsights] ChatGPT failed, using local fallback:', error);
+    
+    // Use local fallback when API fails
+    return {
+      summary: generateBasicSummaryFromJobData(jobData),
+      jobInsights: generateBasicInsightsFromJobData(jobData),
+      jobTags: generateBasicTagsFromJobData(jobData),
+    };
+  }
+}
+
+/**
+ * Generate basic jobTags from existing job data (LOCAL FALLBACK)
+ * Creates structured tags without making API calls
+ * 
+ * @param jobData - Job data from the job board
+ * @returns JobTags object
+ */
+export function generateBasicTagsFromJobData(jobData: JobDataForFallback): JobTags {
+  const { location, tags, skills, technologies, industries, type, seniority, salaryRange, remote } = jobData;
+  
+  // Parse location string to extract city/country
+  let city: string | undefined;
+  let country: string | undefined;
+  if (location) {
+    const parts = location.split(',').map(p => p.trim());
+    if (parts.length >= 2) {
+      city = parts[0];
+      country = parts[parts.length - 1];
+    } else if (parts.length === 1) {
+      city = parts[0];
+    }
+  }
+
+  // Determine remote/hybrid from remote field
+  const isRemote = remote?.toLowerCase().includes('remote') || false;
+  const isHybrid = remote?.toLowerCase().includes('hybrid') || false;
+
+  // Map seniority to standard values
+  let mappedSeniority = '';
+  if (seniority) {
+    const seniorityLower = seniority.toLowerCase();
+    if (seniorityLower.includes('intern')) mappedSeniority = 'Internship';
+    else if (seniorityLower.includes('entry') || seniorityLower.includes('junior')) mappedSeniority = 'Entry-level';
+    else if (seniorityLower.includes('mid')) mappedSeniority = 'Mid-level';
+    else if (seniorityLower.includes('senior') || seniorityLower.includes('sr')) mappedSeniority = 'Senior';
+    else if (seniorityLower.includes('lead') || seniorityLower.includes('principal')) mappedSeniority = 'Lead';
+    else if (seniorityLower.includes('exec') || seniorityLower.includes('director') || seniorityLower.includes('vp')) mappedSeniority = 'Executive';
+    else mappedSeniority = seniority;
+  }
+
+  // Map employment type
+  const employmentTypes: string[] = [];
+  if (type) {
+    const typeLower = type.toLowerCase();
+    if (typeLower.includes('full')) employmentTypes.push('Full-time');
+    if (typeLower.includes('part')) employmentTypes.push('Part-time');
+    if (typeLower.includes('contract')) employmentTypes.push('Contract');
+    if (typeLower.includes('intern')) employmentTypes.push('Internship');
+  }
+  if (isRemote) employmentTypes.push('Remote');
+  if (isHybrid) employmentTypes.push('Hybrid');
+
+  // Parse salary if available
+  let salaryRangeObj: { min?: number; max?: number; currency?: string } | undefined;
+  if (salaryRange) {
+    const numberMatches = salaryRange.match(/[\d,]+/g);
+    if (numberMatches && numberMatches.length >= 1) {
+      const numbers = numberMatches.map(n => parseInt(n.replace(/,/g, ''), 10));
+      salaryRangeObj = {
+        min: numbers[0],
+        max: numbers.length > 1 ? numbers[1] : undefined,
+        currency: salaryRange.includes('€') ? 'EUR' : salaryRange.includes('£') ? 'GBP' : 'USD',
+      };
+    }
+  }
+
+  return {
+    industry: industries || [],
+    sector: industries && industries.length > 0 ? industries[0] : '',
+    seniority: mappedSeniority,
+    employmentType: employmentTypes.length > 0 ? employmentTypes : ['Full-time'],
+    technologies: technologies || tags?.filter(t => /^[A-Z]/.test(t) || t.includes('.') || t.includes('#')) || [],
+    skills: skills || tags?.filter(t => !/^[A-Z]/.test(t) && !t.includes('.') && !t.includes('#')) || [],
+    location: {
+      city,
+      country,
+      remote: isRemote,
+      hybrid: isHybrid,
+    },
+    salaryRange: salaryRangeObj,
+  };
+}
