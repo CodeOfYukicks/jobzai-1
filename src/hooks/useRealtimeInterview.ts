@@ -716,7 +716,7 @@ Be warm but professional. Your name is Alex.`,
                 },
               },
               output: {
-                voice: 'ash',
+                voice: 'cedar',
               },
             },
           },

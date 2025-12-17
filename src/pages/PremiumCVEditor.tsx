@@ -1140,47 +1140,51 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
     const educationCount = cvData.education?.length || 0;
     const skillsCount = cvData.skills?.length || 0;
 
-    // CV content preview - extract key content for AI context
-    const cvContentPreview = {
-      // Professional summary (first 200 chars)
-      summary: cvData.summary ? cvData.summary.substring(0, 200) + (cvData.summary.length > 200 ? '...' : '') : null,
-      // Top 3 work experiences
-      topExperiences: cvData.experiences?.slice(0, 3).map(exp => ({
+    // CV content - FULL data for AI context (no truncation)
+    const cvContentFull = {
+      // Professional summary - FULL text
+      summary: cvData.summary || null,
+      // ALL work experiences with FULL descriptions and highlights
+      experiences: cvData.experiences?.map(exp => ({
         title: exp.title,
         company: exp.company,
         duration: `${exp.startDate} - ${exp.current ? 'Present' : exp.endDate}`,
         location: exp.location,
-        descriptionPreview: exp.description ? exp.description.substring(0, 150) + (exp.description.length > 150 ? '...' : '') : null,
-        highlightsCount: exp.highlights?.length || 0,
-        topHighlights: exp.highlights?.slice(0, 3) || [],
+        description: exp.description || null, // Full description
+        highlights: exp.highlights || [], // All highlights
       })) || [],
-      // Recent education
-      recentEducation: cvData.education?.slice(0, 2).map(edu => ({
+      // ALL education entries
+      education: cvData.education?.map(edu => ({
         degree: edu.degree,
         institution: edu.institution,
         field: edu.field,
         graduationDate: edu.graduationDate,
         gpa: edu.gpa,
+        description: edu.description || null,
       })) || [],
-      // Top 10 skills
-      topSkills: cvData.skills?.slice(0, 10).map(skill => ({
+      // ALL skills
+      skills: cvData.skills?.map(skill => ({
         name: skill.name,
         level: skill.level,
         category: skill.category,
       })) || [],
-      // Certifications
+      // ALL certifications
       certifications: cvData.certifications?.map(cert => ({
         name: cert.name,
         issuer: cert.issuer,
         date: cert.date,
+        description: cert.description || null,
       })) || [],
-      // Projects (if any)
-      projects: cvData.projects?.slice(0, 2).map(proj => ({
+      // ALL projects with FULL descriptions
+      projects: cvData.projects?.map(proj => ({
         name: proj.name,
-        description: proj.description ? proj.description.substring(0, 100) : null,
-        technologies: proj.technologies?.slice(0, 5) || [],
+        description: proj.description || null, // Full description
+        technologies: proj.technologies || [], // All technologies
+        url: proj.url || null,
+        startDate: proj.startDate || null,
+        endDate: proj.endDate || null,
       })) || [],
-      // Languages
+      // ALL languages
       languages: cvData.languages?.map(lang => ({
         name: lang.name,
         level: lang.level,
@@ -1191,9 +1195,9 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
     const completeJobContext = jobContext ? {
       company: jobContext.company,
       jobTitle: jobContext.jobTitle,
-      // Full job description (limited to 2000 chars to avoid payload overload)
+      // Job description (limited to 5000 chars for very long descriptions)
       jobDescription: jobContext.jobDescription 
-        ? jobContext.jobDescription.substring(0, 2000) + (jobContext.jobDescription.length > 2000 ? '...' : '')
+        ? jobContext.jobDescription.substring(0, 5000) + (jobContext.jobDescription.length > 5000 ? '...' : '')
         : null,
       // All keywords
       keywords: jobContext.keywords || [],
@@ -1230,8 +1234,8 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
         projectsCount: cvData.projects?.length || 0,
         languagesCount: cvData.languages?.length || 0,
       },
-      // CV content preview (actual content excerpts)
-      cvContent: cvContentPreview,
+      // CV content - FULL data for AI assistant
+      cvContent: cvContentFull,
       enabledSections: enabledSections.map(s => s.title),
       // Complete job context
       jobContext: completeJobContext,
