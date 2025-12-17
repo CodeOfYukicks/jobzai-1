@@ -49,13 +49,14 @@ import {
   Camera,
   Settings,
   FolderKanban,
+  AlertTriangle,
 } from 'lucide-react';
 import { notify } from '@/lib/notify';
 import AuthLayout from '../components/AuthLayout';
 import PageHeader from '../components/PageHeader';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
-import { extractJobInfo, DetailedJobInfo } from '../lib/jobExtractor';
+import { extractJobInfo, DetailedJobInfo, detectUrlType, requiresPasteMode, getPlatformName, extractFromPastedContent } from '../lib/jobExtractor';
 import DatePicker from '../components/ui/DatePicker';
 import { JobApplication, Interview, StatusChange, AutomationSettings, defaultAutomationSettings, KanbanBoard, BOARD_COLORS, BOARD_TYPE_COLUMNS, JOB_COLUMN_LABELS, CAMPAIGN_COLUMN_LABELS, BoardType, RelationshipGoal, WarmthLevel, OutreachChannel, RELATIONSHIP_GOAL_LABELS, WARMTH_LEVEL_LABELS, OUTREACH_CHANNEL_CONFIG, MEETING_TYPE_LABELS, MeetingType } from '../types/job';
 import { ApplicationList } from '../components/application/ApplicationList';
@@ -106,6 +107,10 @@ export default function JobApplicationsPage() {
   const [timelineModal, setTimelineModal] = useState(false);
   const [view, setView] = useState<'kanban' | 'analytics' | 'boards'>('boards');
   const [isAnalyzingJob, setIsAnalyzingJob] = useState(false);
+  // Paste mode state for LinkedIn/Indeed URLs that require manual paste
+  const [showPasteMode, setShowPasteMode] = useState(false);
+  const [pastedJobContent, setPastedJobContent] = useState('');
+  const [detectedPlatform, setDetectedPlatform] = useState<string | null>(null);
   const [showAddInterviewForm, setShowAddInterviewForm] = useState(false);
   const [newInterview, setNewInterview] = useState<Partial<Interview>>({
     date: new Date().toISOString().split('T')[0],
@@ -917,6 +922,53 @@ export default function JobApplicationsPage() {
     }
   };
 
+  // Helper function to apply extracted data to form
+  const applyExtractedDataToForm = (extractedData: DetailedJobInfo) => {
+    // Format the summary for description - structured format with 3 bullet points
+    let formattedDescription = extractedData.summary;
+    if (formattedDescription) {
+      // Ensure proper formatting (unescape JSON escapes)
+      formattedDescription = formattedDescription
+        .replace(/\\n/g, '\n')
+        .replace(/\\"/g, '"')
+        .replace(/\\'/g, "'")
+        .trim();
+
+      // Ensure bullets are properly formatted (• or -)
+      if (!formattedDescription.includes('•') && !formattedDescription.includes('-')) {
+        const lines = formattedDescription.split('\n').filter((line: string) => line.trim().length > 0);
+        if (lines.length > 0) {
+          formattedDescription = lines.map((line: string) => {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('•') && !trimmed.startsWith('-')) {
+              return `• ${trimmed}`;
+            }
+            return trimmed;
+          }).join('\n');
+        }
+      }
+
+      // Add visual separation if description already exists
+      if (formData.description && formData.description.trim()) {
+        formattedDescription = `${formData.description}\n\n---\n\n${formattedDescription}`;
+      }
+    }
+
+    // Update form with extracted data
+    setFormData(prev => ({
+      ...prev,
+      companyName: extractedData.companyName || prev.companyName,
+      position: extractedData.position || prev.position,
+      location: extractedData.location || prev.location,
+      description: formattedDescription || prev.description || '',
+      fullJobDescription: extractedData.fullJobDescription || prev.fullJobDescription || '',
+      jobInsights: extractedData.jobInsights || prev.jobInsights,
+      jobTags: extractedData.jobTags || prev.jobTags
+    }));
+
+    setShowFullForm(true);
+  };
+
   // Fonction pour extraire les informations depuis l'URL avec AI
   const handleExtractJobInfo = async () => {
     if (!formData.url || !formData.url.trim()) {
@@ -924,67 +976,104 @@ export default function JobApplicationsPage() {
       return;
     }
 
+    const jobUrl = formData.url.trim();
+    
+    // Detect URL type
+    const urlType = detectUrlType(jobUrl);
+    const platformName = getPlatformName(urlType);
+    setDetectedPlatform(platformName);
+    
+    console.log(`🔍 [handleExtractJobInfo] Detected URL type: ${urlType} (${platformName})`);
+    
+    // Check if this platform requires manual paste (LinkedIn, Indeed)
+    if (requiresPasteMode(jobUrl)) {
+      console.log(`⚠️ [handleExtractJobInfo] ${platformName} requires manual paste mode`);
+      setShowPasteMode(true);
+      setPastedJobContent('');
+      notify.info(`${platformName} requires login. Please paste the job description below.`, { duration: 5000 });
+      return;
+    }
+
+    // For other URLs, try automatic extraction
     setIsAnalyzingJob(true);
-    notify.info('Analyzing job posting...', { duration: 2000 });
+    notify.info(`Analyzing ${platformName} job posting...`, { duration: 2000 });
 
     try {
-      const jobUrl = formData.url.trim();
-
       // Use shared extraction utility with detailed mode
       const extractedData = await extractJobInfo(jobUrl, { detailed: true }) as DetailedJobInfo;
 
-      console.log('Successfully extracted data:', extractedData);
+      console.log('✅ Successfully extracted data:', extractedData);
 
-      // Format the summary for description - structured format with 3 bullet points
-      let formattedDescription = extractedData.summary;
-      if (formattedDescription) {
-        // Ensure proper formatting (unescape JSON escapes)
-        formattedDescription = formattedDescription
-          .replace(/\\n/g, '\n')
-          .replace(/\\"/g, '"')
-          .replace(/\\'/g, "'")
-          .trim();
-
-        // Ensure bullets are properly formatted (• or -)
-        if (!formattedDescription.includes('•') && !formattedDescription.includes('-')) {
-          const lines = formattedDescription.split('\n').filter((line: string) => line.trim().length > 0);
-          if (lines.length > 0) {
-            formattedDescription = lines.map((line: string) => {
-              const trimmed = line.trim();
-              if (!trimmed.startsWith('•') && !trimmed.startsWith('-')) {
-                return `• ${trimmed}`;
-              }
-              return trimmed;
-            }).join('\n');
-          }
-        }
-
-        // Add visual separation if description already exists
-        if (formData.description && formData.description.trim()) {
-          formattedDescription = `${formData.description}\n\n---\n\n${formattedDescription}`;
-        }
+      // Validate extracted data - only require position to be valid
+      // Company name might be extracted incorrectly but user can fix it
+      const hasValidData = extractedData.position && extractedData.position.length > 2;
+      
+      if (!hasValidData) {
+        console.warn('⚠️ Extracted data seems incomplete, switching to paste mode');
+        setShowPasteMode(true);
+        setPastedJobContent('');
+        notify.warning('Auto-extraction incomplete. Please paste the job description for better results.', { duration: 5000 });
+        setIsAnalyzingJob(false);
+        return;
       }
 
-      // Update form with extracted data
-      setFormData(prev => ({
-        ...prev,
-        companyName: extractedData.companyName || prev.companyName,
-        position: extractedData.position || prev.position,
-        location: extractedData.location || prev.location,
-        description: formattedDescription || prev.description || '',
-        fullJobDescription: extractedData.fullJobDescription || prev.fullJobDescription || '',
-        jobInsights: extractedData.jobInsights || prev.jobInsights,
-        jobTags: extractedData.jobTags || prev.jobTags
-      }));
-
-      setShowFullForm(true);
-      notify.success('Job information extracted successfully!');
+      applyExtractedDataToForm(extractedData);
+      
+      // Show success with note if company name looks wrong
+      if (!extractedData.companyName || extractedData.companyName.length <= 2) {
+        notify.success('Job extracted! Please verify the company name.', { duration: 3000 });
+      } else {
+        notify.success('Job information extracted successfully!');
+      }
     } catch (error) {
-      console.error('Error extracting job info:', error);
-      notify.error(`Failed to extract job information: ${error instanceof Error ? error.message : 'Unknown error'}. Please fill in the fields manually.`);
+      console.error('❌ Error extracting job info:', error);
+      
+      // On failure, show paste mode as fallback
+      setShowPasteMode(true);
+      setPastedJobContent('');
+      notify.warning('Auto-extraction failed. Please paste the job description below.', { duration: 5000 });
     } finally {
       setIsAnalyzingJob(false);
     }
+  };
+
+  // Handle pasted content analysis
+  const handleAnalyzePastedContent = async () => {
+    if (!pastedJobContent || pastedJobContent.trim().length < 50) {
+      notify.error('Please paste the complete job description (at least 50 characters)');
+      return;
+    }
+
+    setIsAnalyzingJob(true);
+    notify.info('Analyzing pasted job description...', { duration: 2000 });
+
+    try {
+      const extractedData = await extractFromPastedContent(pastedJobContent, formData.url);
+      
+      console.log('✅ Successfully extracted from pasted content:', extractedData);
+      
+      applyExtractedDataToForm(extractedData);
+      
+      // Hide paste mode and reset
+      setShowPasteMode(false);
+      setPastedJobContent('');
+      setDetectedPlatform(null);
+      
+      notify.success('Job information extracted successfully!');
+    } catch (error) {
+      console.error('❌ Error analyzing pasted content:', error);
+      notify.error(`Failed to analyze: ${error instanceof Error ? error.message : 'Unknown error'}. Please fill in the fields manually.`);
+      setShowFullForm(true);
+    } finally {
+      setIsAnalyzingJob(false);
+    }
+  };
+
+  // Reset paste mode when modal is closed
+  const resetPasteMode = () => {
+    setShowPasteMode(false);
+    setPastedJobContent('');
+    setDetectedPlatform(null);
   };
 
   const handleCreateApplication = async () => {
@@ -5519,6 +5608,76 @@ END:VCALENDAR`;
                                 </div>
                               </div>
                             </div>
+                            
+                            {/* Paste Mode UI - shown for LinkedIn/Indeed or when auto-extraction fails */}
+                            {showPasteMode && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="mt-4 space-y-3"
+                              >
+                                <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                                  <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                                      {detectedPlatform ? `${detectedPlatform} requires manual input` : 'Auto-extraction unavailable'}
+                                    </p>
+                                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                      {detectedPlatform === 'LinkedIn' || detectedPlatform === 'Indeed' 
+                                        ? `${detectedPlatform} requires login to view job details. Copy the job description from ${detectedPlatform} and paste it below.`
+                                        : 'Please copy the job description from the website and paste it below for AI analysis.'}
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                <div className="relative">
+                                  <textarea
+                                    value={pastedJobContent}
+                                    onChange={(e) => setPastedJobContent(e.target.value)}
+                                    placeholder="Paste the complete job description here...&#10;&#10;Include: job title, company name, location, requirements, responsibilities, etc."
+                                    className="w-full h-48 p-4 text-sm border border-gray-200 dark:border-[#3d3c3e] rounded-xl bg-white dark:bg-[#1a1919] text-gray-900 dark:text-white placeholder-gray-400 resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                  />
+                                  <div className="absolute bottom-3 right-3 text-xs text-gray-400">
+                                    {pastedJobContent.length} characters
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center justify-between">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setShowPasteMode(false);
+                                      setPastedJobContent('');
+                                      setDetectedPlatform(null);
+                                    }}
+                                    className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <motion.button
+                                    type="button"
+                                    whileHover={{ scale: 1.01 }}
+                                    whileTap={{ scale: 0.99 }}
+                                    onClick={handleAnalyzePastedContent}
+                                    disabled={isAnalyzingJob || pastedJobContent.trim().length < 50}
+                                    className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-[#1f1f1f] text-gray-900 dark:text-white text-sm font-medium border border-gray-200 dark:border-[#3d3c3e] hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+                                  >
+                                    {isAnalyzingJob ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
+                                        <span>Analyzing...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Sparkles className="w-4 h-4 text-purple-500 group-hover:text-purple-600 transition-colors" />
+                                        <span>Analyze</span>
+                                      </>
+                                    )}
+                                  </motion.button>
+                                </div>
+                              </motion.div>
+                            )}
                           </div>
                         )}
 
@@ -6011,6 +6170,19 @@ END:VCALENDAR`;
                                       onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                                       className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                                       placeholder="e.g. Remote, Paris..."
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+                                      Description
+                                    </label>
+                                    <textarea
+                                      value={formData.description || ''}
+                                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none"
+                                      placeholder="Key points about this job opportunity..."
+                                      rows={4}
                                     />
                                   </div>
                                 </div>

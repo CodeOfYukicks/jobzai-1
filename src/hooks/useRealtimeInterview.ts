@@ -385,7 +385,13 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
       // ========== USER SPEECH EVENTS ==========
       case 'input_audio_buffer.speech_started':
         console.log('🎤 User started speaking');
-        currentUserIdRef.current = event.item_id;
+        // Generate stable ID for this user entry
+        currentUserIdRef.current = event.item_id || `user_${Date.now()}`;
+        
+        // Create placeholder entry immediately to reserve correct position in transcript
+        // This ensures user entries always appear before AI responses
+        addOrUpdateTranscript(currentUserIdRef.current, 'user', '', false);
+        
         // Clear silence timeout
         if (silenceTimeoutRef.current) {
           clearTimeout(silenceTimeoutRef.current);
@@ -834,7 +840,8 @@ Be warm but professional. Keep it brief (30 seconds max). Do NOT ask any more qu
   }, [stopAudioPlayback, sendEvent]);
 
   const getFullTranscript = useCallback((): TranscriptEntry[] => {
-    return [...transcript];
+    // Filter out empty entries (unfilled placeholders from speech_started)
+    return transcript.filter(entry => entry.text && entry.text.trim().length > 0);
   }, [transcript]);
 
   // Cleanup on unmount

@@ -23,7 +23,9 @@ export interface UserProfile {
   // Skills
   skills?: string[];
 
-  // CV Extracted Data (for enhanced AI generation)
+  // CV Data
+  cvUrl?: string;            // URL of the uploaded CV file
+  cvName?: string;           // Name of the uploaded CV file
   cvText?: string;           // Full extracted CV text for comprehensive analysis
   cvTechnologies?: string[]; // Extracted technologies from CV for precise matching
   cvSkills?: string[];       // Extracted skills from CV for detailed profiling
@@ -90,25 +92,76 @@ export const useUserProfile = (): UseUserProfileReturn => {
       setLoading(true);
       setError(null);
 
-      // Try to fetch from the profile subcollection first
+      // Fetch from both sources and merge them
       const profileDocRef = doc(db, 'users', currentUser.uid, 'profile', 'data');
-      let profileDoc = await getDoc(profileDocRef);
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      
+      const [profileDoc, userDoc] = await Promise.all([
+        getDoc(profileDocRef),
+        getDoc(userDocRef)
+      ]);
 
-      // If not found in subcollection, try the main user document
-      if (!profileDoc.exists()) {
-        const userDocRef = doc(db, 'users', currentUser.uid);
-        profileDoc = await getDoc(userDocRef);
+      // Merge data: user document first (base), then profile subcollection (override)
+      // This ensures CV data from user doc is always included
+      let mergedData: UserProfile = {};
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        // Extract CV-related fields from user document
+        mergedData = {
+          ...mergedData,
+          cvText: userData.cvText,
+          cvTechnologies: userData.cvTechnologies,
+          cvSkills: userData.cvSkills,
+          cvUrl: userData.cvUrl,
+          cvName: userData.cvName,
+          // Also include other profile fields that might be in user doc
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email,
+          phone: userData.phone,
+          location: userData.location,
+          currentJobTitle: userData.currentJobTitle,
+          currentCompany: userData.currentCompany,
+          yearsOfExperience: userData.yearsOfExperience,
+          industry: userData.industry,
+          professionalSummary: userData.professionalSummary,
+          skills: userData.skills,
+          education: userData.education,
+          workExperience: userData.workExperience,
+          languages: userData.languages,
+          certifications: userData.certifications,
+          linkedinUrl: userData.linkedinUrl,
+          githubUrl: userData.githubUrl,
+          portfolioUrl: userData.portfolioUrl,
+          websiteUrl: userData.websiteUrl,
+        };
       }
 
       if (profileDoc.exists()) {
-        const data = profileDoc.data() as UserProfile;
+        const profileData = profileDoc.data() as UserProfile;
+        // Profile subcollection data takes priority (except for CV fields which should come from user doc)
+        mergedData = {
+          ...mergedData,
+          ...profileData,
+          // But ensure CV data from user doc is preserved if not in profile
+          cvText: profileData.cvText || mergedData.cvText,
+          cvTechnologies: profileData.cvTechnologies || mergedData.cvTechnologies,
+          cvSkills: profileData.cvSkills || mergedData.cvSkills,
+        };
+      }
 
-        // Enrich with auth user data if not present
-        if (!data.email && currentUser.email) {
-          data.email = currentUser.email;
-        }
+      // Enrich with auth user data if not present
+      if (!mergedData.email && currentUser.email) {
+        mergedData.email = currentUser.email;
+      }
+      if (!mergedData.firstName && currentUser.displayName) {
+        mergedData.firstName = currentUser.displayName.split(' ')[0];
+        mergedData.lastName = currentUser.displayName.split(' ').slice(1).join(' ') || undefined;
+      }
 
-        setProfile(data);
+      if (Object.keys(mergedData).length > 0) {
+        setProfile(mergedData);
       } else {
         // Create a minimal profile from auth data
         setProfile({

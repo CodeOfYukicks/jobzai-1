@@ -1,4 +1,318 @@
-import { queryPerplexityForJobExtraction } from './perplexity';
+/**
+ * ===========================================
+ * SIMPLE JOB EXTRACTION WITH PUPPETEER + GPT
+ * Puppeteer scrapes, GPT extracts key info
+ * ===========================================
+ */
+
+/**
+ * Scrape job page content using server endpoint
+ */
+async function scrapeJobPageSimple(url: string): Promise<{ content: string; title?: string; company?: string; location?: string }> {
+  console.log('🔍 [Scrape] Fetching page content from:', url);
+  
+  const response = await fetch('/api/extract-job-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to scrape page: ${error}`);
+  }
+
+  const data = await response.json();
+  
+  if (data.status === 'error') {
+    throw new Error(data.message || 'Scraping failed');
+  }
+
+  console.log('✅ [Scrape] Got content:', { 
+    length: data.content?.length || 0,
+    title: data.title,
+    company: data.company 
+  });
+
+  return {
+    content: data.content || '',
+    title: data.title,
+    company: data.company,
+    location: data.location
+  };
+}
+
+/**
+ * Extract company name from URL (fallback)
+ */
+function extractCompanyFromUrl(url: string): string {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    // Common patterns: careers.COMPANY.com, jobs.COMPANY.com, COMPANY.greenhouse.io
+    const patterns = [
+      /careers\.([a-z0-9-]+)\./i,
+      /jobs\.([a-z0-9-]+)\./i,
+      /([a-z0-9-]+)\.greenhouse\.io/i,
+      /([a-z0-9-]+)\.lever\.co/i,
+      /([a-z0-9-]+)\.workday\.com/i,
+      /([a-z0-9-]+)\.myworkdayjobs\.com/i,
+    ];
+    
+    for (const pattern of patterns) {
+      const match = hostname.match(pattern);
+      if (match && match[1] && match[1].length > 2) {
+        // Capitalize first letter
+        return match[1].charAt(0).toUpperCase() + match[1].slice(1);
+      }
+    }
+  } catch (e) {}
+  return '';
+}
+
+/**
+ * Extract job info from scraped content using GPT (simple prompt)
+ */
+async function extractWithGPTSimple(scraped: { content: string; title?: string; company?: string; location?: string }, url: string): Promise<DetailedJobInfo> {
+  // Try to get company from URL if scraped company is bad
+  let company = scraped.company || '';
+  if (!company || company.length <= 2) {
+    company = extractCompanyFromUrl(url);
+  }
+  
+  // Truncate content for GPT
+  const truncatedContent = scraped.content.substring(0, 4000);
+  
+  const prompt = `Extract job info from this page content. Return JSON only.
+
+PAGE CONTENT:
+${truncatedContent}
+
+${scraped.title ? `DETECTED TITLE: ${scraped.title}` : ''}
+${company ? `DETECTED COMPANY: ${company}` : ''}
+${scraped.location ? `DETECTED LOCATION: ${scraped.location}` : ''}
+
+Return this JSON:
+{
+  "companyName": "${company || 'extract from content'}",
+  "position": "${scraped.title || 'extract job title from content'}",
+  "location": "${scraped.location || 'extract from content'}",
+  "summary": "• Key point 1\\n• Key point 2\\n• Key point 3",
+  "keyResponsibilities": "main duties (1-2 sentences)",
+  "requiredSkills": "key skills",
+  "experienceLevel": "experience needed"
+}
+
+IMPORTANT: Use the DETECTED values if provided. Return valid JSON only.`;
+
+  const response = await fetch('/api/chatgpt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'cv-edit', prompt })
+  });
+
+  if (!response.ok) {
+    throw new Error('GPT analysis failed');
+  }
+
+  const data = await response.json();
+  
+  if (data.status !== 'success') {
+    throw new Error(data.message || 'GPT failed');
+  }
+
+  // Parse response
+  let parsed;
+  try {
+    const content = data.content;
+    if (typeof content === 'object') {
+      parsed = content;
+    } else {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);
+    }
+  } catch (e) {
+    console.error('Failed to parse GPT response');
+    // Use scraped data as fallback
+    parsed = {
+      companyName: scraped.company || '',
+      position: scraped.title || '',
+      location: scraped.location || ''
+    };
+  }
+
+  console.log('✅ [GPT] Extracted:', { company: parsed.companyName, position: parsed.position });
+
+  return {
+    companyName: parsed.companyName || company || '',
+    position: parsed.position || scraped.title || '',
+    location: parsed.location || scraped.location || '',
+    summary: parsed.summary || '',
+    fullJobDescription: scraped.content.substring(0, 10000),
+    jobInsights: {
+      keyResponsibilities: parsed.keyResponsibilities || 'See full description',
+      requiredSkills: parsed.requiredSkills || 'See full description',
+      experienceLevel: parsed.experienceLevel || 'See full description',
+      compensationBenefits: parsed.compensationBenefits || 'Not specified',
+      companyCulture: 'See full description',
+      growthOpportunities: 'See full description',
+    }
+  };
+}
+
+/**
+ * ===========================================
+ * URL TYPE DETECTION
+ * Identifies the source platform for optimized extraction
+ * ===========================================
+ */
+
+export type UrlType = 
+  | 'linkedin' 
+  | 'indeed' 
+  | 'workday' 
+  | 'lever' 
+  | 'greenhouse' 
+  | 'ashby' 
+  | 'smartrecruiters' 
+  | 'jobvite' 
+  | 'icims'
+  | 'bamboohr'
+  | 'recruitee'
+  | 'breezy'
+  | 'jazz'
+  | 'welcometothejungle'
+  | 'generic';
+
+/**
+ * Platforms that require manual paste (login wall / anti-bot)
+ */
+export const PASTE_REQUIRED_PLATFORMS: UrlType[] = ['linkedin', 'indeed'];
+
+/**
+ * Detect the URL type/platform from a job posting URL
+ * @param url - The job posting URL
+ * @returns The detected platform type
+ */
+export function detectUrlType(url: string): UrlType {
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname.toLowerCase();
+    const pathname = urlObj.pathname.toLowerCase();
+    const fullUrl = url.toLowerCase();
+
+    // LinkedIn - requires login
+    if (hostname.includes('linkedin.com')) {
+      return 'linkedin';
+    }
+
+    // Indeed - heavy anti-bot
+    if (hostname.includes('indeed.com') || hostname.includes('indeed.')) {
+      return 'indeed';
+    }
+
+    // Workday - various subdomains
+    if (hostname.includes('myworkdayjobs.com') || hostname.includes('workday.com') || hostname.includes('wd5.myworkdayjobs.com')) {
+      return 'workday';
+    }
+
+    // Lever
+    if (hostname.includes('lever.co') || hostname.includes('jobs.lever.co')) {
+      return 'lever';
+    }
+
+    // Greenhouse
+    if (hostname.includes('greenhouse.io') || hostname.includes('boards.greenhouse.io')) {
+      return 'greenhouse';
+    }
+
+    // Ashby
+    if (hostname.includes('ashbyhq.com') || hostname.includes('jobs.ashbyhq.com')) {
+      return 'ashby';
+    }
+
+    // SmartRecruiters
+    if (hostname.includes('smartrecruiters.com') || hostname.includes('jobs.smartrecruiters.com')) {
+      return 'smartrecruiters';
+    }
+
+    // Jobvite
+    if (hostname.includes('jobvite.com') || hostname.includes('jobs.jobvite.com')) {
+      return 'jobvite';
+    }
+
+    // iCIMS
+    if (hostname.includes('icims.com') || hostname.includes('careers-') || fullUrl.includes('icims')) {
+      return 'icims';
+    }
+
+    // BambooHR
+    if (hostname.includes('bamboohr.com')) {
+      return 'bamboohr';
+    }
+
+    // Recruitee
+    if (hostname.includes('recruitee.com')) {
+      return 'recruitee';
+    }
+
+    // Breezy HR
+    if (hostname.includes('breezy.hr')) {
+      return 'breezy';
+    }
+
+    // JazzHR
+    if (hostname.includes('jazz.co') || hostname.includes('applytojob.com')) {
+      return 'jazz';
+    }
+
+    // Welcome to the Jungle
+    if (hostname.includes('welcometothejungle.com') || hostname.includes('wttj.co')) {
+      return 'welcometothejungle';
+    }
+
+    // Generic fallback
+    return 'generic';
+  } catch (error) {
+    console.warn('Failed to parse URL for type detection:', error);
+    return 'generic';
+  }
+}
+
+/**
+ * Check if a URL requires manual paste mode (login wall or heavy anti-bot)
+ * @param url - The job posting URL
+ * @returns true if paste mode should be shown
+ */
+export function requiresPasteMode(url: string): boolean {
+  const urlType = detectUrlType(url);
+  return PASTE_REQUIRED_PLATFORMS.includes(urlType);
+}
+
+/**
+ * Get a human-readable name for the platform
+ * @param urlType - The detected URL type
+ * @returns Human-readable platform name
+ */
+export function getPlatformName(urlType: UrlType): string {
+  const names: Record<UrlType, string> = {
+    linkedin: 'LinkedIn',
+    indeed: 'Indeed',
+    workday: 'Workday',
+    lever: 'Lever',
+    greenhouse: 'Greenhouse',
+    ashby: 'Ashby',
+    smartrecruiters: 'SmartRecruiters',
+    jobvite: 'Jobvite',
+    icims: 'iCIMS',
+    bamboohr: 'BambooHR',
+    recruitee: 'Recruitee',
+    breezy: 'Breezy HR',
+    jazz: 'JazzHR',
+    welcometothejungle: 'Welcome to the Jungle',
+    generic: 'Job Board',
+  };
+  return names[urlType] || 'Job Board';
+}
 
 /**
  * Job extraction result types
@@ -898,56 +1212,24 @@ Return ONLY the JSON object:
 }
 
 /**
- * Main extraction function with configurable detail level
- * 
+ * Main extraction function - SIMPLIFIED
+ * Puppeteer scrapes the real page, GPT extracts key info
+ *
  * @param url - Job posting URL to extract from
- * @param options - Configuration options
- * @returns BasicJobInfo or DetailedJobInfo depending on options.detailed
- * 
- * @example
- * // Basic extraction (fast, reliable)
- * const basicInfo = await extractJobInfo(url, { detailed: false });
- * 
- * @example
- * // Detailed extraction (includes full description and insights)
- * const detailedInfo = await extractJobInfo(url, { detailed: true });
+ * @param options - Configuration options  
+ * @returns DetailedJobInfo with extracted data
  */
 export async function extractJobInfo(
   url: string,
   options: JobExtractionOptions = { detailed: false }
 ): Promise<BasicJobInfo | DetailedJobInfo> {
+  console.log('🚀 [extractJobInfo] Scraping + GPT extraction for:', url);
   
-  // For detailed extraction, use cascade: GPT (primary) -> Perplexity (fallback)
-  if (options.detailed) {
-    // Try GPT-based extraction first (Puppeteer + GPT-4o) - most reliable
-    try {
-      console.log('🎯 [extractJobInfo] Trying PRIMARY method: GPT (Puppeteer + GPT-4o)');
-      const gptResult = await extractJobInfoWithGPT(url);
-      console.log('✅ [extractJobInfo] GPT method succeeded');
-      return gptResult;
-    } catch (gptError) {
-      console.warn('⚠️ [extractJobInfo] GPT method failed:', gptError instanceof Error ? gptError.message : gptError);
-      
-      // Fallback to Perplexity
-      try {
-        console.log('🔄 [extractJobInfo] Trying FALLBACK method: Perplexity');
-        const basicInfo = await extractBasicJobInfo(url);
-        const perplexityResult = await extractDetailedJobInfo(url, basicInfo);
-        console.log('✅ [extractJobInfo] Perplexity method succeeded');
-        return perplexityResult;
-      } catch (perplexityError) {
-        console.error('❌ [extractJobInfo] Both GPT and Perplexity methods failed');
-        console.error('   GPT error:', gptError instanceof Error ? gptError.message : gptError);
-        console.error('   Perplexity error:', perplexityError instanceof Error ? perplexityError.message : perplexityError);
-        // Re-throw the original GPT error (usually more informative)
-        throw gptError;
-      }
-    }
-  }
+  // Step 1: Scrape the page (Puppeteer visits the real URL)
+  const scraped = await scrapeJobPageSimple(url);
   
-  // For basic extraction, use Perplexity (it's faster for basic info)
-  const basicInfo = await extractBasicJobInfo(url);
-  return basicInfo;
+  // Step 2: Extract info with GPT (simple prompt)
+  return await extractWithGPTSimple(scraped, url);
 }
 
 /**
@@ -1498,4 +1780,156 @@ export function generateBasicTagsFromJobData(jobData: JobDataForFallback): JobTa
     },
     salaryRange: salaryRangeObj,
   };
+}
+
+/**
+ * ===========================================
+ * PASTED CONTENT EXTRACTION
+ * Analyze job description text pasted by user
+ * ===========================================
+ */
+
+/**
+ * Extract job information from pasted text content
+ * This is used when automatic URL extraction fails (LinkedIn, Indeed, etc.)
+ * The user copies the job description from the website and pastes it here
+ * 
+ * @param pastedContent - Raw text content pasted by the user
+ * @param sourceUrl - Optional: the original URL for reference
+ * @returns DetailedJobInfo extracted from the pasted content
+ */
+export async function extractFromPastedContent(
+  pastedContent: string,
+  sourceUrl?: string
+): Promise<DetailedJobInfo> {
+  if (!pastedContent || pastedContent.trim().length < 50) {
+    throw new Error('Pasted content is too short. Please paste the complete job description.');
+  }
+
+  console.log('📋 [extractFromPastedContent] Analyzing pasted content...', {
+    contentLength: pastedContent.length,
+    sourceUrl: sourceUrl || 'none'
+  });
+
+  // Limit content to 5000 chars for faster processing
+  const truncatedContent = pastedContent.substring(0, 5000);
+
+  const prompt = `Extract job info from this posting. Return JSON only.
+
+JOB POSTING:
+${truncatedContent}
+
+FIND THE JOB TITLE: Look for patterns like "Job Title:", "Position:", "Role:", or the first prominent heading. Common formats: "Senior X Engineer", "X Manager", "X Analyst", "Head of X", "VP of X".
+
+Return this exact JSON structure:
+{
+  "companyName": "company name",
+  "position": "EXACT job title as written (e.g. 'Senior Product Manager', 'Software Engineer')",
+  "location": "city, country or Remote",
+  "summary": "• Key point 1\\n• Key point 2\\n• Key point 3",
+  "jobInsights": {
+    "keyResponsibilities": "main duties (2-3 sentences)",
+    "requiredSkills": "key skills needed",
+    "experienceLevel": "years + level",
+    "compensationBenefits": "salary/benefits or 'Not specified'",
+    "companyCulture": "culture info or 'Not specified'",
+    "growthOpportunities": "growth info or 'Not specified'"
+  },
+  "jobTags": {
+    "industry": ["industries"],
+    "sector": "main sector",
+    "seniority": "Entry-level|Mid-level|Senior|Lead|Executive",
+    "employmentType": ["Full-time","Remote"],
+    "technologies": ["tech stack"],
+    "skills": ["soft skills"],
+    "location": {"city":"","country":"","remote":false,"hybrid":false}
+  }
+}
+
+RULES: Extract EXACT position title. Return valid JSON only, no markdown.`;
+
+  try {
+    const response = await fetch('/api/chatgpt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        type: 'cv-edit',
+        prompt 
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`GPT API error: ${response.status} - ${errorText.substring(0, 200)}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.status !== 'success') {
+      throw new Error(data.message || 'GPT analysis failed');
+    }
+
+    // Parse the response content
+    let parsedContent;
+    if (typeof data.content === 'object') {
+      parsedContent = data.content;
+    } else if (typeof data.content === 'string') {
+      try {
+        let cleanContent = data.content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+        const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsedContent = JSON.parse(jsonMatch[0]);
+        } else {
+          parsedContent = JSON.parse(cleanContent);
+        }
+      } catch (parseError) {
+        console.error('Failed to parse GPT response:', parseError);
+        throw new Error('Failed to parse GPT response as JSON');
+      }
+    } else {
+      throw new Error('Unexpected GPT response format');
+    }
+
+    console.log('✅ [extractFromPastedContent] Successfully extracted job info:', {
+      company: parsedContent.companyName,
+      position: parsedContent.position,
+      hasInsights: !!parsedContent.jobInsights
+    });
+
+    // Build the DetailedJobInfo object
+    const result: DetailedJobInfo = {
+      companyName: parsedContent.companyName || '',
+      position: parsedContent.position || '',
+      location: parsedContent.location || '',
+      summary: parsedContent.summary || '',
+      fullJobDescription: parsedContent.fullJobDescription || pastedContent,
+      jobInsights: {
+        keyResponsibilities: parsedContent.jobInsights?.keyResponsibilities || 'Details not specified in posting',
+        requiredSkills: parsedContent.jobInsights?.requiredSkills || 'Details not specified in posting',
+        experienceLevel: parsedContent.jobInsights?.experienceLevel || 'Details not specified in posting',
+        compensationBenefits: parsedContent.jobInsights?.compensationBenefits || 'Not specified',
+        companyCulture: parsedContent.jobInsights?.companyCulture || 'Details not specified in posting',
+        growthOpportunities: parsedContent.jobInsights?.growthOpportunities || 'Details not specified in posting',
+      },
+      jobTags: parsedContent.jobTags ? {
+        industry: Array.isArray(parsedContent.jobTags.industry) ? parsedContent.jobTags.industry : [],
+        sector: parsedContent.jobTags.sector || '',
+        seniority: parsedContent.jobTags.seniority || '',
+        employmentType: Array.isArray(parsedContent.jobTags.employmentType) ? parsedContent.jobTags.employmentType : [],
+        technologies: Array.isArray(parsedContent.jobTags.technologies) ? parsedContent.jobTags.technologies : [],
+        skills: Array.isArray(parsedContent.jobTags.skills) ? parsedContent.jobTags.skills : [],
+        location: {
+          city: parsedContent.jobTags.location?.city,
+          country: parsedContent.jobTags.location?.country,
+          remote: !!parsedContent.jobTags.location?.remote,
+          hybrid: !!parsedContent.jobTags.location?.hybrid,
+        },
+      } : undefined,
+    };
+
+    return result;
+  } catch (error) {
+    console.error('❌ [extractFromPastedContent] Failed to extract:', error);
+    throw new Error(`Failed to analyze pasted content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }

@@ -2635,7 +2635,7 @@ ${targetPosition ? `- **Target Position**: ${targetPosition}\n` : ''}
 ${targetSectors.length > 0 ? `- **Target Sectors**: ${targetSectors.join(', ')}\n` : ''}
 
 ### Full CV Context
-${cvText ? `**Complete CV Text Available**: ${cvText.length > 500 ? cvText.substring(0, 500) + '... (truncated, full text available for analysis)' : cvText}\n` : '*No CV text available*'}
+${cvText ? `**Complete CV Text (${cvText.length} characters)**:\n\`\`\`\n${cvText.length > 15000 ? cvText.substring(0, 15000) + '\n... (CV text truncated at 15000 chars for token limit)' : cvText}\n\`\`\`\n` : '*No CV text available - user should upload their CV for better personalization*'}
 
 **IMPORTANT**: Use this complete professional profile to provide highly personalized and relevant advice. Reference specific skills, technologies, experience, and career objectives when making recommendations.
 
@@ -3143,7 +3143,7 @@ CANDIDATE PROFILE:
 - Target Position: ${userProfile.targetPosition || position}
 - Skills: ${(userProfile.skills || []).join(', ') || 'Not specified'}
 - Education: ${userProfile.education || 'Not specified'}
-${userProfile.cvText ? `\nCV Summary (first 500 chars): ${userProfile.cvText.substring(0, 500)}...` : ''}
+${userProfile.cvText ? `\nFull CV Text:\n${userProfile.cvText.length > 10000 ? userProfile.cvText.substring(0, 10000) + '...(truncated)' : userProfile.cvText}` : ''}
 `;
     }
     
@@ -4977,6 +4977,88 @@ app.post('/api/extract-job-url', async (req, res) => {
 
     console.log('🔍 Extracting job posting from URL:', normalizedUrl);
 
+    // Detect ATS type from URL for optimized extraction
+    const hostname = new URL(normalizedUrl).hostname.toLowerCase();
+    let atsType = 'generic';
+    
+    if (hostname.includes('myworkdayjobs.com') || hostname.includes('workday.com')) {
+      atsType = 'workday';
+    } else if (hostname.includes('lever.co') || hostname.includes('jobs.lever.co')) {
+      atsType = 'lever';
+    } else if (hostname.includes('greenhouse.io') || hostname.includes('boards.greenhouse.io')) {
+      atsType = 'greenhouse';
+    } else if (hostname.includes('ashbyhq.com')) {
+      atsType = 'ashby';
+    } else if (hostname.includes('smartrecruiters.com')) {
+      atsType = 'smartrecruiters';
+    } else if (hostname.includes('jobvite.com')) {
+      atsType = 'jobvite';
+    } else if (hostname.includes('icims.com') || hostname.includes('careers-')) {
+      atsType = 'icims';
+    } else if (hostname.includes('bamboohr.com')) {
+      atsType = 'bamboohr';
+    } else if (hostname.includes('recruitee.com')) {
+      atsType = 'recruitee';
+    } else if (hostname.includes('breezy.hr')) {
+      atsType = 'breezy';
+    } else if (hostname.includes('jazz.co') || hostname.includes('applytojob.com')) {
+      atsType = 'jazz';
+    } else if (hostname.includes('welcometothejungle.com') || hostname.includes('wttj.co')) {
+      atsType = 'welcometothejungle';
+    }
+    
+    console.log(`🏷️  Detected ATS type: ${atsType}`);
+
+    // ATS-specific selectors for better extraction accuracy
+    const ATS_SELECTORS = {
+      workday: {
+        title: ['[data-automation-id="jobPostingHeader"] h2', '.css-1q2dra3', 'h2[data-automation-id="jobPostingHeader"]', '.WGDC-jss-job-header h2'],
+        company: ['[data-automation-id="employerLogo"] + div', '.css-8neuee', '[data-automation-id="jobPostingHeader"] span', '.WGDC-jss-company'],
+        location: ['[data-automation-id="locations"]', '.css-cygeeu', '[data-automation-id="jobPostingHeader"] .css-129m7dg'],
+        description: ['[data-automation-id="jobPostingDescription"]', '.WGDC-jss-job-description', '[data-automation-id="jobDescription"]']
+      },
+      lever: {
+        title: ['.posting-headline h2', '.posting-title', 'h2.posting-headline'],
+        company: ['.posting-categories .sort-by-team', '.main-header-logo img[alt]', 'a.main-header-logo'],
+        location: ['.posting-categories .location', '.sort-by-location', '.posting-location'],
+        description: ['.posting-description', '.content', '.posting-page-content']
+      },
+      greenhouse: {
+        title: ['.app-title', '#header .job-title', 'h1.job-title', '.job-post-title'],
+        company: ['.company-name', '#header .company-name', '[data-automation="company-name"]'],
+        location: ['.location', '.job-post-location', '#header .location'],
+        description: ['#content', '.job-post-content', '#app_body', '.content-wrapper']
+      },
+      ashby: {
+        title: ['h1.ashby-job-posting-heading', '[data-testid="job-title"]', 'h1'],
+        company: ['[data-testid="company-name"]', '.ashby-company-name', 'header .company'],
+        location: ['[data-testid="job-location"]', '.ashby-job-location', '.location'],
+        description: ['[data-testid="job-description"]', '.ashby-job-description', '.job-description']
+      },
+      smartrecruiters: {
+        title: ['h1.job-title', '.job-title', 'h1[class*="title"]'],
+        company: ['.company-name', '.employer-name', '[class*="company"]'],
+        location: ['.job-location', '.location', '[class*="location"]'],
+        description: ['.job-description', '.job-details', '#job-description']
+      },
+      welcometothejungle: {
+        title: ['h1[class*="Title"]', '[data-testid="job-title"]', 'h1'],
+        company: ['[data-testid="company-name"]', 'a[href*="/companies/"]', '.company-name'],
+        location: ['[data-testid="job-location"]', '.job-location', '[class*="location"]'],
+        description: ['[data-testid="job-description"]', '.job-description', '.job-details']
+      },
+      generic: {
+        title: ['h1', '.job-title', '[data-testid="job-title"]', '[class*="job-title"]', '[class*="jobTitle"]'],
+        company: ['.company-name', '[data-testid="company-name"]', '[class*="company"]', '[class*="employer"]'],
+        location: ['.location', '[data-testid="location"]', '[class*="location"]'],
+        description: ['.job-description', '#job-description', '.description', 'article', 'main']
+      }
+    };
+
+    // Get selectors for detected ATS (fallback to generic)
+    const selectors = ATS_SELECTORS[atsType] || ATS_SELECTORS.generic;
+    console.log(`📋 Using ${atsType} selectors for extraction`);
+
     // Lazy load puppeteer to avoid startup issues
     let puppeteer;
     try {
@@ -5009,12 +5091,25 @@ app.post('/api/extract-job-url', async (req, res) => {
 
       const page = await browser.newPage();
 
-      // Set a reasonable timeout
-      await page.setDefaultNavigationTimeout(45000);
-      await page.setDefaultTimeout(45000);
+      // Set a reasonable timeout (increased for slow sites)
+      await page.setDefaultNavigationTimeout(60000);
+      await page.setDefaultTimeout(60000);
 
       // Set user agent to avoid bot detection
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
+      
+      // Set extra headers to appear more like a real browser
+      await page.setExtraHTTPHeaders({
+        'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1'
+      });
 
       console.log('📄 Navigating to URL...');
       try {
@@ -5037,85 +5132,137 @@ app.post('/api/extract-job-url', async (req, res) => {
         }
       }
 
-      // Wait a bit for dynamic content to load
+      // Wait for dynamic content to load (longer for complex SPAs)
       console.log('⏳ Waiting for dynamic content...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, 4000));
+      
+      // For Workday, wait for specific elements
+      if (atsType === 'workday') {
+        try {
+          await page.waitForSelector('[data-automation-id="jobPostingDescription"]', { timeout: 10000 });
+          console.log('✅ Workday job description loaded');
+        } catch (e) {
+          console.log('⚠️ Workday selector not found, continuing with generic extraction');
+        }
+      }
 
-      console.log('📝 Extracting page content...');
+      console.log('📝 Extracting page content with ATS-specific selectors...');
 
-      // Extract all text content from the page
-      const pageContent = await page.evaluate(() => {
+      // Extract all text content from the page using ATS-specific selectors
+      const pageContent = await page.evaluate((atsSelectors) => {
         // Remove script and style elements
         const scripts = document.querySelectorAll('script, style, noscript, iframe');
         scripts.forEach(el => el.remove());
 
-        // Get main content areas (common job posting selectors)
-        const selectors = [
-          'main',
-          '[role="main"]',
-          '.job-description',
-          '.job-posting',
-          '.job-details',
-          '#job-description',
-          '#job-details',
-          'article',
-          '.content',
-          'body'
-        ];
+        // Helper to try multiple selectors and return first match
+        function trySelectors(selectorList, extractText = true) {
+          for (const selector of selectorList) {
+            try {
+              const element = document.querySelector(selector);
+              if (element) {
+                const text = extractText ? (element.innerText || element.textContent || '').trim() : element;
+                if (text && text.length > 0) {
+                  return text;
+                }
+              }
+            } catch (e) {
+              // Selector might be invalid, continue
+            }
+          }
+          return '';
+        }
 
+        // Get description content using ATS-specific selectors first
         let content = '';
-        for (const selector of selectors) {
-          const element = document.querySelector(selector);
-          if (element) {
-            content = element.innerText || element.textContent || '';
-            if (content.length > 500) break; // Use first substantial content found
+        
+        // Try ATS-specific description selectors first
+        if (atsSelectors && atsSelectors.description) {
+          content = trySelectors(atsSelectors.description);
+        }
+        
+        // Fallback to generic selectors
+        if (!content || content.length < 200) {
+          const genericSelectors = [
+            'main',
+            '[role="main"]',
+            '.job-description',
+            '.job-posting',
+            '.job-details',
+            '#job-description',
+            '#job-details',
+            'article',
+            '.content',
+            'body'
+          ];
+          
+          for (const selector of genericSelectors) {
+            try {
+              const element = document.querySelector(selector);
+              if (element) {
+                const text = element.innerText || element.textContent || '';
+                if (text.length > content.length) {
+                  content = text;
+                }
+                if (content.length > 1000) break;
+              }
+            } catch (e) {}
           }
         }
 
         // Fallback to body if no specific content found
-        if (!content || content.length < 500) {
+        if (!content || content.length < 200) {
           content = document.body.innerText || document.body.textContent || '';
         }
 
-        // Also try to get structured data
-        // Extract job title with multiple selectors
-        const titleSelectors = [
-          'h1',
-          '.job-title',
-          '[data-testid="job-title"]',
-          '[data-testid="jobTitle"]',
-          '.jobTitle',
-          'h1.job-title',
-          '.job-header h1',
-          '.job-header-title',
-          '[class*="job-title"]',
-          '[class*="jobTitle"]'
-        ];
+        // Extract job title with ATS-specific selectors first
         let title = '';
-        for (const selector of titleSelectors) {
-          const element = document.querySelector(selector);
-          if (element && element.innerText && element.innerText.trim().length > 0) {
-            title = element.innerText.trim();
-            break;
-          }
+        if (atsSelectors && atsSelectors.title) {
+          title = trySelectors(atsSelectors.title);
+        }
+        
+        // Fallback to generic title selectors
+        if (!title) {
+          const genericTitleSelectors = [
+            'h1',
+            '.job-title',
+            '[data-testid="job-title"]',
+            '[data-testid="jobTitle"]',
+            '.jobTitle',
+            'h1.job-title',
+            '.job-header h1',
+            '.job-header-title',
+            '[class*="job-title"]',
+            '[class*="jobTitle"]'
+          ];
+          title = trySelectors(genericTitleSelectors);
         }
 
-        // Extract company with multiple selectors
-        const companySelectors = [
-          '.company-name',
-          '[data-testid="company-name"]',
-          '[data-testid="companyName"]',
-          '.employer-name',
-          '.company',
-          '.employer',
-          '[class*="company-name"]',
-          '[class*="companyName"]',
-          '[class*="employer"]',
-          '.job-company',
-          '.job-header .company',
-          '[itemprop="hiringOrganization"]',
-          '[itemprop="name"]'
-        ];
+        // Extract company with ATS-specific selectors first
+        let company = '';
+        if (atsSelectors && atsSelectors.company) {
+          company = trySelectors(atsSelectors.company);
+        }
+        
+        // Fallback to generic company selectors if not found
+        if (!company) {
+          const genericCompanySelectors = [
+            '.company-name',
+            '[data-testid="company-name"]',
+            '[data-testid="companyName"]',
+            '.employer-name',
+            '.company',
+            '.employer',
+            '[class*="company-name"]',
+            '[class*="companyName"]',
+            '[class*="employer"]',
+            '.job-company',
+            '.job-header .company',
+            '[itemprop="hiringOrganization"]',
+            '[itemprop="name"]'
+          ];
+          company = trySelectors(genericCompanySelectors);
+        }
+        
         // Helper function to clean company name (defined early for use in extraction)
         function cleanCompanyNameEarly(name) {
           if (!name) return '';
@@ -5224,16 +5371,8 @@ app.post('/api/extract-job-url', async (req, res) => {
           return cleaned;
         }
 
-        let company = '';
-        for (const selector of companySelectors) {
-          const element = document.querySelector(selector);
-          if (element && element.innerText && element.innerText.trim().length > 0) {
-            company = cleanCompanyNameEarly(element.innerText.trim());
-            if (company.length > 0 && company.length < 100) {
-              break;
-            }
-          }
-        }
+        // Clean company name
+        company = cleanCompanyNameEarly(company);
 
         // If company not found with selectors, try extracting from links
         if (!company || company.length === 0) {
@@ -5285,22 +5424,23 @@ app.post('/api/extract-job-url', async (req, res) => {
         // Final cleanup
         company = cleanCompanyNameEarly(company);
 
-        // Extract location
-        const locationSelectors = [
-          '.location',
-          '[data-testid="location"]',
-          '[data-testid="jobLocation"]',
-          '.job-location',
-          '[class*="location"]',
-          '[itemprop="jobLocation"]'
-        ];
+        // Extract location with ATS-specific selectors first
         let location = '';
-        for (const selector of locationSelectors) {
-          const element = document.querySelector(selector);
-          if (element && element.innerText && element.innerText.trim().length > 0) {
-            location = element.innerText.trim();
-            break;
-          }
+        if (atsSelectors && atsSelectors.location) {
+          location = trySelectors(atsSelectors.location);
+        }
+        
+        // Fallback to generic location selectors
+        if (!location) {
+          const genericLocationSelectors = [
+            '.location',
+            '[data-testid="location"]',
+            '[data-testid="jobLocation"]',
+            '.job-location',
+            '[class*="location"]',
+            '[itemprop="jobLocation"]'
+          ];
+          location = trySelectors(genericLocationSelectors);
         }
 
         return {
@@ -5310,7 +5450,7 @@ app.post('/api/extract-job-url', async (req, res) => {
           location: location.trim(),
           url: window.location.href
         };
-      });
+      }, selectors);
 
       await browser.close();
       browser = null;
