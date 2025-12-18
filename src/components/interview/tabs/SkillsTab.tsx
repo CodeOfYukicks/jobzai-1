@@ -61,7 +61,7 @@ const ConfidenceSlider = memo(function ConfidenceSlider({
       onMouseLeave={() => setIsHovering(false)}
     >
       {/* Track Container */}
-      <div className="relative h-2 rounded-full bg-neutral-200 dark:bg-neutral-700">
+      <div className="relative h-2 rounded-full bg-slate-200 dark:bg-slate-700">
         {/* Filled Track */}
         <motion.div
           className={`absolute left-0 top-0 h-full rounded-full bg-gradient-to-r ${getTrackGradient(value)}`}
@@ -79,7 +79,7 @@ const ConfidenceSlider = memo(function ConfidenceSlider({
                 w-3 h-3 rounded-full transition-all duration-200 border-2
                 ${value >= point 
                   ? 'bg-white border-white shadow-sm' 
-                  : 'bg-neutral-300 dark:bg-neutral-600 border-neutral-300 dark:border-neutral-600'
+                  : 'bg-slate-300 dark:bg-slate-600 border-slate-300 dark:border-slate-600'
                 }
                 ${point === value ? 'scale-0' : 'scale-100'}
               `}
@@ -93,7 +93,7 @@ const ConfidenceSlider = memo(function ConfidenceSlider({
             <button
               key={point}
               onClick={() => handlePointClick(point)}
-              className="w-6 h-6 rounded-full cursor-pointer hover:bg-neutral-500/10 transition-colors z-10"
+              className="w-6 h-6 rounded-full cursor-pointer hover:bg-slate-500/10 transition-colors z-10"
               aria-label={`Set confidence to ${point}`}
             />
           ))}
@@ -121,7 +121,7 @@ const ConfidenceSlider = memo(function ConfidenceSlider({
             absolute top-1/2 pointer-events-none
             w-5 h-5 rounded-full shadow-lg
             ${getThumbColor(value)}
-            ring-[3px] ring-white dark:ring-neutral-900
+            ring-[3px] ring-white dark:ring-[#2b2a2c]
           `}
           style={{ 
             left: `calc(${(value / 5) * 100}% - 10px)`,
@@ -139,10 +139,10 @@ const ConfidenceSlider = memo(function ConfidenceSlider({
       <div className="flex justify-between mt-4 -mx-1">
         <button 
           onClick={() => handlePointClick(0)}
-          className={`text-[11px] transition-all duration-200 hover:text-neutral-600 dark:hover:text-neutral-300 px-1 ${
+          className={`text-[11px] transition-all duration-200 hover:text-slate-600 dark:hover:text-slate-300 px-1 ${
             value === 0 
-              ? 'text-neutral-900 dark:text-white font-semibold' 
-              : 'text-neutral-400 dark:text-neutral-500'
+              ? 'text-slate-900 dark:text-white font-semibold' 
+              : 'text-slate-400 dark:text-slate-500'
           }`}
         >
           Not rated
@@ -151,10 +151,10 @@ const ConfidenceSlider = memo(function ConfidenceSlider({
           <button 
             key={i}
             onClick={() => handlePointClick(i + 1)}
-            className={`text-[11px] transition-all duration-200 hover:text-neutral-600 dark:hover:text-neutral-300 px-1 ${
+            className={`text-[11px] transition-all duration-200 hover:text-slate-600 dark:hover:text-slate-300 px-1 ${
               value === i + 1 
-                ? 'text-neutral-900 dark:text-white font-semibold' 
-                : 'text-neutral-400 dark:text-neutral-500'
+                ? 'text-slate-900 dark:text-white font-semibold' 
+                : 'text-slate-400 dark:text-slate-500'
             }`}
           >
             {label}
@@ -297,7 +297,7 @@ const SkillsTab = memo(function SkillsTab({
 
   // Get confidence level badge styling
   const getConfidenceBadge = (rating: number) => {
-    if (rating === 0) return { bg: 'bg-neutral-100 dark:bg-neutral-800', text: 'text-neutral-500 dark:text-neutral-400', label: 'Not rated' };
+    if (rating === 0) return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-500 dark:text-slate-400', label: 'Not rated' };
     if (rating <= 2) return { bg: 'bg-amber-50 dark:bg-amber-900/30', text: 'text-amber-600 dark:text-amber-400', label: confidenceLabels[rating - 1] };
     if (rating === 3) return { bg: 'bg-yellow-50 dark:bg-yellow-900/30', text: 'text-yellow-600 dark:text-yellow-400', label: confidenceLabels[rating - 1] };
     return { bg: 'bg-emerald-50 dark:bg-emerald-900/30', text: 'text-emerald-600 dark:text-emerald-400', label: confidenceLabels[rating - 1] };
@@ -315,12 +315,12 @@ const SkillsTab = memo(function SkillsTab({
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.05, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-        className="group relative rounded-2xl bg-white/80 dark:bg-[#1a1b1e] backdrop-blur-sm shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-none hover:shadow-md dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all duration-300 overflow-hidden border border-transparent dark:border-white/[0.04]"
+        className="group relative rounded-2xl bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 hover:shadow-md dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.2)] hover:ring-slate-300/80 dark:hover:ring-[#4d4c4e]/80 transition-all duration-300 overflow-hidden"
       >
         {/* Header Section */}
         <div className="px-6 pt-6 pb-4">
           <div className="flex items-start justify-between gap-4 mb-1">
-            <h3 className="text-base font-semibold text-neutral-900 dark:text-white leading-snug flex-1">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white leading-snug flex-1">
             {skill}
           </h3>
             <div className="flex items-center gap-2">
@@ -347,29 +347,29 @@ const SkillsTab = memo(function SkillsTab({
 
         {/* Ready State - Only show when no gap and high rating */}
         {!hasGap && rating >= 4 && (
-          <div className="border-t border-neutral-100 dark:border-neutral-800 px-6 py-4">
+          <div className="border-t border-slate-100 dark:border-[#3d3c3e]/60 px-6 py-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
                 <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-neutral-900 dark:text-white">Ready for interview</p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">Your confidence level is high</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">Ready for interview</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Your confidence level is high</p>
               </div>
             </div>
           </div>
         )}
 
         {/* STAR Stories Section */}
-        <div className="border-t border-neutral-100 dark:border-neutral-800 px-6 py-5">
+        <div className="border-t border-slate-100 dark:border-[#3d3c3e]/60 px-6 py-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Award className="w-4 h-4 text-jobzai-500" />
-              <h4 className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+              <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">
                 STAR Stories
               </h4>
               {starStories.length > 0 && (
-                <span className="text-xs text-neutral-400 dark:text-neutral-500">
+                <span className="text-xs text-slate-400 dark:text-slate-500">
                   ({starStories.length})
                 </span>
               )}
@@ -385,7 +385,7 @@ const SkillsTab = memo(function SkillsTab({
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: storyIndex * 0.05 }}
-                  className="group/story rounded-xl bg-neutral-50/80 dark:bg-[#141517] p-4 hover:bg-neutral-100/80 dark:hover:bg-[#1a1b1e] transition-colors border border-transparent dark:border-white/[0.03]"
+                  className="group/story rounded-xl bg-slate-50 dark:bg-[#1a1b1e] p-4 hover:bg-slate-100/80 dark:hover:bg-[#222224] transition-colors ring-1 ring-slate-200/40 dark:ring-[#3d3c3e]/40"
                 >
                   {/* 3-Column Grid for S, A, R */}
                   <div className="grid grid-cols-3 gap-4 mb-3">
@@ -395,7 +395,7 @@ const SkillsTab = memo(function SkillsTab({
                       { key: 'result', label: 'Result', placeholder: 'Impact and metrics...' },
                     ].map((field) => (
                       <div key={field.key} className="space-y-2">
-                        <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           {field.label}
                       </label>
                       <textarea
@@ -410,12 +410,12 @@ const SkillsTab = memo(function SkillsTab({
                   </div>
 
                   {/* Story Actions */}
-                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-neutral-200/60 dark:border-neutral-700/60">
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200/60 dark:border-[#3d3c3e]/60">
                     <motion.button
                       onClick={() => exportStoryToNotes(skill, story.id)}
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}
-                      className="group/export relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-700 px-3.5 py-2 text-xs font-medium text-neutral-700 dark:text-neutral-200 transition-all hover:bg-neutral-200 dark:hover:bg-neutral-600"
+                      className="group/export relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-700 px-3.5 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 transition-all hover:bg-slate-200 dark:hover:bg-slate-600"
                     >
                       <FileText className="w-3.5 h-3.5" />
                       <span>Export to Notes</span>
@@ -537,10 +537,10 @@ const SkillsTab = memo(function SkillsTab({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-          className="relative rounded-2xl bg-white dark:bg-[#2b2a2c] shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-none overflow-hidden border border-transparent dark:border-white/[0.04]"
+          className="relative rounded-2xl bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 overflow-hidden"
         >
           {/* Progress Bar Background */}
-          <div className="absolute inset-x-0 bottom-0 h-1 bg-neutral-100 dark:bg-neutral-800">
+          <div className="absolute inset-x-0 bottom-0 h-1 bg-slate-100 dark:bg-[#1a1b1e]">
             <motion.div
               className="h-full bg-gradient-to-r from-jobzai-500 to-jobzai-600"
               initial={{ width: 0 }}
@@ -555,31 +555,31 @@ const SkillsTab = memo(function SkillsTab({
                 {/* Ready */}
             <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  <span className="text-sm text-neutral-600 dark:text-neutral-300">
-                    <span className="font-semibold text-neutral-900 dark:text-white">{summaryStats.ready}</span> ready
+                  <span className="text-sm text-slate-600 dark:text-slate-300">
+                    <span className="font-semibold text-slate-900 dark:text-white">{summaryStats.ready}</span> ready
                   </span>
                 </div>
                 {/* Need Practice */}
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                  <span className="text-sm text-neutral-600 dark:text-neutral-300">
-                    <span className="font-semibold text-neutral-900 dark:text-white">{summaryStats.needsWork}</span> need practice
+                  <span className="text-sm text-slate-600 dark:text-slate-300">
+                    <span className="font-semibold text-slate-900 dark:text-white">{summaryStats.needsWork}</span> need practice
                   </span>
                 </div>
                 {/* Critical */}
                 {summaryStats.critical > 0 && (
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                    <span className="text-sm text-neutral-600 dark:text-neutral-300">
-                      <span className="font-semibold text-neutral-900 dark:text-white">{summaryStats.critical}</span> critical
+                    <span className="text-sm text-slate-600 dark:text-slate-300">
+                      <span className="font-semibold text-slate-900 dark:text-white">{summaryStats.critical}</span> critical
                     </span>
                   </div>
                 )}
               </div>
 
             <div className="text-right">
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-0.5">Overall Readiness</p>
-                <p className="text-lg font-bold text-neutral-900 dark:text-white">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">Overall Readiness</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">
                   {summaryStats.readinessPercent}%
                 </p>
               </div>
@@ -603,13 +603,13 @@ const SkillsTab = memo(function SkillsTab({
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center justify-center rounded-2xl bg-white/80 dark:bg-[#1a1b1e] backdrop-blur-sm shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-none px-8 py-12 text-center border border-transparent dark:border-white/[0.04]"
+          className="flex flex-col items-center justify-center rounded-2xl bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 px-8 py-12 text-center"
         >
-          <div className="w-14 h-14 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-4">
-            <Briefcase className="w-6 h-6 text-neutral-400 dark:text-neutral-500" />
+          <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+            <Briefcase className="w-6 h-6 text-slate-400 dark:text-slate-500" />
           </div>
-          <h3 className="text-base font-semibold text-neutral-900 dark:text-white mb-1">No skills to assess yet</h3>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5 max-w-xs">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">No skills to assess yet</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 max-w-xs">
             Analyze a job posting to automatically extract the required skills for this role.
           </p>
           <motion.button

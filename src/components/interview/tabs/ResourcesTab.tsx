@@ -1,5 +1,6 @@
 import { memo, useState, useEffect, useCallback } from 'react';
-import { ExternalLink, Copy, Check, Loader2, RefreshCw } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ExternalLink, Copy, Check, Loader2, Sparkles, MessageSquare, Link2, Mic } from 'lucide-react';
 import { Interview } from '../../../types/interview';
 import { JobApplication } from '../../../types/job';
 
@@ -89,225 +90,324 @@ const ResourcesTab = memo(function ResourcesTab({
       title: 'Glassdoor', 
       url: `https://www.glassdoor.com/Search/results.htm?keyword=${encodeURIComponent(application.companyName)}`, 
       description: 'Reviews & interviews',
-      abbr: 'GD'
+      abbr: 'GD',
+      bgColor: 'bg-emerald-500 hover:bg-emerald-600',
+      iconBg: 'bg-emerald-600/30',
     },
     { 
       id: 'linkedin', 
       title: 'LinkedIn', 
       url: `https://www.linkedin.com/company/${encodeURIComponent(application.companyName)}`, 
       description: 'Company page',
-      abbr: 'in'
+      abbr: 'in',
+      bgColor: 'bg-blue-600 hover:bg-blue-700',
+      iconBg: 'bg-blue-700/30',
     },
     {
       id: 'levels',
       title: 'Levels.fyi',
       url: `https://www.levels.fyi/companies/${encodeURIComponent(application.companyName.toLowerCase().replace(/\s+/g, '-'))}/salaries/${encodeURIComponent(application.position.toLowerCase().replace(/\s+/g, '-'))}`,
       description: 'Salary data',
-      abbr: 'L.'
+      abbr: 'L.',
+      bgColor: 'bg-violet-500 hover:bg-violet-600',
+      iconBg: 'bg-violet-600/30',
     },
     {
       id: 'glassdoor-salary',
       title: 'Salaries',
       url: `https://www.glassdoor.com/Salaries/index.htm?keyword=${encodeURIComponent(application.position)}`,
       description: 'Salary ranges',
-      abbr: '$'
+      abbr: '$',
+      bgColor: 'bg-amber-500 hover:bg-amber-600',
+      iconBg: 'bg-amber-600/30',
     },
   ];
 
   return (
-    <div className="max-w-3xl mx-auto space-y-12">
+    <div className="max-w-4xl mx-auto space-y-6">
       
       {/* Section 1: Useful Links */}
-      <section>
-        <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4">
-          Useful Links
-        </h3>
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="rounded-2xl bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 p-6"
+      >
+        <div className="flex items-center gap-3 mb-5">
+          <div className="p-2 rounded-xl bg-slate-100 dark:bg-[#1a1b1e]">
+            <Link2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+          </div>
+          <div>
+            <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-slate-400 dark:text-slate-500">
+              Useful Links
+            </span>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Research resources for {application.companyName}
+            </p>
+          </div>
+        </div>
+        
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {essentialResources.map((resource) => (
-            <a 
+          {essentialResources.map((resource, index) => (
+            <motion.a 
               key={resource.id}
               href={resource.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="
-                group flex items-center gap-3 p-3
-                rounded-lg border border-neutral-200 dark:border-neutral-700
-                bg-white dark:bg-neutral-800/50
-                hover:border-neutral-300 dark:hover:border-neutral-600
-                hover:bg-neutral-50 dark:hover:bg-neutral-800
-                transition-colors
-              "
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              whileHover={{ scale: 1.03, y: -3 }}
+              whileTap={{ scale: 0.97 }}
+              className={`
+                group flex items-center gap-3 p-4
+                rounded-xl shadow-md
+                ${resource.bgColor}
+                hover:shadow-lg
+                transition-all duration-200
+              `}
             >
-              <div className="
-                flex-shrink-0 w-8 h-8 rounded-md
-                bg-neutral-100 dark:bg-neutral-700
+              <div className={`
+                flex-shrink-0 w-10 h-10 rounded-lg
+                ${resource.iconBg}
                 flex items-center justify-center
-                text-xs font-bold text-neutral-500 dark:text-neutral-400
-              ">
+                text-sm font-bold text-white
+              `}>
                 {resource.abbr}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-medium text-neutral-900 dark:text-white truncate">
+                <div className="text-sm font-semibold text-white truncate">
                   {resource.title}
                 </div>
-                <div className="text-[10px] text-neutral-500 dark:text-neutral-400 truncate">
+                <div className="text-[11px] text-white/70 truncate">
                   {resource.description}
                 </div>
               </div>
-              <ExternalLink className="w-3 h-3 text-neutral-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-            </a>
+              <ExternalLink className="w-4 h-4 text-white/50 group-hover:text-white/80 transition-colors flex-shrink-0" />
+            </motion.a>
           ))}
         </div>
-      </section>
+      </motion.section>
 
       {/* Section 2: Questions to Ask */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
-            Questions to Ask
-          </h3>
-          <button
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="rounded-2xl bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 p-6"
+      >
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-slate-100 dark:bg-[#1a1b1e]">
+              <MessageSquare className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+            </div>
+            <div>
+              <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-slate-400 dark:text-slate-500">
+                Questions to Ask
+              </span>
+              {resourcesData?.questionsToAsk && resourcesData.questionsToAsk.length > 0 && (
+                <span className="ml-2 px-1.5 py-0.5 rounded-md text-[10px] font-bold"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(99, 91, 255, 0.1) 0%, rgba(82, 73, 230, 0.1) 100%)',
+                    color: '#635BFF',
+                  }}
+                >
+                  {resourcesData.questionsToAsk.length}
+                </span>
+              )}
+            </div>
+          </div>
+          
+          <motion.button
             onClick={handleGenerateQuestions}
             disabled={isGeneratingQuestions}
+            whileHover={{ scale: isGeneratingQuestions ? 1 : 1.02 }}
+            whileTap={{ scale: isGeneratingQuestions ? 1 : 0.98 }}
             className="
-              inline-flex items-center gap-1.5 px-3 py-1.5
-              text-xs font-medium rounded-md
-              bg-neutral-900 text-white dark:bg-white dark:text-neutral-900
-              hover:bg-neutral-800 dark:hover:bg-neutral-100
-              disabled:opacity-50 disabled:cursor-not-allowed
-              transition-colors
+              inline-flex items-center gap-2 px-4 py-2
+              text-xs font-semibold rounded-xl
+              text-white shadow-md
+              disabled:opacity-60 disabled:cursor-not-allowed
+              transition-all duration-200
             "
+            style={{
+              background: 'linear-gradient(135deg, #635BFF 0%, #5249e6 100%)',
+              boxShadow: '0 2px 8px rgba(99, 91, 255, 0.3)',
+            }}
           >
             {isGeneratingQuestions ? (
               <>
-                <Loader2 className="w-3 h-3 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 Generating...
               </>
             ) : (
               <>
-                <RefreshCw className="w-3 h-3" />
-                {resourcesData?.questionsToAsk?.length ? 'Regenerate' : 'Generate'}
+                <Sparkles className="w-3.5 h-3.5" />
+                {resourcesData?.questionsToAsk?.length ? 'Regenerate' : 'Generate with AI'}
               </>
             )}
-          </button>
+          </motion.button>
         </div>
         
         {resourcesData?.questionsToAsk && resourcesData.questionsToAsk.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {resourcesData.questionsToAsk.map((question, index) => (
-              <div 
+              <motion.div 
                 key={index}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
                 className="
-                  group flex items-start justify-between gap-3 p-3
-                  rounded-lg border border-neutral-200 dark:border-neutral-700
-                  bg-white dark:bg-neutral-800/50
-                  hover:bg-neutral-50 dark:hover:bg-neutral-800
-                  transition-colors
+                  group flex items-start gap-4 p-4
+                  rounded-xl ring-1 ring-slate-200/40 dark:ring-[#3d3c3e]/40
+                  bg-slate-50 dark:bg-[#1a1b1e]
+                  hover:ring-slate-300/60 dark:hover:ring-[#4d4c4e]/60
+                  transition-all duration-200
                 "
               >
-                <p className="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed flex-1">
+                {/* Number indicator */}
+                <span
+                  className="flex-shrink-0 w-7 h-7 rounded-lg text-white text-[11px] font-bold flex items-center justify-center shadow-sm"
+                  style={{
+                    background: 'linear-gradient(135deg, #635BFF 0%, #5249e6 100%)',
+                    boxShadow: '0 2px 6px rgba(99, 91, 255, 0.25)',
+                  }}
+                >
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed flex-1 pt-0.5">
                   {question}
                 </p>
-                <button
+                
+                <motion.button
                   onClick={() => handleCopyQuestion(question, index)}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
                   className="
-                    flex-shrink-0 p-1.5 rounded
-                    text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300
+                    flex-shrink-0 p-2 rounded-lg
+                    text-slate-400 hover:text-slate-600 dark:hover:text-slate-300
+                    hover:bg-slate-200/50 dark:hover:bg-slate-700/50
                     opacity-0 group-hover:opacity-100
-                    transition-all
+                    transition-all duration-200
                   "
                   title="Copy"
                 >
                   {copiedIndex === index ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    <Check className="w-4 h-4 text-emerald-500" />
                   ) : (
-                    <Copy className="w-3.5 h-3.5" />
+                    <Copy className="w-4 h-4" />
                   )}
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             ))}
           </div>
         ) : (
           <div className="
             flex flex-col items-center justify-center py-12 px-6
-            rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700
+            rounded-xl ring-1 ring-dashed ring-slate-300/60 dark:ring-[#3d3c3e]/60
+            bg-slate-50/50 dark:bg-[#1a1b1e]/50
             text-center
           ">
             <div className="
-              w-10 h-10 rounded-lg mb-3
-              bg-neutral-100 dark:bg-neutral-800
+              w-12 h-12 rounded-xl mb-4
+              bg-slate-100 dark:bg-[#2b2a2c]
               flex items-center justify-center
-              text-neutral-400
+              text-slate-400 dark:text-slate-500
             ">
-              ?
+              <MessageSquare className="w-5 h-5" />
             </div>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-1">
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
               No questions generated yet
             </p>
-            <p className="text-xs text-neutral-400 dark:text-neutral-500">
+            <p className="text-xs text-slate-400 dark:text-slate-500">
               Click Generate to create role-specific questions
             </p>
           </div>
         )}
-      </section>
+      </motion.section>
 
       {/* Section 3: Elevator Pitch */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
-            Elevator Pitch
-          </h3>
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+        className="rounded-2xl bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 p-6"
+      >
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-slate-100 dark:bg-[#1a1b1e]">
+              <Mic className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+            </div>
+            <div>
+              <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-slate-400 dark:text-slate-500">
+                Elevator Pitch
+              </span>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Your 30-second introduction
+              </p>
+            </div>
+          </div>
+          
           <div className="flex items-center gap-2">
-            <button
+            <motion.button
               onClick={handleCopyPitch}
               disabled={!pitchText}
+              whileHover={{ scale: pitchText ? 1.05 : 1 }}
+              whileTap={{ scale: pitchText ? 0.95 : 1 }}
               className="
-                inline-flex items-center gap-1 px-2 py-1
-                text-xs font-medium
-                text-neutral-500 dark:text-neutral-400
-                hover:text-neutral-700 dark:hover:text-neutral-300
+                inline-flex items-center gap-1.5 px-3 py-1.5
+                text-xs font-medium rounded-lg
+                text-slate-500 dark:text-slate-400
+                hover:text-slate-700 dark:hover:text-slate-300
+                hover:bg-slate-100 dark:hover:bg-[#1a1b1e]
                 disabled:opacity-40 disabled:cursor-not-allowed
-                transition-colors
+                transition-all duration-200
               "
             >
               {pitchCopied ? (
-                <Check className="w-3 h-3 text-emerald-500" />
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
               ) : (
-                <Copy className="w-3 h-3" />
+                <Copy className="w-3.5 h-3.5" />
               )}
               Copy
-            </button>
-            <button
+            </motion.button>
+            
+            <motion.button
               onClick={handleGeneratePitch}
               disabled={isGeneratingPitch}
+              whileHover={{ scale: isGeneratingPitch ? 1 : 1.02 }}
+              whileTap={{ scale: isGeneratingPitch ? 1 : 0.98 }}
               className="
-                inline-flex items-center gap-1.5 px-3 py-1.5
-                text-xs font-medium rounded-md
-                text-neutral-600 dark:text-neutral-400
-                hover:text-neutral-900 dark:hover:text-white
-                hover:bg-neutral-100 dark:hover:bg-neutral-800
-                disabled:opacity-50 disabled:cursor-not-allowed
-                transition-colors
+                inline-flex items-center gap-2 px-4 py-2
+                text-xs font-semibold rounded-xl
+                text-white shadow-md
+                disabled:opacity-60 disabled:cursor-not-allowed
+                transition-all duration-200
               "
+              style={{
+                background: 'linear-gradient(135deg, #635BFF 0%, #5249e6 100%)',
+                boxShadow: '0 2px 8px rgba(99, 91, 255, 0.3)',
+              }}
             >
               {isGeneratingPitch ? (
                 <>
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   Generating...
                 </>
               ) : (
                 <>
-                  <RefreshCw className="w-3 h-3" />
+                  <Sparkles className="w-3.5 h-3.5" />
                   Auto-generate
                 </>
               )}
-            </button>
+            </motion.button>
           </div>
         </div>
 
         <div className="
-          rounded-lg border border-neutral-200 dark:border-neutral-700
-          bg-white dark:bg-neutral-800/50
+          rounded-xl ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60
+          bg-slate-50 dark:bg-[#1a1b1e]
           overflow-hidden
         ">
           <textarea
@@ -315,27 +415,46 @@ const ResourcesTab = memo(function ResourcesTab({
             onChange={(e) => setPitchText(e.target.value)}
             placeholder="Write your 30-second pitch here... Who are you? What do you do? Why this role?"
             className="
-              w-full h-64 p-4
+              w-full h-64 p-5
               text-sm leading-relaxed
-              text-neutral-700 dark:text-neutral-300
+              text-slate-700 dark:text-slate-300
               bg-transparent border-none
-              focus:ring-0 resize-none
-              placeholder:text-neutral-400 dark:placeholder:text-neutral-500
+              focus:ring-0 focus:outline-none resize-none
+              placeholder:text-slate-400 dark:placeholder:text-slate-500
             "
             spellCheck={false}
           />
           
           {/* Footer stats */}
           <div className="
-            flex items-center justify-end gap-4 px-4 py-2
-            border-t border-neutral-100 dark:border-neutral-700
-            text-[11px] text-neutral-400 dark:text-neutral-500
+            flex items-center justify-between px-5 py-3
+            border-t border-slate-200/60 dark:border-[#3d3c3e]/60
           ">
-            <span>{wordCount} words</span>
-            <span>~{speakingTime}s</span>
+            <div className="flex items-center gap-4 text-[11px] text-slate-400 dark:text-slate-500">
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+                {wordCount} words
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-jobzai-400" />
+                ~{speakingTime}s speaking time
+              </span>
+            </div>
+            
+            {wordCount > 0 && (
+              <div className={`text-[11px] font-medium ${
+                speakingTime <= 30 
+                  ? 'text-emerald-500' 
+                  : speakingTime <= 45 
+                    ? 'text-amber-500' 
+                    : 'text-red-500'
+              }`}>
+                {speakingTime <= 30 ? '✓ Perfect length' : speakingTime <= 45 ? '⚠ A bit long' : '✗ Too long'}
+              </div>
+            )}
           </div>
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 });

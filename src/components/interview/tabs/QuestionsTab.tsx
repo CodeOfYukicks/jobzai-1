@@ -116,14 +116,14 @@ const QuestionsTab = memo(function QuestionsTab({
 
       {/* Content */}
       {!isRegeneratingQuestions && (
-        <div className="mt-8">
+        <div>
           {/* Empty State - No Questions */}
           {questionEntries.length === 0 && (
-            <div className="py-20 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-100 dark:bg-[#2b2a2c] mb-6">
+            <div className="rounded-2xl bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 py-16 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-100 dark:bg-[#1a1b1e] mb-6">
                 <span className="text-2xl">?</span>
               </div>
-              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
                 No questions yet
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
@@ -134,7 +134,7 @@ const QuestionsTab = memo(function QuestionsTab({
 
           {/* Empty State - No Filter Results */}
           {questionEntries.length > 0 && filteredQuestions.length === 0 && (
-            <div className="py-16 text-center">
+            <div className="rounded-2xl bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 py-16 text-center">
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
                 No {QUESTION_FILTERS.find(f => f.id === activeQuestionFilter)?.label?.toLowerCase()} questions found
               </p>
@@ -142,11 +142,10 @@ const QuestionsTab = memo(function QuestionsTab({
                 type="button"
                 onClick={() => setActiveQuestionFilter('all')}
                 className="
-                  text-sm font-medium
-                  text-slate-900 dark:text-white
-                  underline underline-offset-4
-                  hover:no-underline
-                  transition-all
+                  text-sm font-semibold
+                  text-jobzai-600 dark:text-jobzai-400
+                  hover:text-jobzai-700 dark:hover:text-jobzai-300
+                  transition-colors
                 "
               >
                 Show all questions
@@ -156,17 +155,15 @@ const QuestionsTab = memo(function QuestionsTab({
 
           {/* Questions List */}
           {filteredQuestions.length > 0 && (
-            <div className="divide-y-0">
-              <QuestionsVirtualizedList
-                questions={filteredQuestions}
-                collapsedQuestions={collapsedQuestions}
-                savedQuestionsState={savedQuestionsState}
-                handleToggleSuggestionVisibility={handleToggleSuggestionVisibility}
-                handleToggleSaveQuestion={handleToggleSaveQuestion}
-                handleCreateNoteFromQuestion={handleCreateNoteFromQuestion}
-                setFocusedQuestion={setFocusedQuestion}
-              />
-            </div>
+            <QuestionsVirtualizedList
+              questions={filteredQuestions}
+              collapsedQuestions={collapsedQuestions}
+              savedQuestionsState={savedQuestionsState}
+              handleToggleSuggestionVisibility={handleToggleSuggestionVisibility}
+              handleToggleSaveQuestion={handleToggleSaveQuestion}
+              handleCreateNoteFromQuestion={handleCreateNoteFromQuestion}
+              setFocusedQuestion={setFocusedQuestion}
+            />
           )}
         </div>
       )}

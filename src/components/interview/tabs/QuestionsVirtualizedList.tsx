@@ -29,8 +29,8 @@ const QuestionsVirtualizedList = memo(function QuestionsVirtualizedList({
     return (index: number) => {
       const entry = questions[index];
       const isOpen = collapsedQuestions[entry.id] === false;
-      // Compact heights for minimalist cards
-      return isOpen ? 200 : 90;
+      // Premium card heights with padding and margins
+      return isOpen ? 280 : 140;
     };
   }, [questions, collapsedQuestions]);
 
