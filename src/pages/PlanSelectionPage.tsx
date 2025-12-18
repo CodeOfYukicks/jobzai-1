@@ -15,7 +15,7 @@ const plans = [
     name: 'Free',
     price: '0',
     credits: 25,
-    description: 'Perfect for trying out the basics of Jobz.ai',
+    description: 'Perfect for trying out the basics of Cubbbe',
     features: [
       '25 Credits / month',
       'Access to Basic Job Application Templates',

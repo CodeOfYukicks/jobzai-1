@@ -5,7 +5,7 @@ const tiers = [
   {
     name: 'Free',
     price: 'Ôé¼0',
-    description: 'Perfect for trying out the basics of Jobz.ai',
+    description: 'Perfect for trying out the basics of Cubbbe',
     features: [
       '20 Credits / month',
       'Basic AI Application Templates',

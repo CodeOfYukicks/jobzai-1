@@ -18,7 +18,7 @@ export default function PrivacyPage() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">1. Introduction</h2>
               <p className="text-gray-600 mb-4">
-                At Jobz.ai, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services.
+                At Cubbbe, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services.
               </p>
             </section>
 
@@ -79,7 +79,7 @@ export default function PrivacyPage() {
               <p className="text-gray-600">
                 If you have any questions about this Privacy Policy, please contact us at:
                 <br />
-                Email: privacy@jobz.ai
+                Email: privacy@cubbbe.com
                 <br />
                 Address: 123 AI Street, Tech City, TC 12345
               </p>

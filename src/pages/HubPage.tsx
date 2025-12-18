@@ -283,7 +283,7 @@ export default function HubPage() {
           >
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-3">
               <span className="text-gray-900 dark:text-gray-100">
-                {isNewUser ? 'Welcome to Jobz.ai, ' : 'Welcome back, '}
+                {isNewUser ? 'Welcome to Cubbbe, ' : 'Welcome back, '}
               </span>
               <span className="text-[#635BFF] dark:text-[#a5a0ff]">
                 {firstName}

@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import FirebaseImage from '../FirebaseImage';
 
-// Savings calculator data - tools replaced by Jobz.ai with their market prices
+// Savings calculator data - tools replaced by Cubbbe with their market prices
 const savingsTools = [
   { id: 'jobsearch', name: 'AI Job Search', price: 35 }, // LinkedIn Premium, Indeed Resume
   { id: 'autoapply', name: 'Auto-Apply AI', price: 59 }, // Lemlist, Apollo, LazyApply

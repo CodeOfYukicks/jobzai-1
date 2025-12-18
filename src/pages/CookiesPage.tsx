@@ -96,7 +96,7 @@ export default function CookiesPage() {
               <p className="text-gray-600">
                 If you have any questions about our Cookie Policy, please contact us at:
                 <br />
-                Email: privacy@jobz.ai
+                Email: privacy@cubbbe.com
                 <br />
                 Address: 123 AI Street, Tech City, TC 12345
               </p>

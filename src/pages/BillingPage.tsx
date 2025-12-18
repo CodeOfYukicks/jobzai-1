@@ -39,7 +39,7 @@ const plans = [
     price: '0',
     period: 'month',
     credits: 25,
-    description: 'Perfect for trying out the basics of Jobz.ai',
+    description: 'Perfect for trying out the basics of Cubbbe',
     icon: Gift,
     color: 'gray',
     features: [

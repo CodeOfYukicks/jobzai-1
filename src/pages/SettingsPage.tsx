@@ -846,7 +846,7 @@ export default function SettingsPage() {
     try {
       setIsSaving(true);
       notify.info('Deleting your account...');
-      notify.error('Account deletion requires support assistance. Please contact support@jobz.ai');
+      notify.error('Account deletion requires support assistance. Please contact support@cubbbe.com');
       setShowDeleteModal(false);
       setDeleteConfirmText('');
     } catch (error) {

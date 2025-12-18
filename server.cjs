@@ -1652,12 +1652,12 @@ ${contextDetails || 'No additional data'}
 
 // ============================================
 // PRODUCT KNOWLEDGE BASE
-// Comprehensive documentation of Jobz.ai features
+// Comprehensive documentation of Cubbbe features
 // ============================================
 const PRODUCT_KNOWLEDGE = {
   // Platform Overview
   overview: {
-    name: 'Jobz.ai',
+    name: 'Cubbbe',
     description: 'Plateforme de recherche d\'emploi propulsée par l\'IA qui aide les candidats à trouver, postuler et décrocher leur emploi idéal.',
     tagline: 'Révolutionnez votre recherche d\'emploi avec l\'IA',
     mainSections: ['APPLY (Postuler)', 'TRACK (Suivre)', 'PREPARE (Préparer)', 'IMPROVE (S\'améliorer)'],
@@ -2311,7 +2311,7 @@ function buildProductKnowledgeSection() {
   let section = `
 ## JOBZ.AI PRODUCT KNOWLEDGE (USE THIS TO HELP USERS!)
 
-You are an expert on Jobz.ai. When users ask about features, navigation, or how to do things, provide SPECIFIC, HELPFUL answers.
+You are an expert on Cubbbe. When users ask about features, navigation, or how to do things, provide SPECIFIC, HELPFUL answers.
 
 ### MAIN FEATURES
 
@@ -2378,7 +2378,7 @@ C'est l'idéal avant de postuler à une offre importante !"
 
 // Helper function to build system prompt for AI Assistant
 function buildAssistantSystemPrompt(pageContext, userContext, pageData, selectedContextItems, inlineEditMode = false) {
-  const pageName = pageContext?.pageName || 'Jobz.ai';
+  const pageName = pageContext?.pageName || 'Cubbbe';
   const pageDescription = pageContext?.pageDescription || 'AI-powered job search platform';
   const firstName = userContext?.firstName || 'there';
   const lastName = userContext?.lastName || '';
@@ -2584,7 +2584,7 @@ ${hasBoard ? `**BOARD: "${board.boardName || 'Unknown'}"**
 `;
   }
 
-  return `# You are ${firstName}'s ${expertise.role} on Jobz.ai
+  return `# You are ${firstName}'s ${expertise.role} on Cubbbe
 
 ## YOUR IDENTITY
 You are NOT a generic AI assistant. You are a specialized **${expertise.role}** built specifically for this page.
@@ -2937,7 +2937,7 @@ Click 'Replace' to apply these improvements!"
 ${inlineEditMode ? '' : '- USE EDIT_NOTE when users want to improve their note content (Notes page only)\n'}- If data shows issues (stale applications, low scores), address them proactively
 - Sound like an expert who knows their situation, not a generic chatbot
 - Be conversational but professional - like a smart colleague, not a robot
-- When users ask about Jobz.ai features, ALWAYS give specific step-by-step guidance using the product knowledge below
+- When users ask about Cubbbe features, ALWAYS give specific step-by-step guidance using the product knowledge below
 ${productKnowledge}`;
 }
 

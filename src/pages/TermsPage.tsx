@@ -18,7 +18,7 @@ export default function TermsPage() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">1. Agreement to Terms</h2>
               <p className="text-gray-600 mb-4">
-                By accessing or using Jobz.ai, you agree to be bound by these Terms of Service and all applicable laws and regulations.
+                By accessing or using Cubbbe, you agree to be bound by these Terms of Service and all applicable laws and regulations.
               </p>
             </section>
 
@@ -63,7 +63,7 @@ export default function TermsPage() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">6. Limitation of Liability</h2>
               <p className="text-gray-600 mb-4">
-                Jobz.ai shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the service.
+                Cubbbe shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the service.
               </p>
             </section>
 
@@ -72,7 +72,7 @@ export default function TermsPage() {
               <p className="text-gray-600">
                 Questions about the Terms of Service should be sent to us at:
                 <br />
-                Email: legal@jobz.ai
+                Email: legal@cubbbe.com
                 <br />
                 Address: 123 AI Street, Tech City, TC 12345
               </p>

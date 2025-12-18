@@ -524,7 +524,7 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
                         transition={{ delay: 0.2 }}
                         className="text-xl font-semibold text-gray-900 dark:text-white mt-1 tracking-tight"
                       >
-                        {currentPageContext?.pageName && currentPageContext.pageName !== 'Jobz.ai'
+                        {currentPageContext?.pageName && currentPageContext.pageName !== 'Cubbbe'
                           ? `How can I help with ${currentPageContext.pageName}?`
                           : 'Can I help you with anything?'
                         }

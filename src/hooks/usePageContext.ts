@@ -167,7 +167,7 @@ const PAGE_CONTEXTS: Record<string, PageContextConfig> = {
 
 // Default context for pages not explicitly defined
 const DEFAULT_CONTEXT: PageContextConfig = {
-  pageName: 'Jobz.ai',
+  pageName: 'Cubbbe',
   pageDescription: 'AI-powered job search platform',
   quickActions: [
     { label: 'Summarize', prompt: 'Summarize my current job search status and what I should focus on' },
