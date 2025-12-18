@@ -1,4 +1,6 @@
-import { Briefcase, Video, Users, Building, Trophy, Clock, Heart, MapPin, ExternalLink } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { Briefcase, Video, Users, Building, Trophy, Clock, Heart, MapPin, ExternalLink, ChevronDown } from 'lucide-react';
 import { CalendarEvent } from './types';
 import { CompanyLogo } from '../common/CompanyLogo';
 import { ProfileAvatar, generateGenderedAvatarConfigByName } from '../profile/avatar';
@@ -106,6 +108,121 @@ interface EventPillProps {
 }
 
 export const EventPill = ({ event, onClick, variant = 'month' }: EventPillProps) => {
+  const [showHiddenEvents, setShowHiddenEvents] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  
+  // Handle "show more" placeholder event
+  const isShowMore = event.resource?.isShowMore === true;
+  const hiddenEvents = event.resource?.hiddenEvents as CalendarEvent[] | undefined;
+  const hiddenCount = event.resource?.hiddenCount as number | undefined;
+  
+  const handleMouseEnter = useCallback(() => {
+    // Cancel any pending close
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    
+    // Calculate dropdown position based on trigger element
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 4,
+        left: rect.left,
+      });
+    }
+    
+    setShowHiddenEvents(true);
+  }, []);
+  
+  const handleMouseLeave = useCallback(() => {
+    // Delay closing to allow mouse to move to dropdown
+    closeTimeoutRef.current = setTimeout(() => {
+      setShowHiddenEvents(false);
+    }, 150);
+  }, []);
+
+  // Update position on scroll
+  useEffect(() => {
+    if (!showHiddenEvents) return;
+    
+    const updatePosition = () => {
+      if (triggerRef.current) {
+        const rect = triggerRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + 4,
+          left: rect.left,
+        });
+      }
+    };
+
+    window.addEventListener('scroll', updatePosition, true);
+    return () => window.removeEventListener('scroll', updatePosition, true);
+  }, [showHiddenEvents]);
+  
+  if (isShowMore) {
+    return (
+      <div 
+        ref={triggerRef}
+        className="relative"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <div
+          className="event-pill-apple group flex items-center justify-center gap-1.5 px-2 py-1 rounded-md cursor-default overflow-hidden"
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(79, 70, 229, 0.9) 100%)',
+            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            minHeight: '22px',
+          }}
+        >
+          <span className="text-[10px] font-semibold text-white/95">
+            +{hiddenCount} more
+          </span>
+          <ChevronDown className={`w-3 h-3 text-white/80 transition-transform duration-200 ${showHiddenEvents ? 'rotate-180' : ''}`} />
+        </div>
+        
+        {/* Dropdown with hidden events - rendered via portal to avoid z-index issues */}
+        {showHiddenEvents && hiddenEvents && createPortal(
+          <div 
+            className="fixed min-w-[200px] max-w-[280px]"
+            style={{ 
+              top: dropdownPosition.top,
+              left: dropdownPosition.left,
+              zIndex: 99999,
+            }}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
+            <div 
+              className="p-1.5 rounded-lg shadow-2xl animate-in fade-in slide-in-from-top-1 duration-150"
+              style={{
+                background: '#111827',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+              }}
+            >
+              <div className="space-y-0.5">
+                {hiddenEvents.map((hiddenEvent) => (
+                  <MiniEventPill 
+                    key={hiddenEvent.id} 
+                    event={hiddenEvent}
+                    onClick={onClick}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+      </div>
+    );
+  }
+
   const getEventColors = () => {
     // Google Calendar events - softer Google style
     if (event.type === 'google') {
@@ -355,6 +472,69 @@ export const EventPill = ({ event, onClick, variant = 'month' }: EventPillProps)
           )}
         </div>
       )}
+    </div>
+  );
+};
+
+// Mini event pill for the "show more" dropdown
+const MiniEventPill = ({ event, onClick }: { event: CalendarEvent; onClick?: () => void }) => {
+  const app = (event.type === 'application' || event.type === 'wishlist') ? event.resource : (event.resource?.application || event.resource);
+  const companyName = app?.companyName || 'Company';
+  const boardType = event.resource?.boardType || 'jobs';
+  const isCampaign = boardType === 'campaigns';
+  const contactName = event.resource?.contactName;
+  const displayName = isCampaign && contactName ? contactName : companyName;
+  
+  // Get badge
+  let badge = 'Applied';
+  if (event.type === 'wishlist') badge = 'Wishlist';
+  if (event.type === 'interview') badge = event.resource?.interview?.type || 'Interview';
+  if (isCampaign) badge = getCampaignStatusLabel(event.resource?.status);
+  
+  // Get color
+  let bgColor = '#5B8DEF';
+  if (event.type === 'wishlist') bgColor = '#E8668F';
+  if (event.type === 'interview') bgColor = '#4FBF8A';
+  if (isCampaign) {
+    const campaignColors = getCampaignColors(event.resource?.status);
+    bgColor = campaignColors.accentColor;
+  }
+  
+  return (
+    <div
+      onClick={onClick}
+      className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-white/10 transition-colors"
+    >
+      {/* Color indicator */}
+      <span 
+        className="flex-shrink-0 w-2 h-2 rounded-full"
+        style={{ backgroundColor: bgColor }}
+      />
+      
+      {/* Logo */}
+      {isCampaign && contactName ? (
+        <ProfileAvatar
+          config={generateGenderedAvatarConfigByName(contactName)}
+          size={20}
+          className="flex-shrink-0 rounded"
+        />
+      ) : (
+        <CompanyLogo 
+          companyName={companyName} 
+          size="sm" 
+          className="flex-shrink-0 !w-5 !h-5 rounded"
+        />
+      )}
+      
+      {/* Name */}
+      <span className="text-[11px] font-medium text-white/90 truncate flex-1 min-w-0">
+        {displayName}
+      </span>
+      
+      {/* Badge */}
+      <span className="text-[8px] font-medium text-white/50 uppercase">
+        {badge}
+      </span>
     </div>
   );
 };

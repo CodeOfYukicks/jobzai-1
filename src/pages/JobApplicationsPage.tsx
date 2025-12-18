@@ -7782,6 +7782,7 @@ END:VCALENDAR`;
           boards={boards}
           currentBoardId={applicationToMove?.boardId || (boards.find(b => b.isDefault)?.id || null)}
           applicationName={applicationToMove ? `${applicationToMove.companyName} - ${applicationToMove.position}` : ''}
+          currentBoardType={currentBoardType}
         />
       </div>
     </AuthLayout>

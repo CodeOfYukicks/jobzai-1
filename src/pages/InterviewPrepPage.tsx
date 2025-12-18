@@ -5377,7 +5377,6 @@ Return ONLY the pitch text, no explanations or formatting.`;
                           updateStarField={updateStarField}
                           deleteStarStory={deleteStarStory}
                           exportStoryToNotes={handleStarExportClick}
-                          practiceInChat={practiceInChat}
                         />
                       </Suspense>
                     </motion.div>
@@ -5518,27 +5517,17 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                   </h4>
                                 </div>
 
-                                {/* Rating and Action Row */}
-                                <div className="flex items-center justify-between gap-3 mt-3">
-                                  <div className="flex items-center gap-3">
-                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-jobzai-50 dark:bg-jobzai-900/30 border border-jobzai-200 dark:border-jobzai-800">
-                                      <span className="text-xs font-semibold text-jobzai-700 dark:text-jobzai-300">
-                                        {rating}/5
-                                      </span>
-                                      <span className="text-xs text-gray-400 dark:text-gray-500">•</span>
-                                      <span className="text-xs text-jobzai-600 dark:text-jobzai-400">
-                                        Gap {gap}
-                                      </span>
-                                    </div>
+                                {/* Rating Row */}
+                                <div className="flex items-center gap-3 mt-3">
+                                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-jobzai-50 dark:bg-jobzai-900/30 border border-jobzai-200 dark:border-jobzai-800">
+                                    <span className="text-xs font-semibold text-jobzai-700 dark:text-jobzai-300">
+                                      {rating}/5
+                                    </span>
+                                    <span className="text-xs text-gray-400 dark:text-gray-500">•</span>
+                                    <span className="text-xs text-jobzai-600 dark:text-jobzai-400">
+                                      Gap {gap}
+                                    </span>
                                   </div>
-
-                                  <button
-                                    onClick={() => practiceInChat(skill)}
-                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-jobzai-600 hover:bg-jobzai-700 dark:bg-jobzai-500 dark:hover:bg-jobzai-600 rounded-lg transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
-                                  >
-                                    <MessageSquare className="w-4 h-4" />
-                                    <span>Practise in Chat</span>
-                                  </button>
                                 </div>
                               </div>
 

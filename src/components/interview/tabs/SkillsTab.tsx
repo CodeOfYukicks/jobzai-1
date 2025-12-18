@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Briefcase, Award, MessageSquare, ArrowUp, CheckCircle2, Sparkles, Loader2, AlertCircle as AlertCircleIcon, Trash2, FileText, Plus, Wand2 } from 'lucide-react';
+import { Briefcase, Award, ArrowUp, CheckCircle2, Sparkles, Loader2, AlertCircle as AlertCircleIcon, Trash2, FileText, Plus, Wand2 } from 'lucide-react';
 import { Interview } from '../../../types/interview';
 import { generateStarStory } from '../../../services/starStoryGenerator';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -17,7 +17,6 @@ interface SkillsTabProps {
   updateStarField: (skill: string, storyId: string, field: 'situation' | 'action' | 'result', value: string) => Promise<void>;
   deleteStarStory: (skill: string, storyId: string) => Promise<void>;
   exportStoryToNotes: (skill: string, storyId: string) => void; // This now opens the modal instead of directly exporting
-  practiceInChat: (skill: string) => void;
 }
 
 // Premium Confidence Slider Component
@@ -177,7 +176,6 @@ const SkillsTab = memo(function SkillsTab({
   updateStarField,
   deleteStarStory,
   exportStoryToNotes,
-  practiceInChat,
 }: SkillsTabProps) {
   const { currentUser } = useAuth();
   const [generatingForSkill, setGeneratingForSkill] = useState<string | null>(null);
@@ -326,20 +324,6 @@ const SkillsTab = memo(function SkillsTab({
             {skill}
           </h3>
             <div className="flex items-center gap-2">
-              {/* Practice Button - Only show when there's a gap */}
-              {hasGap && (
-                  <motion.button
-                  onClick={() => practiceInChat(skill)}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="group/btn relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg px-3 py-1.5 text-xs font-medium text-white shadow-md transition-all hover:shadow-lg"
-                style={{ background: 'linear-gradient(135deg, #635BFF 0%, #5249e6 100%)', boxShadow: '0 4px 10px rgba(99, 91, 255, 0.3)' }}
-                >
-                  <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 group-hover/btn:opacity-10" />
-                  <MessageSquare className="w-3 h-3 relative z-10" />
-                  <span className="relative z-10">Practice</span>
-                  </motion.button>
-              )}
               {/* Confidence Badge */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}

@@ -488,6 +488,36 @@
   box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3) !important;
 }
 
+/* Custom show more dropdown - ensure it's above everything */
+.event-pill-show-more-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 9999 !important;
+  isolation: isolate;
+}
+
+/* Ensure month rows don't create stacking context issues */
+.rbc-month-row {
+  position: relative;
+  z-index: auto !important;
+}
+
+.rbc-row-content {
+  position: relative;
+  z-index: auto !important;
+}
+
+.rbc-row-segment {
+  position: relative;
+  z-index: auto !important;
+}
+
+/* The show more event pill should have higher z-index when hovered */
+.rbc-event:has(.event-pill-apple):hover {
+  z-index: 100 !important;
+}
+
 /* ==================== DRAG AND DROP - Premium Apple-like ==================== */
 .rbc-addons-dnd .rbc-addons-dnd-resizable {
   cursor: grab !important;

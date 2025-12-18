@@ -6,7 +6,7 @@ import {
   Loader2,
   Folder
 } from 'lucide-react';
-import { KanbanBoard, BOARD_COLORS } from '../../types/job';
+import { KanbanBoard, BOARD_COLORS, BoardType } from '../../types/job';
 
 interface MoveToBoardModalProps {
   isOpen: boolean;
@@ -15,6 +15,7 @@ interface MoveToBoardModalProps {
   boards: KanbanBoard[];
   currentBoardId: string | null;
   applicationName: string;
+  currentBoardType?: BoardType;
 }
 
 export default function MoveToBoardModal({
@@ -24,6 +25,7 @@ export default function MoveToBoardModal({
   boards,
   currentBoardId,
   applicationName,
+  currentBoardType = 'jobs',
 }: MoveToBoardModalProps) {
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [isMoving, setIsMoving] = useState(false);
@@ -43,7 +45,14 @@ export default function MoveToBoardModal({
   };
 
   const currentBoard = boards.find(b => b.id === currentBoardId);
-  const otherBoards = boards.filter(b => b.id !== currentBoardId);
+  
+  // Filter boards to only show those with the same board type
+  // This prevents moving cards between job boards and campaign boards
+  const otherBoards = boards.filter(b => {
+    if (b.id === currentBoardId) return false;
+    const boardType = b.boardType || 'jobs';
+    return boardType === currentBoardType;
+  });
 
   const getBoardColor = (board: KanbanBoard) => {
     return board.color || BOARD_COLORS[0];
@@ -156,10 +165,10 @@ export default function MoveToBoardModal({
                   <div className="text-center py-8">
                     <Folder className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      No other boards available
+                      No other {currentBoardType === 'campaigns' ? 'campaign' : 'job application'} boards available
                     </p>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                      Create a new board first
+                      Create a new {currentBoardType === 'campaigns' ? 'campaign outreach' : 'job application'} board first
                     </p>
                   </div>
                 )}

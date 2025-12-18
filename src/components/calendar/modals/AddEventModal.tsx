@@ -8,11 +8,15 @@ import {
   Link,
   Sparkles,
   Loader2,
-  Info,
   Search,
-  MapPin,
   Building,
   AlertTriangle,
+  Code,
+  Users,
+  CheckCircle,
+  MoreHorizontal,
+  User,
+  Clock,
 } from 'lucide-react';
 import moment from 'moment';
 import { notify } from '@/lib/notify';
@@ -1060,16 +1064,18 @@ export const AddEventModal = ({
 
                   {/* Interview form fields */}
                   {eventType === 'interview' && (
-                    <div className="space-y-4">
-                      {/* Application Lookup */}
-                    <div className="space-y-2 application-search-container">
-                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        <Link className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                        Link to Existing Application (Optional)
+                    <div className="space-y-5">
+                      {/* Application Lookup - Required */}
+                      <div className="space-y-3 application-search-container">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                          Select Application <span className="text-red-500">*</span>
                       </label>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 -mt-1">
+                          Search and select the job application for this interview
+                        </p>
                       <div className="relative">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                           <input
                             type="text"
                             value={searchQuery}
@@ -1078,8 +1084,9 @@ export const AddEventModal = ({
                               setShowApplicationDropdown(true);
                             }}
                             onFocus={() => setShowApplicationDropdown(true)}
-                              className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 dark:border-[#3d3c3e] rounded-xl dark:bg-[#242325] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
+                              className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e] hover:border-purple-400 dark:hover:border-purple-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 shadow-sm hover:shadow-md transition-all"
                             placeholder="Search by company or position..."
+                              autoFocus
                           />
                           {selectedApplication && (
                             <button
@@ -1095,7 +1102,7 @@ export const AddEventModal = ({
                                   location: '',
                                 }));
                               }}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors"
                             >
                               <X className="w-4 h-4 text-gray-400" />
                             </button>
@@ -1118,7 +1125,18 @@ export const AddEventModal = ({
                                     app.position.toLowerCase().includes(searchQuery.toLowerCase())
                                 )
                                 .slice(0, 5)
-                                .map((app) => (
+                                  .map((app) => {
+                                    // Generate company color
+                                    const colors = [
+                                      'bg-gradient-to-br from-purple-500 to-indigo-600',
+                                      'bg-gradient-to-br from-blue-500 to-cyan-600',
+                                      'bg-gradient-to-br from-emerald-500 to-teal-600',
+                                      'bg-gradient-to-br from-orange-500 to-red-600',
+                                      'bg-gradient-to-br from-pink-500 to-rose-600',
+                                    ];
+                                    const colorIndex = app.companyName.charCodeAt(0) % colors.length;
+                                    
+                                    return (
                                   <button
                                     key={app.id}
                                     type="button"
@@ -1126,44 +1144,41 @@ export const AddEventModal = ({
                                       setSelectedApplication(app);
                                       setLinkedApplicationId(app.id);
                                       setSearchQuery(`${app.companyName} - ${app.position}`);
-                                        setFormData(prev => ({
+                                          setFormData(prev => ({
                                         ...prev,
                                         companyName: app.companyName,
                                         position: app.position,
                                         location: app.location || prev.location,
                                       }));
                                       setShowApplicationDropdown(false);
-                                      notify.success('Application linked successfully');
-                                    }}
-                                    className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors border-b border-gray-100 dark:border-[#3d3c3e] last:border-b-0"
-                                  >
-                                    <div className="flex items-start gap-3">
-                                      <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
-                                        <Building className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                        }}
+                                        className="w-full px-3 py-1.5 text-left hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 dark:hover:from-purple-900/20 dark:hover:to-indigo-900/20 transition-all border-b border-gray-100 dark:border-[#3d3c3e] last:border-b-0 flex items-center gap-2"
+                                      >
+                                        {/* Company Logo/Avatar */}
+                                        <div className={`flex-shrink-0 w-7 h-7 rounded-md ${colors[colorIndex]} flex items-center justify-center shadow-sm`}>
+                                          <span className="text-white font-semibold text-[11px]">
+                                            {app.companyName.charAt(0).toUpperCase()}
+                                          </span>
                                       </div>
+                                        
+                                        {/* Company Info */}
                                       <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                                          <div className="font-semibold text-[11px] text-gray-900 dark:text-white truncate leading-tight">
                                           {app.companyName}
-                                        </p>
-                                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                                          </div>
+                                          <div className="text-[10px] text-gray-600 dark:text-gray-400 truncate leading-tight mt-0.5">
                                           {app.position}
-                                        </p>
-                                        {app.location && (
-                                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 flex items-center gap-1">
-                                            <MapPin className="w-3 h-3" />
-                                            {app.location}
-                                          </p>
-                                        )}
                                       </div>
                                     </div>
                                   </button>
-                                ))}
+                                    );
+                                  })}
                               {applications.filter(
                                 (app) =>
                                   app.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                                   app.position.toLowerCase().includes(searchQuery.toLowerCase())
                               ).length === 0 && (
-                                <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">
+                                  <div className="px-3 py-4 text-center text-xs text-gray-500 dark:text-gray-400">
                                   No applications found
                                 </div>
                               )}
@@ -1171,140 +1186,151 @@ export const AddEventModal = ({
                           )}
                         </AnimatePresence>
                       </div>
+
+                        {/* Selected Application Badges */}
                       {selectedApplication && (
-                        <div className="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl">
-                          <div className="flex items-center gap-2">
-                            <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-purple-900 dark:text-purple-300">
-                                  Linked to: {selectedApplication.companyName} - {selectedApplication.position}
-                              </p>
-                              <p className="text-xs text-purple-700 dark:text-purple-400 mt-0.5">
-                                Fields will be pre-filled
-                              </p>
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex flex-wrap items-center gap-2 p-3 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border border-purple-200/50 dark:border-purple-800/30"
+                          >
+                            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-md border border-purple-200 dark:border-purple-700">
+                              <Building className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                              <span className="text-xs font-medium text-gray-900 dark:text-white">
+                                {selectedApplication.companyName}
+                              </span>
                             </div>
-                          </div>
-                        </div>
+                            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-md border border-indigo-200 dark:border-indigo-700">
+                              <Briefcase className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                              <span className="text-xs font-medium text-gray-900 dark:text-white">
+                                {selectedApplication.position}
+                              </span>
+                            </div>
+                          </motion.div>
                       )}
                     </div>
 
-                      {/* Interview Type */}
+                      {/* Show rest of form only after application is selected */}
+                      <AnimatePresence>
+                        {selectedApplication && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="space-y-6 overflow-hidden"
+                          >
+                            {/* Date & Time Grid */}
+                            <div className="grid grid-cols-2 gap-5">
+                  <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                                  Interview Date <span className="text-red-500">*</span>
+                    </label>
+                                <DatePicker
+                                  value={formData.interviewDate || moment(selectedDate).format('YYYY-MM-DD')}
+                                  onChange={(value) => setFormData(prev => ({ ...prev, interviewDate: value }))}
+                                  placeholder="Select date"
+                                  className="w-full"
+                    />
+                  </div>
+                  <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                                  Interview Time
+                    </label>
+                                <div className="relative">
+                                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                                    type="time"
+                                    value={formData.interviewTime}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, interviewTime: e.target.value }))}
+                                    className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e] hover:border-purple-400 dark:hover:border-purple-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 shadow-sm hover:shadow-md transition-all"
+                    />
+                  </div>
+                              </div>
+                  </div>
+
+                            {/* Interview Type - Visual Cards */}
                     <div>
-                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                          Interview Type <span className="text-red-500">*</span>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-3 text-center">
+                                Interview Type
                       </label>
-                      <select
-                        value={formData.interviewType}
-                          onChange={(e) => setFormData(prev => ({ ...prev, interviewType: e.target.value as any }))}
-                          className="w-full px-4 py-3 border-2 border-gray-200 dark:border-[#3d3c3e] rounded-xl dark:bg-[#242325] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
-                      >
-                        <option value="technical">Technical</option>
-                        <option value="hr">HR</option>
-                        <option value="manager">Manager</option>
-                        <option value="final">Final</option>
-                        <option value="other">Other</option>
-                      </select>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {[
+                                  { value: 'technical', label: 'Technical', Icon: Code },
+                                  { value: 'hr', label: 'HR', Icon: Users },
+                                  { value: 'manager', label: 'Manager', Icon: Briefcase },
+                                  { value: 'final', label: 'Final', Icon: CheckCircle },
+                                  { value: 'other', label: 'Other', Icon: MoreHorizontal },
+                                ].map((type) => {
+                                  const Icon = type.Icon;
+                                  const isSelected = formData.interviewType === type.value;
+                                  return (
+                                    <motion.button
+                                      key={type.value}
+                                      type="button"
+                                      whileHover={{ scale: 1.02, y: -2 }}
+                                      whileTap={{ scale: 0.98 }}
+                                      onClick={() => setFormData(prev => ({ ...prev, interviewType: type.value as any }))}
+                                      className={`relative p-4 rounded-xl border-2 transition-all ${
+                                        isSelected
+                                          ? 'bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 border-purple-500 dark:border-purple-400 shadow-lg shadow-purple-500/20'
+                                          : 'bg-white dark:bg-[#242325] border-gray-200 dark:border-[#3d3c3e] hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md'
+                                      }`}
+                                    >
+                                      <div className="flex flex-col items-center gap-2">
+                                        <div className={`p-2 rounded-lg transition-colors ${
+                                          isSelected
+                                            ? 'bg-purple-100 dark:bg-purple-900/50'
+                                            : 'bg-gray-100 dark:bg-[#2b2a2c]'
+                                        }`}>
+                                          <Icon className={`w-5 h-5 ${
+                                            isSelected
+                                              ? 'text-purple-600 dark:text-purple-400'
+                                              : 'text-gray-600 dark:text-gray-400'
+                                          }`} />
                     </div>
+                                        <span className={`text-sm font-medium ${
+                                          isSelected
+                                            ? 'text-purple-900 dark:text-purple-200'
+                                            : 'text-gray-700 dark:text-gray-300'
+                                        }`}>
+                                          {type.label}
+                                        </span>
+                                      </div>
+                                      {isSelected && (
+                                        <motion.div
+                                          initial={{ scale: 0 }}
+                                          animate={{ scale: 1 }}
+                                          className="absolute top-2 right-2"
+                                        >
+                                          <Check className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                        </motion.div>
+                                      )}
+                                    </motion.button>
+                                  );
+                                })}
+                              </div>
+                            </div>
 
-                  {/* Company Name */}
-                  <div>
-                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                          Company Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                          value={formData.companyName || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-                          className="w-full px-4 py-3 border-2 border-gray-200 dark:border-[#3d3c3e] rounded-xl dark:bg-[#242325] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
-                      placeholder="Enter company name"
-                    />
-                  </div>
-
-                  {/* Position */}
-                  <div>
-                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                          Position <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                          value={formData.position || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-                          className="w-full px-4 py-3 border-2 border-gray-200 dark:border-[#3d3c3e] rounded-xl dark:bg-[#242325] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
-                      placeholder="Enter position"
-                    />
-                  </div>
-
-                  {/* Location */}
-                  <div>
-                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                          Location
-                    </label>
-                    <input
-                      type="text"
-                          value={formData.location || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                          className="w-full px-4 py-3 border-2 border-gray-200 dark:border-[#3d3c3e] rounded-xl dark:bg-[#242325] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
-                          placeholder="Enter location (or video call link)"
-                    />
-                  </div>
-
-                      {/* Interview Time */}
+                            {/* Interviewer Name */}
                     <div>
-                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                          Time <span className="text-red-500">*</span>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                                Interviewer Name
                       </label>
-                      <input
-                        type="time"
-                        value={formData.interviewTime}
-                          onChange={(e) => setFormData(prev => ({ ...prev, interviewTime: e.target.value }))}
-                          className="w-full px-4 py-3 border-2 border-gray-200 dark:border-[#3d3c3e] rounded-xl dark:bg-[#242325] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
-                      />
-                    </div>
-
-                      {/* Contact Name */}
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                          Interviewer Name
-                      </label>
+                              <div className="relative">
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="text"
-                          value={formData.contactName || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
-                          className="w-full px-4 py-3 border-2 border-gray-200 dark:border-[#3d3c3e] rounded-xl dark:bg-[#242325] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
-                          placeholder="Enter interviewer name"
+                                  value={formData.contactName || ''}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
+                                  className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e] hover:border-purple-400 dark:hover:border-purple-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 shadow-sm hover:shadow-md transition-all"
+                                  placeholder="e.g., John Doe, Hiring Manager"
                       />
                     </div>
-
-                      {/* Contact Email */}
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                          Interviewer Email
-                      </label>
-                      <input
-                        type="email"
-                          value={formData.contactEmail || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, contactEmail: e.target.value }))}
-                          className="w-full px-4 py-3 border-2 border-gray-200 dark:border-[#3d3c3e] rounded-xl dark:bg-[#242325] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
-                          placeholder="Enter interviewer email"
-                      />
                     </div>
-
-                  {/* Notes */}
-                  <div>
-                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                      Notes
-                    </label>
-                    <textarea
-                          value={formData.notes || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                          className="w-full px-4 py-3 border-2 border-gray-200 dark:border-[#3d3c3e] rounded-xl dark:bg-[#242325] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm resize-none"
-                      placeholder="Add any relevant notes..."
-                      rows={3}
-                    />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                   </div>
-                    </div>
                   )}
                 </>
               )}
@@ -1347,8 +1373,12 @@ export const AddEventModal = ({
               whileTap={{ scale: 0.98 }}
               type="button"
               onClick={handleSubmit}
-                disabled={isSubmitting}
-              className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:opacity-90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed font-medium flex items-center gap-2 shadow-sm"
+                disabled={
+                  isSubmitting ||
+                  (eventType === 'interview' && (!linkedApplicationId || !formData.interviewDate)) ||
+                  (eventType === 'application' && currentBoardType !== 'campaigns' && (!formData.companyName || !formData.position || !formData.location || !formData.appliedDate))
+                }
+                className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-black rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-gray-200 dark:shadow-none flex items-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -1359,7 +1389,7 @@ export const AddEventModal = ({
                 <>
                   <Check className="w-4 h-4" />
                     {eventType === 'application' 
-                      ? (currentBoardType === 'campaigns' ? 'Add Outreach' : 'Add Application')
+                      ? (currentBoardType === 'campaigns' ? 'Add Outreach' : 'Create Application')
                       : 'Add Interview'}
                 </>
               )}
