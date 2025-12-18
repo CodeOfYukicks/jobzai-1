@@ -1,44 +1,82 @@
 import { Link } from 'react-router-dom';
-import { Twitter, Linkedin, Mail } from 'lucide-react';
+import { Instagram, Linkedin, Facebook, Youtube } from 'lucide-react';
+
+// Logo URL - Update this path if needed
+const LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/jobzai.firebasestorage.app/o/images%2Fjobzai-logo-footer.svg?alt=media';
+
+// X (Twitter) icon component
+const XIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
 
 export default function Footer() {
   return (
     <footer className="bg-white border-t border-gray-200">
       <div className="max-w-7xl mx-auto px-6 py-16">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          {/* Brand Column */}
-          <div className="md:col-span-4 space-y-4">
-            <Link to="/" className="inline-flex items-center gap-2">
-              <div className="w-8 h-8 bg-[#4D3E78] rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">J</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">Jobz.ai</span>
+          {/* Brand Column - Logo + Social Icons */}
+          <div className="md:col-span-4 space-y-6">
+            <Link to="/">
+              <img 
+                src={LOGO_URL} 
+                alt="Cubbbe" 
+                className="h-20 w-auto object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  target.parentElement!.innerHTML = '<span class="text-2xl font-bold text-gray-900">Cubbbe</span>';
+                }}
+              />
             </Link>
-            <p className="text-gray-600 text-sm max-w-xs">
-              Revolutionizing job search with AI-powered personalized applications.
-            </p>
-            <div className="flex items-center gap-4">
+            
+            {/* Social Icons */}
+            <div className="flex items-center gap-5">
               <a 
-                href="https://twitter.com" 
+                href="https://instagram.com/cubbbe" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Instagram"
               >
-                <Twitter className="w-5 h-5" />
+                <Instagram className="w-5 h-5" />
               </a>
               <a 
-                href="https://linkedin.com" 
+                href="https://x.com/cubbbe" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="X (Twitter)"
+              >
+                <XIcon className="w-5 h-5" />
+              </a>
+              <a 
+                href="https://linkedin.com/company/cubbbe" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="LinkedIn"
               >
                 <Linkedin className="w-5 h-5" />
               </a>
               <a 
-                href="mailto:hello@jobz.ai"
+                href="https://facebook.com/cubbbe" 
+                target="_blank" 
+                rel="noopener noreferrer"
                 className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Facebook"
               >
-                <Mail className="w-5 h-5" />
+                <Facebook className="w-5 h-5" />
+              </a>
+              <a 
+                href="https://youtube.com/@cubbbe" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="YouTube"
+              >
+                <Youtube className="w-5 h-5" />
               </a>
             </div>
           </div>
@@ -127,7 +165,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-gray-500 text-sm">
-            © {new Date().getFullYear()} Jobz AI. All rights reserved.
+            © {new Date().getFullYear()} Cubbbe. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <Link to="/privacy" className="text-gray-500 hover:text-gray-700 text-sm transition-colors">

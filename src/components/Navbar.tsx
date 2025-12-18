@@ -109,7 +109,7 @@ export default function Navbar() {
   const showPublicMenu = !currentUser || isLandingPage;
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+    <nav className={`fixed top-2 left-0 right-0 z-50 transition-all duration-300 ${
       scrolled 
         ? 'bg-white/80 backdrop-blur-lg shadow-sm border-b border-gray-100' 
         : 'bg-transparent'
@@ -125,7 +125,7 @@ export default function Navbar() {
             >
               <FirebaseImage 
                 path="images/logo-only.png" 
-                alt="Jobz.ai"
+                alt="Cubbbe"
                 className="h-10 w-auto"
               />
             </a>
@@ -234,7 +234,7 @@ export default function Navbar() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="hidden md:block absolute top-14 left-0 right-0 bg-white border-b border-gray-200"
+            className="hidden md:block absolute top-16 left-0 right-0 bg-white border-b border-gray-200"
             style={{ zIndex: 40 }}
             onMouseEnter={() => handleMouseEnter('Products')}
             onMouseLeave={handleMouseLeave}
@@ -362,7 +362,7 @@ export default function Navbar() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute top-14 left-0 right-0 bg-white md:hidden shadow-lg border-t border-gray-100"
+              className="absolute top-16 left-0 right-0 bg-white md:hidden shadow-lg border-t border-gray-100"
             >
               <div className="px-6 py-6 space-y-4 max-h-[70vh] overflow-y-auto">
                 {/* Navigation Section */}
