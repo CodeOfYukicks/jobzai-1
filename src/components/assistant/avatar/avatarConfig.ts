@@ -5,7 +5,7 @@
  * Notion-like avatar customization system using DiceBear's "notionists-neutral" style.
  * 
  * HOW IT WORKS:
- * - The AvatarConfig object is the ONLY thing stored in the database
+ * - The AvatarConfig object is stored in Firestore under the user document
  * - Avatars are generated dynamically at runtime using DiceBear
  * - No images or SVGs are stored - everything is computed from the config
  * - The seed ensures reproducible random generation for consistent avatars
@@ -17,6 +17,9 @@
  * - lips: 30 variants (this is the mouth)
  * - nose: 20 variants
  */
+
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../../../lib/firebase';
 
 // Available options for each avatar feature (from DiceBear notionists-neutral schema)
 export const AVATAR_OPTIONS = {
@@ -95,24 +98,60 @@ export function generateRandomConfig(): AvatarConfig {
   };
 }
 
-// Placeholder function for saving avatar config to database
-// In production, this would save to Firestore or your preferred database
+// Save avatar config to Firestore
 export async function saveAvatarConfig(userId: string, config: AvatarConfig): Promise<void> {
   console.log('[Avatar] Saving config for user:', userId, config);
-  // In production: await db.collection('users').doc(userId).update({ avatarConfig: config });
-  localStorage.setItem(`avatar-config-${userId}`, JSON.stringify(config));
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, { 
+      assistantAvatarConfig: config,
+      lastUpdated: new Date().toISOString()
+    });
+    // Also save to localStorage as cache
+    localStorage.setItem(`avatar-config-${userId}`, JSON.stringify(config));
+  } catch (error) {
+    console.error('[Avatar] Error saving to Firestore:', error);
+    // Fallback to localStorage only
+    localStorage.setItem(`avatar-config-${userId}`, JSON.stringify(config));
+  }
 }
 
-// Placeholder function for loading avatar config from database
+// Load avatar config from Firestore (with localStorage fallback)
 export async function loadAvatarConfig(userId: string): Promise<AvatarConfig> {
   console.log('[Avatar] Loading config for user:', userId);
-  // In production: const doc = await db.collection('users').doc(userId).get();
-  const stored = localStorage.getItem(`avatar-config-${userId}`);
-  if (stored) {
-    try {
-      return JSON.parse(stored) as AvatarConfig;
-    } catch {
-      return DEFAULT_AVATAR_CONFIG;
+  try {
+    // Try Firestore first
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      if (data.assistantAvatarConfig) {
+        // Cache in localStorage
+        localStorage.setItem(`avatar-config-${userId}`, JSON.stringify(data.assistantAvatarConfig));
+        return data.assistantAvatarConfig as AvatarConfig;
+      }
+    }
+    
+    // Fallback to localStorage (for backwards compatibility)
+    const stored = localStorage.getItem(`avatar-config-${userId}`);
+    if (stored) {
+      try {
+        return JSON.parse(stored) as AvatarConfig;
+      } catch {
+        return DEFAULT_AVATAR_CONFIG;
+      }
+    }
+  } catch (error) {
+    console.error('[Avatar] Error loading from Firestore:', error);
+    // Fallback to localStorage
+    const stored = localStorage.getItem(`avatar-config-${userId}`);
+    if (stored) {
+      try {
+        return JSON.parse(stored) as AvatarConfig;
+      } catch {
+        return DEFAULT_AVATAR_CONFIG;
+      }
     }
   }
   return DEFAULT_AVATAR_CONFIG;

@@ -142,12 +142,18 @@ export default function AvatarEditor({
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.2 }}
-      className="absolute inset-0 z-50 bg-white dark:bg-[#1e1e1f] flex flex-col"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
     >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{ duration: 0.2 }}
+        className="relative w-full max-w-md max-h-[90vh] mx-4 bg-white dark:bg-[#1e1e1f] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+      >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-white/10">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -338,6 +344,7 @@ export default function AvatarEditor({
           </div>
         )}
       </div>
+      </motion.div>
     </motion.div>
   );
 }

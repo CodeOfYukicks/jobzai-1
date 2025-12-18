@@ -54,7 +54,7 @@ Return only the improved text, nothing else.`
           }
         ],
         temperature: 0.7,
-        max_tokens: 1000
+        max_completion_tokens: 1000
       });
 
       const improved = completion.choices[0]?.message?.content?.trim() || '';

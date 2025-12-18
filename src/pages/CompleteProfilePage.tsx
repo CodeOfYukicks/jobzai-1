@@ -11,10 +11,12 @@ import ContractTypeStep from '../components/ProfileCompletion/steps/ContractType
 import LocationStep from '../components/ProfileCompletion/steps/LocationStep';
 import CVUploadStep from '../components/ProfileCompletion/steps/CVUploadStep';
 import MotivationStep from '../components/ProfileCompletion/steps/MotivationStep';
+import AvatarSetupStep from '../components/ProfileCompletion/steps/AvatarSetupStep';
 import SubscriptionStep from '../components/ProfileCompletion/steps/SubscriptionStep';
 import OnboardingLayout from '../components/layouts/OnboardingLayout';
+import { saveAvatarConfig } from '../components/assistant/avatar/avatarConfig';
 
-const STEPS = ['name', 'gender', 'contract', 'location', 'cv', 'motivation', 'subscription'] as const;
+const STEPS = ['name', 'gender', 'contract', 'location', 'cv', 'motivation', 'avatars', 'subscription'] as const;
 type Step = typeof STEPS[number];
 
 type StepInfo = {
@@ -139,6 +141,13 @@ export default function CompleteProfilePage() {
           currentStep: currentIndex,
           totalSteps
         };
+      case 'avatars':
+        return {
+          title: "Create your duo",
+          subtitle: "Customize your avatar and meet your AI assistant",
+          currentStep: currentIndex,
+          totalSteps
+        };
       case 'subscription':
         return {
           title: "Choose your plan",
@@ -212,6 +221,23 @@ export default function CompleteProfilePage() {
           onNext={handleNext}
           onBack={handleBack}
           isSubmitting={false}
+        />
+      )}
+
+      {currentStep === 'avatars' && (
+        <AvatarSetupStep
+          onNext={async (data) => {
+            // Save AI assistant avatar to localStorage (existing pattern)
+            if (currentUser && data.assistantAvatarConfig) {
+              await saveAvatarConfig(currentUser.uid, data.assistantAvatarConfig);
+            }
+            // Save profile avatar config to Firestore via handleNext
+            handleNext({
+              profileAvatarConfig: data.profileAvatarConfig,
+              profileAvatarType: data.profileAvatarType,
+            });
+          }}
+          onBack={handleBack}
         />
       )}
 
