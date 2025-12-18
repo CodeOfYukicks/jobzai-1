@@ -53,7 +53,7 @@ const RECORD_CONFIG: Record<RecordType, {
     bgColor: 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/40 dark:to-cyan-950/40',
     hoverBg: 'hover:from-blue-100 hover:to-cyan-100 dark:hover:from-blue-900/50 dark:hover:to-cyan-900/50',
     label: 'Job',
-    getRoute: (id) => `/jobs?selected=${id}`,
+    getRoute: (id) => `/jobs`,  // Job board page - will show the job if it exists
   },
   interview: {
     icon: Calendar,
@@ -63,7 +63,15 @@ const RECORD_CONFIG: Record<RecordType, {
     bgColor: 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40',
     hoverBg: 'hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/50 dark:hover:to-teal-900/50',
     label: 'Interview',
-    getRoute: (id) => `/upcoming-interviews?id=${id}`,
+    // Interview ID format: applicationId|interviewId - route to interview prep
+    getRoute: (id) => {
+      const [appId, intId] = id.split('|');
+      if (appId && intId) {
+        return `/interview-prep/${appId}/${intId}`;
+      }
+      // Fallback to upcoming interviews if only one ID
+      return `/upcoming-interviews`;
+    },
   },
   note: {
     icon: FileText,
@@ -83,7 +91,7 @@ const RECORD_CONFIG: Record<RecordType, {
     bgColor: 'bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-950/40 dark:to-violet-950/40',
     hoverBg: 'hover:from-indigo-100 hover:to-violet-100 dark:hover:from-indigo-900/50 dark:hover:to-violet-900/50',
     label: 'CV Analysis',
-    getRoute: (id) => `/cv-analysis?id=${id}`,
+    getRoute: (id) => `/ats-analysis/${id}`,  // Direct route to specific CV analysis
   },
 };
 

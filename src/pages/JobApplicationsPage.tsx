@@ -13,6 +13,7 @@ import {
   Calendar as CalIcon,
   Check,
   CheckCircle,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -595,42 +596,6 @@ export default function JobApplicationsPage() {
     }
   }, [searchParams, applications, boards, isLoading, selectedApplication, setSearchParams]);
 
-  // Charger les candidatures existantes quand on sélectionne "interview" dans le modal
-  useEffect(() => {
-    if (eventType === 'interview' && currentUser) {
-      const fetchApplications = async () => {
-        try {
-          const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
-          const applicationsSnapshot = await getDocs(query(applicationsRef));
-          const apps: JobApplication[] = [];
-          applicationsSnapshot.forEach((doc) => {
-            apps.push({ id: doc.id, ...doc.data() } as JobApplication);
-          });
-          setLookupApplications(apps);
-        } catch (error) {
-          console.error('Error fetching applications:', error);
-        }
-      };
-      fetchApplications();
-    }
-  }, [eventType, currentUser]);
-
-  // Fermer le dropdown quand on clique en dehors
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.application-search-container')) {
-        setShowLookupDropdown(false);
-      }
-    };
-
-    if (showLookupDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
-  }, [showLookupDropdown]);
 
   // Function to detect if cover image is dark or light
   const detectCoverBrightness = (imageUrl: string): Promise<boolean> => {
@@ -990,8 +955,8 @@ export default function JobApplicationsPage() {
     if (requiresPasteMode(jobUrl)) {
       console.log(`⚠️ [handleExtractJobInfo] ${platformName} requires manual paste mode`);
       setShowPasteMode(true);
-      setPastedJobContent('');
-      notify.info(`${platformName} requires login. Please paste the job description below.`, { duration: 5000 });
+      setShowFullForm(true); // Open manual form automatically
+      notify.info(`${platformName} requires login. Please fill in the details manually.`, { duration: 5000 });
       return;
     }
 
@@ -1010,10 +975,10 @@ export default function JobApplicationsPage() {
       const hasValidData = extractedData.position && extractedData.position.length > 2;
       
       if (!hasValidData) {
-        console.warn('⚠️ Extracted data seems incomplete, switching to paste mode');
+        console.warn('⚠️ Extracted data seems incomplete, switching to manual mode');
         setShowPasteMode(true);
-        setPastedJobContent('');
-        notify.warning('Auto-extraction incomplete. Please paste the job description for better results.', { duration: 5000 });
+        setShowFullForm(true); // Open manual form automatically
+        notify.warning('Auto-extraction incomplete. Please fill in the details manually.', { duration: 5000 });
         setIsAnalyzingJob(false);
         return;
       }
@@ -1029,10 +994,10 @@ export default function JobApplicationsPage() {
     } catch (error) {
       console.error('❌ Error extracting job info:', error);
       
-      // On failure, show paste mode as fallback
+      // On failure, open manual form as fallback
       setShowPasteMode(true);
-      setPastedJobContent('');
-      notify.warning('Auto-extraction failed. Please paste the job description below.', { duration: 5000 });
+      setShowFullForm(true); // Open manual form automatically
+      notify.warning('Auto-extraction failed. Please fill in the details manually.', { duration: 5000 });
     } finally {
       setIsAnalyzingJob(false);
     }
@@ -1170,6 +1135,13 @@ export default function JobApplicationsPage() {
         setLinkedApplicationId(null);
         setLookupSearchQuery('');
         setShowLookupDropdown(false);
+        
+        // Check if we need to generate AI summary in background
+        const needsAiAnalysis = newApplication.fullJobDescription && 
+                                newApplication.fullJobDescription.length >= 50 && 
+                                !newApplication.description &&
+                                !formData.jobInsights;
+        
         setFormData({
           companyName: '',
           position: '',
@@ -1186,6 +1158,55 @@ export default function JobApplicationsPage() {
         });
 
         notify.success('Application created successfully');
+        
+        // Generate AI summary in background if job description was entered manually
+        if (needsAiAnalysis && currentUser) {
+          // Don't await - run in background
+          (async () => {
+            try {
+              const extractedData = await extractFromPastedContent(
+                newApplication.fullJobDescription,
+                newApplication.url || ''
+              );
+              
+              // Format the summary with bullet points
+              let formattedDescription = extractedData.summary || '';
+              if (formattedDescription) {
+                formattedDescription = formattedDescription
+                  .replace(/\\n/g, '\n')
+                  .replace(/\\"/g, '"')
+                  .replace(/\\'/g, "'")
+                  .trim();
+                  
+                if (!formattedDescription.includes('•') && !formattedDescription.includes('-')) {
+                  const lines = formattedDescription.split('\n').filter((line: string) => line.trim().length > 0);
+                  if (lines.length > 0) {
+                    formattedDescription = lines.map((line: string) => {
+                      const trimmed = line.trim();
+                      if (!trimmed.startsWith('•') && !trimmed.startsWith('-')) {
+                        return `• ${trimmed}`;
+                      }
+                      return trimmed;
+                    }).join('\n');
+                  }
+                }
+              }
+              
+              // Update the document with AI-generated data
+              await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
+                description: formattedDescription,
+                ...(extractedData.jobInsights && { jobInsights: extractedData.jobInsights }),
+                ...(extractedData.jobTags && { jobTags: extractedData.jobTags }),
+                updatedAt: serverTimestamp(),
+              });
+              
+              notify.success('✨ AI insights generated for your application!', { duration: 3000 });
+            } catch (error) {
+              console.error('Background AI analysis failed:', error);
+              // Silent failure - don't bother user if background analysis fails
+            }
+          })();
+        }
       } else {
         // Pour un entretien, vérifier si une candidature existe déjà
         let existingApplication: any = null;
@@ -3314,8 +3335,8 @@ END:VCALENDAR`;
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
-                  // For campaigns, skip selection and go directly to outreach form
-                  setEventType(currentBoardType === 'campaigns' ? 'application' : null);
+                  // Always go directly to application form
+                  setEventType('application');
                   setWizardStep(1);
                   setLookupSelectedApplication(null);
                   setLinkedApplicationId(null);
@@ -3863,7 +3884,7 @@ END:VCALENDAR`;
                     >
                   <button
                     onClick={() => {
-                      setEventType(currentBoardType === 'campaigns' ? 'application' : null);
+                      setEventType('application');
                       setWizardStep(1);
                       setLookupSelectedApplication(null);
                       setLinkedApplicationId(null);
@@ -5150,17 +5171,13 @@ END:VCALENDAR`;
                 className="bg-white dark:bg-[#2b2a2c] w-full sm:rounded-2xl rounded-t-2xl max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
               >
                 {/* Header */}
-                <div className="px-6 py-5 border-b border-gray-100 dark:border-[#3d3c3e] flex items-center justify-between bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl z-10 sticky top-0">
+                <div className="px-6 py-4 border-b border-gray-100/80 dark:border-[#3d3c3e]/50 flex items-center justify-between bg-white dark:bg-[#2b2a2c] sticky top-0 z-10">
                   <div>
-                    <h2 className="font-semibold text-xl text-gray-900 dark:text-white tracking-tight">
-                      {eventType ? (eventType === 'application' 
-                        ? (currentBoardType === 'campaigns' ? 'New Outreach' : 'New Application') 
-                        : 'Schedule Interview') : 'Add to Tracker'}
+                    <h2 className="font-semibold text-lg text-gray-900 dark:text-white">
+                      {currentBoardType === 'campaigns' ? 'New Outreach' : 'New Application'}
                     </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                      {eventType ? (eventType === 'application' 
-                        ? (currentBoardType === 'campaigns' ? 'Track a new outreach contact' : 'Track a new job opportunity') 
-                        : 'Add an upcoming interview') : 'Select an event type'}
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                      {currentBoardType === 'campaigns' ? 'Track a new outreach contact' : 'Track a new job opportunity'}
                     </p>
                   </div>
                   <button
@@ -5183,254 +5200,78 @@ END:VCALENDAR`;
                       setNewApplicationModal(false);
                       setShowFullForm(false);
                     }}
-                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-300 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300 transition-colors"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6">
-                  <form onSubmit={(e) => { e.preventDefault(); handleCreateApplication(); }} className="space-y-6">
-                    {/* Selection Cards - Only for Jobs board, Campaigns go directly to form */}
-                    {!eventType && currentBoardType !== 'campaigns' && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <motion.button
-                          type="button"
-                          whileHover={{ scale: 1.02, y: -2 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => {
-                            setEventType('application');
-                            setShowFullForm(false);
-                            setWizardStep(1);
-                          }}
-                          className="group relative p-6 rounded-2xl border border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] hover:bg-white dark:hover:bg-[#3d3c3e] hover:shadow-lg hover:border-transparent transition-all text-left"
-                        >
-                          <div className="flex flex-col items-start gap-4">
-                            <div className="p-3.5 rounded-xl bg-white dark:bg-[#252525] shadow-sm group-hover:scale-110 transition-transform duration-300">
-                                <Briefcase className="w-6 h-6 text-gray-900 dark:text-white" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">
-                                Job Application
-                              </h3>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Track a new job application
-                              </p>
-                            </div>
-                          </div>
-                        </motion.button>
-
-                        <motion.button
-                          type="button"
-                          whileHover={{ scale: 1.02, y: -2 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => {
-                            setEventType('interview');
-                            setShowFullForm(true);
-                          }}
-                          className="group relative p-6 rounded-2xl border border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] hover:bg-white dark:hover:bg-[#3d3c3e] hover:shadow-lg hover:border-transparent transition-all text-left"
-                        >
-                          <div className="flex flex-col items-start gap-4">
-                            <div className="p-3.5 rounded-xl bg-white dark:bg-[#252525] shadow-sm group-hover:scale-110 transition-transform duration-300">
-                              <CalIcon className="w-6 h-6 text-gray-900 dark:text-white" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">
-                                Interview
-                              </h3>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Schedule an interview
-                              </p>
-                            </div>
-                          </div>
-                        </motion.button>
-                      </div>
-                    )}
+                <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5">
+                  <form onSubmit={(e) => { e.preventDefault(); handleCreateApplication(); }} className="space-y-5">
 
                     {/* Form Content */}
                     {eventType && (
                       <>
-                        {/* Switcher - Only for Jobs board (Campaigns go directly to outreach) */}
-                        {currentBoardType !== 'campaigns' && (
-                        <div className="relative p-1 bg-gray-100 dark:bg-[#2b2a2c] rounded-xl">
-                          <div className="flex items-center relative">
-                            {/* Sliding pill indicator */}
-                            <motion.div
-                              className="absolute top-1 bottom-1 rounded-lg bg-white dark:bg-[#3d3c3e] shadow-sm"
-                              initial={false}
-                              animate={{
-                                left: eventType === 'application' ? '4px' : 'calc(50% + 2px)',
-                                right: eventType === 'interview' ? '4px' : 'calc(50% + 2px)',
-                              }}
-                              transition={{
-                                type: "spring",
-                                stiffness: 500,
-                                damping: 35,
-                              }}
-                            />
-                            
-                              {/* Application button */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEventType('application');
-                                setLookupSelectedApplication(null);
-                                setLinkedApplicationId(null);
-                                setLookupSearchQuery('');
-                                setShowLookupDropdown(false);
-                                setShowFullForm(false);
-                                  setWizardStep(1);
-                              }}
-                              className="relative z-10 flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150"
-                            >
-                                <Briefcase className={`w-4 h-4 transition-colors duration-150 ${
-                                  eventType === 'application' 
-                                    ? 'text-gray-900 dark:text-white' 
-                                    : 'text-gray-400 dark:text-gray-500'
-                                }`} />
-                              <span className={eventType === 'application' 
-                                ? 'text-gray-900 dark:text-white' 
-                                : 'text-gray-500 dark:text-gray-400'
-                              }>
-                                  Application
-                              </span>
-                            </button>
-                            
-                              {/* Interview button */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEventType('interview');
-                                setShowFullForm(true);
-                              }}
-                              className="relative z-10 flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150"
-                            >
-                              <CalIcon className={`w-4 h-4 transition-colors duration-150 ${
-                                eventType === 'interview' 
-                                  ? 'text-gray-900 dark:text-white' 
-                                  : 'text-gray-400 dark:text-gray-500'
-                              }`} />
-                              <span className={eventType === 'interview' 
-                                ? 'text-gray-900 dark:text-white' 
-                                : 'text-gray-500 dark:text-gray-400'
-                              }>
-                                  Interview
-                              </span>
-                            </button>
-                          </div>
-                        </div>
-                        )}
 
                         {/* Job URL (Application only - Jobs board) */}
                         {eventType === 'application' && currentBoardType === 'jobs' && (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider ml-1">
-                                Job Posting URL
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Job URL
                               </label>
-                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 flex items-center gap-1">
-                                <Sparkles className="w-3 h-3" />
-                                AI Powered
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-purple-600 dark:text-purple-400">
+                                <Sparkles className="w-2.5 h-2.5" />
+                                AI
                               </span>
                             </div>
-                            <div className="relative flex items-center group">
-                              <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 rounded-xl opacity-30 blur-sm group-hover:opacity-60 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
-                              <div className="relative flex items-center w-full bg-white dark:bg-[#242325] rounded-xl">
+                            <div className="relative">
                                 <input
                                   type="url"
                                   value={formData.url || ''}
                                   onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-                                  className="w-full pl-4 pr-24 py-3 bg-transparent border-0 focus:ring-0 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 transition-all"
-                                  placeholder="https://linkedin.com/jobs/..."
+                                className="w-full pl-4 pr-24 py-2.5 bg-gray-50/50 dark:bg-white/[0.03] border border-gray-200/60 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/10 focus:border-purple-400 dark:focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all"
+                                placeholder="Paste job posting URL..."
                                   autoFocus
                                 />
-                                <div className="absolute right-1.5">
+                              <div className="absolute right-2 top-1/2 -translate-y-1/2">
                                   <motion.button
                                     type="button"
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
                                     onClick={handleExtractJobInfo}
                                     disabled={isAnalyzingJob || !formData.url || !formData.url.trim()}
-                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-[#252525] text-gray-900 dark:text-white text-xs font-medium shadow-sm border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-100 dark:hover:bg-[#303030] disabled:opacity-50 transition-all"
+                                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-medium hover:bg-purple-100 dark:hover:bg-purple-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                                   >
                                     {isAnalyzingJob ? (
                                       <Loader2 className="w-3 h-3 animate-spin" />
                                     ) : (
-                                      <Sparkles className="w-3 h-3 text-purple-500" />
+                                    <Sparkles className="w-3 h-3" />
                                     )}
-                                    {isAnalyzingJob ? 'Analyzing...' : 'Auto-Fill'}
+                                  {isAnalyzingJob ? 'Filling...' : 'Fill'}
                                   </motion.button>
-                                </div>
                               </div>
                             </div>
                             
-                            {/* Paste Mode UI - shown for LinkedIn/Indeed or when auto-extraction fails */}
+                            {/* Warning message when auto-extraction fails */}
                             {showPasteMode && (
                               <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
-                                className="mt-4 space-y-3"
+                                className="mt-4"
                               >
-                                <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                                  <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                                <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                                  <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
                                       {detectedPlatform ? `${detectedPlatform} requires manual input` : 'Auto-extraction unavailable'}
                                     </p>
-                                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                                      {detectedPlatform === 'LinkedIn' || detectedPlatform === 'Indeed' 
-                                        ? `${detectedPlatform} requires login to view job details. Copy the job description from ${detectedPlatform} and paste it below.`
-                                        : 'Please copy the job description from the website and paste it below for AI analysis.'}
+                                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                                      Please fill in the job details below. AI insights will be generated after creation.
                                     </p>
                                   </div>
-                                </div>
-                                
-                                <div className="relative">
-                                  <textarea
-                                    value={pastedJobContent}
-                                    onChange={(e) => setPastedJobContent(e.target.value)}
-                                    placeholder="Paste the complete job description here...&#10;&#10;Include: job title, company name, location, requirements, responsibilities, etc."
-                                    className="w-full h-48 p-4 text-sm border border-gray-200 dark:border-[#3d3c3e] rounded-xl bg-white dark:bg-[#1a1919] text-gray-900 dark:text-white placeholder-gray-400 resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                                  />
-                                  <div className="absolute bottom-3 right-3 text-xs text-gray-400">
-                                    {pastedJobContent.length} characters
-                                  </div>
-                                </div>
-                                
-                                <div className="flex items-center justify-between">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setShowPasteMode(false);
-                                      setPastedJobContent('');
-                                      setDetectedPlatform(null);
-                                    }}
-                                    className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                                  >
-                                    Cancel
-                                  </button>
-                                  <motion.button
-                                    type="button"
-                                    whileHover={{ scale: 1.01 }}
-                                    whileTap={{ scale: 0.99 }}
-                                    onClick={handleAnalyzePastedContent}
-                                    disabled={isAnalyzingJob || pastedJobContent.trim().length < 50}
-                                    className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-[#1f1f1f] text-gray-900 dark:text-white text-sm font-medium border border-gray-200 dark:border-[#3d3c3e] hover:border-purple-400 dark:hover:border-purple-500 shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
-                                  >
-                                    {isAnalyzingJob ? (
-                                      <>
-                                        <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
-                                        <span>Analyzing...</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Sparkles className="w-4 h-4 text-purple-500 group-hover:text-purple-600 transition-colors" />
-                                        <span>Analyze</span>
-                                      </>
-                                    )}
-                                  </motion.button>
                                 </div>
                               </motion.div>
                             )}
@@ -5725,231 +5566,65 @@ END:VCALENDAR`;
                           </div>
                         )}
 
-                        {/* Interview Link Search - Premium Design */}
-                        {eventType === 'interview' && (
-                          <div className="space-y-3">
-                            <div className="text-center">
-                              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">
-                                Link to Application
-                              </label>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                Search and select an existing application
-                              </p>
-                            </div>
-                            
-                            <div className="relative">
-                              <div className="relative group">
-                                <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 rounded-lg opacity-20 blur-sm group-hover:opacity-40 transition duration-300"></div>
-                                <div className="relative flex items-center w-full bg-white dark:bg-[#242325] rounded-lg border border-gray-200 dark:border-[#3d3c3e]">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                <input
-                                  type="text"
-                                  value={lookupSearchQuery}
-                                  onChange={(e) => {
-                                    setLookupSearchQuery(e.target.value);
-                                    setShowLookupDropdown(true);
-                                  }}
-                                  onFocus={() => setShowLookupDropdown(true)}
-                                  className="w-full pl-10 pr-10 py-2.5 bg-transparent border-0 focus:ring-0 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 transition-all"
-                                  placeholder="Search by company or position..."
-                                />
-                                {lookupSelectedApplication && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setLookupSelectedApplication(null);
-                                      setLinkedApplicationId(null);
-                                      setLookupSearchQuery('');
-                                      setFormData(prev => ({
-                                        ...prev,
-                                        companyName: '',
-                                        position: '',
-                                        location: '',
-                                      }));
-                                    }}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors"
-                                  >
-                                    <X className="w-3.5 h-3.5 text-gray-500" />
-                                  </button>
-                                )}
-                                </div>
-                              </div>
-                              
-                              {/* Dropdown with Company Logos */}
                               <AnimatePresence>
-                                {showLookupDropdown && lookupSearchQuery && !lookupSelectedApplication && (
-                                <motion.div
-                                  initial={{ opacity: 0, y: -10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, y: -10 }}
-                                  className="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-2xl max-h-[140px] overflow-y-auto backdrop-blur-xl"
-                                >
-                                  {lookupApplications
-                                    .filter(app =>
-                                      app.companyName.toLowerCase().includes(lookupSearchQuery.toLowerCase()) ||
-                                      app.position.toLowerCase().includes(lookupSearchQuery.toLowerCase())
-                                    )
-                                    .slice(0, 3)
-                                    .map((app) => {
-                                      // Generate color based on company name
-                                      const getCompanyColor = (name: string) => {
-                                        const colors = [
-                                          'bg-purple-500', 'bg-indigo-500', 'bg-blue-500', 
-                                          'bg-green-500', 'bg-yellow-500', 'bg-red-500',
-                                          'bg-pink-500', 'bg-teal-500', 'bg-orange-500'
-                                        ];
-                                        const index = name.charCodeAt(0) % colors.length;
-                                        return colors[index];
-                                      };
-                                      
-                                      return (
-                                        <button
-                                          key={app.id}
-                                          type="button"
-                                          onClick={() => {
-                                            setLookupSelectedApplication(app);
-                                            setLinkedApplicationId(app.id);
-                                            setLookupSearchQuery(`${app.companyName} - ${app.position}`);
-                                            setFormData(prev => ({
-                                              ...prev,
-                                              companyName: app.companyName,
-                                              position: app.position,
-                                              location: app.location || prev.location,
-                                            }));
-                                            setShowLookupDropdown(false);
-                                          }}
-                                          className="w-full px-3 py-1.5 text-left hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 dark:hover:from-purple-900/20 dark:hover:to-indigo-900/20 transition-all border-b border-gray-100 dark:border-[#3d3c3e] last:border-b-0 flex items-center gap-2"
-                                        >
-                                          {/* Company Logo/Avatar */}
-                                          <div className={`flex-shrink-0 w-7 h-7 rounded-md ${getCompanyColor(app.companyName)} flex items-center justify-center shadow-sm`}>
-                                            <span className="text-white font-semibold text-[11px]">
-                                              {app.companyName.charAt(0).toUpperCase()}
-                                            </span>
-                                          </div>
-                                          
-                                          {/* Company Info */}
-                                          <div className="flex-1 min-w-0">
-                                            <div className="font-semibold text-[11px] text-gray-900 dark:text-white truncate leading-tight">
-                                              {app.companyName}
-                                            </div>
-                                            <div className="text-[10px] text-gray-600 dark:text-gray-400 truncate leading-tight mt-0.5">
-                                              {app.position}
-                                            </div>
-                                          </div>
-                                        </button>
-                                      );
-                                    })}
-                                  {lookupApplications.filter(app =>
-                                    app.companyName.toLowerCase().includes(lookupSearchQuery.toLowerCase()) ||
-                                    app.position.toLowerCase().includes(lookupSearchQuery.toLowerCase())
-                                  ).length === 0 && (
-                                    <div className="px-3 py-4 text-center text-xs text-gray-500 dark:text-gray-400">
-                                      No applications found
-                                    </div>
-                                  )}
-                                </motion.div>
-                              )}
-                              </AnimatePresence>
-                            </div>
-
-                            {/* Selected Application Badges */}
-                            {lookupSelectedApplication && (
-                              <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="flex flex-wrap items-center gap-2 p-3 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border border-purple-200/50 dark:border-purple-800/30"
-                              >
-                                <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-md border border-purple-200 dark:border-purple-700">
-                                  <Building className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                                  <span className="text-xs font-medium text-gray-900 dark:text-white">
-                                    {lookupSelectedApplication.companyName}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-md border border-indigo-200 dark:border-indigo-700">
-                                  <Briefcase className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                                  <span className="text-xs font-medium text-gray-900 dark:text-white">
-                                    {lookupSelectedApplication.position}
-                                  </span>
-                                </div>
-                              </motion.div>
-                            )}
-                          </div>
-                        )}
-
-                        <AnimatePresence>
-                          {((eventType === 'application' && showFullForm && currentBoardType !== 'campaigns') || (eventType === 'interview' && lookupSelectedApplication !== null)) && (
+                          {(eventType === 'application' && showFullForm && currentBoardType !== 'campaigns') && (
                             <motion.div
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: 'auto' }}
                               exit={{ opacity: 0, height: 0 }}
-                              className="space-y-6 overflow-hidden"
+                              className="space-y-4 overflow-hidden"
                             >
                               {/* Main Fields - Jobs Board */}
                               {eventType === 'application' && (
-                                <div className="grid grid-cols-1 gap-5">
+                                <div className="space-y-4">
+                                  {/* Company & Position - 2 columns */}
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                      Company Name <span className="text-red-500">*</span>
+                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                        Company
                                     </label>
                                     <input
                                       type="text"
                                       required
                                       value={formData.companyName || ''}
                                       onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
-                                      placeholder="e.g. Google, Spotify..."
+                                        className="w-full px-3.5 py-2.5 bg-gray-50/50 dark:bg-white/[0.03] border border-gray-200/60 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/10 focus:border-purple-400 dark:focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all"
+                                        placeholder="Google, Spotify..."
                                     />
                                   </div>
-
                                   <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                      Position <span className="text-red-500">*</span>
+                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                        Position
                                     </label>
                                     <input
                                       type="text"
                                       required
                                       value={formData.position || ''}
                                       onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
-                                      placeholder="e.g. Senior Frontend Engineer"
+                                        className="w-full px-3.5 py-2.5 bg-gray-50/50 dark:bg-white/[0.03] border border-gray-200/60 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/10 focus:border-purple-400 dark:focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all"
+                                        placeholder="Senior Frontend Engineer"
                                     />
+                                    </div>
                                   </div>
 
+                                  {/* Location & Date - 2 columns */}
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                      Location <span className="text-red-500">*</span>
+                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                        Location
                                     </label>
                                     <input
                                       type="text"
                                       required
                                       value={formData.location || ''}
                                       onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
-                                      placeholder="e.g. Remote, Paris..."
+                                        className="w-full px-3.5 py-2.5 bg-gray-50/50 dark:bg-white/[0.03] border border-gray-200/60 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/10 focus:border-purple-400 dark:focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all"
+                                        placeholder="Remote, Paris..."
                                     />
                                   </div>
-
                                   <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                      Description
-                                    </label>
-                                    <textarea
-                                      value={formData.description || ''}
-                                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                                      className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none"
-                                      placeholder="Key points about this job opportunity..."
-                                      rows={4}
-                                    />
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Date & Time Grid - For Jobs only (Campaigns use wizard) */}
-                              <div className={eventType === 'application' && currentBoardType !== 'campaigns' ? '' : eventType === 'interview' ? 'grid grid-cols-2 gap-5' : 'hidden'}>
-                                {eventType === 'application' && currentBoardType !== 'campaigns' ? (
-                                  <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                      Applied Date <span className="text-red-500">*</span>
+                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                        Applied date
                                     </label>
                                     <DatePicker
                                       value={formData.appliedDate || ''}
@@ -5957,140 +5632,29 @@ END:VCALENDAR`;
                                       placeholder="Select date"
                                       required
                                       className="w-full"
-                                      buttonClassName="!bg-gray-50 dark:!bg-[#1A1A1A] !border-transparent focus:!bg-white dark:focus:!bg-[#1A1A1A] !rounded-xl !text-sm !text-gray-900 dark:!text-white !py-3 focus:!ring-2 focus:!ring-purple-500/20 focus:!border-purple-500 !shadow-none"
+                                        buttonClassName="!bg-gray-50/50 dark:!bg-white/[0.03] !border !border-gray-200/60 dark:!border-white/[0.06] hover:!border-gray-300 dark:hover:!border-white/10 focus:!border-purple-400 dark:focus:!border-purple-500 focus:!ring-2 focus:!ring-purple-500/10 !rounded-xl !text-sm !text-gray-900 dark:!text-white !py-2.5 !shadow-none !transition-all"
                                     />
                                   </div>
-                                ) : eventType === 'interview' ? (
-                                  <>
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                                        Interview Date <span className="text-red-500">*</span>
-                                      </label>
-                                      <DatePicker
-                                        value={formData.interviewDate || ''}
-                                        onChange={(value) => setFormData(prev => ({ ...prev, interviewDate: value }))}
-                                        placeholder="Select date"
-                                        required
-                                        className="w-full"
-                                        buttonClassName="!bg-white dark:!bg-[#1A1A1A] !border !border-gray-200 dark:!border-gray-800 hover:!border-purple-400 dark:hover:!border-purple-600 !rounded-xl !text-sm !text-gray-900 dark:!text-white !py-3.5 !px-4 focus:!ring-2 focus:!ring-purple-500/30 focus:!border-purple-500 !shadow-sm hover:!shadow-md !transition-all"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                                        Interview Time
-                                      </label>
-                                      <div className="relative">
-                                        <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                        <input
-                                          type="time"
-                                          value={formData.interviewTime}
-                                          onChange={(e) => setFormData(prev => ({ ...prev, interviewTime: e.target.value }))}
-                                          className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e] hover:border-purple-400 dark:hover:border-purple-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 shadow-sm hover:shadow-md transition-all"
-                                        />
-                                      </div>
-                                    </div>
-                                  </>
-                                ) : null}
                               </div>
 
-                              {/* Interview specific extras */}
-                              {eventType === 'interview' && (
-                                <div className="space-y-6">
-                                  {/* Interview Type - Visual Cards */}
+                                  {/* Job Description - full width - maps to fullJobDescription for AI features */}
                                   <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-3 text-center">
-                                      Interview Type
+                                    <div className="flex items-center justify-between mb-1.5">
+                                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Job description
                                     </label>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                      {[
-                                        { value: 'technical', label: 'Technical', icon: Code },
-                                        { value: 'hr', label: 'HR', icon: Users },
-                                        { value: 'manager', label: 'Manager', icon: Briefcase },
-                                        { value: 'final', label: 'Final', icon: CheckCircle },
-                                        { value: 'other', label: 'Other', icon: MoreHorizontal },
-                                      ].map((type) => {
-                                        const Icon = type.icon;
-                                        const isSelected = formData.interviewType === type.value;
-                                        return (
-                                          <motion.button
-                                            key={type.value}
-                                            type="button"
-                                            whileHover={{ scale: 1.02, y: -2 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            onClick={() => setFormData(prev => ({ ...prev, interviewType: type.value as any }))}
-                                            className={`relative p-4 rounded-xl border-2 transition-all ${
-                                              isSelected
-                                                ? 'bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 border-purple-500 dark:border-purple-400 shadow-lg shadow-purple-500/20'
-                                                : 'bg-white dark:bg-[#242325] border-gray-200 dark:border-[#3d3c3e] hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md'
-                                            }`}
-                                          >
-                                            <div className="flex flex-col items-center gap-2">
-                                              <div className={`p-2 rounded-lg transition-colors ${
-                                                isSelected
-                                                  ? 'bg-purple-100 dark:bg-purple-900/50'
-                                                  : 'bg-gray-100 dark:bg-[#2b2a2c]'
-                                              }`}>
-                                                <Icon className={`w-5 h-5 ${
-                                                  isSelected
-                                                    ? 'text-purple-600 dark:text-purple-400'
-                                                    : 'text-gray-600 dark:text-gray-400'
-                                                }`} />
-                                              </div>
-                                              <span className={`text-sm font-medium ${
-                                                isSelected
-                                                  ? 'text-purple-900 dark:text-purple-200'
-                                                  : 'text-gray-700 dark:text-gray-300'
-                                              }`}>
-                                                {type.label}
+                                      <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                                        Used by AI for emails & interview prep
                                               </span>
                                             </div>
-                                            {isSelected && (
-                                              <motion.div
-                                                initial={{ scale: 0 }}
-                                                animate={{ scale: 1 }}
-                                                className="absolute top-2 right-2"
-                                              >
-                                                <Check className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                                              </motion.div>
-                                            )}
-                                          </motion.button>
-                                        );
-                                      })}
-                                    </div>
+                                    <textarea
+                                      value={formData.fullJobDescription || ''}
+                                      onChange={(e) => setFormData(prev => ({ ...prev, fullJobDescription: e.target.value }))}
+                                      className="w-full px-3.5 py-2.5 bg-gray-50/50 dark:bg-white/[0.03] border border-gray-200/60 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/10 focus:border-purple-400 dark:focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all resize-none"
+                                      placeholder="Paste or type the full job description here..."
+                                      rows={4}
+                                    />
                                   </div>
-
-                                  {/* Contact Field */}
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                                      Interviewer Name
-                                    </label>
-                                    <div className="relative">
-                                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                      <input
-                                        type="text"
-                                        value={formData.contactName || ''}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
-                                        className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e] hover:border-purple-400 dark:hover:border-purple-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 shadow-sm hover:shadow-md transition-all"
-                                        placeholder="e.g., John Doe, Hiring Manager"
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Notes only for Applications */}
-                              {eventType === 'application' && (
-                                <div>
-                                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                                    Notes
-                                  </label>
-                                  <textarea
-                                    value={formData.notes || ''}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242325] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none"
-                                    placeholder="Add any additional details..."
-                                    rows={3}
-                                  />
                                 </div>
                               )}
                             </motion.div>
@@ -6102,14 +5666,15 @@ END:VCALENDAR`;
                            <motion.div 
                              initial={{ opacity: 0 }}
                              animate={{ opacity: 1 }}
-                             className="flex justify-center pt-2"
+                             className="flex justify-center"
                            >
                             <button
                               type="button"
                               onClick={() => setShowFullForm(true)}
-                              className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors border-b border-gray-300 dark:border-[#3d3c3e] hover:border-gray-900 dark:hover:border-white pb-0.5"
+                              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors group"
                             >
-                              Enter details manually without URL
+                              <span>or enter manually</span>
+                              <ChevronDown className="w-3 h-3 group-hover:translate-y-0.5 transition-transform" />
                             </button>
                           </motion.div>
                         )}
@@ -6119,14 +5684,14 @@ END:VCALENDAR`;
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-gray-100 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] flex justify-between items-center z-10">
+                <div className="px-6 py-4 border-t border-gray-100/80 dark:border-[#3d3c3e]/50 bg-gray-50/50 dark:bg-[#252525]/50 flex justify-between items-center">
                   {/* Left side */}
                   <div>
                     {eventType === 'application' && currentBoardType === 'campaigns' && wizardStep === 2 && (
                       <button
                         type="button"
                         onClick={() => setWizardStep(1)}
-                        className="px-5 py-2.5 text-sm font-medium text-[#8B5CF6] hover:bg-[#8B5CF6]/10 rounded-xl transition-colors flex items-center gap-2"
+                        className="px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-500/10 rounded-lg transition-colors flex items-center gap-1.5"
                       >
                         <ChevronLeft className="w-4 h-4" />
                         Back
@@ -6135,7 +5700,7 @@ END:VCALENDAR`;
                   </div>
 
                   {/* Right side */}
-                  <div className="flex gap-3">
+                  <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -6144,61 +5709,54 @@ END:VCALENDAR`;
                       setShowFullForm(false);
                         setWizardStep(1);
                     }}
-                    className="px-6 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A] rounded-xl transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
                   >
                     Cancel
                   </button>
                     
                     {/* Campaigns Wizard: Next button on step 1 */}
                     {eventType === 'application' && currentBoardType === 'campaigns' && wizardStep === 1 && (
-                      <button
+                      <motion.button
                         type="button"
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
                         onClick={() => setWizardStep(2)}
                         disabled={!formData.contactName || !formData.companyName}
-                        className="px-6 py-2.5 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-[#8B5CF6]/25 flex items-center gap-2"
+                        className="px-5 py-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-lg hover:from-purple-500 hover:to-purple-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed font-medium text-sm shadow-sm shadow-purple-500/20 flex items-center gap-1.5"
                       >
                         Next
                         <ChevronRight className="w-4 h-4" />
-                      </button>
+                      </motion.button>
                     )}
                     
                     {/* Campaigns Wizard: Add Contact on step 2 */}
                     {eventType === 'application' && currentBoardType === 'campaigns' && wizardStep === 2 && (
-                      <button
+                      <motion.button
                         type="button"
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
                         onClick={handleCreateApplication}
                         disabled={!formData.companyName || !formData.contactName || !formData.appliedDate}
-                        className="px-6 py-2.5 bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] text-white rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-[#EC4899]/25 flex items-center gap-2"
+                        className="px-5 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-400 hover:to-purple-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed font-medium text-sm shadow-sm shadow-pink-500/20 flex items-center gap-1.5"
                       >
                         <Plus className="w-4 h-4" />
                         Add Contact
-                      </button>
+                      </motion.button>
                     )}
 
-                    {/* Jobs board or Interview */}
-                    {(eventType === 'interview' || (eventType === 'application' && currentBoardType !== 'campaigns')) && (
-                  <button
+                    {/* Jobs board */}
+                    {eventType === 'application' && currentBoardType !== 'campaigns' && (
+                      <motion.button
                     type="button"
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
                     onClick={handleCreateApplication}
-                    disabled={
-                      !eventType || 
-                      (eventType === 'application' && currentBoardType !== 'campaigns' && (!formData.companyName || !formData.position || !formData.location || !formData.appliedDate)) ||
-                      (eventType === 'interview' && (!linkedApplicationId || !formData.interviewDate))
-                    }
-                    className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-black rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-gray-200 dark:shadow-none flex items-center gap-2"
-                  >
-                    {eventType === 'application' ? (
-                      <>
-                        <Plus className="w-4 h-4" />
-                        Create Application
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4" />
-                            {currentBoardType === 'campaigns' ? 'Schedule Meeting' : 'Add Interview'}
-                      </>
-                    )}
-                  </button>
+                        disabled={!formData.companyName || !formData.position || !formData.location || !formData.appliedDate}
+                        className="px-5 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed font-medium text-sm shadow-sm flex items-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Create
+                      </motion.button>
                     )}
                   </div>
                 </div>

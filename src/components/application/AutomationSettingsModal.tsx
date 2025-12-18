@@ -40,7 +40,7 @@ const statusOptionsNoResponse = [
   { value: 'interview', label: 'Interview' },
 ] as const;
 
-// Notion-style Toggle Switch Component - Clean & Minimal
+// Toggle Switch Component - Clean & Minimal
 function ToggleSwitch({
   enabled,
   onChange,
@@ -53,25 +53,25 @@ function ToggleSwitch({
       type="button"
       onClick={() => onChange(!enabled)}
       className={`
-        relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full
-        transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-[#b7e219]/20 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#1a1a1a]
+        relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full
+        transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-[#b7e219]/20 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#1f1f1f]
         ${enabled 
           ? 'bg-[#b7e219]' 
-          : 'bg-gray-200 dark:bg-[#3a3a3a] hover:bg-gray-250 dark:hover:bg-[#404040]'}
+          : 'bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/15'}
       `}
       role="switch"
       aria-checked={enabled}
     >
       <motion.span
-        animate={{ x: enabled ? 16 : 2 }}
-        transition={{ type: 'spring', stiffness: 600, damping: 35 }}
-        className="pointer-events-none inline-block h-4 w-4 mt-0.5 transform rounded-full bg-white shadow-sm"
+        animate={{ x: enabled ? 20 : 2 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+        className="pointer-events-none inline-block h-5 w-5 mt-0.5 transform rounded-full bg-white shadow-sm"
       />
     </button>
   );
 }
 
-// Notion-style Slider Component - Clean & Minimal
+// Slider Component - Clean & Minimal
 function Slider({
   value,
   onChange,
@@ -92,12 +92,12 @@ function Slider({
   const percentage = ((value - min) / (max - min)) * 100;
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-600 dark:text-[#9b9b9b]">
+        <span className="text-xs text-gray-500 dark:text-gray-400">
           {label}
         </span>
-        <span className="text-xs font-medium text-gray-900 dark:text-white tabular-nums px-2 py-0.5 bg-gray-100 dark:bg-[#2a2a2a] rounded">
+        <span className="text-xs font-medium text-gray-700 dark:text-gray-300 tabular-nums px-2 py-0.5 bg-gray-100/80 dark:bg-white/[0.04] rounded-md">
           {value} {unit}
         </span>
       </div>
@@ -109,9 +109,9 @@ function Slider({
           step={step}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full h-1 rounded-full appearance-none cursor-pointer notion-slider relative z-10"
+          className="w-full h-1.5 rounded-full appearance-none cursor-pointer notion-slider relative z-10"
           style={{
-            background: `linear-gradient(to right, #b7e219 0%, #b7e219 ${percentage}%, var(--slider-track-bg, rgba(229, 231, 235, 1)) ${percentage}%, var(--slider-track-bg, rgba(229, 231, 235, 1)) 100%)`,
+            background: `linear-gradient(to right, #b7e219 0%, #b7e219 ${percentage}%, var(--slider-track-bg, rgba(229, 231, 235, 0.5)) ${percentage}%, var(--slider-track-bg, rgba(229, 231, 235, 0.5)) 100%)`,
           }}
         />
       </div>
@@ -119,7 +119,7 @@ function Slider({
   );
 }
 
-// Notion-style Multi-select Chips - Clean & Minimal
+// Multi-select Chips - Clean & Minimal
 function MultiSelectChips({
   options,
   selected,
@@ -141,10 +141,10 @@ function MultiSelectChips({
 
   return (
     <div className="space-y-2">
-      <span className="text-xs text-gray-600 dark:text-[#9b9b9b]">
+      <span className="text-xs text-gray-500 dark:text-gray-400">
         {label}
       </span>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-2">
         {options.map((option) => {
           const isSelected = selected.includes(option.value);
           return (
@@ -153,15 +153,15 @@ function MultiSelectChips({
               type="button"
               onClick={() => toggleOption(option.value)}
               className={`
-                inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium 
+                inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium 
                 transition-all duration-150
                 ${isSelected
-                  ? 'bg-[#b7e219]/15 text-gray-900 dark:text-white border border-[#b7e219]/30'
-                  : 'bg-gray-100 dark:bg-[#2a2a2a] text-gray-700 dark:text-[#9b9b9b] border border-transparent hover:bg-gray-150 dark:hover:bg-[#303030]'
+                  ? 'bg-[#b7e219]/10 text-gray-800 dark:text-white border border-[#b7e219]/20'
+                  : 'bg-gray-100/80 dark:bg-white/[0.04] text-gray-600 dark:text-gray-400 border border-transparent hover:bg-gray-100 dark:hover:bg-white/[0.06]'
                 }
               `}
             >
-              {isSelected && <Check className="w-3 h-3" />}
+              {isSelected && <Check className="w-3 h-3 text-[#b7e219]" />}
               {option.label}
             </button>
           );
@@ -171,7 +171,7 @@ function MultiSelectChips({
   );
 }
 
-// Notion-style Category Header - Clean & Minimal
+// Category Header - Clean & Minimal
 function CategoryHeader({
   icon: Icon,
   title,
@@ -190,35 +190,29 @@ function CategoryHeader({
   return (
     <button
       onClick={onToggle}
-      className="w-full flex items-center justify-between px-1 py-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded-lg transition-all duration-150 group"
+      className="w-full flex items-center gap-2 py-2 group"
     >
-      <div className="flex items-center gap-2.5">
-        <motion.div
-          animate={{ rotate: isExpanded ? 90 : 0 }}
-          transition={{ duration: 0.15 }}
-          className="text-gray-400 dark:text-[#6b6b6b]"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </motion.div>
-        <Icon className="w-4 h-4 text-gray-600 dark:text-[#9b9b9b]" />
-        <div className="text-left">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-              {title}
-            </h3>
-            {activeCount > 0 && (
-              <span className="px-1.5 py-0.5 text-[10px] font-medium bg-[#b7e219]/15 text-gray-900 dark:text-white rounded">
-                {activeCount}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+      <motion.div
+        animate={{ rotate: isExpanded ? 0 : -90 }}
+        transition={{ duration: 0.15 }}
+        className="text-gray-300 dark:text-gray-600 group-hover:text-gray-400 dark:group-hover:text-gray-500 transition-colors"
+      >
+        <ChevronDown className="w-4 h-4" />
+      </motion.div>
+      <Icon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        {title}
+      </h3>
+      {activeCount > 0 && (
+        <span className="px-1.5 py-0.5 text-[10px] font-medium text-[#b7e219] bg-[#b7e219]/10 rounded">
+          {activeCount}
+        </span>
+      )}
     </button>
   );
 }
 
-// Notion-style Rule Card - Clean & Minimal
+// Rule Card - Clean & Minimal
 function RuleCard({
   icon: Icon,
   title,
@@ -241,31 +235,33 @@ function RuleCard({
   return (
     <div
       className={`
-        rounded-lg border transition-all duration-150 overflow-hidden
+        rounded-xl border transition-all duration-200 overflow-hidden
         ${enabled 
-          ? 'bg-gray-50/50 dark:bg-[#202020] border-gray-200 dark:border-[#303030]' 
-          : 'bg-transparent border-gray-200 dark:border-[#2a2a2a] hover:bg-gray-50/30 dark:hover:bg-[#1f1f1f]'
+          ? 'bg-white dark:bg-white/[0.02] border-gray-200/80 dark:border-white/[0.08] shadow-sm' 
+          : 'bg-gray-50/30 dark:bg-transparent border-gray-200/50 dark:border-white/[0.04] hover:border-gray-200 dark:hover:border-white/[0.06]'
         }
       `}
     >
-      <div className="p-3">
+      <div className="p-4">
         {/* Header row */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-2.5 flex-1 min-w-0">
-            <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${enabled ? 'text-gray-700 dark:text-[#b7e219]' : 'text-gray-400 dark:text-[#6b6b6b]'}`} />
-            <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className={`p-1.5 rounded-lg transition-colors ${enabled ? 'bg-[#b7e219]/10' : 'bg-gray-100 dark:bg-white/[0.04]'}`}>
+              <Icon className={`w-4 h-4 ${enabled ? 'text-[#b7e219]' : 'text-gray-400 dark:text-gray-500'}`} />
+            </div>
+            <div className="flex-1 min-w-0 pt-0.5">
               <h4 className="text-sm font-medium text-gray-900 dark:text-white">
                 {title}
               </h4>
-              <p className="text-xs text-gray-500 dark:text-[#9b9b9b] mt-0.5 leading-relaxed">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
                 {description}
               </p>
               
               {/* Preview badge */}
               {enabled && preview !== undefined && preview > 0 && (
-                <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#b7e219]/10 border border-[#b7e219]/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#b7e219]"></span>
-                  <span className="text-[10px] font-medium text-gray-900 dark:text-white">
+                <div className="mt-2.5 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#b7e219]/10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#b7e219] animate-pulse"></span>
+                  <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300">
                     {preview} {previewLabel}
                   </span>
                 </div>
@@ -286,7 +282,7 @@ function RuleCard({
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-[#2a2a2a] space-y-3">
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-white/[0.04] space-y-4">
                 {children}
               </div>
             </motion.div>
@@ -434,42 +430,42 @@ export default function AutomationSettingsModal({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 10 }}
               transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-              className="w-full max-w-2xl bg-white dark:bg-[#1a1a1a] rounded-xl shadow-2xl pointer-events-auto overflow-hidden flex flex-col max-h-[85vh] border border-gray-200 dark:border-[#2a2a2a]"
+              className="w-full max-w-2xl bg-white dark:bg-[#1f1f1f] rounded-2xl shadow-2xl pointer-events-auto overflow-hidden flex flex-col max-h-[85vh] ring-1 ring-black/5 dark:ring-white/10"
             >
               {/* Header */}
-              <div className="px-5 py-4 border-b border-gray-200 dark:border-[#2a2a2a]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Sparkles className="w-5 h-5 text-[#b7e219]" />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-                          Automation
-                        </h2>
-                        {getActiveRulesCount() > 0 && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-[#b7e219]/15 text-gray-900 dark:text-white rounded">
-                            {getActiveRulesCount()} active
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-[#9b9b9b] mt-0.5">
-                        Automate your workflow
-                      </p>
-                    </div>
+              <div className="px-6 py-4 border-b border-gray-100/80 dark:border-[#2a2a2a]/50 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-[#b7e219]/10">
+                    <Sparkles className="w-4 h-4 text-[#b7e219]" />
                   </div>
-                  <button
-                    onClick={onClose}
-                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-colors duration-150"
-                    aria-label="Close"
-                  >
-                    <X className="w-4 h-4 text-gray-500 dark:text-[#9b9b9b]" />
-                  </button>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        Automation
+                      </h2>
+                      {getActiveRulesCount() > 0 && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium text-[#b7e219] bg-[#b7e219]/10 rounded">
+                          {getActiveRulesCount()} active
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                      Automate your workflow
+                    </p>
+                  </div>
                 </div>
+                <button
+                  onClick={onClose}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2a2a] text-gray-300 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
               {/* Scrollable Content */}
               <div className="flex-1 overflow-y-auto">
-                <div className="p-5 space-y-4">
+                <div className="px-6 py-5 space-y-5">
                   
                   {/* Status Management Category */}
                   <div className="space-y-2">
@@ -747,28 +743,30 @@ export default function AutomationSettingsModal({
               </div>
 
               {/* Footer */}
-              <div className="px-5 py-3 border-t border-gray-200 dark:border-[#2a2a2a] bg-gray-50 dark:bg-[#1f1f1f] flex items-center justify-between">
+              <div className="px-6 py-4 border-t border-gray-100/80 dark:border-[#2a2a2a]/50 bg-gray-50/50 dark:bg-[#1a1a1a]/50 flex items-center justify-between">
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-[#9b9b9b] hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-all duration-150"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 >
                   <RotateCcw className="w-3 h-3" />
                   Reset
                 </button>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={onClose}
-                    className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-[#9b9b9b] hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#252525] rounded-md transition-all duration-150"
+                    className="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
                   >
                     Cancel
                   </button>
-                  <button
+                  <motion.button
                     type="button"
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="px-4 py-1.5 text-xs font-semibold text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] rounded-md transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed border border-[#9fc015]"
+                    className="px-5 py-2 text-sm font-medium text-gray-900 bg-[#b7e219] hover:bg-[#c5ed2e] rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                   >
                     {isSaving ? (
                       <span className="flex items-center gap-1.5">
@@ -777,12 +775,12 @@ export default function AutomationSettingsModal({
                           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                           className="w-3 h-3 border-2 border-gray-900/30 border-t-gray-900 rounded-full"
                         />
-                        Saving
+                        Saving...
                       </span>
                     ) : (
-                      'Save Changes'
+                      'Save'
                     )}
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </motion.div>

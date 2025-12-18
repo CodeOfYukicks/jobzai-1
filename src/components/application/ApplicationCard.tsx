@@ -393,7 +393,6 @@ function JobsCard({
         {/* Section 3: Entreprise */}
         <div className="mb-3 flex-shrink-0">
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-gray-100/80 dark:bg-[#3d3c3e]/50 border border-gray-200 dark:border-[#3d3c3e]">
-            <CompanyLogo companyName={app.companyName} size="md" />
             <span className="text-sm font-normal text-gray-600 dark:text-gray-400">{app.companyName}</span>
           </div>
         </div>

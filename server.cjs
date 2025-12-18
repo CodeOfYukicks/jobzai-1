@@ -2763,41 +2763,50 @@ ${examplesSection}
 2. Then break down by status using \`applicationsByStatus\`
 3. Reference specific companies from \`recentOnBoard\` only as examples, not as the total count
 
-## INTERACTIVE RECORD CARDS (IMPORTANT!)
-When referencing specific records from the user's data, use this special markup syntax to create clickable cards:
+## INTERACTIVE RECORD CARDS (USE SPARINGLY!)
+Record cards create clickable links to specific user data. **ONLY use them when truly necessary.**
 
 **Syntax:** \`[[type:id:title:subtitle]]\`
 
-**Available types and when to use them:**
-- \`application\` - Job applications. Use when mentioning a specific application.
-  Example: \`[[application:abc123:Google:Software Engineer - Applied 5 days ago]]\`
-  
-- \`job\` - Job listings from the job board. Use when discussing a specific job.
-  Example: \`[[job:xyz789:Senior Developer at Stripe:$150k-180k · Remote]]\`
-  
-- \`interview\` - Scheduled interviews. Use when mentioning upcoming interviews.
-  Example: \`[[interview:int456:Meta Technical Interview:Dec 15 at 2:00 PM]]\`
-  
-- \`note\` - User's notes. Use when referencing a specific note.
-  Example: \`[[note:note789:Interview Prep Notes:Last edited 2 days ago]]\`
-  
-- \`cv\` - CV analyses. Use when discussing a specific CV analysis.
-  Example: \`[[cv:cv123:Google CV Analysis:Score: 78%]]\`
+**Available types:**
+- \`application\` - Job applications (goes to applications page)
+- \`cv\` - CV analyses (goes to specific analysis page)
+- \`interview\` - Interviews (format: applicationId|interviewId for prep page)
+- \`note\` - Notes (goes to specific note)
+- \`job\` - Job listings (goes to job board)
 
-**RULES for using record cards:**
-1. ALWAYS use cards when referencing specific items from the page data
-2. Extract the actual ID from the data when available (look for "id" fields)
-3. Title should be the main identifier (company name, job title, note title)
-4. Subtitle should provide context (status, date, score, etc.)
-5. Place cards on their own line for best display
-6. If you don't have an ID, use the company/title name as the ID
+**⚠️ CRITICAL RULES - WHEN TO USE CARDS:**
+1. **ONLY create cards when you have REAL DATA from page context or selected items**
+   - The ID MUST exist in pageData, selectedContextItems, or applications data
+   - NEVER invent or guess IDs
+   
+2. **DON'T create cards for:**
+   - General advice or recommendations
+   - Hypothetical examples
+   - Data you don't have access to
+   - When just mentioning something in passing
+   - Greeting messages or general conversation
+   
+3. **DO create cards when:**
+   - User asks about a SPECIFIC record you have data for
+   - You're telling them to take action on a SPECIFIC item with a real ID
+   - Showing search/filter results with real IDs from the data
+   
+4. **Maximum 1-2 cards per response** - Don't spam with cards
+5. **Extract REAL IDs** - Look for "id" fields in the actual data provided
 
-**Example usage in a response:**
-"You should follow up on your Google application:
+**Valid example (with real data from pageData):**
+"Your most recent analysis for the Google position:
 
-[[application:app_123:Google:Software Engineer - 12 days ago]]
+[[cv:analysis_abc123:Google CV Analysis:AI Solution Architect · Score 85]]
 
-This one has been waiting the longest. I can help you draft a follow-up email!"
+Would you like me to explain the key improvement areas?"
+
+**INVALID examples (DO NOT DO THESE):**
+❌ Creating cards without real IDs from the data
+❌ Creating cards just to make the response look fancy
+❌ Creating multiple cards when not discussing specific records
+❌ Creating cards for generic advice like "you should apply to tech companies"
 
 ## INTERACTIVE GUIDED TOURS (VERY IMPORTANT!)
 When a user asks HOW to do something on the platform (a step-by-step process question), you can trigger an interactive guided tour that will walk them through the UI step-by-step.

@@ -15,6 +15,7 @@ import {
 import { CalendarEvent, CalendarView as CalendarViewType } from '../components/calendar/types';
 import { KanbanBoard, BoardType } from '../types/job';
 import { useGoogleCalendar, GoogleCalendarEvent } from '../hooks/useGoogleCalendar';
+import { extractFromPastedContent } from '../lib/jobExtractor';
 
 // Types from JobApplicationsPage
 interface Interview {
@@ -603,6 +604,61 @@ export default function CalendarView() {
         
         setEvents((prev) => [...prev, newEvent]);
         notify.success(isCampaign ? 'Outreach added successfully' : 'Job application added successfully');
+        
+        // Generate AI summary in background if job description was entered manually (for jobs only)
+        const needsAiAnalysis = !isCampaign && 
+                                applicationData.fullJobDescription && 
+                                applicationData.fullJobDescription.length >= 50 && 
+                                !applicationData.description &&
+                                !eventData.jobInsights;
+        
+        if (needsAiAnalysis && currentUser) {
+          // Don't await - run in background
+          (async () => {
+            try {
+              const extractedData = await extractFromPastedContent(
+                applicationData.fullJobDescription,
+                applicationData.url || ''
+              );
+              
+              // Format the summary with bullet points
+              let formattedDescription = extractedData.summary || '';
+              if (formattedDescription) {
+                formattedDescription = formattedDescription
+                  .replace(/\\n/g, '\n')
+                  .replace(/\\"/g, '"')
+                  .replace(/\\'/g, "'")
+                  .trim();
+                  
+                if (!formattedDescription.includes('•') && !formattedDescription.includes('-')) {
+                  const lines = formattedDescription.split('\n').filter((line: string) => line.trim().length > 0);
+                  if (lines.length > 0) {
+                    formattedDescription = lines.map((line: string) => {
+                      const trimmed = line.trim();
+                      if (!trimmed.startsWith('•') && !trimmed.startsWith('-')) {
+                        return `• ${trimmed}`;
+                      }
+                      return trimmed;
+                    }).join('\n');
+                  }
+                }
+              }
+              
+              // Update the document with AI-generated data
+              await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
+                description: formattedDescription,
+                ...(extractedData.jobInsights && { jobInsights: extractedData.jobInsights }),
+                ...(extractedData.jobTags && { jobTags: extractedData.jobTags }),
+                updatedAt: serverTimestamp(),
+              });
+              
+              notify.success('✨ AI insights generated for your application!', { duration: 3000 });
+            } catch (error) {
+              console.error('Background AI analysis failed:', error);
+              // Silent failure - don't bother user if background analysis fails
+            }
+          })();
+        }
       } else {
         let existingApplication: any = null;
         let applicationId: string;
