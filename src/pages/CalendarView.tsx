@@ -13,7 +13,7 @@ import {
   UpcomingEventsPanel,
 } from '../components/calendar';
 import { CalendarEvent, CalendarView as CalendarViewType } from '../components/calendar/types';
-import { KanbanBoard } from '../types/job';
+import { KanbanBoard, BoardType } from '../types/job';
 import { useGoogleCalendar, GoogleCalendarEvent } from '../hooks/useGoogleCalendar';
 
 // Types from JobApplicationsPage
@@ -72,6 +72,8 @@ export default function CalendarView() {
   const [isDragging, setIsDragging] = useState(false);
   const [justSelectedEvent, setJustSelectedEvent] = useState(false);
   const [boards, setBoards] = useState<KanbanBoard[]>([]);
+  const [currentBoardId, setCurrentBoardId] = useState<string | undefined>(undefined);
+  const [currentBoardType, setCurrentBoardType] = useState<BoardType>('jobs');
   const [googleEvents, setGoogleEvents] = useState<CalendarEvent[]>([]);
   const dragTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const dragStartTimeRef = useRef<number>(0);
@@ -110,6 +112,16 @@ export default function CalendarView() {
           boardsData.push({ id: doc.id, ...doc.data() } as KanbanBoard);
         });
         setBoards(boardsData);
+        
+        // Set default board as current
+        const defaultBoard = boardsData.find(b => b.isDefault);
+        if (defaultBoard) {
+          setCurrentBoardId(defaultBoard.id);
+          setCurrentBoardType(defaultBoard.boardType || 'jobs');
+        } else if (boardsData.length > 0) {
+          setCurrentBoardId(boardsData[0].id);
+          setCurrentBoardType(boardsData[0].boardType || 'jobs');
+        }
       } catch (error) {
         console.error('Error fetching boards:', error);
       }
@@ -514,21 +526,56 @@ export default function CalendarView() {
     
     try {
       if (eventData.eventType === 'application') {
-        const applicationData = {
+        // Determine if this is a campaigns board
+        const isCampaign = eventData.boardType === 'campaigns' || currentBoardType === 'campaigns';
+        const defaultStatus = isCampaign ? 'targets' : 'applied';
+        
+        // For campaigns, use contactRole as position if position is empty
+        const effectivePosition = isCampaign 
+          ? (eventData.position || eventData.contactRole || 'Outreach')
+          : eventData.position;
+        
+        const applicationData: any = {
           companyName: eventData.companyName,
-          position: eventData.position,
+          position: effectivePosition,
           location: eventData.location || '',
-          status: 'applied',
-          appliedDate: eventData.date,
+          status: defaultStatus,
+          appliedDate: eventData.date || eventData.appliedDate,
           url: eventData.url || '',
+          description: eventData.description || '',
+          fullJobDescription: eventData.fullJobDescription || '',
           notes: eventData.notes || '',
+          salary: eventData.salary || '',
+          contactName: eventData.contactName || '',
+          contactEmail: eventData.contactEmail || '',
+          contactPhone: eventData.contactPhone || '',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
+          generatedEmails: [],
+          stickyNotes: [],
+          // Include jobInsights and jobTags if extracted by AI
+          ...(eventData.jobInsights && { jobInsights: eventData.jobInsights }),
+          ...(eventData.jobTags && { jobTags: eventData.jobTags }),
+          // Campaign-specific fields
+          ...(isCampaign && {
+            contactRole: eventData.contactRole || '',
+            contactLinkedIn: eventData.contactLinkedIn || '',
+            outreachChannel: eventData.outreachChannel || 'email',
+            messageSent: eventData.messageSent || '',
+            relationshipGoal: eventData.relationshipGoal || 'networking',
+            warmthLevel: eventData.warmthLevel || 'cold',
+            lastContactedAt: eventData.date || eventData.appliedDate || new Date().toISOString().split('T')[0],
+            conversationHistory: [],
+            meetings: [],
+          }),
+          // Associate with current board
+          ...(eventData.boardId && { boardId: eventData.boardId }),
+          ...(currentBoardId && !eventData.boardId && { boardId: currentBoardId }),
           statusHistory: [
             {
-            status: 'applied',
-            date: eventData.date,
-              notes: 'Application created from calendar',
+              status: defaultStatus,
+              date: eventData.date || eventData.appliedDate,
+              notes: isCampaign ? 'Outreach created from calendar' : 'Application created from calendar',
             },
           ],
         };
@@ -538,19 +585,24 @@ export default function CalendarView() {
           applicationData
         );
         
+        const isWishlist = applicationData.status === 'wishlist';
         const newEvent: CalendarEvent = {
           id: `app-${docRef.id}`,
-          title: `Applied: ${eventData.companyName} - ${eventData.position}`,
-          start: new Date(eventData.date),
-          end: new Date(eventData.date),
+          title: isWishlist 
+            ? `Wishlist: ${eventData.companyName} - ${effectivePosition}`
+            : isCampaign 
+              ? `Outreach: ${eventData.contactName || eventData.companyName}`
+              : `Applied: ${eventData.companyName} - ${effectivePosition}`,
+          start: new Date(eventData.date || eventData.appliedDate),
+          end: new Date(eventData.date || eventData.appliedDate),
           allDay: true,
-          type: 'application',
-          color: '#8b5cf6',
+          type: isWishlist ? 'wishlist' : 'application',
+          color: isWishlist ? '#ec4899' : isCampaign ? '#8B5CF6' : '#8b5cf6',
           resource: { id: docRef.id, ...applicationData },
         };
         
         setEvents((prev) => [...prev, newEvent]);
-        notify.success('Job application added successfully');
+        notify.success(isCampaign ? 'Outreach added successfully' : 'Job application added successfully');
       } else {
         let existingApplication: any = null;
         let applicationId: string;
@@ -874,6 +926,9 @@ export default function CalendarView() {
               setSelectedSlot(null);
             }}
             onAddEvent={handleAddEvent}
+            boards={boards}
+            currentBoardId={currentBoardId}
+            currentBoardType={currentBoardType}
           />
         )}
       </div>

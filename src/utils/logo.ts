@@ -111,6 +111,58 @@ export function getCompanyInitials(companyName: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+// Curated gradient pairs (from, to) that look professional and have good contrast with white text
+const GRADIENT_PALETTES: [string, string][] = [
+  ['#6366f1', '#8b5cf6'], // Indigo to violet
+  ['#ec4899', '#f43f5e'], // Pink to rose
+  ['#14b8a6', '#06b6d4'], // Teal to cyan
+  ['#f59e0b', '#ea580c'], // Amber to orange
+  ['#22c55e', '#10b981'], // Green to emerald
+  ['#3b82f6', '#6366f1'], // Blue to indigo
+  ['#8b5cf6', '#a855f7'], // Violet to purple
+  ['#06b6d4', '#0ea5e9'], // Cyan to sky
+  ['#f43f5e', '#e11d48'], // Rose to pink
+  ['#84cc16', '#22c55e'], // Lime to green
+  ['#0ea5e9', '#3b82f6'], // Sky to blue
+  ['#a855f7', '#c026d3'], // Purple to fuchsia
+  ['#ef4444', '#f97316'], // Red to orange
+  ['#10b981', '#14b8a6'], // Emerald to teal
+  ['#f97316', '#facc15'], // Orange to yellow
+  ['#7c3aed', '#8b5cf6'], // Violet darker to lighter
+];
+
+/**
+ * Simple string hash function for deterministic color selection
+ */
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+}
+
+/**
+ * Get a deterministic gradient for a company name
+ * Same company name will always return the same gradient colors
+ */
+export function getCompanyGradient(companyName: string): { from: string; to: string } {
+  if (!companyName) {
+    return { from: GRADIENT_PALETTES[0][0], to: GRADIENT_PALETTES[0][1] };
+  }
+  
+  const normalized = companyName.trim().toLowerCase();
+  const hash = hashString(normalized);
+  const index = hash % GRADIENT_PALETTES.length;
+  
+  return {
+    from: GRADIENT_PALETTES[index][0],
+    to: GRADIENT_PALETTES[index][1],
+  };
+}
+
 // School/University domain mapping
 const KNOWN_SCHOOL_DOMAIN_MAP: Record<string, string> = {
   // US Universities

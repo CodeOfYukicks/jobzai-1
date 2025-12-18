@@ -84,14 +84,18 @@ export const CalendarGrid = ({
 
             const dayOfWeek = date.getDay();
             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            
+            // Check if dark mode is active
+            const isDarkMode = document.documentElement.classList.contains('dark');
 
             if (isToday) {
               return {
                 className: 'rbc-today',
                 style: {
-                  background:
-                    'linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.03) 100%)',
-                  borderLeft: '2px solid #3b82f6',
+                  background: isDarkMode
+                    ? 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(168, 85, 247, 0.03) 100%)'
+                    : 'linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.03) 100%)',
+                  borderLeft: isDarkMode ? '2px solid #a855f7' : '2px solid #3b82f6',
                 },
               };
             }
@@ -99,7 +103,9 @@ export const CalendarGrid = ({
             if (isWeekend) {
               return {
                 style: {
-                  backgroundColor: 'rgba(249, 250, 251, 0.5)',
+                  backgroundColor: isDarkMode 
+                    ? 'rgba(255, 255, 255, 0.015)' 
+                    : 'rgba(0, 0, 0, 0.02)',
                 },
               };
             }

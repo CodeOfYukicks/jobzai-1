@@ -1,8 +1,92 @@
-import { motion } from 'framer-motion';
 import { Briefcase, Video, Users, Building, Trophy, Clock, Heart, MapPin, ExternalLink } from 'lucide-react';
 import { CalendarEvent } from './types';
 import { CompanyLogo } from '../common/CompanyLogo';
+import { ProfileAvatar, generateGenderedAvatarConfigByName } from '../profile/avatar';
 import moment from 'moment';
+
+// Get display label for campaign status
+const getCampaignStatusLabel = (status: string): string => {
+  const labels: Record<string, string> = {
+    targets: 'Target',
+    contacted: 'Contacted',
+    follow_up: 'Follow-up',
+    replied: 'Replied',
+    meeting: 'Meeting',
+    opportunity: 'Opportunity',
+    no_response: 'No Response',
+    closed: 'Closed',
+  };
+  return labels[status] || 'Outreach';
+};
+
+// Get colors for campaign status - refined palette
+const getCampaignColors = (status: string) => {
+  switch (status) {
+    case 'targets':
+      return {
+        // Gris slate - neutral starting point
+        bgGradient: 'linear-gradient(135deg, #64748B 0%, #475569 100%)',
+        lightBg: 'rgba(100, 116, 139, 0.12)',
+        accentColor: '#64748B',
+      };
+    case 'contacted':
+      return {
+        // Cyan doux - outreach initiated
+        bgGradient: 'linear-gradient(135deg, #22D3EE 0%, #06B6D4 100%)',
+        lightBg: 'rgba(34, 211, 238, 0.12)',
+        accentColor: '#22D3EE',
+      };
+    case 'follow_up':
+      return {
+        // Orange doux - needs attention
+        bgGradient: 'linear-gradient(135deg, #FB923C 0%, #F97316 100%)',
+        lightBg: 'rgba(251, 146, 60, 0.12)',
+        accentColor: '#FB923C',
+      };
+    case 'replied':
+      return {
+        // Vert menthe - positive response
+        bgGradient: 'linear-gradient(135deg, #34D399 0%, #10B981 100%)',
+        lightBg: 'rgba(52, 211, 153, 0.12)',
+        accentColor: '#34D399',
+      };
+    case 'meeting':
+      return {
+        // Violet vif - scheduled meeting
+        bgGradient: 'linear-gradient(135deg, #A78BFA 0%, #8B5CF6 100%)',
+        lightBg: 'rgba(167, 139, 250, 0.12)',
+        accentColor: '#A78BFA',
+      };
+    case 'opportunity':
+      return {
+        // Or - hot lead
+        bgGradient: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)',
+        lightBg: 'rgba(251, 191, 36, 0.12)',
+        accentColor: '#FBBF24',
+      };
+    case 'no_response':
+      return {
+        // Rouge doux - no response
+        bgGradient: 'linear-gradient(135deg, #F87171 0%, #EF4444 100%)',
+        lightBg: 'rgba(248, 113, 113, 0.12)',
+        accentColor: '#F87171',
+      };
+    case 'closed':
+      return {
+        // Vert foncé - deal closed
+        bgGradient: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+        lightBg: 'rgba(5, 150, 105, 0.12)',
+        accentColor: '#059669',
+      };
+    default:
+      return {
+        // Cyan par défaut - outreach
+        bgGradient: 'linear-gradient(135deg, #67E8F9 0%, #22D3EE 100%)',
+        lightBg: 'rgba(103, 232, 249, 0.12)',
+        accentColor: '#67E8F9',
+      };
+  }
+};
 
 // Google Calendar icon component
 const GoogleCalendarIcon = ({ className = "w-3 h-3" }: { className?: string }) => (
@@ -21,14 +105,14 @@ interface EventPillProps {
   variant?: 'month' | 'week' | 'day';
 }
 
-export const EventPill = ({ event, onClick, compact = false, variant = 'month' }: EventPillProps) => {
+export const EventPill = ({ event, onClick, variant = 'month' }: EventPillProps) => {
   const getEventColors = () => {
-    // Google Calendar events - distinctive Google style
+    // Google Calendar events - softer Google style
     if (event.type === 'google') {
       return {
-        bgGradient: 'linear-gradient(135deg, #4285F4 0%, #1a73e8 100%)',
-        lightBg: 'rgba(66, 133, 244, 0.12)',
-        accentColor: '#4285F4',
+        bgGradient: 'linear-gradient(135deg, #5A9CF4 0%, #4A8CE8 100%)',
+        lightBg: 'rgba(90, 156, 244, 0.12)',
+        accentColor: '#5A9CF4',
         icon: <GoogleCalendarIcon className="w-3 h-3" />,
         badge: 'Google',
         isGoogle: true,
@@ -37,10 +121,10 @@ export const EventPill = ({ event, onClick, compact = false, variant = 'month' }
 
     if (event.type === 'application') {
       return {
-        // Apple-like blue gradient
-        bgGradient: 'linear-gradient(135deg, #007AFF 0%, #0055D4 100%)',
-        lightBg: 'rgba(0, 122, 255, 0.12)',
-        accentColor: '#007AFF',
+        // Softer blue gradient - refined
+        bgGradient: 'linear-gradient(135deg, #5B8DEF 0%, #4A7BD9 100%)',
+        lightBg: 'rgba(91, 141, 239, 0.12)',
+        accentColor: '#5B8DEF',
         icon: <Briefcase className="w-3 h-3" />,
         badge: 'Applied',
       };
@@ -48,56 +132,62 @@ export const EventPill = ({ event, onClick, compact = false, variant = 'month' }
 
     if (event.type === 'wishlist') {
       return {
-        bgGradient: 'linear-gradient(135deg, #FF2D55 0%, #D91A40 100%)',
-        lightBg: 'rgba(255, 45, 85, 0.12)',
-        accentColor: '#FF2D55',
+        // Rose poudré - softer pink
+        bgGradient: 'linear-gradient(135deg, #E8668F 0%, #D64D77 100%)',
+        lightBg: 'rgba(232, 102, 143, 0.12)',
+        accentColor: '#E8668F',
         icon: <Heart className="w-3 h-3" />,
         badge: 'Wishlist',
       };
     }
 
-    // Interview type colors - Apple palette
+    // Interview type colors - desaturated refined palette
     const interview = event.resource?.interview;
     const interviewType = interview?.type || 'technical';
 
     switch (interviewType) {
       case 'technical':
         return {
-          bgGradient: 'linear-gradient(135deg, #30D158 0%, #248A3D 100%)',
-          lightBg: 'rgba(48, 209, 88, 0.12)',
-          accentColor: '#30D158',
+          // Vert sage - softer green
+          bgGradient: 'linear-gradient(135deg, #4FBF8A 0%, #3DA876 100%)',
+          lightBg: 'rgba(79, 191, 138, 0.12)',
+          accentColor: '#4FBF8A',
           icon: <Video className="w-3 h-3" />,
           badge: 'Technical',
         };
       case 'hr':
         return {
-          bgGradient: 'linear-gradient(135deg, #BF5AF2 0%, #8944AB 100%)',
-          lightBg: 'rgba(191, 90, 242, 0.12)',
-          accentColor: '#BF5AF2',
+          // Violet lavande - softer purple
+          bgGradient: 'linear-gradient(135deg, #A886E0 0%, #8F6DD4 100%)',
+          lightBg: 'rgba(168, 134, 224, 0.12)',
+          accentColor: '#A886E0',
           icon: <Users className="w-3 h-3" />,
           badge: 'HR',
         };
       case 'manager':
         return {
-          bgGradient: 'linear-gradient(135deg, #FF9F0A 0%, #C77700 100%)',
-          lightBg: 'rgba(255, 159, 10, 0.12)',
-          accentColor: '#FF9F0A',
+          // Ambre doux - softer amber
+          bgGradient: 'linear-gradient(135deg, #E5A54A 0%, #D89438 100%)',
+          lightBg: 'rgba(229, 165, 74, 0.12)',
+          accentColor: '#E5A54A',
           icon: <Building className="w-3 h-3" />,
           badge: 'Manager',
         };
       case 'final':
         return {
-          bgGradient: 'linear-gradient(135deg, #34C759 0%, #248A3D 100%)',
-          lightBg: 'rgba(52, 199, 89, 0.12)',
-          accentColor: '#34C759',
+          // Vert emeraude - softer emerald
+          bgGradient: 'linear-gradient(135deg, #5AC78B 0%, #48B578 100%)',
+          lightBg: 'rgba(90, 199, 139, 0.12)',
+          accentColor: '#5AC78B',
           icon: <Trophy className="w-3 h-3" />,
           badge: 'Final',
         };
       default:
         return {
-          bgGradient: 'linear-gradient(135deg, #5856D6 0%, #3634A3 100%)',
-          lightBg: 'rgba(88, 86, 214, 0.12)',
-          accentColor: '#5856D6',
+          // Softer indigo
+          bgGradient: 'linear-gradient(135deg, #7B79E0 0%, #6563C9 100%)',
+          lightBg: 'rgba(123, 121, 224, 0.12)',
+          accentColor: '#7B79E0',
           icon: <Video className="w-3 h-3" />,
           badge: 'Interview',
         };
@@ -105,7 +195,7 @@ export const EventPill = ({ event, onClick, compact = false, variant = 'month' }
   };
 
   const colors = getEventColors();
-  const { bgGradient, lightBg, accentColor, icon, badge } = colors;
+  const { bgGradient, badge } = colors;
   const isGoogleEvent = 'isGoogle' in colors && colors.isGoogle;
   
   // For Google events, use event title; for others, use company/position
@@ -116,86 +206,118 @@ export const EventPill = ({ event, onClick, compact = false, variant = 'month' }
   const showTime = !event.allDay && variant !== 'month';
   const time = showTime ? moment(event.start).format('h:mm A') : null;
   const googleLink = event.resource?.htmlLink;
+  
+  // Detect if this is a campaign/outreach event (person-based)
+  const boardType = event.resource?.boardType || 'jobs';
+  const isCampaign = boardType === 'campaigns';
+  const contactName = event.resource?.contactName;
+  const campaignStatus = event.resource?.status;
+  
+  // Get campaign-specific colors if it's a campaign
+  const campaignColors = isCampaign ? getCampaignColors(campaignStatus) : null;
+  
+  // Use campaign gradient if available, otherwise use default
+  const displayGradient = campaignColors?.bgGradient || bgGradient;
+  
+  // Display name: for campaigns show contact name, otherwise company name
+  const displayName = isCampaign && contactName ? contactName : companyName;
+  
+  // Badge label: for campaigns use the status label, otherwise use the default badge
+  const displayBadge = isCampaign ? getCampaignStatusLabel(campaignStatus) : badge;
 
-  // Compact Apple-style month view card - Readable & fits cells
+  // Compact premium month view card - Minimal with badge label
   if (variant === 'month') {
     return (
       <div
         onClick={onClick}
         className="event-pill-apple group flex items-center gap-1.5 px-2 py-1 rounded-md cursor-pointer overflow-hidden"
         style={{ 
-          background: bgGradient,
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-          border: isGoogleEvent ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid rgba(255, 255, 255, 0.1)',
-          transition: 'all 0.15s ease-out',
+          background: displayGradient,
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           minHeight: '22px',
         }}
       >
-        {/* Google icon or Company Logo */}
+        {/* Avatar for campaigns, Google icon, or Company Logo - compact 18px */}
         {isGoogleEvent ? (
-          <div className="flex-shrink-0 w-4 h-4 rounded bg-white flex items-center justify-center">
-            <GoogleCalendarIcon className="w-3 h-3" />
+          <div className="flex-shrink-0 w-[18px] h-[18px] rounded bg-white/95 flex items-center justify-center">
+            <GoogleCalendarIcon className="w-2.5 h-2.5" />
           </div>
+        ) : isCampaign && contactName ? (
+          <ProfileAvatar
+            config={generateGenderedAvatarConfigByName(contactName)}
+            size={18}
+            className="flex-shrink-0 rounded"
+          />
         ) : (
           <CompanyLogo 
             companyName={companyName} 
             size="sm" 
-            className="flex-shrink-0 rounded"
+            className="flex-shrink-0 !w-[18px] !h-[18px] rounded"
           />
         )}
         
-        {/* Event Title / Company Name - Truncated */}
-        <span className="text-[11px] font-medium text-white truncate flex-1 min-w-0">
-          {companyName}
+        {/* Event Title / Name - Truncated */}
+        <span className="text-[10px] font-medium text-white/95 truncate flex-1 min-w-0 tracking-tight">
+          {displayName}
         </span>
         
-        {/* Compact Badge with Google logo for Google events */}
+        {/* Badge label - minimal style */}
         <span 
-          className="flex-shrink-0 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase text-white/90 flex items-center gap-1"
-          style={{ background: isGoogleEvent ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.2)' }}
+          className="flex-shrink-0 px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase text-white/80 tracking-wide"
+          style={{ background: 'rgba(255, 255, 255, 0.15)' }}
         >
-          {isGoogleEvent && <GoogleCalendarIcon className="w-2.5 h-2.5" />}
-          {badge}
+          {displayBadge}
         </span>
       </div>
     );
   }
 
-  // Week/day view card - More detailed
+  // Week/day view card - Premium detailed view with better spacing
   return (
     <div
       onClick={onClick}
-      className="event-pill-apple-expanded group h-full flex flex-col p-2.5 rounded-lg cursor-pointer overflow-hidden"
+      className="event-pill-apple-expanded group h-full flex flex-col p-3 rounded-xl cursor-pointer overflow-hidden"
       style={{
-        background: bgGradient,
-        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-        border: isGoogleEvent ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid rgba(255, 255, 255, 0.1)',
-        transition: 'all 0.15s ease-out',
+        background: displayGradient,
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.12)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-1.5">
+      {/* Header with badge */}
+      <div className="flex items-start gap-2.5 mb-2">
         {isGoogleEvent ? (
-          <div className="flex-shrink-0 w-6 h-6 rounded bg-white flex items-center justify-center shadow-sm">
+          <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-white/95 flex items-center justify-center shadow-sm">
             <GoogleCalendarIcon className="w-4 h-4" />
           </div>
+        ) : isCampaign && contactName ? (
+          <ProfileAvatar
+            config={generateGenderedAvatarConfigByName(contactName)}
+            size={28}
+            className="flex-shrink-0 rounded-lg shadow-sm"
+          />
         ) : (
           <CompanyLogo 
             companyName={companyName} 
             size="md" 
-            className="flex-shrink-0 rounded"
+            className="flex-shrink-0 rounded-lg shadow-sm"
           />
         )}
         <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-xs text-white truncate">
-            {companyName}
-          </h4>
-          {time && (
-            <div className="flex items-center gap-1 text-white/70 mt-0.5">
-              <Clock className="w-2.5 h-2.5" />
-              <span className="text-[10px]">{time}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-1.5">
+            <h4 className="font-semibold text-[13px] text-white/95 truncate tracking-tight">
+              {displayName}
+            </h4>
+          </div>
+          {/* Type badge - small pill style */}
+          <span 
+            className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase text-white/80 tracking-wide"
+            style={{ background: 'rgba(255, 255, 255, 0.15)' }}
+          >
+            {displayBadge}
+          </span>
         </div>
         {/* External link for Google events */}
         {isGoogleEvent && googleLink && (
@@ -204,37 +326,35 @@ export const EventPill = ({ event, onClick, compact = false, variant = 'month' }
             target="_blank" 
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="flex-shrink-0 p-1 rounded hover:bg-white/20 transition-colors"
+            className="flex-shrink-0 p-1.5 rounded-md hover:bg-white/15 transition-colors"
             title="Open in Google Calendar"
           >
-            <ExternalLink className="w-3 h-3 text-white/70" />
+            <ExternalLink className="w-3 h-3 text-white/60" />
           </a>
         )}
       </div>
       
-      {/* Position / Location for Google events */}
-      {position && (
-        <p className="text-[10px] text-white/75 truncate mb-1.5">
-          {isGoogleEvent && location && <MapPin className="w-2.5 h-2.5 inline mr-1" />}
-          {position}
+      {/* Position / Location / Company for campaigns */}
+      {(position || (isCampaign && companyName)) && (
+        <p className="text-[11px] text-white/70 truncate mb-2 leading-relaxed">
+          {isGoogleEvent && location && <MapPin className="w-2.5 h-2.5 inline mr-1 opacity-70" />}
+          {isCampaign ? companyName : position}
         </p>
       )}
       
-      {/* Badge */}
-      <div className="mt-auto flex items-center gap-2">
-        <span 
-          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase text-white/90"
-          style={{ background: isGoogleEvent ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.18)' }}
-        >
-          {icon}
-          {badge}
-        </span>
-        {isGoogleEvent && (
-          <span className="text-[8px] text-white/60">
-            synced
-          </span>
-        )}
-      </div>
+      {/* Time info - refined */}
+      {time && (
+        <div className="mt-auto flex items-center gap-1.5 text-white/65">
+          <Clock className="w-3 h-3" />
+          <span className="text-[10px] font-medium">{time}</span>
+          {isGoogleEvent && (
+            <>
+              <span className="text-white/30 mx-1">·</span>
+              <span className="text-[9px] text-white/50">synced</span>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };

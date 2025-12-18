@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getCompanyDomain, getClearbitUrl, getGoogleFaviconUrl, getCompanyInitials } from '../../utils/logo';
+import { getCompanyDomain, getClearbitUrl, getGoogleFaviconUrl, getCompanyInitials, getCompanyGradient } from '../../utils/logo';
 
 interface CompanyLogoProps {
   companyName: string;
@@ -9,7 +9,6 @@ interface CompanyLogoProps {
 }
 
 // Cache en mémoire pour éviter les requêtes répétées
-const logoCache = new Map<string, string | null>();
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
 interface CacheEntry {
@@ -51,19 +50,11 @@ export function CompanyLogo({
   const initialState = getInitialLogoState(companyName);
   const [logoSrc, setLogoSrc] = useState<string | null>(initialState.logoSrc);
   const [isLoading, setIsLoading] = useState(initialState.isLoading);
-  const triedGoogle = useRef(false);
   const isMounted = useRef(true);
   const prevCompanyName = useRef(companyName);
+  const triedGoogle = useRef(false);
 
   const sizeClasses = {
-    sm: 'h-8 w-8',
-    md: 'h-10 w-10',
-    lg: 'h-12 w-12',
-    xl: 'h-14 w-14',
-    '2xl': 'h-16 w-16',
-  };
-
-  const logoSizeClasses = {
     sm: 'h-8 w-8',
     md: 'h-10 w-10',
     lg: 'h-12 w-12',
@@ -136,17 +127,17 @@ export function CompanyLogo({
       return;
     }
 
-    // Si on n'a pas encore essayé Google Favicon, l'essayer
+    // If Clearbit failed and we haven't tried Google Favicon yet, try it
     if (!triedGoogle.current) {
       triedGoogle.current = true;
       const googleUrl = getGoogleFaviconUrl(companyDomain);
       setLogoSrc(googleUrl);
     } else {
-      // Les deux APIs ont échoué, utiliser les initiales
+      // Both APIs failed, use gradient fallback with initials
       setLogoSrc(null);
       setIsLoading(false);
       
-      // Mettre en cache le résultat négatif
+      // Cache the negative result
       const cacheKey = companyName.toLowerCase().trim();
       urlCache.set(cacheKey, { url: null, timestamp: Date.now() });
     }
@@ -157,7 +148,7 @@ export function CompanyLogo({
     
     setIsLoading(false);
     
-    // Mettre en cache l'URL qui a fonctionné
+    // Cache the URL that worked
     if (logoSrc) {
       const cacheKey = companyName.toLowerCase().trim();
       urlCache.set(cacheKey, { url: logoSrc, timestamp: Date.now() });
@@ -165,11 +156,20 @@ export function CompanyLogo({
   };
 
   const initials = getCompanyInitials(companyName);
+  const gradient = getCompanyGradient(companyName);
 
-  // Premium square logo style - logo fills the entire container with rounded corners
+  // Premium square logo style - clean rounded corners, no border artifacts
+  // When no logo is found, show a gradient background with initials (Notion/Linear style)
   return (
     <div
-      className={`${sizeClasses[size]} rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] ${className}`}
+      className={`${sizeClasses[size]} rounded-lg overflow-hidden flex-shrink-0 ${className}`}
+      style={
+        !logoSrc && showInitials
+          ? { background: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})` }
+          : logoSrc
+            ? { backgroundColor: 'white' }
+            : undefined
+      }
     >
       {logoSrc ? (
         <img
@@ -177,12 +177,14 @@ export function CompanyLogo({
           alt={`${companyName} logo`}
           onError={handleLogoError}
           onLoad={handleLogoLoad}
-          className={`${logoSizeClasses[size]} object-contain`}
+          className="w-full h-full object-cover"
         />
       ) : showInitials ? (
-        <span className={`${textSizeClasses[size]} font-bold text-gray-700 dark:text-gray-300`}>
-          {initials}
-        </span>
+        <div className="w-full h-full flex items-center justify-center">
+          <span className={`${textSizeClasses[size]} font-semibold text-white drop-shadow-sm`}>
+            {initials}
+          </span>
+        </div>
       ) : null}
     </div>
   );

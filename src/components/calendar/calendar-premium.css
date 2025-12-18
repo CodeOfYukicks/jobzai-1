@@ -155,6 +155,230 @@
   margin-bottom: 1px !important;
 }
 
+/* ==================== WEEK / DAY VIEW ==================== */
+.rbc-time-view {
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  background: #fafafa !important;
+}
+
+.dark .rbc-time-view {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  background: #1a1a1b !important;
+}
+
+/* Time header (top area with dates) */
+.rbc-time-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  background: rgba(255, 255, 255, 0.5) !important;
+}
+
+.dark .rbc-time-header {
+  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+.rbc-time-header-content {
+  border-left: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.dark .rbc-time-header-content {
+  border-left-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Time content area */
+.rbc-time-content {
+  border-top: none !important;
+  background: transparent !important;
+}
+
+.dark .rbc-time-content {
+  background: transparent !important;
+}
+
+/* Time gutter (left column with hours) */
+.rbc-time-gutter {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+.dark .rbc-time-gutter {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+.rbc-time-gutter .rbc-timeslot-group {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+}
+
+.dark .rbc-time-gutter .rbc-timeslot-group {
+  border-bottom-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+.rbc-label {
+  color: #9ca3af !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  padding: 0 8px !important;
+}
+
+.dark .rbc-label {
+  color: #6b7280 !important;
+}
+
+/* Day columns */
+.rbc-day-slot {
+  border-left: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.dark .rbc-day-slot {
+  border-left-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Time slots (horizontal lines) */
+.rbc-timeslot-group {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+  min-height: 50px !important;
+}
+
+.dark .rbc-timeslot-group {
+  border-bottom-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+.rbc-time-slot {
+  border-top: none !important;
+}
+
+.dark .rbc-time-slot {
+  border-top: none !important;
+}
+
+/* Current time indicator */
+.rbc-current-time-indicator {
+  background-color: #a855f7 !important;
+  height: 2px !important;
+}
+
+.rbc-current-time-indicator::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  background-color: #a855f7;
+  border-radius: 50%;
+}
+
+/* All day row */
+.rbc-allday-cell {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+.dark .rbc-allday-cell {
+  border-bottom-color: rgba(255, 255, 255, 0.04) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Today column in week view */
+.rbc-time-view .rbc-today {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.06) 0%, rgba(168, 85, 247, 0.02) 100%) !important;
+}
+
+.dark .rbc-time-view .rbc-today {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.08) 0%, rgba(168, 85, 247, 0.03) 100%) !important;
+}
+
+/* Events in time view */
+.rbc-time-view .rbc-event {
+  border: none !important;
+  border-radius: 8px !important;
+}
+
+.rbc-events-container {
+  margin-right: 4px !important;
+}
+
+/* Weekend columns in week view - fix gray background */
+.rbc-time-view .rbc-day-slot {
+  background: transparent !important;
+}
+
+.dark .rbc-time-view .rbc-day-slot {
+  background: transparent !important;
+}
+
+/* Weekend specific styling */
+.rbc-time-header-cell.rbc-time-header-cell-single-day[class*="rbc-header"] {
+  background: transparent !important;
+}
+
+/* Fix any gray backgrounds on day columns */
+.rbc-day-bg.rbc-off-range-bg {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+  opacity: 1 !important;
+}
+
+.dark .rbc-day-bg.rbc-off-range-bg {
+  background-color: rgba(255, 255, 255, 0.01) !important;
+  opacity: 1 !important;
+}
+
+/* Time view backgrounds - ensure clean dark mode */
+.rbc-time-content > * + * > * {
+  border-left: 1px solid rgba(0, 0, 0, 0.04) !important;
+}
+
+.dark .rbc-time-content > * + * > * {
+  border-left: 1px solid rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Header cell borders */
+.rbc-header + .rbc-header {
+  border-left: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.dark .rbc-header + .rbc-header {
+  border-left: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Time header gutter */
+.rbc-time-header-gutter {
+  background: transparent !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.dark .rbc-time-header-gutter {
+  background: transparent !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Row backgrounds in time view */
+.rbc-time-header-content > .rbc-row {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+}
+
+.dark .rbc-time-header-content > .rbc-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Allday events row */
+.rbc-row-bg {
+  background: transparent !important;
+}
+
+.dark .rbc-row-bg {
+  background: transparent !important;
+}
+
+.rbc-row-bg .rbc-day-bg {
+  background: transparent !important;
+}
+
+.dark .rbc-row-bg .rbc-day-bg {
+  background: transparent !important;
+}
+
 /* ==================== EVENTS - Compact styling ==================== */
 .rbc-event {
   background: transparent !important;
@@ -183,23 +407,52 @@
 }
 
 .rbc-row-segment {
-  padding: 1px 2px !important;
+  padding: 1px 3px !important;
 }
 
-/* Compact Event Pill Styles */
+/* ==================== PREMIUM EVENT PILL STYLES ==================== */
 .event-pill-apple {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  will-change: transform, box-shadow;
+  backface-visibility: hidden;
 }
 
 .event-pill-apple:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.12),
+    0 2px 4px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+.event-pill-apple:active {
+  transform: translateY(0) scale(0.99);
+  box-shadow: 
+    0 2px 6px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.event-pill-apple-expanded {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  will-change: transform, box-shadow;
+  backface-visibility: hidden;
 }
 
 .event-pill-apple-expanded:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 
+    0 8px 20px rgba(0, 0, 0, 0.12),
+    0 4px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+.event-pill-apple-expanded:active {
+  transform: translateY(-1px) scale(0.99);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
 }
 
 /* ==================== SHOW MORE LINK ==================== */
@@ -448,8 +701,14 @@
   }
   
   .event-pill-apple {
-    padding: 4px 6px !important;
-    border-radius: 6px !important;
+    padding: 5px 8px !important;
+    border-radius: 8px !important;
+    gap: 6px !important;
+  }
+  
+  .event-pill-apple-expanded {
+    padding: 10px !important;
+    border-radius: 10px !important;
   }
 }
 
