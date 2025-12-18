@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, FileText, Loader2, Info, Briefcase } from 'lucide-react';
+import { Upload, FileText, Loader2, Info, Briefcase, Sparkles } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../../../lib/firebase';
+import { storage, db } from '../../../lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../../../contexts/AuthContext';
 import { notify } from '@/lib/notify';
 import { pdfToImages } from '../../../lib/pdfToImages';
 import { extractCVTextAndTags, ExtractedExperience } from '../../../lib/cvTextExtraction';
+import { extractFullProfileFromText } from '../../../lib/cvExperienceExtractor';
 
 interface CVUploadStepProps {
   cvUrl?: string;
@@ -18,13 +20,30 @@ interface CVUploadStepProps {
     cvTechnologies?: string[];
     cvSkills?: string[];
     professionalHistory?: ExtractedExperience[];
+    // Full profile extraction data
+    skills?: string[];
+    tools?: string[];
+    languages?: Array<{ language: string; level: string }>;
+    educations?: any[];
+    professionalSummary?: string;
+    profileTags?: string[];
   }) => void;
   onBack: () => void;
+}
+
+interface FullProfileData {
+  skills: string[];
+  tools: string[];
+  languages: Array<{ language: string; level: string }>;
+  educations: any[];
+  professionalSummary: string;
+  profileTags: string[];
 }
 
 export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUploadStepProps) {
   const { currentUser } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
+  const [isExtractingProfile, setIsExtractingProfile] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploadedCvUrl, setUploadedCvUrl] = useState<string>(cvUrl || '');
@@ -33,6 +52,7 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
   const [uploadedCvTechnologies, setUploadedCvTechnologies] = useState<string[]>([]);
   const [uploadedCvSkills, setUploadedCvSkills] = useState<string[]>([]);
   const [uploadedExperiences, setUploadedExperiences] = useState<ExtractedExperience[]>([]);
+  const [fullProfileData, setFullProfileData] = useState<FullProfileData | null>(null);
 
   // Update local state when props change
   useEffect(() => {
@@ -84,6 +104,136 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
 
         const expCount = experiences?.length || 0;
         notify.success(`CV analyzed! Found ${technologies.length} technologies, ${skills.length} skills${expCount > 0 ? `, and ${expCount} experiences` : ''}`);
+
+        // Run full profile extraction in the background to populate ProfessionalProfile
+        if (text && text.length > 100) {
+          setIsExtractingProfile(true);
+          try {
+            console.log('🔄 Starting full profile extraction from CV...');
+            const extractedProfile = await extractFullProfileFromText(text);
+            
+            // Prepare the full profile data
+            const profileData: FullProfileData = {
+              skills: extractedProfile.skills || [],
+              tools: extractedProfile.tools || [],
+              languages: extractedProfile.languages || [],
+              educations: extractedProfile.educations || [],
+              professionalSummary: extractedProfile.summary || '',
+              profileTags: extractedProfile.profileTags || [],
+            };
+            
+            setFullProfileData(profileData);
+
+            // Save full profile data directly to Firestore (don't wait for user to visit profile page)
+            if (currentUser) {
+              const userRef = doc(db, 'users', currentUser.uid);
+              const updateData: Record<string, any> = {
+                // Basic CV data
+                cvText: text,
+                cvTechnologies: technologies || [],
+                cvSkills: skills || [],
+              };
+              
+              // Add experiences if extracted
+              if (experiences && experiences.length > 0) {
+                // Convert to professionalHistory format
+                const formattedExperiences = experiences.map(exp => ({
+                  title: exp.title,
+                  company: exp.company,
+                  companyLogo: '',
+                  startDate: exp.startDate,
+                  endDate: exp.endDate,
+                  current: exp.current,
+                  industry: exp.industry || '',
+                  contractType: exp.contractType || 'full-time',
+                  location: exp.location || '',
+                  responsibilities: exp.responsibilities?.length > 0 ? exp.responsibilities : [''],
+                  achievements: []
+                }));
+                updateData.professionalHistory = formattedExperiences;
+              }
+              
+              // Add full profile extraction data
+              if (extractedProfile.personalInfo?.firstName) {
+                updateData.firstName = extractedProfile.personalInfo.firstName;
+              }
+              if (extractedProfile.personalInfo?.lastName) {
+                updateData.lastName = extractedProfile.personalInfo.lastName;
+              }
+              if (extractedProfile.personalInfo?.city) {
+                updateData.city = extractedProfile.personalInfo.city;
+              }
+              if (extractedProfile.personalInfo?.country) {
+                updateData.country = extractedProfile.personalInfo.country;
+              }
+              if (extractedProfile.personalInfo?.headline) {
+                updateData.targetPosition = extractedProfile.personalInfo.headline;
+                updateData.headline = extractedProfile.personalInfo.headline;
+              }
+              
+              // Skills & Tools
+              if (extractedProfile.skills?.length > 0) {
+                updateData.skills = extractedProfile.skills;
+              }
+              if (extractedProfile.tools?.length > 0) {
+                updateData.tools = extractedProfile.tools;
+              }
+              
+              // Languages
+              if (extractedProfile.languages?.length > 0) {
+                updateData.languages = extractedProfile.languages;
+              }
+              
+              // Educations
+              if (extractedProfile.educations?.length > 0) {
+                updateData.educations = extractedProfile.educations;
+                // Also set legacy fields
+                const firstEdu = extractedProfile.educations[0];
+                if (firstEdu) {
+                  updateData.educationLevel = firstEdu.degree;
+                  updateData.educationField = firstEdu.field;
+                  updateData.educationInstitution = firstEdu.institution;
+                  if (firstEdu.endDate) {
+                    updateData.graduationYear = firstEdu.endDate.split('-')[0];
+                  }
+                }
+              }
+              
+              // Summary & Tags
+              if (extractedProfile.summary) {
+                updateData.professionalSummary = extractedProfile.summary;
+              }
+              if (extractedProfile.profileTags?.length > 0) {
+                updateData.profileTags = extractedProfile.profileTags;
+              }
+              
+              // Save to Firestore
+              await updateDoc(userRef, {
+                ...updateData,
+                lastUpdated: new Date().toISOString()
+              });
+              
+              console.log('✅ Full profile data saved to Firestore:', Object.keys(updateData));
+              
+              // Build success message
+              const counts = [];
+              if (extractedProfile.experiences?.length) counts.push(`${extractedProfile.experiences.length} experiences`);
+              if (extractedProfile.educations?.length) counts.push(`${extractedProfile.educations.length} educations`);
+              if (extractedProfile.skills?.length) counts.push(`${extractedProfile.skills.length} skills`);
+              if (extractedProfile.tools?.length) counts.push(`${extractedProfile.tools.length} tools`);
+              if (extractedProfile.languages?.length) counts.push(`${extractedProfile.languages.length} languages`);
+              
+              if (counts.length > 0) {
+                notify.success(`Profile auto-filled! Extracted ${counts.join(', ')}`);
+              }
+            }
+          } catch (profileError) {
+            console.error('Full profile extraction failed:', profileError);
+            // Don't show error to user, basic extraction succeeded
+          } finally {
+            setIsExtractingProfile(false);
+          }
+        }
       } catch (extractionError) {
         console.error('CV extraction failed:', extractionError);
         notify.warning('CV uploaded but analysis failed');
@@ -185,8 +335,23 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
             </a>
           </div>
 
+          {/* Show extraction progress */}
+          {isExtractingProfile && (
+            <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+              <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+                <Sparkles className="w-4 h-4 animate-pulse" />
+                <span className="text-sm font-medium">
+                  Auto-filling your profile...
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-purple-600 dark:text-purple-400">
+                Extracting skills, education, languages and more from your CV
+              </p>
+            </div>
+          )}
+
           {/* Show extracted experiences summary */}
-          {uploadedExperiences.length > 0 && (
+          {uploadedExperiences.length > 0 && !isExtractingProfile && (
             <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
               <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
                 <Briefcase className="w-4 h-4" />
@@ -204,6 +369,40 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
                   <p className="text-xs text-green-500 dark:text-green-500 italic">
                     +{uploadedExperiences.length - 3} more...
                   </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Show full profile extraction success */}
+          {fullProfileData && !isExtractingProfile && (
+            <div className="mt-3 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+              <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+                <Sparkles className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  Profile auto-filled!
+                </span>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {fullProfileData.skills.length > 0 && (
+                  <span className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-800/50 text-purple-700 dark:text-purple-300 rounded-full">
+                    {fullProfileData.skills.length} skills
+                  </span>
+                )}
+                {fullProfileData.tools.length > 0 && (
+                  <span className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-800/50 text-purple-700 dark:text-purple-300 rounded-full">
+                    {fullProfileData.tools.length} tools
+                  </span>
+                )}
+                {fullProfileData.languages.length > 0 && (
+                  <span className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-800/50 text-purple-700 dark:text-purple-300 rounded-full">
+                    {fullProfileData.languages.length} languages
+                  </span>
+                )}
+                {fullProfileData.educations.length > 0 && (
+                  <span className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-800/50 text-purple-700 dark:text-purple-300 rounded-full">
+                    {fullProfileData.educations.length} educations
+                  </span>
                 )}
               </div>
             </div>
@@ -292,16 +491,33 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
               cvText: uploadedCvText,
               cvTechnologies: uploadedCvTechnologies,
               cvSkills: uploadedCvSkills,
-              professionalHistory: uploadedExperiences.length > 0 ? uploadedExperiences : undefined
+              professionalHistory: uploadedExperiences.length > 0 ? uploadedExperiences : undefined,
+              // Include full profile data if available
+              ...(fullProfileData ? {
+                skills: fullProfileData.skills,
+                tools: fullProfileData.tools,
+                languages: fullProfileData.languages,
+                educations: fullProfileData.educations,
+                professionalSummary: fullProfileData.professionalSummary,
+                profileTags: fullProfileData.profileTags,
+              } : {})
             })}
-            disabled={!uploadedCvUrl || !uploadedCvName}
+            disabled={!uploadedCvUrl || !uploadedCvName || isExtractingProfile}
             className="px-8 py-2 bg-[#8D75E6] dark:bg-[#7C3AED] text-white rounded-lg font-medium
               disabled:opacity-50 disabled:cursor-not-allowed
               hover:bg-[#7D65D6] dark:hover:bg-[#6D28D9] transition-all duration-200
               shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]
-              hover:shadow-lg dark:hover:shadow-[0_6px_12px_rgba(141,117,230,0.4)]"
+              hover:shadow-lg dark:hover:shadow-[0_6px_12px_rgba(141,117,230,0.4)]
+              flex items-center gap-2"
           >
-            Continue
+            {isExtractingProfile ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Extracting...
+              </>
+            ) : (
+              'Continue'
+            )}
           </button>
         </div>
       </div>

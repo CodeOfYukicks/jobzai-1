@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Sparkles } from 'lucide-react';
+import { Check, Sparkles, ArrowRight, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 import { notify } from '@/lib/notify';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { syncUserToBrevo } from '../services/brevo';
-import { StickerLayer } from '../components/ui/StickerLayer';
 
 // Sample job cards data
 const jobCards = [
@@ -120,10 +120,10 @@ export default function CampaignsEarlyAccessPage() {
 
   return (
     <AuthLayout>
-      {/* Interactive draggable stickers */}
-      <StickerLayer />
+      {/* Decorative Grid Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
       
-      <div className="min-h-screen flex items-center justify-center px-4 py-6 sm:py-8">
+      <div className="min-h-screen flex items-center justify-center px-4 py-6 sm:py-8 relative">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -145,16 +145,16 @@ export default function CampaignsEarlyAccessPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="mb-6 max-w-2xl mx-auto space-y-2"
+            className="mb-6 max-w-2xl mx-auto space-y-3"
           >
             <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-              <span className="font-semibold text-[#635BFF] dark:text-[#a5a0ff]">Your job search, on cruise control.</span> AutoPilot finds opportunities that match your profile and applies for you — automatically, 24/7.
+              <span className="font-semibold text-[#635BFF] dark:text-[#a5a0ff]">Apply to real jobs, automatically.</span> AutoPilot scans job boards 24/7, finds positions that match your profile, and submits tailored applications — while you focus on what matters.
             </p>
             <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-              Wake up to interview invites. Our AI scouts the hidden job market, crafts personalized applications, and lands them in hiring managers' inboxes while you sleep.
+              No more endless scrolling. No more copy-pasting cover letters. AutoPilot handles the repetitive work so you can wake up to interview invites instead of job alerts.
             </p>
             <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 leading-relaxed">
-              <span className="font-semibold text-gray-700 dark:text-gray-200">85% of opportunities</span> never hit job boards. AutoPilot gets you there first.
+              <span className="font-semibold text-gray-700 dark:text-gray-200">100+ applications per week</span> — personalized to each job, submitted at the perfect time.
             </p>
           </motion.div>
 
@@ -269,6 +269,29 @@ export default function CampaignsEarlyAccessPage() {
                 />
               ))}
             </div>
+          </motion.div>
+
+          {/* CTA to Campaigns (already available) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="mt-6 pt-4 border-t border-gray-200/60 dark:border-[#3d3c3e]/60"
+          >
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">
+              Can't wait? Try our outreach campaigns now.
+            </p>
+            <Link
+              to="/campaigns-auto"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 
+                bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] 
+                rounded-lg hover:border-[#635BFF] dark:hover:border-[#635BFF] hover:text-[#635BFF] dark:hover:text-[#a5a0ff]
+                shadow-sm hover:shadow transition-all duration-200 group"
+            >
+              <Zap className="w-3 h-3 text-purple-500" />
+              <span>Outreach Campaigns</span>
+              <ArrowRight className="w-3 h-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+            </Link>
           </motion.div>
         </motion.div>
       </div>

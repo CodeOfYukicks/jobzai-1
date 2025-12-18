@@ -116,40 +116,38 @@ export default function TopBar({
           {/* Notification Center */}
           <NotificationCenter />
 
-          {/* Assistant Button with AI Glow */}
-          <div className="ai-glow-wrapper">
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                // Directly check state and toggle - this prevents conflicts with backdrop/click handlers
-                if (isAssistantOpen) {
-                  closeAssistant();
-                } else {
-                  openAssistant();
-                }
-              }}
-              onMouseDown={(e) => {
-                // Prevent mousedown from triggering click outside handlers
-                e.stopPropagation();
-              }}
-              className="relative flex items-center gap-1.5 h-8 pl-1 pr-3 rounded-lg
-                bg-gray-900 dark:bg-white
-                border border-gray-900 dark:border-white
-                hover:bg-gray-800 dark:hover:bg-gray-100
-                active:scale-[0.98]
-                transition-all duration-150"
-              aria-label="Assistant"
-              title="AI Assistant"
-            >
-              <Avatar 
-                config={avatarConfig}
-                size={24}
-                className="rounded-md"
-              />
-              <span className="text-[13px] font-medium text-white dark:text-gray-900">Assistant</span>
-            </button>
-          </div>
+          {/* Assistant Button */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              // Directly check state and toggle - this prevents conflicts with backdrop/click handlers
+              if (isAssistantOpen) {
+                closeAssistant();
+              } else {
+                openAssistant();
+              }
+            }}
+            onMouseDown={(e) => {
+              // Prevent mousedown from triggering click outside handlers
+              e.stopPropagation();
+            }}
+            className="relative flex items-center gap-1.5 h-8 pl-1 pr-3 rounded-lg
+              bg-gray-900 dark:bg-white
+              border border-gray-900 dark:border-white
+              hover:bg-gray-800 dark:hover:bg-gray-100
+              active:scale-[0.98]
+              transition-all duration-150"
+            aria-label="Assistant"
+            title="AI Assistant"
+          >
+            <Avatar 
+              config={avatarConfig}
+              size={24}
+              className="rounded-md"
+            />
+            <span className="text-[13px] font-medium text-white dark:text-gray-900">Assistant</span>
+          </button>
 
           {/* User Profile with Dropdown */}
           <div className="relative" ref={profileMenuRef}>

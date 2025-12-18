@@ -622,6 +622,8 @@ const ProfessionalProfilePage = () => {
   }, [currentUser, isImportingCV]);
 
   // Auto-import CV data when profile is empty but CV exists
+  // Note: During signup, the CV upload step now automatically extracts and saves full profile data,
+  // so this auto-import is mainly a fallback for existing users or edge cases
   useEffect(() => {
     const autoImportFromCV = async () => {
       // Skip if already imported, currently importing, no user, or still loading
@@ -634,15 +636,25 @@ const ProfessionalProfilePage = () => {
         
         const firestoreUserData = userDoc.data();
         
-        // Check if profile is empty (no professional history)
-        const profileIsEmpty = !firestoreUserData.professionalHistory || 
-                               firestoreUserData.professionalHistory.length === 0;
+        // Check if profile was already populated (by signup CV extraction or manually)
+        // If profileTags exist, it means the full extraction already ran during signup
+        const profileWasExtracted = firestoreUserData.profileTags && 
+                                    firestoreUserData.profileTags.length > 0;
+        
+        // Check if profile has basic data (professional history or skills)
+        const hasBasicData = (firestoreUserData.professionalHistory && 
+                              firestoreUserData.professionalHistory.length > 0) ||
+                             (firestoreUserData.skills && 
+                              firestoreUserData.skills.length > 0);
         
         // Check if CV exists
         const cvExists = firestoreUserData.cvUrl && firestoreUserData.cvUrl.length > 0;
         
-        // Only auto-import if profile is empty and CV exists
-        if (profileIsEmpty && cvExists) {
+        // Only auto-import if:
+        // 1. Profile was NOT already extracted during signup (no profileTags)
+        // 2. Profile has no basic data
+        // 3. CV exists
+        if (!profileWasExtracted && !hasBasicData && cvExists) {
           console.log('🔄 Auto-importing CV data: Profile is empty but CV exists');
           setHasAutoImported(true);
           // Small delay to ensure UI is ready
@@ -651,6 +663,9 @@ const ProfessionalProfilePage = () => {
           }, 500);
         } else {
           // Mark as done even if we don't import (to prevent repeated checks)
+          if (profileWasExtracted) {
+            console.log('✅ Profile already extracted during signup, skipping auto-import');
+          }
           setHasAutoImported(true);
         }
       } catch (error) {

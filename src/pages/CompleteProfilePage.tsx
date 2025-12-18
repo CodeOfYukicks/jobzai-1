@@ -87,7 +87,7 @@ export default function CompleteProfilePage() {
   const handleComplete = async () => {
     try {
       await completeProfile(formData);
-      navigate('/dashboard'); // Navigate after successful completion
+      navigate('/hub'); // Navigate to Hub after successful completion
     } catch (error) {
       console.error('Error completing profile:', error);
       notify.error('Failed to complete profile');
