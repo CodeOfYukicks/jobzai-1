@@ -3,7 +3,7 @@ import {
   Send, 
   Mail, 
   MailOpen, 
-  Reply, 
+  MessageSquare, 
   Calendar, 
   CheckCircle, 
   XCircle,
@@ -27,44 +27,25 @@ interface ActivityFeedProps {
 }
 
 const getActivityIcon = (type: ActivityItem['type'], status?: string) => {
+  const iconClass = "w-3.5 h-3.5 text-gray-400 dark:text-gray-500 stroke-[1.5]";
+  
   switch (type) {
     case 'application':
-      return <Send className="w-4 h-4" />;
+      return <Send className={iconClass} />;
     case 'interview':
-      return <Calendar className="w-4 h-4" />;
+      return <Calendar className={iconClass} />;
     case 'status_change':
-      if (status === 'offer') return <CheckCircle className="w-4 h-4" />;
-      if (status === 'rejected') return <XCircle className="w-4 h-4" />;
-      return <Clock className="w-4 h-4" />;
+      if (status === 'offer') return <CheckCircle className={`${iconClass} text-emerald-500`} />;
+      if (status === 'rejected') return <XCircle className={`${iconClass} text-gray-400`} />;
+      return <Clock className={iconClass} />;
     case 'email_sent':
-      return <Mail className="w-4 h-4" />;
+      return <Mail className={iconClass} />;
     case 'email_opened':
-      return <MailOpen className="w-4 h-4" />;
+      return <MailOpen className={iconClass} />;
     case 'email_replied':
-      return <Reply className="w-4 h-4" />;
+      return <MessageSquare className={`${iconClass} text-emerald-500`} />;
     default:
-      return <Briefcase className="w-4 h-4" />;
-  }
-};
-
-const getActivityColor = (type: ActivityItem['type'], status?: string) => {
-  switch (type) {
-    case 'application':
-      return 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400';
-    case 'interview':
-      return 'bg-jobzai-100 dark:bg-jobzai-900/30 text-jobzai-600 dark:text-jobzai-400';
-    case 'status_change':
-      if (status === 'offer') return 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400';
-      if (status === 'rejected') return 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400';
-      return 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400';
-    case 'email_sent':
-      return 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400';
-    case 'email_opened':
-      return 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400';
-    case 'email_replied':
-      return 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400';
-    default:
-      return 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400';
+      return <Briefcase className={iconClass} />;
   }
 };
 
@@ -76,9 +57,9 @@ const formatTimestamp = (date: Date) => {
   const days = Math.floor(diff / 86400000);
   
   if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
+  if (minutes < 60) return `${minutes}m`;
+  if (hours < 24) return `${hours}h`;
+  if (days < 7) return `${days}d`;
   
   return date.toLocaleDateString('en-US', { 
     month: 'short', 
@@ -95,52 +76,54 @@ export function ActivityFeed({
   
   if (displayedActivities.length === 0) {
     return (
-      <div className={`bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-5 ${className}`}>
-        <h3 className="text-sm font-medium text-muted-foreground mb-4">Recent Activity</h3>
+      <div className={`bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 ${className}`}>
+        <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide mb-5">Recent Activity</h3>
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700/50 flex items-center justify-center mb-3">
-            <Clock className="w-6 h-6 text-gray-500 dark:text-gray-400" />
-          </div>
-          <p className="text-sm text-muted-foreground">No recent activity</p>
+          <Clock className="w-6 h-6 text-gray-300 dark:text-gray-600 stroke-[1.5] mb-3" />
+          <p className="text-[13px] text-gray-400 dark:text-gray-500">No recent activity</p>
         </div>
       </div>
     );
   }
   
   return (
-    <div className={`bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-5 ${className}`}>
-      <h3 className="text-sm font-medium text-muted-foreground mb-4">Recent Activity</h3>
+    <div className={`bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b] ${className}`}>
+      <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide mb-5">Recent Activity</h3>
       
       <div className="space-y-0">
         {displayedActivities.map((activity, index) => (
           <motion.div
             key={activity.id}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.2, delay: index * 0.05 }}
-            className="relative flex gap-3 pb-4 last:pb-0"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: index * 0.04 }}
+            className="relative flex gap-3 py-3 first:pt-0 last:pb-0 group"
           >
             {/* Timeline line */}
             {index < displayedActivities.length - 1 && (
-              <div className="absolute left-[15px] top-8 bottom-0 w-px bg-border" />
+              <div className="absolute left-[7px] top-10 bottom-0 w-px bg-gray-100 dark:bg-[#3d3c3e]/40" />
             )}
             
-            {/* Icon */}
-            <div className={`relative z-10 p-2 rounded-lg flex-shrink-0 ${getActivityColor(activity.type, activity.status)}`}>
+            {/* Icon - minimal style */}
+            <div className="relative z-10 flex-shrink-0 mt-0.5">
               {getActivityIcon(activity.type, activity.status)}
             </div>
             
             {/* Content */}
-            <div className="flex-1 min-w-0 pt-0.5">
-              <p className="text-sm font-medium text-foreground truncate">
-                {activity.title}
-              </p>
-              <p className="text-xs text-muted-foreground truncate mt-0.5">
-                {activity.subtitle}
-              </p>
-              <p className="text-xs text-muted-foreground/70 mt-1">
-                {formatTimestamp(activity.timestamp)}
-              </p>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[13px] font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-gray-700 dark:group-hover:text-gray-200 transition-colors">
+                    {activity.title}
+                  </p>
+                  <p className="text-[12px] text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                    {activity.subtitle}
+                  </p>
+                </div>
+                <span className="text-[11px] text-gray-400 dark:text-gray-500 tabular-nums flex-shrink-0">
+                  {formatTimestamp(activity.timestamp)}
+                </span>
+              </div>
             </div>
           </motion.div>
         ))}
@@ -150,4 +133,3 @@ export function ActivityFeed({
 }
 
 export default ActivityFeed;
-

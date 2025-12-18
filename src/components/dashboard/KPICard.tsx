@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 interface KPICardProps {
@@ -10,7 +10,7 @@ interface KPICardProps {
   trend?: number; // percentage change, positive or negative
   trendLabel?: string;
   icon?: ReactNode;
-  iconColor?: string; // tailwind bg color class
+  iconColor?: string; // kept for backwards compatibility, but ignored
   sparklineData?: Array<{ value: number }>;
   sparklineColor?: string; // hex color for sparkline
   onClick?: () => void;
@@ -24,58 +24,66 @@ export function KPICard({
   trend,
   trendLabel,
   icon,
-  iconColor = 'bg-jobzai-100 dark:bg-jobzai-950/40',
   sparklineData,
-  sparklineColor = '#635BFF',
+  sparklineColor = '#9ca3af',
   onClick,
   className = '',
 }: KPICardProps) {
   const hasTrend = trend !== undefined && trend !== null;
   const isPositiveTrend = trend && trend > 0;
   const isNegativeTrend = trend && trend < 0;
-  const isNeutralTrend = trend === 0;
   
   return (
     <motion.div
-      whileHover={onClick ? { scale: 1.01 } : undefined}
-      whileTap={onClick ? { scale: 0.99 } : undefined}
+      whileHover={onClick ? { y: -2 } : undefined}
+      whileTap={onClick ? { scale: 0.995 } : undefined}
       onClick={onClick}
       className={`
-        relative overflow-hidden
-        bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-5
-        ${onClick ? 'cursor-pointer hover:border-jobzai-300 dark:hover:border-jobzai-700' : ''}
-        transition-all duration-200
+        relative overflow-hidden group
+        bg-white dark:bg-[#2b2a2c]
+        border border-gray-200/60 dark:border-[#3d3c3e]/60
+        rounded-2xl p-6
+        ${onClick ? 'cursor-pointer' : ''}
+        transition-all duration-300 ease-out
+        hover:border-gray-300 dark:hover:border-[#4a494b]
+        hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.08)]
+        dark:hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.5)]
         ${className}
       `}
     >
-      {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
+      {/* Subtle gradient overlay on hover */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50/50 via-transparent to-transparent dark:from-white/[0.03]" />
+      </div>
+
+      {/* Header - Title with icon */}
+      <div className="relative flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
           {icon && (
-            <div className={`p-2.5 rounded-lg ${iconColor}`}>
+            <span className="text-gray-400 dark:text-gray-500 [&>svg]:w-4 [&>svg]:h-4 [&>svg]:stroke-[1.5]">
               {icon}
-            </div>
+            </span>
           )}
-          <span className="text-sm font-medium text-muted-foreground">{title}</span>
+          <span className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">
+            {title}
+          </span>
         </div>
         
-        {/* Trend Badge */}
+        {/* Trend - Simple text, no pill */}
         {hasTrend && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium
+          <div className={`flex items-center gap-0.5 text-[12px] font-medium
             ${isPositiveTrend 
-              ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400' 
+              ? 'text-emerald-600 dark:text-emerald-400' 
               : isNegativeTrend 
-                ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400' 
-                : 'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400'
+                ? 'text-rose-500 dark:text-rose-400' 
+                : 'text-gray-400 dark:text-gray-500'
             }`}
           >
             {isPositiveTrend ? (
-              <TrendingUp className="w-3 h-3" />
+              <ArrowUpRight className="w-3.5 h-3.5" />
             ) : isNegativeTrend ? (
-              <TrendingDown className="w-3 h-3" />
-            ) : (
-              <Minus className="w-3 h-3" />
-            )}
+              <ArrowDownRight className="w-3.5 h-3.5" />
+            ) : null}
             <span>
               {isPositiveTrend ? '+' : ''}{trend?.toFixed(1)}%
             </span>
@@ -83,28 +91,28 @@ export function KPICard({
         )}
       </div>
       
-      {/* Value */}
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="text-3xl font-bold text-foreground tracking-tight">
+      {/* Value - Hero element */}
+      <div className="relative flex items-end justify-between">
+        <div className="space-y-1">
+          <p className="text-[32px] font-semibold text-gray-900 dark:text-gray-100 tracking-tight leading-none tabular-nums">
             {typeof value === 'number' ? value.toLocaleString() : value}
           </p>
           {subtitle && (
-            <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+            <p className="text-[13px] text-gray-500 dark:text-gray-400">{subtitle}</p>
           )}
           {trendLabel && (
-            <p className="text-xs text-muted-foreground mt-1">{trendLabel}</p>
+            <p className="text-[11px] text-gray-400 dark:text-gray-500">{trendLabel}</p>
           )}
         </div>
         
-        {/* Sparkline */}
+        {/* Sparkline - Refined */}
         {sparklineData && sparklineData.length > 1 && (
-          <div className="w-24 h-12">
+          <div className="w-20 h-10 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={sparklineData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id={`sparkline-${title.replace(/\s/g, '')}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={sparklineColor} stopOpacity={0.3} />
+                    <stop offset="0%" stopColor={sparklineColor} stopOpacity={0.15} />
                     <stop offset="100%" stopColor={sparklineColor} stopOpacity={0} />
                   </linearGradient>
                 </defs>
@@ -112,7 +120,7 @@ export function KPICard({
                   type="monotone"
                   dataKey="value"
                   stroke={sparklineColor}
-                  strokeWidth={2}
+                  strokeWidth={1.5}
                   fill={`url(#sparkline-${title.replace(/\s/g, '')})`}
                   dot={false}
                   isAnimationActive={false}
@@ -127,4 +135,3 @@ export function KPICard({
 }
 
 export default KPICard;
-

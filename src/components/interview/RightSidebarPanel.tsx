@@ -391,7 +391,7 @@ export default function RightSidebarPanel({
                             ? '' 
                             : 'text-gray-200/60 dark:text-gray-700/40'
                           }
-                          stroke={milestone.completed ? '#b7e219' : 'currentColor'}
+                          stroke={milestone.completed ? '#635BFF' : 'currentColor'}
                           initial={{ pathLength: 0, opacity: 0 }}
                           animate={{ pathLength: 1, opacity: 1 }}
                           transition={{ 
@@ -449,7 +449,7 @@ export default function RightSidebarPanel({
                         group w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-left
                         transition-all duration-200 ease-out
                         ${milestone.completed
-                          ? 'bg-[#b7e219]/[0.08] dark:bg-[#b7e219]/[0.06]'
+                          ? 'bg-[#635BFF]/[0.08] dark:bg-[#a5a0ff]/[0.06]'
                           : 'bg-transparent hover:bg-gray-50/80 dark:hover:bg-white/[0.03]'
                         }
                         hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:hover:shadow-[0_2px_8px_rgba(0,0,0,0.2)]
@@ -460,13 +460,13 @@ export default function RightSidebarPanel({
                         flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center
                         transition-all duration-200
                         ${milestone.completed
-                          ? 'bg-[#b7e219]'
+                          ? 'bg-[#635BFF] dark:bg-[#a5a0ff]'
                           : 'bg-gray-100 dark:bg-gray-800/60 group-hover:bg-gray-200/80 dark:group-hover:bg-gray-700/60'
                         }
                       `}>
                         {milestone.completed ? (
                           <motion.svg 
-                            className="w-3.5 h-3.5 text-gray-900" 
+                            className="w-3.5 h-3.5 text-white" 
                             viewBox="0 0 24 24" 
                             fill="none"
                             initial={{ pathLength: 0 }}
@@ -497,7 +497,7 @@ export default function RightSidebarPanel({
                         flex-1 text-[14px] font-medium tracking-[-0.01em]
                         transition-colors duration-200
                         ${milestone.completed 
-                          ? 'text-[#8fb317] dark:text-[#b7e219]' 
+                          ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
                           : 'text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white'
                         }
                       `}>

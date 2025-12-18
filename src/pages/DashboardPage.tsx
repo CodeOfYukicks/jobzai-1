@@ -11,9 +11,8 @@ import {
   Users,
   Mail,
   MailOpen,
-  Reply,
-  Clock,
-  ChevronRight,
+  MessageSquare,
+  ArrowRight,
   Award,
   Image,
   Camera,
@@ -64,25 +63,25 @@ const TabButton = ({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg
+      className={`flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium rounded-lg
         transition-all duration-200 ${
         active
-          ? 'bg-jobzai-100 dark:bg-jobzai-950/40 text-jobzai-700 dark:text-jobzai-300'
-          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          ? 'bg-gray-100 dark:bg-[#3d3c3e]/50 text-gray-900 dark:text-gray-100'
+          : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/40'
       }`}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className={`h-4 w-4 stroke-[1.5] ${active ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'}`} />
       <span>{label}</span>
       {count !== undefined && count > 0 && (
-        <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium
+        <span className={`px-1.5 py-0.5 rounded text-[11px] font-medium tabular-nums
           ${active 
-            ? 'bg-jobzai-200 dark:bg-jobzai-900/50 text-jobzai-700 dark:text-jobzai-300' 
-            : 'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400'
+            ? 'bg-gray-200 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300' 
+            : 'bg-gray-100 dark:bg-[#333234]/50 text-gray-500 dark:text-gray-400'
           }`}
         >
           {count}
-              </span>
-            )}
+        </span>
+      )}
     </button>
   );
 };
@@ -593,23 +592,21 @@ export default function DashboardPage() {
                   <KPICard
                     title="Credits"
                     value={stats.credits}
-                    icon={<CreditCard className="w-5 h-5 text-jobzai-600 dark:text-jobzai-400" />}
+                    icon={<CreditCard />}
                     sparklineData={creditsSparkline}
-                    sparklineColor="#635BFF"
+                    sparklineColor="#9ca3af"
                   />
                   <KPICard
                     title="Active Applications"
                     value={stats.activeApplications}
                     trend={stats.applicationsTrend}
-                    icon={<Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
-                    iconColor="bg-blue-100 dark:bg-blue-500/20"
+                    icon={<Briefcase />}
                   />
                   <KPICard
                     title="Outreach Contacts"
                     value={stats.totalContacts}
                     trend={stats.contactsTrend}
-                    icon={<Users className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
-                    iconColor="bg-amber-100 dark:bg-amber-900/30"
+                    icon={<Users />}
                   />
                   <KPICard
                     title="Upcoming Interviews"
@@ -618,8 +615,7 @@ export default function DashboardPage() {
                       ? `Next: ${stats.upcomingInterviews[0]?.companyName}` 
                       : undefined
                     }
-                    icon={<Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />}
-                    iconColor="bg-green-100 dark:bg-green-900/30"
+                    icon={<Calendar />}
                   />
                 </div>
 
@@ -637,50 +633,44 @@ export default function DashboardPage() {
                     maxItems={3}
                   />
                   
-                  {/* Quick Actions */}
-                  <div className="bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-5">
-                    <h3 className="text-sm font-medium text-muted-foreground mb-4">Quick Actions</h3>
-                    <div className="space-y-2">
-                            <Link
-                              to="/applications"
-                        className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors group"
-                            >
+                  {/* Quick Actions - Premium minimal style */}
+                  <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]">
+                    <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide mb-5">Quick Actions</h3>
+                    <div className="space-y-1">
+                      <Link
+                        to="/applications"
+                        className="flex items-center justify-between p-3 -mx-1 rounded-xl hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/40 transition-all duration-200 group"
+                      >
                         <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-500/20">
-                            <Briefcase className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          </div>
-                          <span className="text-sm font-medium text-foreground">Track Application</span>
-                      </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                          <Briefcase className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5] group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
+                          <span className="text-[13px] font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">Track Application</span>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:translate-x-0.5 transition-all duration-200" />
                       </Link>
                       
-                        <Link
+                      <Link
                         to="/campaigns-auto"
-                        className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors group"
-                        >
+                        className="flex items-center justify-between p-3 -mx-1 rounded-xl hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/40 transition-all duration-200 group"
+                      >
                         <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-jobzai-100 dark:bg-jobzai-500/20">
-                            <Zap className="w-4 h-4 text-jobzai-600 dark:text-jobzai-400" />
-                      </div>
-                          <span className="text-sm font-medium text-foreground">New Campaign</span>
-                            </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                          <Zap className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5] group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
+                          <span className="text-[13px] font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">New Campaign</span>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:translate-x-0.5 transition-all duration-200" />
                       </Link>
                       
                       <Link
                         to="/cv-optimizer"
-                        className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors group"
+                        className="flex items-center justify-between p-3 -mx-1 rounded-xl hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/40 transition-all duration-200 group"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                            <Target className="w-4 h-4 text-green-600 dark:text-green-400" />
-                          </div>
-                          <span className="text-sm font-medium text-foreground">Optimize CV</span>
-                            </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                          <Target className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5] group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
+                          <span className="text-[13px] font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">Optimize CV</span>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:translate-x-0.5 transition-all duration-200" />
                       </Link>
-                      </div>
                     </div>
+                  </div>
 
                   {/* Recent Activity */}
                   <ActivityFeed 
@@ -696,25 +686,23 @@ export default function DashboardPage() {
               <div className="space-y-6">
                 {/* Empty State when no applications match filters */}
                 {stats.totalApplications === 0 && (
-                  <div className="bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-8 text-center">
-                    <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
-                      <Briefcase className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                  <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-10 text-center">
+                    <Briefcase className="w-8 h-8 text-gray-300 dark:text-gray-600 stroke-[1.5] mx-auto mb-4" />
+                    <h3 className="text-[17px] font-semibold text-gray-900 dark:text-gray-100 mb-2">
                       No Applications Found
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                    <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-5 max-w-md mx-auto leading-relaxed">
                       {boardFilter && boardFilter !== 'all' 
-                        ? `No applications found for the selected board "${boards.find(b => b.id === boardFilter)?.name || 'board'}" in the selected time period (${periodFilter === '30d' ? '30 days' : periodFilter === '7d' ? '7 days' : periodFilter === '3m' ? '3 months' : periodFilter === '6m' ? '6 months' : periodFilter === '1y' ? '1 year' : 'all time'}). Try changing the time period to "All time" or selecting a different board.`
-                        : `No applications found for the selected time period (${periodFilter === '30d' ? '30 days' : periodFilter === '7d' ? '7 days' : periodFilter === '3m' ? '3 months' : periodFilter === '6m' ? '6 months' : periodFilter === '1y' ? '1 year' : 'all time'}). Try changing the time period filter to "All time".`
+                        ? `No applications found for the selected board in this time period. Try changing the filters.`
+                        : `No applications found for this time period. Try selecting "All time".`
                       }
                     </p>
                     {(boardFilter && boardFilter !== 'all') && (
                       <button
                         onClick={() => setBoardFilter(null)}
-                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] text-gray-900 rounded-lg text-sm font-medium transition-colors shadow-sm hover:shadow-md"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-white text-white dark:text-gray-900 rounded-lg text-[13px] font-medium transition-colors"
                       >
-                        Clear Board Filter
+                        Clear Filter
                       </button>
                     )}
                   </div>
@@ -808,54 +796,48 @@ export default function DashboardPage() {
                     valueLabel=""
                   />
                   
-                  {/* Placeholder for additional insights */}
-                  <div className="bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-5">
-                    <h3 className="text-sm font-medium text-muted-foreground mb-4">Success Insights</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                          <Award className="w-4 h-4 text-green-600 dark:text-green-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            {stats.offerCount} Offers Received
+                  {/* Success Insights - Premium minimal style */}
+                  <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]">
+                    <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide mb-5">Success Insights</h3>
+                    <div className="space-y-5">
+                      <div className="flex items-start gap-3">
+                        <Award className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5] mt-0.5 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums">
+                            {stats.offerCount} Offers
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-[12px] text-gray-500 dark:text-gray-400">
                             {stats.offerRate.toFixed(1)}% success rate
                           </p>
-                  </div>
-                </div>
-                
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-jobzai-100 dark:bg-jobzai-500/20">
-                          <Calendar className="w-4 h-4 text-jobzai-600 dark:text-jobzai-400" />
-                  </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            {stats.interviewCount} Interviews
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Avg. {stats.avgDaysToInterview} days from application
-                          </p>
-                                  </div>
-                              </div>
-                              
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-500/20">
-                          <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                              </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            {stats.responseRate.toFixed(0)}% Response Rate
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {stats.totalApplications - stats.applicationsByStatus.applied - stats.applicationsByStatus.wishlist} responses
-                          </p>
-                            </div>
-                          </div>
                         </div>
                       </div>
+                
+                      <div className="flex items-start gap-3">
+                        <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5] mt-0.5 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums">
+                            {stats.interviewCount} Interviews
+                          </p>
+                          <p className="text-[12px] text-gray-500 dark:text-gray-400">
+                            Avg. {stats.avgDaysToInterview} days from application
+                          </p>
+                        </div>
+                      </div>
+                              
+                      <div className="flex items-start gap-3">
+                        <TrendingUp className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5] mt-0.5 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums">
+                            {stats.responseRate.toFixed(0)}% Response Rate
+                          </p>
+                          <p className="text-[12px] text-gray-500 dark:text-gray-400">
+                            {stats.totalApplications - stats.applicationsByStatus.applied - stats.applicationsByStatus.wishlist} responses received
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                </div>
                   
                     {/* Recent Applications Table */}
                     <ApplicationsTable 
@@ -912,57 +894,51 @@ export default function DashboardPage() {
                   />
                     </div>
                     
-                {/* Email Performance Stats */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-5">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2.5 rounded-lg bg-blue-100 dark:bg-blue-500/20">
-                        <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                  </div>
-                      <div>
-                        <p className="text-2xl font-bold text-foreground tabular-nums">{stats.emailsSent}</p>
-                        <p className="text-xs text-muted-foreground">Emails Sent</p>
-                                </div>
-                                  </div>
-                    <div className="h-2 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
+                {/* Email Performance Stats - Premium minimal style */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b] group">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                      <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Sent</span>
+                    </div>
+                    <p className="text-[32px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums leading-none mb-3">{stats.emailsSent}</p>
+                    <div className="h-1 bg-gray-100 dark:bg-[#3d3c3e]/50 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                        className="h-full bg-gray-400 dark:bg-gray-500 rounded-full transition-all duration-500 group-hover:bg-gray-500 dark:group-hover:bg-gray-400"
                         style={{ width: '100%' }}
                       />
-                                </div>
-                              </div>
-                  
-                  <div className="bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-5">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2.5 rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                        <MailOpen className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                        </div>
-                      <div>
-                        <p className="text-2xl font-bold text-foreground tabular-nums">{stats.emailsOpened}</p>
-                        <p className="text-xs text-muted-foreground">Opened ({stats.openRate.toFixed(1)}%)</p>
                     </div>
                   </div>
-                    <div className="h-2 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
+                  
+                  <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b] group">
+                    <div className="flex items-center gap-2 mb-4">
+                      <MailOpen className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                      <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Opened</span>
+                    </div>
+                    <div className="flex items-baseline gap-2 mb-3">
+                      <p className="text-[32px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums leading-none">{stats.emailsOpened}</p>
+                      <span className="text-[13px] text-gray-500 dark:text-gray-400 tabular-nums">{stats.openRate.toFixed(1)}%</span>
+                    </div>
+                    <div className="h-1 bg-gray-100 dark:bg-[#3d3c3e]/50 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                        className="h-full bg-gray-400 dark:bg-gray-500 rounded-full transition-all duration-500 group-hover:bg-gray-500 dark:group-hover:bg-gray-400"
                         style={{ width: `${stats.openRate}%` }}
                       />
-                      </div>
                     </div>
+                  </div>
                     
-                  <div className="bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-5">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2.5 rounded-lg bg-green-100 dark:bg-green-900/30">
-                        <Reply className="w-5 h-5 text-green-600 dark:text-green-400" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-foreground tabular-nums">{stats.emailsReplied}</p>
-                        <p className="text-xs text-muted-foreground">Replied ({stats.replyRate.toFixed(1)}%)</p>
+                  <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b] group">
+                    <div className="flex items-center gap-2 mb-4">
+                      <MessageSquare className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                      <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Replied</span>
                     </div>
-                            </div>
-                    <div className="h-2 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
+                    <div className="flex items-baseline gap-2 mb-3">
+                      <p className="text-[32px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums leading-none">{stats.emailsReplied}</p>
+                      <span className="text-[13px] text-gray-500 dark:text-gray-400 tabular-nums">{stats.replyRate.toFixed(1)}%</span>
+                    </div>
+                    <div className="h-1 bg-gray-100 dark:bg-[#3d3c3e]/50 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-green-500 rounded-full transition-all duration-500"
+                        className="h-full bg-emerald-500 rounded-full transition-all duration-500 group-hover:bg-emerald-400"
                         style={{ width: `${stats.replyRate}%` }}
                       />
                     </div>
@@ -971,21 +947,19 @@ export default function DashboardPage() {
                 
                 {/* Empty State for No Campaigns */}
                 {stats.totalCampaigns === 0 && (
-                  <div className="bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-8 text-center">
-                    <div className="w-16 h-16 rounded-full bg-jobzai-100 dark:bg-jobzai-500/20 flex items-center justify-center mx-auto mb-4">
-                      <Zap className="w-8 h-8 text-jobzai-600 dark:text-jobzai-400" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                  <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-10 text-center">
+                    <Zap className="w-8 h-8 text-gray-300 dark:text-gray-600 stroke-[1.5] mx-auto mb-4" />
+                    <h3 className="text-[17px] font-semibold text-gray-900 dark:text-gray-100 mb-2">
                       No Campaigns Yet
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-                      Start your first outreach campaign to automatically reach out to potential employers and track your email performance.
+                    <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-5 max-w-md mx-auto leading-relaxed">
+                      Start your first outreach campaign to reach potential employers and track your email performance.
                     </p>
                     <Link 
                       to="/campaigns-auto"
-                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] text-gray-900 rounded-lg text-sm font-medium transition-colors shadow-sm hover:shadow-md"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-white text-white dark:text-gray-900 rounded-lg text-[13px] font-medium transition-colors"
                     >
-                      <Zap className="w-4 h-4" />
+                      <Zap className="w-4 h-4 stroke-[1.5]" />
                       Create Campaign
                     </Link>
                   </div>

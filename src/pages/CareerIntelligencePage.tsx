@@ -569,27 +569,15 @@ export default function CareerIntelligencePage() {
             )}
           </AnimatePresence>
 
-          {/* Insight Cards - 3x3 Bento Grid Layout */}
+          {/* Insight Cards - Premium Bento Grid Layout */}
           {insights && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="relative"
             >
-              {/* Subtle dot pattern background */}
-              <div className="absolute inset-0 -z-10 opacity-30 dark:opacity-20">
-                <div 
-                  className="absolute inset-0" 
-                  style={{
-                    backgroundImage: `radial-gradient(circle, rgba(99, 102, 241, 0.15) 1px, transparent 1px)`,
-                    backgroundSize: '24px 24px'
-                  }}
-                />
-              </div>
-
               {/* Bento Grid - 3 cards per row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Row 1 */}
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}

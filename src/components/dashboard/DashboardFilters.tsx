@@ -96,19 +96,19 @@ export function DashboardFilters({
   };
   
   return (
-    <div className="flex items-center gap-3 flex-wrap">
+    <div className="flex items-center gap-2 flex-wrap">
       {/* Period Filter */}
       <div ref={periodRef} className="relative">
         <button
           onClick={() => setIsPeriodOpen(!isPeriodOpen)}
           className="flex items-center gap-2 px-3 py-2 
-            bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-lg
-            text-sm font-medium text-foreground
-            hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors duration-200"
+            bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-lg
+            text-[13px] font-medium text-gray-700 dark:text-gray-200
+            hover:border-gray-300 dark:hover:border-[#4a494b] transition-all duration-200"
         >
-          <Calendar className="w-4 h-4 text-muted-foreground" />
+          <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
           <span>{currentPeriod?.label || 'All time'}</span>
-          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 
+          <ChevronDown className={`w-3.5 h-3.5 text-gray-400 dark:text-gray-500 transition-transform duration-200 
             ${isPeriodOpen ? 'rotate-180' : ''}`} 
           />
         </button>
@@ -116,12 +116,12 @@ export function DashboardFilters({
         <AnimatePresence>
           {isPeriodOpen && (
             <motion.div
-              initial={{ opacity: 0, y: -8, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.96 }}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15 }}
-              className="absolute z-50 mt-1 w-40 
-                bg-white dark:bg-[#1f1f23] border border-gray-200/60 dark:border-white/[0.08] rounded-xl shadow-lg
+              className="absolute z-50 mt-1.5 w-36 
+                bg-white dark:bg-[#333234] border border-gray-200/60 dark:border-[#3d3c3e] rounded-xl shadow-lg shadow-black/5 dark:shadow-black/30
                 py-1 overflow-hidden"
             >
               {PERIOD_OPTIONS.map((option) => (
@@ -131,16 +131,16 @@ export function DashboardFilters({
                     onPeriodChange(option.value);
                     setIsPeriodOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-sm
+                  className={`w-full flex items-center justify-between px-3 py-2 text-[13px]
                     transition-colors duration-150
                     ${periodFilter === option.value 
-                      ? 'bg-jobzai-50 dark:bg-jobzai-950/30 text-jobzai-600 dark:text-jobzai-400' 
-                      : 'text-foreground hover:bg-muted/50'
+                      ? 'bg-gray-50 dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100 font-medium' 
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/70'
                     }`}
                 >
                   <span>{option.label}</span>
                   {periodFilter === option.value && (
-                    <Check className="w-4 h-4" />
+                    <Check className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
                   )}
                 </button>
               ))}
@@ -155,13 +155,13 @@ export function DashboardFilters({
           <button
             onClick={() => setIsBoardOpen(!isBoardOpen)}
             className="flex items-center gap-2 px-3 py-2 
-              bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-lg
-              text-sm font-medium text-foreground
-              hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors duration-200"
+              bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-lg
+              text-[13px] font-medium text-gray-700 dark:text-gray-200
+              hover:border-gray-300 dark:hover:border-[#4a494b] transition-all duration-200"
           >
-            <FolderKanban className="w-4 h-4 text-muted-foreground" />
+            <FolderKanban className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
             <span>{currentBoard?.name || 'All Boards'}</span>
-            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 
+            <ChevronDown className={`w-3.5 h-3.5 text-gray-400 dark:text-gray-500 transition-transform duration-200 
               ${isBoardOpen ? 'rotate-180' : ''}`} 
             />
           </button>
@@ -169,12 +169,12 @@ export function DashboardFilters({
           <AnimatePresence>
             {isBoardOpen && (
               <motion.div
-                initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.15 }}
-                className="absolute z-50 mt-1 w-48 
-                  bg-white dark:bg-[#1f1f23] border border-gray-200/60 dark:border-white/[0.08] rounded-xl shadow-lg
+                className="absolute z-50 mt-1.5 w-44 
+                  bg-white dark:bg-[#333234] border border-gray-200/60 dark:border-[#3d3c3e] rounded-xl shadow-lg shadow-black/5 dark:shadow-black/30
                   py-1 overflow-hidden"
               >
                 <button
@@ -182,18 +182,18 @@ export function DashboardFilters({
                     onBoardChange(null);
                     setIsBoardOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-sm
+                  className={`w-full flex items-center justify-between px-3 py-2 text-[13px]
                     transition-colors duration-150
                     ${!boardFilter 
-                      ? 'bg-jobzai-50 dark:bg-jobzai-950/30 text-jobzai-600 dark:text-jobzai-400' 
-                      : 'text-foreground hover:bg-muted/50'
+                      ? 'bg-gray-50 dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100 font-medium' 
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/70'
                     }`}
                 >
                   <span>All Boards</span>
-                  {!boardFilter && <Check className="w-4 h-4" />}
+                  {!boardFilter && <Check className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />}
                 </button>
                 
-                <div className="h-px bg-border my-1" />
+                <div className="h-px bg-gray-100 dark:bg-[#3d3c3e]/40 my-1" />
                 
                 {boards.map((board) => (
                   <button
@@ -202,18 +202,18 @@ export function DashboardFilters({
                       onBoardChange(board.id);
                       setIsBoardOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-sm
+                    className={`w-full flex items-center justify-between px-3 py-2 text-[13px]
                       transition-colors duration-150
                       ${boardFilter === board.id 
-                        ? 'bg-jobzai-50 dark:bg-jobzai-950/30 text-jobzai-600 dark:text-jobzai-400' 
-                        : 'text-foreground hover:bg-muted/50'
+                        ? 'bg-gray-50 dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100 font-medium' 
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/70'
                       }`}
                   >
                     <div className="flex items-center gap-2">
-                      {board.icon && <span>{board.icon}</span>}
+                      {board.icon && <span className="text-sm">{board.icon}</span>}
                       <span className="truncate">{board.name}</span>
                     </div>
-                    {boardFilter === board.id && <Check className="w-4 h-4 flex-shrink-0" />}
+                    {boardFilter === board.id && <Check className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 flex-shrink-0" />}
                   </button>
                 ))}
               </motion.div>
@@ -228,13 +228,13 @@ export function DashboardFilters({
           <button
             onClick={() => setIsCampaignOpen(!isCampaignOpen)}
             className="flex items-center gap-2 px-3 py-2 
-              bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-lg
-              text-sm font-medium text-foreground
-              hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors duration-200"
+              bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-lg
+              text-[13px] font-medium text-gray-700 dark:text-gray-200
+              hover:border-gray-300 dark:hover:border-[#4a494b] transition-all duration-200"
           >
-            <Zap className="w-4 h-4 text-muted-foreground" />
+            <Zap className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
             <span>{currentCampaign?.name || 'All Campaigns'}</span>
-            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 
+            <ChevronDown className={`w-3.5 h-3.5 text-gray-400 dark:text-gray-500 transition-transform duration-200 
               ${isCampaignOpen ? 'rotate-180' : ''}`} 
             />
           </button>
@@ -242,12 +242,12 @@ export function DashboardFilters({
           <AnimatePresence>
             {isCampaignOpen && (
               <motion.div
-                initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.15 }}
-                className="absolute z-50 mt-1 w-48 
-                  bg-white dark:bg-[#1f1f23] border border-gray-200/60 dark:border-white/[0.08] rounded-xl shadow-lg
+                className="absolute z-50 mt-1.5 w-44 
+                  bg-white dark:bg-[#333234] border border-gray-200/60 dark:border-[#3d3c3e] rounded-xl shadow-lg shadow-black/5 dark:shadow-black/30
                   py-1 overflow-hidden"
               >
                 <button
@@ -255,18 +255,18 @@ export function DashboardFilters({
                     onCampaignChange(null);
                     setIsCampaignOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-sm
+                  className={`w-full flex items-center justify-between px-3 py-2 text-[13px]
                     transition-colors duration-150
                     ${!campaignFilter 
-                      ? 'bg-jobzai-50 dark:bg-jobzai-950/30 text-jobzai-600 dark:text-jobzai-400' 
-                      : 'text-foreground hover:bg-muted/50'
+                      ? 'bg-gray-50 dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100 font-medium' 
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/70'
                     }`}
                 >
                   <span>All Campaigns</span>
-                  {!campaignFilter && <Check className="w-4 h-4" />}
+                  {!campaignFilter && <Check className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />}
                 </button>
                 
-                <div className="h-px bg-border my-1" />
+                <div className="h-px bg-gray-100 dark:bg-[#3d3c3e]/40 my-1" />
                 
                 {campaigns.map((campaign) => (
                   <button
@@ -275,15 +275,15 @@ export function DashboardFilters({
                       onCampaignChange(campaign.id);
                       setIsCampaignOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-sm
+                    className={`w-full flex items-center justify-between px-3 py-2 text-[13px]
                       transition-colors duration-150
                       ${campaignFilter === campaign.id 
-                        ? 'bg-jobzai-50 dark:bg-jobzai-950/30 text-jobzai-600 dark:text-jobzai-400' 
-                        : 'text-foreground hover:bg-muted/50'
+                        ? 'bg-gray-50 dark:bg-[#3d3c3e] text-gray-900 dark:text-gray-100 font-medium' 
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/70'
                       }`}
                   >
                     <span className="truncate">{campaign.name || `Campaign ${campaign.id.slice(0, 8)}`}</span>
-                    {campaignFilter === campaign.id && <Check className="w-4 h-4 flex-shrink-0" />}
+                    {campaignFilter === campaign.id && <Check className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 flex-shrink-0" />}
                   </button>
                 ))}
               </motion.div>
@@ -294,20 +294,20 @@ export function DashboardFilters({
       
       {/* Refresh Button */}
       <div className="flex items-center gap-2 ml-auto">
-        <span className="text-xs text-muted-foreground hidden sm:inline">
-          Updated {formatLastRefresh(lastRefresh)}
+        <span className="text-[11px] text-gray-400 dark:text-gray-500 hidden sm:inline tabular-nums">
+          {formatLastRefresh(lastRefresh)}
         </span>
         <button
           onClick={onRefresh}
           disabled={isRefreshing}
-          className="flex items-center gap-2 px-3 py-2 
-            bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-lg
-            text-sm font-medium text-foreground
-            hover:bg-gray-50 dark:hover:bg-white/[0.06] disabled:opacity-50
+          className="flex items-center gap-1.5 px-2.5 py-2 
+            text-gray-500 dark:text-gray-400
+            hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/70 
+            rounded-lg disabled:opacity-50
             transition-all duration-200"
         >
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">Refresh</span>
+          <RefreshCw className={`w-4 h-4 stroke-[1.5] ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline text-[13px] font-medium">Refresh</span>
         </button>
       </div>
     </div>
@@ -315,4 +315,3 @@ export function DashboardFilters({
 }
 
 export default DashboardFilters;
-

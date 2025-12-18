@@ -3,13 +3,8 @@ import {
   Calendar, 
   Clock, 
   MapPin, 
-  Video, 
-  Phone, 
-  User, 
-  Building2,
   Download,
-  ExternalLink,
-  ChevronRight
+  ArrowUpRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -32,22 +27,7 @@ interface InterviewListProps {
   showViewAll?: boolean;
 }
 
-const getInterviewTypeIcon = (type: string) => {
-  switch (type) {
-    case 'technical':
-      return <User className="w-4 h-4" />;
-    case 'hr':
-      return <User className="w-4 h-4" />;
-    case 'manager':
-      return <User className="w-4 h-4" />;
-    case 'final':
-      return <Building2 className="w-4 h-4" />;
-    default:
-      return <Video className="w-4 h-4" />;
-  }
-};
-
-const getInterviewTypeBadge = (type: string) => {
+const getInterviewTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
     technical: 'Technical',
     hr: 'HR',
@@ -55,19 +35,7 @@ const getInterviewTypeBadge = (type: string) => {
     final: 'Final',
     other: 'Interview',
   };
-  
-  const colors: Record<string, string> = {
-    technical: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-    hr: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-    manager: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
-    final: 'bg-jobzai-100 dark:bg-jobzai-900/30 text-jobzai-700 dark:text-jobzai-400',
-    other: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400',
-  };
-  
-  return {
-    label: labels[type] || 'Interview',
-    color: colors[type] || colors.other,
-  };
+  return labels[type] || 'Interview';
 };
 
 const formatInterviewDate = (dateStr: string, timeStr: string) => {
@@ -110,14 +78,12 @@ export function InterviewList({
   
   if (displayedInterviews.length === 0) {
     return (
-      <div className={`bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-5 ${className}`}>
-        <h3 className="text-sm font-medium text-muted-foreground mb-4">Upcoming Interviews</h3>
+      <div className={`bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 ${className}`}>
+        <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide mb-5">Upcoming Interviews</h3>
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700/50 flex items-center justify-center mb-3">
-            <Calendar className="w-6 h-6 text-gray-500 dark:text-gray-400" />
-          </div>
-          <p className="text-sm text-muted-foreground">No upcoming interviews</p>
-          <p className="text-xs text-muted-foreground/70 mt-1">
+          <Calendar className="w-6 h-6 text-gray-300 dark:text-gray-600 stroke-[1.5] mb-3" />
+          <p className="text-[13px] text-gray-400 dark:text-gray-500">No upcoming interviews</p>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
             Schedule interviews from your applications
           </p>
         </div>
@@ -126,96 +92,96 @@ export function InterviewList({
   }
   
   return (
-    <div className={`bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] rounded-xl p-5 ${className}`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-muted-foreground">Upcoming Interviews</h3>
+    <div className={`bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b] ${className}`}>
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Upcoming Interviews</h3>
         {showViewAll && interviews.length > maxItems && (
           <Link
             to="/applications"
-            className="text-xs font-medium text-jobzai-600 dark:text-jobzai-400 hover:text-jobzai-700 dark:hover:text-jobzai-300 flex items-center gap-1"
+            className="text-[12px] font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 flex items-center gap-1 transition-colors"
           >
             View all
-            <ChevronRight className="w-3 h-3" />
+            <ArrowUpRight className="w-3 h-3" />
           </Link>
         )}
       </div>
       
-      <div className="space-y-3">
+      <div className="space-y-2">
         {displayedInterviews.map((interview, index) => {
           const { date, time, isUrgent } = formatInterviewDate(interview.date, interview.time);
-          const typeBadge = getInterviewTypeBadge(interview.type);
           
           return (
             <motion.div
               key={interview.id}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: index * 0.05 }}
-              className={`
-                relative p-4 rounded-xl border transition-all duration-200
-                ${isUrgent 
-                  ? 'bg-jobzai-50/50 dark:bg-jobzai-950/20 border-jobzai-200 dark:border-jobzai-800/50' 
-                  : 'bg-muted/30 border-border hover:border-jobzai-200 dark:hover:border-jobzai-800'
-                }
-              `}
+              transition={{ duration: 0.25, delay: index * 0.04 }}
+              className="group"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  {/* Company & Position */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <h4 className="text-sm font-semibold text-foreground truncate">
-                      {interview.companyName}
-                    </h4>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeBadge.color}`}>
-                      {typeBadge.label}
-                    </span>
-                  </div>
-                  
-                  <p className="text-xs text-muted-foreground truncate mb-2">
-                    {interview.position}
-                  </p>
-                  
-                  {/* Date & Time */}
-                  <div className="flex items-center gap-4 text-xs">
-                    <div className="flex items-center gap-1.5 text-foreground">
-                      <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span className={isUrgent ? 'font-semibold text-jobzai-600 dark:text-jobzai-400' : ''}>
-                        {date}
+              <Link
+                to={`/applications?id=${interview.applicationId}`}
+                className={`
+                  block p-4 -mx-2 rounded-xl transition-all duration-200
+                  hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/40
+                  ${isUrgent ? 'bg-gray-50/50 dark:bg-[#333234]/50' : ''}
+                `}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    {/* Company & Type */}
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <h4 className="text-[14px] font-semibold text-gray-900 dark:text-gray-100 truncate">
+                        {interview.companyName}
+                      </h4>
+                      <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider flex-shrink-0">
+                        {getInterviewTypeLabel(interview.type)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-foreground">
-                      <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span>{time}</span>
-                    </div>
-                    {interview.location && (
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <MapPin className="w-3.5 h-3.5" />
-                        <span className="truncate max-w-[100px]">{interview.location}</span>
+                    
+                    <p className="text-[12px] text-gray-500 dark:text-gray-400 truncate mb-2">
+                      {interview.position}
+                    </p>
+                    
+                    {/* Date & Time */}
+                    <div className="flex items-center gap-4 text-[12px]">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                        <span className={isUrgent ? 'font-semibold text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-300'}>
+                          {date}
+                        </span>
                       </div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                        <span className="text-gray-600 dark:text-gray-300">{time}</span>
+                      </div>
+                      {interview.location && (
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                          <span className="text-gray-500 dark:text-gray-400 truncate max-w-[100px]">{interview.location}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {onDownloadICS && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onDownloadICS(interview);
+                        }}
+                        className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors"
+                        title="Download calendar event"
+                      >
+                        <Download className="w-4 h-4 stroke-[1.5]" />
+                      </button>
                     )}
+                    <ArrowUpRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 transition-colors" />
                   </div>
                 </div>
-                
-                {/* Actions */}
-                <div className="flex items-center gap-1">
-                  {onDownloadICS && (
-                    <button
-                      onClick={() => onDownloadICS(interview)}
-                      className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                      title="Download calendar event"
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
-                  )}
-                  <Link
-                    to={`/applications?id=${interview.applicationId}`}
-                    className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    title="View application"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </Link>
-                </div>
-              </div>
+              </Link>
             </motion.div>
           );
         })}
@@ -225,4 +191,3 @@ export function InterviewList({
 }
 
 export default InterviewList;
-
