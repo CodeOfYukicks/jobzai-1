@@ -275,7 +275,7 @@ export const AddEventModal = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-[#2b2a2c] w-full sm:rounded-2xl rounded-t-2xl max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
+          className="bg-white dark:bg-[#2b2a2c] w-full sm:rounded-lg rounded-t-lg max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
         >
           {/* Header - Matching JobApplicationsPage */}
           <div className="px-6 py-4 border-b border-gray-100/80 dark:border-[#3d3c3e]/50 flex items-center justify-between bg-white dark:bg-[#2b2a2c] sticky top-0 z-10">
