@@ -270,7 +270,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     const starts = allItems.find(item => pathname.startsWith(item.href) && item.href !== '/');
     if (starts) return starts.name;
     if (pathname === '/' || pathname === '/dashboard') return 'Dashboard';
-    return 'Jobzai';
+    return 'Cubbbe';
   };
   const currentTitle = useMemo(() => getCurrentRouteTitle(location.pathname), [location.pathname]);
   const canGoBack = typeof window !== 'undefined' ? window.history.length > 1 : false;
@@ -466,7 +466,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               {(isDarkMode ? logoUrlDark : logoUrlLight) ? (
                 <img 
                   src={isDarkMode ? logoUrlDark : logoUrlLight} 
-                alt="Jobzai" 
+                alt="Cubbbe" 
                 className="h-7 w-auto"
                 />
               ) : (

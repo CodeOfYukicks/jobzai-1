@@ -47,7 +47,7 @@ export default function OnboardingLayout({
             {logoUrl ? (
               <img 
                 src={logoUrl} 
-                alt="Jobzai" 
+                alt="Cubbbe" 
                 className="h-8 w-auto object-contain"
               />
             ) : (

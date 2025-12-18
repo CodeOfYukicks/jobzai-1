@@ -180,7 +180,7 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
       
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'Jobzai Location Selector',
+          'User-Agent': 'Cubbbe Location Selector',
           'Accept-Language': 'en'
         }
       });

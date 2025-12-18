@@ -200,7 +200,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // Liste des domaines autorisés
 const allowedOrigins = isProduction
-  ? [process.env.PRODUCTION_DOMAIN, 'https://jobzai.com', 'https://www.jobzai.com', 'https://www.jobzai.web.app'].filter(Boolean) // Domaines de production 
+  ? [process.env.PRODUCTION_DOMAIN, 'https://cubbbe.com', 'https://www.cubbbe.com', 'https://jobzai.com', 'https://www.jobzai.com', 'https://www.jobzai.web.app'].filter(Boolean) // Domaines de production 
   : ['http://localhost:5173', 'http://localhost:4173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5177', 'http://127.0.0.1:5173', 'http://127.0.0.1:4173', 'http://127.0.0.1:5174', 'http://127.0.0.1:5175']; // Domaines de développement
 
 console.log('CORS configuration:');
@@ -2309,7 +2309,7 @@ function buildProductKnowledgeSection() {
   const faq = PRODUCT_KNOWLEDGE.faq;
   
   let section = `
-## JOBZ.AI PRODUCT KNOWLEDGE (USE THIS TO HELP USERS!)
+## CUBBBE PRODUCT KNOWLEDGE (USE THIS TO HELP USERS!)
 
 You are an expert on Cubbbe. When users ask about features, navigation, or how to do things, provide SPECIFIC, HELPFUL answers.
 
@@ -2588,6 +2588,7 @@ ${hasBoard ? `**BOARD: "${board.boardName || 'Unknown'}"**
 
 ## YOUR IDENTITY
 You are NOT a generic AI assistant. You are a specialized **${expertise.role}** built specifically for this page.
+**IMPORTANT**: This platform is called **Cubbbe** (cubbbe.com). NEVER refer to it as "Jobz.ai" or any other name.
 Your focus: **${expertise.focus}**
 Your personality: **${expertise.personality}**
 ${boardAnalysisRules}

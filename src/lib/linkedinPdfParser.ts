@@ -202,7 +202,7 @@ function normalizeDate(date: any): string {
 }
 
 /**
- * Map LinkedIn data to profile data format for Jobzai
+ * Map LinkedIn data to profile data format for Cubbbe
  */
 export function mapLinkedInToProfile(linkedInData: ParsedLinkedInProfile) {
   return {

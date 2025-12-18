@@ -35,7 +35,7 @@ function computeCountdown(target?: Date | null) {
   return { isPast, days, hours, minutes };
 }
 
-// Premium minimal tags with Jobzai violet accent
+// Premium minimal tags with Cubbbe violet accent
 type TagVariant = 'default' | 'success' | 'violet' | 'warning' | 'error';
 
 function PremiumTag({ 

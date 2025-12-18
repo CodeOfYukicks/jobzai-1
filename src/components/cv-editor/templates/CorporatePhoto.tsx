@@ -390,3 +390,4 @@ export default function CorporatePhoto({ cvData, layoutSettings, onSectionClick,
 
 
 
+

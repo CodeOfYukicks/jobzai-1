@@ -100,7 +100,7 @@ export default function TopBar({
                 transition-all duration-200
                 flex items-center cursor-pointer"
             >
-              Search across Jobzai...
+              Search across Cubbbe...
             </div>
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
               <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#3d3c3e] border border-gray-200 dark:border-[#4a494b] group-hover:border-[#635BFF]/30 transition-colors">
