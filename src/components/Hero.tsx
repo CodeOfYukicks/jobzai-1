@@ -282,24 +282,63 @@ export default function Hero() {
           <div className="absolute -inset-x-4 -bottom-4 h-24 -z-10 bg-gradient-to-b from-transparent to-gray-100/60 blur-2xl"></div>
         </motion.div>
 
-        {/* Trusted By Section */}
+        {/* Company Logos Section */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.6 }}
-          className="mt-24 w-full max-w-4xl mx-auto"
+          className="mt-24 w-full"
         >
           <p className="text-center text-sm text-gray-500 mb-8 uppercase tracking-wider font-semibold">
-            Trusted by job seekers worldwide
+            Our users landed offers at
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-8 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
-            {/* Improved placeholder logos */}
-            <div className="h-8 w-24 bg-gray-800/20 rounded"></div>
-            <div className="h-8 w-28 bg-gray-800/20 rounded"></div>
-            <div className="h-9 w-9 bg-gray-800/20 rounded-full"></div>
-            <div className="h-8 w-32 bg-gray-800/20 rounded"></div>
-            <div className="h-8 w-24 bg-gray-800/20 rounded"></div>
+          
+          {/* Logo Marquee */}
+          <div className="relative overflow-hidden py-4">
+            {/* Fade gradients */}
+            <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+            
+            {/* Marquee track */}
+            <div 
+              className="flex items-center gap-20 animate-marquee"
+              style={{
+                width: 'max-content',
+              }}
+            >
+              {/* Two sets of logos for seamless loop */}
+              {[...Array(2)].map((_, setIndex) => (
+                <div key={setIndex} className="flex items-center gap-20">
+                  <img src="https://img.logo.dev/google.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Google" className="h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
+                  <img src="https://img.logo.dev/apple.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Apple" className="h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
+                  <img src="https://img.logo.dev/microsoft.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Microsoft" className="h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
+                  <img src="https://img.logo.dev/amazon.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Amazon" className="h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
+                  <img src="https://img.logo.dev/netflix.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Netflix" className="h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
+                  <img src="https://img.logo.dev/jpmorgan.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="JPMorgan" className="h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
+                  <img src="https://img.logo.dev/spotify.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Spotify" className="h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
+                  <img src="https://img.logo.dev/tesla.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Tesla" className="h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
+                  <img src="https://img.logo.dev/adobe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Adobe" className="h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
+                  <img src="https://img.logo.dev/stripe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Stripe" className="h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
+                  <img src="https://img.logo.dev/uber.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Uber" className="h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
+                  <img src="https://img.logo.dev/airbnb.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Airbnb" className="h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
+                </div>
+              ))}
+            </div>
           </div>
+          
+          {/* CSS for marquee animation */}
+          <style>{`
+            @keyframes marquee {
+              0% { transform: translateX(0); }
+              100% { transform: translateX(-50%); }
+            }
+            .animate-marquee {
+              animation: marquee 30s linear infinite;
+            }
+            .animate-marquee:hover {
+              animation-play-state: paused;
+            }
+          `}</style>
         </motion.div>
 
       </div>

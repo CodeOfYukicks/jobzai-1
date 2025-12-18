@@ -8,6 +8,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { useAuth } from '../contexts/AuthContext';
 import {
   Activity,
+  ArrowUpRight,
   Calendar,
   Calendar as CalIcon,
   Check,
@@ -3904,107 +3905,10 @@ END:VCALENDAR`;
                 </motion.div>
               ) : (
                 <>
-                  {/* Section 1: Premium Hero Metrics */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  {/* Section 1: Hero Metrics */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {(() => {
                       const rateData = getResponseRateData();
-                      
-                      // Color configurations for each metric
-                      const getColorConfig = (rate: number, type: 'response' | 'interview' | 'offer') => {
-                        const baseColors = {
-                          response: { 
-                            gradient: 'from-violet-500 to-purple-600',
-                            bg: 'bg-violet-500',
-                            text: 'text-violet-600 dark:text-violet-400',
-                            ring: 'ring-violet-500/20',
-                            glow: 'shadow-violet-500/20'
-                          },
-                          interview: { 
-                            gradient: 'from-blue-500 to-indigo-600',
-                            bg: 'bg-blue-500',
-                            text: 'text-blue-600 dark:text-blue-400',
-                            ring: 'ring-blue-500/20',
-                            glow: 'shadow-blue-500/20'
-                          },
-                          offer: { 
-                            gradient: 'from-emerald-500 to-teal-600',
-                            bg: 'bg-emerald-500',
-                            text: 'text-emerald-600 dark:text-emerald-400',
-                            ring: 'ring-emerald-500/20',
-                            glow: 'shadow-emerald-500/20'
-                          }
-                        };
-                        return baseColors[type];
-                      };
-
-                      const getPerformanceLevel = (rate: number) => {
-                        if (rate >= 30) return { label: 'Excellent', color: 'text-emerald-600 dark:text-emerald-400', dotColor: 'bg-emerald-500' };
-                        if (rate >= 15) return { label: 'Good', color: 'text-blue-600 dark:text-blue-400', dotColor: 'bg-blue-500' };
-                        if (rate >= 5) return { label: 'Average', color: 'text-amber-600 dark:text-amber-400', dotColor: 'bg-amber-500' };
-                        return { label: 'Needs Work', color: 'text-gray-500 dark:text-gray-400', dotColor: 'bg-gray-400' };
-                      };
-                      
-                      // Circular progress component
-                      const CircularProgress = ({ value, color, size = 72 }: { value: number; color: string; size?: number }) => {
-                        const strokeWidth = 4;
-                        const radius = (size - strokeWidth) / 2;
-                        const circumference = radius * 2 * Math.PI;
-                        const offset = circumference - (value / 100) * circumference;
-                        
-                        return (
-                          <svg width={size} height={size} className="transform -rotate-90">
-                            <circle
-                              cx={size / 2}
-                              cy={size / 2}
-                              r={radius}
-                              stroke="currentColor"
-                              strokeWidth={strokeWidth}
-                              fill="none"
-                              className="text-gray-100 dark:text-[#3d3c3e]"
-                            />
-                            <motion.circle
-                              cx={size / 2}
-                              cy={size / 2}
-                              r={radius}
-                              stroke="url(#gradient)"
-                              strokeWidth={strokeWidth}
-                              fill="none"
-                              strokeLinecap="round"
-                              initial={{ strokeDashoffset: circumference }}
-                              animate={{ strokeDashoffset: offset }}
-                              transition={{ duration: 1, ease: "easeOut" }}
-                              style={{
-                                strokeDasharray: circumference,
-                              }}
-                            />
-                            <defs>
-                              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" className={color.includes('violet') ? 'text-violet-500' : color.includes('blue') ? 'text-blue-500' : 'text-emerald-500'} style={{ stopColor: 'currentColor' }} />
-                                <stop offset="100%" className={color.includes('violet') ? 'text-purple-600' : color.includes('blue') ? 'text-indigo-600' : 'text-teal-600'} style={{ stopColor: 'currentColor' }} />
-                              </linearGradient>
-                            </defs>
-                          </svg>
-                        );
-                      };
-
-                      // Mini sparkline component
-                      const TrendSparkline = ({ trend, positive }: { trend: number; positive: boolean }) => {
-                        const points = positive 
-                          ? "0,20 10,18 20,15 30,12 40,8 50,5"
-                          : "0,5 10,8 20,12 30,15 40,18 50,20";
-                        return (
-                          <svg width="50" height="24" viewBox="0 0 50 24" className="opacity-60">
-                            <polyline
-                              points={points}
-                              fill="none"
-                              stroke={positive ? '#10b981' : '#ef4444'}
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        );
-                      };
                       
                       // Different metrics for jobs vs campaigns
                       const metrics = currentBoardType === 'jobs' ? [
@@ -4013,7 +3917,6 @@ END:VCALENDAR`;
                           value: rateData.responseRate,
                           desc: 'Applications with responses',
                           trend: rateData.responseRateTrend,
-                          type: 'response' as const,
                           icon: MessageSquare
                         },
                         {
@@ -4021,7 +3924,6 @@ END:VCALENDAR`;
                           value: rateData.interviewRate,
                           desc: 'Led to interviews',
                           trend: rateData.interviewRateTrend,
-                          type: 'interview' as const,
                           icon: Users
                         },
                         {
@@ -4029,7 +3931,6 @@ END:VCALENDAR`;
                           value: rateData.offerRate,
                           desc: 'Resulted in offers',
                           trend: rateData.offerRateTrend,
-                          type: 'offer' as const,
                           icon: Check
                         }
                       ] : [
@@ -4038,7 +3939,6 @@ END:VCALENDAR`;
                           value: rateData.responseRate,
                           desc: 'Contacts that replied',
                           trend: rateData.responseRateTrend,
-                          type: 'response' as const,
                           icon: MessageSquare
                         },
                         {
@@ -4046,7 +3946,6 @@ END:VCALENDAR`;
                           value: rateData.interviewRate,
                           desc: 'Led to meetings',
                           trend: rateData.interviewRateTrend,
-                          type: 'interview' as const,
                           icon: Users
                         },
                         {
@@ -4054,788 +3953,645 @@ END:VCALENDAR`;
                           value: rateData.offerRate,
                           desc: 'Became opportunities',
                           trend: rateData.offerRateTrend,
-                          type: 'offer' as const,
                           icon: Check
                         }
                       ];
                       
                       return metrics.map((metric, i) => {
-                        const colorConfig = getColorConfig(metric.value, metric.type);
-                        const performance = getPerformanceLevel(metric.value);
                         const IconComponent = metric.icon;
+                        const isPositiveTrend = metric.trend > 0;
+                        const isNegativeTrend = metric.trend < 0;
                         
                         return (
-                        <motion.div
-                          key={metric.label}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: 0.1 * i, ease: [0.23, 1, 0.32, 1] }}
-                            className="group relative overflow-hidden bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500 hover:-translate-y-1"
+                          <motion.div
+                            key={metric.label}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 0.1 * i }}
+                            className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-5 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
                           >
-                            {/* Subtle gradient background */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-gray-50/80 via-white to-gray-50/50 dark:from-[#3d3c3e]/50 dark:via-[#2b2a2c] dark:to-[#3d3c3e]/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            
-                            {/* Accent stripe */}
-                            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${colorConfig.gradient} opacity-80`} />
-                            
-                            <div className="relative">
-                              {/* Header */}
-                              <div className="flex items-start justify-between mb-6">
-                                <div>
-                                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                                    {metric.label}
-                                  </p>
-                                  <div className="flex items-center gap-2">
-                                    <span className={`w-1.5 h-1.5 rounded-full ${performance.dotColor}`} />
-                                    <span className={`text-xs font-medium ${performance.color}`}>
-                                      {performance.label}
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <IconComponent className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                                <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                  {metric.label}
                                 </span>
                               </div>
-                            </div>
-                                <div className={`p-2.5 rounded-xl bg-gradient-to-br ${colorConfig.gradient} shadow-lg ${colorConfig.glow}`}>
-                                  <IconComponent className="w-4 h-4 text-white" />
-                            </div>
-                          </div>
                               
-                              {/* Main metric with circular progress */}
-                              <div className="flex items-center gap-5">
-                                <div className="relative">
-                                  <CircularProgress value={metric.value} color={colorConfig.gradient} />
-                                  <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
-                                      {metric.value.toFixed(0)}
-                                    </span>
-                                  </div>
+                              {/* Trend */}
+                              {metric.trend !== 0 && (
+                                <div className={`flex items-center gap-0.5 text-[11px] font-medium ${
+                                  isPositiveTrend 
+                                    ? 'text-emerald-600 dark:text-emerald-400' 
+                                    : 'text-rose-500 dark:text-rose-400'
+                                }`}>
+                                  <ArrowUpRight className={`w-3.5 h-3.5 ${isNegativeTrend ? 'rotate-180' : ''}`} />
+                                  <span>{isPositiveTrend ? '+' : ''}{metric.trend.toFixed(1)}%</span>
                                 </div>
-                                <div className="flex-1">
-                                  <div className="text-4xl font-bold text-gray-900 dark:text-white tabular-nums tracking-tight">
-                                    {metric.value.toFixed(0)}%
-                                  </div>
-                                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                    {metric.desc}
-                                  </p>
-                                </div>
-                              </div>
-                              
-                              {/* Trend indicator */}
-                              <div className="mt-5 pt-4 border-t border-gray-100 dark:border-[#3d3c3e]/50 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                            {metric.trend !== 0 ? (
-                              <>
-                                      <TrendSparkline trend={metric.trend} positive={metric.trend > 0} />
-                                      <div className="flex items-center gap-1">
-                                        <TrendingUp className={`w-3.5 h-3.5 ${metric.trend > 0 ? 'text-emerald-500' : 'text-rose-500 rotate-180'}`} />
-                                        <span className={`text-sm font-semibold tabular-nums ${metric.trend > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                          {metric.trend > 0 ? '+' : ''}{metric.trend.toFixed(1)}%
-                                </span>
-                                      </div>
-                              </>
-                            ) : (
-                                    <span className="text-xs text-gray-400 dark:text-gray-500">No change</span>
-                            )}
-                                </div>
-                                <span className="text-xs text-gray-400 dark:text-gray-500">vs last month</span>
-                              </div>
-                          </div>
-                        </motion.div>
+                              )}
+                            </div>
+                            
+                            {/* Value */}
+                            <div className="space-y-1">
+                              <p className="text-[26px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums leading-none tracking-tight">
+                                {metric.value.toFixed(1)}%
+                              </p>
+                              <p className="text-[12px] text-gray-500 dark:text-gray-400">
+                                {metric.desc}
+                              </p>
+                            </div>
+                          </motion.div>
                         );
                       });
                     })()}
                   </div>
 
-                  {/* Section 2: Premium Bento Grid - Distribution */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                  {/* Section 2: Distribution Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                     {/* Top Industries - Span 7 columns */}
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.3, ease: [0.23, 1, 0.32, 1] }}
-                      className="lg:col-span-7 group relative overflow-hidden bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
+                      transition={{ duration: 0.4, delay: 0.2 }}
+                      className="lg:col-span-7 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
                     >
-                      {/* Subtle pattern background */}
-                      <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }} />
-                      
-                      <div className="relative">
-                        <div className="flex items-center justify-between mb-6">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/20">
-                              <Briefcase className="w-4 h-4 text-white" />
+                      <div className="flex items-center gap-2 mb-5">
+                        <Briefcase className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                        <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Top Industries</h3>
                       </div>
-                            <div>
-                              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Top Industries</h3>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{getIndustryDistribution().length} tracked</p>
-                            </div>
-                          </div>
-                        </div>
                         
                       {getIndustryDistribution().length > 0 ? (
-                          <div className="space-y-4">
+                        <div className="space-y-4">
                           {getIndustryDistribution().slice(0, 5).map((item, i) => {
                             const maxCount = getIndustryDistribution()[0]?.count || 1;
                             const widthPercentage = (item.count / maxCount) * 100;
                             return (
-                                <motion.div 
-                                  key={item.industry}
-                                  initial={{ opacity: 0, x: -10 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ duration: 0.4, delay: 0.4 + 0.08 * i }}
-                                  className="group/item"
-                                >
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm font-medium text-gray-900 dark:text-white group-hover/item:text-violet-600 dark:group-hover/item:text-violet-400 transition-colors">
-                                      {item.industry}
+                              <motion.div 
+                                key={item.industry}
+                                initial={{ opacity: 0, x: -8 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.25, delay: 0.3 + 0.04 * i }}
+                                className="group"
+                              >
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <span className="text-[13px] text-gray-700 dark:text-gray-200 font-medium truncate max-w-[55%]">
+                                    {item.industry}
+                                  </span>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-[12px] text-gray-500 dark:text-gray-400 tabular-nums">
+                                      {item.count}
                                     </span>
-                                    <div className="flex items-center gap-4">
-                                      <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
-                                        {item.count} {currentBoardType === 'jobs' ? 'apps' : 'contacts'}
-                                      </span>
-                                      <span className="text-xs font-semibold text-violet-600 dark:text-violet-400 tabular-nums bg-violet-50 dark:bg-violet-900/20 px-2 py-0.5 rounded-full">
-                                        {item.interviewRate.toFixed(0)}%
+                                    <span className={`text-[11px] font-medium tabular-nums px-1.5 py-0.5 rounded ${
+                                      item.interviewRate > 30 
+                                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10' 
+                                        : item.interviewRate > 15 
+                                          ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10' 
+                                          : 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-500/10'
+                                    }`}>
+                                      {item.interviewRate.toFixed(0)}%
                                     </span>
                                   </div>
                                 </div>
-                                  <div className="relative h-2 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
+                                <div className="h-1.5 bg-gray-100 dark:bg-[#3d3c3e]/50 rounded-full overflow-hidden">
                                   <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${widthPercentage}%` }}
-                                      transition={{ duration: 0.6, delay: 0.5 + 0.08 * i, ease: [0.23, 1, 0.32, 1] }}
-                                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 to-purple-500 rounded-full"
+                                    transition={{ duration: 0.6, delay: 0.35 + 0.08 * i, ease: [0.25, 0.1, 0.25, 1] }}
+                                    className="h-full bg-gray-400 dark:bg-gray-500 rounded-full group-hover:bg-gray-500 dark:group-hover:bg-gray-400 transition-colors duration-200"
                                   />
-                                    {/* Shimmer effect */}
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/item:translate-x-full transition-transform duration-1000" />
                                 </div>
-                                </motion.div>
+                              </motion.div>
                             );
                           })}
                         </div>
                       ) : (
-                          <div className="text-center py-10">
-                            <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center mx-auto mb-3">
-                              <Briefcase className="w-5 h-5 text-gray-400" />
-                            </div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">No industry data yet</p>
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Add {currentBoardType === 'jobs' ? 'jobs' : 'contacts'} with AI extraction</p>
+                        <div className="flex items-center justify-center h-[120px]">
+                          <p className="text-[13px] text-gray-400 dark:text-gray-500">No industry data yet</p>
                         </div>
                       )}
-                      </div>
                     </motion.div>
 
                     {/* Top Technologies - Span 5 columns */}
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.4, ease: [0.23, 1, 0.32, 1] }}
-                      className="lg:col-span-5 group relative overflow-hidden bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
+                      transition={{ duration: 0.4, delay: 0.25 }}
+                      className="lg:col-span-5 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
                     >
-                      <div className="relative">
-                        <div className="flex items-center justify-between mb-6">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/20">
-                              <Code className="w-4 h-4 text-white" />
+                      <div className="flex items-center gap-2 mb-5">
+                        <Code className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                        <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Technologies</h3>
                       </div>
-                            <div>
-                              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Technologies</h3>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{getTechnologyDistribution().length} skills</p>
-                            </div>
-                          </div>
-                        </div>
                         
                       {getTechnologyDistribution().length > 0 ? (
-                          <div className="space-y-5">
-                            {/* Tag Cloud - Refined */}
-                            <div className="flex flex-wrap gap-2">
-                              {getTechnologyDistribution().slice(0, 8).map((item, i) => {
-                              const maxCount = getTechnologyDistribution()[0]?.count || 1;
-                                const intensity = Math.max(0.4, item.count / maxCount);
-                              return (
-                                <motion.span
-                                  key={item.tech}
-                                  initial={{ opacity: 0, scale: 0.8 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ duration: 0.3, delay: 0.5 + 0.05 * i }}
-                                    className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-300 hover:scale-105 cursor-default dark:border-[#3d3c3e]"
-                                    style={{
-                                      backgroundColor: `rgba(59, 130, 246, ${intensity * 0.15})`,
-                                      borderColor: `rgba(59, 130, 246, ${intensity * 0.3})`,
-                                      color: intensity > 0.6 ? '#2563eb' : '#6b7280',
-                                    }}
-                                >
-                                  {item.tech}
-                                    <span className="ml-1.5 opacity-60">{item.count}</span>
-                                </motion.span>
-                              );
-                            })}
+                        <div className="space-y-4">
+                          {/* Tag Cloud */}
+                          <div className="flex flex-wrap gap-2">
+                            {getTechnologyDistribution().slice(0, 8).map((item, i) => (
+                              <motion.span
+                                key={item.tech}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.2, delay: 0.3 + 0.03 * i }}
+                                className="px-2.5 py-1 rounded-md text-[12px] font-medium bg-gray-100 dark:bg-[#3d3c3e]/50 text-gray-600 dark:text-gray-300 border border-gray-200/60 dark:border-[#3d3c3e]/60"
+                              >
+                                {item.tech}
+                                <span className="ml-1.5 text-gray-400 dark:text-gray-500 tabular-nums">{item.count}</span>
+                              </motion.span>
+                            ))}
                           </div>
                             
-                            {/* Mini bar chart */}
-                            <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-[#3d3c3e]">
-                              {getTechnologyDistribution().slice(0, 3).map((item, i) => {
+                          {/* Mini bar chart */}
+                          <div className="space-y-2 pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50">
+                            {getTechnologyDistribution().slice(0, 3).map((item, i) => {
                               const maxCount = getTechnologyDistribution()[0]?.count || 1;
                               const widthPercentage = (item.count / maxCount) * 100;
                               return (
-                                  <div key={item.tech} className="flex items-center gap-3">
-                                    <span className="text-xs text-gray-600 dark:text-gray-400 w-20 truncate">{item.tech}</span>
-                                    <div className="flex-1 h-1.5 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
+                                <div key={item.tech} className="flex items-center gap-3 group">
+                                  <span className="text-[12px] text-gray-600 dark:text-gray-400 w-20 truncate">{item.tech}</span>
+                                  <div className="flex-1 h-1.5 bg-gray-100 dark:bg-[#3d3c3e]/50 rounded-full overflow-hidden">
                                     <motion.div
                                       initial={{ width: 0 }}
                                       animate={{ width: `${widthPercentage}%` }}
-                                        transition={{ duration: 0.5, delay: 0.6 + 0.1 * i }}
-                                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
+                                      transition={{ duration: 0.5, delay: 0.4 + 0.1 * i }}
+                                      className="h-full bg-gray-400 dark:bg-gray-500 rounded-full group-hover:bg-gray-500 dark:group-hover:bg-gray-400 transition-colors duration-200"
                                     />
                                   </div>
-                                    <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums w-6 text-right">{item.count}</span>
+                                  <span className="text-[11px] text-gray-400 dark:text-gray-500 tabular-nums w-6 text-right">{item.count}</span>
                                 </div>
                               );
                             })}
                           </div>
-                          </div>
-                        ) : (
-                          <div className="text-center py-10">
-                            <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center mx-auto mb-3">
-                              <Code className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                            </div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">No technology data yet</p>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-[120px]">
+                          <p className="text-[13px] text-gray-400 dark:text-gray-500">No technology data yet</p>
                         </div>
                       )}
-                      </div>
                     </motion.div>
 
                     {/* Seniority Distribution - Span 6 columns */}
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.5, ease: [0.23, 1, 0.32, 1] }}
-                      className="lg:col-span-6 group relative overflow-hidden bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
+                      transition={{ duration: 0.4, delay: 0.3 }}
+                      className="lg:col-span-6 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
                     >
-                      <div className="relative">
-                        <div className="flex items-center justify-between mb-6">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20">
-                              <Users className="w-4 h-4 text-white" />
+                      <div className="flex items-center gap-2 mb-5">
+                        <Users className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                        <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Seniority Levels</h3>
                       </div>
-                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Seniority Levels</h3>
-                          </div>
-                        </div>
                         
                       {getSeniorityDistribution().length > 0 ? (
-                          <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                           {getSeniorityDistribution().map((item, i) => {
                             const total = getSeniorityDistribution().reduce((sum, s) => sum + s.count, 0);
                             const percentage = total > 0 ? (item.count / total) * 100 : 0;
-                              const colors = ['from-cyan-500 to-blue-500', 'from-blue-500 to-indigo-500', 'from-indigo-500 to-violet-500', 'from-violet-500 to-purple-500'];
                             return (
-                                <motion.div 
-                                  key={item.seniority}
-                                  initial={{ opacity: 0, scale: 0.95 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  transition={{ duration: 0.4, delay: 0.6 + 0.08 * i }}
-                                  className="p-4 rounded-xl bg-gray-50/80 dark:bg-[#3d3c3e]/30 border border-gray-100 dark:border-[#3d3c3e]/50 hover:border-gray-200 dark:hover:border-[#4a494b] transition-all duration-300"
-                                >
-                                  <div className="flex items-center justify-between mb-3">
-                                    <span className="text-sm font-medium text-gray-900 dark:text-white">{item.seniority}</span>
-                                    <span className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">{percentage.toFixed(0)}%</span>
-                                  </div>
-                                  <div className="h-1.5 bg-gray-200 dark:bg-[#4a494b] rounded-full overflow-hidden">
+                              <motion.div 
+                                key={item.seniority}
+                                initial={{ opacity: 0, scale: 0.98 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.3, delay: 0.35 + 0.06 * i }}
+                                className="p-4 rounded-xl bg-gray-50/50 dark:bg-[#333234]/30 border border-gray-100 dark:border-[#3d3c3e]/50 hover:border-gray-200 dark:hover:border-[#4a494b] transition-all duration-300 group"
+                              >
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-[13px] font-medium text-gray-700 dark:text-gray-200">{item.seniority}</span>
+                                  <span className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums">{percentage.toFixed(0)}%</span>
+                                </div>
+                                <div className="h-1.5 bg-gray-100 dark:bg-[#3d3c3e]/50 rounded-full overflow-hidden">
                                   <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${percentage}%` }}
-                                      transition={{ duration: 0.6, delay: 0.7 + 0.08 * i }}
-                                      className={`h-full bg-gradient-to-r ${colors[i % colors.length]} rounded-full`}
+                                    transition={{ duration: 0.5, delay: 0.4 + 0.08 * i }}
+                                    className="h-full bg-gray-400 dark:bg-gray-500 rounded-full group-hover:bg-gray-500 dark:group-hover:bg-gray-400 transition-colors duration-200"
                                   />
                                 </div>
-                                  <div className="flex items-center justify-between mt-2">
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">{item.count} total</span>
-                                    <span className="text-xs font-medium text-cyan-600 dark:text-cyan-400">{item.interviewRate.toFixed(0)}% success</span>
-                              </div>
-                                </motion.div>
+                                <div className="flex items-center justify-between mt-2">
+                                  <span className="text-[11px] text-gray-500 dark:text-gray-400">{item.count} total</span>
+                                  <span className={`text-[11px] font-medium tabular-nums ${
+                                    item.interviewRate > 30 
+                                      ? 'text-emerald-600 dark:text-emerald-400' 
+                                      : item.interviewRate > 15 
+                                        ? 'text-amber-600 dark:text-amber-400' 
+                                        : 'text-gray-500 dark:text-gray-400'
+                                  }`}>{item.interviewRate.toFixed(0)}% success</span>
+                                </div>
+                              </motion.div>
                             );
                           })}
                         </div>
                       ) : (
-                          <div className="text-center py-8">
-                            <p className="text-sm text-gray-500 dark:text-gray-400">No seniority data available</p>
+                        <div className="flex items-center justify-center h-[120px]">
+                          <p className="text-[13px] text-gray-400 dark:text-gray-500">No seniority data available</p>
                         </div>
                       )}
-                      </div>
                     </motion.div>
 
                     {/* Employment Type - Span 6 columns */}
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.6, ease: [0.23, 1, 0.32, 1] }}
-                      className="lg:col-span-6 group relative overflow-hidden bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
+                      transition={{ duration: 0.4, delay: 0.35 }}
+                      className="lg:col-span-6 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
                     >
-                      <div className="relative">
-                        <div className="flex items-center justify-between mb-6">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/20">
-                              <Briefcase className="w-4 h-4 text-white" />
+                      <div className="flex items-center gap-2 mb-5">
+                        <Briefcase className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                        <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Employment Types</h3>
                       </div>
-                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Employment Types</h3>
-                          </div>
-                        </div>
                         
                       {getEmploymentTypeDistribution().length > 0 ? (
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                           {getEmploymentTypeDistribution().map((item, i) => {
                             const maxCount = getEmploymentTypeDistribution()[0]?.count || 1;
                             const widthPercentage = (item.count / maxCount) * 100;
                             return (
-                                <motion.div 
-                                  key={item.type}
-                                  initial={{ opacity: 0, x: -10 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ duration: 0.4, delay: 0.7 + 0.08 * i }}
-                                  className="flex items-center gap-4 p-3 rounded-xl bg-gray-50/80 dark:bg-[#3d3c3e]/30 border border-gray-100 dark:border-[#3d3c3e]/50 hover:border-emerald-200 dark:hover:border-emerald-800/50 transition-all duration-300 group/item"
-                                >
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <span className="text-sm font-medium text-gray-900 dark:text-white">{item.type}</span>
-                                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{item.count}</span>
-                                  </div>
-                                    <div className="h-1.5 bg-gray-200 dark:bg-[#4a494b] rounded-full overflow-hidden">
-                                  <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${widthPercentage}%` }}
-                                        transition={{ duration: 0.5, delay: 0.8 + 0.08 * i }}
-                                        className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
-                                  />
-                                </div>
-                              </div>
-                                  <div className="text-right">
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">Success</span>
-                                    <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{item.interviewRate.toFixed(0)}%</p>
-                                  </div>
-                                </motion.div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                          <div className="text-center py-8">
-                            <p className="text-sm text-gray-500 dark:text-gray-400">No employment type data available</p>
-                        </div>
-                      )}
-                      </div>
-                    </motion.div>
-                  </div>
-
-                  {/* Section 3: Premium Location & Success Insights */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                    {/* Location Insights - Span 8 columns */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.7, ease: [0.23, 1, 0.32, 1] }}
-                      className="lg:col-span-8 group relative overflow-hidden bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
-                    >
-                      {/* Decorative gradient */}
-                      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-indigo-500/5 to-transparent rounded-full -translate-y-1/2 translate-x-1/2" />
-                      
-                      <div className="relative">
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/20">
-                            <MapPin className="w-4 h-4 text-white" />
-                    </div>
-                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Location Insights</h3>
-                        </div>
-                        
-                    {(() => {
-                      const locationData = getLocationInsights();
-                      return (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                              {/* Work Arrangement - Visual cards */}
-                          <div>
-                                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Work Arrangement</h4>
-                            <div className="space-y-3">
-                                  {locationData.byType.map((item, i) => {
-                                    const icons: Record<string, any> = {
-                                      'Remote': '🏠',
-                                      'Hybrid': '🔀',
-                                      'On-site': '🏢',
-                                      'Flexible': '✨'
-                                    };
-                                    return (
-                                      <motion.div 
-                                        key={item.type}
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ duration: 0.3, delay: 0.8 + 0.1 * i }}
-                                        className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-gray-50 to-gray-50/50 dark:from-[#3d3c3e]/50 dark:to-[#3d3c3e]/30 border border-gray-100 dark:border-[#3d3c3e]/50 hover:border-indigo-200 dark:hover:border-indigo-800/50 transition-all duration-300"
-                                      >
-                                        <div className="flex items-center gap-3">
-                                          <span className="text-lg">{icons[item.type] || '📍'}</span>
-                                    <span className="text-sm font-medium text-gray-900 dark:text-white">{item.type}</span>
-                                  </div>
-                                        <div className="flex items-center gap-3">
-                                          <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">{item.count}</span>
-                                          <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 tabular-nums bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1 rounded-md">
-                                            {item.interviewRate.toFixed(0)}%
-                                    </span>
-                                  </div>
-                                      </motion.div>
-                                    );
-                                  })}
-                                </div>
-                            </div>
-                              
-                              {/* Top Locations - Ranked list */}
-                          <div>
-                                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Top Locations</h4>
-                            <div className="space-y-2">
-                              {locationData.byLocation.slice(0, 5).map((item, i) => (
-                                    <motion.div 
-                                      key={item.location}
-                                      initial={{ opacity: 0, x: 10 }}
-                                      animate={{ opacity: 1, x: 0 }}
-                                      transition={{ duration: 0.3, delay: 0.8 + 0.1 * i }}
-                                      className="flex items-center gap-3"
-                                    >
-                                      <span className="text-xs font-bold text-gray-300 dark:text-gray-500 w-4 tabular-nums">
-                                        {i + 1}
-                                      </span>
-                                      <div className="flex-1 flex items-center justify-between py-2 border-b border-gray-100 dark:border-[#3d3c3e]/50">
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">{item.location}</span>
+                              <motion.div 
+                                key={item.type}
+                                initial={{ opacity: 0, x: -8 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.25, delay: 0.4 + 0.04 * i }}
+                                className="group"
+                              >
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <span className="text-[13px] text-gray-700 dark:text-gray-200 font-medium">{item.type}</span>
                                   <div className="flex items-center gap-3">
-                                          <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">{item.count}</span>
-                                          <span className="text-xs font-semibold text-violet-600 dark:text-violet-400 tabular-nums">
+                                    <span className="text-[12px] text-gray-500 dark:text-gray-400 tabular-nums">{item.count}</span>
+                                    <span className={`text-[11px] font-medium tabular-nums px-1.5 py-0.5 rounded ${
+                                      item.interviewRate > 30 
+                                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10' 
+                                        : item.interviewRate > 15 
+                                          ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10' 
+                                          : 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-500/10'
+                                    }`}>
                                       {item.interviewRate.toFixed(0)}%
                                     </span>
                                   </div>
                                 </div>
-                                    </motion.div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                      </div>
-                  </motion.div>
-
-                    {/* Success Patterns - Span 4 columns */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.8, ease: [0.23, 1, 0.32, 1] }}
-                      className="lg:col-span-4 group relative overflow-hidden bg-gradient-to-br from-violet-50 via-white to-indigo-50 dark:from-violet-950/30 dark:via-[#2b2a2c] dark:to-indigo-950/30 rounded-2xl border border-violet-200/60 dark:border-violet-800/30 p-6"
-                    >
-                      {/* Decorative elements */}
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-violet-500/10 to-transparent rounded-full" />
-                      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-500/10 to-transparent rounded-full" />
-                      
-                      <div className="relative">
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/20">
-                            <Sparkles className="w-4 h-4 text-white" />
-                          </div>
-                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Your Sweet Spots</h3>
-                        </div>
-                        
-                    {(() => {
-                      const patterns = getSuccessPatterns();
-                          const rateLabel = currentBoardType === 'jobs' ? 'success' : 'reply';
-                          
-                          const insights = [
-                            patterns.bestSeniority && {
-                              label: 'Best Level',
-                              value: patterns.bestSeniority.seniority,
-                              rate: patterns.bestSeniority.interviewRate,
-                              icon: Target,
-                              color: 'from-emerald-500 to-teal-500'
-                            },
-                            patterns.bestLocationType && {
-                              label: 'Best Arrangement',
-                              value: patterns.bestLocationType.type,
-                              rate: patterns.bestLocationType.interviewRate,
-                              icon: MapPin,
-                              color: 'from-blue-500 to-indigo-500'
-                            },
-                            patterns.topIndustries[0] && {
-                              label: 'Top Industry',
-                              value: patterns.topIndustries[0].industry,
-                              rate: patterns.topIndustries[0].interviewRate,
-                              icon: TrendingUp,
-                              color: 'from-violet-500 to-purple-500'
-                            }
-                          ].filter(Boolean);
-                          
-                          return (
-                            <div className="space-y-4">
-                              {insights.map((insight: any, i) => {
-                                const IconComp = insight.icon;
-                                return (
+                                <div className="h-1.5 bg-gray-100 dark:bg-[#3d3c3e]/50 rounded-full overflow-hidden">
                                   <motion.div
-                                    key={insight.label}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.4, delay: 0.9 + 0.1 * i }}
-                                    className="p-4 rounded-xl bg-white/70 dark:bg-[#3d3c3e]/50 backdrop-blur-sm border border-white dark:border-[#3d3c3e]/50 shadow-sm"
-                                  >
-                                    <div className="flex items-start justify-between">
-                                      <div className="flex-1">
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{insight.label}</p>
-                                        <p className="text-base font-bold text-gray-900 dark:text-white leading-tight">
-                                          {insight.value}
-                                        </p>
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${widthPercentage}%` }}
+                                    transition={{ duration: 0.5, delay: 0.45 + 0.08 * i }}
+                                    className="h-full bg-gray-400 dark:bg-gray-500 rounded-full group-hover:bg-gray-500 dark:group-hover:bg-gray-400 transition-colors duration-200"
+                                  />
                                 </div>
-                                      <div className={`flex items-center gap-1 px-2 py-1 rounded-lg bg-gradient-to-r ${insight.color} text-white text-xs font-bold shadow-sm`}>
-                                        {insight.rate.toFixed(0)}%
-                            </div>
-                                    </div>
-                                  </motion.div>
-                                );
-                              })}
-                              
-                              {/* Top Technologies mini section */}
-                              {patterns.topTechnologies.length > 0 && (
-                                <div className="pt-4 border-t border-violet-200/50 dark:border-violet-800/30">
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Hot Technologies</p>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {patterns.topTechnologies.slice(0, 5).map((tech) => (
-                                <span
-                                  key={tech.tech}
-                                        className="px-2 py-1 text-xs font-medium rounded-md bg-white dark:bg-[#3d3c3e]/80 border border-gray-200 dark:border-[#4a494b] text-gray-700 dark:text-gray-300"
-                                >
-                                  {tech.tech}
-                                </span>
-                              ))}
-                            </div>
-                            </div>
-                              )}
-                            </div>
-                          );
-                        })()}
-                          </div>
-                        </motion.div>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-[120px]">
+                          <p className="text-[13px] text-gray-400 dark:text-gray-500">No employment type data available</p>
+                        </div>
+                      )}
+                    </motion.div>
                   </div>
 
-                  {/* Section 5: Premium Timeline & Time Metrics */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                    {/* Timeline Chart - Span 8 columns */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.9, ease: [0.23, 1, 0.32, 1] }}
-                      className="lg:col-span-8 group relative overflow-hidden bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-6 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30 transition-all duration-500"
+                  {/* Section 3: Location & Success Insights */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    {/* Location Insights - Span 8 columns */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: 0.4 }}
+                      className="lg:col-span-8 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
                     >
-                      {/* Grid pattern background */}
-                      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-                      
-                      <div className="relative">
-                        <div className="flex items-center justify-between mb-8">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 shadow-lg shadow-blue-500/20">
-                              <Activity className="w-4 h-4 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                                {currentBoardType === 'jobs' ? 'Applications' : 'Outreach'} Over Time
-                              </h3>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Last 6 months activity</p>
-                            </div>
-                    </div>
-
-                          {/* Legend - Horizontal pills */}
-                          <div className="hidden md:flex items-center gap-2 flex-wrap">
-                            {(currentBoardType === 'jobs' ? [
-                              { label: 'Applied', color: 'bg-blue-500' },
-                              { label: 'Interview', color: 'bg-violet-500' },
-                              { label: 'Offer', color: 'bg-emerald-500' }
-                            ] : [
-                              { label: 'Contacted', color: 'bg-blue-500' },
-                              { label: 'Replied', color: 'bg-cyan-500' },
-                              { label: 'Meeting', color: 'bg-violet-500' }
-                            ]).map(item => (
-                              <div key={item.label} className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
-                                <div className={`w-2 h-2 rounded-full ${item.color}`} />
-                                <span className="text-xs text-gray-600 dark:text-gray-400">{item.label}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Premium Chart Area */}
-                        <div className="relative h-52">
-                          {/* Y-axis labels */}
-                          <div className="absolute left-0 top-0 bottom-8 w-8 flex flex-col justify-between text-right pr-2">
-                            <span className="text-[10px] text-gray-400 tabular-nums">max</span>
-                            <span className="text-[10px] text-gray-400 tabular-nums">0</span>
-                          </div>
-                          
-                          {/* Chart grid and bars */}
-                          <div className="ml-10 h-full flex items-end justify-between gap-2 relative">
-                            {/* Horizontal grid lines */}
-                            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                              {[0, 1, 2, 3].map(i => (
-                                <div key={i} className="border-b border-gray-100 dark:border-[#4a494b]/50 border-dashed" />
-                              ))}
-                            </div>
-                            
-                      {getMonthlyApplicationData().map(([month, data], i) => {
-                        const total = currentBoardType === 'jobs' 
-                          ? (data.applied || 0) + (data.interviews || 0) + (data.pending || 0) + (data.offers || 0) + (data.rejected || 0)
-                          : (data.targets || 0) + (data.contacted || 0) + (data.follow_up || 0) + (data.replied || 0) + (data.meeting || 0) + (data.opportunity || 0);
-                              
-                              const allTotals = getMonthlyApplicationData().map(([_, d]) => 
-                                currentBoardType === 'jobs' 
-                                  ? (d.applied || 0) + (d.interviews || 0) + (d.pending || 0) + (d.offers || 0) + (d.rejected || 0)
-                                  : (d.targets || 0) + (d.contacted || 0) + (d.follow_up || 0) + (d.replied || 0) + (d.meeting || 0) + (d.opportunity || 0)
-                              );
-                              const maxTotal = Math.max(...allTotals, 1);
-                              const heightPercent = (total / maxTotal) * 100;
-                              
-                        const segments = currentBoardType === 'jobs' ? [
-                                { type: 'rejected', count: data.rejected || 0, color: 'from-rose-400 to-rose-500' },
-                                { type: 'offers', count: data.offers || 0, color: 'from-emerald-400 to-emerald-500' },
-                                { type: 'pending', count: data.pending || 0, color: 'from-amber-400 to-amber-500' },
-                                { type: 'interviews', count: data.interviews || 0, color: 'from-violet-400 to-violet-500' },
-                                { type: 'applied', count: data.applied || 0, color: 'from-blue-400 to-blue-500' }
-                              ] : [
-                                { type: 'opportunity', count: data.opportunity || 0, color: 'from-emerald-400 to-emerald-500' },
-                                { type: 'meeting', count: data.meeting || 0, color: 'from-violet-400 to-violet-500' },
-                                { type: 'replied', count: data.replied || 0, color: 'from-cyan-400 to-cyan-500' },
-                                { type: 'follow_up', count: data.follow_up || 0, color: 'from-amber-400 to-amber-500' },
-                                { type: 'contacted', count: data.contacted || 0, color: 'from-blue-400 to-blue-500' },
-                                { type: 'targets', count: data.targets || 0, color: 'from-gray-300 to-gray-400' }
-                        ];
-
+                      <div className="flex items-center gap-2 mb-5">
+                        <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                        <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Location Insights</h3>
+                      </div>
+                        
+                      {(() => {
+                        const locationData = getLocationInsights();
                         return (
-                                <div key={month} className="flex-1 flex flex-col items-center gap-2 group/bar relative">
-                                  {/* Tooltip on hover */}
-                                  <div className="absolute bottom-full mb-2 opacity-0 group-hover/bar:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                                    <div className="bg-gray-900 dark:bg-[#3d3c3e] text-white dark:text-white text-xs px-2 py-1 rounded-lg shadow-lg whitespace-nowrap">
-                                      <span className="font-semibold">{total}</span> total
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Work Arrangement */}
+                            <div>
+                              <h4 className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Work Arrangement</h4>
+                              <div className="space-y-2">
+                                {locationData.byType.map((item, i) => (
+                                  <motion.div 
+                                    key={item.type}
+                                    initial={{ opacity: 0, x: -8 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ duration: 0.25, delay: 0.45 + 0.04 * i }}
+                                    className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-[#3d3c3e]/50 last:border-0"
+                                  >
+                                    <span className="text-[13px] font-medium text-gray-700 dark:text-gray-200">{item.type}</span>
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-[12px] text-gray-500 dark:text-gray-400 tabular-nums">{item.count}</span>
+                                      <span className={`text-[11px] font-medium tabular-nums px-1.5 py-0.5 rounded ${
+                                        item.interviewRate > 30 
+                                          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10' 
+                                          : item.interviewRate > 15 
+                                            ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10' 
+                                            : 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-500/10'
+                                      }`}>
+                                        {item.interviewRate.toFixed(0)}%
+                                      </span>
                                     </div>
-                                  </div>
-                                  
-                                  {/* Bar container */}
-                                  <div className="w-full max-w-12 h-36 flex flex-col-reverse items-center relative rounded-t-lg overflow-hidden bg-gray-50 dark:bg-[#3d3c3e]/50">
-                              {segments.map((segment, j) => {
-                                      const segmentHeight = total > 0 ? (segment.count / total) * heightPercent : 0;
-                                      return segment.count > 0 ? (
-                                  <motion.div
-                                    key={segment.type}
-                                    initial={{ height: 0 }}
-                                          animate={{ height: `${segmentHeight}%` }}
-                                          transition={{ duration: 0.6, delay: 1.0 + 0.05 * j + 0.08 * i, ease: [0.23, 1, 0.32, 1] }}
-                                          className={`w-full bg-gradient-to-t ${segment.color}`}
-                                        />
-                                      ) : null;
-                              })}
+                                  </motion.div>
+                                ))}
+                              </div>
                             </div>
-                                  
-                                  {/* Month label */}
-                                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                              {new Date(month).toLocaleDateString(undefined, { month: 'short' })}
-                                  </span>
+                              
+                            {/* Top Locations */}
+                            <div>
+                              <h4 className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Top Locations</h4>
+                              <div className="space-y-2">
+                                {locationData.byLocation.slice(0, 5).map((item, i) => (
+                                  <motion.div 
+                                    key={item.location}
+                                    initial={{ opacity: 0, x: 8 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ duration: 0.25, delay: 0.45 + 0.04 * i }}
+                                    className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-[#3d3c3e]/50 last:border-0"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[11px] font-medium text-gray-300 dark:text-gray-600 tabular-nums w-4">{i + 1}</span>
+                                      <span className="text-[13px] text-gray-700 dark:text-gray-200">{item.location}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-[12px] text-gray-500 dark:text-gray-400 tabular-nums">{item.count}</span>
+                                      <span className={`text-[11px] font-medium tabular-nums ${
+                                        item.interviewRate > 30 
+                                          ? 'text-emerald-600 dark:text-emerald-400' 
+                                          : item.interviewRate > 15 
+                                            ? 'text-amber-600 dark:text-amber-400' 
+                                            : 'text-gray-500 dark:text-gray-400'
+                                      }`}>
+                                        {item.interviewRate.toFixed(0)}%
+                                      </span>
+                                    </div>
+                                  </motion.div>
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         );
-                      })}
-                          </div>
-                    </div>
+                      })()}
+                    </motion.div>
 
-                        {/* Mobile legend */}
-                        <div className="flex md:hidden justify-center mt-4 gap-3 flex-wrap">
-                      {(currentBoardType === 'jobs' ? [
-                        { label: 'Applied', color: 'bg-blue-500' },
-                            { label: 'Interview', color: 'bg-violet-500' },
-                        { label: 'Pending', color: 'bg-amber-500' },
-                            { label: 'Offer', color: 'bg-emerald-500' },
-                            { label: 'Rejected', color: 'bg-rose-500' }
-                      ] : [
-                        { label: 'Targets', color: 'bg-gray-400' },
-                        { label: 'Contacted', color: 'bg-blue-500' },
-                        { label: 'Follow-up', color: 'bg-amber-500' },
-                        { label: 'Replied', color: 'bg-cyan-500' },
-                            { label: 'Meeting', color: 'bg-violet-500' },
-                            { label: 'Opportunity', color: 'bg-emerald-500' }
-                      ]).map(item => (
+                    {/* Success Patterns - Span 4 columns */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: 0.45 }}
+                      className="lg:col-span-4 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
+                    >
+                      <div className="flex items-center gap-2 mb-5">
+                        <Sparkles className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                        <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Your Sweet Spots</h3>
+                      </div>
+                        
+                      {(() => {
+                        const patterns = getSuccessPatterns();
+                          
+                        const insights = [
+                          patterns.bestSeniority && {
+                            label: 'Best Level',
+                            value: patterns.bestSeniority.seniority,
+                            rate: patterns.bestSeniority.interviewRate,
+                          },
+                          patterns.bestLocationType && {
+                            label: 'Best Arrangement',
+                            value: patterns.bestLocationType.type,
+                            rate: patterns.bestLocationType.interviewRate,
+                          },
+                          patterns.topIndustries[0] && {
+                            label: 'Top Industry',
+                            value: patterns.topIndustries[0].industry,
+                            rate: patterns.topIndustries[0].interviewRate,
+                          }
+                        ].filter(Boolean);
+                          
+                        return (
+                          <div className="space-y-3">
+                            {insights.map((insight: any, i) => (
+                              <motion.div
+                                key={insight.label}
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.25, delay: 0.5 + 0.06 * i }}
+                                className="p-3 rounded-xl bg-gray-50/50 dark:bg-[#333234]/30 border border-gray-100 dark:border-[#3d3c3e]/50"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-0.5">{insight.label}</p>
+                                    <p className="text-[14px] font-semibold text-gray-900 dark:text-gray-100">{insight.value}</p>
+                                  </div>
+                                  <span className={`text-[12px] font-medium tabular-nums px-2 py-1 rounded ${
+                                    insight.rate > 30 
+                                      ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10' 
+                                      : insight.rate > 15 
+                                        ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10' 
+                                        : 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-500/10'
+                                  }`}>
+                                    {insight.rate.toFixed(0)}%
+                                  </span>
+                                </div>
+                              </motion.div>
+                            ))}
+                              
+                            {/* Top Technologies */}
+                            {patterns.topTechnologies.length > 0 && (
+                              <div className="pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50">
+                                <p className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Top Technologies</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {patterns.topTechnologies.slice(0, 5).map((tech) => (
+                                    <span
+                                      key={tech.tech}
+                                      className="px-2 py-1 text-[11px] font-medium rounded-md bg-gray-100 dark:bg-[#3d3c3e]/50 text-gray-600 dark:text-gray-300"
+                                    >
+                                      {tech.tech}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </motion.div>
+                  </div>
+
+                  {/* Section 5: Timeline & Time Metrics */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    {/* Timeline Chart - Span 8 columns */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: 0.5 }}
+                      className="lg:col-span-8 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
+                    >
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-2">
+                          <Activity className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                          <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">
+                            {currentBoardType === 'jobs' ? 'Applications' : 'Outreach'} Over Time
+                          </h3>
+                        </div>
+
+                        {/* Legend */}
+                        <div className="hidden md:flex items-center gap-3">
+                          {(currentBoardType === 'jobs' ? [
+                            { label: 'Applied', color: 'bg-gray-400' },
+                            { label: 'Interview', color: 'bg-gray-500' },
+                            { label: 'Offer', color: 'bg-gray-600' }
+                          ] : [
+                            { label: 'Contacted', color: 'bg-gray-400' },
+                            { label: 'Replied', color: 'bg-gray-500' },
+                            { label: 'Meeting', color: 'bg-gray-600' }
+                          ]).map(item => (
                             <div key={item.label} className="flex items-center gap-1.5">
                               <div className={`w-2 h-2 rounded-full ${item.color}`} />
-                              <span className="text-xs text-gray-500">{item.label}</span>
+                              <span className="text-[11px] text-gray-500 dark:text-gray-400">{item.label}</span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
+
+                      {/* Chart Area */}
+                      <div className="relative h-44">
+                        {/* Y-axis labels */}
+                        <div className="absolute left-0 top-0 bottom-8 w-6 flex flex-col justify-between text-right pr-1">
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">max</span>
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">0</span>
                         </div>
-                    </div>
-                  </motion.div>
+                        
+                        {/* Chart grid and bars */}
+                        <div className="ml-8 h-full flex items-end justify-between gap-2 relative">
+                          {/* Horizontal grid lines */}
+                          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                            {[0, 1, 2, 3].map(i => (
+                              <div key={i} className="border-b border-gray-100 dark:border-[#3d3c3e]/50 border-dashed" />
+                            ))}
+                          </div>
+                          
+                          {getMonthlyApplicationData().map(([month, data], i) => {
+                            const total = currentBoardType === 'jobs' 
+                              ? (data.applied || 0) + (data.interviews || 0) + (data.pending || 0) + (data.offers || 0) + (data.rejected || 0)
+                              : (data.targets || 0) + (data.contacted || 0) + (data.follow_up || 0) + (data.replied || 0) + (data.meeting || 0) + (data.opportunity || 0);
+                              
+                            const allTotals = getMonthlyApplicationData().map(([_, d]) => 
+                              currentBoardType === 'jobs' 
+                                ? (d.applied || 0) + (d.interviews || 0) + (d.pending || 0) + (d.offers || 0) + (d.rejected || 0)
+                                : (d.targets || 0) + (d.contacted || 0) + (d.follow_up || 0) + (d.replied || 0) + (d.meeting || 0) + (d.opportunity || 0)
+                            );
+                            const maxTotal = Math.max(...allTotals, 1);
+                            const heightPercent = (total / maxTotal) * 100;
+                              
+                            return (
+                              <div key={month} className="flex-1 flex flex-col items-center gap-2 group/bar relative">
+                                {/* Tooltip on hover */}
+                                <div className="absolute bottom-full mb-2 opacity-0 group-hover/bar:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                                  <div className="bg-gray-900 dark:bg-[#3d3c3e] text-white text-[11px] px-2 py-1 rounded-md shadow-lg whitespace-nowrap">
+                                    <span className="font-semibold tabular-nums">{total}</span> total
+                                  </div>
+                                </div>
+                                
+                                {/* Bar */}
+                                <div className="w-full max-w-10 h-32 flex flex-col-reverse items-center relative rounded-t-md overflow-hidden bg-gray-100 dark:bg-[#3d3c3e]/50">
+                                  <motion.div
+                                    initial={{ height: 0 }}
+                                    animate={{ height: `${heightPercent}%` }}
+                                    transition={{ duration: 0.5, delay: 0.55 + 0.06 * i, ease: [0.25, 0.1, 0.25, 1] }}
+                                    className="w-full bg-gray-400 dark:bg-gray-500 group-hover/bar:bg-gray-500 dark:group-hover/bar:bg-gray-400 transition-colors duration-200"
+                                  />
+                                </div>
+                                
+                                {/* Month label */}
+                                <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                  {new Date(month).toLocaleDateString(undefined, { month: 'short' })}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Mobile legend */}
+                      <div className="flex md:hidden justify-center mt-3 gap-3 flex-wrap">
+                        {(currentBoardType === 'jobs' ? [
+                          { label: 'Applied', color: 'bg-gray-400' },
+                          { label: 'Interview', color: 'bg-gray-500' },
+                          { label: 'Offer', color: 'bg-gray-600' }
+                        ] : [
+                          { label: 'Contacted', color: 'bg-gray-400' },
+                          { label: 'Replied', color: 'bg-gray-500' },
+                          { label: 'Meeting', color: 'bg-gray-600' }
+                        ]).map(item => (
+                          <div key={item.label} className="flex items-center gap-1.5">
+                            <div className={`w-2 h-2 rounded-full ${item.color}`} />
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400">{item.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
 
                     {/* Time Metrics - Span 4 columns */}
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 1.0, ease: [0.23, 1, 0.32, 1] }}
+                      transition={{ duration: 0.4, delay: 0.55 }}
                       className="lg:col-span-4 flex flex-col gap-4"
                     >
-                    {(currentBoardType === 'jobs' ? [
-                      {
+                      {(currentBoardType === 'jobs' ? [
+                        {
                           label: 'Days to Interview',
                           sublabel: 'Average response time',
-                        value: getAverageTimeData().avgDaysToInterview,
-                          icon: Clock,
-                          color: 'from-blue-500 to-cyan-500',
-                          bgColor: 'from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30',
-                          borderColor: 'border-blue-200/60 dark:border-blue-800/40'
-                      },
-                      {
+                          value: getAverageTimeData().avgDaysToInterview,
+                          icon: Clock
+                        },
+                        {
                           label: 'Days to Offer',
                           sublabel: 'Full pipeline duration',
-                        value: getAverageTimeData().avgDaysToOffer,
-                          icon: CheckCircle,
-                          color: 'from-emerald-500 to-teal-500',
-                          bgColor: 'from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30',
-                          borderColor: 'border-emerald-200/60 dark:border-emerald-800/40'
-                      }
-                    ] : [
-                      {
+                          value: getAverageTimeData().avgDaysToOffer,
+                          icon: CheckCircle
+                        }
+                      ] : [
+                        {
                           label: 'Days to Reply',
                           sublabel: 'Average response time',
-                        value: getAverageTimeData().avgDaysToInterview,
-                          icon: Clock,
-                          color: 'from-blue-500 to-cyan-500',
-                          bgColor: 'from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30',
-                          borderColor: 'border-blue-200/60 dark:border-blue-800/40'
-                      },
-                      {
+                          value: getAverageTimeData().avgDaysToInterview,
+                          icon: Clock
+                        },
+                        {
                           label: 'Days to Meeting',
                           sublabel: 'Full pipeline duration',
-                        value: getAverageTimeData().avgDaysToOffer,
-                          icon: CheckCircle,
-                          color: 'from-emerald-500 to-teal-500',
-                          bgColor: 'from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30',
-                          borderColor: 'border-emerald-200/60 dark:border-emerald-800/40'
-                      }
+                          value: getAverageTimeData().avgDaysToOffer,
+                          icon: CheckCircle
+                        }
                       ]).map((metric, i) => {
                         const IconComp = metric.icon;
                         return (
-                      <motion.div
-                        key={metric.label}
-                            initial={{ opacity: 0, x: 20 }}
+                          <motion.div
+                            key={metric.label}
+                            initial={{ opacity: 0, x: 16 }}
                             animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.4, delay: 1.1 + 0.1 * i }}
-                            className={`flex-1 relative overflow-hidden bg-gradient-to-br ${metric.bgColor} rounded-2xl border ${metric.borderColor} p-5 hover:shadow-lg transition-all duration-300`}
+                            transition={{ duration: 0.3, delay: 0.6 + 0.08 * i }}
+                            className="flex-1 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-5 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
                           >
-                            {/* Decorative circle */}
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-white/50 dark:from-[#3d3c3e]/30 to-transparent rounded-full -translate-y-1/2 translate-x-1/2" />
-                            
-                            <div className="relative flex items-start justify-between">
-                          <div>
-                                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                                  {metric.label}
-                                </p>
-                                <div className="flex items-baseline gap-2 mb-1">
-                                  <span className="text-4xl font-bold text-gray-900 dark:text-white tabular-nums">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                  <IconComp className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                                  <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                    {metric.label}
+                                  </span>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-[26px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums leading-none">
                                     {metric.value}
                                   </span>
-                                  <span className="text-sm text-gray-500 dark:text-gray-400">days</span>
-                            </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{metric.sublabel}</p>
+                                  <span className="text-[13px] text-gray-500 dark:text-gray-400">days</span>
+                                </div>
+                                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">{metric.sublabel}</p>
                               </div>
-                              <div className={`p-3 rounded-xl bg-gradient-to-br ${metric.color} shadow-lg`}>
-                                <IconComp className="w-5 h-5 text-white" />
-                          </div>
-                        </div>
-                      </motion.div>
+                            </div>
+                          </motion.div>
                         );
                       })}
                     </motion.div>

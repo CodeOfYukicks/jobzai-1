@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { KanbanBoard } from '../types/job';
 import {
   Mic,
+  MicOff,
   Play,
   Square,
   Building,
@@ -247,10 +248,12 @@ export default function MockInterviewPage() {
     error: hookError,
     isAISpeaking,
     elapsedTime: hookElapsedTime,
+    isMuted,
     connect,
     disconnect,
     concludeInterview,
     getFullTranscript,
+    toggleMute,
     inputAudioLevel,
     outputAudioLevel,
   } = useRealtimeInterview();
@@ -1675,13 +1678,14 @@ export default function MockInterviewPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="mt-8 flex flex-col items-center gap-2"
+              className="mt-8 flex flex-col items-center gap-4"
             >
+              {/* AI Status */}
               <div className="flex items-center gap-2">
                 <motion.span 
                   animate={{
-                    scale: getOrbState() !== 'idle' ? [1, 1.3, 1] : 1,
-                    opacity: getOrbState() !== 'idle' ? [0.6, 1, 0.6] : 0.4
+                    scale: getOrbState() !== 'idle' && !isMuted ? [1, 1.3, 1] : 1,
+                    opacity: getOrbState() !== 'idle' && !isMuted ? [0.6, 1, 0.6] : 0.4
                   }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                   className={`w-2 h-2 rounded-full ${
@@ -1708,6 +1712,51 @@ export default function MockInterviewPage() {
                     : 'AI Interviewer'}
                 </span>
               </div>
+
+              {/* Premium Mute Button */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={toggleMute}
+                className={`group relative flex items-center gap-2.5 px-5 py-2.5 rounded-full backdrop-blur-md transition-all duration-300 ${
+                  isMuted
+                    ? 'bg-red-500/15 border border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.15)]'
+                    : 'bg-white/5 dark:bg-white/[0.03] border border-white/10 dark:border-white/[0.08] hover:bg-white/10 dark:hover:bg-white/[0.06] hover:border-white/20 dark:hover:border-white/15'
+                }`}
+              >
+                {/* Animated ring when muted */}
+                {isMuted && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: [0.5, 0.2, 0.5], scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute inset-0 rounded-full border border-red-500/50"
+                  />
+                )}
+                
+                {/* Icon */}
+                <div className={`relative p-1.5 rounded-full transition-colors ${
+                  isMuted 
+                    ? 'bg-red-500/20' 
+                    : 'bg-white/5 dark:bg-white/[0.05] group-hover:bg-white/10'
+                }`}>
+                  {isMuted ? (
+                    <MicOff className="h-4 w-4 text-red-400" />
+                  ) : (
+                    <Mic className="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-gray-300" />
+                  )}
+                </div>
+                
+                {/* Label */}
+                <span className={`text-sm font-medium transition-colors ${
+                  isMuted 
+                    ? 'text-red-400' 
+                    : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-300'
+                }`}>
+                  {isMuted ? 'Tap to unmute' : 'Mute mic'}
+                </span>
+              </motion.button>
+
               {selectedApplication && (
                 <p className="text-xs text-gray-400 dark:text-gray-500">
                   Interview for {selectedApplication.position}

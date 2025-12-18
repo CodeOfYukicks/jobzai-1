@@ -48,12 +48,14 @@ export interface UseRealtimeInterviewReturn {
   error: string | null;
   isAISpeaking: boolean;
   elapsedTime: number;
+  isMuted: boolean;
   
   // Actions
   connect: (jobContext: JobContext, userProfile: UserProfile) => Promise<void>;
   disconnect: () => void;
   concludeInterview: () => void;
   getFullTranscript: () => TranscriptEntry[];
+  toggleMute: () => void;
   
   // Audio levels (for UI visualization)
   inputAudioLevel: number;
@@ -83,6 +85,7 @@ export function useRealtimeInterview(): UseRealtimeInterviewReturn {
   const [inputAudioLevel, setInputAudioLevel] = useState(0);
   const [outputAudioLevel, setOutputAudioLevel] = useState(0);
   const [isAISpeaking, setIsAISpeaking] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   
   // Timer state
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -106,6 +109,7 @@ export function useRealtimeInterview(): UseRealtimeInterviewReturn {
   const jobContextRef = useRef<JobContext | null>(null);
   const userProfileRef = useRef<UserProfile | null>(null);
   const sessionReadyRef = useRef<boolean>(false);
+  const isMutedRef = useRef<boolean>(false);
   
   // Audio playback queue
   const audioQueueRef = useRef<AudioBuffer[]>([]);
@@ -656,27 +660,31 @@ Be warm but professional. Your name is Alex.`,
         const { type, audio, level } = event.data;
         
         if (type === 'audio' && wsRef.current?.readyState === WebSocket.OPEN) {
-          sendEvent({
-            type: 'input_audio_buffer.append',
-            audio,
-          });
-          lastAudioTimeRef.current = Date.now();
-          
-          // Reset silence timeout
-          if (silenceTimeoutRef.current) {
-            clearTimeout(silenceTimeoutRef.current);
-          }
-          
-          // Set silence fallback timeout
-          silenceTimeoutRef.current = setTimeout(() => {
-            // Manual commit if server VAD didn't trigger
-            if (wsRef.current?.readyState === WebSocket.OPEN) {
-              console.log('⏱️ Silence timeout - committing audio buffer');
-              sendEvent({ type: 'input_audio_buffer.commit' });
+          // Only send audio if not muted
+          if (!isMutedRef.current) {
+            sendEvent({
+              type: 'input_audio_buffer.append',
+              audio,
+            });
+            lastAudioTimeRef.current = Date.now();
+            
+            // Reset silence timeout
+            if (silenceTimeoutRef.current) {
+              clearTimeout(silenceTimeoutRef.current);
             }
-          }, SILENCE_TIMEOUT_MS);
+            
+            // Set silence fallback timeout
+            silenceTimeoutRef.current = setTimeout(() => {
+              // Manual commit if server VAD didn't trigger
+              if (wsRef.current?.readyState === WebSocket.OPEN && !isMutedRef.current) {
+                console.log('⏱️ Silence timeout - committing audio buffer');
+                sendEvent({ type: 'input_audio_buffer.commit' });
+              }
+            }, SILENCE_TIMEOUT_MS);
+          }
         } else if (type === 'volume') {
-          setInputAudioLevel(level);
+          // Show audio level even when muted (so user can see their mic is working)
+          setInputAudioLevel(isMutedRef.current ? 0 : level);
         }
       };
       
@@ -897,6 +905,13 @@ Be warm but professional. Keep it brief (30 seconds max). Do NOT ask any more qu
     });
   }, [stopAudioPlayback, sendEvent]);
 
+  const toggleMute = useCallback(() => {
+    const newMutedState = !isMutedRef.current;
+    isMutedRef.current = newMutedState;
+    setIsMuted(newMutedState);
+    console.log(newMutedState ? '🔇 Microphone muted' : '🔊 Microphone unmuted');
+  }, []);
+
   const getFullTranscript = useCallback((): TranscriptEntry[] => {
     // Filter out empty entries (unfilled placeholders from speech_started)
     return transcript.filter(entry => entry.text && entry.text.trim().length > 0);
@@ -915,10 +930,12 @@ Be warm but professional. Keep it brief (30 seconds max). Do NOT ask any more qu
     error,
     isAISpeaking,
     elapsedTime,
+    isMuted,
     connect,
     disconnect,
     concludeInterview,
     getFullTranscript,
+    toggleMute,
     inputAudioLevel,
     outputAudioLevel,
   };

@@ -761,7 +761,7 @@ export default function FeatureSection() {
 
   return (
     <section id="features" className="pt-8 pb-16 lg:pt-12 lg:pb-24">
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-6">
         {/* Section Title */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -769,8 +769,8 @@ export default function FeatureSection() {
           viewport={{ once: true }}
           className="mb-10"
         >
-          <h2 className="text-5xl lg:text-6xl font-black text-gray-900 tracking-tight">
-            Introducing <span className="italic">Jobz.ai</span>
+          <h2 className="text-5xl lg:text-6xl font-black text-gray-900 tracking-tight" style={{ fontWeight: 900 }}>
+            Introducing <span className="italic font-black">Cubbbe 3.0</span>
           </h2>
         </motion.div>
 
@@ -796,18 +796,18 @@ export default function FeatureSection() {
 
       {/* Savings Calculator - Full Width White Bar */}
       <div className="bg-white mt-12">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-6">
           <SavingsCalculator />
         </div>
       </div>
 
       {/* Try For Free Section */}
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-6">
         <TryForFree />
       </div>
 
       {/* Press Quote - Back to container */}
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-6">
         <PressQuote />
       </div>
     </section>
