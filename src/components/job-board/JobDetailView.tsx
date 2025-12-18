@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import { CompanyLogo } from '../common/CompanyLogo';
-import { Job, buildMatchSummary } from '../../types/job-board';
+import { Job } from '../../types/job-board';
 import { KanbanBoard } from '../../types/job';
-import { Building2, MapPin, Clock, Share2, Bookmark, Heart, Target, Briefcase, GraduationCap, Code, AlertTriangle, Users, X, Link2, Linkedin, Mail, MessageCircle, Award, Brain, DollarSign, Wrench, TrendingUp, Sparkles, ChevronDown, ChevronUp, Zap } from 'lucide-react';
+import { Building2, MapPin, Clock, Share2, Bookmark, Heart, Target, Briefcase, GraduationCap, Code, AlertTriangle, Users, X, Link2, Linkedin, Mail, MessageCircle, Award, Brain, TrendingUp, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy } from 'firebase/firestore';
@@ -344,12 +344,10 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                 {/* Header */}
                 <div className="mb-8">
                     <div className="flex items-start justify-between mb-6">
-                        <div className="w-20 h-20 bg-white rounded-2xl border border-gray-100 dark:border-[#3d3c3e] shadow-sm p-2 flex items-center justify-center">
-                            <CompanyLogo
-                                companyName={job.company}
-                                size="xl"
-                            />
-                        </div>
+                        <CompanyLogo
+                            companyName={job.company}
+                            size="2xl"
+                        />
                         <div className="flex gap-2">
                             {/* Share Button with Dropdown */}
                             <div ref={shareMenuRef} className="relative">
@@ -620,17 +618,11 @@ function MatchScoreItem({ icon, label, score, maxScore }: {
 }
 
 /**
- * V6.0 Match Explanation Section
- * Enhanced UI showing why this job matches the user, skill gaps, and detailed breakdown
+ * V6.1 Match Explanation Section - Simplified
+ * Compact UI showing score, role type, and skill gaps only
  */
 function MatchExplanationSection({ job }: { job: Job }) {
     const [isExpanded, setIsExpanded] = useState(false);
-    
-    // Build match summary from details
-    const matchSummary = useMemo(() => 
-        buildMatchSummary(job.matchScore || 0, job.matchDetails, job.matchReasons),
-        [job.matchScore, job.matchDetails, job.matchReasons]
-    );
     
     const getScoreColor = (score: number) => {
         if (score >= 70) return 'bg-emerald-500';
@@ -645,145 +637,61 @@ function MatchExplanationSection({ job }: { job: Job }) {
         if (score >= 35) return 'Partial Match';
         return 'Low Match';
     };
-    
-    // Get icon for reason type
-    const getReasonIcon = (type: string) => {
-        switch (type) {
-            case 'skill': return <Wrench className="w-4 h-4" />;
-            case 'experience': return <TrendingUp className="w-4 h-4" />;
-            case 'location': return <MapPin className="w-4 h-4" />;
-            case 'culture': return <Users className="w-4 h-4" />;
-            case 'salary': return <DollarSign className="w-4 h-4" />;
-            case 'network': return <Building2 className="w-4 h-4" />;
-            case 'certification': return <Award className="w-4 h-4" />;
-            case 'semantic': return <Brain className="w-4 h-4" />;
-            case 'collaborative': return <Sparkles className="w-4 h-4" />;
-            default: return <Zap className="w-4 h-4" />;
-        }
-    };
-    
-    const getStrengthColor = (strength: string) => {
-        switch (strength) {
-            case 'strong': return 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
-            case 'moderate': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800';
-            default: return 'bg-gray-100 dark:bg-gray-800/30 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700';
-        }
-    };
+
+    const roleLabel = job.roleFunction && job.roleFunction !== 'other' 
+        ? job.roleFunction.charAt(0).toUpperCase() + job.roleFunction.slice(1).replace(/_/g, ' ') + ' role'
+        : null;
+
+    const skillGaps = job.matchDetails?.skillGaps?.slice(0, 5) || [];
 
     return (
-        <div className="mb-8 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800 overflow-hidden">
-            {/* Header */}
-            <div className="p-6 pb-4">
-                <div className="flex items-center justify-between mb-4">
+        <div className="mb-8 rounded-xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-200 dark:border-[#3d3c3e] overflow-hidden">
+            {/* Compact Header */}
+            <div className="p-4">
+                <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${getScoreColor(job.matchScore || 0)} shadow-lg`}>
-                            <span className="text-white font-bold text-xl">{job.matchScore}</span>
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getScoreColor(job.matchScore || 0)}`}>
+                            <span className="text-white font-bold text-sm">{job.matchScore}</span>
                         </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="font-semibold text-gray-900 dark:text-white">
                                 {getScoreLabel(job.matchScore || 0)}
-                            </h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {job.roleFunction && job.roleFunction !== 'other' 
-                                    ? `${job.roleFunction.charAt(0).toUpperCase() + job.roleFunction.slice(1).replace(/_/g, ' ')} role`
-                                    : 'Based on your profile'}
-                            </p>
+                            </span>
+                            {roleLabel && (
+                                <>
+                                    <span className="text-gray-400">·</span>
+                                    <span className="text-gray-500 dark:text-gray-400">{roleLabel}</span>
+                                </>
+                            )}
                         </div>
                     </div>
-                    <button
-                        onClick={() => setIsExpanded(!isExpanded)}
-                        className="p-2 rounded-lg hover:bg-white/50 dark:hover:bg-[#2b2a2c]/50 transition-colors text-gray-500"
-                    >
-                        {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                    </button>
+                    {job.matchDetails && (
+                        <button
+                            onClick={() => setIsExpanded(!isExpanded)}
+                            className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3d3c3e] transition-colors text-gray-400"
+                        >
+                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+                    )}
                 </div>
                 
-                {/* Why This Matches - Top Reasons */}
-                {matchSummary && matchSummary.topReasons.length > 0 && (
-                    <div className="mb-4">
-                        <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                            Why this job matches you
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                            {matchSummary.topReasons.map((reason, idx) => (
-                                <span 
-                                    key={idx}
-                                    className={`inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border ${getStrengthColor(reason.strength)}`}
-                                >
-                                    {getReasonIcon(reason.type)}
-                                    {reason.text}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                )}
-                
-                {/* Fallback: Simple Match Reasons */}
-                {(!matchSummary || matchSummary.topReasons.length === 0) && job.matchReasons && job.matchReasons.length > 0 && (
-                    <div className="mb-4 flex flex-wrap gap-2">
-                        {job.matchReasons.map((reason, idx) => (
-                            <span 
-                                key={idx} 
-                                className="text-sm px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                            >
-                                ✓ {reason}
-                            </span>
-                        ))}
-                    </div>
-                )}
-                
-                {/* V6.0: Matched Skills */}
-                {job.matchDetails?.matchedCoreSkills && job.matchDetails.matchedCoreSkills.length > 0 && (
-                    <div className="mb-4">
-                        <h4 className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                            <Wrench className="w-3 h-3" />
-                            Your matching skills
-                        </h4>
-                        <div className="flex flex-wrap gap-1.5">
-                            {job.matchDetails.matchedCoreSkills.slice(0, 8).map((skill, idx) => (
-                                <span 
-                                    key={idx}
-                                    className="text-xs px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                                >
-                                    {skill}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                )}
-                
-                {/* V6.0: Skill Gaps */}
-                {job.matchDetails?.skillGaps && job.matchDetails.skillGaps.length > 0 && (
-                    <div className="mb-4">
-                        <h4 className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                {/* Skills to develop - inline compact */}
+                {skillGaps.length > 0 && (
+                    <div className="mt-3 flex items-center gap-2 text-xs">
+                        <span className="text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1 shrink-0">
                             <AlertTriangle className="w-3 h-3" />
-                            Skills to develop
-                        </h4>
-                        <div className="flex flex-wrap gap-1.5">
-                            {job.matchDetails.skillGaps.slice(0, 5).map((skill, idx) => (
+                            Skills to develop:
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                            {skillGaps.map((skill, idx) => (
                                 <span 
                                     key={idx}
-                                    className="text-xs px-2 py-1 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                                    className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
                                 >
                                     {skill}
                                 </span>
                             ))}
                         </div>
-                    </div>
-                )}
-                
-                {/* Exclude Reasons (warnings) */}
-                {job.excludeReasons && job.excludeReasons.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                        {job.excludeReasons.map((reason, idx) => (
-                            <span 
-                                key={idx} 
-                                className="text-xs px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 flex items-center gap-1 border border-red-200 dark:border-red-800"
-                            >
-                                <AlertTriangle className="w-3 h-3" />
-                                {reason}
-                            </span>
-                        ))}
                     </div>
                 )}
             </div>

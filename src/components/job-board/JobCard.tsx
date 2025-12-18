@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { MapPin, Clock, Sparkles, ChevronDown, ChevronUp, CheckCircle2, AlertTriangle, Bookmark, X } from 'lucide-react';
+import React from 'react';
+import { MapPin, Clock, Sparkles, Bookmark, X } from 'lucide-react';
 import { CompanyLogo } from '../common/CompanyLogo';
 import { Job } from '../../types/job-board';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface JobCardProps {
     job: Job;
@@ -49,15 +48,8 @@ export function JobCard({
     onSave,
     onDismiss
 }: JobCardProps) {
-    const [showReasons, setShowReasons] = useState(false);
     const matchScore = job.matchScore;
     const scoreColors = matchScore ? getMatchScoreColor(matchScore) : null;
-    const hasReasons = showMatchScore && ((job.matchReasons && job.matchReasons.length > 0) || (job.excludeReasons && job.excludeReasons.length > 0));
-
-    const handleToggleReasons = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setShowReasons(!showReasons);
-    };
 
     const handleSave = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -120,11 +112,9 @@ export function JobCard({
             )}
 
             <div className="flex gap-4">
-                {/* Large Square Logo */}
+                {/* Premium Square Logo */}
                 <div className="shrink-0">
-                    <div className="w-16 h-16 rounded-lg bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] flex items-center justify-center p-1 shadow-sm">
-                        <CompanyLogo companyName={job.company} size="xl" />
-                    </div>
+                    <CompanyLogo companyName={job.company} size="xl" />
                 </div>
 
                 {/* Content */}
@@ -173,49 +163,6 @@ export function JobCard({
                     </div>
                 </div>
             </div>
-
-            {/* Why This Job? - Expandable Section */}
-            {hasReasons && (
-                <div className="mt-3 pt-3 border-t border-gray-100 dark:border-[#3d3c3e]">
-                    <button
-                        onClick={handleToggleReasons}
-                        className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
-                    >
-                        <Sparkles className="w-3 h-3" />
-                        Why this job?
-                        {showReasons ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                    </button>
-
-                    <AnimatePresence>
-                        {showReasons && (
-                            <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="overflow-hidden"
-                            >
-                                <div className="mt-2 space-y-1.5">
-                                    {/* Positive reasons */}
-                                    {job.matchReasons?.map((reason, idx) => (
-                                        <div key={`pos-${idx}`} className="flex items-start gap-1.5 text-xs">
-                                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                                            <span className="text-gray-600 dark:text-gray-400">{reason}</span>
-                                        </div>
-                                    ))}
-                                    {/* Negative reasons / warnings */}
-                                    {job.excludeReasons?.map((reason, idx) => (
-                                        <div key={`neg-${idx}`} className="flex items-start gap-1.5 text-xs">
-                                            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                                            <span className="text-gray-500 dark:text-gray-500">{reason}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-            )}
         </div>
     );
 }

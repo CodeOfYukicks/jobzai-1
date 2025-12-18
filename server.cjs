@@ -6354,39 +6354,53 @@ app.post('/api/campaigns/generate-variant', verifyFirebaseToken, async (req, res
     let systemPrompt = '';
     
     if (type === 'hook') {
-      systemPrompt = language === 'fr' ? `Génère UNE phrase d'accroche pour un email professionnel.
+      systemPrompt = language === 'fr' ? `Génère UNE accroche d'email qui donne envie de lire la suite. Écris comme un humain, pas comme une IA.
 
-CONTEXTE: ${goalContext[outreachGoal]}
+BUT: ${goalContext[outreachGoal]}
 
-RÈGLES STRICTES:
-- COMMENCER par mentionner LinkedIn (ex: "J'ai vu votre profil sur LinkedIn")
-- Maximum 1-2 phrases courtes
-- Utilise les champs de fusion: {{firstName}}, {{company}}, {{position}}
+✅ ACCROCHES QUI MARCHENT:
+- "Hey {{firstName}}, je suis tombé sur ton profil et j'ai vu que tu gères la tech chez {{company}}. Cool."
+- "Salut {{firstName}}, en cherchant des {{position}} sur LinkedIn, ton profil m'a interpellé."
+- "{{firstName}}, j'ai vu ce que fait {{company}} en ce moment. Intéressant."
+
+❌ NUL (on zappe direct):
+- "Cher {{firstName}}, je suis passionné par les opportunités chez {{company}}..."
+- "Bonjour, votre parcours exceptionnel m'a beaucoup impressionné..."
+
+RÈGLES:
+- 1-2 phrases max, comme un message LinkedIn
+- Commence par "Hey", "Salut" ou directement {{firstName}}
+- Mentionne LinkedIn OU un truc spécifique sur eux
 - ${toneInstructions[tone]}
-- DIFFÉRENT des variantes existantes
-- Pas de mots comme "passionné", "opportunité incroyable"
-- Adapte le message au contexte: ${outreachGoal === 'job' ? 'recherche emploi' : outreachGoal === 'internship' ? 'recherche stage' : 'simple networking'}
+- INTERDITS: "passionné", "impressionné", "opportunité", "exceptionnel"
 
-Variantes existantes à éviter:
+Déjà utilisées (évite):
 ${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'Aucune'}
 
-Génère UNIQUEMENT l'accroche commençant par LinkedIn, sans explications.` : `Generate ONE opening hook for a professional outreach email.
+Génère l'accroche, rien d'autre.` : `Generate ONE email hook that makes people want to read more. Write like a human, not AI.
 
-CONTEXT: ${goalContext[outreachGoal]}
+GOAL: ${goalContext[outreachGoal]}
 
-STRICT RULES:
-- START by mentioning LinkedIn (e.g., "I came across your profile on LinkedIn")
-- Maximum 1-2 short sentences
-- Use merge fields: {{firstName}}, {{company}}, {{position}}
+✅ HOOKS THAT WORK:
+- "Hey {{firstName}}, came across your profile and saw you're running eng at {{company}}. Nice."
+- "{{firstName}}, I was looking for {{position}}s on LinkedIn and your profile stood out."
+- "Saw what {{company}} is doing lately. Pretty interesting."
+
+❌ BAD (instant delete):
+- "Dear {{firstName}}, I am passionate about the opportunities at {{company}}..."
+- "Hello, your exceptional career path has deeply impressed me..."
+
+RULES:
+- 1-2 sentences max, like a LinkedIn DM
+- Start with "Hey", "Hi" or just {{firstName}}
+- Mention LinkedIn OR something specific about them
 - ${toneInstructions[tone]}
-- DIFFERENT from existing variants
-- No words like "passionate", "amazing opportunity"
-- Adapt message to context: ${outreachGoal === 'job' ? 'job search' : outreachGoal === 'internship' ? 'internship search' : 'networking only'}
+- BANNED: "passionate", "impressed", "opportunity", "exceptional", "excited"
 
-Existing variants to avoid:
+Already used (avoid):
 ${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'None'}
 
-Generate ONLY the hook starting with LinkedIn mention, no explanations.`;
+Just the hook, nothing else.`;
     } else if (type === 'body') {
       // Build sender context from actual profile data
       const senderContext = [];
@@ -6406,72 +6420,57 @@ Generate ONLY the hook starting with LinkedIn mention, no explanations.`;
       
       const contextStr = senderContext.length > 0 ? `\n\nSENDER INFO:\n${senderContext.join('\n')}` : '';
       
-      systemPrompt = language === 'fr' ? `Génère UN corps d'email court pour un email professionnel.
+      systemPrompt = language === 'fr' ? `Génère LE CORPS d'un email (pas l'accroche, pas le CTA). Écris naturellement.
 
-CONTEXTE: 
-- Ce corps vient APRÈS une accroche et AVANT un call-to-action
+CE QUE TU FAIS:
+- 2 phrases MAX qui expliquent ton background et pourquoi tu les contactes
+- Vient APRÈS "Hey {{firstName}}, [accroche]" et AVANT "T'aurais 15 min?"
 - But: ${goalContext[outreachGoal]}
 
-RÈGLES STRICTES:
-- MAXIMUM 2 phrases courtes
-- Parle à la PREMIÈRE PERSONNE ("Je", jamais "Il" ou un nom)
-- Commence par "Je" ou "J'ai" (PAS de salutation)
-- EXPLIQUE ton background/intérêt pour ${outreachGoal === 'job' ? 'un poste' : outreachGoal === 'internship' ? 'un stage' : 'échanger'}
-- PAS de question, PAS de demande de meeting
-- Utilise {{company}} ou {{position}} si pertinent
+✅ BON (naturel, direct):
+${outreachGoal === 'job' ? '- "Je bosse dans le dev depuis 5 ans et ce que fait {{company}} en data m\'intéresse vraiment."\n- "J\'ai bossé sur des systèmes scalables et je cherche de nouveaux challenges."' : ''}
+${outreachGoal === 'internship' ? '- "Je finis mon master en info et {{company}} serait parfait pour mon stage de fin d\'études."\n- "J\'ai déjà fait un stage en dev et votre approche me parle."' : ''}
+${outreachGoal === 'networking' ? '- "Je suis dans le même secteur et y\'a un truc sur lequel j\'aimerais ton avis."\n- "J\'ai vu votre approche sur [X] et ça m\'a interpellé."' : ''}
+
+❌ NUL:
+- "Mon expertise extensive en développement me permet d'offrir une valeur significative..."
+- "Je serais ravi de contribuer à votre entreprise innovante..."
+
+RÈGLES:
+- Première personne ("Je"), jamais troisième
+- PAS de question, PAS de demande - juste le contexte
 - ${toneInstructions[tone]}
-- Reste factuel et professionnel
+- INTERDITS: "expertise", "ravi", "innovant", "valeur ajoutée"${contextStr}
 
-EXEMPLES selon le contexte:
-${outreachGoal === 'job' ? '- "Je suis dev backend avec 5 ans d\'expérience et {{company}} m\'intéresse pour son travail en tech."\n- "J\'ai développé des apps scalables et je cherche des opportunités chez {{company}}."' : ''}
-${outreachGoal === 'internship' ? '- "Je termine mes études en informatique et {{company}} serait idéal pour mon stage."\n- "Je cherche un stage en développement et vos projets m\'intéressent vraiment."' : ''}
-${outreachGoal === 'networking' ? '- "Je suis dev backend et j\'aimerais échanger avec des {{position}} sur leur expérience."\n- "Je m\'intéresse au secteur de {{company}} et j\'aimerais en apprendre plus."' : ''}
-
-INTERDIT:
-- Parler à la 3e personne
-- Poser une question
-- Demander quoi que ce soit
-- Mots pompeux ("extensive expertise", "greatly benefit", "innovative")${contextStr}
-
-Variantes existantes à éviter:
+Déjà utilisées:
 ${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'Aucune'}
 
-Génère 2 phrases. Explique juste ton intérêt/background pour ${outreachGoal}.` : `Generate ONE short email body for a professional outreach email.
+2 phrases qui expliquent qui tu es et pourquoi tu écris.` : `Generate THE BODY of an email (not the hook, not the CTA). Write naturally.
 
-CONTEXT: This body comes AFTER an opening hook and BEFORE a call-to-action.
+WHAT YOU'RE DOING:
+- 2 sentences MAX explaining your background and why you're reaching out
+- Comes AFTER "Hey {{firstName}}, [hook]" and BEFORE "Got 15 min?"
+- Goal: ${goalContext[outreachGoal]}
 
-STRICT RULES:
-- MAXIMUM 2 short sentences
-- Speak in FIRST PERSON ("I", never third person or a name)
-- Start with "I" or "I'm" (NO greeting)
-- EXPLAIN WHY you're reaching out (interest in company, relevant background)
-- NO questions, NO meeting requests
-- Use {{company}} or {{position}} if relevant
+✅ GOOD (natural, direct):
+${outreachGoal === 'job' ? '- "I\'ve been in dev for 5 years and what {{company}} is doing in data really caught my attention."\n- "I\'ve worked on scalable systems and I\'m looking for new challenges."' : ''}
+${outreachGoal === 'internship' ? '- "I\'m finishing my CS degree and {{company}} would be perfect for my internship."\n- "I\'ve done a dev internship before and your approach really resonates with me."' : ''}
+${outreachGoal === 'networking' ? '- "I\'m in the same space and there\'s something I\'d love to get your take on."\n- "Saw your approach to [X] and it really got me thinking."' : ''}
+
+❌ BAD:
+- "My extensive expertise in development allows me to provide significant value..."
+- "I would be thrilled to contribute to your innovative company..."
+
+RULES:
+- First person ("I"), never third
+- NO questions, NO asks - just context
 - ${toneInstructions[tone]}
-- Stay factual and professional
+- BANNED: "expertise", "thrilled", "innovative", "value proposition"${contextStr}
 
-EXAMPLES FOR JOB SEARCH:
-- "I'm a backend developer actively looking for new opportunities at {{company}}."
-- "I have 5 years in data science and I'm exploring new roles in your field."
-
-EXAMPLES FOR INTERNSHIP:
-- "I'm finishing my degree and actively seeking an internship at {{company}}."
-- "I'm a student looking for an internship opportunity in your team."
-
-EXAMPLES FOR NETWORKING:
-- "I'm a developer interested in {{company}}'s approach to tech."
-- "I'd love to learn from {{position}}s about their experience."
-
-FORBIDDEN:
-- Third person
-- Asking questions ("Would you...", "Are you...")
-- Requesting anything
-- Pompous words ("extensive expertise", "greatly benefit", "innovative")${contextStr}
-
-Existing variants to avoid:
+Already used:
 ${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'None'}
 
-Generate 2 sentences. Just explain your interest/background.`;
+2 sentences explaining who you are and why you're writing.`;
     } else if (type === 'cta') {
       const ctaGuidelines = {
         job: language === 'fr'
@@ -6485,35 +6484,57 @@ Generate 2 sentences. Just explain your interest/background.`;
           : 'Just ask for an informal chat, not actively looking'
       };
       
-      systemPrompt = language === 'fr' ? `Génère UN call-to-action pour un email professionnel.
+const senderName = userProfile.firstName || '[Sender name]';
+      
+      systemPrompt = language === 'fr' ? `Génère UN call-to-action + signature pour finir l'email. Simple et direct.
 
-CONTEXTE: ${goalContext[outreachGoal]}
+EXPÉDITEUR: ${senderName}
+BUT: ${goalContext[outreachGoal]}
+
+✅ CTAs QUI MARCHENT:
+- "T'aurais 15 min pour en discuter ?\\n\\nÀ+,\\n${senderName}"
+- "Ce serait cool d'échanger si t'es dispo cette semaine.\\n\\n${senderName}"
+- "Dis-moi si t'as un créneau, je m'adapte.\\n\\n${senderName}"
+
+❌ NUL:
+- "Je serais extrêmement reconnaissant si vous pouviez m'accorder un entretien..."
+- "Dans l'attente de votre retour, je reste à votre entière disposition..."
 
 RÈGLES:
-- Maximum 1-2 phrases + signature
-- ${toneInstructions[tone]}
-- DIFFÉRENT des variantes existantes
+- 1 phrase + signature
+- LA SIGNATURE DOIT ÊTRE "${senderName}" - c'est le prénom de l'expéditeur
 - ${ctaGuidelines[outreachGoal]}
-- Signe avec ${userProfile.firstName || 'le prénom'}
+- ${toneInstructions[tone]}
+- INTERDITS: "disposition", "reconnaissant", "entretien formel"
 
-Variantes existantes à éviter:
+Déjà utilisées:
 ${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'Aucune'}
 
-Génère UNIQUEMENT le CTA avec signature, sans explications.` : `Generate ONE call-to-action for a professional outreach email.
+CTA + signature avec "${senderName}", c'est tout.` : `Generate ONE call-to-action + signature to close the email. Simple and direct.
 
-CONTEXT: ${goalContext[outreachGoal]}
+SENDER: ${senderName}
+GOAL: ${goalContext[outreachGoal]}
+
+✅ CTAs THAT WORK:
+- "Got 15 min for a quick chat?\\n\\nCheers,\\n${senderName}"
+- "Would be great to connect if you're free this week.\\n\\n${senderName}"
+- "Let me know if you have a slot - I'm flexible.\\n\\nBest,\\n${senderName}"
+
+❌ BAD:
+- "I would be extremely grateful if you could grant me an interview..."
+- "Looking forward to your response, I remain at your disposal..."
 
 RULES:
-- Maximum 1-2 sentences + signature
-- ${toneInstructions[tone]}
-- DIFFERENT from existing variants
+- 1 sentence + signature
+- THE SIGNATURE MUST BE "${senderName}" - this is the sender's first name
 - ${ctaGuidelines[outreachGoal]}
-- Sign with ${userProfile.firstName || 'first name'}
+- ${toneInstructions[tone]}
+- BANNED: "grateful", "disposal", "formal interview"
 
-Existing variants to avoid:
+Already used:
 ${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'None'}
 
-Generate ONLY the CTA with signature, no explanations.`;
+CTA + signature with "${senderName}", that's it.`;
     }
     
     const openaiClient = await getOpenAIClient();
@@ -6529,31 +6550,34 @@ Generate ONLY the CTA with signature, no explanations.`;
         ? `Génère 2 PHRASES MAX. Première personne ("Je"). Explique POURQUOI tu contactes. PAS de question. PAS de demande. Juste ton intérêt/background.`
         : `Generate 2 SENTENCES MAX. First person ("I"). Explain WHY you're reaching out. NO question. NO ask. Just your interest/background.`;
     } else if (type === 'cta') {
-      const ctaExamples = {
-        job: language === 'fr'
-          ? 'Ex: "Seriez-vous disponible pour un échange rapide cette semaine?\\n\\nCordialement,\\nAlex"'
-          : 'Ex: "Would you have time for a quick call this week?\\n\\nBest,\\nAlex"',
-        internship: language === 'fr'
-          ? 'Ex: "Pourriez-vous me parler de vos programmes de stage?\\n\\nMerci,\\nAlex"'
-          : 'Ex: "Could we chat about your internship programs?\\n\\nThanks,\\nAlex"',
-        networking: language === 'fr'
-          ? 'Ex: "J\'aimerais échanger sur votre parcours, seriez-vous dispo?\\n\\nBien à vous,\\nAlex"'
-          : 'Ex: "I\'d love to learn about your journey. Free for a chat?\\n\\nCheers,\\nAlex"'
-      };
+      const senderFirstName = userProfile.firstName || '[Your first name]';
       
       userPrompt = language === 'fr'
-        ? `Génère un CTA pour ${outreachGoal === 'job' ? 'recherche emploi' : outreachGoal === 'internship' ? 'recherche stage' : 'networking'}. ${ctaExamples[outreachGoal]}. PAS d'accroche, PAS de corps. Juste CTA + signature.`
-        : `Generate CTA for ${outreachGoal === 'job' ? 'job search' : outreachGoal === 'internship' ? 'internship search' : 'networking'}. ${ctaExamples[outreachGoal]}. NO hook, NO body. Just CTA + signature.`;
+        ? `Génère UN CTA + signature pour finir l'email. SIGNE AVEC: ${senderFirstName}
+
+Exemple de format:
+"T'aurais 15 min pour en discuter?
+
+${senderFirstName}"
+
+IMPORTANT: La signature DOIT être "${senderFirstName}" (pas un autre prénom). Juste le CTA + signature, rien d'autre.`
+        : `Generate ONE CTA + signature to close the email. SIGN WITH: ${senderFirstName}
+
+Example format:
+"Got 15 min for a quick chat?
+
+${senderFirstName}"
+
+IMPORTANT: The signature MUST be "${senderFirstName}" (not a different name). Just CTA + signature, nothing else.`;
     }
     
     const completion = await openaiClient.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5.2-chat-latest",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
-      temperature: 0.9,
-      max_tokens: 150
+      max_completion_tokens: 150
     });
     
     let variant = completion.choices[0]?.message?.content?.trim() || '';
@@ -6643,79 +6667,108 @@ app.post('/api/campaigns/generate-templates', verifyFirebaseToken, async (req, r
         : 'Not actively looking, just want to connect'
     };
 
-    const systemPrompt = language === 'fr' ? `Tu es un expert en rédaction d'emails de networking professionnel.
+    const systemPrompt = language === 'fr' ? `Tu es un copywriter expert spécialisé dans les cold emails qui obtiennent des réponses (taux de réponse 30%+).
 
 CONTEXTE: ${goalContext[outreachGoal]}
 
-OBJECTIF: Créer ${count} templates d'emails DIFFÉRENTS avec des champs de fusion.
+OBJECTIF: Créer ${count} templates d'emails AUTHENTIQUES et HUMAINS avec des champs de fusion.
 
-CHAMPS DE FUSION DISPONIBLES:
-- {{firstName}} - Prénom du destinataire
-- {{lastName}} - Nom du destinataire
-- {{company}} - Nom de l'entreprise
-- {{position}} - Poste du destinataire
-- {{location}} - Localisation
+CHAMPS DE FUSION:
+- {{firstName}} - Prénom
+- {{lastName}} - Nom  
+- {{company}} - Entreprise
+- {{position}} - Poste
+- {{location}} - Lieu
 
-RÈGLES IMPORTANTES:
-1. TOUJOURS commencer par mentionner LinkedIn (ex: "J'ai vu votre profil sur LinkedIn")
-2. Maximum 4-5 lignes de contenu
-3. ${goalInstructions[outreachGoal]}
-4. Phrases courtes et directes
-5. JAMAIS "passionné", "opportunité incroyable"
-6. UTILISE les champs de fusion pour personnaliser
-7. Chaque template doit avoir une approche DIFFÉRENTE
-8. Demande juste un échange rapide
+EXEMPLES D'EMAILS QUI MARCHENT:
+
+✅ BON (naturel, direct, humain):
+"Salut {{firstName}},
+
+Je suis tombé sur ton profil LinkedIn et j'ai vu que tu gères l'équipe tech chez {{company}}. 
+
+Je bosse dans le dev depuis 5 ans, et votre approche sur [X] m'a vraiment interpellé. Ce serait cool d'échanger si t'as 15 min ?
+
+À bientôt,
+Alex"
+
+❌ MAUVAIS (robotique, corporate):
+"Cher {{firstName}}, je suis passionné par les opportunités incroyables chez {{company}}. Votre parcours exceptionnel m'inspire énormément..."
+
+RÈGLES D'OR:
+1. Écris comme tu parlerais à un collègue sympa
+2. UNE seule idée par email, UNE seule demande
+3. 4-5 phrases MAX, pas de pavés
+4. Commence par "Salut" ou "Hey", jamais "Cher" ou "Bonjour Monsieur"
+5. INTERDITS: "passionné", "opportunité", "impressionné", "inspiré", "incroyable"
+6. Signature = prénom seul, pas de titre
+7. ${goalInstructions[outreachGoal]}
+8. Chaque template = angle DIFFÉRENT (curiosité, valeur, connexion, timing)
 
 TON: ${toneInstructions[tone]}
 
-Format pour CHAQUE template:
-TEMPLATE [numéro]
-SUBJECT: [objet court avec champs de fusion]
+Format:
+TEMPLATE [n]
+SUBJECT: [objet intrigant 3-5 mots]
 ---
-[corps commençant par mention LinkedIn + champs de fusion]
+[corps naturel et humain]
 
-Génère ${count} templates maintenant.` : `You are an expert at writing professional networking emails.
+Génère ${count} templates maintenant.` : `You're a cold email copywriter with a 30%+ reply rate. Write emails that feel like they're from a real person, not AI.
 
 CONTEXT: ${goalContext[outreachGoal]}
 
-GOAL: Create ${count} DIFFERENT email templates with merge fields.
+GOAL: Create ${count} AUTHENTIC, HUMAN email templates with merge fields.
 
-AVAILABLE MERGE FIELDS:
-- {{firstName}} - Recipient's first name
-- {{lastName}} - Recipient's last name
-- {{company}} - Company name
-- {{position}} - Recipient's position
+MERGE FIELDS:
+- {{firstName}} - First name
+- {{lastName}} - Last name
+- {{company}} - Company
+- {{position}} - Role
 - {{location}} - Location
 
-IMPORTANT RULES:
-1. ALWAYS start by mentioning LinkedIn (e.g., "I came across your profile on LinkedIn")
-2. Maximum 4-5 lines of content
-3. ${goalInstructions[outreachGoal]}
-4. Short, direct sentences
-5. NEVER use "passionate", "amazing opportunity"
-6. USE merge fields to personalize
-7. Each template must have a DIFFERENT approach
-8. Just ask for a brief chat
+EXAMPLES OF EMAILS THAT WORK:
+
+✅ GOOD (natural, direct, human):
+"Hey {{firstName}},
+
+Came across your profile on LinkedIn and saw you're running eng at {{company}}.
+
+I've been in dev for 5 years, and your team's approach to [X] caught my eye. Would be great to chat for 15 min if you're up for it?
+
+Cheers,
+Alex"
+
+❌ BAD (robotic, corporate):
+"Dear {{firstName}}, I am passionate about the incredible opportunities at {{company}}. Your exceptional career path deeply inspires me..."
+
+GOLDEN RULES:
+1. Write like you're texting a friendly colleague
+2. ONE idea per email, ONE ask
+3. 4-5 sentences MAX, no walls of text
+4. Start with "Hey" or "Hi", never "Dear" or "To whom"
+5. BANNED WORDS: "passionate", "opportunity", "impressed", "inspired", "incredible", "excited"
+6. Sign with first name only, no titles
+7. ${goalInstructions[outreachGoal]}
+8. Each template = DIFFERENT angle (curiosity, value, connection, timing)
 
 TONE: ${toneInstructions[tone]}
 
-Format for EACH template:
-TEMPLATE [number]
-SUBJECT: [short subject with merge fields]
+Format:
+TEMPLATE [n]
+SUBJECT: [intriguing 3-5 word subject]
 ---
-[body starting with LinkedIn mention + merge fields]
+[natural, human body]
 
 Generate ${count} templates now.`;
 
     const openaiClient = await getOpenAIClient();
     const completion = await openaiClient.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5.2-chat-latest",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `SENDER CONTEXT:\n${contextStr}\n\nGenerate ${count} different email templates with merge fields.` }
+        { role: "user", content: `SENDER CONTEXT:\n${contextStr}\n\nGenerate ${count} different email templates with merge fields. Make them sound genuinely human - like a real person wrote them, not AI.` }
       ],
-      temperature: 0.9,
-      max_tokens: 1500
+      max_completion_tokens: 1800
     });
     
     const content = completion.choices[0]?.message?.content || '';
@@ -7035,68 +7088,92 @@ async function generateEmailForRecipient(userContext, recipient, tone, language,
       : 'Not actively looking, just want to connect'
   };
   
-  const systemPrompt = language === 'fr' ? `Tu es un expert en rédaction d'emails de networking professionnel.
+  const systemPrompt = language === 'fr' ? `Tu es un copywriter qui écrit des cold emails avec un taux de réponse de 35%. Écris comme un VRAI humain, pas comme une IA.
 
 CONTEXTE: ${goalContext[outreachGoal]}
 
-OBJECTIF: Écrire un email court et professionnel.
+DESTINATAIRE:
+- Prénom: ${recipient.firstName}
+- Entreprise: ${recipient.company || 'leur boîte'}
+- Poste: ${recipient.title || 'leur rôle'}
 
-RÈGLES IMPORTANTES:
-1. COMMENCER par mentionner LinkedIn (ex: "J'ai vu votre profil sur LinkedIn")
-2. Maximum 4-5 lignes de contenu
-3. ${goalInstructions[outreachGoal]}
-4. Phrases courtes et directes
-5. JAMAIS "passionné", "opportunité incroyable"
-6. Personnalise avec l'entreprise et le poste
-7. Demande juste un échange rapide
+EXEMPLES QUI MARCHENT:
+
+✅ BON (le mec répond):
+"Salut ${recipient.firstName},
+
+Je suis tombé sur ton profil et j'ai vu que t'es ${recipient.title || 'dans le game'} chez ${recipient.company}. Cool.
+
+Je bosse dans le même secteur depuis quelques années, et y'a un truc sur lequel j'aimerais bien avoir ton avis. T'aurais 15 min pour en discuter ?
+
+À+
+[Prénom]"
+
+❌ NUL (poubelle direct):
+"Cher ${recipient.firstName}, je suis passionné par les opportunités incroyables chez ${recipient.company}..."
+
+RÈGLES D'OR:
+1. Écris comme tu parlerais à un pote bossant dans le même secteur
+2. COMMENCE par LinkedIn ou par un truc spécifique sur eux
+3. 4-5 phrases MAX. Pas de roman.
+4. UNE seule demande : un call de 15 min
+5. ${goalInstructions[outreachGoal]}
+6. INTERDITS: "passionné", "opportunité", "ravi", "impressionné", "incroyable", "exceptionnel"
+7. Signe avec ton prénom, point final
 
 TON: ${toneInstructions[tone]}
 
-DESTINATAIRE:
-- Prénom: ${recipient.firstName}
-- Nom: ${recipient.lastName}
-- Entreprise: ${recipient.company || 'leur entreprise'}
-- Poste: ${recipient.title || 'leur poste'}
-
-Format: 
-SUBJECT: [objet court]
+Format:
+SUBJECT: [3-5 mots max, intrigant]
 ---
-[email commençant par LinkedIn + signature prénom]` : `You are an expert at writing professional networking emails.
+[email naturel et humain]` : `You're a cold email copywriter with a 35% reply rate. Write like a REAL human, not AI.
 
 CONTEXT: ${goalContext[outreachGoal]}
 
-GOAL: Write a short, professional email.
+RECIPIENT:
+- Name: ${recipient.firstName}
+- Company: ${recipient.company || 'their company'}
+- Role: ${recipient.title || 'their role'}
 
-IMPORTANT RULES:
-1. START by mentioning LinkedIn (e.g., "I came across your profile on LinkedIn")
-2. Maximum 4-5 lines of content
-3. ${goalInstructions[outreachGoal]}
-4. Short, direct sentences
-5. NEVER use "passionate", "amazing opportunity"
-6. Personalize with company and position
-7. Just ask for a brief chat
+EXAMPLES THAT WORK:
+
+✅ GOOD (gets a reply):
+"Hey ${recipient.firstName},
+
+Came across your profile and saw you're ${recipient.title || 'doing cool stuff'} at ${recipient.company}. Nice.
+
+I've been in the same space for a few years, and there's something I'd love to get your take on. Got 15 min for a quick chat?
+
+Cheers,
+[First name]"
+
+❌ BAD (straight to trash):
+"Dear ${recipient.firstName}, I am passionate about the incredible opportunities at ${recipient.company}..."
+
+GOLDEN RULES:
+1. Write like you're messaging a work friend
+2. START with LinkedIn or something specific about them
+3. 4-5 sentences MAX. No essays.
+4. ONE ask only: a 15 min call
+5. ${goalInstructions[outreachGoal]}
+6. BANNED: "passionate", "opportunity", "excited", "impressed", "incredible", "amazing"
+7. Sign with first name only, period
 
 TONE: ${toneInstructions[tone]}
 
-RECIPIENT:
-- First name: ${recipient.firstName}
-- Last name: ${recipient.lastName}
-- Company: ${recipient.company || 'their company'}
-- Position: ${recipient.title || 'their role'}
-
 Format:
-SUBJECT: [short subject]
+SUBJECT: [3-5 words max, intriguing]
 ---
-[email starting with LinkedIn mention + first name signature]`;
+[natural, human email]`;
 
   const openaiClient = await getOpenAIClient();
   const completion = await openaiClient.chat.completions.create({
     model: "gpt-5.2-chat-latest",
     messages: [
       { role: "system", content: systemPrompt },
-      { role: "user", content: `SENDER CONTEXT:\n${userContext}\n\nGenerate a personalized email for ${recipient.firstName} at ${recipient.company}. Sign with "${userProfile.firstName || 'Me'}".` }
+      { role: "user", content: `WHO I AM:\n${userContext}\n\nWrite an email to ${recipient.firstName} (${recipient.title || 'professional'} at ${recipient.company}). Make it sound like I actually typed this myself - casual, direct, human. Sign with "${userProfile.firstName || 'Me'}". Remember: if this email sounds like it could be from ChatGPT, rewrite it.` }
     ],
-    max_completion_tokens: 400
+    max_completion_tokens: 450
   });
   
   const content = completion.choices[0]?.message?.content || '';

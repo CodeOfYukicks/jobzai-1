@@ -3,7 +3,7 @@ import { getCompanyDomain, getClearbitUrl, getGoogleFaviconUrl, getCompanyInitia
 
 interface CompanyLogoProps {
   companyName: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   className?: string;
   showInitials?: boolean;
 }
@@ -56,24 +56,27 @@ export function CompanyLogo({
   const prevCompanyName = useRef(companyName);
 
   const sizeClasses = {
-    sm: 'h-4 w-4',
-    md: 'h-6 w-6',
-    lg: 'h-10 w-10',
-    xl: 'h-16 w-16',
+    sm: 'h-8 w-8',
+    md: 'h-10 w-10',
+    lg: 'h-12 w-12',
+    xl: 'h-14 w-14',
+    '2xl': 'h-16 w-16',
   };
 
   const logoSizeClasses = {
-    sm: 'h-3 w-3',
-    md: 'h-5 w-5',
-    lg: 'h-8 w-8',
-    xl: 'h-12 w-12',
+    sm: 'h-8 w-8',
+    md: 'h-10 w-10',
+    lg: 'h-12 w-12',
+    xl: 'h-14 w-14',
+    '2xl': 'h-16 w-16',
   };
 
   const textSizeClasses = {
-    sm: 'text-[8px]',
-    md: 'text-[10px]',
-    lg: 'text-sm',
-    xl: 'text-xl',
+    sm: 'text-xs',
+    md: 'text-sm',
+    lg: 'text-base',
+    xl: 'text-lg',
+    '2xl': 'text-xl',
   };
 
   useEffect(() => {
@@ -163,9 +166,10 @@ export function CompanyLogo({
 
   const initials = getCompanyInitials(companyName);
 
+  // Premium square logo style - logo fills the entire container with rounded corners
   return (
     <div
-      className={`${sizeClasses[size]} rounded flex items-center justify-center flex-shrink-0 bg-gray-100 dark:bg-[#2A2A2E] ${className}`}
+      className={`${sizeClasses[size]} rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] ${className}`}
     >
       {logoSrc ? (
         <img
@@ -173,10 +177,10 @@ export function CompanyLogo({
           alt={`${companyName} logo`}
           onError={handleLogoError}
           onLoad={handleLogoLoad}
-          className={`${logoSizeClasses[size]} rounded object-cover`}
+          className={`${logoSizeClasses[size]} object-contain`}
         />
       ) : showInitials ? (
-        <span className={`${textSizeClasses[size]} font-semibold text-gray-600 dark:text-gray-400`}>
+        <span className={`${textSizeClasses[size]} font-bold text-gray-700 dark:text-gray-300`}>
           {initials}
         </span>
       ) : null}

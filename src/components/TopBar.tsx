@@ -133,9 +133,9 @@ export default function TopBar({
               e.stopPropagation();
             }}
             className="relative flex items-center gap-1.5 h-8 pl-1 pr-3 rounded-lg
-              bg-gray-900 dark:bg-white
-              border border-gray-900 dark:border-white
-              hover:bg-gray-800 dark:hover:bg-gray-100
+              bg-black dark:bg-white
+              border border-black dark:border-white
+              hover:bg-[#1a1a1a] dark:hover:bg-gray-100
               active:scale-[0.98]
               transition-all duration-150"
             aria-label="Assistant"
@@ -144,7 +144,7 @@ export default function TopBar({
             <Avatar 
               config={avatarConfig}
               size={24}
-              className="rounded-md"
+              className={`rounded-md ${!isDarkMode ? 'invert' : ''}`}
             />
             <span className="text-[13px] font-medium text-white dark:text-gray-900">Assistant</span>
           </button>
