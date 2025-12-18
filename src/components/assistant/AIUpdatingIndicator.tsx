@@ -1,18 +1,28 @@
 import { motion } from 'framer-motion';
-import { Pencil, Type } from 'lucide-react';
+import { Pencil, Type, Sparkles, GitBranch, StickyNote, Workflow } from 'lucide-react';
+
+type IndicatorVariant = 'note' | 'selection' | 'mind_map' | 'sticky_notes' | 'flow_diagram' | 'whiteboard';
 
 interface AIUpdatingIndicatorProps {
-  variant?: 'note' | 'selection';
+  variant?: IndicatorVariant;
 }
+
+const variantConfig: Record<IndicatorVariant, { text: string; icon: typeof Pencil }> = {
+  note: { text: 'Updating your note', icon: Pencil },
+  selection: { text: 'Editing selected text', icon: Type },
+  mind_map: { text: 'Creating mind map', icon: GitBranch },
+  sticky_notes: { text: 'Creating sticky notes', icon: StickyNote },
+  flow_diagram: { text: 'Creating flow diagram', icon: Workflow },
+  whiteboard: { text: 'Creating whiteboard', icon: Sparkles },
+};
 
 /**
  * Premium AI updating indicator with Notion-like animations
  * Features: breathing glow icon + shimmer text effect
  */
 export default function AIUpdatingIndicator({ variant = 'note' }: AIUpdatingIndicatorProps) {
-  const text = variant === 'selection' 
-    ? 'Editing selected text' 
-    : 'Updating your note';
+  const config = variantConfig[variant] || variantConfig.note;
+  const { text, icon: Icon } = config;
 
   return (
     <motion.div
@@ -51,11 +61,7 @@ export default function AIUpdatingIndicator({ variant = 'note' }: AIUpdatingIndi
           className="relative z-10 flex items-center justify-center w-5 h-5 rounded-full 
             bg-gradient-to-br from-[#635BFF] to-[#8B7FFF]"
         >
-          {variant === 'selection' ? (
-            <Type className="w-2.5 h-2.5 text-white" />
-          ) : (
-            <Pencil className="w-2.5 h-2.5 text-white" />
-          )}
+          <Icon className="w-2.5 h-2.5 text-white" />
         </motion.div>
       </div>
 

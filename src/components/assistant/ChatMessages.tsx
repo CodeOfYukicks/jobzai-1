@@ -18,13 +18,15 @@ import { db } from '../../lib/firebase';
 import AIUpdatingIndicator from './AIUpdatingIndicator';
 
 // Regex to detect AI updating status markup: [AI_UPDATING:variant]
-const AI_UPDATING_REGEX = /^\[AI_UPDATING:(note|selection)\]$/;
+const AI_UPDATING_REGEX = /^\[AI_UPDATING:(note|selection|mind_map|sticky_notes|flow_diagram|whiteboard)\]$/;
+
+type AIUpdatingVariant = 'note' | 'selection' | 'mind_map' | 'sticky_notes' | 'flow_diagram' | 'whiteboard';
 
 // Function to check if content is an AI updating status
-function isAIUpdatingStatus(content: string): { isUpdating: boolean; variant?: 'note' | 'selection' } {
+function isAIUpdatingStatus(content: string): { isUpdating: boolean; variant?: AIUpdatingVariant } {
   const match = content.trim().match(AI_UPDATING_REGEX);
   if (match) {
-    return { isUpdating: true, variant: match[1] as 'note' | 'selection' };
+    return { isUpdating: true, variant: match[1] as AIUpdatingVariant };
   }
   return { isUpdating: false };
 }

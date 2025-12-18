@@ -737,9 +737,10 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
       // Handle whiteboard content creation
       const intent = parseWhiteboardIntent(trimmedInput);
       
+      // Use marker format for premium animation (mind_map, sticky_notes, flow_diagram)
       const assistantMessageId = addMessage({
         role: 'assistant',
-        content: `🎨 Creating ${intent.type.replace('_', ' ')}...`,
+        content: `[AI_UPDATING:${intent.type}]`,
         isStreaming: true,
       });
       
