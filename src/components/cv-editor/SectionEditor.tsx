@@ -772,6 +772,16 @@ export default function SectionEditor({
       );
 
     case 'experience':
+      const handleExperienceDragEnd = (result: DropResult) => {
+        if (!result.destination) return;
+        
+        const experiences = [...(data.experiences || [])];
+        const [reorderedExperience] = experiences.splice(result.source.index, 1);
+        experiences.splice(result.destination.index, 0, reorderedExperience);
+        
+        onChange({ experiences });
+      };
+
       return (
         <div className="space-y-4">
           <AnimatePresence mode="wait">
@@ -853,47 +863,87 @@ export default function SectionEditor({
           {/* Experience list - hide when editing */}
           {!isAddingNew && !inlineEditingId && (
             <>
-              {data.experiences?.map((exp: CVExperience) => (
-                <div
-                  key={exp.id}
-                  className="group p-4 bg-white dark:bg-[#2b2a2c]/40 rounded-lg hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60 transition-all duration-200 cursor-pointer border border-gray-200/60 dark:border-[#3d3c3e]/60 hover:border-gray-300/80 dark:hover:border-gray-600/80 shadow-sm hover:shadow-md"
-                  onClick={() => setInlineEditingId(exp.id)}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                        {exp.title || 'Untitled Position'}
-                      </h4>
-                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
-                        {exp.company} {exp.location && `• ${exp.location}`}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {exp.startDate || 'Start'} - {exp.current ? 'Present' : exp.endDate || 'End'}
-                      </p>
+              <DragDropContext onDragEnd={handleExperienceDragEnd}>
+                <Droppable droppableId="experiences">
+                  {(provided) => (
+                    <div 
+                      {...provided.droppableProps} 
+                      ref={provided.innerRef} 
+                      className="space-y-3"
+                    >
+                      {(data.experiences || []).map((exp: CVExperience, index: number) => (
+                        <Draggable key={exp.id} draggableId={exp.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className={`
+                                group p-4 bg-white dark:bg-[#2b2a2c]/40 rounded-lg 
+                                transition-all duration-200 cursor-pointer 
+                                border border-gray-200/60 dark:border-[#3d3c3e]/60 
+                                shadow-sm
+                                ${snapshot.isDragging 
+                                  ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rotate-[0.5deg] scale-[1.01]' 
+                                  : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60 hover:border-gray-300/80 dark:hover:border-gray-600/80 hover:shadow-md'
+                                }
+                              `}
+                              style={{
+                                ...provided.draggableProps.style,
+                                zIndex: snapshot.isDragging ? 1000 : 'auto',
+                              }}
+                              onClick={() => setInlineEditingId(exp.id)}
+                            >
+                              <div className="flex items-start gap-3">
+                                {/* Drag handle */}
+                                <div 
+                                  {...provided.dragHandleProps}
+                                  className="mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <GripVertical className="w-4 h-4" />
+                                </div>
+                                
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                    {exp.title || 'Untitled Position'}
+                                  </h4>
+                                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
+                                    {exp.company} {exp.location && `• ${exp.location}`}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    {exp.startDate || 'Start'} - {exp.current ? 'Present' : exp.endDate || 'End'}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setInlineEditingId(exp.id);
+                                    }}
+                                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3d3c3e] rounded transition-colors"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onChange({ experiences: data.experiences.filter((e: CVExperience) => e.id !== exp.id) });
+                                    }}
+                                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setInlineEditingId(exp.id);
-                        }}
-                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3d3c3e] rounded transition-colors"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 text-gray-500" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onChange({ experiences: data.experiences.filter((e: CVExperience) => e.id !== exp.id) });
-                        }}
-                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  )}
+                </Droppable>
+              </DragDropContext>
               
               <button
                 onClick={() => setIsAddingNew(true)}
@@ -908,6 +958,16 @@ export default function SectionEditor({
       );
 
     case 'education':
+      const handleEducationDragEnd = (result: DropResult) => {
+        if (!result.destination) return;
+        
+        const education = [...(data.education || [])];
+        const [reorderedEducation] = education.splice(result.source.index, 1);
+        education.splice(result.destination.index, 0, reorderedEducation);
+        
+        onChange({ education });
+      };
+
       return (
         <div className="space-y-4">
           <AnimatePresence mode="wait">
@@ -962,47 +1022,87 @@ export default function SectionEditor({
 
           {!isAddingNew && !inlineEditingId && (
             <>
-              {data.education?.map((edu: CVEducation) => (
-                <div
-                  key={edu.id}
-                  className="group p-3 bg-white dark:bg-[#2b2a2c] rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-[#4a494b] hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
-                  onClick={() => setInlineEditingId(edu.id)}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                        {edu.degree || 'Untitled Degree'}
-                      </h4>
-                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
-                        {edu.institution} {edu.field && `• ${edu.field}`}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {edu.endDate || 'Graduation date'}
-                      </p>
+              <DragDropContext onDragEnd={handleEducationDragEnd}>
+                <Droppable droppableId="education">
+                  {(provided) => (
+                    <div 
+                      {...provided.droppableProps} 
+                      ref={provided.innerRef} 
+                      className="space-y-3"
+                    >
+                      {(data.education || []).map((edu: CVEducation, index: number) => (
+                        <Draggable key={edu.id} draggableId={edu.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className={`
+                                group p-3 bg-white dark:bg-[#2b2a2c] rounded-lg 
+                                transition-all cursor-pointer 
+                                border border-gray-300 dark:border-[#4a494b] 
+                                shadow-sm
+                                ${snapshot.isDragging 
+                                  ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rotate-[0.5deg] scale-[1.01]' 
+                                  : 'hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] hover:shadow-md'
+                                }
+                              `}
+                              style={{
+                                ...provided.draggableProps.style,
+                                zIndex: snapshot.isDragging ? 1000 : 'auto',
+                              }}
+                              onClick={() => setInlineEditingId(edu.id)}
+                            >
+                              <div className="flex items-start gap-3">
+                                {/* Drag handle */}
+                                <div 
+                                  {...provided.dragHandleProps}
+                                  className="mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <GripVertical className="w-4 h-4" />
+                                </div>
+                                
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                    {edu.degree || 'Untitled Degree'}
+                                  </h4>
+                                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
+                                    {edu.institution} {edu.field && `• ${edu.field}`}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    {edu.endDate || 'Graduation date'}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setInlineEditingId(edu.id);
+                                    }}
+                                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3d3c3e] rounded transition-colors"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onChange({ education: data.education.filter((e: CVEducation) => e.id !== edu.id) });
+                                    }}
+                                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setInlineEditingId(edu.id);
-                        }}
-                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3d3c3e] rounded transition-colors"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 text-gray-500" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onChange({ education: data.education.filter((e: CVEducation) => e.id !== edu.id) });
-                        }}
-                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  )}
+                </Droppable>
+              </DragDropContext>
               
               <button
                 onClick={() => setIsAddingNew(true)}
@@ -1138,6 +1238,16 @@ export default function SectionEditor({
       );
 
     case 'certifications':
+      const handleCertificationsDragEnd = (result: DropResult) => {
+        if (!result.destination) return;
+        
+        const certifications = [...(data.certifications || [])];
+        const [reorderedCertification] = certifications.splice(result.source.index, 1);
+        certifications.splice(result.destination.index, 0, reorderedCertification);
+        
+        onChange({ certifications });
+      };
+
       return (
         <div className="space-y-4">
           <AnimatePresence mode="wait">
@@ -1192,47 +1302,87 @@ export default function SectionEditor({
 
           {!isAddingNew && !inlineEditingId && (
             <>
-              {data.certifications?.map((cert: CVCertification) => (
-                <div
-                  key={cert.id}
-                  className="group p-3 bg-white dark:bg-[#2b2a2c] rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-[#4a494b] hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
-                  onClick={() => setInlineEditingId(cert.id)}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                        {cert.name || 'Untitled Certification'}
-                      </h4>
-                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
-                        {cert.issuer || 'Issuer'}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {cert.date || 'Issue date'}
-                      </p>
+              <DragDropContext onDragEnd={handleCertificationsDragEnd}>
+                <Droppable droppableId="certifications">
+                  {(provided) => (
+                    <div 
+                      {...provided.droppableProps} 
+                      ref={provided.innerRef} 
+                      className="space-y-3"
+                    >
+                      {(data.certifications || []).map((cert: CVCertification, index: number) => (
+                        <Draggable key={cert.id} draggableId={cert.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className={`
+                                group p-3 bg-white dark:bg-[#2b2a2c] rounded-lg 
+                                transition-all cursor-pointer 
+                                border border-gray-300 dark:border-[#4a494b] 
+                                shadow-sm
+                                ${snapshot.isDragging 
+                                  ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rotate-[0.5deg] scale-[1.01]' 
+                                  : 'hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] hover:shadow-md'
+                                }
+                              `}
+                              style={{
+                                ...provided.draggableProps.style,
+                                zIndex: snapshot.isDragging ? 1000 : 'auto',
+                              }}
+                              onClick={() => setInlineEditingId(cert.id)}
+                            >
+                              <div className="flex items-start gap-3">
+                                {/* Drag handle */}
+                                <div 
+                                  {...provided.dragHandleProps}
+                                  className="mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <GripVertical className="w-4 h-4" />
+                                </div>
+                                
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                    {cert.name || 'Untitled Certification'}
+                                  </h4>
+                                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
+                                    {cert.issuer || 'Issuer'}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    {cert.date || 'Issue date'}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setInlineEditingId(cert.id);
+                                    }}
+                                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3d3c3e] rounded transition-colors"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onChange({ certifications: data.certifications.filter((c: CVCertification) => c.id !== cert.id) });
+                                    }}
+                                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setInlineEditingId(cert.id);
-                        }}
-                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3d3c3e] rounded transition-colors"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 text-gray-500" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onChange({ certifications: data.certifications.filter((c: CVCertification) => c.id !== cert.id) });
-                        }}
-                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  )}
+                </Droppable>
+              </DragDropContext>
               
               <button
                 onClick={() => setIsAddingNew(true)}
@@ -1247,6 +1397,16 @@ export default function SectionEditor({
       );
 
     case 'projects':
+      const handleProjectsDragEnd = (result: DropResult) => {
+        if (!result.destination) return;
+        
+        const projects = [...(data.projects || [])];
+        const [reorderedProject] = projects.splice(result.source.index, 1);
+        projects.splice(result.destination.index, 0, reorderedProject);
+        
+        onChange({ projects });
+      };
+
       return (
         <div className="space-y-4">
           <AnimatePresence mode="wait">
@@ -1325,58 +1485,98 @@ export default function SectionEditor({
 
           {!isAddingNew && !inlineEditingId && (
             <>
-              {data.projects?.map((project: CVProject) => (
-                <div
-                  key={project.id}
-                  className="group p-3 bg-white dark:bg-[#2b2a2c] rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-[#4a494b] hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
-                  onClick={() => setInlineEditingId(project.id)}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                        {project.name || 'Untitled Project'}
-                      </h4>
-                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 line-clamp-2 font-medium">
-                        {project.description || 'No description'}
-                      </p>
-                      {project.technologies.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {project.technologies.slice(0, 3).map((tech, idx) => (
-                            <span key={idx} className="text-xs px-2 py-0.5 bg-[#635BFF]/10 dark:bg-[#5249e6]/30 text-[#635BFF] dark:text-[#a5a0ff] rounded">
-                              {tech}
-                            </span>
-                          ))}
-                          {project.technologies.length > 3 && (
-                            <span className="text-xs px-2 py-0.5 text-gray-500">
-                              +{project.technologies.length - 3}
-                            </span>
+              <DragDropContext onDragEnd={handleProjectsDragEnd}>
+                <Droppable droppableId="projects">
+                  {(provided) => (
+                    <div 
+                      {...provided.droppableProps} 
+                      ref={provided.innerRef} 
+                      className="space-y-3"
+                    >
+                      {(data.projects || []).map((project: CVProject, index: number) => (
+                        <Draggable key={project.id} draggableId={project.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className={`
+                                group p-3 bg-white dark:bg-[#2b2a2c] rounded-lg 
+                                transition-all cursor-pointer 
+                                border border-gray-300 dark:border-[#4a494b] 
+                                shadow-sm
+                                ${snapshot.isDragging 
+                                  ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rotate-[0.5deg] scale-[1.01]' 
+                                  : 'hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] hover:shadow-md'
+                                }
+                              `}
+                              style={{
+                                ...provided.draggableProps.style,
+                                zIndex: snapshot.isDragging ? 1000 : 'auto',
+                              }}
+                              onClick={() => setInlineEditingId(project.id)}
+                            >
+                              <div className="flex items-start gap-3">
+                                {/* Drag handle */}
+                                <div 
+                                  {...provided.dragHandleProps}
+                                  className="mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <GripVertical className="w-4 h-4" />
+                                </div>
+                                
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                    {project.name || 'Untitled Project'}
+                                  </h4>
+                                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-1 line-clamp-2 font-medium">
+                                    {project.description || 'No description'}
+                                  </p>
+                                  {project.technologies.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                      {project.technologies.slice(0, 3).map((tech, idx) => (
+                                        <span key={idx} className="text-xs px-2 py-0.5 bg-[#635BFF]/10 dark:bg-[#5249e6]/30 text-[#635BFF] dark:text-[#a5a0ff] rounded">
+                                          {tech}
+                                        </span>
+                                      ))}
+                                      {project.technologies.length > 3 && (
+                                        <span className="text-xs px-2 py-0.5 text-gray-500">
+                                          +{project.technologies.length - 3}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setInlineEditingId(project.id);
+                                    }}
+                                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3d3c3e] rounded transition-colors"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onChange({ projects: data.projects.filter((p: CVProject) => p.id !== project.id) });
+                                    }}
+                                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           )}
-                        </div>
-                      )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setInlineEditingId(project.id);
-                        }}
-                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3d3c3e] rounded transition-colors"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 text-gray-500" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onChange({ projects: data.projects.filter((p: CVProject) => p.id !== project.id) });
-                        }}
-                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  )}
+                </Droppable>
+              </DragDropContext>
 
               <button
                 onClick={() => setIsAddingNew(true)}
@@ -1391,6 +1591,16 @@ export default function SectionEditor({
       );
 
     case 'languages':
+      const handleLanguagesDragEnd = (result: DropResult) => {
+        if (!result.destination) return;
+        
+        const languages = [...(data.languages || [])];
+        const [reorderedLanguage] = languages.splice(result.source.index, 1);
+        languages.splice(result.destination.index, 0, reorderedLanguage);
+        
+        onChange({ languages });
+      };
+
       return (
         <div className="space-y-4">
           <AnimatePresence mode="wait">
@@ -1445,44 +1655,84 @@ export default function SectionEditor({
 
           {!isAddingNew && !inlineEditingId && (
             <>
-              {data.languages?.map((language: CVLanguage) => (
-                <div
-                  key={language.id}
-                  className="group p-3 bg-white dark:bg-[#2b2a2c] rounded-lg hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 transition-all cursor-pointer border border-gray-300 dark:border-[#4a494b] hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] shadow-sm hover:shadow-md"
-                  onClick={() => setInlineEditingId(language.id)}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1">
-                      <h4 className="text-sm font-bold text-gray-900 dark:text-white">
-                        {language.name || 'Untitled Language'}
-                      </h4>
-                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-0.5 capitalize font-medium">
-                        {language.proficiency}
-                      </p>
+              <DragDropContext onDragEnd={handleLanguagesDragEnd}>
+                <Droppable droppableId="languages">
+                  {(provided) => (
+                    <div 
+                      {...provided.droppableProps} 
+                      ref={provided.innerRef} 
+                      className="space-y-3"
+                    >
+                      {(data.languages || []).map((language: CVLanguage, index: number) => (
+                        <Draggable key={language.id} draggableId={language.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className={`
+                                group p-3 bg-white dark:bg-[#2b2a2c] rounded-lg 
+                                transition-all cursor-pointer 
+                                border border-gray-300 dark:border-[#4a494b] 
+                                shadow-sm
+                                ${snapshot.isDragging 
+                                  ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rotate-[0.5deg] scale-[1.01]' 
+                                  : 'hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] hover:shadow-md'
+                                }
+                              `}
+                              style={{
+                                ...provided.draggableProps.style,
+                                zIndex: snapshot.isDragging ? 1000 : 'auto',
+                              }}
+                              onClick={() => setInlineEditingId(language.id)}
+                            >
+                              <div className="flex items-center gap-3">
+                                {/* Drag handle */}
+                                <div 
+                                  {...provided.dragHandleProps}
+                                  className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <GripVertical className="w-4 h-4" />
+                                </div>
+                                
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                                    {language.name || 'Untitled Language'}
+                                  </h4>
+                                  <p className="text-xs text-gray-700 dark:text-gray-300 mt-0.5 capitalize font-medium">
+                                    {language.proficiency}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setInlineEditingId(language.id);
+                                    }}
+                                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3d3c3e] rounded transition-colors"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onChange({ languages: data.languages.filter((l: CVLanguage) => l.id !== language.id) });
+                                    }}
+                                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setInlineEditingId(language.id);
-                        }}
-                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-[#3d3c3e] rounded transition-colors"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 text-gray-500" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onChange({ languages: data.languages.filter((l: CVLanguage) => l.id !== language.id) });
-                        }}
-                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-gray-500 hover:text-red-600" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  )}
+                </Droppable>
+              </DragDropContext>
               
               <button
                 onClick={() => setIsAddingNew(true)}

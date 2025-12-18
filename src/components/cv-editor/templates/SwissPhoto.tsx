@@ -26,7 +26,9 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
   const baseFontSize = layoutSettings.fontSize;
 
   // Split sections for sidebar vs main content
-  const sidebarSections = ['skills', 'languages', 'certifications'];
+  // Sidebar (left): Skills, Education, Languages, Certifications
+  // Main (right): Summary, Experience, Projects
+  const sidebarSections = ['skills', 'education', 'languages', 'certifications'];
   const mainSections = enabledSections.filter(s => !sidebarSections.includes(s.type) && s.type !== 'personal');
   const sidebarEnabledSections = enabledSections.filter(s => sidebarSections.includes(s.type));
 
@@ -198,6 +200,36 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
                   </ClickableSection>
                 );
 
+              case 'education':
+                return (
+                  <ClickableSection key={section.id} sectionType="education" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                    <section className="mb-5">
+                      <h2 className="font-bold text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-1 mb-2" style={{ fontSize: '0.8em' }}>
+                        Education
+                      </h2>
+                      {cvData.education?.length > 0 ? (
+                        <div className="space-y-2">
+                          {cvData.education.map(edu => (
+                            <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
+                              <div style={{ fontSize: '0.85em' }}>
+                                <p className="font-medium text-gray-900">
+                                  {edu.degree}{edu.field && ` in ${edu.field}`}
+                                </p>
+                                <p className="text-gray-600">{edu.institution}</p>
+                                <p className="text-gray-400">{formatDate(edu.endDate)}</p>
+                              </div>
+                            </ClickableSection>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="border border-dashed border-gray-300 rounded p-2 text-center">
+                          <p className="text-gray-400 text-xs italic">Add education</p>
+                        </div>
+                      )}
+                    </section>
+                  </ClickableSection>
+                );
+
               default:
                 return null;
             }
@@ -272,43 +304,6 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
                       ) : (
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
                           <p className="text-gray-400 text-sm italic">Empty - Click to add work experience</p>
-                        </div>
-                      )}
-                    </section>
-                  </ClickableSection>
-                );
-
-              case 'education':
-                return (
-                  <ClickableSection key={section.id} sectionType="education" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                    <section className="mb-5">
-                      <h2 className="font-bold text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-1 mb-2" style={{ fontSize: '0.85em' }}>
-                        Education
-                      </h2>
-                      {cvData.education?.length > 0 ? (
-                        <div className="space-y-3">
-                          {cvData.education.map(edu => (
-                            <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h3 className="font-bold text-gray-900" style={{ fontSize: '1em' }}>
-                                    {edu.degree}{edu.field && ` in ${edu.field}`}
-                                  </h3>
-                                  <p className="text-gray-600" style={{ fontSize: '0.9em' }}>{edu.institution}</p>
-                                  {edu.gpa && (
-                                    <p className="text-gray-500" style={{ fontSize: '0.85em' }}>GPA: {edu.gpa}</p>
-                                  )}
-                                </div>
-                                <span className="text-gray-500" style={{ fontSize: '0.85em' }}>
-                                  {formatDate(edu.endDate)}
-                                </span>
-                              </div>
-                            </ClickableSection>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                          <p className="text-gray-400 text-sm italic">Empty - Click to add education</p>
                         </div>
                       )}
                     </section>

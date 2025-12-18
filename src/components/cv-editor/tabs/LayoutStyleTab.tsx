@@ -5,11 +5,66 @@ import {
   GripVertical, User, FileText, Briefcase, GraduationCap, 
   Code, Award, FolderOpen, Globe, Lock, Minus, Plus,
   ChevronDown, ChevronRight, Edit3, Type, Check, Palette,
-  Calendar, AlignLeft, Layers
+  Calendar, AlignLeft, Layers, LayoutPanelLeft, LayoutList
 } from 'lucide-react';
 import { CVSection, CVLayoutSettings, CVColorScheme, CVTemplate } from '../../../types/cvEditor';
 import { sortSections } from '../../../lib/cvEditorUtils';
 import { TEMPLATE_INFO } from '../TemplateCard';
+
+// Define template layouts - which sections go in sidebar vs main content
+interface TemplateLayout {
+  hasSidebar: boolean;
+  sidebarSections: string[];
+  mainSections: string[];
+}
+
+const TEMPLATE_LAYOUTS: Record<CVTemplate, TemplateLayout> = {
+  'modern-professional': {
+    hasSidebar: false,
+    sidebarSections: [],
+    mainSections: ['summary', 'experience', 'education', 'skills', 'certifications', 'projects', 'languages']
+  },
+  'executive-classic': {
+    // Two-column: Left (70%) = Summary, Experience, Projects | Right (30%) = Education, Skills, Certifications, Languages
+    hasSidebar: true,
+    sidebarSections: ['education', 'skills', 'certifications', 'languages'],
+    mainSections: ['summary', 'experience', 'projects']
+  },
+  'tech-minimalist': {
+    hasSidebar: false,
+    sidebarSections: [],
+    mainSections: ['summary', 'experience', 'education', 'skills', 'certifications', 'projects', 'languages']
+  },
+  'creative-balance': {
+    // Grid layout: Main (2/3) = Experience, Projects | Sidebar (1/3) = Skills, Education, Certifications, Languages
+    // Note: Summary is above the grid (treated as main)
+    hasSidebar: true,
+    sidebarSections: ['skills', 'education', 'certifications', 'languages'],
+    mainSections: ['summary', 'experience', 'projects']
+  },
+  'harvard-classic': {
+    hasSidebar: false,
+    sidebarSections: [],
+    mainSections: ['summary', 'experience', 'education', 'skills', 'certifications', 'projects', 'languages']
+  },
+  'swiss-photo': {
+    // Two-column: Left sidebar = Personal, Skills, Education, Languages, Certifications | Right = Summary, Experience, Projects
+    hasSidebar: true,
+    sidebarSections: ['skills', 'education', 'languages', 'certifications'],
+    mainSections: ['summary', 'experience', 'projects']
+  },
+  'corporate-photo': {
+    // Two-column with sidebar containing Skills, Education, Languages, Certifications
+    hasSidebar: true,
+    sidebarSections: ['skills', 'education', 'languages', 'certifications'],
+    mainSections: ['summary', 'experience', 'projects']
+  },
+  'elegant-simple': {
+    hasSidebar: false,
+    sidebarSections: [],
+    mainSections: ['summary', 'experience', 'education', 'skills', 'certifications', 'projects', 'languages']
+  }
+};
 
 interface LayoutStyleTabProps {
   sections: CVSection[];
@@ -461,6 +516,9 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
   const templateInfo = TEMPLATE_INFO.find(t => t.value === template);
   const hasColors = (templateInfo?.availableColors?.length ?? 0) > 0;
 
+  // Get template layout configuration
+  const templateLayout = TEMPLATE_LAYOUTS[template] || TEMPLATE_LAYOUTS['modern-professional'];
+
   // Debounce fontSize changes to avoid too many re-renders
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -471,17 +529,83 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
+    
+    const { source, destination } = result;
+    
+    // If template has sidebar, only allow reordering within same column
+    if (templateLayout.hasSidebar) {
+      // Check if both source and destination are in same droppable
+      if (source.droppableId !== destination.droppableId) {
+        return; // Don't allow moving between sidebar and main
+      }
+    }
 
+    // Get sections for the specific droppable
     const sortedSections = sortSections(sections);
-    const [reorderedSection] = sortedSections.splice(result.source.index, 1);
-    sortedSections.splice(result.destination.index, 0, reorderedSection);
-
-    const updatedSections = sortedSections.map((section, index) => ({
-      ...section,
-      order: index
-    }));
-
-    onReorder(updatedSections);
+    
+    if (templateLayout.hasSidebar) {
+      // Separate sections into sidebar and main
+      const sidebarSections = sortedSections.filter(s => templateLayout.sidebarSections.includes(s.type));
+      const mainSections = sortedSections.filter(s => 
+        templateLayout.mainSections.includes(s.type) && s.type !== 'personal'
+      );
+      
+      if (source.droppableId === 'sidebar-sections') {
+        // Reorder within sidebar
+        const [reorderedSection] = sidebarSections.splice(source.index, 1);
+        sidebarSections.splice(destination.index, 0, reorderedSection);
+        
+        // Recombine and reorder
+        const personalSection = sortedSections.find(s => s.type === 'personal');
+        const allSections = [
+          ...(personalSection ? [personalSection] : []),
+          ...mainSections,
+          ...sidebarSections
+        ];
+        
+        const updatedSections = allSections.map((section, index) => ({
+          ...section,
+          order: index
+        }));
+        
+        onReorder(updatedSections);
+      } else if (source.droppableId === 'main-sections') {
+        // Reorder within main
+        const [reorderedSection] = mainSections.splice(source.index, 1);
+        mainSections.splice(destination.index, 0, reorderedSection);
+        
+        // Recombine and reorder
+        const personalSection = sortedSections.find(s => s.type === 'personal');
+        const allSections = [
+          ...(personalSection ? [personalSection] : []),
+          ...mainSections,
+          ...sidebarSections
+        ];
+        
+        const updatedSections = allSections.map((section, index) => ({
+          ...section,
+          order: index
+        }));
+        
+        onReorder(updatedSections);
+      }
+    } else {
+      // Single column - all sections can be reordered freely
+      const reorderableSections = sortedSections.filter(s => !lockedSections.includes(s.type));
+      const [reorderedSection] = reorderableSections.splice(source.index, 1);
+      reorderableSections.splice(destination.index, 0, reorderedSection);
+      
+      // Combine locked sections (personal) at the start with reordered sections
+      const lockedAtStart = sortedSections.filter(s => lockedSections.includes(s.type));
+      const allSections = [...lockedAtStart, ...reorderableSections];
+      
+      const updatedSections = allSections.map((section, index) => ({
+        ...section,
+        order: index
+      }));
+      
+      onReorder(updatedSections);
+    }
   };
 
   const startEditingTitle = (sectionId: string, currentTitle: string) => {
@@ -495,6 +619,14 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
   };
 
   const sortedSections = sortSections(sections);
+  
+  // Separate sections for sidebar templates
+  const sidebarSectionsList = templateLayout.hasSidebar 
+    ? sortedSections.filter(s => templateLayout.sidebarSections.includes(s.type))
+    : [];
+  const mainSectionsList = templateLayout.hasSidebar
+    ? sortedSections.filter(s => templateLayout.mainSections.includes(s.type) && s.type !== 'personal')
+    : sortedSections.filter(s => !lockedSections.includes(s.type));
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
@@ -516,118 +648,290 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
           badge={`${sortedSections.length} sections`}
         >
           <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="layout-sections">
-              {(provided, droppableSnapshot) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className={`space-y-1.5 rounded-lg ${
-                    droppableSnapshot.isDraggingOver ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
-                  }`}
-                >
-                  {sortedSections.map((section, index) => {
-                    const isLocked = lockedSections.includes(section.type);
-                    
-                    return (
-                      <Draggable
-                        key={section.id}
-                        draggableId={section.id}
-                        index={index}
-                        isDragDisabled={isLocked}
+            {templateLayout.hasSidebar ? (
+              /* Two-column layout for templates with sidebar */
+              <div className="space-y-4">
+                {/* Main Content Sections */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <LayoutList className="w-4 h-4 text-gray-500" />
+                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                      Main Content
+                    </span>
+                  </div>
+                  <Droppable droppableId="main-sections">
+                    {(provided, droppableSnapshot) => (
+                      <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className={`space-y-1.5 rounded-lg p-2 border-2 border-dashed transition-colors ${
+                          droppableSnapshot.isDraggingOver 
+                            ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10 border-[#635BFF]/30' 
+                            : 'border-gray-200 dark:border-[#3d3c3e]/60'
+                        }`}
                       >
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            className={`
-                              group flex items-center gap-2.5 px-3 py-2.5 rounded-xl
-                              ${snapshot.isDragging 
-                                ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50' 
-                                : 'bg-gray-50/80 dark:bg-[#2b2a2c]/40 hover:bg-gray-100 dark:hover:bg-gray-800/60'
-                              }
-                              ${isLocked ? 'opacity-50' : ''}
-                            `}
-                            style={provided.draggableProps.style}
+                        {mainSectionsList.map((section, index) => (
+                          <Draggable
+                            key={section.id}
+                            draggableId={section.id}
+                            index={index}
                           >
-                            {/* Drag Handle or Lock Icon */}
-                            <div
-                              {...provided.dragHandleProps}
-                              className={`
-                                flex-shrink-0 p-1.5 rounded-lg transition-all duration-200
-                                ${isLocked 
-                                  ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' 
-                                  : 'text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-200/60 dark:group-hover:bg-gray-700/60'
-                                }
-                                ${snapshot.isDragging ? 'text-[#635BFF] bg-[#635BFF]/10' : ''}
-                              `}
-                              title={isLocked ? 'Section verrouillée' : 'Glisser pour réorganiser'}
-                            >
-                              {isLocked ? (
-                                <Lock className="w-3.5 h-3.5" />
-                              ) : (
-                                <GripVertical className="w-3.5 h-3.5" />
-                              )}
-                            </div>
-
-                            {/* Section Icon */}
-                            <div className={`flex-shrink-0 transition-colors duration-200 ${
-                              snapshot.isDragging ? 'text-[#635BFF]' : 'text-gray-500 dark:text-gray-400'
-                            }`}>
-                              {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
-                            </div>
-
-                            {/* Section Title - Editable - Takes full width */}
-                            <div className="flex-1 min-w-0">
-                              {editingSection === section.id ? (
-                                <input
-                                  type="text"
-                                  value={tempTitle}
-                                  onChange={(e) => setTempTitle(e.target.value)}
-                                  onBlur={saveTitle}
-                                  onKeyPress={(e) => e.key === 'Enter' && saveTitle()}
-                                  autoFocus
-                                  className="w-full px-2 py-1 text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-[#3d3c3e] border border-[#635BFF] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#635BFF]/30"
-                                />
-                              ) : (
-                                <span
-                                  onClick={() => !isLocked && startEditingTitle(section.id, section.title)}
-                                  className={`
-                                    block text-sm font-medium text-gray-900 dark:text-white truncate
-                                    ${!isLocked && 'cursor-text hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors'}
-                                  `}
-                                >
-                                  {section.title}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Edit Icon */}
-                            {!isLocked && editingSection !== section.id && (
-                              <button
-                                onClick={() => startEditingTitle(section.id, section.title)}
-                                className="p-1.5 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 rounded-lg transition-all duration-200 flex-shrink-0 opacity-0 group-hover:opacity-100"
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={`
+                                  group flex items-center gap-2.5 px-3 py-2.5 rounded-xl
+                                  ${snapshot.isDragging 
+                                    ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50' 
+                                    : 'bg-gray-50/80 dark:bg-[#2b2a2c]/40 hover:bg-gray-100 dark:hover:bg-gray-800/60'
+                                  }
+                                `}
+                                style={provided.draggableProps.style}
                               >
-                                <Edit3 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                              </button>
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className={`
+                                    flex-shrink-0 p-1.5 rounded-lg transition-all duration-200
+                                    text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-200/60 dark:group-hover:bg-gray-700/60
+                                    ${snapshot.isDragging ? 'text-[#635BFF] bg-[#635BFF]/10' : ''}
+                                  `}
+                                  title="Drag to reorder"
+                                >
+                                  <GripVertical className="w-3.5 h-3.5" />
+                                </div>
+                                <div className={`flex-shrink-0 transition-colors duration-200 ${
+                                  snapshot.isDragging ? 'text-[#635BFF]' : 'text-gray-500 dark:text-gray-400'
+                                }`}>
+                                  {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <span className="block text-sm font-medium text-gray-900 dark:text-white truncate">
+                                    {section.title}
+                                  </span>
+                                </div>
+                              </div>
                             )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                        {mainSectionsList.length === 0 && (
+                          <div className="text-center py-3 text-xs text-gray-400">
+                            No main sections enabled
                           </div>
                         )}
-                      </Draggable>
-                    );
-                  })}
-                  {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
                 </div>
-              )}
-            </Droppable>
-          </DragDropContext>
 
-          {/* Locked sections notice */}
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-amber-50/50 dark:bg-amber-900/10 rounded-lg border border-amber-200/50 dark:border-amber-800/30">
-            <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-500 flex-shrink-0" />
-            <p className="text-[11px] text-amber-700 dark:text-amber-400">
-              Header sections are locked to maintain template consistency
-            </p>
-          </div>
+                {/* Sidebar Sections */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <LayoutPanelLeft className="w-4 h-4 text-gray-500" />
+                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                      Sidebar
+                    </span>
+                  </div>
+                  <Droppable droppableId="sidebar-sections">
+                    {(provided, droppableSnapshot) => (
+                      <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className={`space-y-1.5 rounded-lg p-2 border-2 border-dashed transition-colors ${
+                          droppableSnapshot.isDraggingOver 
+                            ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10 border-[#635BFF]/30' 
+                            : 'border-gray-200 dark:border-[#3d3c3e]/60'
+                        }`}
+                      >
+                        {sidebarSectionsList.map((section, index) => (
+                          <Draggable
+                            key={section.id}
+                            draggableId={section.id}
+                            index={index}
+                          >
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={`
+                                  group flex items-center gap-2.5 px-3 py-2.5 rounded-xl
+                                  ${snapshot.isDragging 
+                                    ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50' 
+                                    : 'bg-gray-50/80 dark:bg-[#2b2a2c]/40 hover:bg-gray-100 dark:hover:bg-gray-800/60'
+                                  }
+                                `}
+                                style={provided.draggableProps.style}
+                              >
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className={`
+                                    flex-shrink-0 p-1.5 rounded-lg transition-all duration-200
+                                    text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-200/60 dark:group-hover:bg-gray-700/60
+                                    ${snapshot.isDragging ? 'text-[#635BFF] bg-[#635BFF]/10' : ''}
+                                  `}
+                                  title="Drag to reorder"
+                                >
+                                  <GripVertical className="w-3.5 h-3.5" />
+                                </div>
+                                <div className={`flex-shrink-0 transition-colors duration-200 ${
+                                  snapshot.isDragging ? 'text-[#635BFF]' : 'text-gray-500 dark:text-gray-400'
+                                }`}>
+                                  {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <span className="block text-sm font-medium text-gray-900 dark:text-white truncate">
+                                    {section.title}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                        {sidebarSectionsList.length === 0 && (
+                          <div className="text-center py-3 text-xs text-gray-400">
+                            No sidebar sections enabled
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Droppable>
+                </div>
+
+                {/* Info notice for two-column layouts */}
+                <div className="flex items-start gap-2 px-3 py-2 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-200/50 dark:border-blue-800/30">
+                  <LayoutPanelLeft className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-blue-700 dark:text-blue-300">
+                    This template has a two-column layout. Sections can only be reordered within their own column (Main or Sidebar).
+                  </p>
+                </div>
+              </div>
+            ) : (
+              /* Single column layout */
+              <>
+                <Droppable droppableId="layout-sections">
+                  {(provided, droppableSnapshot) => (
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
+                      className={`space-y-1.5 rounded-lg ${
+                        droppableSnapshot.isDraggingOver ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
+                      }`}
+                    >
+                      {sortedSections.map((section, index) => {
+                        const isLocked = lockedSections.includes(section.type);
+                        
+                        // For single column, only render non-locked sections in the droppable
+                        if (isLocked) {
+                          return (
+                            <div
+                              key={section.id}
+                              className="group flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gray-50/80 dark:bg-[#2b2a2c]/40 opacity-50"
+                            >
+                              <div className="flex-shrink-0 p-1.5 rounded-lg text-gray-300 dark:text-gray-600 cursor-not-allowed">
+                                <Lock className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="flex-shrink-0 text-gray-500 dark:text-gray-400">
+                                {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <span className="block text-sm font-medium text-gray-900 dark:text-white truncate">
+                                  {section.title}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        
+                        // Find the index within non-locked sections
+                        const nonLockedIndex = sortedSections
+                          .filter(s => !lockedSections.includes(s.type))
+                          .findIndex(s => s.id === section.id);
+                        
+                        return (
+                          <Draggable
+                            key={section.id}
+                            draggableId={section.id}
+                            index={nonLockedIndex}
+                          >
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={`
+                                  group flex items-center gap-2.5 px-3 py-2.5 rounded-xl
+                                  ${snapshot.isDragging 
+                                    ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50' 
+                                    : 'bg-gray-50/80 dark:bg-[#2b2a2c]/40 hover:bg-gray-100 dark:hover:bg-gray-800/60'
+                                  }
+                                `}
+                                style={provided.draggableProps.style}
+                              >
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className={`
+                                    flex-shrink-0 p-1.5 rounded-lg transition-all duration-200
+                                    text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-200/60 dark:group-hover:bg-gray-700/60
+                                    ${snapshot.isDragging ? 'text-[#635BFF] bg-[#635BFF]/10' : ''}
+                                  `}
+                                  title="Drag to reorder"
+                                >
+                                  <GripVertical className="w-3.5 h-3.5" />
+                                </div>
+                                <div className={`flex-shrink-0 transition-colors duration-200 ${
+                                  snapshot.isDragging ? 'text-[#635BFF]' : 'text-gray-500 dark:text-gray-400'
+                                }`}>
+                                  {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  {editingSection === section.id ? (
+                                    <input
+                                      type="text"
+                                      value={tempTitle}
+                                      onChange={(e) => setTempTitle(e.target.value)}
+                                      onBlur={saveTitle}
+                                      onKeyPress={(e) => e.key === 'Enter' && saveTitle()}
+                                      autoFocus
+                                      className="w-full px-2 py-1 text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-[#3d3c3e] border border-[#635BFF] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#635BFF]/30"
+                                    />
+                                  ) : (
+                                    <span
+                                      onClick={() => startEditingTitle(section.id, section.title)}
+                                      className="block text-sm font-medium text-gray-900 dark:text-white truncate cursor-text hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors"
+                                    >
+                                      {section.title}
+                                    </span>
+                                  )}
+                                </div>
+                                {editingSection !== section.id && (
+                                  <button
+                                    onClick={() => startEditingTitle(section.id, section.title)}
+                                    className="p-1.5 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 rounded-lg transition-all duration-200 flex-shrink-0 opacity-0 group-hover:opacity-100"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </Draggable>
+                        );
+                      })}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+
+                {/* Locked sections notice */}
+                <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-amber-50/50 dark:bg-amber-900/10 rounded-lg border border-amber-200/50 dark:border-amber-800/30">
+                  <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-500 flex-shrink-0" />
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                    Header sections are locked to maintain template consistency
+                  </p>
+                </div>
+              </>
+            )}
+          </DragDropContext>
         </CollapsibleSection>
 
         {/* Typography - Collapsible */}
