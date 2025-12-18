@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { collection, query, getDocs, doc, getDoc, addDoc, updateDoc, orderBy, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -625,6 +625,26 @@ export default function MockInterviewPage() {
     };
   }, [phase]);
 
+  // Block browser refresh/close when interview is active
+  useEffect(() => {
+    const isInterviewActive = phase === 'live' && (connectionStatus === 'connecting' || connectionStatus === 'ready' || connectionStatus === 'live');
+    
+    if (!isInterviewActive) return;
+    
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      // Modern browsers require returnValue to be set
+      e.returnValue = 'You have an active interview session. Are you sure you want to leave?';
+      return e.returnValue;
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [phase, connectionStatus]);
+
   // ============================================
   // HANDLERS
   // ============================================
@@ -632,6 +652,96 @@ export default function MockInterviewPage() {
   const handleStopInterview = useCallback(() => {
     disconnect();
   }, [disconnect]);
+
+  const navigate = useNavigate();
+
+  // Block browser back/forward navigation when interview is active
+  const isInterviewActive = phase === 'live' && (connectionStatus === 'connecting' || connectionStatus === 'ready' || connectionStatus === 'live');
+  const isInterviewActiveRef = useRef(isInterviewActive);
+  isInterviewActiveRef.current = isInterviewActive;
+  
+  const [showNavigationConfirmation, setShowNavigationConfirmation] = useState(false);
+  const pendingNavigationRef = useRef<string | null>(null);
+  
+  // Block browser back button
+  useEffect(() => {
+    if (!isInterviewActive) return;
+    
+    // Push a dummy state to detect back button
+    window.history.pushState({ interviewActive: true }, '');
+    
+    const handlePopState = () => {
+      if (isInterviewActiveRef.current) {
+        // Prevent navigation by pushing state back
+        window.history.pushState({ interviewActive: true }, '');
+        // Show confirmation modal
+        setShowNavigationConfirmation(true);
+        pendingNavigationRef.current = 'back';
+      }
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isInterviewActive]);
+
+  // Block link clicks (sidebar navigation, etc.)
+  useEffect(() => {
+    if (!isInterviewActive) return;
+    
+    const handleLinkClick = (event: MouseEvent) => {
+      // Find if click was on a link or inside a link
+      const target = event.target as HTMLElement;
+      const link = target.closest('a[href]') as HTMLAnchorElement | null;
+      
+      if (!link) return;
+      
+      const href = link.getAttribute('href');
+      
+      // Only intercept internal navigation links (not external links or anchors)
+      if (!href || href.startsWith('http') || href.startsWith('#') || href.startsWith('mailto:')) {
+        return;
+      }
+      
+      // Check if it's navigating away from mock-interview page
+      if (href !== '/mock-interview' && !href.startsWith('/mock-interview?')) {
+        event.preventDefault();
+        event.stopPropagation();
+        pendingNavigationRef.current = href;
+        setShowNavigationConfirmation(true);
+      }
+    };
+    
+    // Use capture phase to intercept before React Router handles it
+    document.addEventListener('click', handleLinkClick, true);
+    
+    return () => {
+      document.removeEventListener('click', handleLinkClick, true);
+    };
+  }, [isInterviewActive]);
+
+  // Handle navigation confirmation
+  const handleConfirmNavigation = useCallback(() => {
+    setShowNavigationConfirmation(false);
+    handleStopInterview();
+    
+    // Navigate after stopping
+    const destination = pendingNavigationRef.current;
+    pendingNavigationRef.current = null;
+    
+    if (destination === 'back') {
+      window.history.back();
+    } else if (destination) {
+      navigate(destination);
+    }
+  }, [handleStopInterview, navigate]);
+
+  const handleCancelNavigation = useCallback(() => {
+    setShowNavigationConfirmation(false);
+    pendingNavigationRef.current = null;
+  }, []);
 
   // Show confirmation modal when user clicks End Interview
   const handleEndInterviewClick = useCallback(() => {
@@ -2097,6 +2207,79 @@ export default function MockInterviewPage() {
           {phase === 'results' && renderResultsPhase()}
         </AnimatePresence>
       </div>
+
+      {/* Navigation Confirmation Modal (for page navigation during active interview) */}
+      <AnimatePresence>
+        {showNavigationConfirmation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={handleCancelNavigation}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-white dark:bg-[#2b2a2c] rounded-xl w-full max-w-sm mx-4 shadow-xl border border-gray-200/50 dark:border-[#3d3c3e]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-[#3d3c3e]">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                  Leave Interview?
+                </h2>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleCancelNavigation}
+                  className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </motion.button>
+              </div>
+
+              {/* Body */}
+              <div className="p-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Your interview session is still active. If you leave now, your progress will be lost and no analysis will be generated.
+                </p>
+
+                {/* Session Info */}
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-[#242325] mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-[#1a1a1b] flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">Current Session</p>
+                    <p className="text-sm font-mono font-semibold text-gray-900 dark:text-white">
+                      {formatTime(elapsedTime)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex gap-2 p-4 pt-0">
+                <button
+                  onClick={handleCancelNavigation}
+                  className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 transition-colors"
+                >
+                  Continue Interview
+                </button>
+                <button
+                  onClick={handleConfirmNavigation}
+                  className="flex-1 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-800/50 transition-colors"
+                >
+                  Leave
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AuthLayout>
   );
 }
