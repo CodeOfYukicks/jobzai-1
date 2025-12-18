@@ -585,10 +585,10 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
     if (shouldDoInlineEdit) {
       startInlineEdit(editType);
       
-      // Add a brief status message to chat
+      // Add a brief status message to chat (uses marker format for premium animation)
       const statusMessage = hasSelection 
-        ? '✨ Editing selected text...'
-        : '✨ Updating your note...';
+        ? '[AI_UPDATING:selection]'
+        : '[AI_UPDATING:note]';
       const assistantMessageId = addMessage({
         role: 'assistant',
         content: statusMessage,

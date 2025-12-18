@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, Lightbulb, User, Plus, FileSearch, LayoutGrid, Briefcase, Calendar, Clock, ChevronLeft, ChevronRight, Search, FileEdit, Mic, Target } from 'lucide-react';
+import { LayoutDashboard, ScrollText, Lightbulb, User, Plus, FileSearch, LayoutGrid, Briefcase, Calendar, Clock, ChevronLeft, ChevronRight, Search, FileEdit, Mic, Target, Home } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, collection, query, getDocs } from 'firebase/firestore';
@@ -255,6 +255,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
   // Resolve current route title for mobile header
   const getCurrentRouteTitle = (pathname: string): string => {
+    // Check for Hub first
+    if (pathname === '/hub') return 'Hub';
+    
     // Flatten all navigation items including the nested apply structure
     const allItems = [
       ...navigationGroups.apply.main,
@@ -508,6 +511,39 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           {/* Navigation principale - flex-1 pour prendre l'espace disponible */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
           <nav className="p-2 space-y-1">
+              {/* HUB Link */}
+              <Link
+                to="/hub"
+                onMouseEnter={() => setIsHovered('Hub')}
+                onMouseLeave={() => setIsHovered(null)}
+                className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg 
+                  transition-all duration-200 relative overflow-hidden
+                  ${location.pathname === '/hub'
+                    ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
+                  }`}
+                title={!isEffectivelyExpanded ? 'Hub' : undefined}
+              >
+                <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
+                  <Home className={`h-4 w-4 transition-colors
+                    ${location.pathname === '/hub' 
+                      ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
+                      : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
+                  />
+                  {isEffectivelyExpanded && (
+                    <span className="flex-1">Hub</span>
+                  )}
+                </div>
+
+                {location.pathname === '/hub' && (
+                  <motion.div
+                    layoutId="activeIndicator"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 
+                      bg-[#635BFF] dark:bg-[#a5a0ff] rounded-r-full"
+                  />
+                )}
+              </Link>
+
               {/* APPLY Section */}
             <div className="space-y-0.5">
               {isEffectivelyExpanded ? (

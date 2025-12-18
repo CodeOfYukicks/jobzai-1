@@ -15,6 +15,19 @@ import type { ProfileAvatarConfig, ProfileAvatarType } from '../profile/avatar';
 import { ProfileAvatar, DEFAULT_PROFILE_AVATAR_CONFIG } from '../profile/avatar';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import AIUpdatingIndicator from './AIUpdatingIndicator';
+
+// Regex to detect AI updating status markup: [AI_UPDATING:variant]
+const AI_UPDATING_REGEX = /^\[AI_UPDATING:(note|selection)\]$/;
+
+// Function to check if content is an AI updating status
+function isAIUpdatingStatus(content: string): { isUpdating: boolean; variant?: 'note' | 'selection' } {
+  const match = content.trim().match(AI_UPDATING_REGEX);
+  if (match) {
+    return { isUpdating: true, variant: match[1] as 'note' | 'selection' };
+  }
+  return { isUpdating: false };
+}
 
 // Regex to detect tour trigger markup: [[START_TOUR:tour-id]]
 const TOUR_TRIGGER_REGEX = /\[\[START_TOUR:([a-zA-Z0-9_-]+)\]\]/g;
@@ -366,24 +379,32 @@ function MessageBubble({ message, avatarConfig, userPhotoURL, userAvatarType = '
         >
           {message.isStreaming && !message.content ? (
             <TypingIndicator />
-          ) : (
-            <div className={`prose prose-sm max-w-none
-              ${isUser 
-                ? 'prose-invert' 
-                : 'dark:prose-invert prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5'
-              }`}
-            >
-              {isAssistantStreaming ? (
-                <StreamingText content={message.content} isStreaming={true} />
-              ) : isUser ? (
-                <ReactMarkdown components={markdownComponents}>
-                  {message.content}
-                </ReactMarkdown>
-              ) : (
-                <MessageContent content={message.content} />
-              )}
-            </div>
-          )}
+          ) : (() => {
+            // Check if this is an AI updating status message
+            const aiStatus = isAIUpdatingStatus(message.content);
+            if (aiStatus.isUpdating && message.isStreaming) {
+              return <AIUpdatingIndicator variant={aiStatus.variant} />;
+            }
+            
+            return (
+              <div className={`prose prose-sm max-w-none
+                ${isUser 
+                  ? 'prose-invert' 
+                  : 'dark:prose-invert prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5'
+                }`}
+              >
+                {isAssistantStreaming ? (
+                  <StreamingText content={message.content} isStreaming={true} />
+                ) : isUser ? (
+                  <ReactMarkdown components={markdownComponents}>
+                    {message.content}
+                  </ReactMarkdown>
+                ) : (
+                  <MessageContent content={message.content} />
+                )}
+              </div>
+            );
+          })()}
         </div>
         
         {/* Timestamp - only show when not streaming */}
