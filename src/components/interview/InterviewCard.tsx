@@ -1,9 +1,9 @@
-import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Building2, Calendar, Clock, MapPin, Eye, Edit3, Trash2 } from 'lucide-react';
+import { Calendar, Clock, Eye, Edit3, Trash2 } from 'lucide-react';
 import { Interview, JobApplication } from '../../types/job';
 import { CompanyLogo } from '../common/CompanyLogo';
+import { ProfileAvatar, generateGenderedAvatarConfigByName } from '../profile/avatar';
 
 // Helper function to get type badge styles
 const getTypeBadgeStyles = (type: string) => {
@@ -66,8 +66,8 @@ const formatDateString = (dateString: string): string => {
   if (diffDays > 0 && diffDays <= 7) return `In ${diffDays} days`;
   if (diffDays < 0 && diffDays >= -7) return `${Math.abs(diffDays)} days ago`;
 
-  return date.toLocaleDateString(undefined, { 
-    month: 'short', 
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
     day: 'numeric',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
   });
@@ -114,26 +114,40 @@ export function InterviewCard({
       }}
     >
       <div className="relative flex flex-col flex-1 min-h-0">
-        {/* Header */}
+        {/* Header - Prospect Info */}
         <div className="flex items-start gap-3 flex-shrink-0">
-          {/* Company Logo */}
-          <CompanyLogo
-            companyName={application.companyName}
-            size="lg"
-            className="rounded-lg border border-gray-100 dark:border-[#3d3c3e] flex-shrink-0"
-          />
+          {/* Prospect Avatar */}
+          {application.contactName ? (
+            <ProfileAvatar
+              config={generateGenderedAvatarConfigByName(application.contactName)}
+              size={44}
+              className="rounded-xl flex-shrink-0 ring-2 ring-white dark:ring-[#3d3c3e] shadow-sm"
+            />
+          ) : (
+            <CompanyLogo
+              companyName={application.companyName}
+              size="lg"
+              className="rounded-lg border border-gray-100 dark:border-[#3d3c3e] flex-shrink-0"
+            />
+          )}
 
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h3 className="text-base font-medium text-gray-900 dark:text-white truncate">
-                  {application.position}
+                  {application.contactName || application.position}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 truncate flex items-center gap-1.5 mt-0.5">
-                  <Building2 className="w-3.5 h-3.5 flex-shrink-0 opacity-60" />
-                  <span className="truncate">{application.companyName}</span>
-                </p>
+                {/* For outreach: show role/position. For job apps: show company */}
+                {application.contactName ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                    {application.contactRole || application.position}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                    {application.companyName}
+                  </p>
+                )}
               </div>
 
               {/* Type Badge */}
@@ -159,22 +173,30 @@ export function InterviewCard({
               <span>{interview.time}</span>
             </div>
           )}
-          {interview.location && (
-            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <MapPin className="w-3.5 h-3.5 flex-shrink-0 opacity-60" />
-              <span className="truncate">{interview.location}</span>
-            </div>
-          )}
         </div>
 
         {/* Spacer to push footer to bottom */}
         <div className="flex-1"></div>
 
-        {/* Footer */}
+        {/* Footer - Company (only for outreach) & Actions */}
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50 flex-shrink-0">
-          <span className="text-xs text-gray-400 dark:text-gray-500">
-            {isPast ? 'Past interview' : 'Upcoming'}
-          </span>
+          {/* Company - only show for outreach campaigns (those with contactName) */}
+          {application.contactName ? (
+            <div className="flex items-center gap-2 min-w-0">
+              <CompanyLogo
+                companyName={application.companyName}
+                size="sm"
+                className="rounded border border-gray-100 dark:border-[#3d3c3e] flex-shrink-0"
+              />
+              <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                {application.companyName}
+              </span>
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400 dark:text-gray-500">
+              {isPast ? 'Past interview' : 'Upcoming'}
+            </span>
+          )}
 
           {/* Quick actions - appear on hover */}
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -191,9 +213,9 @@ export function InterviewCard({
               </Link>
             )}
             <button
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                onEdit(); 
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
               }}
               className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 
                 dark:hover:text-gray-300 dark:hover:bg-[#3d3c3e]
@@ -203,9 +225,9 @@ export function InterviewCard({
               <Edit3 className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                onDelete(); 
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
               }}
               className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 
                 dark:hover:text-red-400 dark:hover:bg-red-500/10
