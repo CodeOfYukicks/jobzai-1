@@ -40,6 +40,57 @@ const tldrawCustomStyles = `
   [class*="watermark"] {
     display: none !important;
   }
+  
+  /* Ensure toolbar sticks to the board */
+  .tldraw-container .tlui-layout {
+    z-index: 10 !important;
+  }
+  .tldraw-container .tlui-layout__top {
+    z-index: 10 !important;
+  }
+  .tldraw-container .tlui-layout__bottom {
+    z-index: 10 !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  
+  /* Light mode specific toolbar styling - only target toolbar, not style panels */
+  .tldraw-light .tlui-toolbar__inner {
+    background-color: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  .tldraw-light .tlui-toolbar__inner .tlui-button {
+    color: #374151 !important;
+  }
+  
+  .tldraw-light .tlui-toolbar__inner .tlui-button:hover {
+    background-color: #f3f4f6 !important;
+  }
+  
+  .tldraw-light .tlui-toolbar__inner .tlui-button[data-state="selected"],
+  .tldraw-light .tlui-toolbar__inner .tlui-button[data-isactive="true"] {
+    background-color: #e0e7ff !important;
+    color: #4f46e5 !important;
+  }
+  
+  .tldraw-light .tlui-toolbar__inner .tlui-icon {
+    color: inherit !important;
+  }
+  
+  /* Toolbar extras (undo/redo section) */
+  .tldraw-light .tlui-toolbar__extras {
+    background-color: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  .tldraw-light .tlui-toolbar__extras .tlui-button {
+    color: #374151 !important;
+  }
 `;
 
 /**
@@ -347,6 +398,15 @@ export const TldrawWhiteboard = forwardRef<TldrawWhiteboardRef, TldrawWhiteboard
     return () => observer.disconnect();
   }, []);
 
+  // Sync tldraw color scheme with app theme
+  useEffect(() => {
+    if (editor) {
+      editor.user.updateUserPreferences({
+        colorScheme: isDarkMode ? 'dark' : 'light'
+      });
+    }
+  }, [editor, isDarkMode]);
+
   // Load initial data from Firestore
   useEffect(() => {
     const loadData = async () => {
@@ -473,11 +533,12 @@ export const TldrawWhiteboard = forwardRef<TldrawWhiteboardRef, TldrawWhiteboard
 
   const tldrawContent = (
     <div 
-      className={`tldraw-container ${isDarkMode ? 'tldraw-dark' : ''}`}
+      className={`tldraw-container ${isDarkMode ? 'tldraw-dark' : 'tldraw-light'}`}
       style={{ 
         width: isFullscreen ? '100%' : (width || '100%'), 
         height: isFullscreen ? '100%' : (height || 600),
         ['--tldraw-bg' as any]: isDarkMode ? '#0a0a0a' : '#f9fafb',
+        position: 'relative',
       }}
     >
       <style>{tldrawCustomStyles}</style>
