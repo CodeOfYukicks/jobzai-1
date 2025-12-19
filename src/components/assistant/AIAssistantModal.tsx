@@ -412,7 +412,7 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
             }}
             className={`fixed top-12 right-0 w-[440px] h-[calc(100vh-48px)]
               bg-white dark:bg-[#1e1e1f] 
-              shadow-2xl border-l border-gray-200/80 dark:border-[#2d2d2e]
+              ${shouldShowBackdrop ? 'shadow-2xl' : ''} border-l border-gray-200/80 dark:border-[#2d2d2e]
               flex flex-col overflow-hidden ${shouldShowBackdrop ? 'z-50' : 'z-40'} ${className}`}
           >
             {/* Header - Compact when chatting, full when empty */}
