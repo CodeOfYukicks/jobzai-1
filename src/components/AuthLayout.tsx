@@ -75,7 +75,7 @@ const navigationGroups = {
 // Ajouter cette fonction pour calculer le pourcentage
 const calculateProfileCompletion = (data: any) => {
   if (!data) return 0;
-  
+
   const requiredFields = [
     // Personal Information
     'firstName',
@@ -84,27 +84,27 @@ const calculateProfileCompletion = (data: any) => {
     'gender',
     'location',
     'contractType',
-    
+
     // Location & Mobility
     'willingToRelocate',
     'workPreference',
     'travelPreference',
-    
+
     // Experience & Expertise
     'yearsOfExperience',
     'currentPosition',
     'skills',
     'tools',
-    
+
     // Documents & Links
     'cvUrl',
     'linkedinUrl',
-    
+
     // Professional Objectives
     'targetPosition',
     'targetSectors',
     'salaryExpectations',
-    
+
     // Preferences & Priorities
     'workLifeBalance',
     'companyCulture',
@@ -129,11 +129,11 @@ const calculateProfileCompletion = (data: any) => {
 
 function getFirstName(email: string | null | undefined): string {
   if (!email) return 'User';
-  
+
   // Si l'email contient un point, on prend la première partie avant le point
   const username = email.split('@')[0];
   const nameParts = username.split('.');
-  
+
   // Capitalize first letter and lowercase the rest
   return nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1).toLowerCase();
 }
@@ -147,7 +147,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const [credits, setCredits] = useState(0);
   const [userPlan, setUserPlan] = useState<'free' | 'standard' | 'premium'>('free');
   const { currentUser, logout } = useAuth();
-  
+
   // Global Search
   const globalSearch = useGlobalSearch();
   const [logoUrlLight, setLogoUrlLight] = useState<string>('');
@@ -158,8 +158,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const [profileAvatarType, setProfileAvatarType] = useState<ProfileAvatarType>('photo');
   const [profileAvatarConfig, setProfileAvatarConfig] = useState<ProfileAvatarConfig>(DEFAULT_PROFILE_AVATAR_CONFIG);
   const [isCollapsed, setIsCollapsed] = useState(
-    location.pathname.startsWith('/cv-optimizer/') || 
-    location.pathname === '/applications' || 
+    location.pathname.startsWith('/cv-optimizer/') ||
+    location.pathname === '/applications' ||
     location.pathname === '/jobs' ||
     location.pathname === '/upcoming-interviews' ||
     location.pathname === '/mock-interview' ||
@@ -167,6 +167,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/campaigns-auto' ||
     location.pathname.startsWith('/interview-prep/') ||
     location.pathname.startsWith('/ats-analysis/') ||
+    location.pathname.startsWith('/meeting-prep/') ||
     location.pathname === '/resume-builder' ||
     (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
     location.pathname.startsWith('/notes/') ||
@@ -178,19 +179,20 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
   useEffect(() => {
     // Auto-collapse sidebar on CV Optimizer edit pages, Applications page, Jobs page, Upcoming Interviews page, Mock Interview page, Calendar page, Interview Prep pages, Resume Builder, Resume Builder editor, Campaigns Auto, Notes, and Whiteboards for full-width editing
-    if (location.pathname.startsWith('/cv-optimizer/') || 
-        location.pathname === '/applications' || 
-        location.pathname === '/jobs' ||
-        location.pathname === '/upcoming-interviews' ||
-        location.pathname === '/mock-interview' ||
-        location.pathname === '/calendar' ||
-        location.pathname === '/campaigns-auto' ||
-        location.pathname.startsWith('/interview-prep/') ||
-        location.pathname.startsWith('/ats-analysis/') ||
-        location.pathname === '/resume-builder' ||
-        (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
-        location.pathname.startsWith('/notes/') ||
-        location.pathname.startsWith('/whiteboard/')) {
+    if (location.pathname.startsWith('/cv-optimizer/') ||
+      location.pathname === '/applications' ||
+      location.pathname === '/jobs' ||
+      location.pathname === '/upcoming-interviews' ||
+      location.pathname === '/mock-interview' ||
+      location.pathname === '/calendar' ||
+      location.pathname === '/campaigns-auto' ||
+      location.pathname.startsWith('/interview-prep/') ||
+      location.pathname.startsWith('/ats-analysis/') ||
+      location.pathname.startsWith('/meeting-prep/') ||
+      location.pathname === '/resume-builder' ||
+      (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
+      location.pathname.startsWith('/notes/') ||
+      location.pathname.startsWith('/whiteboard/')) {
       setIsCollapsed(true);
     }
   }, [location.pathname]);
@@ -225,12 +227,12 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     const loadLogos = async () => {
       try {
         const storage = getStorage();
-        
+
         // Logo pour le mode clair
         const logoLightRef = ref(storage, 'images/logo-only.png');
         const lightUrl = await getDownloadURL(logoLightRef);
         setLogoUrlLight(lightUrl);
-        
+
         // Logo pour le mode sombre
         const logoDarkRef = ref(storage, 'images/logo-only-dark.png');
         const darkUrl = await getDownloadURL(logoDarkRef);
@@ -257,7 +259,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const getCurrentRouteTitle = (pathname: string): string => {
     // Check for Hub first
     if (pathname === '/hub') return 'Hub';
-    
+
     // Flatten all navigation items including the nested apply structure
     const allItems = [
       ...navigationGroups.apply.main,
@@ -280,7 +282,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     const updateThemeState = () => {
       const savedTheme = loadThemeFromStorage();
       const currentIsDark = document.documentElement.classList.contains('dark');
-      
+
       // Only apply theme if it's different from current state to avoid unnecessary changes
       // This prevents overriding the theme set by AuthContext
       if (savedTheme === 'system') {
@@ -297,7 +299,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         setIsDarkMode(shouldBeDark);
       }
     };
-    
+
     // Don't update immediately - let AuthContext load theme first
     // Only update state for UI display
     const savedTheme = loadThemeFromStorage();
@@ -307,7 +309,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     } else {
       setIsDarkMode(savedTheme === 'dark');
     }
-    
+
     // Listen to system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleSystemChange = () => {
@@ -317,15 +319,15 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       }
     };
     mediaQuery.addEventListener('change', handleSystemChange);
-    
+
     // Listen to localStorage changes (when theme is changed in Settings or elsewhere)
     const handleStorageChange = () => {
       updateThemeState();
     };
-    
+
     // Custom event for same-tab updates
     window.addEventListener('themechange', handleStorageChange);
-    
+
     return () => {
       mediaQuery.removeEventListener('change', handleSystemChange);
       window.removeEventListener('themechange', handleStorageChange);
@@ -336,10 +338,10 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     // Toggle between light and dark (ignore system mode for toggle)
     const currentTheme = loadThemeFromStorage();
     const newTheme: Theme = (currentTheme === 'dark' || isDarkMode) ? 'light' : 'dark';
-    
+
     setIsDarkMode(newTheme === 'dark');
     applyTheme(newTheme);
-    
+
     // Save to Firestore if user is logged in
     if (currentUser?.uid) {
       try {
@@ -354,7 +356,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         // Don't show error to user, localStorage is enough for persistence
       }
     }
-    
+
     // Dispatch custom event to update other components
     window.dispatchEvent(new Event('themechange'));
   };
@@ -375,13 +377,14 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
   // Check if we need full height for certain pages (h-screen with internal scroll)
   // Note: Only /ats-analysis/:id/cv-editor needs full height, not /ats-analysis/:id
-  const needsFullHeight = location.pathname === '/applications' || 
-    location.pathname === '/jobs' || 
-    location.pathname === '/upcoming-interviews' || 
+  const needsFullHeight = location.pathname === '/applications' ||
+    location.pathname === '/jobs' ||
+    location.pathname === '/upcoming-interviews' ||
     location.pathname === '/mock-interview' ||
-    location.pathname === '/calendar' || 
+    location.pathname === '/calendar' ||
     location.pathname === '/campaigns-auto' ||
-    location.pathname.startsWith('/interview-prep/') || 
+    location.pathname.startsWith('/interview-prep/') ||
+    location.pathname.startsWith('/meeting-prep/') ||
     location.pathname === '/resume-builder' ||
     location.pathname === '/cv-analysis' ||
     location.pathname === '/recommendations' ||
@@ -392,12 +395,12 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname.startsWith('/whiteboard/');
 
   // Check if we are in "Builder Mode" (flush sidebar, no floating)
-  const isBuilderMode = location.pathname.startsWith('/resume-builder') || 
+  const isBuilderMode = location.pathname.startsWith('/resume-builder') ||
     location.pathname.startsWith('/notes/') ||
     location.pathname.startsWith('/whiteboard/');
 
   // Check if we need full width (no max-width constraint) - includes all ats-analysis pages, cv-analysis, professional-profile, campaigns-auto, dashboard, notes and whiteboards
-  const needsFullWidth = needsFullHeight || 
+  const needsFullWidth = needsFullHeight ||
     location.pathname.startsWith('/ats-analysis/') ||
     location.pathname === '/cv-analysis' ||
     location.pathname.startsWith('/resume-builder') ||
@@ -406,6 +409,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/campaigns-auto' ||
     location.pathname === '/recommendations' ||
     location.pathname === '/dashboard' ||
+    location.pathname.startsWith('/meeting-prep/') ||
     location.pathname.startsWith('/notes/') ||
     location.pathname.startsWith('/whiteboard/');
 
@@ -418,7 +422,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   // Sidebar width values
   const sidebarExpandedWidth = 256; // 16rem = 256px
   const sidebarCollapsedWidth = 64; // 4rem = 64px
-  
+
   // Effective display state: expand on hover even if collapsed
   const isEffectivelyExpanded = !isCollapsed || isHoveringSidebar;
   const currentSidebarWidth = isCollapsed ? sidebarCollapsedWidth : sidebarExpandedWidth;
@@ -445,9 +449,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       </div>
 
       {/* Sidebar desktop - Full height, in front of top bar */}
-      <aside 
+      <aside
         className={`hidden md:fixed md:flex md:flex-col z-50 bg-white dark:bg-[#2b2a2c] border-r border-gray-200 dark:border-[#3d3c3e] ${isCollapsed && isHoveringSidebar ? 'shadow-xl' : ''}`}
-        style={{ 
+        style={{
           top: 0,
           left: 0,
           bottom: 0,
@@ -459,344 +463,341 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         {/* Logo and collapse button at top of sidebar */}
         <div className="relative flex h-12 shrink-0 items-center justify-between px-3 border-b border-gray-100 dark:border-[#3d3c3e]/50">
           {/* Logo */}
-            <Link 
-              to="/"
+          <Link
+            to="/"
             className={`flex items-center ${!isEffectivelyExpanded ? 'justify-center w-full' : ''} hover:opacity-80 transition-opacity`}
-            >
-              {(isDarkMode ? logoUrlDark : logoUrlLight) ? (
-                <img 
-                  src={isDarkMode ? logoUrlDark : logoUrlLight} 
-                alt="Cubbbe" 
+          >
+            {(isDarkMode ? logoUrlDark : logoUrlLight) ? (
+              <img
+                src={isDarkMode ? logoUrlDark : logoUrlLight}
+                alt="Cubbbe"
                 className="h-7 w-auto"
-                />
-              ) : (
+              />
+            ) : (
               <div className="h-7 w-7 bg-gray-100 dark:bg-[#3d3c3e] animate-pulse rounded" />
-              )}
-            </Link>
+            )}
+          </Link>
           {/* Bouton collapse - disabled on certain pages */}
-            {location.pathname !== '/applications' && location.pathname !== '/jobs' && location.pathname !== '/upcoming-interviews' && location.pathname !== '/mock-interview' && location.pathname !== '/calendar' && location.pathname !== '/campaigns-auto' && !location.pathname.startsWith('/interview-prep/') && !location.pathname.startsWith('/ats-analysis/') && location.pathname !== '/resume-builder' && !(location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) && !location.pathname.startsWith('/notes/') && !location.pathname.startsWith('/whiteboard/') && (
-              <button
-                onClick={() => setIsCollapsed(!isCollapsed)}
+          {location.pathname !== '/applications' && location.pathname !== '/jobs' && location.pathname !== '/upcoming-interviews' && location.pathname !== '/mock-interview' && location.pathname !== '/calendar' && location.pathname !== '/campaigns-auto' && !location.pathname.startsWith('/interview-prep/') && !location.pathname.startsWith('/ats-analysis/') && !location.pathname.startsWith('/meeting-prep/') && location.pathname !== '/resume-builder' && !(location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) && !location.pathname.startsWith('/notes/') && !location.pathname.startsWith('/whiteboard/') && (
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
               className={`group flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200
                   text-gray-400 dark:text-gray-500 
                   hover:text-gray-600 dark:hover:text-gray-300
                   hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50
                   active:scale-95`}
-                aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              >
-                {isCollapsed ? (
-                  <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                ) : (
-                  <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-                )}
-              </button>
-            )}
+              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {isCollapsed ? (
+                <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              ) : (
+                <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+              )}
+            </button>
+          )}
 
           {/* Bouton collapse for locked pages - visible when expanded */}
-            {(location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/upcoming-interviews' || location.pathname === '/mock-interview' || location.pathname === '/calendar' || location.pathname === '/campaigns-auto' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/') || location.pathname === '/resume-builder' || (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) || location.pathname.startsWith('/notes/')) && !isCollapsed && (
-              <button
-                onClick={() => setIsCollapsed(true)}
+          {(location.pathname === '/applications' || location.pathname === '/jobs' || location.pathname === '/upcoming-interviews' || location.pathname === '/mock-interview' || location.pathname === '/calendar' || location.pathname === '/campaigns-auto' || location.pathname.startsWith('/interview-prep/') || location.pathname.startsWith('/ats-analysis/') || location.pathname.startsWith('/meeting-prep/') || location.pathname === '/resume-builder' || (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) || location.pathname.startsWith('/notes/')) && !isCollapsed && (
+            <button
+              onClick={() => setIsCollapsed(true)}
               className={`group flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200
                   text-gray-400 dark:text-gray-500 
                   hover:text-gray-600 dark:hover:text-gray-300
                   hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50
                   active:scale-95`}
-                aria-label="Collapse sidebar"
-              >
-                <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-              </button>
-            )}
-          </div>
+              aria-label="Collapse sidebar"
+            >
+              <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+            </button>
+          )}
+        </div>
 
-          {/* Navigation principale - flex-1 pour prendre l'espace disponible */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
+        {/* Navigation principale - flex-1 pour prendre l'espace disponible */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
           <nav className="p-2 space-y-1">
-              {/* HUB Link */}
-              <Link
-                to="/hub"
-                onMouseEnter={() => setIsHovered('Hub')}
-                onMouseLeave={() => setIsHovered(null)}
-                className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg 
+            {/* HUB Link */}
+            <Link
+              to="/hub"
+              onMouseEnter={() => setIsHovered('Hub')}
+              onMouseLeave={() => setIsHovered(null)}
+              className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg 
                   transition-all duration-200 relative overflow-hidden
                   ${location.pathname === '/hub'
-                    ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
-                  }`}
-                title={!isEffectivelyExpanded ? 'Hub' : undefined}
-              >
-                <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
-                  <Home className={`h-4 w-4 transition-colors
-                    ${location.pathname === '/hub' 
-                      ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
-                      : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
-                  />
-                  {isEffectivelyExpanded && (
-                    <span className="flex-1">Hub</span>
-                  )}
-                </div>
-
-                {location.pathname === '/hub' && (
-                  <motion.div
-                    layoutId="activeIndicator"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 
-                      bg-[#635BFF] dark:bg-[#a5a0ff] rounded-r-full"
-                  />
+                  ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
+                }`}
+              title={!isEffectivelyExpanded ? 'Hub' : undefined}
+            >
+              <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
+                <Home className={`h-4 w-4 transition-colors
+                    ${location.pathname === '/hub'
+                    ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                    : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`}
+                />
+                {isEffectivelyExpanded && (
+                  <span className="flex-1">Hub</span>
                 )}
-              </Link>
+              </div>
 
-              {/* APPLY Section */}
+              {location.pathname === '/hub' && (
+                <motion.div
+                  layoutId="activeIndicator"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 
+                      bg-[#635BFF] dark:bg-[#a5a0ff] rounded-r-full"
+                />
+              )}
+            </Link>
+
+            {/* APPLY Section */}
             <div className="space-y-0.5">
               {isEffectivelyExpanded ? (
                 <p className="px-3 pt-3 pb-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em]">
-                    Apply
-                  </p>
+                  Apply
+                </p>
               ) : (
                 <div className="flex justify-center py-2">
                   <div className="w-5 h-[1.5px] rounded-full bg-gray-300 dark:bg-gray-600" />
                 </div>
               )}
-                
-                {navigationGroups.apply.main.map((item) => (
-                  <SidebarLink
-                    key={item.name}
-                    name={item.name}
-                    href={item.href}
-                    icon={item.icon}
+
+              {navigationGroups.apply.main.map((item) => (
+                <SidebarLink
+                  key={item.name}
+                  name={item.name}
+                  href={item.href}
+                  icon={item.icon}
                   isCollapsed={!isEffectivelyExpanded}
-                    isHovered={isHovered}
-                    onMouseEnter={setIsHovered}
-                    onMouseLeave={() => setIsHovered(null)}
-                  />
-                ))}
-              </div>
+                  isHovered={isHovered}
+                  onMouseEnter={setIsHovered}
+                  onMouseLeave={() => setIsHovered(null)}
+                />
+              ))}
+            </div>
 
-              {/* TRACK Section */}
+            {/* TRACK Section */}
             <div className="space-y-0.5">
               {isEffectivelyExpanded ? (
                 <p className="px-3 pt-4 pb-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em]">
-                    Track
-                  </p>
+                  Track
+                </p>
               ) : (
                 <div className="flex justify-center py-2 mt-1">
                   <div className="w-5 h-[1.5px] rounded-full bg-gray-300 dark:bg-gray-600" />
                 </div>
               )}
-                {navigationGroups.track.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    onMouseEnter={() => setIsHovered(item.name)}
-                    onMouseLeave={() => setIsHovered(null)}
+              {navigationGroups.track.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onMouseEnter={() => setIsHovered(item.name)}
+                  onMouseLeave={() => setIsHovered(null)}
                   className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg 
                       transition-all duration-200 relative overflow-hidden
                       ${location.pathname === item.href
                       ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
-                      }`}
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
+                    }`}
                   title={!isEffectivelyExpanded ? item.name : undefined}
                 >
                   <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
                     <item.icon className={`h-4 w-4 transition-colors
-                        ${location.pathname === item.href 
-                          ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
-                          : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
-                      />
+                        ${location.pathname === item.href
+                        ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                        : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`}
+                    />
                     {isEffectivelyExpanded && (
-                        <span className="flex-1">{item.name}</span>
-                      )}
-                    </div>
-
-                    {location.pathname === item.href && (
-                      <motion.div
-                        layoutId="activeIndicator"
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 
-                        bg-[#635BFF] dark:bg-[#a5a0ff] rounded-r-full"
-                      />
-                    )}
-                  </Link>
-                ))}
-              </div>
-
-              {/* PREPARE Section */}
-            <div className="space-y-0.5">
-              {isEffectivelyExpanded ? (
-                <p className="px-3 pt-4 pb-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em]">
-                    Prepare
-                  </p>
-              ) : (
-                <div className="flex justify-center py-2 mt-1">
-                  <div className="w-5 h-[1.5px] rounded-full bg-gray-300 dark:bg-gray-600" />
-                </div>
-              )}
-                {navigationGroups.prepare.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    onMouseEnter={() => setIsHovered(item.name)}
-                    onMouseLeave={() => setIsHovered(null)}
-                  className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg 
-                      transition-all duration-200 relative overflow-hidden
-                      ${location.pathname === item.href
-                      ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
-                      }`}
-                  title={!isEffectivelyExpanded ? item.name : undefined}
-                >
-                  <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
-                    <item.icon className={`h-4 w-4 transition-colors
-                        ${location.pathname === item.href 
-                          ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
-                          : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
-                      />
-                    {isEffectivelyExpanded && (
-                        <span className="flex-1">{item.name}</span>
-                      )}
-                    </div>
-
-                    {location.pathname === item.href && (
-                      <motion.div
-                        layoutId="activeIndicator"
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 
-                        bg-[#635BFF] dark:bg-[#a5a0ff] rounded-r-full"
-                      />
-                    )}
-                  </Link>
-                ))}
-              </div>
-
-              {/* IMPROVE Section */}
-            <div className="space-y-0.5">
-              {isEffectivelyExpanded ? (
-                <p className="px-3 pt-4 pb-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em]">
-                    Improve
-                  </p>
-              ) : (
-                <div className="flex justify-center py-2 mt-1">
-                  <div className="w-5 h-[1.5px] rounded-full bg-gray-300 dark:bg-gray-600" />
-                </div>
-              )}
-                {navigationGroups.improve.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    onMouseEnter={() => setIsHovered(item.name)}
-                    onMouseLeave={() => setIsHovered(null)}
-                  className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg 
-                      transition-all duration-200 relative overflow-hidden
-                      ${location.pathname === item.href
-                      ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
-                      }`}
-                  title={!isEffectivelyExpanded ? item.name : undefined}
-                >
-                  <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
-                    <item.icon className={`h-4 w-4 transition-colors
-                        ${location.pathname === item.href 
-                          ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
-                          : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`} 
-                      />
-                    {isEffectivelyExpanded && (
-                        <span className="flex-1">{item.name}</span>
-                      )}
-                    </div>
-
-                    {location.pathname === item.href && (
-                      <motion.div
-                        layoutId="activeIndicator"
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 
-                        bg-[#635BFF] dark:bg-[#a5a0ff] rounded-r-full"
-                      />
-                    )}
-                  </Link>
-                ))}
-              </div>
-
-            </nav>
-          </div>
-
-          {/* Section du bas - flex-shrink-0 pour taille fixe */}
-          <div className="flex-shrink-0">
-            {/* Plan & Credits Card - Ultra Premium Minimalist Design */}
-          {isEffectivelyExpanded ? (
-            <div className="p-3 border-t border-gray-100 dark:border-[#3d3c3e]/50">
-                <div className="space-y-2">
-                  {/* Plan Badge */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-1.5 h-1.5 rounded-full ${
-                        userPlan === 'premium' ? 'bg-amber-400' :
-                        userPlan === 'standard' ? 'bg-[#635BFF]' : 'bg-gray-400'
-                      }`} />
-                      <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        {userPlan === 'premium' ? 'Premium' : userPlan === 'standard' ? 'Standard' : 'Free'}
-                      </span>
-                    </div>
-                    {userPlan !== 'premium' && (
-                      <Link
-                        to="/billing"
-                        className="text-[10px] font-medium text-[#635BFF] dark:text-[#a5a0ff] hover:underline underline-offset-2"
-                      >
-                        Upgrade
-                      </Link>
+                      <span className="flex-1">{item.name}</span>
                     )}
                   </div>
 
-                  {/* Credits Display */}
-                  <Link 
-                    to="/billing"
-                    className="group block p-3 rounded-xl bg-gray-50 dark:bg-[#3d3c3e]/30 
+                  {location.pathname === item.href && (
+                    <motion.div
+                      layoutId="activeIndicator"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 
+                        bg-[#635BFF] dark:bg-[#a5a0ff] rounded-r-full"
+                    />
+                  )}
+                </Link>
+              ))}
+            </div>
+
+            {/* PREPARE Section */}
+            <div className="space-y-0.5">
+              {isEffectivelyExpanded ? (
+                <p className="px-3 pt-4 pb-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em]">
+                  Prepare
+                </p>
+              ) : (
+                <div className="flex justify-center py-2 mt-1">
+                  <div className="w-5 h-[1.5px] rounded-full bg-gray-300 dark:bg-gray-600" />
+                </div>
+              )}
+              {navigationGroups.prepare.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onMouseEnter={() => setIsHovered(item.name)}
+                  onMouseLeave={() => setIsHovered(null)}
+                  className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg 
+                      transition-all duration-200 relative overflow-hidden
+                      ${location.pathname === item.href
+                      ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
+                    }`}
+                  title={!isEffectivelyExpanded ? item.name : undefined}
+                >
+                  <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
+                    <item.icon className={`h-4 w-4 transition-colors
+                        ${location.pathname === item.href
+                        ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                        : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`}
+                    />
+                    {isEffectivelyExpanded && (
+                      <span className="flex-1">{item.name}</span>
+                    )}
+                  </div>
+
+                  {location.pathname === item.href && (
+                    <motion.div
+                      layoutId="activeIndicator"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 
+                        bg-[#635BFF] dark:bg-[#a5a0ff] rounded-r-full"
+                    />
+                  )}
+                </Link>
+              ))}
+            </div>
+
+            {/* IMPROVE Section */}
+            <div className="space-y-0.5">
+              {isEffectivelyExpanded ? (
+                <p className="px-3 pt-4 pb-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em]">
+                  Improve
+                </p>
+              ) : (
+                <div className="flex justify-center py-2 mt-1">
+                  <div className="w-5 h-[1.5px] rounded-full bg-gray-300 dark:bg-gray-600" />
+                </div>
+              )}
+              {navigationGroups.improve.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onMouseEnter={() => setIsHovered(item.name)}
+                  onMouseLeave={() => setIsHovered(null)}
+                  className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg 
+                      transition-all duration-200 relative overflow-hidden
+                      ${location.pathname === item.href
+                      ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
+                    }`}
+                  title={!isEffectivelyExpanded ? item.name : undefined}
+                >
+                  <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
+                    <item.icon className={`h-4 w-4 transition-colors
+                        ${location.pathname === item.href
+                        ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                        : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`}
+                    />
+                    {isEffectivelyExpanded && (
+                      <span className="flex-1">{item.name}</span>
+                    )}
+                  </div>
+
+                  {location.pathname === item.href && (
+                    <motion.div
+                      layoutId="activeIndicator"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 
+                        bg-[#635BFF] dark:bg-[#a5a0ff] rounded-r-full"
+                    />
+                  )}
+                </Link>
+              ))}
+            </div>
+
+          </nav>
+        </div>
+
+        {/* Section du bas - flex-shrink-0 pour taille fixe */}
+        <div className="flex-shrink-0">
+          {/* Plan & Credits Card - Ultra Premium Minimalist Design */}
+          {isEffectivelyExpanded ? (
+            <div className="p-3 border-t border-gray-100 dark:border-[#3d3c3e]/50">
+              <div className="space-y-2">
+                {/* Plan Badge */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-1.5 h-1.5 rounded-full ${userPlan === 'premium' ? 'bg-amber-400' :
+                      userPlan === 'standard' ? 'bg-[#635BFF]' : 'bg-gray-400'
+                      }`} />
+                    <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {userPlan === 'premium' ? 'Premium' : userPlan === 'standard' ? 'Standard' : 'Free'}
+                    </span>
+                  </div>
+                  {userPlan !== 'premium' && (
+                    <Link
+                      to="/billing"
+                      className="text-[10px] font-medium text-[#635BFF] dark:text-[#a5a0ff] hover:underline underline-offset-2"
+                    >
+                      Upgrade
+                    </Link>
+                  )}
+                </div>
+
+                {/* Credits Display */}
+                <Link
+                  to="/billing"
+                  className="group block p-3 rounded-xl bg-gray-50 dark:bg-[#3d3c3e]/30 
                       hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50 
                       transition-all duration-200"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
-                            {credits >= 999999 ? '∞' : credits.toLocaleString()}
-                          </span>
-                          <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">
-                            credits
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-center w-7 h-7 rounded-lg 
-                        bg-[#635BFF]/10 dark:bg-[#635BFF]/20
-                        group-hover:bg-[#635BFF] transition-colors duration-200">
-                        <Plus className="h-3.5 w-3.5 text-[#635BFF] dark:text-[#a5a0ff] 
-                          group-hover:text-white transition-colors duration-200" />
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
+                          {credits >= 999999 ? '∞' : credits.toLocaleString()}
+                        </span>
+                        <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">
+                          credits
+                        </span>
                       </div>
                     </div>
-                  </Link>
-                </div>
+                    <div className="flex items-center justify-center w-7 h-7 rounded-lg 
+                        bg-[#635BFF]/10 dark:bg-[#635BFF]/20
+                        group-hover:bg-[#635BFF] transition-colors duration-200">
+                      <Plus className="h-3.5 w-3.5 text-[#635BFF] dark:text-[#a5a0ff] 
+                          group-hover:text-white transition-colors duration-200" />
+                    </div>
+                  </div>
+                </Link>
               </div>
-            ) : (
+            </div>
+          ) : (
             <div className="p-2 border-t border-gray-100 dark:border-[#3d3c3e]/50">
-                  <Link
-                    to="/billing"
+              <Link
+                to="/billing"
                 className="group relative flex flex-col items-center justify-center w-full p-2 rounded-lg
                       hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/30
                   transition-all duration-200"
-                    title={`${userPlan === 'premium' ? 'Premium' : userPlan === 'standard' ? 'Standard' : 'Free'} • ${credits.toLocaleString()} credits`}
-                  >
-                    <div className={`w-1.5 h-1.5 rounded-full mb-1 ${
-                      userPlan === 'premium' ? 'bg-amber-400' :
-                      userPlan === 'standard' ? 'bg-[#635BFF]' : 'bg-gray-400'
-                    }`} />
-                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 tabular-nums">
-                      {credits >= 999999 ? '∞' : credits}
-                    </span>
-                  </Link>
-              </div>
-            )}
+                title={`${userPlan === 'premium' ? 'Premium' : userPlan === 'standard' ? 'Standard' : 'Free'} • ${credits.toLocaleString()} credits`}
+              >
+                <div className={`w-1.5 h-1.5 rounded-full mb-1 ${userPlan === 'premium' ? 'bg-amber-400' :
+                  userPlan === 'standard' ? 'bg-[#635BFF]' : 'bg-gray-400'
+                  }`} />
+                <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 tabular-nums">
+                  {credits >= 999999 ? '∞' : credits}
+                </span>
+              </Link>
+            </div>
+          )}
 
-                        </div>
+        </div>
       </aside>
 
       {/* Mobile Top App Bar */}
       <div
-        className={`sticky top-0 z-30 md:hidden transition-shadow ${
-          hasScrolled ? 'shadow-sm' : ''
-        } bg-white/75 dark:bg-[#2b2a2c]/70 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md border-b border-gray-200/60 dark:border-[#3d3c3e]/60`}
+        className={`sticky top-0 z-30 md:hidden transition-shadow ${hasScrolled ? 'shadow-sm' : ''
+          } bg-white/75 dark:bg-[#2b2a2c]/70 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md border-b border-gray-200/60 dark:border-[#3d3c3e]/60`}
         style={{ paddingTop: 'max(env(safe-area-inset-top), 0px)' }}
       >
         <div className="flex items-center justify-between h-[56px] px-4">
@@ -810,10 +811,10 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             </button>
             <div className="flex items-center gap-2">
               {(isDarkMode ? logoUrlDark : logoUrlLight) && (
-                <img 
-                  src={isDarkMode ? logoUrlDark : logoUrlLight} 
-                  alt="Logo" 
-                  className="h-7 w-auto opacity-90 transition-opacity duration-300" 
+                <img
+                  src={isDarkMode ? logoUrlDark : logoUrlLight}
+                  alt="Logo"
+                  className="h-7 w-auto opacity-90 transition-opacity duration-300"
                 />
               )}
               <span className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">
@@ -847,19 +848,18 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       </div>
 
       {/* Main content */}
-      <div 
+      <div
         className={`flex flex-col flex-1 min-h-0 overflow-x-hidden ${isBuilderMode ? 'bg-white dark:bg-[#2b2a2c]' : ''} ${hasOwnBackground ? 'bg-gray-50 dark:bg-[#333234]' : ''}`}
       >
         {/* Desktop: spacer for fixed top bar */}
-        <div 
+        <div
           className="hidden md:block flex-shrink-0"
           style={{ height: TOP_BAR_HEIGHT }}
         />
-        
-        <main 
-          className={`flex-1 min-h-0 flex flex-col ${
-            isCollapsed ? 'md:ml-[64px]' : 'md:ml-[256px]'
-          }`}
+
+        <main
+          className={`flex-1 min-h-0 flex flex-col ${isCollapsed ? 'md:ml-[64px]' : 'md:ml-[256px]'
+            }`}
         >
           <div className={`${needsFullHeight ? 'h-full flex flex-col flex-1 min-h-0 pt-2 md:pt-0 pb-0' : 'pt-6 md:py-6 pb-6'}`}>
             {needsFullWidth ? (
@@ -884,7 +884,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
       {/* MobileNavigation disabled for now - will revisit responsive mode later */}
       {/* {location.pathname !== '/applications' && <MobileNavigation />} */}
-      
+
       {/* Global Search Command Palette */}
       <CommandPalette
         isOpen={globalSearch.isOpen}

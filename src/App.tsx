@@ -48,6 +48,7 @@ import PremiumCVEditor from './pages/PremiumCVEditor';
 import JobApplicationsPage from './pages/JobApplicationsPage';
 import CalendarView from './pages/CalendarView';
 import InterviewPrepPage from './pages/InterviewPrepPage';
+import ProspectMeetingPrepPage from './pages/ProspectMeetingPrepPage';
 import UpcomingInterviewsPage from './pages/UpcomingInterviewsPage';
 import InterviewHelpPage from './pages/InterviewHelpPage';
 import JobsPage from './pages/JobsPage';
@@ -93,8 +94,8 @@ window.ENV = {
 };
 
 console.log('Environment variables loaded into client side', {
-  apiKey: window.ENV.VITE_OPENAI_API_KEY ? 
-    `Present (starts with ${window.ENV.VITE_OPENAI_API_KEY.substring(0, 3)}...)` : 
+  apiKey: window.ENV.VITE_OPENAI_API_KEY ?
+    `Present (starts with ${window.ENV.VITE_OPENAI_API_KEY.substring(0, 3)}...)` :
     'Missing',
   apiUrl: window.ENV.VITE_OPENAI_API_URL || 'Using default'
 });
@@ -120,10 +121,10 @@ function AppContent() {
 
   // Initialize background task monitoring
   useBackgroundTasks();
-  
+
   // Global Gmail reply checker - runs in background on all pages
   useGmailReplyChecker();
-  
+
   return (
     <>
       <PageLoader />
@@ -149,41 +150,41 @@ function AppContent() {
             <EmailVerificationPage />
           </PublicRoute>
         } />
-        
+
         {/* Profile completion route */}
         <Route path="/complete-profile" element={
           <PrivateRoute requireProfileCompleted={false}>
             <CompleteProfilePage />
           </PrivateRoute>
         } />
-        
+
         {/* Payment success route - accessible without completed profile */}
         <Route path="/payment/success" element={
           <PrivateRoute requireProfileCompleted={false}>
             <PaymentSuccessPage />
           </PrivateRoute>
         } />
-        
+
         {/* Payment cancel route - accessible without completed profile */}
         <Route path="/payment/cancel" element={
           <PrivateRoute requireProfileCompleted={false}>
             <PaymentCancelPage />
           </PrivateRoute>
         } />
-        
+
         {/* Protected routes requiring completed profile */}
         <Route element={<PrivateRoute requireProfileCompleted={true} />}>
           <Route path="/hub" element={<HubPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/email-templates" element={<EmailTemplatesPage />} />
           <Route path="/email-templates/new" element={<CreateTemplatePage />} />
-          <Route 
-            path="/campaigns" 
+          <Route
+            path="/campaigns"
             element={
-              import.meta.env.VITE_CAMPAIGNS_ENABLED === 'true' 
-                ? <CampaignsPage /> 
+              import.meta.env.VITE_CAMPAIGNS_ENABLED === 'true'
+                ? <CampaignsPage />
                 : <CampaignsEarlyAccessPage />
-            } 
+            }
           />
           <Route path="/campaign-emails" element={<CampaignEmailsPage />} />
           <Route path="/campaigns-auto" element={<CampaignsAutoPage />} />
@@ -209,6 +210,7 @@ function AppContent() {
           <Route path="/cv-creator" element={<CVCreatorPage />} />
           <Route path="/applications" element={<JobApplicationsPage />} />
           <Route path="/interview-prep/:applicationId/:interviewId" element={<InterviewPrepPage />} />
+          <Route path="/meeting-prep/:applicationId/:meetingId" element={<ProspectMeetingPrepPage />} />
           <Route path="/upcoming-interviews" element={<UpcomingInterviewsPage />} />
           <Route path="/interview-help" element={<InterviewHelpPage />} />
           <Route path="/mock-interview" element={<MockInterviewPage />} />
@@ -224,7 +226,7 @@ function AppContent() {
         <Route path="/cookies" element={<CookiesPage />} />
         <Route path="/calendar" element={<CalendarView />} />
       </Routes>
-      
+
       {/* Global Background Loading Notification - visible on all pages */}
       <BackgroundLoadingNotification
         isOpen={loadingState.isGenerating}
@@ -237,8 +239,8 @@ function AppContent() {
         onMinimize={() => setMinimized(true)}
         onMaximize={() => setMinimized(false)}
       />
-      
-      
+
+
       {/* Custom dark-themed toast system */}
     </>
   );

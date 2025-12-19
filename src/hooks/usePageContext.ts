@@ -163,6 +163,16 @@ const PAGE_CONTEXTS: Record<string, PageContextConfig> = {
       { label: 'Best plan for me', prompt: 'Which plan would be best for my job search needs?' },
     ],
   },
+  '/meeting-prep': {
+    pageName: 'Meeting Prep',
+    pageDescription: 'Prepare for and take notes during prospect meetings and interviews',
+    quickActions: [
+      { label: 'Suggest questions to ask', prompt: 'Based on the prospect and company information, suggest good questions I should ask during this meeting' },
+      { label: 'Summarize the company', prompt: 'Give me a quick summary of the company and what I should know before this meeting' },
+      { label: 'Help with follow-up', prompt: 'Help me draft a follow-up email based on my meeting notes' },
+      { label: 'Add to my notes', prompt: 'Help me add key points to my meeting notes' },
+    ],
+  },
 };
 
 // Default context for pages not explicitly defined
@@ -184,11 +194,11 @@ export function usePageContext() {
 
   const pageContext = useMemo((): PageContext => {
     const pathname = location.pathname;
-    
+
     // Find the matching page context
     // First try exact match, then try prefix match for dynamic routes
     let config = PAGE_CONTEXTS[pathname];
-    
+
     if (!config) {
       // Special handling for CV editor routes (e.g., /ats-analysis/:id/cv-editor)
       if (pathname.includes('/cv-editor')) {
@@ -213,7 +223,7 @@ export function usePageContext() {
         }
       }
     }
-    
+
     // Fall back to default context
     if (!config) {
       config = DEFAULT_CONTEXT;
@@ -240,7 +250,7 @@ export function usePageContext() {
 
 export function getQuickActionsForPage(pathname: string): QuickAction[] {
   let config = PAGE_CONTEXTS[pathname];
-  
+
   if (!config) {
     // Special handling for CV editor routes
     if (pathname.includes('/cv-editor')) {
@@ -251,7 +261,7 @@ export function getQuickActionsForPage(pathname: string): QuickAction[] {
         { label: 'Address gaps', prompt: 'How can I address the identified gaps in my CV for this role?' },
       ];
     }
-    
+
     for (const [route, ctx] of Object.entries(PAGE_CONTEXTS)) {
       if (pathname.startsWith(route) && route !== '/') {
         config = ctx;
@@ -259,7 +269,7 @@ export function getQuickActionsForPage(pathname: string): QuickAction[] {
       }
     }
   }
-  
+
   return config?.quickActions || DEFAULT_CONTEXT.quickActions;
 }
 

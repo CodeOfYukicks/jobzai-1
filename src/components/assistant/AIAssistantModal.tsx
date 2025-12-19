@@ -8,12 +8,12 @@ import QuickActions from './QuickActions';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Avatar, 
-  AvatarEditor, 
-  AvatarConfig, 
-  DEFAULT_AVATAR_CONFIG, 
-  loadAvatarConfig, 
+import {
+  Avatar,
+  AvatarEditor,
+  AvatarConfig,
+  DEFAULT_AVATAR_CONFIG,
+  loadAvatarConfig,
   saveAvatarConfig,
   PersonaConfig,
   DEFAULT_PERSONA_CONFIG,
@@ -22,7 +22,7 @@ import {
 } from './avatar';
 
 // Pages where the assistant should NOT have a backdrop (to allow interaction with content)
-const PAGES_WITHOUT_BACKDROP = ['/notes'];
+const PAGES_WITHOUT_BACKDROP = ['/notes', '/meeting-prep'];
 
 interface AIAssistantModalProps {
   className?: string;
@@ -56,7 +56,7 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
   // Dashboard insights
   if (pathname === '/dashboard' && pageData.dashboardStats) {
     const stats = pageData.dashboardStats;
-    
+
     if (stats.interviewStats?.upcoming > 0) {
       return {
         icon: <Calendar className="h-3.5 w-3.5" />,
@@ -65,7 +65,7 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
         type: 'action',
       };
     }
-    
+
     if (stats.insights?.wins?.length > 0) {
       return {
         icon: <TrendingUp className="h-3.5 w-3.5" />,
@@ -73,7 +73,7 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
         type: 'success',
       };
     }
-    
+
     if (stats.totalApplications > 0) {
       return {
         icon: <Briefcase className="h-3.5 w-3.5" />,
@@ -83,13 +83,13 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
       };
     }
   }
-  
+
   // Applications insights
   if (pathname === '/applications') {
     // Prioritize currentBoard data over applications data for accurate counts
     const board = pageData.currentBoard;
     const apps = pageData.applications;
-    
+
     // CRITICAL: Always use currentBoard.totalApplicationsOnBoard if board exists
     // This is the authoritative source for the board total
     let totalApplications = 0;
@@ -100,7 +100,7 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
       // Fallback to applications.total only if board data is not available
       totalApplications = apps.total;
     }
-    
+
     // Debug log (can be removed later)
     if (process.env.NODE_ENV === 'development') {
       console.log('[AIAssistantModal] Applications insight:', {
@@ -109,7 +109,7 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
         finalTotal: totalApplications
       });
     }
-    
+
     // Only show insights if we have valid data
     if (apps?.insights?.needsFollowUp?.length > 0) {
       const first = apps.insights.needsFollowUp[0];
@@ -120,7 +120,7 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
         type: 'warning',
       };
     }
-    
+
     if (apps?.insights?.hotOpportunities?.length > 0) {
       return {
         icon: <TrendingUp className="h-3.5 w-3.5" />,
@@ -129,7 +129,7 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
         type: 'success',
       };
     }
-    
+
     // Show total applications badge - ALWAYS prioritize board data
     // If board exists, use its totalApplicationsOnBoard even if it's 0
     // Only fall back to apps.total if board doesn't exist
@@ -152,7 +152,7 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
       };
     }
   }
-  
+
   // Job Board insights
   if (pathname === '/jobs') {
     if (pageData.selectedJob) {
@@ -164,7 +164,7 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
         type: job.matchScore && job.matchScore >= 70 ? 'success' : 'info',
       };
     }
-    
+
     if (pageData.jobListings?.insights?.highMatchCount > 0) {
       return {
         icon: <TrendingUp className="h-3.5 w-3.5" />,
@@ -173,11 +173,11 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
       };
     }
   }
-  
+
   // CV Analysis insights
   if (pathname.includes('/cv-analysis') && pageData.cvAnalysis) {
     const cv = pageData.cvAnalysis;
-    
+
     if (cv.performance?.averageScore) {
       return {
         icon: <FileText className="h-3.5 w-3.5" />,
@@ -187,7 +187,7 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
       };
     }
   }
-  
+
   // Notes insights
   if (pathname.includes('/notes') && pageData.currentNote) {
     const note = pageData.currentNote;
@@ -198,15 +198,15 @@ function generateContextualInsight(pathname: string, pageData: Record<string, an
       type: 'info',
     };
   }
-  
+
   return null;
 }
 
 export default function AIAssistantModal({ className = '' }: AIAssistantModalProps) {
-  const { 
-    isOpen, 
-    closeAssistant, 
-    messages, 
+  const {
+    isOpen,
+    closeAssistant,
+    messages,
     conversations,
     currentConversationId,
     createNewConversation,
@@ -222,19 +222,19 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
   const modalRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const [showHistory, setShowHistory] = useState(false);
-  
+
   // Avatar customization state
   const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>(DEFAULT_AVATAR_CONFIG);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   const [avatarLoaded, setAvatarLoaded] = useState(false);
-  
+
   // Persona customization state
   const [personaConfig, setPersonaConfig] = useState<PersonaConfig>(DEFAULT_PERSONA_CONFIG);
   const [personaLoaded, setPersonaLoaded] = useState(false);
 
   // Get user's first name
   const firstName = profile?.firstName || userData?.name?.split(' ')[0] || 'there';
-  
+
   // Load avatar config on mount
   useEffect(() => {
     const loadUserAvatar = async () => {
@@ -251,7 +251,7 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
     };
     loadUserAvatar();
   }, [currentUser?.uid, avatarLoaded]);
-  
+
   // Load persona config on mount
   useEffect(() => {
     const loadUserPersona = async () => {
@@ -268,12 +268,12 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
     };
     loadUserPersona();
   }, [currentUser?.uid, personaLoaded]);
-  
+
   // Handle avatar config change
   const handleAvatarConfigChange = useCallback((newConfig: AvatarConfig) => {
     setAvatarConfig(newConfig);
   }, []);
-  
+
   // Handle persona config change
   const handlePersonaConfigChange = useCallback((newConfig: PersonaConfig) => {
     setPersonaConfig(newConfig);
@@ -292,7 +292,7 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
       }
     }
   }, [currentUser?.uid, avatarConfig, personaConfig]);
-  
+
   // Generate contextual insight based on current page and data
   const contextualInsight = useMemo(() => {
     return generateContextualInsight(location.pathname, pageData);
@@ -315,20 +315,20 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
   useEffect(() => {
     // Don't close on click outside if we're on a page without backdrop
     const isPageWithoutBackdrop = PAGES_WITHOUT_BACKDROP.some(path => location.pathname.startsWith(path));
-    
+
     if (isPageWithoutBackdrop) {
       return; // Skip this effect on pages without backdrop
     }
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      
+
       // Don't close if clicking on the TopBar (header) - check if target is in header
       const header = document.querySelector('header');
       if (header && (header.contains(target) || header === target)) {
         return;
       }
-      
+
       // Don't close if clicking inside the modal
       if (modalRef.current && !modalRef.current.contains(target)) {
         closeAssistant();
@@ -362,9 +362,9 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
   }, [isOpen, closeAssistant]);
 
   const hasMessages = messages.length > 0;
-  
+
   // Filter conversations that have actual messages (not empty new conversations)
-  const conversationsWithMessages = conversations.filter(c => 
+  const conversationsWithMessages = conversations.filter(c =>
     c.messages.length > 0 && c.id !== currentConversationId
   );
 
@@ -405,9 +405,9 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
             initial={{ opacity: 0, x: 400 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 400 }}
-            transition={{ 
-              type: 'spring', 
-              stiffness: 400, 
+            transition={{
+              type: 'spring',
+              stiffness: 400,
               damping: 40,
             }}
             className={`fixed top-12 right-0 w-[440px] h-[calc(100vh-48px)]
@@ -416,10 +416,10 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
               flex flex-col overflow-hidden ${shouldShowBackdrop ? 'z-50' : 'z-40'} ${className}`}
           >
             {/* Header - Compact when chatting, full when empty */}
-            <motion.div 
+            <motion.div
               className="flex-shrink-0 relative"
               initial={false}
-              animate={{ 
+              animate={{
                 paddingTop: hasMessages || showHistory ? '12px' : '32px',
                 paddingBottom: hasMessages || showHistory ? '12px' : '24px',
               }}
@@ -432,8 +432,8 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
                   <button
                     onClick={() => setShowHistory(!showHistory)}
                     className={`p-2 rounded-lg transition-all duration-200
-                      ${showHistory 
-                        ? 'text-[#635BFF] bg-[#635BFF]/10' 
+                      ${showHistory
+                        ? 'text-[#635BFF] bg-[#635BFF]/10'
                         : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
                       }`}
                     aria-label="Chat history"
@@ -485,13 +485,13 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
                   >
                     {/* AI Avatar - Customizable DiceBear avatar */}
                     <div className="flex justify-center mb-5">
-                      <motion.div 
+                      <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ delay: 0.1 }}
                         className="relative group"
                       >
-                        <Avatar 
+                        <Avatar
                           config={avatarConfig}
                           size={56}
                           className="rounded-2xl ring-1 ring-gray-200/80 dark:ring-white/10 
@@ -510,7 +510,7 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
 
                     {/* Greeting */}
                     <div className="text-center">
-                      <motion.p 
+                      <motion.p
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.15 }}
@@ -518,7 +518,7 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
                       >
                         Hi, {firstName}
                       </motion.p>
-                      <motion.h1 
+                      <motion.h1
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
@@ -529,7 +529,7 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
                           : 'Can I help you with anything?'
                         }
                       </motion.h1>
-                      
+
                       {/* Contextual insight badge */}
                       {contextualInsight && (
                         <motion.div
@@ -537,13 +537,13 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.25 }}
                           className={`inline-flex items-center gap-2 mt-4 px-3 py-1.5 rounded-full text-xs font-medium
-                            ${contextualInsight.type === 'success' 
-                              ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-200/60 dark:ring-emerald-700/40' 
+                            ${contextualInsight.type === 'success'
+                              ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-200/60 dark:ring-emerald-700/40'
                               : contextualInsight.type === 'warning'
-                              ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 ring-1 ring-amber-200/60 dark:ring-amber-700/40'
-                              : contextualInsight.type === 'action'
-                              ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200/60 dark:ring-blue-700/40'
-                              : 'bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 ring-1 ring-gray-200/60 dark:ring-gray-700/40'
+                                ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 ring-1 ring-amber-200/60 dark:ring-amber-700/40'
+                                : contextualInsight.type === 'action'
+                                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200/60 dark:ring-blue-700/40'
+                                  : 'bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 ring-1 ring-gray-200/60 dark:ring-gray-700/40'
                             }`}
                         >
                           {contextualInsight.icon}
@@ -556,9 +556,9 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
                           )}
                         </motion.div>
                       )}
-                      
+
                       {!contextualInsight && (
-                        <motion.p 
+                        <motion.p
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.25 }}
@@ -579,7 +579,7 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
                     transition={{ duration: 0.2 }}
                     className="px-6 flex items-center gap-3"
                   >
-                    <Avatar 
+                    <Avatar
                       config={avatarConfig}
                       size={32}
                       className="rounded-xl ring-1 ring-gray-200/80 dark:ring-white/10 
@@ -619,7 +619,7 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
                         Back
                       </button>
                     </div>
-                    
+
                     {conversationsWithMessages.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
                         <MessageSquare className="h-10 w-10 text-gray-300 dark:text-gray-600 mb-3" />
@@ -761,8 +761,8 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
                         Selected text
                       </p>
                       <p className="text-xs text-violet-600/80 dark:text-violet-400/80 truncate">
-                        "{editorSelection.text.length > 50 
-                          ? editorSelection.text.substring(0, 50) + '...' 
+                        "{editorSelection.text.length > 50
+                          ? editorSelection.text.substring(0, 50) + '...'
                           : editorSelection.text}"
                       </p>
                     </div>
@@ -786,7 +786,7 @@ export default function AIAssistantModal({ className = '' }: AIAssistantModalPro
             <div className="flex-shrink-0 px-6 pb-6 pt-3 border-t border-gray-100 dark:border-white/5">
               <ChatInput />
             </div>
-            
+
             {/* Avatar Editor Overlay */}
             <AnimatePresence>
               {showAvatarEditor && (

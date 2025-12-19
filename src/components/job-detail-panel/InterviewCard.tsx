@@ -12,7 +12,6 @@ import {
   MessageSquare,
   Sparkles,
   Trash2,
-  X,
 } from 'lucide-react';
 import { Interview, JobApplication } from '../../types/job';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -84,17 +83,35 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
   const handlePrepareInterview = () => {
     if (!jobApplication?.id) return;
 
-    navigate(`/interview-prep/${jobApplication.id}/${interview.id}`, {
-      state: {
-        interviewId: interview.id,
-        companyName: jobApplication?.companyName || '',
-        position: jobApplication?.position || '',
-        interviewDate: interview.date,
-        interviewTime: interview.time,
-        jobUrl: jobApplication?.url,
-        jobDescription: jobApplication?.fullJobDescription || jobApplication?.description,
-      }
-    });
+    // Route to meeting-prep for campaign meetings, interview-prep for job interviews
+    if (isMeeting) {
+      navigate(`/meeting-prep/${jobApplication.id}/${interview.id}`, {
+        state: {
+          meetingId: interview.id,
+          companyName: jobApplication?.companyName || '',
+          contactName: jobApplication?.contactName || '',
+          contactRole: jobApplication?.contactRole || '',
+          contactEmail: jobApplication?.contactEmail || '',
+          contactLinkedIn: jobApplication?.contactLinkedIn || '',
+          contactPhone: jobApplication?.contactPhone || '',
+          warmthLevel: jobApplication?.warmthLevel,
+          meetingDate: interview.date,
+          meetingTime: interview.time,
+        }
+      });
+    } else {
+      navigate(`/interview-prep/${jobApplication.id}/${interview.id}`, {
+        state: {
+          interviewId: interview.id,
+          companyName: jobApplication?.companyName || '',
+          position: jobApplication?.position || '',
+          interviewDate: interview.date,
+          interviewTime: interview.time,
+          jobUrl: jobApplication?.url,
+          jobDescription: jobApplication?.fullJobDescription || jobApplication?.description,
+        }
+      });
+    }
   };
 
   const handleDeleteClick = () => {
@@ -217,8 +234,7 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
             </div>
           )}
 
-          {/* Actions - Only show for interviews (not meetings) */}
-          {!isMeeting && (
+          {/* Actions - Show for both interviews and meetings */}
           <div className="flex items-center gap-3 pt-2">
             {interview.status === 'scheduled' && (
               <motion.button
@@ -228,15 +244,15 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
                 className="flex-1 relative overflow-hidden group bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-3.5 py-2 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all duration-300 shadow-lg shadow-gray-900/20 dark:shadow-white/10 group-hover:shadow-2xl group-hover:shadow-gray-900/40 dark:group-hover:shadow-gray-800/40"
               >
                 {/* Subtle brightness overlay on hover */}
-                <motion.div 
+                <motion.div
                   className="absolute inset-0 bg-white/5 dark:bg-[#242325]/5"
                   initial={{ opacity: 0 }}
                   whileHover={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
                 />
-                
+
                 {/* Premium shimmer effect */}
-                <motion.div 
+                <motion.div
                   className="absolute inset-0"
                   initial={{ x: '-100%' }}
                   whileHover={{ x: '100%' }}
@@ -244,7 +260,7 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
                 >
                   <div className="h-full w-full bg-gradient-to-r from-transparent via-white/20 dark:via-gray-100/10 to-transparent skew-x-12" />
                 </motion.div>
-                
+
                 {/* Content */}
                 <span className="relative z-10 flex items-center gap-2">
                   <motion.div
@@ -254,7 +270,9 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
                   >
                     <Sparkles className="w-3.5 h-3.5 transition-transform duration-300" />
                   </motion.div>
-                  <span className="group-hover:font-semibold transition-all duration-300">Prepare with AI</span>
+                  <span className="group-hover:font-semibold transition-all duration-300">
+                    {isMeeting ? 'Prepare Meeting' : 'Prepare with AI'}
+                  </span>
                 </span>
               </motion.button>
             )}
@@ -269,7 +287,6 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
               </button>
             )}
           </div>
-          )}
         </div>
       </div>
 
@@ -297,7 +314,7 @@ export const InterviewCard = ({ interview, jobApplication, onDelete }: Interview
               >
                 {/* Subtle gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-gray-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900/50 pointer-events-none" />
-                
+
                 {/* Content */}
                 <div className="relative px-8 py-8 z-10 pointer-events-auto">
                   {/* Icon - Premium */}
