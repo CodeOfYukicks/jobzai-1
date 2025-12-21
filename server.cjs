@@ -15,10 +15,10 @@ let openai = null;
 
 async function getOpenAIClient() {
   if (openai) return openai;
-  
+
   // Try environment variable first
   let apiKey = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
-  
+
   // If not in env, try Firestore
   if (!apiKey) {
     try {
@@ -31,11 +31,11 @@ async function getOpenAIClient() {
       console.error('Failed to get OpenAI API key from Firestore:', error.message);
     }
   }
-  
+
   if (!apiKey) {
     throw new Error('OpenAI API key not found in environment or Firestore');
   }
-  
+
   openai = new OpenAI({ apiKey });
   console.log('✅ OpenAI client initialized');
   return openai;
@@ -799,7 +799,7 @@ app.post('/api/chatgpt', async (req, res) => {
  */
 async function callClaudeAssistant(messages, systemPrompt, apiKey, res) {
   const https = require('https');
-  
+
   // Convert messages format for Claude API
   const claudeMessages = messages.filter(msg => msg.role !== 'system').map(msg => ({
     role: msg.role === 'assistant' ? 'assistant' : 'user',
@@ -841,7 +841,7 @@ async function callClaudeAssistant(messages, systemPrompt, apiKey, res) {
       claudeRes.on('end', () => {
         console.error('❌ Claude API error status:', claudeRes.statusCode);
         console.error('❌ Claude API error body:', errorBody);
-        
+
         // Try to parse the error for a better message
         let errorMessage = `Claude API error (status ${claudeRes.statusCode})`;
         try {
@@ -857,7 +857,7 @@ async function callClaudeAssistant(messages, systemPrompt, apiKey, res) {
             errorMessage = errorBody;
           }
         }
-        
+
         console.error('❌ Claude API error message:', errorMessage);
         res.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
         res.write('data: [DONE]\n\n');
@@ -926,10 +926,10 @@ async function callClaudeAssistant(messages, systemPrompt, apiKey, res) {
  */
 async function callGeminiAssistant(messages, systemPrompt, apiKey, res) {
   const https = require('https');
-  
+
   // Convert messages format for Gemini API
   const geminiContents = [];
-  
+
   // Add system prompt as first user message
   if (systemPrompt) {
     geminiContents.push({
@@ -941,7 +941,7 @@ async function callGeminiAssistant(messages, systemPrompt, apiKey, res) {
       parts: [{ text: 'Understood. I will assist you accordingly.' }]
     });
   }
-  
+
   // Add conversation messages
   messages.filter(msg => msg.role !== 'system').forEach(msg => {
     geminiContents.push({
@@ -982,7 +982,7 @@ async function callGeminiAssistant(messages, systemPrompt, apiKey, res) {
       geminiRes.on('end', () => {
         console.error('❌ Gemini API error status:', geminiRes.statusCode);
         console.error('❌ Gemini API error body:', errorBody);
-        
+
         // Try to parse the error for a better message
         let errorMessage = `Gemini API error (status ${geminiRes.statusCode})`;
         try {
@@ -998,7 +998,7 @@ async function callGeminiAssistant(messages, systemPrompt, apiKey, res) {
             errorMessage = errorBody;
           }
         }
-        
+
         console.error('❌ Gemini API error message:', errorMessage);
         res.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
         res.write('data: [DONE]\n\n');
@@ -1072,7 +1072,7 @@ app.post('/api/assistant', async (req, res) => {
   try {
     console.log('\n🤖 ════════════════════════════════════════════════════════');
     console.log('🤖 AI Assistant endpoint called');
-    
+
     const { message, aiProvider = 'openai', pageContext, userContext, conversationHistory, userId, pageData, selectedContextItems, inlineEditMode = false, selectionMode = false, selectedText = '', personaConfig = null, personaPrompt = '', whiteboardMode = false, whiteboardIntent = null } = req.body;
 
     console.log('🤖 ┌─────────────────────────────────────────────────────┐');
@@ -1085,7 +1085,7 @@ app.post('/api/assistant', async (req, res) => {
       console.log(`🤖 │ Whiteboard Intent: ${String(whiteboardIntent.type).padEnd(32)} │`);
     }
     console.log('🤖 └─────────────────────────────────────────────────────┘');
-    
+
     // Get appropriate API key based on provider
     let apiKey;
     try {
@@ -1127,7 +1127,7 @@ app.post('/api/assistant', async (req, res) => {
     console.log(`👤 User: ${userContext?.firstName || 'Unknown'}`);
     console.log(`📊 Page data keys: ${pageData ? Object.keys(pageData).join(', ') : 'None'}`);
     console.log(`📎 Context items: ${selectedContextItems?.length || 0} items`);
-    
+
     // Log whiteboard mode details
     if (whiteboardMode) {
       console.log('🎨 ┌─────────────────────────────────────────────────────┐');
@@ -1135,7 +1135,7 @@ app.post('/api/assistant', async (req, res) => {
       console.log(`🎨 │ Intent Type: ${(whiteboardIntent?.type || 'unknown').padEnd(38)} │`);
       console.log(`🎨 │ Topic: ${(whiteboardIntent?.extractedTopic || 'none').substring(0, 42).padEnd(44)} │`);
       console.log('🎨 └─────────────────────────────────────────────────────┘');
-      
+
       if (selectedContextItems?.length > 0) {
         console.log('🎨 Context items with data:');
         for (const item of selectedContextItems) {
@@ -1152,7 +1152,7 @@ app.post('/api/assistant', async (req, res) => {
 
     // Build system prompt with context and page data (pass inlineEditMode to skip EDIT_NOTE markup instructions)
     let systemPrompt = buildAssistantSystemPrompt(pageContext, userContext, pageData, selectedContextItems, inlineEditMode);
-    
+
     // Add persona customization if provided
     if (personaPrompt) {
       console.log(`🎭 Persona: ${personaConfig?.name || 'Custom'} (tone: ${personaConfig?.tone || 'default'})`);
@@ -1163,7 +1163,7 @@ ${personaPrompt}
 
 ${systemPrompt}`;
     }
-    
+
     // Add inline edit mode instructions if enabled
     if (inlineEditMode) {
       let inlineEditInstructions = `
@@ -1251,7 +1251,7 @@ Output: "This serves as an illustrative example."
 
 `;
       }
-      
+
       systemPrompt = inlineEditInstructions + '\n\n' + systemPrompt;
     }
 
@@ -1260,7 +1260,7 @@ Output: "This serves as an illustrative example."
       const contentType = whiteboardIntent.type || 'brainstorm';
       const topic = whiteboardIntent.extractedTopic || message;
       const count = whiteboardIntent.extractedCount || 5;
-      
+
       let whiteboardPrompt = `
 ## 🎨 WHITEBOARD CONTENT GENERATION MODE 🎨
 
@@ -1442,7 +1442,7 @@ Use this context to make the content more personalized and relevant.
                 contextDetails = JSON.stringify(d, null, 2).substring(0, 1000);
             }
           }
-          
+
           whiteboardPrompt += `
 #### ${item.type.toUpperCase()}: ${item.title}
 ${contextDetails || 'No additional data'}
@@ -1508,18 +1508,18 @@ ${contextDetails || 'No additional data'}
         console.log('🧠 [ANTHROPIC] Calling Claude Sonnet 4.5 (latest)...');
         await callClaudeAssistant(messages, systemPrompt, apiKey, res);
         return;
-      
+
       case 'gemini':
         console.log('⚡ [GEMINI] Calling Gemini 3 Pro (latest)...');
         await callGeminiAssistant(messages, systemPrompt, apiKey, res);
         return;
-      
+
       case 'openai':
       default:
         console.log('✨ [OPENAI] Calling GPT-5.2 (latest)...');
         // Use https module for reliable streaming in Node.js
         const https = require('https');
-        
+
         const postData = JSON.stringify({
           model: 'gpt-5.2',
           messages: messages,
@@ -1553,7 +1553,7 @@ ${contextDetails || 'No additional data'}
             openaiRes.on('end', () => {
               console.error('❌ OpenAI API error status:', openaiRes.statusCode);
               console.error('❌ OpenAI API error body:', errorBody);
-              
+
               // Try to parse the error for a better message
               let errorMessage = `OpenAI API error (status ${openaiRes.statusCode})`;
               try {
@@ -1569,7 +1569,7 @@ ${contextDetails || 'No additional data'}
                   errorMessage = errorBody;
                 }
               }
-              
+
               console.error('❌ OpenAI API error message:', errorMessage);
               res.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
               res.write('data: [DONE]\n\n');
@@ -1637,12 +1637,12 @@ ${contextDetails || 'No additional data'}
 
   } catch (error) {
     console.error('❌ AI Assistant error:', error);
-    
+
     if (res.headersSent) {
       res.end();
       return;
     }
-    
+
     res.status(500).json({
       status: 'error',
       message: error.message || 'An error occurred'
@@ -1696,7 +1696,7 @@ const PRODUCT_KNOWLEDGE = {
 
     autopilot: {
       name: 'AutoPilot / Campaigns',
-      path: '/campaigns',
+      path: '/campaigns-auto',
       section: 'APPLY',
       description: 'Automatisez vos campagnes de candidature avec des séquences d\'emails personnalisées.',
       whatItDoes: [
@@ -2037,6 +2037,303 @@ const PRODUCT_KNOWLEDGE = {
   },
 };
 
+// ============================================
+// INTERACTIVE GUIDES CONFIGURATION
+// Step-by-step guidance for all features
+// ============================================
+const INTERACTIVE_GUIDES = {
+  jobBoard: {
+    feature: 'Job Board',
+    path: '/jobs',
+    triggers: [
+      // French
+      'chercher emploi', 'trouver emploi', 'rechercher emploi', 'comment chercher', 'trouver un job',
+      'comment utiliser job board', 'guide job board', 'aide job board', 'comment postuler',
+      // English
+      'find job', 'search job', 'how to find', 'job board guide', 'help job board', 'how to apply'
+    ],
+    titleFr: '🔍 Guide: Trouver un Emploi sur le Job Board',
+    titleEn: '🔍 Guide: Finding a Job on the Job Board',
+    stepsFr: [
+      { step: 1, action: 'Accéder au Job Board', instruction: 'Allez dans **"Job Board"** dans le menu de gauche (section Apply)', tip: '💡 Raccourci: Cmd/Ctrl + K puis tapez "jobs"' },
+      { step: 2, action: 'Rechercher', instruction: 'Utilisez la **barre de recherche** pour chercher par mot-clé, entreprise ou poste', tip: '💡 Soyez spécifique: "React Developer" plutôt que "Developer"' },
+      { step: 3, action: 'Filtrer', instruction: 'Appliquez les **filtres** pour affiner: Remote, Full-time, Localisation, Niveau, Salaire', tip: '💡 Cliquez sur "For You" pour voir les jobs matchant votre profil automatiquement' },
+      { step: 4, action: 'Analyser une offre', instruction: 'Cliquez sur une offre pour voir les **détails complets**: description, requirements, entreprise', tip: '💡 Regardez le score de match - visez 70%+ avant de postuler' },
+      { step: 5, action: 'Sauvegarder ou Postuler', instruction: 'Cliquez sur **"Save"** pour garder en favoris ou **"Apply"** pour postuler/ajouter à vos candidatures', tip: '💡 Analysez votre CV contre l\'offre avant de postuler pour maximiser vos chances' }
+    ],
+    stepsEn: [
+      { step: 1, action: 'Access Job Board', instruction: 'Go to **"Job Board"** in the left menu (Apply section)', tip: '💡 Shortcut: Cmd/Ctrl + K then type "jobs"' },
+      { step: 2, action: 'Search', instruction: 'Use the **search bar** to search by keyword, company, or position', tip: '💡 Be specific: "React Developer" rather than "Developer"' },
+      { step: 3, action: 'Filter', instruction: 'Apply **filters** to refine: Remote, Full-time, Location, Level, Salary', tip: '💡 Click "For You" to see jobs matching your profile automatically' },
+      { step: 4, action: 'Analyze a posting', instruction: 'Click on a job to see **full details**: description, requirements, company info', tip: '💡 Check the match score - aim for 70%+ before applying' },
+      { step: 5, action: 'Save or Apply', instruction: 'Click **"Save"** to bookmark or **"Apply"** to apply/add to your applications', tip: '💡 Analyze your CV against the job before applying to maximize your chances' }
+    ],
+    nextActionsFr: ['Analyser votre CV pour ce poste', 'Postuler directement', 'Sauvegarder en favoris'],
+    nextActionsEn: ['Analyze your CV for this job', 'Apply directly', 'Save to favorites']
+  },
+
+  cvAnalysis: {
+    feature: 'CV Analysis / Resume Lab',
+    path: '/cv-analysis',
+    triggers: [
+      // French
+      'analyser cv', 'analyse cv', 'comment analyser', 'resume lab', 'améliorer cv', 'optimiser cv',
+      'score cv', 'guide analyse', 'aide analyse cv', 'créer analyse', 'créer un cv', 'faire un cv', 'nouveau cv',
+      // English
+      'analyze cv', 'analyse resume', 'how to analyze', 'improve cv', 'optimize resume',
+      'cv score', 'analysis guide', 'help analyze', 'create analysis', 'create cv', 'make resume', 'new cv'
+    ],
+    titleFr: '📊 Guide: Analyser votre CV avec Resume Lab',
+    titleEn: '📊 Guide: Analyzing your CV with Resume Lab',
+    stepsFr: [
+      { step: 1, action: 'Accéder au Resume Lab', instruction: 'Allez dans **"Resume Lab"** dans le menu de gauche (section Apply)', tip: '💡 C\'est l\'outil le plus puissant pour optimiser vos candidatures' },
+      { step: 2, action: 'Sélectionner votre CV', instruction: 'Cliquez sur **"Nouvelle Analyse"** puis sélectionnez un CV existant ou uploadez-en un nouveau (PDF ou Word)', tip: '💡 Utilisez votre CV le plus récent et complet' },
+      { step: 3, action: 'Ajouter l\'offre d\'emploi', instruction: 'Collez **l\'URL de l\'offre** ou le texte complet de la description du poste ciblé', tip: '💡 Plus la description est complète, plus l\'analyse sera précise' },
+      { step: 4, action: 'Lancer l\'analyse', instruction: 'Cliquez sur **"Analyser"** et attendez quelques secondes - l\'IA compare votre CV aux requirements', tip: '💡 L\'analyse utilise l\'IA premium pour une précision maximale' },
+      { step: 5, action: 'Interpréter les résultats', instruction: 'Consultez votre **score de match** (0-100%), les **compétences matchées/manquantes**, et les **recommandations**', tip: '💡 Focus sur les "Quick Wins" - corrections rapides à fort impact' },
+      { step: 6, action: 'Améliorer votre CV', instruction: 'Utilisez le bouton **"CV Rewrite"** pour générer une version optimisée automatiquement', tip: '💡 Visez un score de 75%+ avant de postuler à un poste' }
+    ],
+    stepsEn: [
+      { step: 1, action: 'Access Resume Lab', instruction: 'Go to **"Resume Lab"** in the left menu (Apply section)', tip: '💡 This is the most powerful tool to optimize your applications' },
+      { step: 2, action: 'Select your CV', instruction: 'Click **"New Analysis"** then select an existing CV or upload a new one (PDF or Word)', tip: '💡 Use your most recent and complete CV' },
+      { step: 3, action: 'Add the job posting', instruction: 'Paste the **job URL** or the full text of the target job description', tip: '💡 The more complete the description, the more accurate the analysis' },
+      { step: 4, action: 'Run the analysis', instruction: 'Click **"Analyze"** and wait a few seconds - AI compares your CV to requirements', tip: '💡 The analysis uses premium AI for maximum accuracy' },
+      { step: 5, action: 'Interpret results', instruction: 'Check your **match score** (0-100%), **matched/missing skills**, and **recommendations**', tip: '💡 Focus on "Quick Wins" - high-impact quick fixes' },
+      { step: 6, action: 'Improve your CV', instruction: 'Use the **"CV Rewrite"** button to generate an optimized version automatically', tip: '💡 Aim for 75%+ score before applying to a position' }
+    ],
+    nextActionsFr: ['Appliquer les recommandations', 'Télécharger CV optimisé', 'Comparer avec d\'autres analyses'],
+    nextActionsEn: ['Apply recommendations', 'Download optimized CV', 'Compare with other analyses']
+  },
+
+  applicationTracking: {
+    feature: 'Application Tracking',
+    path: '/applications',
+    triggers: [
+      // French
+      'suivre candidature', 'tracker candidature', 'mes candidatures', 'gérer candidatures',
+      'tableau kanban', 'comment suivre', 'ajouter candidature', 'guide applications', 'board applications',
+      // English
+      'track applications', 'my applications', 'manage applications', 'kanban board',
+      'how to track', 'add application', 'applications guide', 'application board'
+    ],
+    titleFr: '📋 Guide: Suivre vos Candidatures',
+    titleEn: '📋 Guide: Tracking your Applications',
+    stepsFr: [
+      { step: 1, action: 'Accéder au Tracker', instruction: 'Allez dans **"Application Tracking"** dans le menu (section Track)', tip: '💡 C\'est votre tableau de bord central pour toutes vos candidatures' },
+      { step: 2, action: 'Ajouter une candidature', instruction: 'Cliquez sur **"+ Add Application"** et remplissez: entreprise, poste, date, lien de l\'offre', tip: '💡 Ajoutez chaque candidature immédiatement après avoir postulé' },
+      { step: 3, action: 'Comprendre le Kanban', instruction: 'Les colonnes représentent les **statuts**: Wishlist → Applied → Interviewing → Offer → Rejected', tip: '💡 Glissez-déposez les cartes pour changer le statut' },
+      { step: 4, action: 'Gérer une candidature', instruction: 'Cliquez sur une carte pour voir/éditer les détails, ajouter des **notes**, programmer des **entretiens**', tip: '💡 Utilisez les notes pour garder trace de vos interactions' },
+      { step: 5, action: 'Suivre les statistiques', instruction: 'Regardez vos **métriques** en haut: nombre de candidatures, taux de réponse, entretiens programmés', tip: '💡 Programmez des rappels de suivi pour les candidatures sans réponse après 7 jours' }
+    ],
+    stepsEn: [
+      { step: 1, action: 'Access Tracker', instruction: 'Go to **"Application Tracking"** in the menu (Track section)', tip: '💡 This is your central dashboard for all applications' },
+      { step: 2, action: 'Add an application', instruction: 'Click **"+ Add Application"** and fill in: company, position, date, job link', tip: '💡 Add each application immediately after applying' },
+      { step: 3, action: 'Understand the Kanban', instruction: 'Columns represent **statuses**: Wishlist → Applied → Interviewing → Offer → Rejected', tip: '💡 Drag and drop cards to change status' },
+      { step: 4, action: 'Manage an application', instruction: 'Click a card to view/edit details, add **notes**, schedule **interviews**', tip: '💡 Use notes to keep track of your interactions' },
+      { step: 5, action: 'Track statistics', instruction: 'Check your **metrics** at the top: number of applications, response rate, scheduled interviews', tip: '💡 Set follow-up reminders for applications with no response after 7 days' }
+    ],
+    nextActionsFr: ['Ajouter une nouvelle candidature', 'Mettre à jour un statut', 'Programmer un rappel de suivi'],
+    nextActionsEn: ['Add a new application', 'Update a status', 'Schedule a follow-up reminder']
+  },
+
+  campaigns: {
+    feature: 'AutoPilot / Campaigns',
+    path: '/campaigns-auto',
+    triggers: [
+      // French
+      'créer campagne', 'nouvelle campagne', 'outreach', 'emails automatiques',
+      'autopilot', 'guide campagne', 'aide campagne', 'séquence email', 'comment contacter',
+      // English
+      'create campaign', 'new campaign', 'automatic emails', 'campaign guide',
+      'help campaign', 'email sequence', 'how to contact', 'cold outreach'
+    ],
+    titleFr: '🚀 Guide: Créer une Campagne d\'Outreach',
+    titleEn: '🚀 Guide: Creating an Outreach Campaign',
+    stepsFr: [
+      { step: 1, action: 'Accéder aux Campaigns', instruction: 'Allez dans **"AutoPilot"** ou **"Campaigns"** dans le menu (section Apply)', tip: '💡 Les campagnes automatisent votre prise de contact avec les recruteurs' },
+      { step: 2, action: 'Créer une campagne', instruction: 'Cliquez sur **"Nouvelle Campagne"** et donnez-lui un nom descriptif (ex: "Tech Startups Paris")', tip: '💡 Organisez par industrie ou type de poste pour mieux analyser' },
+      { step: 3, action: 'Définir la cible', instruction: 'Spécifiez les **critères**: industries, types de postes, taille d\'entreprise, localisation', tip: '💡 Commencez avec une cible étroite et précise' },
+      { step: 4, action: 'Créer la séquence', instruction: 'Rédigez votre **premier email** puis ajoutez des **follow-ups** (relances) à J+3, J+7, etc.', tip: '💡 Personnalisez le premier paragraphe avec des détails spécifiques à chaque contact' },
+      { step: 5, action: 'Ajouter des contacts', instruction: 'Ajoutez manuellement des contacts ou **importez une liste** (CSV)', tip: '💡 Testez avec 10-20 contacts avant d\'élargir' },
+      { step: 6, action: 'Lancer et suivre', instruction: 'Cliquez sur **"Lancer"** puis suivez les **taux d\'ouverture et de réponse** dans le dashboard', tip: '💡 Analysez les résultats et ajustez vos messages en fonction' }
+    ],
+    stepsEn: [
+      { step: 1, action: 'Access Campaigns', instruction: 'Go to **"AutoPilot"** or **"Campaigns"** in the menu (Apply section)', tip: '💡 Campaigns automate your outreach to recruiters' },
+      { step: 2, action: 'Create a campaign', instruction: 'Click **"New Campaign"** and give it a descriptive name (e.g., "Tech Startups Paris")', tip: '💡 Organize by industry or job type for better analysis' },
+      { step: 3, action: 'Define target', instruction: 'Specify **criteria**: industries, job types, company size, location', tip: '💡 Start with a narrow, precise target' },
+      { step: 4, action: 'Create the sequence', instruction: 'Write your **first email** then add **follow-ups** at D+3, D+7, etc.', tip: '💡 Personalize the first paragraph with specific details for each contact' },
+      { step: 5, action: 'Add contacts', instruction: 'Add contacts manually or **import a list** (CSV)', tip: '💡 Test with 10-20 contacts before scaling up' },
+      { step: 6, action: 'Launch and track', instruction: 'Click **"Launch"** then track **open and response rates** in the dashboard', tip: '💡 Analyze results and adjust your messages accordingly' }
+    ],
+    nextActionsFr: ['Créer votre première séquence', 'Importer des contacts', 'Analyser vos performances'],
+    nextActionsEn: ['Create your first sequence', 'Import contacts', 'Analyze your performance']
+  },
+
+  interviewHub: {
+    feature: 'Interview Hub',
+    path: '/upcoming-interviews',
+    triggers: [
+      // French
+      'préparer entretien', 'interview hub', 'mes entretiens', 'entretien à venir',
+      'guide entretien', 'aide entretien', 'preparation interview', 'comment me préparer',
+      // English
+      'prepare interview', 'my interviews', 'upcoming interview', 'interview guide',
+      'help interview', 'interview preparation', 'how to prepare'
+    ],
+    titleFr: '🎯 Guide: Préparer vos Entretiens',
+    titleEn: '🎯 Guide: Preparing for your Interviews',
+    stepsFr: [
+      { step: 1, action: 'Accéder à Interview Hub', instruction: 'Allez dans **"Interview Hub"** dans le menu (section Prepare)', tip: '💡 C\'est votre centre de préparation pour tous vos entretiens' },
+      { step: 2, action: 'Voir vos entretiens', instruction: 'Visualisez la liste de vos **entretiens programmés** avec date, entreprise et type', tip: '💡 Les entretiens sont automatiquement synchronisés depuis vos candidatures' },
+      { step: 3, action: 'Préparer un entretien', instruction: 'Cliquez sur un entretien pour accéder à la **page de préparation**', tip: '💡 Préparez au moins 24h à l\'avance' },
+      { step: 4, action: 'Ajouter des notes', instruction: 'Utilisez la section notes pour **préparer vos réponses**, questions à poser, points à mentionner', tip: '💡 Notez 3-5 questions à poser au recruteur' },
+      { step: 5, action: 'Faire un Mock Interview', instruction: 'Lancez un **Mock Interview** pour vous entraîner avec l\'IA - elle pose des questions et donne du feedback', tip: '💡 Faites 2-3 mock interviews avant chaque vrai entretien' },
+      { step: 6, action: 'Revoir après l\'entretien', instruction: 'Après l\'entretien, **notez vos impressions** et les questions posées pour progresser', tip: '💡 Ces notes vous aideront pour les prochains entretiens' }
+    ],
+    stepsEn: [
+      { step: 1, action: 'Access Interview Hub', instruction: 'Go to **"Interview Hub"** in the menu (Prepare section)', tip: '💡 This is your preparation center for all interviews' },
+      { step: 2, action: 'View your interviews', instruction: 'See the list of your **scheduled interviews** with date, company and type', tip: '💡 Interviews are automatically synced from your applications' },
+      { step: 3, action: 'Prepare for an interview', instruction: 'Click an interview to access the **preparation page**', tip: '💡 Prepare at least 24h in advance' },
+      { step: 4, action: 'Add notes', instruction: 'Use the notes section to **prepare your answers**, questions to ask, points to mention', tip: '💡 Write down 3-5 questions to ask the recruiter' },
+      { step: 5, action: 'Do a Mock Interview', instruction: 'Start a **Mock Interview** to practice with AI - it asks questions and gives feedback', tip: '💡 Do 2-3 mock interviews before each real interview' },
+      { step: 6, action: 'Review after interview', instruction: 'After the interview, **note your impressions** and questions asked to improve', tip: '💡 These notes will help for future interviews' }
+    ],
+    nextActionsFr: ['Lancer un Mock Interview', 'Ajouter des notes de préparation', 'Rechercher l\'entreprise'],
+    nextActionsEn: ['Start a Mock Interview', 'Add preparation notes', 'Research the company']
+  },
+
+  recommendations: {
+    feature: 'AI Recommendations',
+    path: '/recommendations',
+    triggers: [
+      // French
+      'recommandations', 'conseils ia', 'améliorer recherche', 'que faire',
+      'prochaines étapes', 'guide recommandations', 'aide recommandations',
+      // English
+      'recommendations', 'ai advice', 'improve search', 'what to do',
+      'next steps', 'recommendations guide', 'help recommendations'
+    ],
+    titleFr: '💡 Guide: Utiliser les Recommandations IA',
+    titleEn: '💡 Guide: Using AI Recommendations',
+    stepsFr: [
+      { step: 1, action: 'Accéder aux Recommandations', instruction: 'Allez dans **"Recommendations"** dans le menu (section Improve)', tip: '💡 L\'IA analyse votre activité pour vous donner des conseils personnalisés' },
+      { step: 2, action: 'Consulter les conseils', instruction: 'Lisez les **recommandations générées** - elles sont classées par priorité et impact', tip: '💡 Commencez par les recommandations à "High Impact"' },
+      { step: 3, action: 'Voir les détails', instruction: 'Cliquez sur une recommandation pour voir les **détails et actions concrètes**', tip: '💡 Chaque recommandation explique pourquoi et comment agir' },
+      { step: 4, action: 'Passer à l\'action', instruction: 'Utilisez les **liens directs** pour aller aux pages concernées et appliquer les conseils', tip: '💡 Marquez les actions comme complétées pour suivre vos progrès' },
+      { step: 5, action: 'Rafraîchir', instruction: 'Revenez régulièrement - les recommandations se **mettent à jour** selon votre activité', tip: '💡 Vérifiez les recommandations au moins une fois par semaine' }
+    ],
+    stepsEn: [
+      { step: 1, action: 'Access Recommendations', instruction: 'Go to **"Recommendations"** in the menu (Improve section)', tip: '💡 AI analyzes your activity to give you personalized advice' },
+      { step: 2, action: 'Review advice', instruction: 'Read the **generated recommendations** - they are sorted by priority and impact', tip: '💡 Start with "High Impact" recommendations' },
+      { step: 3, action: 'View details', instruction: 'Click a recommendation to see **details and concrete actions**', tip: '💡 Each recommendation explains why and how to act' },
+      { step: 4, action: 'Take action', instruction: 'Use **direct links** to go to relevant pages and apply advice', tip: '💡 Mark actions as completed to track your progress' },
+      { step: 5, action: 'Refresh', instruction: 'Come back regularly - recommendations **update** based on your activity', tip: '💡 Check recommendations at least once a week' }
+    ],
+    nextActionsFr: ['Suivre une recommandation', 'Marquer une action comme faite', 'Explorer les autres conseils'],
+    nextActionsEn: ['Follow a recommendation', 'Mark an action as done', 'Explore other advice']
+  },
+
+  dashboard: {
+    feature: 'Dashboard',
+    path: '/dashboard',
+    triggers: [
+      // French
+      'dashboard', 'tableau de bord', 'statistiques', 'métriques', 'vue ensemble',
+      'comprendre statistiques', 'guide dashboard', 'aide dashboard',
+      // English
+      'dashboard guide', 'statistics', 'metrics', 'overview', 'understand stats', 'help dashboard'
+    ],
+    titleFr: '📈 Guide: Comprendre le Dashboard',
+    titleEn: '📈 Guide: Understanding the Dashboard',
+    stepsFr: [
+      { step: 1, action: 'Accéder au Dashboard', instruction: 'C\'est votre **page d\'accueil** après connexion - ou cliquez sur "Dashboard" dans le menu', tip: '💡 Commencez chaque session par le Dashboard pour un aperçu rapide' },
+      { step: 2, action: 'Métriques principales', instruction: 'En haut: **nombre de candidatures**, **taux de réponse**, **entretiens programmés**, **offres reçues**', tip: '💡 Visez un minimum de 5-10 candidatures par semaine' },
+      { step: 3, action: 'Activité récente', instruction: 'La section activité montre vos **dernières actions** et changements de statut', tip: '💡 Vérifiez les candidatures qui nécessitent une action' },
+      { step: 4, action: 'Entretiens à venir', instruction: 'La section entretiens liste vos **prochains entretiens** avec date et entreprise', tip: '💡 Cliquez pour accéder directement à la préparation' },
+      { step: 5, action: 'Actions urgentes', instruction: 'Les alertes en rouge indiquent les **actions prioritaires**: suivi à faire, deadline proche...', tip: '💡 Traitez les actions urgentes en premier' }
+    ],
+    stepsEn: [
+      { step: 1, action: 'Access Dashboard', instruction: 'It\'s your **homepage** after login - or click "Dashboard" in the menu', tip: '💡 Start each session with Dashboard for a quick overview' },
+      { step: 2, action: 'Main metrics', instruction: 'At top: **number of applications**, **response rate**, **scheduled interviews**, **offers received**', tip: '💡 Aim for a minimum of 5-10 applications per week' },
+      { step: 3, action: 'Recent activity', instruction: 'The activity section shows your **latest actions** and status changes', tip: '💡 Check applications that need action' },
+      { step: 4, action: 'Upcoming interviews', instruction: 'The interviews section lists your **upcoming interviews** with date and company', tip: '💡 Click to go directly to preparation' },
+      { step: 5, action: 'Urgent actions', instruction: 'Red alerts indicate **priority actions**: follow-up needed, deadline approaching...', tip: '💡 Handle urgent actions first' }
+    ],
+    nextActionsFr: ['Vérifier les actions urgentes', 'Consulter vos entretiens à venir', 'Ajouter de nouvelles candidatures'],
+    nextActionsEn: ['Check urgent actions', 'Review upcoming interviews', 'Add new applications']
+  }
+};
+
+/**
+ * Detects if a user message is asking for interactive guidance
+ * Returns the matching guide key or null
+ */
+function detectGuidanceRequest(message) {
+  const lowerMessage = message.toLowerCase();
+
+  // General guidance phrases that should trigger guide detection
+  const generalTriggers = [
+    'comment', 'how to', 'how do i', 'guide', 'aide', 'help', 'explique', 'explain',
+    'apprend', 'learn', 'montre', 'show me', 'tutorial', 'tuto', 'étapes', 'steps',
+    'utiliser', 'use', 'commencer', 'get started', 'démarrer', 'start'
+  ];
+
+  const hasGeneralTrigger = generalTriggers.some(trigger => lowerMessage.includes(trigger));
+
+  if (!hasGeneralTrigger) {
+    return null;
+  }
+
+  // Check each guide's specific triggers
+  for (const [guideKey, guide] of Object.entries(INTERACTIVE_GUIDES)) {
+    for (const trigger of guide.triggers) {
+      if (lowerMessage.includes(trigger.toLowerCase())) {
+        return guideKey;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Formats an interactive guide for display
+ * Detects language from user message
+ */
+function formatInteractiveGuide(guideKey, userMessage) {
+  const guide = INTERACTIVE_GUIDES[guideKey];
+  if (!guide) return null;
+
+  // Detect language (French by default if message contains French words)
+  const frenchIndicators = ['comment', 'aide', 'bonjour', 'salut', 'merci', 'je', 'mon', 'ma', 'mes', 'étapes'];
+  const isFrench = frenchIndicators.some(word => userMessage.toLowerCase().includes(word));
+
+  const title = isFrench ? guide.titleFr : guide.titleEn;
+  const steps = isFrench ? guide.stepsFr : guide.stepsEn;
+  const nextActions = isFrench ? guide.nextActionsFr : guide.nextActionsEn;
+
+  let formatted = `${title}\n\n`;
+
+  // Add steps
+  for (const step of steps) {
+    formatted += `### Étape ${step.step}: ${step.action}\n`;
+    formatted += `${step.instruction}\n`;
+    formatted += `${step.tip}\n\n`;
+  }
+
+  // Add next actions
+  formatted += isFrench ? `---\n\n**Prochaines actions suggérées:**\n` : `---\n\n**Suggested next actions:**\n`;
+  for (const action of nextActions) {
+    formatted += `- ${action}\n`;
+  }
+
+  formatted += isFrench
+    ? `\n💬 *N'hésitez pas à me demander plus de détails sur une étape spécifique!*`
+    : `\n💬 *Feel free to ask me for more details on any specific step!*`;
+
+  return formatted;
+}
+
 // Page-specific AI expertise configurations
 const PAGE_EXPERTISE = {
   'Dashboard': {
@@ -2307,7 +2604,7 @@ function buildProductKnowledgeSection() {
   const features = PRODUCT_KNOWLEDGE.features;
   const nav = PRODUCT_KNOWLEDGE.navigation;
   const faq = PRODUCT_KNOWLEDGE.faq;
-  
+
   let section = `
 ## CUBBBE PRODUCT KNOWLEDGE (USE THIS TO HELP USERS!)
 
@@ -2402,7 +2699,7 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData, selected
 
   // Get page-specific expertise
   const expertise = PAGE_EXPERTISE[pageName] || DEFAULT_EXPERTISE;
-  
+
   // Build product knowledge section
   const productKnowledge = buildProductKnowledgeSection();
 
@@ -2411,9 +2708,9 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData, selected
   if (selectedContextItems && selectedContextItems.length > 0) {
     const jobItems = selectedContextItems.filter(item => item.type === 'job' || item.type === 'job-application');
     const hasMultipleJobs = jobItems.length > 1;
-    
+
     selectedContextSection = `\n## USER-SELECTED CONTEXT (HIGHEST PRIORITY!)\nThe user has explicitly selected these items as context for this conversation using @mentions. You MUST reference and use this data in your responses:\n\n`;
-    
+
     for (const item of selectedContextItems) {
       const typeLabels = {
         'job-application': 'Job Application',
@@ -2427,7 +2724,7 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData, selected
         'document': 'Document',
         'page': 'Page'
       };
-      
+
       const typeLabel = typeLabels[item.type] || item.type;
       selectedContextSection += `### ${typeLabel}: ${item.title}\n`;
       if (item.subtitle) {
@@ -2438,13 +2735,13 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData, selected
       }
       selectedContextSection += '\n';
     }
-    
+
     selectedContextSection += `**CRITICAL INSTRUCTIONS FOR ANALYZING SELECTED CONTEXT**:\n\n`;
     selectedContextSection += `1. **DEEP ANALYSIS REQUIRED**: Don't just mention these items - analyze them thoroughly:\n`;
     selectedContextSection += `   - Extract ALL key information: requirements, skills needed, experience level, qualifications\n`;
     selectedContextSection += `   - Identify specific details: company names, job titles, descriptions, requirements, benefits\n`;
     selectedContextSection += `   - Look for match scores, analysis results, or any existing evaluations\n\n`;
-    
+
     if (hasMultipleJobs) {
       selectedContextSection += `2. **COMPARISON MODE ACTIVATED**: The user has selected ${jobItems.length} jobs. You MUST:\n`;
       selectedContextSection += `   - Compare each job systematically against the user's complete professional profile\n`;
@@ -2454,13 +2751,13 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData, selected
       selectedContextSection += `   - Provide a clear recommendation with justification\n`;
       selectedContextSection += `   - Be HONEST - if a job doesn't fit well, say so with specific reasons\n\n`;
     }
-    
+
     selectedContextSection += `3. **REFERENCE SPECIFIC DATA**: Always cite exact details from the context items:\n`;
     selectedContextSection += `   - Use exact company names, job titles, and requirements from the data\n`;
     selectedContextSection += `   - Reference specific skills, technologies, or qualifications mentioned\n`;
     selectedContextSection += `   - Mention any scores, dates, or metrics provided\n`;
     selectedContextSection += `   - Never give generic advice when you have specific data available\n\n`;
-    
+
     selectedContextSection += `4. **ACTIONABLE INSIGHTS**: Provide specific, actionable advice based on the exact data provided.\n\n`;
   }
 
@@ -2468,42 +2765,42 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData, selected
   let pageDataSection = '';
   if (pageData && Object.keys(pageData).length > 0) {
     pageDataSection = `\n## YOUR DATA ACCESS (USE THIS!)\nYou have access to the user's actual data. ALWAYS reference this data specifically:\n\n`;
-    
+
     // Special handling for applications page data
     const hasApplicationsData = pageData.applications || pageData.currentBoard;
     let applicationsGuidance = '';
-    
+
     if (hasApplicationsData) {
       const board = pageData.currentBoard;
       const apps = pageData.applications;
-      
+
       // Extract totals upfront for clear reference
       const boardTotal = board?.TOTAL_APPLICATIONS || board?.totalApplicationsOnBoard || 0;
       const appsTotal = apps?.TOTAL_APPLICATIONS || apps?.total || 0;
       const statusBreakdown = board?.applicationsByStatus || apps?.byStatus || {};
-      
+
       applicationsGuidance = `\n## 🎯 BOARD DATA SUMMARY (USE THESE NUMBERS!) 🎯\n\n`;
-      
+
       if (board) {
         applicationsGuidance += `### ══════════════════════════════════════════════════\n`;
         applicationsGuidance += `###  BOARD: "${board.boardName || 'Unknown'}"\n`;
         applicationsGuidance += `###  TOTAL APPLICATIONS: ${boardTotal}\n`;
         applicationsGuidance += `### ══════════════════════════════════════════════════\n\n`;
-        
+
         applicationsGuidance += `**STATUS BREAKDOWN:**\n`;
         for (const [status, count] of Object.entries(statusBreakdown)) {
           applicationsGuidance += `- ${status}: ${count} applications\n`;
         }
         applicationsGuidance += `\n`;
       }
-      
+
       applicationsGuidance += `**RULES:**\n`;
       applicationsGuidance += `1. Total applications = ${boardTotal} (use TOTAL_APPLICATIONS or totalApplicationsOnBoard)\n`;
       applicationsGuidance += `2. For status counts, use applicationsByStatus: ${JSON.stringify(statusBreakdown)}\n`;
       applicationsGuidance += `3. IGNORE any array named "_samplePreview_DO_NOT_COUNT" - it's just a preview!\n`;
       applicationsGuidance += `4. NEVER count array lengths to get totals!\n\n`;
     }
-    
+
     // Format page data with special highlighting for board data
     for (const [key, value] of Object.entries(pageData)) {
       if (value !== null && value !== undefined) {
@@ -2533,10 +2830,10 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData, selected
         }
       }
     }
-    
+
     pageDataSection += applicationsGuidance;
     pageDataSection += `**IMPORTANT**: Reference specific items from this data (company names, dates, scores, etc.) - never give generic advice when you have specific data!\n`;
-    
+
     // Add final critical reminder if board data exists
     const boardTotal = pageData.currentBoard?.TOTAL_APPLICATIONS || pageData.currentBoard?.totalApplicationsOnBoard;
     if (pageData.currentBoard && boardTotal !== undefined) {
@@ -2549,7 +2846,7 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData, selected
 
   // Build behavior rules string
   const behaviorRules = expertise.behaviors.map((b, i) => `${i + 1}. ${b}`).join('\n');
-  
+
   // Build example responses if available
   let examplesSection = '';
   if (expertise.exampleResponses && expertise.exampleResponses.length > 0) {
@@ -2564,7 +2861,7 @@ function buildAssistantSystemPrompt(pageContext, userContext, pageData, selected
     const boardTotal = board?.TOTAL_APPLICATIONS || board?.totalApplicationsOnBoard;
     const appsTotal = apps?.TOTAL_APPLICATIONS || apps?.total;
     const hasBoard = board && boardTotal !== undefined;
-    
+
     boardAnalysisRules = `\n## 🔢 APPLICATION COUNT REFERENCE (USE THESE EXACT NUMBERS!) 🔢
 
 ${hasBoard ? `**BOARD: "${board.boardName || 'Unknown'}"**
@@ -2611,21 +2908,21 @@ ${cvSkills.length > 0 ? `**CV Skills (extracted)**: ${cvSkills.slice(0, 15).join
 
 ### Work Experience
 ${workExperience.length > 0 ? workExperience.slice(0, 5).map((exp, idx) => {
-  const title = exp.title || 'Unknown Title';
-  const company = exp.company || 'Unknown Company';
-  const dates = exp.current ? `${exp.startDate || ''} - Present` : `${exp.startDate || ''} - ${exp.endDate || ''}`;
-  const desc = exp.description ? `\n  ${exp.description.substring(0, 200)}${exp.description.length > 200 ? '...' : ''}` : '';
-  return `${idx + 1}. **${title}** at ${company} (${dates})${desc}`;
-}).join('\n') : '*No work experience listed*'}
+    const title = exp.title || 'Unknown Title';
+    const company = exp.company || 'Unknown Company';
+    const dates = exp.current ? `${exp.startDate || ''} - Present` : `${exp.startDate || ''} - ${exp.endDate || ''}`;
+    const desc = exp.description ? `\n  ${exp.description.substring(0, 200)}${exp.description.length > 200 ? '...' : ''}` : '';
+    return `${idx + 1}. **${title}** at ${company} (${dates})${desc}`;
+  }).join('\n') : '*No work experience listed*'}
 
 ### Education
 ${education.length > 0 ? education.slice(0, 3).map((edu, idx) => {
-  const degree = edu.degree || 'Unknown Degree';
-  const institution = edu.institution || 'Unknown Institution';
-  const year = edu.year ? ` (${edu.year})` : '';
-  const field = edu.field ? ` - ${edu.field}` : '';
-  return `${idx + 1}. ${degree}${field} from ${institution}${year}`;
-}).join('\n') : '*No education listed*'}
+    const degree = edu.degree || 'Unknown Degree';
+    const institution = edu.institution || 'Unknown Institution';
+    const year = edu.year ? ` (${edu.year})` : '';
+    const field = edu.field ? ` - ${edu.field}` : '';
+    return `${idx + 1}. ${degree}${field} from ${institution}${year}`;
+  }).join('\n') : '*No education listed*'}
 
 ### Languages & Certifications
 ${languages.length > 0 ? `**Languages**: ${languages.map(l => `${l.language || l}${l.proficiency ? ` (${l.proficiency})` : ''}`).join(', ')}\n` : ''}
@@ -2830,6 +3127,18 @@ When a user asks HOW to do something on the platform (a step-by-step process que
 - \`[[START_TOUR:prepare-interview]]\` - Guide to prepare for interviews with Mock Interview
   Trigger when: User asks "how to prepare for an interview?", "how does mock interview work?", "practice interview questions"
 
+- \`[[START_TOUR:search-jobs]]\` - Guide to SEARCH and FIND jobs on the Job Board
+  Trigger when: User asks "how do I find a job?", "how to search for jobs?", "how does job board work?", "chercher un emploi", "trouver un job", "comment postuler?"
+  
+- \`[[START_TOUR:create-campaign]]\` - Guide to CREATE and MANAGE outreach campaigns
+  Trigger when: User asks "how do I create a campaign?", "how to use autopilot?", "how to send automatic emails?", "créer une campagne", "comment contacter des recruteurs?"
+  
+- \`[[START_TOUR:use-recommendations]]\` - Guide to use AI RECOMMENDATIONS
+  Trigger when: User asks "what should I do?", "how to use recommendations?", "what are my next steps?", "que dois-je faire?", "mes recommandations"
+  
+- \`[[START_TOUR:understand-dashboard]]\` - Guide to UNDERSTAND the Dashboard and metrics
+  Trigger when: User asks "what is dashboard?", "how to read my stats?", "what do my metrics mean?", "comprendre le tableau de bord", "mes statistiques"
+
 **IMPORTANT - DISTINGUISH BETWEEN CREATE vs ANALYZE vs OPTIMIZE:**
 - "Create CV", "make resume", "build CV from scratch" → use \`[[START_TOUR:create-cv]]\` (goes to Resume Builder)
 - "Analyze CV", "check score", "compare to job", "ATS score" → use \`[[START_TOUR:analyze-cv]]\` (goes to Resume Lab)
@@ -2969,7 +3278,7 @@ function formatPageDataKey(key) {
 app.post('/api/openai-realtime-session', async (req, res) => {
   try {
     console.log('🎙️ OpenAI Realtime Session endpoint called');
-    
+
     // Get API key from Firestore or environment variables
     let apiKey;
     try {
@@ -2981,7 +3290,7 @@ app.post('/api/openai-realtime-session', async (req, res) => {
         message: `Failed to retrieve API key: ${keyError.message}`
       });
     }
-    
+
     if (!apiKey) {
       console.error('❌ OpenAI API key is missing');
       return res.status(500).json({
@@ -2989,14 +3298,14 @@ app.post('/api/openai-realtime-session', async (req, res) => {
         message: 'OpenAI API key is missing. Please add it to Firestore (settings/openai) or .env file.'
       });
     }
-    
+
     console.log('✅ API key retrieved (first 10 chars):', apiKey.substring(0, 10) + '...');
-    
+
     // Model for Realtime API (GA version)
     const model = 'gpt-4o-realtime-preview-2024-12-17';
-    
+
     console.log('📡 Creating OpenAI Realtime client secret via /v1/realtime/client_secrets (GA API)...');
-    
+
     // Use /v1/realtime/client_secrets endpoint for GA API
     // This creates an ephemeral client secret for WebSocket authentication
     // The model is NOT passed here - it's specified in the WebSocket URL
@@ -3009,12 +3318,12 @@ app.post('/api/openai-realtime-session', async (req, res) => {
       },
       body: JSON.stringify({})
     });
-    
+
     if (!secretResponse.ok) {
       const errorText = await secretResponse.text();
       console.error('❌ OpenAI client_secrets creation failed:', secretResponse.status);
       console.error('   Error:', errorText);
-      
+
       // Parse error for better message
       let errorMessage = 'Failed to create client secret';
       try {
@@ -3023,22 +3332,22 @@ app.post('/api/openai-realtime-session', async (req, res) => {
       } catch (e) {
         errorMessage = errorText.substring(0, 200);
       }
-      
+
       return res.status(secretResponse.status).json({
         status: 'error',
         message: errorMessage
       });
     }
-    
+
     const secretData = await secretResponse.json();
     console.log('✅ Client secret response received');
     console.log('   Response keys:', Object.keys(secretData));
-    
+
     // The /v1/realtime/client_secrets endpoint returns:
     // { client_secret: { value: "ek_...", expires_at: ... } }
     let clientSecret;
     let expiresAt;
-    
+
     // Extract client_secret
     if (secretData.client_secret?.value) {
       clientSecret = secretData.client_secret.value;
@@ -3053,7 +3362,7 @@ app.post('/api/openai-realtime-session', async (req, res) => {
       expiresAt = secretData.expires_at;
       console.log('   Parsed direct value format');
     }
-    
+
     if (!clientSecret) {
       console.error('❌ Could not extract client_secret from response');
       console.error('   Full response:', JSON.stringify(secretData, null, 2));
@@ -3062,21 +3371,21 @@ app.post('/api/openai-realtime-session', async (req, res) => {
         message: 'Invalid response from OpenAI API - no client_secret found'
       });
     }
-    
+
     // Construct the WebSocket URL for GA API
     const serverUrl = `wss://api.openai.com/v1/realtime?model=${model}`;
-    
+
     console.log('✅ Client secret created successfully');
     console.log('   Client secret (first 20 chars):', clientSecret.substring(0, 20) + '...');
     console.log('   Server URL:', serverUrl);
-    
+
     // Return the WebSocket URL and client secret
     res.json({
       url: serverUrl,
       client_secret: clientSecret,
       expires_at: expiresAt
     });
-    
+
   } catch (error) {
     console.error('❌ Error in OpenAI Realtime session endpoint:', error);
     res.status(500).json({
@@ -3095,16 +3404,16 @@ app.post('/api/openai-realtime-session', async (req, res) => {
 app.post('/api/analyze-live-interview', async (req, res) => {
   try {
     console.log('📊 Live interview analysis endpoint called (Enhanced v2)');
-    
+
     const { transcript, jobContext, userProfile } = req.body;
-    
+
     if (!transcript || !Array.isArray(transcript) || transcript.length === 0) {
       return res.status(400).json({
         status: 'error',
         message: 'Transcript is required and must be a non-empty array'
       });
     }
-    
+
     // Get API key
     let apiKey;
     try {
@@ -3116,32 +3425,32 @@ app.post('/api/analyze-live-interview', async (req, res) => {
         message: `Failed to retrieve API key: ${keyError.message}`
       });
     }
-    
+
     if (!apiKey) {
       return res.status(500).json({
         status: 'error',
         message: 'OpenAI API key is missing'
       });
     }
-    
+
     // Format transcript with IDs for highlight references
     const formattedTranscript = transcript.map((entry, idx) => {
       const role = entry.role === 'assistant' ? 'INTERVIEWER' : 'CANDIDATE';
       const entryId = entry.id || `entry-${idx}`;
       return `[${entryId}] ${role}: ${entry.text || '(no response)'}`;
     }).join('\n\n');
-    
+
     // Extract candidate responses only for detailed analysis
     const candidateResponses = transcript
       .filter(e => e.role === 'user')
       .map((e, idx) => `Response ${idx + 1} [${e.id || `entry-${idx}`}]: "${e.text || '(no response)'}"`)
       .join('\n');
-    
+
     const position = jobContext?.position || 'the position';
     const company = jobContext?.companyName || 'the company';
     const jobDescription = jobContext?.jobDescription || '';
     const requirements = jobContext?.requirements || [];
-    
+
     // Build user context string
     let userContextStr = '';
     if (userProfile) {
@@ -3156,7 +3465,7 @@ CANDIDATE PROFILE:
 ${userProfile.cvText ? `\nFull CV Text:\n${userProfile.cvText.length > 10000 ? userProfile.cvText.substring(0, 10000) + '...(truncated)' : userProfile.cvText}` : ''}
 `;
     }
-    
+
     // Build job context string
     let jobContextStr = `
 JOB CONTEXT:
@@ -3165,7 +3474,7 @@ JOB CONTEXT:
 ${jobDescription ? `- Job Description: ${jobDescription.substring(0, 800)}${jobDescription.length > 800 ? '...' : ''}` : ''}
 ${requirements.length > 0 ? `- Key Requirements: ${requirements.slice(0, 10).join(', ')}` : ''}
 `;
-    
+
     // Detect if the candidate barely spoke
     const candidateWords = transcript
       .filter(e => e.role === 'user' && e.text)
@@ -3173,10 +3482,10 @@ ${requirements.length > 0 ? `- Key Requirements: ${requirements.slice(0, 10).joi
       .join(' ')
       .split(/\s+/)
       .filter(w => w.length > 0);
-    
+
     const wordCount = candidateWords.length;
     const hasMinimalInput = wordCount < 30;
-    
+
     const minimalInputInstructions = hasMinimalInput ? `
 ⚠️ CRITICAL: THE CANDIDATE PROVIDED VERY LIMITED RESPONSES (only ${wordCount} words total)
 
@@ -3372,11 +3681,11 @@ CRITICAL RULES:
     console.log('   Transcript entries:', transcript.length);
     console.log('   Has user profile:', !!userProfile);
     console.log('   Has job description:', !!jobDescription);
-    
+
     // Create AbortController for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout for longer analysis
-    
+
     let response;
     try {
       response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -3424,27 +3733,27 @@ Always respond with valid JSON only - no markdown, no backticks.`
       throw fetchError;
     }
     clearTimeout(timeoutId);
-    
+
     console.log('📥 Response received, status:', response.status);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ OpenAI API error:', errorText);
       throw new Error(`OpenAI API error: ${response.status}`);
     }
-    
+
     const data = await response.json();
     console.log('📦 Response parsed successfully');
-    
+
     const content = data.choices[0]?.message?.content;
-    
+
     if (!content) {
       console.error('❌ No content in response:', data);
       throw new Error('No content in OpenAI response');
     }
-    
+
     console.log('📝 Content length:', content.length);
-    
+
     // Parse JSON response
     let analysis;
     try {
@@ -3457,54 +3766,54 @@ Always respond with valid JSON only - no markdown, no backticks.`
       console.error('Content preview:', content.substring(0, 500));
       throw new Error('Failed to parse analysis response');
     }
-    
+
     // Helper function to safely parse scores - 0 is valid, only default for undefined/NaN
     const parseScore = (value, defaultValue = 0) => {
       const parsed = parseInt(value);
       return isNaN(parsed) ? defaultValue : Math.min(100, Math.max(0, parsed));
     };
-    
+
     // Validate and set defaults for required fields
     analysis.verdict = analysis.verdict || { passed: false, confidence: 'medium', hireDecision: 'no' };
     analysis.overallScore = parseScore(analysis.overallScore, 0);
     analysis.executiveSummary = analysis.executiveSummary || 'Interview completed. Analysis pending.';
-    
+
     // Content analysis defaults - 0 is valid for minimal participation
     analysis.contentAnalysis = analysis.contentAnalysis || {};
     analysis.contentAnalysis.relevanceScore = parseScore(analysis.contentAnalysis.relevanceScore, 0);
     analysis.contentAnalysis.specificityScore = parseScore(analysis.contentAnalysis.specificityScore, 0);
     analysis.contentAnalysis.starMethodUsage = analysis.contentAnalysis.starMethodUsage || { situation: false, task: false, action: false, result: false };
-    
+
     // Expression analysis defaults - 0 is valid for minimal participation
     analysis.expressionAnalysis = analysis.expressionAnalysis || {};
     analysis.expressionAnalysis.organizationScore = parseScore(analysis.expressionAnalysis.organizationScore, 0);
     analysis.expressionAnalysis.clarityScore = parseScore(analysis.expressionAnalysis.clarityScore, 0);
     analysis.expressionAnalysis.confidenceScore = parseScore(analysis.expressionAnalysis.confidenceScore, 0);
-    
+
     // Job fit defaults - 0 is valid for not demonstrating fit
     analysis.jobFitAnalysis = analysis.jobFitAnalysis || {};
     analysis.jobFitAnalysis.fitScore = parseScore(analysis.jobFitAnalysis.fitScore, 0);
     analysis.jobFitAnalysis.matchedSkills = analysis.jobFitAnalysis.matchedSkills || [];
     analysis.jobFitAnalysis.missingSkills = analysis.jobFitAnalysis.missingSkills || [];
-    
+
     // Highlights, strengths, issues, action plan
     analysis.transcriptHighlights = analysis.transcriptHighlights || [];
     analysis.strengths = analysis.strengths || [];
     analysis.criticalIssues = analysis.criticalIssues || [];
     analysis.actionPlan = analysis.actionPlan || [];
-    
+
     // Determine passed status based on score if not set
     if (analysis.verdict.passed === undefined) {
       analysis.verdict.passed = analysis.overallScore >= 65;
     }
-    
+
     console.log('✅ Enhanced interview analysis completed successfully');
     console.log('   Overall score:', analysis.overallScore);
     console.log('   Verdict:', analysis.verdict.passed ? 'PASSED' : 'NEEDS WORK');
     console.log('   Highlights count:', analysis.transcriptHighlights.length);
-    
+
     res.json(analysis);
-    
+
   } catch (error) {
     console.error('❌ Error analyzing interview:', error);
     res.status(500).json({
@@ -3547,11 +3856,11 @@ app.post('/api/perplexity', async (req, res) => {
     console.log('✅ Perplexity API key retrieved successfully (first 10 chars):', apiKey.substring(0, 10) + '...');
 
     // Extract request parameters
-    const { 
-      prompt, 
-      model = 'sonar-pro', 
-      messages, 
-      temperature = 0.7, 
+    const {
+      prompt,
+      model = 'sonar-pro',
+      messages,
+      temperature = 0.7,
       max_tokens = 1500,
       search_recency_filter,
       return_citations,
@@ -3647,12 +3956,12 @@ You can browse the web when needed for specific information, but keep search res
     // Parse and return response
     try {
       const parsedResponse = JSON.parse(responseText);
-      
+
       // Extract text content from response
       if (parsedResponse.choices && parsedResponse.choices.length > 0) {
         const textContent = parsedResponse.choices[0].message.content;
         console.log('Response content preview:', textContent.substring(0, 100) + '...');
-        
+
         // Return response in the same format as the original client-side function
         return res.json({
           ...parsedResponse,
@@ -3743,17 +4052,17 @@ app.post('/api/chat-fast', async (req, res) => {
     console.log('✅ OpenAI API key retrieved successfully (first 10 chars):', apiKey.substring(0, 10) + '...');
 
     // Extract request parameters
-    const { 
-      prompt, 
-      messages, 
+    const {
+      prompt,
+      messages,
       systemMessage,
-      temperature = 0.7, 
+      temperature = 0.7,
       max_tokens = 1000
     } = req.body;
 
     // Build messages array
     let requestMessages = [];
-    
+
     if (messages && Array.isArray(messages)) {
       requestMessages = messages;
     } else if (prompt) {
@@ -3830,12 +4139,12 @@ Follow these strict guidelines:
     // Parse and return response
     try {
       const parsedResponse = JSON.parse(responseText);
-      
+
       // Extract text content from response
       if (parsedResponse.choices && parsedResponse.choices.length > 0) {
         const textContent = parsedResponse.choices[0].message.content;
         console.log('✅ GPT-4o-mini response preview:', textContent.substring(0, 100) + '...');
-        
+
         // Return response in a format compatible with the client
         return res.json({
           status: 'success',
@@ -4038,7 +4347,7 @@ app.post('/api/cv-review', async (req, res) => {
 
     // Generate the CV review prompt with history context
     const prompt = generateCVReviewPrompt(cvData, jobContext, previousAnalysis);
-    
+
     const systemMessage = `You are an elite CV/Resume strategist and ATS optimization expert. You analyze CVs with extreme precision and provide highly actionable, specific suggestions. 
 
 CRITICAL RULES:
@@ -4091,7 +4400,7 @@ CRITICAL RULES:
       if (!openaiResponse.ok) {
         console.error("❌ Non-200 response from OpenAI API for CV Review");
         console.error("Response status:", openaiResponse.status);
-        
+
         try {
           const errorData = JSON.parse(responseText);
           return res.status(openaiResponse.status).json({
@@ -4154,11 +4463,11 @@ CRITICAL RULES:
           mainIssues: []
         };
       }
-      
+
       if (!reviewResult.suggestions || !Array.isArray(reviewResult.suggestions)) {
         reviewResult.suggestions = [];
       }
-      
+
       if (!reviewResult.analyzedAt) {
         reviewResult.analyzedAt = new Date().toISOString();
       }
@@ -4194,7 +4503,7 @@ CRITICAL RULES:
 
   } catch (error) {
     console.error("❌ Unexpected error in CV Review handler:", error);
-    
+
     if (res.headersSent) {
       return;
     }
@@ -4209,13 +4518,13 @@ CRITICAL RULES:
 // Helper function for CV Review prompt generation
 function generateCVReviewPrompt(cvData, jobContext, previousAnalysis) {
   const cvJson = JSON.stringify(cvData, null, 2);
-  
+
   // Build previous analysis context section
   let previousContext = '';
   if (previousAnalysis) {
     const appliedSuggestions = previousAnalysis.appliedSuggestionIds || [];
     const appliedCount = appliedSuggestions.length;
-    
+
     previousContext = `
 🔄 PREVIOUS ANALYSIS CONTEXT - **CRITICAL FOR CREDIBILITY**:
 This is a RE-ANALYSIS. The user has made changes since the last analysis.
@@ -4262,7 +4571,7 @@ ${appliedCount > 0 ? `- Applied Suggestion IDs: ${appliedSuggestions.join(', ')}
 **FAILURE TO FOLLOW THESE INSTRUCTIONS WILL DESTROY USER TRUST**
 `;
   }
-  
+
   return `You are an expert CV/Resume reviewer and ATS optimization specialist. Analyze the following CV and provide highly specific, actionable suggestions to improve it.
 ${previousContext}
 ${jobContext ? `
@@ -4711,8 +5020,8 @@ app.post('/api/analyze-interview', async (req, res) => {
       return `Question ${idx + 1} (Question ID: ${q.id}): ${q.text}\nAnswer: ${answer}`;
     }).join('\n\n');
 
-    const contextInfo = jobContext ? 
-      `\nJob Context:\n- Company: ${jobContext.companyName}\n- Position: ${jobContext.position}${jobContext.jobDescription ? `\n- Description: ${jobContext.jobDescription}` : ''}${jobContext.requiredSkills ? `\n- Required Skills: ${jobContext.requiredSkills.join(', ')}` : ''}` 
+    const contextInfo = jobContext ?
+      `\nJob Context:\n- Company: ${jobContext.companyName}\n- Position: ${jobContext.position}${jobContext.jobDescription ? `\n- Description: ${jobContext.jobDescription}` : ''}${jobContext.requiredSkills ? `\n- Required Skills: ${jobContext.requiredSkills.join(', ')}` : ''}`
       : '';
 
     const prompt = `You are an expert interview coach analyzing a candidate's interview performance. Analyze the following interview answers and provide detailed feedback.
@@ -4848,7 +5157,7 @@ IMPORTANT INSTRUCTIONS:
 app.post('/api/transcribe-audio', async (req, res) => {
   try {
     console.log('🎤 Whisper transcription endpoint called');
-    
+
     const { audioData, detectedLanguage } = req.body;
 
     // Validate input
@@ -4882,18 +5191,18 @@ app.post('/api/transcribe-audio', async (req, res) => {
 
     // Convert base64 to buffer
     const audioBuffer = Buffer.from(audioData.split(',')[1], 'base64');
-    
+
     // Create form data for Whisper API
     const FormData = require('form-data');
     const form = new FormData();
-    
+
     // Add audio file with proper extension
     form.append('file', audioBuffer, {
       filename: 'audio.webm',
       contentType: 'audio/webm'
     });
     form.append('model', 'whisper-1');
-    
+
     // Smart language detection:
     // - If language already detected in session, use it
     // - Otherwise, let Whisper auto-detect
@@ -4903,7 +5212,7 @@ app.post('/api/transcribe-audio', async (req, res) => {
     } else {
       console.log('🔍 Auto-detecting language (first question)');
     }
-    
+
     form.append('response_format', 'json');
 
     // Call Whisper API
@@ -4990,7 +5299,7 @@ app.post('/api/extract-job-url', async (req, res) => {
     // Detect ATS type from URL for optimized extraction
     const hostname = new URL(normalizedUrl).hostname.toLowerCase();
     let atsType = 'generic';
-    
+
     if (hostname.includes('myworkdayjobs.com') || hostname.includes('workday.com')) {
       atsType = 'workday';
     } else if (hostname.includes('lever.co') || hostname.includes('jobs.lever.co')) {
@@ -5016,7 +5325,7 @@ app.post('/api/extract-job-url', async (req, res) => {
     } else if (hostname.includes('welcometothejungle.com') || hostname.includes('wttj.co')) {
       atsType = 'welcometothejungle';
     }
-    
+
     console.log(`🏷️  Detected ATS type: ${atsType}`);
 
     // ATS-specific selectors for better extraction accuracy
@@ -5107,7 +5416,7 @@ app.post('/api/extract-job-url', async (req, res) => {
 
       // Set user agent to avoid bot detection
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
-      
+
       // Set extra headers to appear more like a real browser
       await page.setExtraHTTPHeaders({
         'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
@@ -5145,7 +5454,7 @@ app.post('/api/extract-job-url', async (req, res) => {
       // Wait for dynamic content to load (longer for complex SPAs)
       console.log('⏳ Waiting for dynamic content...');
       await new Promise(resolve => setTimeout(resolve, 4000));
-      
+
       // For Workday, wait for specific elements
       if (atsType === 'workday') {
         try {
@@ -5184,12 +5493,12 @@ app.post('/api/extract-job-url', async (req, res) => {
 
         // Get description content using ATS-specific selectors first
         let content = '';
-        
+
         // Try ATS-specific description selectors first
         if (atsSelectors && atsSelectors.description) {
           content = trySelectors(atsSelectors.description);
         }
-        
+
         // Fallback to generic selectors
         if (!content || content.length < 200) {
           const genericSelectors = [
@@ -5204,7 +5513,7 @@ app.post('/api/extract-job-url', async (req, res) => {
             '.content',
             'body'
           ];
-          
+
           for (const selector of genericSelectors) {
             try {
               const element = document.querySelector(selector);
@@ -5215,7 +5524,7 @@ app.post('/api/extract-job-url', async (req, res) => {
                 }
                 if (content.length > 1000) break;
               }
-            } catch (e) {}
+            } catch (e) { }
           }
         }
 
@@ -5229,7 +5538,7 @@ app.post('/api/extract-job-url', async (req, res) => {
         if (atsSelectors && atsSelectors.title) {
           title = trySelectors(atsSelectors.title);
         }
-        
+
         // Fallback to generic title selectors
         if (!title) {
           const genericTitleSelectors = [
@@ -5252,7 +5561,7 @@ app.post('/api/extract-job-url', async (req, res) => {
         if (atsSelectors && atsSelectors.company) {
           company = trySelectors(atsSelectors.company);
         }
-        
+
         // Fallback to generic company selectors if not found
         if (!company) {
           const genericCompanySelectors = [
@@ -5272,7 +5581,7 @@ app.post('/api/extract-job-url', async (req, res) => {
           ];
           company = trySelectors(genericCompanySelectors);
         }
-        
+
         // Helper function to clean company name (defined early for use in extraction)
         function cleanCompanyNameEarly(name) {
           if (!name) return '';
@@ -5439,7 +5748,7 @@ app.post('/api/extract-job-url', async (req, res) => {
         if (atsSelectors && atsSelectors.location) {
           location = trySelectors(atsSelectors.location);
         }
-        
+
         // Fallback to generic location selectors
         if (!location) {
           const genericLocationSelectors = [
@@ -5674,26 +5983,26 @@ app.post('/api/generate-star-story', async (req, res) => {
     // Build experience summary
     const experienceSummary = profileData.professionalHistory && profileData.professionalHistory.length > 0
       ? profileData.professionalHistory
-          .map((exp) => {
-            const responsibilities = Array.isArray(exp.responsibilities)
-              ? exp.responsibilities.join('; ')
-              : exp.responsibilities || '';
-            const achievements = Array.isArray(exp.achievements)
-              ? exp.achievements.join('; ')
-              : exp.achievements || '';
-            const industry = exp.industry || '';
-            const contractType = exp.contractType || '';
-            const location = exp.location || '';
+        .map((exp) => {
+          const responsibilities = Array.isArray(exp.responsibilities)
+            ? exp.responsibilities.join('; ')
+            : exp.responsibilities || '';
+          const achievements = Array.isArray(exp.achievements)
+            ? exp.achievements.join('; ')
+            : exp.achievements || '';
+          const industry = exp.industry || '';
+          const contractType = exp.contractType || '';
+          const location = exp.location || '';
 
-            return `Position: ${exp.title || 'N/A'} at ${exp.company || 'N/A'}
+          return `Position: ${exp.title || 'N/A'} at ${exp.company || 'N/A'}
 Duration: ${exp.startDate || 'N/A'} - ${exp.endDate || 'Present'}${exp.current ? ' (Current)' : ''}
 Industry: ${industry}
 Contract Type: ${contractType}
 Location: ${location}
 Responsibilities: ${responsibilities || 'N/A'}
 Achievements: ${achievements || 'N/A'}`;
-          })
-          .join('\n\n---\n\n')
+        })
+        .join('\n\n---\n\n')
       : 'No professional history available.';
 
     // Build comprehensive skills list
@@ -5708,17 +6017,17 @@ Achievements: ${achievements || 'N/A'}`;
     // Build languages summary
     const languagesSummary = profileData.languages && profileData.languages.length > 0
       ? profileData.languages.map((lang) => {
-          if (typeof lang === 'string') return lang;
-          return `${lang.language} (${lang.level || 'N/A'})`;
-        }).join(', ')
+        if (typeof lang === 'string') return lang;
+        return `${lang.language} (${lang.level || 'N/A'})`;
+      }).join(', ')
       : 'No languages specified';
 
     // Build certifications summary
     const certificationsSummary = profileData.certifications && profileData.certifications.length > 0
       ? profileData.certifications.map((cert) => {
-          if (typeof cert === 'string') return cert;
-          return `${cert.name || cert}${cert.issuer ? ` from ${cert.issuer}` : ''}${cert.year ? ` (${cert.year})` : ''}`;
-        }).join(', ')
+        if (typeof cert === 'string') return cert;
+        return `${cert.name || cert}${cert.issuer ? ` from ${cert.issuer}` : ''}${cert.year ? ` (${cert.year})` : ''}`;
+      }).join(', ')
       : 'No certifications listed';
 
     // Get API keys from Firestore
@@ -5844,14 +6153,14 @@ Respond ONLY with valid JSON, no markdown, no explanations.`;
           const responseData = await openaiResponse.json();
           const responseText = responseData.choices[0]?.message?.content || '';
           starStory = JSON.parse(responseText);
-          
+
           // Validate all three fields are present
           if (starStory.status === 'success' && starStory.story) {
             console.log('✅ OpenAI STAR story generated successfully');
             console.log('   Situation length:', starStory.story.situation?.length || 0);
             console.log('   Action length:', starStory.story.action?.length || 0);
             console.log('   Result length:', starStory.story.result?.length || 0);
-            
+
             // Ensure all fields exist
             if (!starStory.story.situation || !starStory.story.action || !starStory.story.result) {
               console.warn('⚠️ Missing fields in generated story:', {
@@ -5906,48 +6215,48 @@ Respond ONLY with valid JSON, no markdown, no explanations.`;
           })
         });
 
-          if (claudeResponse.ok) {
-            const responseData = await claudeResponse.json();
-            const content = responseData.content[0].text;
-            // Extract JSON from response (Claude might wrap it in markdown)
-            const jsonMatch = content.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              starStory = JSON.parse(jsonMatch[0]);
-              
-              // Validate all three fields are present
-              if (starStory.status === 'success' && starStory.story) {
-                console.log('✅ Claude STAR story generated successfully');
-                console.log('   Situation length:', starStory.story.situation?.length || 0);
-                console.log('   Action length:', starStory.story.action?.length || 0);
-                console.log('   Result length:', starStory.story.result?.length || 0);
-                
-                // Ensure all fields exist
-                if (!starStory.story.situation || !starStory.story.action || !starStory.story.result) {
-                  console.warn('⚠️ Missing fields in generated story:', {
-                    hasSituation: !!starStory.story.situation,
-                    hasAction: !!starStory.story.action,
-                    hasResult: !!starStory.story.result
-                  });
-                }
+        if (claudeResponse.ok) {
+          const responseData = await claudeResponse.json();
+          const content = responseData.content[0].text;
+          // Extract JSON from response (Claude might wrap it in markdown)
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            starStory = JSON.parse(jsonMatch[0]);
+
+            // Validate all three fields are present
+            if (starStory.status === 'success' && starStory.story) {
+              console.log('✅ Claude STAR story generated successfully');
+              console.log('   Situation length:', starStory.story.situation?.length || 0);
+              console.log('   Action length:', starStory.story.action?.length || 0);
+              console.log('   Result length:', starStory.story.result?.length || 0);
+
+              // Ensure all fields exist
+              if (!starStory.story.situation || !starStory.story.action || !starStory.story.result) {
+                console.warn('⚠️ Missing fields in generated story:', {
+                  hasSituation: !!starStory.story.situation,
+                  hasAction: !!starStory.story.action,
+                  hasResult: !!starStory.story.result
+                });
               }
-            } else {
-              throw new Error('Could not parse Claude response');
             }
           } else {
-            // Read the error response body to get detailed error message
-            const errorBody = await claudeResponse.text();
-            let errorMessage = `Claude API error: ${claudeResponse.status}`;
-            try {
-              const errorJson = JSON.parse(errorBody);
-              if (errorJson.error?.message) {
-                errorMessage = `Claude API error (${claudeResponse.status}): ${errorJson.error.message}`;
-              }
-              console.error('❌ Claude API error response:', errorJson);
-            } catch (parseError) {
-              console.error('❌ Claude API raw error:', errorBody);
-            }
-            throw new Error(errorMessage);
+            throw new Error('Could not parse Claude response');
           }
+        } else {
+          // Read the error response body to get detailed error message
+          const errorBody = await claudeResponse.text();
+          let errorMessage = `Claude API error: ${claudeResponse.status}`;
+          try {
+            const errorJson = JSON.parse(errorBody);
+            if (errorJson.error?.message) {
+              errorMessage = `Claude API error (${claudeResponse.status}): ${errorJson.error.message}`;
+            }
+            console.error('❌ Claude API error response:', errorJson);
+          } catch (parseError) {
+            console.error('❌ Claude API raw error:', errorBody);
+          }
+          throw new Error(errorMessage);
+        }
       } catch (error) {
         console.error('❌ Claude error:', error.message);
         throw error;
@@ -5968,7 +6277,7 @@ Respond ONLY with valid JSON, no markdown, no explanations.`;
       const hasSituation = starStory.story.situation && starStory.story.situation.trim().length > 0;
       const hasAction = starStory.story.action && starStory.story.action.trim().length > 0;
       const hasResult = starStory.story.result && starStory.story.result.trim().length > 0;
-      
+
       if (hasSituation && hasAction && hasResult) {
         console.log('✅ Returning complete STAR story with all three fields');
         return res.status(200).json(starStory);
@@ -6072,7 +6381,7 @@ async function verifyFirebaseToken(req, res, next) {
     console.log('❌ No auth header found');
     return res.status(401).json({ error: 'Unauthorized - Missing token' });
   }
-  
+
   const idToken = authHeader.split('Bearer ')[1];
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
@@ -6102,20 +6411,20 @@ async function getApolloApiKey() {
 // Apollo People Search endpoint
 app.post('/api/apollo/search', verifyFirebaseToken, async (req, res) => {
   console.log('🔍 Apollo search request from user:', req.user.uid);
-  
+
   try {
     const { campaignId, targeting, maxResults = 20 } = req.body;  // Test mode: 20 contacts
-    
+
     if (!campaignId || !targeting) {
       return res.status(400).json({ error: 'Missing campaignId or targeting' });
     }
-    
+
     // Get Apollo API key
     const apiKey = await getApolloApiKey();
     if (!apiKey) {
       return res.status(500).json({ error: 'Apollo API key not configured' });
     }
-    
+
     // Map seniority values to Apollo format
     const SENIORITY_MAPPING = {
       'entry': 'entry',
@@ -6125,7 +6434,7 @@ app.post('/api/apollo/search', verifyFirebaseToken, async (req, res) => {
       'vp': 'vp',
       'c_suite': 'c_suite'
     };
-    
+
     // Map company size to Apollo ranges
     const COMPANY_SIZE_MAPPING = {
       '1-10': '1,10',
@@ -6136,35 +6445,35 @@ app.post('/api/apollo/search', verifyFirebaseToken, async (req, res) => {
       '1001-5000': '1001,5000',
       '5001+': '5001,10000'
     };
-    
+
     // Build Apollo search params
     const searchParams = {
       per_page: Math.min(maxResults, 100),
       page: 1
     };
-    
+
     if (targeting.personTitles?.length > 0) {
       searchParams.person_titles = targeting.personTitles;
     }
-    
+
     if (targeting.personLocations?.length > 0) {
       searchParams.person_locations = targeting.personLocations;
     }
-    
+
     if (targeting.seniorities?.length > 0) {
       searchParams.person_seniorities = targeting.seniorities.map(
         s => SENIORITY_MAPPING[s] || s
       );
     }
-    
+
     if (targeting.companySizes?.length > 0) {
       searchParams.organization_num_employees_ranges = targeting.companySizes.map(
         s => COMPANY_SIZE_MAPPING[s] || s
       );
     }
-    
+
     console.log('📡 Apollo search params:', JSON.stringify(searchParams));
-    
+
     // Call Apollo People Search API
     const apolloResponse = await fetch('https://api.apollo.io/v1/mixed_people/search', {
       method: 'POST',
@@ -6175,45 +6484,45 @@ app.post('/api/apollo/search', verifyFirebaseToken, async (req, res) => {
       },
       body: JSON.stringify(searchParams)
     });
-    
+
     if (!apolloResponse.ok) {
       const errorText = await apolloResponse.text();
       console.error('❌ Apollo API error:', apolloResponse.status, errorText);
       return res.status(500).json({ error: `Apollo API error: ${apolloResponse.status}`, details: errorText });
     }
-    
+
     const data = await apolloResponse.json();
     console.log('✅ Apollo returned', data.people?.length || 0, 'people');
-    
+
     // Filter out excluded companies
     const excludedCompanies = targeting.excludedCompanies || [];
     const excludedLower = excludedCompanies.map(c => c.toLowerCase());
-    
+
     let filteredPeople = (data.people || []).filter(person => {
       if (!person.organization?.name) return true;
-      return !excludedLower.some(excluded => 
+      return !excludedLower.some(excluded =>
         person.organization.name.toLowerCase().includes(excluded)
       );
     });
-    
+
     // TEST MODE: Skip Apollo email enrichment to save credits
     // Assign test emails alternating between two addresses
     const TEST_EMAILS = ['rouchdi.touil@gmail.com', 'rouchdi.touil94@gmail.com'];
     console.log('🧪 TEST MODE: Assigning test emails instead of Apollo enrichment');
-    
+
     const enrichedPeople = filteredPeople.map((person, index) => ({
       ...person,
       email: TEST_EMAILS[index % 2]  // Alternate between the two test emails
     }));
-    
+
     console.log(`📧 Assigned ${enrichedPeople.length} test emails`);
-    
+
     // Store contacts in Firestore
     const db = admin.firestore();
     const firestoreBatch = db.batch();
     const campaignRef = db.collection('campaigns').doc(campaignId);
     const recipientsRef = campaignRef.collection('recipients');
-    
+
     const contacts = enrichedPeople.map(person => ({
       apolloId: person.id,
       firstName: person.first_name,
@@ -6236,13 +6545,13 @@ app.post('/api/apollo/search', verifyFirebaseToken, async (req, res) => {
       repliedAt: null,
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     }));
-    
+
     // Add each contact to Firestore batch
     contacts.forEach(contact => {
       const docRef = recipientsRef.doc();
       firestoreBatch.set(docRef, contact);
     });
-    
+
     // Update campaign stats
     const emailCount = contacts.filter(c => c.email).length;
     firestoreBatch.update(campaignRef, {
@@ -6251,10 +6560,10 @@ app.post('/api/apollo/search', verifyFirebaseToken, async (req, res) => {
       status: 'contacts_fetched',
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
-    
+
     await firestoreBatch.commit();
     console.log('✅ Stored', contacts.length, 'contacts in Firestore');
-    
+
     res.json({
       success: true,
       contactsFound: contacts.length,
@@ -6268,7 +6577,7 @@ app.post('/api/apollo/search', verifyFirebaseToken, async (req, res) => {
         hasEmail: !!c.email
       }))
     });
-    
+
   } catch (error) {
     console.error('❌ Apollo search error:', error);
     res.status(500).json({ error: 'Failed to search Apollo', details: error.message });
@@ -6279,16 +6588,16 @@ app.post('/api/apollo/search', verifyFirebaseToken, async (req, res) => {
 app.post('/api/apollo/enrich', verifyFirebaseToken, async (req, res) => {
   try {
     const { apolloId } = req.body;
-    
+
     if (!apolloId) {
       return res.status(400).json({ error: 'Missing apolloId' });
     }
-    
+
     const apiKey = await getApolloApiKey();
     if (!apiKey) {
       return res.status(500).json({ error: 'Apollo API key not configured' });
     }
-    
+
     const apolloResponse = await fetch('https://api.apollo.io/v1/people/match', {
       method: 'POST',
       headers: {
@@ -6300,19 +6609,19 @@ app.post('/api/apollo/enrich', verifyFirebaseToken, async (req, res) => {
         reveal_personal_emails: false
       })
     });
-    
+
     if (!apolloResponse.ok) {
       return res.status(500).json({ error: 'Failed to enrich contact' });
     }
-    
+
     const data = await apolloResponse.json();
-    
+
     res.json({
       success: true,
       email: data.person?.email || null,
       linkedinUrl: data.person?.linkedin_url || null
     });
-    
+
   } catch (error) {
     console.error('❌ Apollo enrich error:', error);
     res.status(500).json({ error: 'Failed to enrich contact', details: error.message });
@@ -6327,18 +6636,18 @@ app.post('/api/apollo/enrich', verifyFirebaseToken, async (req, res) => {
 app.post('/api/campaigns/generate-variant', verifyFirebaseToken, async (req, res) => {
   const { type, tone = 'casual', language = 'en', outreachGoal = 'job', existingVariants = [] } = req.body;
   const userId = req.user.uid;
-  
+
   console.log(`🧪 Generating ${type} variant for ${outreachGoal}`);
-  
+
   try {
     const db = admin.firestore();
-    
+
     // Get user profile for context
     const userDoc = await db.collection('users').doc(userId).get();
     const userProfile = userDoc.exists ? userDoc.data() : {};
-    
+
     const toneInstructions = {
-      casual: language === 'fr' 
+      casual: language === 'fr'
         ? 'Ton décontracté et amical'
         : 'Casual and friendly tone',
       professional: language === 'fr'
@@ -6348,7 +6657,7 @@ app.post('/api/campaigns/generate-variant', verifyFirebaseToken, async (req, res
         ? 'Ton direct et confiant'
         : 'Direct and confident tone'
     };
-    
+
     const goalContext = {
       job: language === 'fr'
         ? 'Recherche active d\'un poste'
@@ -6360,9 +6669,9 @@ app.post('/api/campaigns/generate-variant', verifyFirebaseToken, async (req, res
         ? 'Cherche à établir un contact professionnel, pas de recherche active'
         : 'Looking to connect professionally, not actively job searching'
     };
-    
+
     let systemPrompt = '';
-    
+
     if (type === 'hook') {
       systemPrompt = language === 'fr' ? `Génère UNE accroche d'email qui donne envie de lire la suite. Écris comme un humain, pas comme une IA.
 
@@ -6427,9 +6736,9 @@ Just the hook, nothing else.`;
         const recent = userProfile.professionalHistory[0];
         senderContext.push(`Recent: ${recent.title} at ${recent.company}`);
       }
-      
+
       const contextStr = senderContext.length > 0 ? `\n\nSENDER INFO:\n${senderContext.join('\n')}` : '';
-      
+
       systemPrompt = language === 'fr' ? `Génère LE CORPS d'un email (pas l'accroche, pas le CTA). Écris naturellement.
 
 CE QUE TU FAIS:
@@ -6493,9 +6802,9 @@ ${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'None'}
           ? 'Demande juste un échange informel, pas de recherche active'
           : 'Just ask for an informal chat, not actively looking'
       };
-      
-const senderName = userProfile.firstName || '[Sender name]';
-      
+
+      const senderName = userProfile.firstName || '[Sender name]';
+
       systemPrompt = language === 'fr' ? `Génère UN call-to-action + signature pour finir l'email. Simple et direct.
 
 EXPÉDITEUR: ${senderName}
@@ -6546,13 +6855,13 @@ ${existingVariants.map((v, i) => `${i + 1}. ${v}`).join('\n') || 'None'}
 
 CTA + signature with "${senderName}", that's it.`;
     }
-    
+
     const openaiClient = await getOpenAIClient();
-    
+
     // More explicit user prompt to ensure only the specific part is generated
     let userPrompt = '';
     if (type === 'hook') {
-      userPrompt = language === 'fr' 
+      userPrompt = language === 'fr'
         ? `Génère SEULEMENT une accroche (1-2 phrases). PAS de corps d'email, PAS de signature, PAS de sujet. Juste l'accroche d'ouverture avec merge fields.`
         : `Generate ONLY an opening hook (1-2 sentences). NO email body, NO signature, NO subject. Just the opening hook with merge fields.`;
     } else if (type === 'body') {
@@ -6561,7 +6870,7 @@ CTA + signature with "${senderName}", that's it.`;
         : `Generate 2 SENTENCES MAX. First person ("I"). Explain WHY you're reaching out. NO question. NO ask. Just your interest/background.`;
     } else if (type === 'cta') {
       const senderFirstName = userProfile.firstName || '[Your first name]';
-      
+
       userPrompt = language === 'fr'
         ? `Génère UN CTA + signature pour finir l'email. SIGNE AVEC: ${senderFirstName}
 
@@ -6580,7 +6889,7 @@ ${senderFirstName}"
 
 IMPORTANT: The signature MUST be "${senderFirstName}" (not a different name). Just CTA + signature, nothing else.`;
     }
-    
+
     const completion = await openaiClient.chat.completions.create({
       model: "gpt-5.2-chat-latest",
       messages: [
@@ -6589,21 +6898,21 @@ IMPORTANT: The signature MUST be "${senderFirstName}" (not a different name). Ju
       ],
       max_completion_tokens: 150
     });
-    
+
     let variant = completion.choices[0]?.message?.content?.trim() || '';
-    
+
     // Clean up any unwanted prefixes or suffixes
     variant = variant
       .replace(/^(Hook|Body|CTA|Opening|Accroche|Corps):\s*/i, '')
       .replace(/^["'`]/g, '')
       .replace(/["'`]$/g, '')
       .trim();
-    
+
     res.json({
       success: true,
       variant
     });
-    
+
   } catch (error) {
     console.error('❌ Variant generation error:', error);
     res.status(500).json({ error: 'Failed to generate variant', details: error.message });
@@ -6614,16 +6923,16 @@ IMPORTANT: The signature MUST be "${senderFirstName}" (not a different name). Ju
 app.post('/api/campaigns/generate-templates', verifyFirebaseToken, async (req, res) => {
   const { tone = 'casual', language = 'en', keyPoints = '', outreachGoal = 'job', count = 3 } = req.body;
   const userId = req.user.uid;
-  
+
   console.log(`📝 Generating ${count} email templates`);
-  
+
   try {
     const db = admin.firestore();
-    
+
     // Get user profile for context
     const userDoc = await db.collection('users').doc(userId).get();
     const userProfile = userDoc.exists ? userDoc.data() : {};
-    
+
     // Build user context
     const userContext = [];
     if (userProfile.firstName) {
@@ -6638,11 +6947,11 @@ app.post('/api/campaigns/generate-templates', verifyFirebaseToken, async (req, r
     if (keyPoints) {
       userContext.push(`Key points to mention: ${keyPoints}`);
     }
-    
+
     const contextStr = userContext.join('\n');
-    
+
     const toneInstructions = {
-      casual: language === 'fr' 
+      casual: language === 'fr'
         ? 'Ton décontracté et amical, comme un message LinkedIn entre professionnels.'
         : 'Casual and friendly tone, like a LinkedIn message between professionals.',
       professional: language === 'fr'
@@ -6652,7 +6961,7 @@ app.post('/api/campaigns/generate-templates', verifyFirebaseToken, async (req, r
         ? 'Ton direct et confiant, qui va droit au but sans être arrogant.'
         : 'Direct and confident tone, straight to the point without being arrogant.'
     };
-    
+
     const goalContext = {
       job: language === 'fr'
         ? 'Recherche active d\'opportunités professionnelles'
@@ -6780,34 +7089,34 @@ Generate ${count} templates now.`;
       ],
       max_completion_tokens: 1800
     });
-    
+
     const content = completion.choices[0]?.message?.content || '';
-    
+
     // Parse templates
     const templateBlocks = content.split(/TEMPLATE\s+\d+/i).filter(block => block.trim());
     const templates = [];
-    
+
     for (let i = 0; i < Math.min(templateBlocks.length, count); i++) {
       const block = templateBlocks[i];
       const subjectMatch = block.match(/SUBJECT:\s*(.+)/i);
       const subject = subjectMatch ? subjectMatch[1].trim() : `Quick question about {{company}}`;
-      
+
       const bodyMatch = block.split(/---+/);
       const body = bodyMatch.length > 1 ? bodyMatch[1].trim() : block.replace(/SUBJECT:.+/i, '').trim();
-      
+
       templates.push({
         id: `template-${Date.now()}-${i}`,
         subject,
         body
       });
     }
-    
+
     // If we didn't get enough templates, add defaults
     while (templates.length < count) {
       const idx = templates.length;
       templates.push({
         id: `template-${Date.now()}-${idx}`,
-        subject: language === 'fr' 
+        subject: language === 'fr'
           ? `Question rapide concernant {{company}}`
           : `Quick question about {{company}}`,
         body: language === 'fr'
@@ -6815,12 +7124,12 @@ Generate ${count} templates now.`;
           : `Hi {{firstName}},\n\nI'm ${userProfile.firstName || '[Your name]'} and I'm really interested in {{company}}.\n\nWould you be open to a quick chat about your experience as {{position}}?\n\nThanks,\n${userProfile.firstName || '[Your name]'}`
       });
     }
-    
+
     res.json({
       success: true,
       templates: templates.slice(0, count)
     });
-    
+
   } catch (error) {
     console.error('❌ Template generation error:', error);
     res.status(500).json({ error: 'Failed to generate templates', details: error.message });
@@ -6834,73 +7143,73 @@ app.post('/api/campaigns/:campaignId/generate-emails', verifyFirebaseToken, asyn
   console.log('Request params:', req.params);
   console.log('Request body:', req.body);
   console.log('User:', req.user?.uid);
-  
+
   const { campaignId } = req.params;
   const { tone = 'casual', language = 'en' } = req.body;
   const userId = req.user.uid;
-  
+
   console.log(`📧 Generating emails for campaign ${campaignId}`);
-  
+
   try {
     const db = admin.firestore();
-    
+
     // Get campaign data
     const campaignRef = db.collection('campaigns').doc(campaignId);
     const campaignDoc = await campaignRef.get();
-    
+
     if (!campaignDoc.exists) {
       return res.status(404).json({ error: 'Campaign not found' });
     }
-    
+
     const campaignData = campaignDoc.data();
     if (campaignData.userId !== userId) {
       return res.status(403).json({ error: 'Not authorized' });
     }
-    
+
     // Get user profile for email generation context
     const userDoc = await db.collection('users').doc(userId).get();
     const userProfile = userDoc.exists ? userDoc.data() : {};
-    
+
     // Get all recipients without generated emails
     console.log(`📂 Getting recipients from campaigns/${campaignId}/recipients`);
     const allRecipientsSnapshot = await campaignRef.collection('recipients').get();
     console.log(`📂 Found ${allRecipientsSnapshot.size} total recipients in collection`);
-    
+
     if (allRecipientsSnapshot.empty) {
       console.log('⚠️ No recipients found in subcollection!');
       return res.json({ success: true, generated: 0, message: 'No recipients in campaign' });
     }
-    
+
     // Filter to only those without generated emails
     const recipientDocs = allRecipientsSnapshot.docs.filter(doc => {
       const data = doc.data();
       return data.emailGenerated !== true;
     });
-    
+
     console.log(`📧 After filter: ${recipientDocs.length} recipients need email generation`);
-    
+
     if (recipientDocs.length === 0) {
       return res.json({ success: true, generated: 0, message: 'All emails already generated' });
     }
-    
+
     // Determine generation mode
     const mode = campaignData.emailGenerationMode || 'auto';
     console.log(`📧 Using generation mode: ${mode}`);
-    
+
     // Build user context for AI prompt (used in auto mode)
     const userContext = buildUserContext(userProfile, campaignData.targeting);
-    
+
     // Generate emails for each recipient
     const results = [];
     let successCount = 0;
     let errorCount = 0;
-    
+
     for (const recipientDoc of recipientDocs) {
       const recipient = recipientDoc.data();
-      
+
       try {
         let subject, body, variantConfig;
-        
+
         if (mode === 'template' && campaignData.template) {
           // Template mode: Replace merge fields
           ({ subject, body } = replaceMergeFields(campaignData.template, recipient));
@@ -6918,7 +7227,7 @@ app.post('/api/campaigns/:campaignId/generate-emails', verifyFirebaseToken, asyn
             campaignData.outreachGoal || 'job'
           ));
         }
-        
+
         // Update recipient with generated email
         const updateData = {
           emailSubject: subject,
@@ -6928,38 +7237,38 @@ app.post('/api/campaigns/:campaignId/generate-emails', verifyFirebaseToken, asyn
           status: 'email_generated',
           generatedAt: admin.firestore.FieldValue.serverTimestamp()
         };
-        
+
         // Add variant config for A/B testing
         if (variantConfig) {
           updateData.variantConfig = variantConfig;
           updateData.variantId = `${variantConfig.hookIndex}-${variantConfig.bodyIndex}-${variantConfig.ctaIndex}`;
         }
-        
+
         await recipientDoc.ref.update(updateData);
-        
+
         results.push({ id: recipientDoc.id, success: true, subject });
         successCount++;
         console.log(`  ✅ Generated email for ${recipient.fullName}`);
-        
+
       } catch (error) {
         console.error(`  ❌ Failed to generate for ${recipient.fullName}:`, error.message);
         results.push({ id: recipientDoc.id, success: false, error: error.message });
         errorCount++;
       }
-      
+
       // Small delay to avoid rate limiting (only for auto mode with AI)
       if (mode === 'auto') {
         await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
-    
+
     // Update campaign stats
     await campaignRef.update({
       'stats.emailsGenerated': admin.firestore.FieldValue.increment(successCount),
       status: successCount > 0 ? 'emails_generated' : campaignData.status,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
-    
+
     res.json({
       success: true,
       generated: successCount,
@@ -6968,7 +7277,7 @@ app.post('/api/campaigns/:campaignId/generate-emails', verifyFirebaseToken, asyn
       mode,
       results
     });
-    
+
   } catch (error) {
     console.error('❌ Email generation error:', error);
     res.status(500).json({ error: 'Failed to generate emails', details: error.message });
@@ -6979,7 +7288,7 @@ app.post('/api/campaigns/:campaignId/generate-emails', verifyFirebaseToken, asyn
 function replaceMergeFields(template, recipient) {
   let subject = template.subject || '';
   let body = template.body || '';
-  
+
   const replacements = {
     '{{firstName}}': recipient.firstName || '',
     '{{lastName}}': recipient.lastName || '',
@@ -6987,35 +7296,35 @@ function replaceMergeFields(template, recipient) {
     '{{position}}': recipient.title || '',
     '{{location}}': recipient.location || ''
   };
-  
+
   for (const [field, value] of Object.entries(replacements)) {
     subject = subject.replace(new RegExp(field, 'g'), value);
     body = body.replace(new RegExp(field, 'g'), value);
   }
-  
+
   return { subject, body };
 }
 
 // Helper function to generate A/B test email
 function generateABTestEmail(variants, recipient) {
   const { hooks = [], bodies = [], ctas = [] } = variants;
-  
+
   // Randomly select one from each category
   const hookIndex = Math.floor(Math.random() * hooks.length);
   const bodyIndex = Math.floor(Math.random() * bodies.length);
   const ctaIndex = Math.floor(Math.random() * ctas.length);
-  
+
   const hook = hooks[hookIndex] || '';
   const body = bodies[bodyIndex] || '';
   const cta = ctas[ctaIndex] || '';
-  
+
   // Combine and replace merge fields
   const fullBody = `${hook}\n\n${body}\n\n${cta}`;
   const { subject, body: processedBody } = replaceMergeFields(
     { subject: `Quick question about {{company}}`, body: fullBody },
     recipient
   );
-  
+
   return {
     subject,
     body: processedBody,
@@ -7030,7 +7339,7 @@ function generateABTestEmail(variants, recipient) {
 // Helper function to build user context for AI
 function buildUserContext(userProfile, targeting) {
   const parts = [];
-  
+
   if (userProfile.firstName) {
     parts.push(`Sender's name: ${userProfile.firstName}${userProfile.lastName ? ' ' + userProfile.lastName : ''}`);
   }
@@ -7056,14 +7365,14 @@ function buildUserContext(userProfile, targeting) {
     const recentJob = userProfile.professionalHistory[0];
     parts.push(`Recent experience: ${recentJob.title} at ${recentJob.company}`);
   }
-  
+
   return parts.join('\n');
 }
 
 // Helper function to generate email for a single recipient
 async function generateEmailForRecipient(userContext, recipient, tone, language, userProfile, outreachGoal = 'job') {
   const toneInstructions = {
-    casual: language === 'fr' 
+    casual: language === 'fr'
       ? 'Ton décontracté et amical, comme un message LinkedIn entre professionnels.'
       : 'Casual and friendly tone, like a LinkedIn message between professionals.',
     professional: language === 'fr'
@@ -7073,7 +7382,7 @@ async function generateEmailForRecipient(userContext, recipient, tone, language,
       ? 'Ton direct et confiant, qui va droit au but sans être arrogant.'
       : 'Direct and confident tone, straight to the point without being arrogant.'
   };
-  
+
   const goalContext = {
     job: language === 'fr'
       ? 'Recherche active de nouvelles opportunités professionnelles'
@@ -7097,7 +7406,7 @@ async function generateEmailForRecipient(userContext, recipient, tone, language,
       ? 'Pas de recherche active, juste échanger'
       : 'Not actively looking, just want to connect'
   };
-  
+
   const systemPrompt = language === 'fr' ? `Tu es un copywriter qui écrit des cold emails avec un taux de réponse de 35%. Écris comme un VRAI humain, pas comme une IA.
 
 CONTEXTE: ${goalContext[outreachGoal]}
@@ -7185,16 +7494,16 @@ SUBJECT: [3-5 words max, intriguing]
     ],
     max_completion_tokens: 450
   });
-  
+
   const content = completion.choices[0]?.message?.content || '';
-  
+
   // Parse subject and body
   const subjectMatch = content.match(/SUBJECT:\s*(.+)/i);
   const subject = subjectMatch ? subjectMatch[1].trim() : `Quick question`;
-  
+
   const bodyMatch = content.split(/---+/);
   const body = bodyMatch.length > 1 ? bodyMatch[1].trim() : content.replace(/SUBJECT:.+/i, '').trim();
-  
+
   return { subject, body };
 }
 
@@ -7203,87 +7512,87 @@ app.post('/api/campaigns/:campaignId/send-emails', verifyFirebaseToken, async (r
   const { campaignId } = req.params;
   const { batchSize = 10 } = req.body;
   const userId = req.user.uid;
-  
+
   console.log(`📤 Sending emails for campaign ${campaignId}`);
-  
+
   try {
     const db = admin.firestore();
-    
+
     // Get campaign
     const campaignRef = db.collection('campaigns').doc(campaignId);
     const campaignDoc = await campaignRef.get();
-    
+
     if (!campaignDoc.exists) {
       return res.status(404).json({ error: 'Campaign not found' });
     }
-    
+
     const campaignData = campaignDoc.data();
     if (campaignData.userId !== userId) {
       return res.status(403).json({ error: 'Not authorized' });
     }
-    
+
     // Get Gmail tokens and refresh if needed
     let accessToken;
     try {
       accessToken = await refreshGmailToken(userId);
     } catch (refreshError) {
       console.error('Token refresh failed:', refreshError.message);
-      return res.status(401).json({ 
-        error: 'Gmail token expired', 
+      return res.status(401).json({
+        error: 'Gmail token expired',
         message: refreshError.message,
-        needsReconnect: true 
+        needsReconnect: true
       });
     }
-    
+
     const gmailTokenDoc = await db.collection('gmailTokens').doc(userId).get();
     const gmailTokens = gmailTokenDoc.data();
     const senderEmail = gmailTokens.email;
-    
+
     if (!accessToken) {
       return res.status(400).json({ error: 'Gmail access token missing. Please reconnect Gmail.' });
     }
-    
+
     // Get recipients with generated emails but not yet sent
     const recipientsSnapshot = await campaignRef.collection('recipients')
       .where('emailGenerated', '==', true)
       .where('status', '==', 'email_generated')
       .limit(batchSize)
       .get();
-    
+
     if (recipientsSnapshot.empty) {
       return res.json({ success: true, sent: 0, message: 'No emails to send' });
     }
-    
+
     // Get user profile for sender name
     const userDoc = await db.collection('users').doc(userId).get();
     const userProfile = userDoc.exists ? userDoc.data() : {};
     const senderName = userProfile.firstName && userProfile.lastName
       ? `${userProfile.firstName} ${userProfile.lastName}`
       : userProfile.firstName || senderEmail.split('@')[0];
-    
+
     const results = [];
     let successCount = 0;
     let errorCount = 0;
     const TRACKING_BASE_URL = process.env.TRACKING_URL || `http://localhost:${PORT}`;
-    
+
     for (const recipientDoc of recipientsSnapshot.docs) {
       const recipient = recipientDoc.data();
-      
+
       if (!recipient.email) {
         console.log(`  ⚠️ Skipping ${recipient.fullName} - no email`);
         results.push({ id: recipientDoc.id, success: false, error: 'No email address' });
         errorCount++;
         continue;
       }
-      
+
       try {
         // Create tracking pixel URL
         const trackingId = `${campaignId}_${recipientDoc.id}`;
         const trackingPixel = `<img src="${TRACKING_BASE_URL}/api/track/open/${trackingId}" width="1" height="1" style="display:none;" />`;
-        
+
         // Build email with tracking pixel
         const emailBody = `${recipient.emailContent}\n\n${trackingPixel}`;
-        
+
         // Check if campaign has CV attachment
         let cvAttachmentData = null;
         if (campaignData.attachCV && campaignData.cvAttachment) {
@@ -7293,8 +7602,8 @@ app.post('/api/campaigns/:campaignId/send-emails', verifyFirebaseToken, async (r
             if (cvResponse.ok) {
               const cvBuffer = await cvResponse.arrayBuffer();
               cvAttachmentData = {
-                filename: campaignData.cvAttachment.name.endsWith('.pdf') 
-                  ? campaignData.cvAttachment.name 
+                filename: campaignData.cvAttachment.name.endsWith('.pdf')
+                  ? campaignData.cvAttachment.name
                   : `${campaignData.cvAttachment.name}.pdf`,
                 mimeType: 'application/pdf',
                 data: Buffer.from(cvBuffer).toString('base64')
@@ -7305,25 +7614,25 @@ app.post('/api/campaigns/:campaignId/send-emails', verifyFirebaseToken, async (r
             // Continue without attachment
           }
         }
-        
+
         // Create raw email in RFC 2822 format
         const rawEmail = cvAttachmentData
           ? createRawEmailWithAttachment({
-              from: senderEmail,
-              fromName: senderName,
-              to: recipient.email,
-              subject: recipient.emailSubject,
-              body: emailBody,
-              attachment: cvAttachmentData
-            })
+            from: senderEmail,
+            fromName: senderName,
+            to: recipient.email,
+            subject: recipient.emailSubject,
+            body: emailBody,
+            attachment: cvAttachmentData
+          })
           : createRawEmail({
-              from: senderEmail,
-              fromName: senderName,
-              to: recipient.email,
-              subject: recipient.emailSubject,
-              body: emailBody
-            });
-        
+            from: senderEmail,
+            fromName: senderName,
+            to: recipient.email,
+            subject: recipient.emailSubject,
+            body: emailBody
+          });
+
         // Send via Gmail API
         const sendResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
           method: 'POST',
@@ -7333,14 +7642,14 @@ app.post('/api/campaigns/:campaignId/send-emails', verifyFirebaseToken, async (r
           },
           body: JSON.stringify({ raw: rawEmail })
         });
-        
+
         if (!sendResponse.ok) {
           const errorData = await sendResponse.json();
           throw new Error(errorData.error?.message || 'Gmail API error');
         }
-        
+
         const sendData = await sendResponse.json();
-        
+
         // Update recipient status
         await recipientDoc.ref.update({
           status: 'sent',
@@ -7349,28 +7658,28 @@ app.post('/api/campaigns/:campaignId/send-emails', verifyFirebaseToken, async (r
           gmailThreadId: sendData.threadId,
           trackingId: trackingId
         });
-        
+
         results.push({ id: recipientDoc.id, success: true, messageId: sendData.id });
         successCount++;
         console.log(`  ✅ Sent email to ${recipient.fullName} (${recipient.email})`);
-        
+
         // Small delay between sends
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
       } catch (error) {
         console.error(`  ❌ Failed to send to ${recipient.fullName}:`, error.message);
-        
+
         await recipientDoc.ref.update({
           status: 'send_failed',
           sendError: error.message,
           lastSendAttempt: admin.firestore.FieldValue.serverTimestamp()
         });
-        
+
         results.push({ id: recipientDoc.id, success: false, error: error.message });
         errorCount++;
       }
     }
-    
+
     // Update campaign stats
     await campaignRef.update({
       'stats.emailsSent': admin.firestore.FieldValue.increment(successCount),
@@ -7378,12 +7687,12 @@ app.post('/api/campaigns/:campaignId/send-emails', verifyFirebaseToken, async (r
       lastSendBatch: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
-    
+
     // Calculate remaining to send
     const remainingSnapshot = await campaignRef.collection('recipients')
       .where('status', '==', 'email_generated')
       .get();
-    
+
     res.json({
       success: true,
       sent: successCount,
@@ -7391,7 +7700,7 @@ app.post('/api/campaigns/:campaignId/send-emails', verifyFirebaseToken, async (r
       remaining: remainingSnapshot.size,
       results
     });
-    
+
   } catch (error) {
     console.error('❌ Email sending error:', error);
     res.status(500).json({ error: 'Failed to send emails', details: error.message });
@@ -7404,10 +7713,10 @@ function createRawEmail({ from, fromName, to, subject, body }) {
   const htmlBody = body
     .replace(/\n/g, '<br>')
     .replace(/(<img[^>]*>)/g, '$1'); // Keep image tags intact
-  
+
   // Format: "FirstName LastName <email@domain.com>"
   const fromHeader = fromName ? `${fromName} <${from}>` : from;
-  
+
   const email = [
     `From: ${fromHeader}`,
     `To: ${to}`,
@@ -7417,7 +7726,7 @@ function createRawEmail({ from, fromName, to, subject, body }) {
     '',
     htmlBody
   ].join('\r\n');
-  
+
   // Base64url encode
   return Buffer.from(email)
     .toString('base64')
@@ -7429,15 +7738,15 @@ function createRawEmail({ from, fromName, to, subject, body }) {
 // Helper function to create email with PDF attachment
 function createRawEmailWithAttachment({ from, fromName, to, subject, body, attachment }) {
   const boundary = `----boundary_${Date.now()}`;
-  
+
   // Create HTML body with proper formatting
   const htmlBody = body
     .replace(/\n/g, '<br>')
     .replace(/(<img[^>]*>)/g, '$1');
-  
+
   // Format: "FirstName LastName <email@domain.com>"
   const fromHeader = fromName ? `${fromName} <${from}>` : from;
-  
+
   const email = [
     `From: ${fromHeader}`,
     `To: ${to}`,
@@ -7460,7 +7769,7 @@ function createRawEmailWithAttachment({ from, fromName, to, subject, body, attac
     '',
     `--${boundary}--`
   ].join('\r\n');
-  
+
   // Base64url encode
   return Buffer.from(email)
     .toString('base64')
@@ -7472,21 +7781,21 @@ function createRawEmailWithAttachment({ from, fromName, to, subject, body, attac
 // Tracking pixel endpoint - returns 1x1 transparent GIF
 app.get('/api/track/open/:trackingId', async (req, res) => {
   const { trackingId } = req.params;
-  
+
   console.log(`👁️ Email opened: ${trackingId}`);
-  
+
   try {
     // Parse tracking ID: campaignId_recipientId
     const [campaignId, recipientId] = trackingId.split('_');
-    
+
     if (campaignId && recipientId) {
       const db = admin.firestore();
       const recipientRef = db.collection('campaigns').doc(campaignId).collection('recipients').doc(recipientId);
       const recipientDoc = await recipientRef.get();
-      
+
       if (recipientDoc.exists) {
         const recipient = recipientDoc.data();
-        
+
         // Only update if not already opened and status is 'sent'
         if (recipient.status === 'sent') {
           await recipientRef.update({
@@ -7494,13 +7803,13 @@ app.get('/api/track/open/:trackingId', async (req, res) => {
             openedAt: admin.firestore.FieldValue.serverTimestamp(),
             openCount: admin.firestore.FieldValue.increment(1)
           });
-          
+
           // Update campaign stats
           await db.collection('campaigns').doc(campaignId).update({
             'stats.opened': admin.firestore.FieldValue.increment(1),
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
           });
-          
+
           console.log(`  ✅ Marked as opened`);
         } else if (recipient.status === 'opened' || recipient.status === 'replied') {
           // Just increment open count
@@ -7514,13 +7823,13 @@ app.get('/api/track/open/:trackingId', async (req, res) => {
     console.error('❌ Tracking error:', error);
     // Don't fail the request - still return the pixel
   }
-  
+
   // Return 1x1 transparent GIF
   const transparentGif = Buffer.from(
     'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
     'base64'
   );
-  
+
   res.set({
     'Content-Type': 'image/gif',
     'Content-Length': transparentGif.length,
@@ -7528,7 +7837,7 @@ app.get('/api/track/open/:trackingId', async (req, res) => {
     'Pragma': 'no-cache',
     'Expires': '0'
   });
-  
+
   res.send(transparentGif);
 });
 
@@ -7536,66 +7845,66 @@ app.get('/api/track/open/:trackingId', async (req, res) => {
 app.post('/api/campaigns/:campaignId/check-replies', verifyFirebaseToken, async (req, res) => {
   const { campaignId } = req.params;
   const userId = req.user.uid;
-  
+
   console.log(`📬 Checking replies for campaign ${campaignId}`);
-  
+
   try {
     const db = admin.firestore();
-    
+
     // Get campaign
     const campaignRef = db.collection('campaigns').doc(campaignId);
     const campaignDoc = await campaignRef.get();
-    
+
     if (!campaignDoc.exists) {
       return res.status(404).json({ error: 'Campaign not found' });
     }
-    
+
     const campaignData = campaignDoc.data();
     if (campaignData.userId !== userId) {
       return res.status(403).json({ error: 'Not authorized' });
     }
-    
+
     // Get Gmail tokens and refresh if needed
     let accessToken;
     try {
       accessToken = await refreshGmailToken(userId);
     } catch (refreshError) {
       console.error('Token refresh failed:', refreshError.message);
-      return res.status(401).json({ 
-        error: 'Gmail token expired', 
+      return res.status(401).json({
+        error: 'Gmail token expired',
         message: refreshError.message,
-        needsReconnect: true 
+        needsReconnect: true
       });
     }
-    
+
     const gmailTokenDoc = await db.collection('gmailTokens').doc(userId).get();
     const gmailTokens = gmailTokenDoc.data();
-    
+
     // Get sent recipients that haven't replied yet
     console.log('📬 Querying for sent/opened recipients...');
     const recipientsSnapshot = await campaignRef.collection('recipients')
       .where('status', 'in', ['sent', 'opened'])
       .get();
-    
+
     console.log(`📬 Found ${recipientsSnapshot.size} recipients with sent/opened status`);
-    
+
     if (recipientsSnapshot.empty) {
       return res.json({ success: true, repliesFound: 0, message: 'No sent emails to check' });
     }
-    
+
     let repliesFound = 0;
     const results = [];
-    
+
     for (const recipientDoc of recipientsSnapshot.docs) {
       const recipient = recipientDoc.data();
-      
+
       console.log(`  Checking ${recipient.fullName}: threadId=${recipient.gmailThreadId}, status=${recipient.status}`);
-      
+
       if (!recipient.gmailThreadId) {
         console.log(`  ⚠️ Skipping ${recipient.fullName} - no threadId`);
         continue;
       }
-      
+
       try {
         // Get thread to check for replies
         console.log(`  📨 Fetching Gmail thread ${recipient.gmailThreadId}...`);
@@ -7605,48 +7914,48 @@ app.post('/api/campaigns/:campaignId/check-replies', verifyFirebaseToken, async 
             headers: { 'Authorization': `Bearer ${accessToken}` }
           }
         );
-        
+
         if (!threadResponse.ok) {
           const errorText = await threadResponse.text();
           console.log(`  ❌ Gmail API error for ${recipient.fullName}: ${threadResponse.status} - ${errorText}`);
           continue;
         }
-        
+
         const threadData = await threadResponse.json();
         console.log(`  📧 Thread has ${threadData.messages?.length || 0} messages`);
-        
+
         // If thread has more than 1 message, there's a reply
         if (threadData.messages && threadData.messages.length > 1) {
           // Check if any message is not from us (it's a reply)
           const senderEmail = gmailTokens.email.toLowerCase();
           console.log(`  🔍 Checking for replies (sender: ${senderEmail})`);
-          
+
           // In test mode, emails are sent to ourselves, so we check if there's more than 1 message
           // by checking if any message after the first one exists (that's the reply)
           const firstMessageId = threadData.messages[0]?.id;
           const hasReply = threadData.messages.some((msg, index) => {
             // Skip the first message (the one we sent)
             if (index === 0) return false;
-            
+
             // Check if this is a different message (a reply)
             const fromHeader = msg.payload?.headers?.find(h => h.name.toLowerCase() === 'from');
             const from = fromHeader?.value?.toLowerCase() || '';
-            
+
             // In test mode: any message after the first is a reply
             // In production: check if from is different from sender
             const isTestMode = recipient.email?.includes('rouchdi.touil');
             const isReply = isTestMode ? true : !from.includes(senderEmail);
-            
+
             if (isReply) console.log(`  📩 Found reply from: ${from} (msg ${index + 1}/${threadData.messages.length})`);
             return isReply;
           });
-          
+
           if (hasReply && recipient.status !== 'replied') {
             await recipientDoc.ref.update({
               status: 'replied',
               repliedAt: admin.firestore.FieldValue.serverTimestamp()
             });
-            
+
             // Create notification for campaign reply
             try {
               const userNotificationsRef = db.collection('users').doc(userId).collection('notifications');
@@ -7672,21 +7981,21 @@ app.post('/api/campaigns/:campaignId/check-replies', verifyFirebaseToken, async 
             } catch (notifError) {
               console.error(`  ⚠️ Failed to create notification:`, notifError.message);
             }
-            
+
             repliesFound++;
             results.push({ id: recipientDoc.id, name: recipient.fullName, replied: true });
             console.log(`  ✅ Found reply from ${recipient.fullName}`);
           }
         }
-        
+
       } catch (error) {
         console.error(`  ⚠️ Error checking thread for ${recipient.fullName}:`, error.message);
       }
-      
+
       // Small delay to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
+
     // Update campaign stats if we found replies
     if (repliesFound > 0) {
       await campaignRef.update({
@@ -7695,14 +8004,14 @@ app.post('/api/campaigns/:campaignId/check-replies', verifyFirebaseToken, async 
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
     }
-    
+
     res.json({
       success: true,
       repliesFound,
       checked: recipientsSnapshot.size,
       results
     });
-    
+
   } catch (error) {
     console.error('❌ Reply check error:', error);
     res.status(500).json({ error: 'Failed to check replies', details: error.message });
@@ -7713,30 +8022,30 @@ app.post('/api/campaigns/:campaignId/check-replies', verifyFirebaseToken, async 
 app.post('/api/gmail/exchange-code', verifyFirebaseToken, async (req, res) => {
   const { code } = req.body;
   const userId = req.user.uid;
-  
+
   console.log('🔑 Exchanging Gmail authorization code for tokens');
-  
+
   if (!code) {
     return res.status(400).json({ error: 'Missing authorization code' });
   }
-  
+
   try {
     const db = admin.firestore();
-    
+
     // Get Gmail OAuth credentials from Firestore
     const gmailSettingsDoc = await db.collection('settings').doc('gmail').get();
     if (!gmailSettingsDoc.exists) {
       return res.status(500).json({ error: 'Gmail OAuth not configured' });
     }
-    
+
     const gmailSettings = gmailSettingsDoc.data();
     const clientId = gmailSettings.CLIENT_ID;
     const clientSecret = gmailSettings.CLIENT_SECRET;
-    
+
     if (!clientId || !clientSecret) {
       return res.status(500).json({ error: 'Gmail OAuth credentials missing' });
     }
-    
+
     // Exchange code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -7749,23 +8058,23 @@ app.post('/api/gmail/exchange-code', verifyFirebaseToken, async (req, res) => {
         grant_type: 'authorization_code'
       })
     });
-    
+
     const tokenData = await tokenResponse.json();
-    
+
     if (tokenData.error) {
       console.error('Token exchange error:', tokenData);
       return res.status(400).json({ error: tokenData.error_description || tokenData.error });
     }
-    
+
     const { access_token, refresh_token, expires_in } = tokenData;
-    
+
     // Get user email
     const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { 'Authorization': `Bearer ${access_token}` }
     });
     const userInfo = await userInfoResponse.json();
     const userEmail = userInfo.email;
-    
+
     // Store tokens in Firestore
     await db.collection('gmailTokens').doc(userId).set({
       accessToken: access_token,
@@ -7775,15 +8084,15 @@ app.post('/api/gmail/exchange-code', verifyFirebaseToken, async (req, res) => {
       connectedAt: admin.firestore.FieldValue.serverTimestamp(),
       userId: userId
     });
-    
+
     console.log(`✅ Gmail connected for ${userEmail} with refresh token`);
-    
+
     res.json({
       success: true,
       email: userEmail,
       hasRefreshToken: !!refresh_token
     });
-    
+
   } catch (error) {
     console.error('Error exchanging Gmail code:', error);
     res.status(500).json({ error: 'Failed to exchange code', details: error.message });
@@ -7793,31 +8102,31 @@ app.post('/api/gmail/exchange-code', verifyFirebaseToken, async (req, res) => {
 // Helper function to refresh Gmail access token
 async function refreshGmailToken(userId) {
   const db = admin.firestore();
-  
+
   // Get stored tokens
   const tokenDoc = await db.collection('gmailTokens').doc(userId).get();
   if (!tokenDoc.exists) {
     throw new Error('No Gmail tokens found');
   }
-  
+
   const tokenData = tokenDoc.data();
-  
+
   // Check if token is still valid (with 5 min buffer)
   if (tokenData.expiresAt > Date.now() + 5 * 60 * 1000) {
     return tokenData.accessToken;
   }
-  
+
   // Need to refresh
   if (!tokenData.refreshToken) {
     throw new Error('No refresh token available - please reconnect Gmail');
   }
-  
+
   console.log(`🔄 Refreshing Gmail token for user ${userId}`);
-  
+
   // Get OAuth credentials
   const gmailSettingsDoc = await db.collection('settings').doc('gmail').get();
   const gmailSettings = gmailSettingsDoc.data();
-  
+
   // Refresh the token
   const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -7829,22 +8138,22 @@ async function refreshGmailToken(userId) {
       grant_type: 'refresh_token'
     })
   });
-  
+
   const refreshData = await refreshResponse.json();
-  
+
   if (refreshData.error) {
     console.error('Token refresh error:', refreshData);
     throw new Error(refreshData.error_description || 'Failed to refresh token');
   }
-  
+
   // Update stored token
   await db.collection('gmailTokens').doc(userId).update({
     accessToken: refreshData.access_token,
     expiresAt: Date.now() + (refreshData.expires_in || 3600) * 1000
   });
-  
+
   console.log(`✅ Gmail token refreshed successfully`);
-  
+
   return refreshData.access_token;
 }
 
@@ -7852,29 +8161,29 @@ async function refreshGmailToken(userId) {
 app.get('/api/gmail/thread/:threadId', verifyFirebaseToken, async (req, res) => {
   const { threadId } = req.params;
   const userId = req.user.uid;
-  
+
   console.log(`📨 Fetching Gmail thread ${threadId} for reply content`);
-  
+
   try {
     const db = admin.firestore();
-    
+
     // Get Gmail tokens and refresh if needed
     let accessToken;
     try {
       accessToken = await refreshGmailToken(userId);
     } catch (refreshError) {
       console.error('Token refresh failed:', refreshError.message);
-      return res.status(401).json({ 
-        error: 'Gmail token expired', 
+      return res.status(401).json({
+        error: 'Gmail token expired',
         message: refreshError.message,
-        needsReconnect: true 
+        needsReconnect: true
       });
     }
-    
+
     const gmailTokenDoc = await db.collection('gmailTokens').doc(userId).get();
     const gmailTokens = gmailTokenDoc.data();
     const senderEmail = gmailTokens.email?.toLowerCase();
-    
+
     // Fetch thread with full message content
     const threadResponse = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=full`,
@@ -7882,35 +8191,35 @@ app.get('/api/gmail/thread/:threadId', verifyFirebaseToken, async (req, res) => 
         headers: { 'Authorization': `Bearer ${accessToken}` }
       }
     );
-    
+
     if (!threadResponse.ok) {
       const errorText = await threadResponse.text();
       console.error('Gmail API error:', errorText);
-      
+
       // Check for expired token
       if (threadResponse.status === 401) {
-        return res.status(401).json({ 
-          error: 'Gmail token expired', 
+        return res.status(401).json({
+          error: 'Gmail token expired',
           message: 'Please reconnect Gmail to refresh your access token',
-          needsReconnect: true 
+          needsReconnect: true
         });
       }
       return res.status(500).json({ error: 'Failed to fetch thread' });
     }
-    
+
     const threadData = await threadResponse.json();
-    
+
     if (!threadData.messages || threadData.messages.length < 2) {
       return res.json({ success: true, reply: null, message: 'No reply found' });
     }
-    
+
     // Find the reply message (not from us)
     let replyMessage = null;
     for (let i = threadData.messages.length - 1; i >= 0; i--) {
       const msg = threadData.messages[i];
       const fromHeader = msg.payload?.headers?.find(h => h.name.toLowerCase() === 'from');
       const from = fromHeader?.value || '';
-      
+
       // In test mode, take any message after the first
       // In production, take message not from sender
       if (i > 0) {
@@ -7918,20 +8227,20 @@ app.get('/api/gmail/thread/:threadId', verifyFirebaseToken, async (req, res) => 
         break;
       }
     }
-    
+
     if (!replyMessage) {
       return res.json({ success: true, reply: null, message: 'No reply found' });
     }
-    
+
     // Extract reply details
     const headers = replyMessage.payload?.headers || [];
     const fromHeader = headers.find(h => h.name.toLowerCase() === 'from')?.value || 'Unknown';
     const subjectHeader = headers.find(h => h.name.toLowerCase() === 'subject')?.value || '';
     const dateHeader = headers.find(h => h.name.toLowerCase() === 'date')?.value || '';
-    
+
     // Extract body content
     let body = '';
-    
+
     function extractBody(payload) {
       if (payload.body?.data) {
         return Buffer.from(payload.body.data, 'base64').toString('utf-8');
@@ -7965,9 +8274,9 @@ app.get('/api/gmail/thread/:threadId', verifyFirebaseToken, async (req, res) => 
       }
       return '';
     }
-    
+
     body = extractBody(replyMessage.payload);
-    
+
     // Clean up the body (remove quoted text)
     const lines = body.split('\n');
     const cleanLines = [];
@@ -7982,7 +8291,7 @@ app.get('/api/gmail/thread/:threadId', verifyFirebaseToken, async (req, res) => 
       cleanLines.push(line);
     }
     body = cleanLines.join('\n').trim();
-    
+
     // Use internalDate (Unix timestamp in milliseconds) for reliable date parsing
     // This is more reliable than parsing the RFC 2822 date header
     let isoDate;
@@ -8009,7 +8318,7 @@ app.get('/api/gmail/thread/:threadId', verifyFirebaseToken, async (req, res) => 
       console.warn('Failed to parse date, using current date:', e.message);
       isoDate = new Date().toISOString();
     }
-    
+
     res.json({
       success: true,
       reply: {
@@ -8019,7 +8328,7 @@ app.get('/api/gmail/thread/:threadId', verifyFirebaseToken, async (req, res) => 
         date: isoDate
       }
     });
-    
+
   } catch (error) {
     console.error('Error fetching thread:', error);
     res.status(500).json({ error: 'Failed to fetch reply', details: error.message });
@@ -8031,37 +8340,37 @@ app.post('/api/gmail/thread/:threadId/reply', verifyFirebaseToken, async (req, r
   const { threadId } = req.params;
   const { message } = req.body;
   const userId = req.user.uid;
-  
+
   console.log(`📤 Sending reply to thread ${threadId}`);
-  
+
   if (!message || !message.trim()) {
     return res.status(400).json({ error: 'Message is required' });
   }
-  
+
   try {
     const db = admin.firestore();
-    
+
     // Get Gmail tokens and refresh if needed
     let accessToken;
     try {
       accessToken = await refreshGmailToken(userId);
     } catch (refreshError) {
       console.error('Token refresh failed:', refreshError.message);
-      return res.status(401).json({ 
-        error: 'Gmail token expired', 
+      return res.status(401).json({
+        error: 'Gmail token expired',
         message: refreshError.message,
-        needsReconnect: true 
+        needsReconnect: true
       });
     }
-    
+
     const gmailTokenDoc = await db.collection('gmailTokens').doc(userId).get();
     const gmailTokens = gmailTokenDoc.data();
     const senderEmail = gmailTokens.email;
-    
+
     if (!accessToken) {
       return res.status(400).json({ error: 'Gmail access token missing. Please reconnect Gmail.' });
     }
-    
+
     // Fetch thread to get the original message details
     const threadResponse = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=full`,
@@ -8069,45 +8378,45 @@ app.post('/api/gmail/thread/:threadId/reply', verifyFirebaseToken, async (req, r
         headers: { 'Authorization': `Bearer ${accessToken}` }
       }
     );
-    
+
     if (!threadResponse.ok) {
       const errorText = await threadResponse.text();
       console.error('Gmail API error:', errorText);
-      
+
       if (threadResponse.status === 401) {
-        return res.status(401).json({ 
-          error: 'Gmail token expired', 
+        return res.status(401).json({
+          error: 'Gmail token expired',
           message: 'Please reconnect Gmail to refresh your access token',
-          needsReconnect: true 
+          needsReconnect: true
         });
       }
       return res.status(500).json({ error: 'Failed to fetch thread' });
     }
-    
+
     const threadData = await threadResponse.json();
-    
+
     if (!threadData.messages || threadData.messages.length === 0) {
       return res.status(404).json({ error: 'Thread not found' });
     }
-    
+
     // Get the last message in the thread to reply to
     const lastMessage = threadData.messages[threadData.messages.length - 1];
     const headers = lastMessage.payload?.headers || [];
-    
+
     // Find recipient email (To header from last message, or From if replying)
     const toHeader = headers.find(h => h.name.toLowerCase() === 'from')?.value || '';
     const subjectHeader = headers.find(h => h.name.toLowerCase() === 'subject')?.value || '';
     const messageIdHeader = headers.find(h => h.name.toLowerCase() === 'message-id')?.value || '';
-    
+
     // Extract email from "Name <email@example.com>" format
     const toEmail = toHeader.match(/<([^>]+)>/) ? toHeader.match(/<([^>]+)>/)[1] : toHeader;
-    
+
     // Create reply subject (add Re: if not already present)
     let replySubject = subjectHeader;
     if (!replySubject.toLowerCase().startsWith('re:')) {
       replySubject = `Re: ${replySubject}`;
     }
-    
+
     // Create raw email for reply
     const htmlBody = message
       .replace(/\n/g, '<br>')
@@ -8115,7 +8424,7 @@ app.post('/api/gmail/thread/:threadId/reply', verifyFirebaseToken, async (req, r
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/&lt;br&gt;/g, '<br>');
-    
+
     // Build email headers
     const emailHeaders = [
       `From: ${senderEmail}`,
@@ -8124,27 +8433,27 @@ app.post('/api/gmail/thread/:threadId/reply', verifyFirebaseToken, async (req, r
       'MIME-Version: 1.0',
       'Content-Type: text/html; charset=UTF-8'
     ];
-    
+
     // Add In-Reply-To and References headers if Message-ID is available
     if (messageIdHeader) {
       emailHeaders.push(`In-Reply-To: ${messageIdHeader}`);
       emailHeaders.push(`References: ${messageIdHeader}`);
     }
-    
+
     emailHeaders.push(''); // Empty line before body
-    
+
     const email = [
       ...emailHeaders,
       htmlBody
     ].join('\r\n');
-    
+
     // Base64url encode
     const rawEmail = Buffer.from(email)
       .toString('base64')
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=+$/, '');
-    
+
     // Send reply via Gmail API (using threadId to keep it in the same thread)
     const sendResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',
@@ -8152,28 +8461,28 @@ app.post('/api/gmail/thread/:threadId/reply', verifyFirebaseToken, async (req, r
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         raw: rawEmail,
         threadId: threadId
       })
     });
-    
+
     if (!sendResponse.ok) {
       const errorData = await sendResponse.json();
       console.error('Gmail send error:', errorData);
       throw new Error(errorData.error?.message || 'Gmail API error');
     }
-    
+
     const sendData = await sendResponse.json();
-    
+
     console.log(`✅ Reply sent successfully: ${sendData.id}`);
-    
+
     res.json({
       success: true,
       messageId: sendData.id,
       threadId: sendData.threadId
     });
-    
+
   } catch (error) {
     console.error('Error sending reply:', error);
     res.status(500).json({ error: 'Failed to send reply', details: error.message });
@@ -8185,34 +8494,34 @@ app.post('/api/gmail/thread/:threadId/reply', verifyFirebaseToken, async (req, r
 // Helper function to refresh Calendar access token
 async function refreshCalendarToken(userId) {
   const db = admin.firestore();
-  
+
   // Get stored tokens
   const tokenDoc = await db.collection('calendarTokens').doc(userId).get();
   if (!tokenDoc.exists) {
     throw new Error('No Calendar tokens found');
   }
-  
+
   const tokenData = tokenDoc.data();
-  
+
   // Check if token is still valid (with 5 min buffer)
   if (tokenData.expiresAt > Date.now() + 5 * 60 * 1000) {
     return tokenData.accessToken;
   }
-  
+
   // Need to refresh
   if (!tokenData.refreshToken) {
     throw new Error('No refresh token available - please reconnect Google Calendar');
   }
-  
+
   console.log(`🔄 Refreshing Calendar token for user ${userId}`);
-  
+
   // Get OAuth credentials (try calendar settings first, fall back to gmail)
   let settingsDoc = await db.collection('settings').doc('calendar').get();
   if (!settingsDoc.exists) {
     settingsDoc = await db.collection('settings').doc('gmail').get();
   }
   const settings = settingsDoc.data();
-  
+
   // Refresh the token
   const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -8224,20 +8533,20 @@ async function refreshCalendarToken(userId) {
       grant_type: 'refresh_token'
     })
   });
-  
+
   const refreshData = await refreshResponse.json();
-  
+
   if (refreshData.error) {
     throw new Error(refreshData.error_description || refreshData.error);
   }
-  
+
   // Update stored token
   const newExpiresAt = Date.now() + (refreshData.expires_in * 1000);
   await db.collection('calendarTokens').doc(userId).update({
     accessToken: refreshData.access_token,
     expiresAt: newExpiresAt
   });
-  
+
   console.log(`✅ Calendar token refreshed for user ${userId}`);
   return refreshData.access_token;
 }
@@ -8246,34 +8555,34 @@ async function refreshCalendarToken(userId) {
 app.post('/api/calendar/exchange-code', verifyFirebaseToken, async (req, res) => {
   const { code } = req.body;
   const userId = req.user.uid;
-  
+
   console.log('🗓️ Exchanging Calendar authorization code for tokens');
-  
+
   if (!code) {
     return res.status(400).json({ error: 'Missing authorization code' });
   }
-  
+
   try {
     const db = admin.firestore();
-    
+
     // Get OAuth credentials (try calendar settings first, fall back to gmail)
     let settingsDoc = await db.collection('settings').doc('calendar').get();
     if (!settingsDoc.exists) {
       settingsDoc = await db.collection('settings').doc('gmail').get();
     }
-    
+
     if (!settingsDoc.exists) {
       return res.status(500).json({ error: 'Calendar OAuth not configured' });
     }
-    
+
     const settings = settingsDoc.data();
     const clientId = settings.CLIENT_ID;
     const clientSecret = settings.CLIENT_SECRET;
-    
+
     if (!clientId || !clientSecret) {
       return res.status(500).json({ error: 'OAuth credentials missing' });
     }
-    
+
     // Exchange code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -8286,24 +8595,24 @@ app.post('/api/calendar/exchange-code', verifyFirebaseToken, async (req, res) =>
         grant_type: 'authorization_code'
       })
     });
-    
+
     const tokenData = await tokenResponse.json();
-    
+
     if (tokenData.error) {
       console.error('Token exchange error:', tokenData);
       return res.status(400).json({ error: tokenData.error_description || tokenData.error });
     }
-    
+
     const { access_token, refresh_token, expires_in } = tokenData;
-    
+
     // Get user email
     const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { 'Authorization': `Bearer ${access_token}` }
     });
-    
+
     const userInfo = await userInfoResponse.json();
     const email = userInfo.email;
-    
+
     // Store tokens in Firestore
     await db.collection('calendarTokens').doc(userId).set({
       accessToken: access_token,
@@ -8312,9 +8621,9 @@ app.post('/api/calendar/exchange-code', verifyFirebaseToken, async (req, res) =>
       expiresAt: Date.now() + (expires_in * 1000),
       connectedAt: admin.firestore.FieldValue.serverTimestamp()
     });
-    
+
     console.log(`✅ Calendar tokens stored for user ${userId} (${email})`);
-    
+
     res.json({ success: true, email });
   } catch (error) {
     console.error('Error exchanging Calendar code:', error);
@@ -8326,9 +8635,9 @@ app.post('/api/calendar/exchange-code', verifyFirebaseToken, async (req, res) =>
 app.get('/api/calendar/events', verifyFirebaseToken, async (req, res) => {
   const userId = req.user.uid;
   const { timeMin, timeMax } = req.query;
-  
+
   console.log(`📅 Fetching Calendar events for user ${userId}`);
-  
+
   try {
     // Get and refresh token if needed
     let accessToken;
@@ -8336,23 +8645,23 @@ app.get('/api/calendar/events', verifyFirebaseToken, async (req, res) => {
       accessToken = await refreshCalendarToken(userId);
     } catch (refreshError) {
       console.error('Token refresh failed:', refreshError.message);
-      return res.status(401).json({ 
-        error: 'Calendar token expired', 
+      return res.status(401).json({
+        error: 'Calendar token expired',
         message: refreshError.message,
-        needsReconnect: true 
+        needsReconnect: true
       });
     }
-    
+
     // Build query params
     const params = new URLSearchParams({
       singleEvents: 'true',
       orderBy: 'startTime',
       maxResults: '250'
     });
-    
+
     if (timeMin) params.append('timeMin', timeMin);
     if (timeMax) params.append('timeMax', timeMax);
-    
+
     // Fetch events from Google Calendar
     const eventsResponse = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,
@@ -8360,25 +8669,25 @@ app.get('/api/calendar/events', verifyFirebaseToken, async (req, res) => {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       }
     );
-    
+
     if (!eventsResponse.ok) {
       const errorText = await eventsResponse.text();
       console.error('Calendar API error:', errorText);
-      
+
       if (eventsResponse.status === 401) {
-        return res.status(401).json({ 
-          error: 'Calendar token expired', 
+        return res.status(401).json({
+          error: 'Calendar token expired',
           message: 'Please reconnect Google Calendar',
-          needsReconnect: true 
+          needsReconnect: true
         });
       }
       return res.status(500).json({ error: 'Failed to fetch events' });
     }
-    
+
     const eventsData = await eventsResponse.json();
-    
+
     console.log(`✅ Fetched ${eventsData.items?.length || 0} Calendar events`);
-    
+
     res.json({ success: true, events: eventsData.items || [] });
   } catch (error) {
     console.error('Error fetching Calendar events:', error);
@@ -8390,13 +8699,13 @@ app.get('/api/calendar/events', verifyFirebaseToken, async (req, res) => {
 app.post('/api/calendar/events', verifyFirebaseToken, async (req, res) => {
   const userId = req.user.uid;
   const { summary, description, start, end, location, attendees } = req.body;
-  
+
   console.log(`📅 Creating Calendar event for user ${userId}: ${summary}`);
-  
+
   if (!summary || !start || !end) {
     return res.status(400).json({ error: 'Missing required fields: summary, start, end' });
   }
-  
+
   try {
     // Get and refresh token if needed
     let accessToken;
@@ -8404,13 +8713,13 @@ app.post('/api/calendar/events', verifyFirebaseToken, async (req, res) => {
       accessToken = await refreshCalendarToken(userId);
     } catch (refreshError) {
       console.error('Token refresh failed:', refreshError.message);
-      return res.status(401).json({ 
-        error: 'Calendar token expired', 
+      return res.status(401).json({
+        error: 'Calendar token expired',
         message: refreshError.message,
-        needsReconnect: true 
+        needsReconnect: true
       });
     }
-    
+
     // Build event object
     const event = {
       summary,
@@ -8424,12 +8733,12 @@ app.post('/api/calendar/events', verifyFirebaseToken, async (req, res) => {
         timeZone: 'Europe/Paris'
       }
     };
-    
+
     if (location) event.location = location;
     if (attendees && attendees.length > 0) {
       event.attendees = attendees.map(email => ({ email }));
     }
-    
+
     // Create event in Google Calendar
     const createResponse = await fetch(
       'https://www.googleapis.com/calendar/v3/calendars/primary/events',
@@ -8442,25 +8751,25 @@ app.post('/api/calendar/events', verifyFirebaseToken, async (req, res) => {
         body: JSON.stringify(event)
       }
     );
-    
+
     if (!createResponse.ok) {
       const errorText = await createResponse.text();
       console.error('Calendar API error:', errorText);
-      
+
       if (createResponse.status === 401) {
-        return res.status(401).json({ 
-          error: 'Calendar token expired', 
+        return res.status(401).json({
+          error: 'Calendar token expired',
           message: 'Please reconnect Google Calendar',
-          needsReconnect: true 
+          needsReconnect: true
         });
       }
       return res.status(500).json({ error: 'Failed to create event' });
     }
-    
+
     const createdEvent = await createResponse.json();
-    
+
     console.log(`✅ Created Calendar event: ${createdEvent.id}`);
-    
+
     res.json({ success: true, event: createdEvent });
   } catch (error) {
     console.error('Error creating Calendar event:', error);
@@ -8473,9 +8782,9 @@ app.put('/api/calendar/events/:eventId', verifyFirebaseToken, async (req, res) =
   const userId = req.user.uid;
   const { eventId } = req.params;
   const { summary, description, start, end, location, attendees } = req.body;
-  
+
   console.log(`📅 Updating Calendar event ${eventId} for user ${userId}`);
-  
+
   try {
     // Get and refresh token if needed
     let accessToken;
@@ -8483,13 +8792,13 @@ app.put('/api/calendar/events/:eventId', verifyFirebaseToken, async (req, res) =
       accessToken = await refreshCalendarToken(userId);
     } catch (refreshError) {
       console.error('Token refresh failed:', refreshError.message);
-      return res.status(401).json({ 
-        error: 'Calendar token expired', 
+      return res.status(401).json({
+        error: 'Calendar token expired',
         message: refreshError.message,
-        needsReconnect: true 
+        needsReconnect: true
       });
     }
-    
+
     // First, get the existing event
     const getResponse = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
@@ -8497,23 +8806,23 @@ app.put('/api/calendar/events/:eventId', verifyFirebaseToken, async (req, res) =
         headers: { 'Authorization': `Bearer ${accessToken}` }
       }
     );
-    
+
     if (!getResponse.ok) {
       if (getResponse.status === 404) {
         return res.status(404).json({ error: 'Event not found' });
       }
       if (getResponse.status === 401) {
-        return res.status(401).json({ 
-          error: 'Calendar token expired', 
+        return res.status(401).json({
+          error: 'Calendar token expired',
           message: 'Please reconnect Google Calendar',
-          needsReconnect: true 
+          needsReconnect: true
         });
       }
       return res.status(500).json({ error: 'Failed to get event' });
     }
-    
+
     const existingEvent = await getResponse.json();
-    
+
     // Build updated event object
     const updatedEvent = { ...existingEvent };
     if (summary) updatedEvent.summary = summary;
@@ -8534,7 +8843,7 @@ app.put('/api/calendar/events/:eventId', verifyFirebaseToken, async (req, res) =
     if (attendees) {
       updatedEvent.attendees = attendees.map(email => ({ email }));
     }
-    
+
     // Update event in Google Calendar
     const updateResponse = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
@@ -8547,25 +8856,25 @@ app.put('/api/calendar/events/:eventId', verifyFirebaseToken, async (req, res) =
         body: JSON.stringify(updatedEvent)
       }
     );
-    
+
     if (!updateResponse.ok) {
       const errorText = await updateResponse.text();
       console.error('Calendar API error:', errorText);
-      
+
       if (updateResponse.status === 401) {
-        return res.status(401).json({ 
-          error: 'Calendar token expired', 
+        return res.status(401).json({
+          error: 'Calendar token expired',
           message: 'Please reconnect Google Calendar',
-          needsReconnect: true 
+          needsReconnect: true
         });
       }
       return res.status(500).json({ error: 'Failed to update event' });
     }
-    
+
     const updated = await updateResponse.json();
-    
+
     console.log(`✅ Updated Calendar event: ${eventId}`);
-    
+
     res.json({ success: true, event: updated });
   } catch (error) {
     console.error('Error updating Calendar event:', error);
@@ -8577,9 +8886,9 @@ app.put('/api/calendar/events/:eventId', verifyFirebaseToken, async (req, res) =
 app.delete('/api/calendar/events/:eventId', verifyFirebaseToken, async (req, res) => {
   const userId = req.user.uid;
   const { eventId } = req.params;
-  
+
   console.log(`📅 Deleting Calendar event ${eventId} for user ${userId}`);
-  
+
   try {
     // Get and refresh token if needed
     let accessToken;
@@ -8587,13 +8896,13 @@ app.delete('/api/calendar/events/:eventId', verifyFirebaseToken, async (req, res
       accessToken = await refreshCalendarToken(userId);
     } catch (refreshError) {
       console.error('Token refresh failed:', refreshError.message);
-      return res.status(401).json({ 
-        error: 'Calendar token expired', 
+      return res.status(401).json({
+        error: 'Calendar token expired',
         message: refreshError.message,
-        needsReconnect: true 
+        needsReconnect: true
       });
     }
-    
+
     // Delete event from Google Calendar
     const deleteResponse = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
@@ -8602,26 +8911,26 @@ app.delete('/api/calendar/events/:eventId', verifyFirebaseToken, async (req, res
         headers: { 'Authorization': `Bearer ${accessToken}` }
       }
     );
-    
+
     if (!deleteResponse.ok && deleteResponse.status !== 204) {
       const errorText = await deleteResponse.text();
       console.error('Calendar API error:', errorText);
-      
+
       if (deleteResponse.status === 404) {
         return res.status(404).json({ error: 'Event not found' });
       }
       if (deleteResponse.status === 401) {
-        return res.status(401).json({ 
-          error: 'Calendar token expired', 
+        return res.status(401).json({
+          error: 'Calendar token expired',
           message: 'Please reconnect Google Calendar',
-          needsReconnect: true 
+          needsReconnect: true
         });
       }
       return res.status(500).json({ error: 'Failed to delete event' });
     }
-    
+
     console.log(`✅ Deleted Calendar event: ${eventId}`);
-    
+
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting Calendar event:', error);

@@ -2698,7 +2698,7 @@ export default function CVAnalysisPage() {
         const matchingJob = savedJobs.find(
           job => job.id === state.jobId
         ) || savedJobs.find(
-          job => 
+          job =>
             job.position?.toLowerCase() === state.jobTitle?.toLowerCase() &&
             job.companyName?.toLowerCase() === state.company?.toLowerCase()
         );
@@ -2819,13 +2819,13 @@ export default function CVAnalysisPage() {
         const savedAnalyses: ATSAnalysis[] = [];
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-          
+
           // Normalize matchScore: for premium analyses, use match_scores.overall_score if available
           // This ensures consistency between card display and detail page
           const normalizedMatchScore = data.match_scores?.overall_score !== undefined
             ? data.match_scores.overall_score
             : (data.matchScore !== undefined ? data.matchScore : undefined);
-          
+
           // Include loading analyses (_isLoading: true) and completed analyses
           if (!data.deleted && (normalizedMatchScore !== undefined || data._isLoading === true)) {
             // Support both old (timestamp) and new (date) formats
@@ -3206,22 +3206,22 @@ export default function CVAnalysisPage() {
         console.log(`🔗 Attempting to link analysis ${docRef.id} to job application ${jobToLink.id}`);
         try {
           const jobRef = doc(db, 'users', currentUser.uid, 'jobApplications', jobToLink.id);
-          
+
           // Fetch current job to get existing cvAnalysisIds
           const jobDoc = await getDoc(jobRef);
           const existingData = jobDoc.exists() ? jobDoc.data() : {};
-          
+
           // Get existing analysis IDs (support both old single ID and new array)
           const existingIds: string[] = existingData.cvAnalysisIds || [];
           if (existingData.cvAnalysisId && !existingIds.includes(existingData.cvAnalysisId)) {
             existingIds.push(existingData.cvAnalysisId);
           }
-          
+
           // Add new analysis ID if not already present
           if (!existingIds.includes(docRef.id)) {
             existingIds.push(docRef.id);
           }
-          
+
           await updateDoc(jobRef, {
             cvAnalysisId: docRef.id, // Keep for backwards compatibility
             cvAnalysisIds: existingIds, // New array field
@@ -4135,7 +4135,7 @@ URL to visit: ${jobUrl}
   const handleAnalysis = async () => {
     // Capture selectedSavedJob at call time to avoid stale closure issues
     const jobToLink = selectedSavedJob;
-    
+
     let placeholderId: string | null = null;
 
     try {
@@ -4176,11 +4176,11 @@ URL to visit: ${jobUrl}
           // It's a structured Resume - convert CVData to text and create a mock PDF
           const resume = selectedBuilderItem.item as Resume;
           console.log('📝 Converting Resume Builder CV to text:', resume.name);
-          
+
           // Convert CVData to structured text
           const cvData = resume.cvData;
           let textContent = '';
-          
+
           // Personal Info
           if (cvData.personalInfo) {
             const p = cvData.personalInfo;
@@ -4194,12 +4194,12 @@ URL to visit: ${jobUrl}
             if (p.github) textContent += `GitHub: ${p.github}\n`;
             textContent += '\n';
           }
-          
+
           // Summary
           if (cvData.summary) {
             textContent += `PROFESSIONAL SUMMARY\n${cvData.summary}\n\n`;
           }
-          
+
           // Experience
           if (cvData.experiences && cvData.experiences.length > 0) {
             textContent += 'WORK EXPERIENCE\n';
@@ -4216,7 +4216,7 @@ URL to visit: ${jobUrl}
               textContent += '\n';
             }
           }
-          
+
           // Education
           if (cvData.education && cvData.education.length > 0) {
             textContent += 'EDUCATION\n';
@@ -4233,7 +4233,7 @@ URL to visit: ${jobUrl}
               textContent += '\n';
             }
           }
-          
+
           // Skills
           if (cvData.skills && cvData.skills.length > 0) {
             textContent += 'SKILLS\n';
@@ -4248,7 +4248,7 @@ URL to visit: ${jobUrl}
             }
             textContent += '\n';
           }
-          
+
           // Certifications
           if (cvData.certifications && cvData.certifications.length > 0) {
             textContent += 'CERTIFICATIONS\n';
@@ -4258,7 +4258,7 @@ URL to visit: ${jobUrl}
               textContent += '\n';
             }
           }
-          
+
           // Languages
           if (cvData.languages && cvData.languages.length > 0) {
             textContent += 'LANGUAGES\n';
@@ -4267,7 +4267,7 @@ URL to visit: ${jobUrl}
             }
             textContent += '\n';
           }
-          
+
           // Projects
           if (cvData.projects && cvData.projects.length > 0) {
             textContent += 'PROJECTS\n';
@@ -4283,14 +4283,14 @@ URL to visit: ${jobUrl}
           }
 
           console.log('📄 CV text content generated, length:', textContent.length);
-          
+
           // Create a PDF from the text content using jsPDF
           const pdf = new jsPDF({
             orientation: 'portrait',
             unit: 'mm',
             format: 'a4'
           });
-          
+
           // Configure PDF styling
           pdf.setFont('helvetica');
           const pageWidth = pdf.internal.pageSize.getWidth();
@@ -4299,7 +4299,7 @@ URL to visit: ${jobUrl}
           const maxWidth = pageWidth - (margin * 2);
           let yPosition = margin;
           const lineHeight = 5;
-          
+
           // Split text into lines and add to PDF
           const lines = textContent.split('\n');
           for (const line of lines) {
@@ -4308,10 +4308,10 @@ URL to visit: ${jobUrl}
               pdf.addPage();
               yPosition = margin;
             }
-            
+
             // Check if it's a header (all caps)
             const isHeader = line === line.toUpperCase() && line.length > 3 && !line.includes(':');
-            
+
             if (isHeader) {
               pdf.setFontSize(12);
               pdf.setFont('helvetica', 'bold');
@@ -4323,7 +4323,7 @@ URL to visit: ${jobUrl}
               pdf.setFontSize(10);
               pdf.setFont('helvetica', 'normal');
             }
-            
+
             // Wrap long lines
             const wrappedLines = pdf.splitTextToSize(line, maxWidth);
             for (const wrappedLine of wrappedLines) {
@@ -4335,7 +4335,7 @@ URL to visit: ${jobUrl}
               yPosition += lineHeight;
             }
           }
-          
+
           // Convert PDF to blob and then to File
           const pdfBlob = pdf.output('blob');
           effectiveCvFile = new File([pdfBlob], `${resume.name}.pdf`, { type: 'application/pdf' });
@@ -4790,27 +4790,27 @@ URL to visit: ${jobUrl}
     return new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      
+
       img.onload = () => {
         try {
           const canvas = document.createElement('canvas');
           canvas.width = img.width;
           canvas.height = img.height;
           const ctx = canvas.getContext('2d');
-          
+
           if (!ctx) {
             resolve(true); // Default to dark if canvas fails
             return;
           }
-          
+
           ctx.drawImage(img, 0, 0);
-          
+
           // Sample pixels from the image (sample every 10th pixel for performance)
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const data = imageData.data;
           let totalBrightness = 0;
           let sampleCount = 0;
-          
+
           for (let i = 0; i < data.length; i += 40) { // Sample every 10th pixel (RGBA = 4 bytes)
             const r = data[i];
             const g = data[i + 1];
@@ -4820,7 +4820,7 @@ URL to visit: ${jobUrl}
             totalBrightness += luminance;
             sampleCount++;
           }
-          
+
           const averageBrightness = totalBrightness / sampleCount;
           // If average brightness is less than 0.5, consider it dark
           resolve(averageBrightness < 0.5);
@@ -4829,11 +4829,11 @@ URL to visit: ${jobUrl}
           resolve(true); // Default to dark on error
         }
       };
-      
+
       img.onerror = () => {
         resolve(true); // Default to dark on error
       };
-      
+
       img.src = imageUrl;
     });
   };
@@ -4885,11 +4885,11 @@ URL to visit: ${jobUrl}
       });
 
       setCoverPhoto(coverUrl);
-      
+
       // Detect brightness of new cover
       const isDark = await detectCoverBrightness(coverUrl);
       setIsCoverDark(isDark);
-      
+
       notify.success('Cover updated');
     } catch (error) {
       console.error('Error updating cover:', error);
@@ -5012,13 +5012,13 @@ URL to visit: ${jobUrl}
               flex items-center justify-center flex-shrink-0">
               <Loader2 className="w-4 h-4 text-gray-400 dark:text-gray-500 animate-spin" />
             </div>
-            
+
             {/* Content skeleton */}
             <div className="flex-1 space-y-2">
               <div className="h-4 bg-gray-100 dark:bg-[#3d3c3e] rounded animate-pulse w-3/4" />
               <div className="h-3 bg-gray-100 dark:bg-[#3d3c3e] rounded animate-pulse w-1/2" />
             </div>
-            
+
             {/* Score placeholder */}
             <div className="w-12 h-6 bg-gray-100 dark:bg-[#3d3c3e] rounded-md animate-pulse" />
           </div>
@@ -5436,7 +5436,7 @@ URL to visit: ${jobUrl}
                                   className={`p-4 rounded-lg border-2 ${req.found
                                     ? 'bg-[#635BFF]/5 dark:bg-[#5249e6]/10 border-[#635BFF]/30 dark:border-[#5249e6]/50'
                                     : 'bg-red-50 dark:bg-red-900/10 border-red-300 dark:border-red-800'
-                                  }`}
+                                    }`}
                                 >
                                   <div className="flex items-start justify-between mb-2">
                                     <div className="flex-1">
@@ -5495,7 +5495,7 @@ URL to visit: ${jobUrl}
                                   className={`p-3 rounded-lg border ${req.found
                                     ? 'bg-[#635BFF]/5 dark:bg-[#5249e6]/10 border-[#635BFF]/20 dark:border-[#5249e6]/50'
                                     : 'bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800'
-                                  }`}
+                                    }`}
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -5537,7 +5537,7 @@ URL to visit: ${jobUrl}
                                   className={`p-2 rounded-lg border text-sm ${req.found
                                     ? 'bg-[#635BFF]/5 dark:bg-[#5249e6]/10 border-[#635BFF]/20 dark:border-[#5249e6]/50'
                                     : 'bg-gray-50 dark:bg-[#3d3c3e]/40 border-gray-200 dark:border-[#3d3c3e]'
-                                  }`}
+                                    }`}
                                 >
                                   <div className="flex items-center gap-2">
                                     {req.found ? (
@@ -6382,26 +6382,25 @@ URL to visit: ${jobUrl}
         )}
 
         {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300 dark:border-[#4a494b]"></div>
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-white dark:bg-[#2b2a2c] px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-                OR
-              </span>
-            </div>
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300 dark:border-[#4a494b]"></div>
           </div>
+          <div className="relative flex justify-center">
+            <span className="bg-white dark:bg-[#2b2a2c] px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+              OR
+            </span>
+          </div>
+        </div>
 
         {/* Choose from My CVs (Resume Builder) */}
         <motion.div
           initial={false}
           animate={{ height: showCVSelector ? 'auto' : 'auto' }}
-          className={`border-2 rounded-xl overflow-hidden transition-all duration-200 ${
-            selectedBuilderItem
+          className={`border-2 rounded-xl overflow-hidden transition-all duration-200 ${selectedBuilderItem
               ? 'border-indigo-500 dark:border-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20'
               : 'border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c]'
-          }`}
+            }`}
         >
           {/* Header - Always visible */}
           <button
@@ -6409,27 +6408,25 @@ URL to visit: ${jobUrl}
             className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                selectedBuilderItem
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedBuilderItem
                   ? 'bg-indigo-600 dark:bg-indigo-500'
                   : 'bg-indigo-100 dark:bg-indigo-900/30'
-              }`}>
-                <FileText className={`w-5 h-5 ${
-                  selectedBuilderItem
+                }`}>
+                <FileText className={`w-5 h-5 ${selectedBuilderItem
                     ? 'text-white'
                     : 'text-indigo-600 dark:text-indigo-400'
-                }`} />
+                  }`} />
               </div>
               <div className="text-left">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">
                   {selectedBuilderItem ? (
-                    selectedBuilderItem.type === 'resume' 
+                    selectedBuilderItem.type === 'resume'
                       ? (selectedBuilderItem.item as Resume).name
                       : (selectedBuilderItem.item as ImportedDocument).name
                   ) : 'Choose from My CVs'}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {selectedBuilderItem 
+                  {selectedBuilderItem
                     ? `${selectedBuilderItem.type === 'resume' ? 'Resume Builder CV' : 'Imported PDF'} selected`
                     : `${builderCVs.length} resumes, ${builderDocs.length} documents`}
                 </p>
@@ -6484,7 +6481,7 @@ URL to visit: ${jobUrl}
                         .map((cv) => {
                           const isSelected = selectedBuilderItem?.type === 'resume' && selectedBuilderItem.item.id === cv.id;
                           const displayDate = cv.updatedAt?.toDate ? cv.updatedAt.toDate() : new Date(cv.updatedAt || Date.now());
-                          
+
                           return (
                             <div
                               key={`cv-${cv.id}`}
@@ -6493,25 +6490,21 @@ URL to visit: ${jobUrl}
                                 setUsingSavedCV(false);
                                 setCvFile(null);
                               }}
-                              className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${
-                                isSelected
+                              className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${isSelected
                                   ? 'bg-indigo-50 dark:bg-indigo-900/30'
                                   : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
-                              }`}
+                                }`}
                             >
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                isSelected
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isSelected
                                   ? 'bg-indigo-600 dark:bg-indigo-500'
                                   : 'bg-purple-100 dark:bg-purple-900/30'
-                              }`}>
-                                <FileText className={`w-4 h-4 ${
-                                  isSelected ? 'text-white' : 'text-purple-600 dark:text-purple-400'
-                                }`} />
+                                }`}>
+                                <FileText className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-purple-600 dark:text-purple-400'
+                                  }`} />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className={`text-sm font-medium truncate ${
-                                  isSelected ? 'text-indigo-900 dark:text-indigo-100' : 'text-gray-900 dark:text-white'
-                                }`}>
+                                <p className={`text-sm font-medium truncate ${isSelected ? 'text-indigo-900 dark:text-indigo-100' : 'text-gray-900 dark:text-white'
+                                  }`}>
                                   {cv.name}
                                 </p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -6531,7 +6524,7 @@ URL to visit: ${jobUrl}
                         .map((doc) => {
                           const isSelected = selectedBuilderItem?.type === 'document' && selectedBuilderItem.item.id === doc.id;
                           const displayDate = doc.updatedAt?.toDate ? doc.updatedAt.toDate() : new Date(doc.updatedAt || Date.now());
-                          
+
                           return (
                             <div
                               key={`doc-${doc.id}`}
@@ -6540,25 +6533,21 @@ URL to visit: ${jobUrl}
                                 setUsingSavedCV(false);
                                 setCvFile(null);
                               }}
-                              className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${
-                                isSelected
+                              className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${isSelected
                                   ? 'bg-indigo-50 dark:bg-indigo-900/30'
                                   : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
-                              }`}
+                                }`}
                             >
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                isSelected
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isSelected
                                   ? 'bg-indigo-600 dark:bg-indigo-500'
                                   : 'bg-red-100 dark:bg-red-900/30'
-                              }`}>
-                                <FileText className={`w-4 h-4 ${
-                                  isSelected ? 'text-white' : 'text-red-600 dark:text-red-400'
-                                }`} />
+                                }`}>
+                                <FileText className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-red-600 dark:text-red-400'
+                                  }`} />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className={`text-sm font-medium truncate ${
-                                  isSelected ? 'text-indigo-900 dark:text-indigo-100' : 'text-gray-900 dark:text-white'
-                                }`}>
+                                <p className={`text-sm font-medium truncate ${isSelected ? 'text-indigo-900 dark:text-indigo-100' : 'text-gray-900 dark:text-white'
+                                  }`}>
                                   {doc.name}
                                 </p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -6586,15 +6575,15 @@ URL to visit: ${jobUrl}
                       )}
 
                       {/* No results */}
-                      {cvSelectorSearch && 
+                      {cvSelectorSearch &&
                         builderCVs.filter(cv => cv.name.toLowerCase().includes(cvSelectorSearch.toLowerCase())).length === 0 &&
                         builderDocs.filter(doc => doc.name.toLowerCase().includes(cvSelectorSearch.toLowerCase())).length === 0 && (
-                        <div className="py-6 text-center">
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            No results for "{cvSelectorSearch}"
-                          </p>
-                        </div>
-                      )}
+                          <div className="py-6 text-center">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              No results for "{cvSelectorSearch}"
+                            </p>
+                          </div>
+                        )}
                     </>
                   )}
                 </div>
@@ -6621,7 +6610,7 @@ URL to visit: ${jobUrl}
           className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200 ${cvFile && !usingSavedCV
             ? 'border-[#635BFF] dark:border-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#5249e6]/20'
             : 'border-gray-300 dark:border-[#3d3c3e] hover:border-purple-400 dark:hover:border-purple-500 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
-          }`}
+            }`}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -6814,7 +6803,7 @@ URL to visit: ${jobUrl}
       className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium transition-all duration-200 backdrop-blur-sm ${matched
         ? "bg-[#635BFF]/5 dark:bg-[#5249e6]/20 text-[#635BFF] dark:text-[#a5a0ff] border border-[#635BFF]/20 dark:border-[#5249e6]/30 hover:bg-[#635BFF]/10 dark:hover:bg-[#5249e6]/30"
         : "bg-red-50/60 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200/50 dark:border-red-800/30 hover:bg-red-100/80 dark:hover:bg-red-900/30"
-      }`}
+        }`}
     >
       {matched ? (
         <Check className="w-3 h-3 mr-1.5 text-[#5249e6] dark:text-[#a5a0ff] flex-shrink-0" />
@@ -7114,11 +7103,10 @@ URL to visit: ${jobUrl}
 
           {/* Choose from My CVs (Resume Builder) */}
           <div
-            className={`border-2 rounded-xl overflow-hidden transition-all duration-200 ${
-              selectedBuilderItem
+            className={`border-2 rounded-xl overflow-hidden transition-all duration-200 ${selectedBuilderItem
                 ? 'border-[#635BFF] dark:border-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
                 : 'border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#1A1A1A]'
-            }`}
+              }`}
           >
             {/* Header - Always visible */}
             <button
@@ -7126,27 +7114,25 @@ URL to visit: ${jobUrl}
               className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60 transition-colors"
             >
               <div className="flex items-center gap-2.5">
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                  selectedBuilderItem
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${selectedBuilderItem
                     ? 'bg-[#635BFF] dark:bg-[#635BFF]'
                     : 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
-                }`}>
-                  <FileText className={`w-4 h-4 ${
-                    selectedBuilderItem
+                  }`}>
+                  <FileText className={`w-4 h-4 ${selectedBuilderItem
                       ? 'text-white'
                       : 'text-[#635BFF] dark:text-[#a5a0ff]'
-                  }`} />
+                    }`} />
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
                     {selectedBuilderItem ? (
-                      selectedBuilderItem.type === 'resume' 
+                      selectedBuilderItem.type === 'resume'
                         ? (selectedBuilderItem.item as Resume).name
                         : (selectedBuilderItem.item as ImportedDocument).name
                     ) : 'Choose from My CVs'}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {selectedBuilderItem 
+                    {selectedBuilderItem
                       ? `${selectedBuilderItem.type === 'resume' ? 'Resume Builder CV' : 'Imported PDF'} selected`
                       : 'Select from Resume Builder'}
                   </p>
@@ -7194,7 +7180,7 @@ URL to visit: ${jobUrl}
                         .map((cv) => {
                           const isSelected = selectedBuilderItem?.type === 'resume' && selectedBuilderItem.item.id === cv.id;
                           const displayDate = cv.updatedAt?.toDate ? cv.updatedAt.toDate() : new Date(cv.updatedAt || Date.now());
-                          
+
                           return (
                             <div
                               key={`cv-${cv.id}`}
@@ -7203,25 +7189,21 @@ URL to visit: ${jobUrl}
                                 setUsingSavedCV(false);
                                 setCvFile(null);
                               }}
-                              className={`px-3 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors ${
-                                isSelected
+                              className={`px-3 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors ${isSelected
                                   ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
                                   : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
-                              }`}
+                                }`}
                             >
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                isSelected
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isSelected
                                   ? 'bg-[#635BFF] dark:bg-[#635BFF]'
                                   : 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
-                              }`}>
-                                <FileText className={`w-4 h-4 ${
-                                  isSelected ? 'text-white' : 'text-[#635BFF] dark:text-[#a5a0ff]'
-                                }`} />
+                                }`}>
+                                <FileText className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-[#635BFF] dark:text-[#a5a0ff]'
+                                  }`} />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className={`text-sm font-medium truncate ${
-                                  isSelected ? 'text-[#635BFF] dark:text-[#a5a0ff]' : 'text-gray-900 dark:text-white'
-                                }`}>
+                                <p className={`text-sm font-medium truncate ${isSelected ? 'text-[#635BFF] dark:text-[#a5a0ff]' : 'text-gray-900 dark:text-white'
+                                  }`}>
                                   {cv.name}
                                 </p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -7241,7 +7223,7 @@ URL to visit: ${jobUrl}
                         .map((doc) => {
                           const isSelected = selectedBuilderItem?.type === 'document' && selectedBuilderItem.item.id === doc.id;
                           const displayDate = doc.updatedAt?.toDate ? doc.updatedAt.toDate() : new Date(doc.updatedAt || Date.now());
-                          
+
                           return (
                             <div
                               key={`doc-${doc.id}`}
@@ -7250,25 +7232,21 @@ URL to visit: ${jobUrl}
                                 setUsingSavedCV(false);
                                 setCvFile(null);
                               }}
-                              className={`px-3 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors ${
-                                isSelected
+                              className={`px-3 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors ${isSelected
                                   ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
                                   : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
-                              }`}
+                                }`}
                             >
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                isSelected
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isSelected
                                   ? 'bg-[#635BFF] dark:bg-[#635BFF]'
                                   : 'bg-red-100 dark:bg-red-900/30'
-                              }`}>
-                                <FileText className={`w-4 h-4 ${
-                                  isSelected ? 'text-white' : 'text-red-600 dark:text-red-400'
-                                }`} />
+                                }`}>
+                                <FileText className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-red-600 dark:text-red-400'
+                                  }`} />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className={`text-sm font-medium truncate ${
-                                  isSelected ? 'text-[#635BFF] dark:text-[#a5a0ff]' : 'text-gray-900 dark:text-white'
-                                }`}>
+                                <p className={`text-sm font-medium truncate ${isSelected ? 'text-[#635BFF] dark:text-[#a5a0ff]' : 'text-gray-900 dark:text-white'
+                                  }`}>
                                   {doc.name}
                                 </p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -7293,15 +7271,15 @@ URL to visit: ${jobUrl}
                       )}
 
                       {/* No results */}
-                      {cvSelectorSearch && 
+                      {cvSelectorSearch &&
                         builderCVs.filter(cv => cv.name.toLowerCase().includes(cvSelectorSearch.toLowerCase())).length === 0 &&
                         builderDocs.filter(doc => doc.name.toLowerCase().includes(cvSelectorSearch.toLowerCase())).length === 0 && (
-                        <div className="py-4 text-center">
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            No results for "{cvSelectorSearch}"
-                          </p>
-                        </div>
-                      )}
+                          <div className="py-4 text-center">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              No results for "{cvSelectorSearch}"
+                            </p>
+                          </div>
+                        )}
                     </>
                   )}
                 </div>
@@ -7556,7 +7534,7 @@ URL to visit: ${jobUrl}
                   data-tour="job-description"
                   value={formData.jobDescription}
                   onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF] transition-all h-36 resize-none"
+                  className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#1A1A1A] border-transparent focus:bg-white dark:focus:bg-[#1A1A1A] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF] transition-all h-36 resize-none"
                   placeholder="Paste the complete job description here..."
                 />
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1">
@@ -7845,15 +7823,15 @@ URL to visit: ${jobUrl}
   // Register page data with AI Assistant - Enhanced with actionable insights
   const cvAnalysisSummary = useMemo(() => {
     // Calculate average score across analyses
-    const avgScore = analyses.length > 0 
+    const avgScore = analyses.length > 0
       ? Math.round(analyses.reduce((sum, a) => sum + (a.matchScore || 0), 0) / analyses.length)
       : null;
-    
+
     // Find best and worst performing analyses
     const sortedByScore = [...analyses].sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
     const bestMatch = sortedByScore[0];
     const worstMatch = sortedByScore[sortedByScore.length - 1];
-    
+
     // Extract common weak areas across analyses
     const allWeakAreas: string[] = [];
     analyses.forEach(a => {
@@ -8003,7 +7981,7 @@ URL to visit: ${jobUrl}
     <AuthLayout>
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
         {/* Cover Photo Section with all header elements */}
-        <div 
+        <div
           className="relative group/cover flex-shrink-0"
           onMouseEnter={() => setIsHoveringCover(true)}
           onMouseLeave={() => setIsHoveringCover(false)}
@@ -8013,18 +7991,18 @@ URL to visit: ${jobUrl}
             {/* Cover Background */}
             {coverPhoto ? (
               <div className="absolute inset-0 w-full h-full overflow-hidden">
-                <img 
+                <img
                   key={coverPhoto}
-                  src={coverPhoto} 
-                  alt="CV Analysis cover" 
+                  src={coverPhoto}
+                  alt="CV Analysis cover"
                   className="w-full h-full object-cover animate-in fade-in duration-500"
                 />
                 <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
               </div>
             ) : (
               <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-[#3d3c3e]/20">
-                <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
-                   style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
+                <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]"
+                  style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }}
                 />
                 {/* Subtle animated gradient orbs */}
                 <div className="absolute top-10 right-20 w-64 h-64 bg-purple-200/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-blob" />
@@ -8036,7 +8014,7 @@ URL to visit: ${jobUrl}
             <div className="absolute top-4 left-0 right-0 flex justify-center z-30 pointer-events-none">
               <AnimatePresence>
                 {(isHoveringCover || !coverPhoto) && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
@@ -8064,9 +8042,9 @@ URL to visit: ${jobUrl}
                           <ImageIcon className="w-3.5 h-3.5" />
                           Change cover
                         </button>
-                        
+
                         <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
-                        
+
                         <button
                           onClick={() => coverFileInputRef.current?.click()}
                           disabled={isUpdatingCover}
@@ -8080,9 +8058,9 @@ URL to visit: ${jobUrl}
                           )}
                           Upload
                         </button>
-                        
+
                         <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
-                        
+
                         <button
                           onClick={handleRemoveCover}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 
@@ -8108,47 +8086,47 @@ URL to visit: ${jobUrl}
                 className="flex items-center justify-between"
               >
                 {/* Title left */}
-          <div>
-                  <h1 className={`text-2xl font-bold ${coverPhoto 
+                <div>
+                  <h1 className={`text-2xl font-bold ${coverPhoto
                     ? 'text-white drop-shadow-2xl'
                     : 'text-gray-900 dark:text-white'
-                  }`}>Resume Lab</h1>
-                  <p className={`text-sm mt-0.5 ${coverPhoto 
+                    }`}>Resume Lab</h1>
+                  <p className={`text-sm mt-0.5 ${coverPhoto
                     ? 'text-white/90 drop-shadow-lg'
                     : 'text-gray-500 dark:text-gray-400'
-                  }`}>
-              AI-powered resume analysis for smarter applications
-            </p>
-          </div>
+                    }`}>
+                    AI-powered resume analysis for smarter applications
+                  </p>
+                </div>
 
                 {/* New Analysis Button right */}
                 <motion.button
                   data-tour="start-analysis-button"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              setFormData({
-                jobTitle: '',
-                company: '',
-                jobDescription: '',
-                jobUrl: '',
-              });
-              setCvFile(null);
-              setCurrentStep(1);
-              setJobInputMode('ai');
-              setSelectedSavedJob(null);
-              setJobSearchQuery('');
-              setShowJobDropdown(false);
-              setIsModalOpen(true);
-            }}
+                  onClick={() => {
+                    setFormData({
+                      jobTitle: '',
+                      company: '',
+                      jobDescription: '',
+                      jobUrl: '',
+                    });
+                    setCvFile(null);
+                    setCurrentStep(1);
+                    setJobInputMode('ai');
+                    setSelectedSavedJob(null);
+                    setJobSearchQuery('');
+                    setShowJobDropdown(false);
+                    setIsModalOpen(true);
+                  }}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200
                     text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015]"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>New Analysis</span>
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>New Analysis</span>
                 </motion.button>
               </motion.div>
-        </div>
+            </div>
 
             {/* Hidden File Input */}
             <input
@@ -8164,177 +8142,177 @@ URL to visit: ${jobUrl}
         {/* Main Content Area */}
         <div className="px-4 pt-6 pb-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
 
-        {/* Minimal Search and Filters - Notion Style */}
-        {analyses.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
-            {/* Search Input */}
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
-                className="w-full pl-9 pr-4 py-2 
+          {/* Minimal Search and Filters - Notion Style */}
+          {analyses.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
+              {/* Search Input */}
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search..."
+                  className="w-full pl-9 pr-4 py-2 
                   bg-transparent
                   border border-gray-200 dark:border-[#3d3c3e] rounded-lg
                   focus:border-gray-300 dark:focus:border-gray-600
                   focus:ring-0 focus:outline-none
                   text-sm text-gray-900 dark:text-white placeholder-gray-400
                   transition-colors duration-200"
-              />
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Score Filter */}
+                <div className="relative">
+                  <select
+                    value={filterScore}
+                    onChange={(e) => setFilterScore(e.target.value as any)}
+                    className="appearance-none bg-transparent border border-gray-200 dark:border-[#3d3c3e] rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
+                  >
+                    <option value="all">All</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+                </div>
+
+                {/* Sort By */}
+                <div className="relative">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="appearance-none bg-transparent border border-gray-200 dark:border-[#3d3c3e] rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
+                  >
+                    <option value="date">Date</option>
+                    <option value="score">Score</option>
+                    <option value="company">Company</option>
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+                </div>
+
+                {/* View Toggle */}
+                <div className="flex items-center border border-gray-200 dark:border-[#3d3c3e] rounded-lg p-0.5">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'grid'
+                      ? 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-900 dark:text-white'
+                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                      }`}
+                    aria-label="Grid View"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'list'
+                      ? 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-900 dark:text-white'
+                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                      }`}
+                    aria-label="List View"
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
             </div>
+          )}
 
-            <div className="flex items-center gap-3">
-              {/* Score Filter */}
-              <div className="relative">
-                <select
-                  value={filterScore}
-                  onChange={(e) => setFilterScore(e.target.value as any)}
-                  className="appearance-none bg-transparent border border-gray-200 dark:border-[#3d3c3e] rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
-                >
-                  <option value="all">All</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
-              </div>
-
-              {/* Sort By */}
-              <div className="relative">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="appearance-none bg-transparent border border-gray-200 dark:border-[#3d3c3e] rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
-                >
-                  <option value="date">Date</option>
-                  <option value="score">Score</option>
-                  <option value="company">Company</option>
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
-              </div>
-
-              {/* View Toggle */}
-              <div className="flex items-center border border-gray-200 dark:border-[#3d3c3e] rounded-lg p-0.5">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'grid'
-                    ? 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-900 dark:text-white'
-                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                    }`}
-                  aria-label="Grid View"
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'list'
-                    ? 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-900 dark:text-white'
-                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                    }`}
-                  aria-label="List View"
-                >
-                  <List className="h-4 w-4" />
-                </button>
-              </div>
+          {/* Analyses Grid/List */}
+          {filteredAnalyses.length > 0 ? (
+            <div className={viewMode === 'grid'
+              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
+              : 'space-y-3'
+            }>
+              {filteredAnalyses.map((analysis) => (
+                <AnalysisCard
+                  key={analysis.id}
+                  analysis={analysis}
+                  onDelete={deleteAnalysis}
+                  viewMode={viewMode}
+                  onSelect={() => navigate(`/ats-analysis/${analysis.id}`)}
+                />
+              ))}
             </div>
-          </div>
-        )}
-
-        {/* Analyses Grid/List */}
-        {filteredAnalyses.length > 0 ? (
-          <div className={viewMode === 'grid'
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-            : 'space-y-3'
-          }>
-            {filteredAnalyses.map((analysis) => (
-              <AnalysisCard
-                key={analysis.id}
-                analysis={analysis}
-                onDelete={deleteAnalysis}
-                viewMode={viewMode}
-                onSelect={() => navigate(`/ats-analysis/${analysis.id}`)}
-              />
-            ))}
-          </div>
-        ) : analyses.length === 0 ? (
-          /* Minimal Empty State - First Time */
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="py-24 text-center"
-          >
-            <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-[#2b2a2c] 
+          ) : analyses.length === 0 ? (
+            /* Minimal Empty State - First Time */
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="py-24 text-center"
+            >
+              <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-[#2b2a2c] 
               flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-            </div>
+                <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+              </div>
 
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1.5">
-              No analyses yet
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto mb-6">
-              Upload your resume and a job description to get started.
-            </p>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1.5">
+                No analyses yet
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto mb-6">
+                Upload your resume and a job description to get started.
+              </p>
 
-            <button
-              onClick={() => {
-                setFormData({
-                  jobTitle: '',
-                  company: '',
-                  jobDescription: '',
-                  jobUrl: '',
-                });
-                setCvFile(null);
-                setUsingSavedCV(false);
-                setCurrentStep(1);
-                setJobInputMode('ai');
-                setSelectedSavedJob(null);
-                setJobSearchQuery('');
-                setShowJobDropdown(false);
-                setIsModalOpen(true);
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold
+              <button
+                onClick={() => {
+                  setFormData({
+                    jobTitle: '',
+                    company: '',
+                    jobDescription: '',
+                    jobUrl: '',
+                  });
+                  setCvFile(null);
+                  setUsingSavedCV(false);
+                  setCurrentStep(1);
+                  setJobInputMode('ai');
+                  setSelectedSavedJob(null);
+                  setJobSearchQuery('');
+                  setShowJobDropdown(false);
+                  setIsModalOpen(true);
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold
                 text-gray-900 
                 bg-[#b7e219] 
                 border border-[#9fc015] rounded-lg
                 hover:bg-[#a5cb17] 
                 shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>New Analysis</span>
+              </button>
+            </motion.div>
+          ) : (
+            /* Minimal Empty State - No Search Results */
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="py-20 text-center"
             >
-              <Sparkles className="w-4 h-4" />
-              <span>New Analysis</span>
-            </button>
-          </motion.div>
-        ) : (
-          /* Minimal Empty State - No Search Results */
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="py-20 text-center"
-          >
-            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] 
+              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] 
               flex items-center justify-center mx-auto mb-3">
-              <Search className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-            </div>
-            <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
-              No results
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Try adjusting your filters
-            </p>
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setFilterScore('all');
-              }}
-              className="text-sm text-gray-600 dark:text-gray-400 
+                <Search className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+              </div>
+              <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
+                No results
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Try adjusting your filters
+              </p>
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setFilterScore('all');
+                }}
+                className="text-sm text-gray-600 dark:text-gray-400 
                 hover:text-gray-900 dark:hover:text-white 
                 underline underline-offset-2 transition-colors"
-            >
-              Clear filters
-            </button>
-          </motion.div>
-        )}
+              >
+                Clear filters
+              </button>
+            </motion.div>
+          )}
         </div>
       </div>
 
@@ -8351,7 +8329,7 @@ URL to visit: ${jobUrl}
               setJobSearchQuery('');
               setShowJobDropdown(false);
             }}
-            className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[10002] flex items-end sm:items-center justify-center p-0 sm:p-4"
           >
             <motion.div
               data-tour="analysis-modal"
@@ -8484,8 +8462,8 @@ URL to visit: ${jobUrl}
           updatedAt: new Date()
         } : null}
         isOpen={showCVPreview && !!userCV}
-          onClose={() => setShowCVPreview(false)}
-        />
+        onClose={() => setShowCVPreview(false)}
+      />
 
       {/* Input file global pour s'assurer qu'il est toujours accessible */}
       <input
@@ -8508,7 +8486,7 @@ URL to visit: ${jobUrl}
         exportWidth={1584}
         exportHeight={396}
       />
-      
+
       <CoverPhotoGallery
         isOpen={isCoverGalleryOpen}
         onClose={() => setIsCoverGalleryOpen(false)}

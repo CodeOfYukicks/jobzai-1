@@ -1,59 +1,83 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
+// Minimalist coin icon component
+const CoinIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.5">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 6v12M9 9c0-1 1-2 3-2s3 1 3 2-1 2-3 2-3 1-3 2 1 2 3 2 3-1 3-2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const pricingTiers = [
   {
     name: 'Free',
     price: { monthly: 0, biMonthly: 0 },
-    description: 'Perfect for trying out the basics of Cubbbe',
+    credits: '10 credits',
+    description: 'Start your job search journey with essential tools',
     features: [
-      '20 Credits / month',
-      'Basic AI Application Templates',
-      'Standard CV Analysis',
-      'Application Tracking Dashboard',
-      'Standard Email Support',
+      'Access to Job Board',
+      'Application Tracking',
+      'Calendar Follow-up View',
+      'Full Interview Prep',
+      '1 Resume Analysis / month',
+      '4 Resume Templates',
+      'Professional Profile',
+      'Analytics Dashboard',
     ],
-    cta: 'Try for Free',
+    cta: 'Start Free',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
-        <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
   {
-    name: 'Plus',
-    price: { monthly: 19, biMonthly: 34 },
-    description: 'Ideal for serious job seekers',
+    name: 'Premium',
+    price: { monthly: 39, biMonthly: 70 },
+    credits: '250 credits',
+    description: 'Supercharge your applications with AI power',
     features: [
-      '200 Credits / month',
-      'Full CV Rewrite AI',
-      '5 Mock Interviews / month',
-      'Unlimited Tracking',
+      'Personalized Job Board',
+      'Track Applications + Outreach',
+      'Calendar Follow-up View',
+      'Full Interview Prep',
+      '2 Mock Interviews / month',
+      '10 Resume Analyses / month',
+      'Premium Resume Templates',
+      '2 Campaigns (200 contacts)',
+      'AI Recommendations',
       'Priority Support',
     ],
-    cta: 'Get started',
+    cta: 'Get Premium',
     popular: true,
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
-        <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
   {
     name: 'Pro',
-    price: { monthly: 39, biMonthly: 69 },
-    description: 'The ultimate advantage for power users',
+    price: { monthly: 74, biMonthly: 133 },
+    credits: '500 credits',
+    description: 'The ultimate toolkit for ambitious professionals',
     features: [
-      'Unlimited Credits',
-      'AutoPilot Campaigns',
-      'Advanced Career Insights',
-      'Unlimited Mock Interviews',
-      '24/7 Priority Support',
+      'Personalized Job Board',
+      'Track Applications + Outreach',
+      'Calendar Follow-up View',
+      'AI Interview Coaching',
+      '5 Mock Interviews / month',
+      '20 Resume Analyses / month',
+      'Premium Resume Templates',
+      '5 Campaigns (500 contacts)',
+      'AI Recommendations',
+      'Priority Support',
     ],
-    cta: 'Get started',
+    cta: 'Go Pro',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
-        <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -99,54 +123,77 @@ export default function PricingSection() {
 
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-6xl mx-auto">
-          {pricingTiers.map((tier) => (
+          {pricingTiers.map((tier, index) => (
             <div
               key={tier.name}
-              className="bg-[#f6f5f4] rounded-xl p-8 flex flex-col relative"
+              className="bg-[#f6f5f4] rounded-xl p-8 relative transition-all duration-300 hover:scale-[1.02] grid"
+              style={{ gridTemplateRows: 'auto auto auto auto 1fr' }}
             >
               {tier.popular && (
-                <div className="absolute top-6 right-6">
-                  <span className="px-2.5 py-0.5 bg-[#0275de] text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
-                    Popular
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="px-4 py-1.5 bg-gray-900 text-white text-[11px] font-bold rounded-full uppercase tracking-wider">
+                    Most Popular
                   </span>
                 </div>
               )}
 
+              {/* Row 1: Icon */}
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-white shadow-sm border border-gray-100 text-gray-700">
+                {tier.icon}
+              </div>
+
+              {/* Row 2: Title + Description (fixed height) */}
+              <div className="h-[72px]">
+                <h3 className="text-xl font-bold mb-1 text-gray-900">
+                  {tier.name} Cubber
+                </h3>
+                <p className="text-sm text-gray-500 line-clamp-2">
+                  {tier.description}
+                </p>
+              </div>
+
+              {/* Row 3: Price + Credits */}
               <div className="mb-6">
-                <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center text-gray-900 mb-6 border border-gray-100">
-                  {tier.icon}
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1">{tier.name}</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-black text-gray-900">
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span className="text-5xl font-black text-gray-900">
                     €{isBiMonthly ? tier.price.biMonthly : tier.price.monthly}
                   </span>
-                  {tier.name !== 'Free' && (
-                    <span className="text-gray-500 text-sm font-medium">
-                      {isBiMonthly ? '/2 months' : '/month'}
-                    </span>
-                  )}
+                  <span className="text-sm font-medium text-gray-500">
+                    {tier.price.monthly === 0 ? '/forever' : isBiMonthly ? '/2 months' : '/month'}
+                  </span>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-[#0275de]/10 text-[#0275de]">
+                  <CoinIcon className="w-4 h-4" />
+                  <span>{tier.credits}/month</span>
                 </div>
               </div>
 
+              {/* Row 4: CTA Button */}
               <Link
                 to="/signup"
-                className={`w-full py-2 rounded-lg text-sm font-bold transition-all text-center mb-8 ${tier.popular
+                className={`w-full py-3 rounded-xl text-sm font-bold transition-all text-center mb-6 ${tier.popular
                   ? 'bg-gray-900 text-white hover:bg-gray-800'
-                  : 'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 shadow-sm'
+                  : tier.name === 'Pro'
+                    ? 'bg-[#0275de] text-white hover:bg-[#0260b8]'
+                    : 'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 shadow-sm'
                   }`}
               >
-                {tier.name === 'Free' ? 'Sign up' : 'Get started'}
+                {tier.cta}
               </Link>
 
+              {/* Row 5: Features list (takes remaining space) */}
               <div className="space-y-4">
                 <p className="text-[13px] font-bold text-gray-900">
-                  {tier.name === 'Free' ? 'Includes' : `Everything in ${pricingTiers[pricingTiers.indexOf(tier) - 1].name} +`}
+                  {index === 0 ? 'Includes:' : `Everything in ${pricingTiers[index - 1].name} +`}
                 </p>
-                <ul className="space-y-3">
+                <ul className="space-y-2.5">
                   {tier.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2.5 text-[14px] text-gray-700 leading-tight">
-                      <span className="text-gray-900 mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-900 flex-shrink-0" />
+                    <li key={feature} className="flex items-start gap-2.5 text-[14px] leading-tight text-gray-600">
+                      <span className="mt-1 flex-shrink-0 text-green-500">
+                        <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </span>
                       <span>{feature}</span>
                     </li>
                   ))}

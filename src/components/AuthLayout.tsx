@@ -197,6 +197,17 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     }
   }, [location.pathname]);
 
+  // Listen for tour start event to expand sidebar
+  useEffect(() => {
+    const handleTourStart = () => {
+      console.log('📍 Tour started - expanding sidebar');
+      setIsCollapsed(false);
+    };
+
+    window.addEventListener('tourstart', handleTourStart);
+    return () => window.removeEventListener('tourstart', handleTourStart);
+  }, []);
+
   useEffect(() => {
     if (currentUser) {
       const unsubscribe = onSnapshot(

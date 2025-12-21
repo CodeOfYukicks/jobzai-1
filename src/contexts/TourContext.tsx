@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 // ============================================
@@ -85,7 +85,7 @@ export const TOURS: Record<string, Tour> = {
       {
         id: 'step-1-menu',
         target: '[data-tour="resume-lab-link"]',
-        title: 'Step 1 of 7',
+        title: 'Step 1 of 5',
         content: 'Click on **Resume Lab** in the menu to access the CV analysis tool.',
         position: 'right',
         action: 'click',
@@ -94,7 +94,7 @@ export const TOURS: Record<string, Tour> = {
       {
         id: 'step-2-start-analysis',
         target: '[data-tour="start-analysis-button"]',
-        title: 'Step 2 of 7',
+        title: 'Step 2 of 5',
         content: 'Click **New Analysis** to start. A modal will open to guide you through the process.',
         position: 'bottom',
         action: 'click',
@@ -102,57 +102,35 @@ export const TOURS: Record<string, Tour> = {
         highlightPadding: 12,
       },
       {
-        id: 'step-3-modal-intro',
+        id: 'step-3-cv-upload',
         target: '[data-tour="analysis-modal"]',
-        title: 'Step 3 of 7',
-        content: 'Perfect! This modal will guide you through **2 simple steps**: first upload your CV, then provide the job details. Let\'s start!',
-        position: 'auto',
-        action: 'wait',
-        waitForElement: '[data-tour="analysis-modal"]',
-        highlightPadding: 20,
-      },
-      {
-        id: 'step-4-cv-selection',
-        target: '[data-tour="cv-upload"]',
-        title: 'Step 4 of 7',
-        content: 'Select your CV! You have **3 options**: upload a new PDF, use a saved CV from your profile, or pick one from Resume Builder.',
+        title: 'Step 3 of 5',
+        content: '**Step 1 - Upload your CV**: Use your saved CV from your profile, choose from Resume Builder, or upload a new PDF.',
         position: 'left',
         action: 'wait',
-        waitForElement: '[data-tour="cv-upload"]',
         highlightPadding: 16,
       },
       {
-        id: 'step-5-job-input',
-        target: '[data-tour="job-input-mode"]',
-        title: 'Step 5 of 7',
-        content: 'Now provide the job details. Choose **AI Extraction** (paste URL), **Manual Entry** (type details), or **Saved Jobs** (reuse previous).',
-        position: 'top',
+        id: 'step-4-job-details',
+        target: '[data-tour="analysis-modal"]',
+        title: 'Step 4 of 5',
+        content: '**Step 2 - Add job details**: Use AI Extraction (paste URL), Manual Entry (type details), or Saved Jobs (reuse previous).',
+        position: 'left',
         action: 'wait',
-        waitForElement: '[data-tour="job-input-mode"]',
-        highlightPadding: 12,
+        highlightPadding: 16,
       },
       {
-        id: 'step-6-continue',
-        target: '[data-tour="continue-button"]',
-        title: 'Step 6 of 7',
-        content: 'Once you\'ve filled everything, click **Continue** to review your information.',
-        position: 'top',
-        action: 'wait',
-        waitForElement: '[data-tour="continue-button"]',
-        highlightPadding: 8,
-      },
-      {
-        id: 'step-7-analyze',
-        target: '[data-tour="analyze-button"]',
+        id: 'step-5-analyze',
+        target: '[data-tour="analysis-modal"]',
         title: 'Done! 🎉',
-        content: 'Perfect! Click **Analyze Resume** to start. You\'ll get an **ATS compatibility score**, **skills analysis**, and **personalized recommendations**!',
-        position: 'top',
+        content: 'Click **Analyze Resume** to get your ATS score, skills analysis, and personalized recommendations!',
+        position: 'left',
         action: 'wait',
-        highlightPadding: 8,
+        highlightPadding: 16,
       },
     ],
   },
-  
+
   'track-applications': {
     id: 'track-applications',
     name: 'Track Your Applications',
@@ -347,6 +325,209 @@ export const TOURS: Record<string, Tour> = {
       },
     ],
   },
+
+  // Tour for searching and finding jobs on the Job Board
+  'search-jobs': {
+    id: 'search-jobs',
+    name: 'Find a Job on Job Board',
+    description: 'Learn how to search for and apply to jobs',
+    steps: [
+      {
+        id: 'step-1-menu',
+        target: '[data-tour="job-board-link"]',
+        title: 'Step 1 of 5',
+        content: 'Click on **Job Board** to access thousands of job listings.',
+        position: 'right',
+        action: 'click',
+        navigateTo: '/jobs',
+      },
+      {
+        id: 'step-2-search',
+        target: '[data-tour="search-bar"]',
+        title: 'Step 2 of 5',
+        content: 'Use the **search bar** to search by keyword, company, or position.',
+        position: 'bottom',
+        action: 'wait',
+        waitForElement: '[data-tour="search-bar"]',
+        highlightPadding: 8,
+      },
+      {
+        id: 'step-3-filters',
+        target: '[data-tour="job-filters"]',
+        title: 'Step 3 of 5',
+        content: 'Apply **filters** to refine your search: Remote, Full-time, Location, Level, Salary.',
+        position: 'left',
+        action: 'wait',
+        waitForElement: '[data-tour="job-filters"]',
+        highlightPadding: 12,
+      },
+      {
+        id: 'step-4-for-you',
+        target: '[data-tour="for-you-toggle"]',
+        title: 'Step 4 of 5',
+        content: 'Click **For You** to see jobs that match your profile automatically!',
+        position: 'bottom',
+        action: 'click',
+        highlightPadding: 8,
+      },
+      {
+        id: 'step-5-apply',
+        target: '[data-tour="job-card"]',
+        title: 'Done!',
+        content: 'Click on a job to see details. Use **Save** to bookmark or **Apply** to apply directly!',
+        position: 'top',
+        action: 'wait',
+        highlightPadding: 12,
+      },
+    ],
+  },
+
+  // Tour for creating outreach campaigns
+  'create-campaign': {
+    id: 'create-campaign',
+    name: 'Create an Outreach Campaign',
+    description: 'Learn how to create automated outreach campaigns',
+    steps: [
+      {
+        id: 'step-1-menu',
+        target: '[data-tour="campaigns-link"]',
+        title: 'Step 1 of 5',
+        content: 'Click on **AutoPilot** or **Campaigns** to access the outreach tool.',
+        position: 'right',
+        action: 'click',
+        navigateTo: '/campaigns-auto',
+      },
+      {
+        id: 'step-2-create',
+        target: '[data-tour="new-campaign-button"]',
+        title: 'Step 2 of 5',
+        content: 'Click **New Campaign** to start creating your outreach sequence.',
+        position: 'bottom',
+        action: 'click',
+        waitForElement: '[data-tour="new-campaign-button"]',
+        highlightPadding: 8,
+      },
+      {
+        id: 'step-3-target',
+        target: '[data-tour="campaign-target"]',
+        title: 'Step 3 of 5',
+        content: 'Define your **target**: industries, job types, company size, location.',
+        position: 'left',
+        action: 'wait',
+        highlightPadding: 12,
+      },
+      {
+        id: 'step-4-emails',
+        target: '[data-tour="email-sequence"]',
+        title: 'Step 4 of 5',
+        content: 'Create your **email sequence**: first contact + follow-ups.',
+        position: 'top',
+        action: 'wait',
+        highlightPadding: 12,
+      },
+      {
+        id: 'step-5-launch',
+        target: '[data-tour="launch-campaign"]',
+        title: 'Done!',
+        content: 'Add contacts and click **Launch** to start your automated outreach!',
+        position: 'top',
+        action: 'wait',
+        highlightPadding: 8,
+      },
+    ],
+  },
+
+  // Tour for using AI recommendations
+  'use-recommendations': {
+    id: 'use-recommendations',
+    name: 'Use AI Recommendations',
+    description: 'Learn how to use personalized AI recommendations',
+    steps: [
+      {
+        id: 'step-1-menu',
+        target: '[data-tour="recommendations-link"]',
+        title: 'Step 1 of 4',
+        content: 'Click on **Recommendations** to access AI-powered advice.',
+        position: 'right',
+        action: 'click',
+        navigateTo: '/recommendations',
+      },
+      {
+        id: 'step-2-view',
+        target: '[data-tour="recommendations-list"]',
+        title: 'Step 2 of 4',
+        content: 'View your **personalized recommendations** sorted by priority and impact.',
+        position: 'top',
+        action: 'wait',
+        waitForElement: '[data-tour="recommendations-list"]',
+        highlightPadding: 12,
+      },
+      {
+        id: 'step-3-details',
+        target: '[data-tour="recommendation-card"]',
+        title: 'Step 3 of 4',
+        content: 'Click a recommendation to see **details and concrete actions** to take.',
+        position: 'left',
+        action: 'click',
+        highlightPadding: 8,
+      },
+      {
+        id: 'step-4-complete',
+        target: '[data-tour="complete-action"]',
+        title: 'Done!',
+        content: 'Mark actions as **completed** to track your progress. Recommendations update based on your activity!',
+        position: 'top',
+        action: 'wait',
+        highlightPadding: 8,
+      },
+    ],
+  },
+
+  // Tour for understanding the dashboard
+  'understand-dashboard': {
+    id: 'understand-dashboard',
+    name: 'Understand Your Dashboard',
+    description: 'Learn how to read and use your dashboard metrics',
+    steps: [
+      {
+        id: 'step-1-menu',
+        target: '[data-tour="dashboard-link"]',
+        title: 'Step 1 of 4',
+        content: 'Click on **Dashboard** to access your overview.',
+        position: 'right',
+        action: 'click',
+        navigateTo: '/dashboard',
+      },
+      {
+        id: 'step-2-metrics',
+        target: '[data-tour="main-metrics"]',
+        title: 'Step 2 of 4',
+        content: 'These are your **key metrics**: total applications, response rate, interviews scheduled, offers received.',
+        position: 'bottom',
+        action: 'wait',
+        waitForElement: '[data-tour="main-metrics"]',
+        highlightPadding: 12,
+      },
+      {
+        id: 'step-3-activity',
+        target: '[data-tour="recent-activity"]',
+        title: 'Step 3 of 4',
+        content: 'Check your **recent activity**: latest actions and status changes.',
+        position: 'left',
+        action: 'wait',
+        highlightPadding: 12,
+      },
+      {
+        id: 'step-4-interviews',
+        target: '[data-tour="upcoming-interviews"]',
+        title: 'Done!',
+        content: 'View your **upcoming interviews** here. Click to go directly to preparation!',
+        position: 'top',
+        action: 'wait',
+        highlightPadding: 8,
+      },
+    ],
+  },
 };
 
 // ============================================
@@ -357,14 +538,14 @@ interface TourContextType {
   activeTour: Tour | null;
   currentStepIndex: number;
   isActive: boolean;
-  
+
   // Actions
   startTour: (tourId: string) => void;
   nextStep: () => void;
   previousStep: () => void;
   skipTour: () => void;
   endTour: () => void;
-  
+
   // Helpers
   currentStep: TourStep | null;
   totalSteps: number;
@@ -394,11 +575,15 @@ export function TourProvider({ children }: { children: ReactNode }) {
       console.error(`Tour "${tourId}" not found`);
       return;
     }
-    
+
     console.log(`🎯 Starting tour: ${tour.name}`);
+
+    // Dispatch custom event to expand sidebar
+    window.dispatchEvent(new CustomEvent('tourstart', { detail: { tourId } }));
+
     setActiveTour(tour);
     setCurrentStepIndex(0);
-    
+
     // If first step requires navigation, do it
     const firstStep = tour.steps[0];
     if (firstStep.navigateTo && location.pathname !== firstStep.navigateTo) {
@@ -409,22 +594,22 @@ export function TourProvider({ children }: { children: ReactNode }) {
   // Go to next step
   const nextStep = useCallback(() => {
     if (!activeTour) return;
-    
+
     const nextIndex = currentStepIndex + 1;
-    
+
     if (nextIndex >= activeTour.steps.length) {
       // Tour complete
       endTour();
       return;
     }
-    
+
     const nextStepData = activeTour.steps[nextIndex];
-    
+
     // Handle navigation if needed
     if (nextStepData.navigateTo && location.pathname !== nextStepData.navigateTo) {
       navigate(nextStepData.navigateTo);
     }
-    
+
     setCurrentStepIndex(nextIndex);
   }, [activeTour, currentStepIndex, navigate, location.pathname]);
 

@@ -58,7 +58,7 @@ function SpotlightOverlay({ targetRect, padding = 8 }: { targetRect: ElementPosi
           />
         </mask>
       </defs>
-      
+
       {/* Dark overlay with cutout */}
       <rect
         x="0"
@@ -68,7 +68,7 @@ function SpotlightOverlay({ targetRect, padding = 8 }: { targetRect: ElementPosi
         fill="rgba(0, 0, 0, 0.75)"
         mask="url(#spotlight-mask)"
       />
-      
+
       {/* Glowing border around spotlight */}
       <rect
         x={spotlightLeft}
@@ -114,7 +114,7 @@ function TourTooltip({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className="fixed z-[10001] w-[300px]"
+      className="fixed z-[10005] w-[300px]"
       style={{
         top: position.top,
         left: position.left,
@@ -363,7 +363,7 @@ export default function TourOverlay() {
     isClickingRef.current = true;
 
     const clicked = clickTargetElement();
-    
+
     // Auto-advance for click actions after a delay
     if (clicked && currentStep?.action === 'click') {
       setTimeout(() => {
@@ -376,21 +376,22 @@ export default function TourOverlay() {
   }, [currentStep, nextStep, clickTargetElement]);
 
   // Handle "Next" button click - also triggers target click for 'click' actions
+  // IMPORTANT: Next button should ALWAYS advance the tour, even if target doesn't exist
   const handleNextClick = useCallback(() => {
     if (isClickingRef.current) return;
-    
-    // If this step requires clicking a target, click it first
+
+    // If this step requires clicking a target, try to click it
     if (currentStep?.action === 'click') {
       isClickingRef.current = true;
-      clickTargetElement();
-      
-      // Then advance after a delay
+      clickTargetElement(); // Click if element exists (non-blocking)
+
+      // Always advance after a short delay, regardless of click success
       setTimeout(() => {
         nextStep();
         isClickingRef.current = false;
-      }, 500);
+      }, 300);
     } else {
-      // For non-click actions, just advance
+      // For 'wait' or other actions, just advance immediately
       nextStep();
     }
   }, [currentStep, nextStep, clickTargetElement]);
@@ -401,25 +402,25 @@ export default function TourOverlay() {
 
   return (
     <>
-      {/* Dark overlay - blocks clicks outside spotlight */}
-      <div 
-        className="fixed inset-0 z-[9997]"
+      {/* Dark overlay - for 'wait' actions, allow clicks through to modal */}
+      <div
+        className={`fixed inset-0 z-[9997] ${currentStep?.action === 'wait' ? 'pointer-events-none' : ''}`}
         onClick={(e) => e.stopPropagation()}
       />
 
       {/* Visual spotlight overlay */}
       <div className="fixed inset-0 z-[9998] pointer-events-none">
-        <SpotlightOverlay 
-          targetRect={targetRect} 
-          padding={spotlightPadding} 
+        <SpotlightOverlay
+          targetRect={targetRect}
+          padding={spotlightPadding}
         />
       </div>
 
-      {/* Clickable spotlight area */}
+      {/* Clickable spotlight area - for 'wait' actions, allow clicks through to element */}
       {targetRect && (
         <div
-          onClick={handleSpotlightClick}
-          className="fixed z-[10000] cursor-pointer rounded-xl"
+          onClick={currentStep?.action === 'wait' ? undefined : handleSpotlightClick}
+          className={`fixed z-[10000] rounded-xl ${currentStep?.action === 'wait' ? 'pointer-events-none' : 'cursor-pointer'}`}
           style={{
             top: targetRect.top - spotlightPadding,
             left: targetRect.left - spotlightPadding,

@@ -3,14 +3,14 @@ import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Plus, 
-  Image, 
-  Camera, 
-  X, 
-  Loader2, 
-  ExternalLink, 
-  Mail, 
+import {
+  Plus,
+  Image,
+  Camera,
+  X,
+  Loader2,
+  ExternalLink,
+  Mail,
   MessageSquare,
   MoreHorizontal,
   Eye,
@@ -94,6 +94,12 @@ interface CampaignRecipient {
     bodyIndex: number;
     ctaIndex: number;
   };
+  // Demo mode properties
+  isDemo?: boolean;
+  companyInitialsLogo?: {
+    initials: string;
+    color: string;
+  };
 }
 
 interface Campaign {
@@ -172,7 +178,7 @@ export default function CampaignsAutoPage() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
@@ -257,14 +263,14 @@ export default function CampaignsAutoPage() {
   const startWidthRef = useRef<number>(0);
 
   const tableRef = useRef<HTMLTableElement>(null);
-  
+
   const handleResizeStart = useCallback((e: React.MouseEvent, column: string) => {
     e.preventDefault();
     resizingColumnRef.current = column;
     startXRef.current = e.clientX;
     startWidthRef.current = columnWidths[column as keyof typeof columnWidths];
     const tableWidth = tableRef.current?.offsetWidth || 1000;
-    
+
     const handleMouseMove = (e: MouseEvent) => {
       if (!resizingColumnRef.current) return;
       const diff = e.clientX - startXRef.current;
@@ -275,7 +281,7 @@ export default function CampaignsAutoPage() {
         [resizingColumnRef.current!]: newWidth
       }));
     };
-    
+
     const handleMouseUp = () => {
       resizingColumnRef.current = null;
       document.removeEventListener('mousemove', handleMouseMove);
@@ -283,7 +289,7 @@ export default function CampaignsAutoPage() {
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
-    
+
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     document.body.style.cursor = 'col-resize';
@@ -311,9 +317,9 @@ export default function CampaignsAutoPage() {
         id: doc.id,
         ...doc.data()
       })) as Campaign[];
-      
+
       setCampaigns(campaignsData);
-      
+
       // Check if there's a campaign ID in URL params
       const campaignIdFromUrl = searchParams.get('id');
       if (campaignIdFromUrl && campaignsData.find(c => c.id === campaignIdFromUrl)) {
@@ -322,7 +328,7 @@ export default function CampaignsAutoPage() {
         // Auto-select first campaign if none selected and no URL param
         setSelectedCampaignId(campaignsData[0].id);
       }
-      
+
       setIsLoading(false);
     }, (error) => {
       console.error('Error loading campaigns:', error);
@@ -352,7 +358,7 @@ export default function CampaignsAutoPage() {
         id: doc.id,
         ...doc.data()
       })) as CampaignRecipient[];
-      
+
       setRecipients(recipientsData);
       setIsLoadingRecipients(false);
     }, (error) => {
@@ -378,14 +384,14 @@ export default function CampaignsAutoPage() {
         const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
         const boardsQuery = query(boardsRef, orderBy('createdAt', 'asc'));
         const snapshot = await getDocs(boardsQuery);
-        
+
         const allBoards = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         })) as KanbanBoard[];
 
         // Filter for campaign-type boards only
-        const campaignBoards = allBoards.filter(board => 
+        const campaignBoards = allBoards.filter(board =>
           board.boardType === 'campaigns'
         );
 
@@ -398,12 +404,12 @@ export default function CampaignsAutoPage() {
 
     fetchBoards();
   }, [currentUser]);
-        
-        // Load cover photo preference
+
+  // Load cover photo preference
   useEffect(() => {
     const loadCoverPhoto = async () => {
       if (!currentUser) return;
-      
+
       try {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (userDoc.exists()) {
@@ -435,23 +441,23 @@ export default function CampaignsAutoPage() {
           resolve(false);
           return;
         }
-        
+
         canvas.width = 50;
         canvas.height = 50;
         ctx.drawImage(img, 0, 0, 50, 50);
-        
+
         try {
           const imageData = ctx.getImageData(0, 0, 50, 50);
           const data = imageData.data;
           let totalBrightness = 0;
-          
+
           for (let i = 0; i < data.length; i += 4) {
             const r = data[i];
             const g = data[i + 1];
             const b = data[i + 2];
             totalBrightness += (r * 299 + g * 587 + b * 114) / 1000;
           }
-          
+
           const avgBrightness = totalBrightness / (data.length / 4);
           resolve(avgBrightness < 128);
         } catch (e) {
@@ -488,7 +494,7 @@ export default function CampaignsAutoPage() {
   // Update cover photo
   const handleUpdateCover = async (blob: Blob) => {
     if (!currentUser) return;
-    
+
     setIsUpdatingCover(true);
     try {
       const fileName = `campaigns-auto-cover-${Date.now()}.jpg`;
@@ -524,11 +530,11 @@ export default function CampaignsAutoPage() {
       });
 
       setCoverPhoto(coverUrl);
-      
+
       // Detect brightness of new cover
       const isDark = await detectCoverBrightness(coverUrl);
       setIsCoverDark(isDark);
-      
+
       notify.success('Cover updated');
     } catch (error) {
       console.error('Error updating cover:', error);
@@ -541,7 +547,7 @@ export default function CampaignsAutoPage() {
   // Remove cover photo
   const handleRemoveCover = async () => {
     if (!currentUser || !coverPhoto) return;
-    
+
     setIsUpdatingCover(true);
     try {
       // Delete from storage
@@ -579,23 +585,25 @@ export default function CampaignsAutoPage() {
     }
   };
 
-  // Search Apollo for contacts
+  // Search for contacts
   const handleSearchApollo = useCallback(async (campaignId: string, targeting: ApolloTargeting) => {
     setIsSearchingApollo(true);
+
+    // Pre-select the campaign so the listener starts loading recipients
+    setSelectedCampaignId(campaignId);
+
     try {
-      notify.info('Searching Apollo for contacts...');
-      
       const result = await searchApolloContacts(campaignId, targeting, 100);
-      
+
       if (result.success) {
-        notify.success(`Found ${result.contactsFound} contacts!`);
-        setSelectedCampaignId(campaignId);
+        notify.success(`Found ${result.contactsFound} prospects!`);
+        // Campaign already selected, recipients will load via onSnapshot listener
       } else {
         notify.warning('No contacts found');
       }
     } catch (error: any) {
-      console.error('Apollo search error:', error);
-      notify.error(error.message || 'Failed to search Apollo');
+      console.error('Search error:', error);
+      notify.error(error.message || 'Failed to find contacts');
     } finally {
       setIsSearchingApollo(false);
     }
@@ -605,46 +613,46 @@ export default function CampaignsAutoPage() {
   const handleCampaignCreated = useCallback(async (campaignId: string) => {
     console.log('🎯 handleCampaignCreated called for campaign:', campaignId);
     setIsNewCampaignModalOpen(false);
-    
-    // Get the campaign data to trigger Apollo search
+
+    // Get the campaign data to trigger search
     try {
       const campaignDoc = await getDoc(doc(db, 'campaigns', campaignId));
       if (campaignDoc.exists()) {
         const campaignData = campaignDoc.data();
-        console.log('🔍 Starting Apollo search...');
+        console.log('🔍 Starting contact search...');
         await handleSearchApollo(campaignId, campaignData.targeting);
-        console.log('✅ Apollo search completed, setting shouldAutoGenerateEmails to true');
+        console.log('✅ Search completed, setting shouldAutoGenerateEmails to true');
         // Flag to auto-generate emails once recipients are loaded
         setShouldAutoGenerateEmails(true);
       }
     } catch (error) {
-      console.error('Error fetching campaign for Apollo search:', error);
+      console.error('Error fetching campaign for search:', error);
     }
   }, [handleSearchApollo]);
 
   // Handle campaign deletion
   const handleDeleteCampaign = useCallback(async () => {
     if (!deleteCampaignModal.campaign) return;
-    
+
     try {
       const campaignId = deleteCampaignModal.campaign.id;
-      
+
       // Delete all recipients in the campaign first
       const recipientsRef = collection(db, 'campaigns', campaignId, 'recipients');
       const recipientsSnapshot = await getDocs(recipientsRef);
-      
+
       const deletePromises = recipientsSnapshot.docs.map(doc => deleteDoc(doc.ref));
       await Promise.all(deletePromises);
-      
+
       // Delete the campaign itself
       await deleteDoc(doc(db, 'campaigns', campaignId));
-      
+
       // Clear selection if this was the selected campaign
       if (selectedCampaignId === campaignId) {
         setSelectedCampaignId(null);
         setRecipients([]);
       }
-      
+
       setDeleteCampaignModal({ show: false });
       notify.success('Campaign deleted');
     } catch (error) {
@@ -676,22 +684,22 @@ export default function CampaignsAutoPage() {
     console.log('🔥 handleGenerateEmails called');
     console.log('selectedCampaignId:', selectedCampaignId);
     console.log('currentUser:', currentUser?.uid);
-    
+
     if (!selectedCampaignId || !currentUser) {
       console.log('❌ Missing selectedCampaignId or currentUser');
       return;
     }
-    
+
     const pendingCount = recipients.filter(r => !r.emailGenerated).length;
     setIsGeneratingEmails(true);
     setEmailProgress({ initialPending: pendingCount, startTime: Date.now() });
-    
+
     try {
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
       console.log('Token obtained:', token ? 'yes' : 'no');
       console.log('Making request to:', `${BACKEND_URL}/api/campaigns/${selectedCampaignId}/generate-emails`);
-      
+
       const response = await fetch(`${BACKEND_URL}/api/campaigns/${selectedCampaignId}/generate-emails`, {
         method: 'POST',
         headers: {
@@ -703,11 +711,11 @@ export default function CampaignsAutoPage() {
           language: selectedCampaign?.emailPreferences?.language || 'en'
         })
       });
-      
+
       console.log('Response status:', response.status);
       const data = await response.json();
       console.log('Response data:', data);
-      
+
       if (data.success) {
         notify.success(`Generated ${data.generated} emails!`);
       } else {
@@ -741,7 +749,7 @@ export default function CampaignsAutoPage() {
     // 4. We haven't already triggered for this campaign
     // 5. Not already generating
     const hasUngeneratedEmails = recipients.length > 0 && recipients.some(r => !r.emailGenerated);
-    
+
     if (
       shouldAutoGenerateEmails &&
       !isLoadingRecipients &&
@@ -753,16 +761,16 @@ export default function CampaignsAutoPage() {
       console.log('✅ All conditions met! Triggering auto-generation...');
       autoGenerateTriggeredRef.current = true;
       setShouldAutoGenerateEmails(false);
-      
+
       // Small delay to ensure UI is ready
       const timer = setTimeout(() => {
         console.log('🚀 Auto-generating emails for new campaign...');
         handleGenerateEmails();
       }, 500);
-      
+
       return () => clearTimeout(timer);
     }
-    
+
     // Reset the ref when campaign changes
     if (!shouldAutoGenerateEmails) {
       autoGenerateTriggeredRef.current = false;
@@ -772,19 +780,19 @@ export default function CampaignsAutoPage() {
   // Handle send all emails at once
   const handleSendEmails = useCallback(async () => {
     if (!selectedCampaignId || !currentUser) return;
-    
+
     // Check if Gmail is connected
     if (!selectedCampaign?.gmail?.connected) {
       notify.error('Please connect Gmail first');
       return;
     }
-    
+
     setIsSendingEmails(true);
-    
+
     try {
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
-      
+
       const response = await fetch(`${BACKEND_URL}/api/campaigns/${selectedCampaignId}/send-emails`, {
         method: 'POST',
         headers: {
@@ -793,9 +801,9 @@ export default function CampaignsAutoPage() {
         },
         body: JSON.stringify({ batchSize: 100 }) // Send all at once (up to 100)
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSendProgress({ sent: data.sent, remaining: data.remaining });
         if (data.sent > 0) {
@@ -818,7 +826,7 @@ export default function CampaignsAutoPage() {
   // Handle remove recipient from campaign
   const handleRemoveRecipient = useCallback(async (recipientId: string) => {
     if (!selectedCampaignId) return;
-    
+
     try {
       await deleteDoc(doc(db, 'campaigns', selectedCampaignId, 'recipients', recipientId));
       notify.success('Recipient removed from campaign');
@@ -832,25 +840,25 @@ export default function CampaignsAutoPage() {
   // Handle view reply content
   const handleViewReply = useCallback(async (recipient: CampaignRecipient) => {
     if (!recipient.gmailThreadId || recipient.status !== 'replied') return;
-    
+
     setReplyPreviewRecipient(recipient);
     setIsLoadingReply(true);
     setReplyContent(null);
     setReplyMessage('');
-    
+
     try {
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
-      
+
       const response = await fetch(`${BACKEND_URL}/api/gmail/thread/${recipient.gmailThreadId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success && data.reply) {
         setReplyContent(data.reply);
       } else if (data.needsReconnect) {
@@ -869,13 +877,13 @@ export default function CampaignsAutoPage() {
   // Handle send reply
   const handleSendReply = useCallback(async () => {
     if (!replyPreviewRecipient?.gmailThreadId || !replyMessage.trim()) return;
-    
+
     setIsSendingReply(true);
-    
+
     try {
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
-      
+
       const response = await fetch(`${BACKEND_URL}/api/gmail/thread/${replyPreviewRecipient.gmailThreadId}/reply`, {
         method: 'POST',
         headers: {
@@ -886,7 +894,7 @@ export default function CampaignsAutoPage() {
           message: replyMessage.trim()
         })
       });
-      
+
       // Check if response is OK before trying to parse JSON
       if (!response.ok) {
         // Try to parse error response as JSON, fallback to status text
@@ -904,9 +912,9 @@ export default function CampaignsAutoPage() {
         notify.error(errorMessage);
         return;
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         notify.success('Reply sent!');
         setReplyMessage('');
@@ -929,13 +937,13 @@ export default function CampaignsAutoPage() {
   // Handle check for replies
   const handleCheckReplies = useCallback(async () => {
     if (!selectedCampaignId || !currentUser) return;
-    
+
     setIsCheckingReplies(true);
-    
+
     try {
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
-      
+
       const response = await fetch(`${BACKEND_URL}/api/campaigns/${selectedCampaignId}/check-replies`, {
         method: 'POST',
         headers: {
@@ -943,9 +951,9 @@ export default function CampaignsAutoPage() {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         if (data.repliesFound > 0) {
           notify.success(`Found ${data.repliesFound} new replies!`);
@@ -987,15 +995,15 @@ export default function CampaignsAutoPage() {
 
       // Build conversation history from campaign data
       const conversationHistory: any[] = [];
-      
+
       // Add initial sent message if available
       if (recipient.emailContent && recipient.sentAt) {
-        const sentAtDate = recipient.sentAt?.toDate 
-          ? recipient.sentAt.toDate().toISOString() 
-          : (recipient.sentAt instanceof Date 
-              ? recipient.sentAt.toISOString() 
-              : new Date().toISOString());
-        
+        const sentAtDate = recipient.sentAt?.toDate
+          ? recipient.sentAt.toDate().toISOString()
+          : (recipient.sentAt instanceof Date
+            ? recipient.sentAt.toISOString()
+            : new Date().toISOString());
+
         conversationHistory.push({
           id: crypto.randomUUID(),
           type: 'sent',
@@ -1012,23 +1020,23 @@ export default function CampaignsAutoPage() {
         try {
           const auth = getAuth();
           const token = await auth.currentUser?.getIdToken();
-          
+
           const response = await fetch(`${BACKEND_URL}/api/gmail/thread/${recipient.gmailThreadId}`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`
             }
           });
-          
+
           const data = await response.json();
-          
+
           if (data.success && data.reply) {
-            const repliedAtDate = recipient.repliedAt?.toDate 
-              ? recipient.repliedAt.toDate().toISOString() 
-              : (recipient.repliedAt instanceof Date 
-                  ? recipient.repliedAt.toISOString() 
-                  : new Date().toISOString());
-            
+            const repliedAtDate = recipient.repliedAt?.toDate
+              ? recipient.repliedAt.toDate().toISOString()
+              : (recipient.repliedAt instanceof Date
+                ? recipient.repliedAt.toISOString()
+                : new Date().toISOString());
+
             conversationHistory.push({
               id: crypto.randomUUID(),
               type: 'received',
@@ -1067,7 +1075,7 @@ export default function CampaignsAutoPage() {
       };
 
       const newAppDoc = await addDoc(applicationsRef, contactApplication);
-      
+
       // Get board name for notification
       let targetBoardName = 'Default Board';
       if (boardId) {
@@ -1077,7 +1085,7 @@ export default function CampaignsAutoPage() {
           targetBoardName = boardDoc.data().name || 'Board';
         }
       }
-      
+
       // Create notification for card added
       await notify.cardAdded({
         contactName: recipient.fullName || recipient.email || 'Contact',
@@ -1087,7 +1095,7 @@ export default function CampaignsAutoPage() {
         applicationId: newAppDoc.id,
         showToast: false, // Silent notification (only in notification center)
       });
-      
+
       notify.success('Contact added to board');
       setShowBoardSelector(false);
       setSelectedRecipientForBoard(null);
@@ -1149,17 +1157,17 @@ export default function CampaignsAutoPage() {
   }, [openMenuRecipientId]);
 
   // Filter recipients based on search query
-  const filteredRecipients = searchQuery.trim() 
+  const filteredRecipients = searchQuery.trim()
     ? recipients.filter(r => {
-        const query = searchQuery.toLowerCase();
-        return (
-          r.fullName?.toLowerCase().includes(query) ||
-          r.title?.toLowerCase().includes(query) ||
-          r.company?.toLowerCase().includes(query) ||
-          r.email?.toLowerCase().includes(query) ||
-          r.location?.toLowerCase().includes(query)
-        );
-      })
+      const query = searchQuery.toLowerCase();
+      return (
+        r.fullName?.toLowerCase().includes(query) ||
+        r.title?.toLowerCase().includes(query) ||
+        r.company?.toLowerCase().includes(query) ||
+        r.email?.toLowerCase().includes(query) ||
+        r.location?.toLowerCase().includes(query)
+      );
+    })
     : recipients;
 
   // Stats for selected campaign (compute from recipients for real-time accuracy)
@@ -1216,10 +1224,10 @@ export default function CampaignsAutoPage() {
   // Sorted recipients
   const sortedRecipients = [...filteredRecipients].sort((a, b) => {
     if (!sortColumn) return 0;
-    
+
     let aVal = '';
     let bVal = '';
-    
+
     switch (sortColumn) {
       case 'contact':
         aVal = a.fullName || '';
@@ -1248,7 +1256,7 @@ export default function CampaignsAutoPage() {
       default:
         return 0;
     }
-    
+
     const comparison = aVal.localeCompare(bVal);
     return sortDirection === 'asc' ? comparison : -comparison;
   });
@@ -1335,7 +1343,7 @@ export default function CampaignsAutoPage() {
     <AuthLayout>
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
         {/* Cover Photo Section with all header elements */}
-        <div 
+        <div
           className="relative group/cover flex-shrink-0"
           onMouseEnter={() => setIsHoveringCover(true)}
           onMouseLeave={() => setIsHoveringCover(false)}
@@ -1345,18 +1353,18 @@ export default function CampaignsAutoPage() {
             {/* Cover Background */}
             {coverPhoto ? (
               <div className="absolute inset-0 w-full h-full overflow-hidden">
-                <img 
+                <img
                   key={coverPhoto}
-                  src={coverPhoto} 
-                  alt="Campaigns cover" 
+                  src={coverPhoto}
+                  alt="Campaigns cover"
                   className="w-full h-full object-cover animate-in fade-in duration-500"
                 />
                 <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
               </div>
             ) : (
               <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-[#242325]/50 dark:via-[#2b2a2c]/30 dark:to-purple-900/20 border-b border-white/20 dark:border-[#3d3c3e]/20 pointer-events-none">
-                <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
-                   style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
+                <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]"
+                  style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }}
                 />
                 <div className="absolute top-10 right-20 w-64 h-64 bg-purple-200/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-blob" />
                 <div className="absolute bottom-10 left-20 w-64 h-64 bg-indigo-200/20 dark:bg-indigo-600/10 rounded-full blur-3xl animate-blob animation-delay-2000" />
@@ -1367,7 +1375,7 @@ export default function CampaignsAutoPage() {
             <div className="absolute top-4 left-0 right-0 flex justify-center z-30 pointer-events-none">
               <AnimatePresence>
                 {(isHoveringCover || !coverPhoto) && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
@@ -1395,9 +1403,9 @@ export default function CampaignsAutoPage() {
                           <Image className="w-3.5 h-3.5" />
                           Change cover
                         </button>
-                        
+
                         <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
-                        
+
                         <button
                           onClick={() => coverFileInputRef.current?.click()}
                           disabled={isUpdatingCover}
@@ -1411,9 +1419,9 @@ export default function CampaignsAutoPage() {
                           )}
                           Upload
                         </button>
-                        
+
                         <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
-                        
+
                         <button
                           onClick={handleRemoveCover}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 
@@ -1438,25 +1446,25 @@ export default function CampaignsAutoPage() {
                 className="flex items-start justify-between gap-4"
               >
                 <div className="flex-1">
-                  <h1 className={`text-2xl font-bold ${coverPhoto 
+                  <h1 className={`text-2xl font-bold ${coverPhoto
                     ? 'text-white drop-shadow-2xl'
                     : 'text-gray-900 dark:text-white'
-                  }`}>Campaigns</h1>
-                  <p className={`text-sm mt-0.5 ${coverPhoto 
+                    }`}>Campaigns</h1>
+                  <p className={`text-sm mt-0.5 ${coverPhoto
                     ? 'text-white/90 drop-shadow-lg'
                     : 'text-gray-500 dark:text-gray-400'
-                  }`}>
+                    }`}>
                     Send autonomous applications to find interviews quickly
                   </p>
                 </div>
-                
+
                 <motion.button
                   onClick={() => setIsNewCampaignModalOpen(true)}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200
-                    ${coverPhoto 
-                      ? (isCoverDark 
+                    ${coverPhoto
+                      ? (isCoverDark
                         ? 'text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015]'
                         : 'text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015]')
                       : 'text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] dark:bg-[#b7e219] dark:hover:bg-[#a5cb17]'
@@ -1474,20 +1482,18 @@ export default function CampaignsAutoPage() {
                   <div className="relative flex-shrink-0">
                     <button
                       onClick={() => setIsCampaignDropdownOpen(!isCampaignDropdownOpen)}
-                      className={`flex items-center gap-3 px-4 py-2.5 ${
-                        coverPhoto
-                          ? 'bg-white/95 dark:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 hover:bg-white dark:hover:bg-black/60'
-                          : 'bg-white dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] hover:bg-gray-50 dark:hover:bg-white/[0.05] hover:border-gray-300 dark:hover:border-white/[0.12]'
-                      } rounded-xl transition-all duration-200 min-w-[200px]`}
+                      className={`flex items-center gap-3 px-4 py-2.5 ${coverPhoto
+                        ? 'bg-white/95 dark:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 hover:bg-white dark:hover:bg-black/60'
+                        : 'bg-white dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] hover:bg-gray-50 dark:hover:bg-white/[0.05] hover:border-gray-300 dark:hover:border-white/[0.12]'
+                        } rounded-xl transition-all duration-200 min-w-[200px]`}
                     >
                       <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
                         <Zap className="w-3.5 h-3.5 text-white" />
                       </div>
                       <div className="flex flex-col items-start flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className={`text-[10px] uppercase tracking-wider ${
-                            coverPhoto ? 'text-gray-700 dark:text-gray-400' : 'text-gray-500 dark:text-gray-500'
-                          }`}>Campaign</span>
+                          <span className={`text-[10px] uppercase tracking-wider ${coverPhoto ? 'text-gray-700 dark:text-gray-400' : 'text-gray-500 dark:text-gray-500'
+                            }`}>Campaign</span>
                           {/* Email Generation Mode Pill - Main Button */}
                           {selectedCampaign?.emailGenerationMode && (
                             <span className={`
@@ -1500,24 +1506,22 @@ export default function CampaignsAutoPage() {
                                   : 'bg-amber-500/10 dark:bg-amber-400/15 text-amber-600 dark:text-amber-300 border-amber-300/40 dark:border-amber-400/30'
                               }
                             `}>
-                              {selectedCampaign.emailGenerationMode === 'abtest' ? 'A/B' : 
-                               selectedCampaign.emailGenerationMode === 'template' ? 'Template' : 'Auto'}
+                              {selectedCampaign.emailGenerationMode === 'abtest' ? 'A/B' :
+                                selectedCampaign.emailGenerationMode === 'template' ? 'Template' : 'Auto'}
                             </span>
                           )}
                         </div>
-                        <span className={`text-[13px] font-semibold truncate max-w-[160px] ${
-                          coverPhoto ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-gray-100'
-                        }`}>
-                          {selectedCampaign 
+                        <span className={`text-[13px] font-semibold truncate max-w-[160px] ${coverPhoto ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-gray-100'
+                          }`}>
+                          {selectedCampaign
                             ? (selectedCampaign.name || `Campaign ${campaigns.indexOf(selectedCampaign) + 1}`)
                             : 'Select Campaign'}
                         </span>
                       </div>
-                      <ChevronDown className={`w-4 h-4 ${
-                        coverPhoto ? 'text-gray-600 dark:text-gray-400' : 'text-gray-400 dark:text-gray-500'
-                      } transition-transform duration-200 flex-shrink-0 ${isCampaignDropdownOpen ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`w-4 h-4 ${coverPhoto ? 'text-gray-600 dark:text-gray-400' : 'text-gray-400 dark:text-gray-500'
+                        } transition-transform duration-200 flex-shrink-0 ${isCampaignDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
-                    
+
                     <AnimatePresence>
                       {isCampaignDropdownOpen && (
                         <motion.div
@@ -1530,8 +1534,8 @@ export default function CampaignsAutoPage() {
                             <div
                               key={campaign.id}
                               className={`group flex items-center gap-2 px-4 py-3 transition-all duration-150
-                                ${selectedCampaignId === campaign.id 
-                                  ? 'bg-gray-50 dark:bg-white/[0.06]' 
+                                ${selectedCampaignId === campaign.id
+                                  ? 'bg-gray-50 dark:bg-white/[0.06]'
                                   : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'
                                 }`}
                             >
@@ -1592,8 +1596,8 @@ export default function CampaignsAutoPage() {
                                                 : 'bg-amber-500/10 dark:bg-amber-400/15 text-amber-600 dark:text-amber-300 border-amber-300/40 dark:border-amber-400/30'
                                             }
                                           `}>
-                                            {campaign.emailGenerationMode === 'abtest' ? 'A/B' : 
-                                             campaign.emailGenerationMode === 'template' ? 'Template' : 'Auto'}
+                                            {campaign.emailGenerationMode === 'abtest' ? 'A/B' :
+                                              campaign.emailGenerationMode === 'template' ? 'Template' : 'Auto'}
                                           </span>
                                         )}
                                       </div>
@@ -1647,55 +1651,50 @@ export default function CampaignsAutoPage() {
                   {/* Compact Stats Cards - Aligned Right */}
                   <div className="flex items-center gap-2 flex-wrap ml-auto">
                     {/* Contacts */}
-                    <div className={`flex items-center gap-2 px-3 py-2 ${
-                      coverPhoto
-                        ? 'bg-white/95 dark:bg-white/[0.12] backdrop-blur-md border border-white/30 dark:border-white/20'
-                        : 'bg-white dark:bg-white/[0.08] border border-gray-200/60 dark:border-white/[0.12]'
-                    } rounded-lg shadow-sm dark:shadow-none`}>
+                    <div className={`flex items-center gap-2 px-3 py-2 ${coverPhoto
+                      ? 'bg-white/95 dark:bg-white/[0.12] backdrop-blur-md border border-white/30 dark:border-white/20'
+                      : 'bg-white dark:bg-white/[0.08] border border-gray-200/60 dark:border-white/[0.12]'
+                      } rounded-lg shadow-sm dark:shadow-none`}>
                       <Users className={`w-3.5 h-3.5 ${coverPhoto ? 'text-gray-600 dark:text-gray-300' : 'text-gray-600 dark:text-gray-300'}`} />
                       <span className={`text-base font-bold tabular-nums ${coverPhoto ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}>{stats.contactsFound}</span>
                       <span className={`text-[10px] uppercase tracking-wider ${coverPhoto ? 'text-gray-600 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>Contacts</span>
                     </div>
 
                     {/* Generated */}
-                    <div className={`flex items-center gap-2 px-3 py-2 ${
-                      coverPhoto
-                        ? 'bg-purple-100/95 dark:bg-purple-500/25 backdrop-blur-md border border-purple-300/50 dark:border-purple-400/40'
-                        : 'bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-500/[0.15] dark:to-indigo-500/[0.12] border border-purple-200/60 dark:border-purple-400/30'
-                    } rounded-lg shadow-sm dark:shadow-none`}>
+                    <div className={`flex items-center gap-2 px-3 py-2 ${coverPhoto
+                      ? 'bg-purple-100/95 dark:bg-purple-500/25 backdrop-blur-md border border-purple-300/50 dark:border-purple-400/40'
+                      : 'bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-500/[0.15] dark:to-indigo-500/[0.12] border border-purple-200/60 dark:border-purple-400/30'
+                      } rounded-lg shadow-sm dark:shadow-none`}>
                       <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-300" />
                       <span className="text-base font-bold text-purple-700 dark:text-purple-200 tabular-nums">{stats.emailsGenerated}</span>
                       <span className="text-[10px] text-purple-600/70 dark:text-purple-300/80 uppercase tracking-wider">Generated</span>
                     </div>
 
                     {/* Sent */}
-                    <div className={`flex items-center gap-2 px-3 py-2 ${
-                      coverPhoto
-                        ? 'bg-amber-100/95 dark:bg-amber-500/25 backdrop-blur-md border border-amber-300/50 dark:border-amber-400/40'
-                        : 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-500/[0.15] dark:to-orange-500/[0.12] border border-amber-200/60 dark:border-amber-400/30'
-                    } rounded-lg shadow-sm dark:shadow-none`}>
+                    <div className={`flex items-center gap-2 px-3 py-2 ${coverPhoto
+                      ? 'bg-amber-100/95 dark:bg-amber-500/25 backdrop-blur-md border border-amber-300/50 dark:border-amber-400/40'
+                      : 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-500/[0.15] dark:to-orange-500/[0.12] border border-amber-200/60 dark:border-amber-400/30'
+                      } rounded-lg shadow-sm dark:shadow-none`}>
                       <Send className="w-3.5 h-3.5 text-amber-600 dark:text-amber-300" />
                       <span className="text-base font-bold text-amber-700 dark:text-amber-200 tabular-nums">{stats.emailsSent}</span>
                       <span className="text-[10px] text-amber-600/70 dark:text-amber-300/80 uppercase tracking-wider">Sent</span>
                     </div>
 
                     {/* Opened */}
-                    <div className={`flex items-center gap-2 px-3 py-2 ${
-                      coverPhoto
-                        ? 'bg-blue-100/95 dark:bg-blue-500/25 backdrop-blur-md border border-blue-300/50 dark:border-blue-400/40'
-                        : 'bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-500/[0.15] dark:to-cyan-500/[0.12] border border-blue-200/60 dark:border-blue-400/30'
-                    } rounded-lg shadow-sm dark:shadow-none`}>
+                    <div className={`flex items-center gap-2 px-3 py-2 ${coverPhoto
+                      ? 'bg-blue-100/95 dark:bg-blue-500/25 backdrop-blur-md border border-blue-300/50 dark:border-blue-400/40'
+                      : 'bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-500/[0.15] dark:to-cyan-500/[0.12] border border-blue-200/60 dark:border-blue-400/30'
+                      } rounded-lg shadow-sm dark:shadow-none`}>
                       <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-blue-300" />
                       <span className="text-base font-bold text-blue-700 dark:text-blue-200 tabular-nums">{stats.opened}</span>
                       <span className="text-[10px] text-blue-600/70 dark:text-blue-300/80 uppercase tracking-wider">Opened</span>
                     </div>
 
                     {/* Replied */}
-                    <div className={`flex items-center gap-2 px-3 py-2 ${
-                      coverPhoto
-                        ? 'bg-emerald-100/95 dark:bg-emerald-500/25 backdrop-blur-md border border-emerald-300/50 dark:border-emerald-400/40'
-                        : 'bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/[0.15] dark:to-teal-500/[0.12] border border-emerald-200/60 dark:border-emerald-400/30'
-                    } rounded-lg shadow-sm dark:shadow-none`}>
+                    <div className={`flex items-center gap-2 px-3 py-2 ${coverPhoto
+                      ? 'bg-emerald-100/95 dark:bg-emerald-500/25 backdrop-blur-md border border-emerald-300/50 dark:border-emerald-400/40'
+                      : 'bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/[0.15] dark:to-teal-500/[0.12] border border-emerald-200/60 dark:border-emerald-400/30'
+                      } rounded-lg shadow-sm dark:shadow-none`}>
                       <Reply className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" />
                       <span className="text-base font-bold text-emerald-700 dark:text-emerald-200 tabular-nums">{stats.replied}</span>
                       <span className="text-[10px] text-emerald-600/70 dark:text-emerald-300/80 uppercase tracking-wider">Replied</span>
@@ -1751,12 +1750,12 @@ export default function CampaignsAutoPage() {
                     )}
                   </div>
                 )}
-                
+
                 {/* Targeting Tags */}
                 <div className="flex items-center gap-2 overflow-x-auto scrollbar-none flex-1 py-0.5">
                   {selectedCampaign.targeting?.personTitles?.map(title => (
-                    <span 
-                      key={title} 
+                    <span
+                      key={title}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
                         text-gray-600 dark:text-gray-300 text-[11px] font-medium rounded-lg whitespace-nowrap hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors"
                     >
@@ -1765,8 +1764,8 @@ export default function CampaignsAutoPage() {
                     </span>
                   ))}
                   {selectedCampaign.targeting?.personLocations?.map(loc => (
-                    <span 
-                      key={loc} 
+                    <span
+                      key={loc}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
                         text-gray-600 dark:text-gray-300 text-[11px] font-medium rounded-lg whitespace-nowrap hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors"
                     >
@@ -1775,8 +1774,8 @@ export default function CampaignsAutoPage() {
                     </span>
                   ))}
                   {selectedCampaign.targeting?.industries?.map(ind => (
-                    <span 
-                      key={ind} 
+                    <span
+                      key={ind}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
                         text-gray-600 dark:text-gray-300 text-[11px] font-medium rounded-lg whitespace-nowrap hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors"
                     >
@@ -1811,8 +1810,8 @@ export default function CampaignsAutoPage() {
                         <Wand2 className="w-3 h-3" />
                       )}
                       <span>
-                        {isGeneratingEmails 
-                          ? `${emailProgress ? `${emailProgress.initialPending - recipients.filter(r => !r.emailGenerated).length}/${emailProgress.initialPending}` : '...'}` 
+                        {isGeneratingEmails
+                          ? `${emailProgress ? `${emailProgress.initialPending - recipients.filter(r => !r.emailGenerated).length}/${emailProgress.initialPending}` : '...'}`
                           : recipients.filter(r => !r.emailGenerated).length === 0
                             ? 'All Generated'
                             : `Generate (${recipients.filter(r => !r.emailGenerated).length})`
@@ -1868,614 +1867,624 @@ export default function CampaignsAutoPage() {
 
           {/* Premium Data Table - Linear/Notion Style */}
           {(campaigns.length > 0 || recipients.length > 0) && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
-            className="flex-1 min-h-0 mx-6 border border-gray-200/60 dark:border-white/[0.06] rounded-2xl overflow-hidden flex flex-col 
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3 }}
+              className="flex-1 min-h-0 mx-6 border border-gray-200/60 dark:border-white/[0.06] rounded-2xl overflow-hidden flex flex-col 
               bg-white dark:bg-[#2b2a2c] shadow-lg dark:shadow-2xl dark:shadow-black/40 backdrop-blur-sm"
-            style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" }}
-          >
-            <div className="flex-1 min-h-0 overflow-auto scrollbar-thin scrollbar-thumb-gray-300/50 dark:scrollbar-thumb-white/[0.12] 
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" }}
+            >
+              <div className="flex-1 min-h-0 overflow-auto scrollbar-thin scrollbar-thumb-gray-300/50 dark:scrollbar-thumb-white/[0.12] 
               scrollbar-track-transparent hover:scrollbar-thumb-gray-400/70 dark:hover:scrollbar-thumb-white/[0.18] transition-colors">
-              <table ref={tableRef} className="w-full border-collapse table-fixed">
-                {/* Premium Header with Glassmorphism */}
-                <thead className="sticky top-0 z-20">
-                  <tr className="border-b border-gray-200/80 dark:border-white/[0.05] bg-gradient-to-b from-white via-white to-gray-50/50 
+                <table ref={tableRef} className="w-full border-collapse table-fixed">
+                  {/* Premium Header with Glassmorphism */}
+                  <thead className="sticky top-0 z-20">
+                    <tr className="border-b border-gray-200/80 dark:border-white/[0.05] bg-gradient-to-b from-white via-white to-gray-50/50 
                     dark:from-[#2b2a2c] dark:via-[#2b2a2c] dark:to-[#2a2829] backdrop-blur-md">
-                    {/* Contact Header */}
-                    <th 
-                      style={{ width: `${columnWidths.contact}%` }} 
-                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                      {/* Contact Header */}
+                      <th
+                        style={{ width: `${columnWidths.contact}%` }}
+                        className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
                         dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
                         cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
                         active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
-                      onClick={() => handleSort('contact')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <User className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400" />
-                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Contact</span>
-                        <div className={`transition-all duration-200 ${sortColumn === 'contact' ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'}`}>
-                          {sortColumn === 'contact' && sortDirection === 'desc' ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
-                          ) : (
-                            <ChevronUp className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
-                          )}
+                        onClick={() => handleSort('contact')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <User className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400" />
+                          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Contact</span>
+                          <div className={`transition-all duration-200 ${sortColumn === 'contact' ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'}`}>
+                            {sortColumn === 'contact' && sortDirection === 'desc' ? (
+                              <ChevronDown className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
+                            ) : (
+                              <ChevronUp className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div 
-                        onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'contact'); }}
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize 
+                        <div
+                          onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'contact'); }}
+                          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize 
                           bg-transparent hover:bg-violet-400/40 dark:hover:bg-violet-500/50 
                           active:bg-violet-500 dark:active:bg-violet-400 transition-all duration-200"
-                      />
-                    </th>
-                    
-                    {/* Title Header */}
-                    <th 
-                      style={{ width: `${columnWidths.title}%` }} 
-                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                        />
+                      </th>
+
+                      {/* Title Header */}
+                      <th
+                        style={{ width: `${columnWidths.title}%` }}
+                        className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
                         dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
                         cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
                         active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
-                      onClick={() => handleSort('title')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Briefcase className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Title</span>
-                        <div className={`transition-all duration-200 ${sortColumn === 'title' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
-                          {sortColumn === 'title' && sortDirection === 'desc' ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
-                          ) : (
-                            <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
-                          )}
+                        onClick={() => handleSort('title')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Title</span>
+                          <div className={`transition-all duration-200 ${sortColumn === 'title' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                            {sortColumn === 'title' && sortDirection === 'desc' ? (
+                              <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
+                            ) : (
+                              <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div 
-                        onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'title'); }}
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
-                      />
-                    </th>
-                    
-                    {/* Company Header */}
-                    <th 
-                      style={{ width: `${columnWidths.company}%` }} 
-                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                        <div
+                          onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'title'); }}
+                          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
+                        />
+                      </th>
+
+                      {/* Company Header */}
+                      <th
+                        style={{ width: `${columnWidths.company}%` }}
+                        className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
                         dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
                         cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
                         active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
-                      onClick={() => handleSort('company')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Company</span>
-                        <div className={`transition-all duration-200 ${sortColumn === 'company' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
-                          {sortColumn === 'company' && sortDirection === 'desc' ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
-                          ) : (
-                            <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
-                          )}
+                        onClick={() => handleSort('company')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Company</span>
+                          <div className={`transition-all duration-200 ${sortColumn === 'company' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                            {sortColumn === 'company' && sortDirection === 'desc' ? (
+                              <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
+                            ) : (
+                              <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div 
-                        onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'company'); }}
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
-                      />
-                    </th>
-                    
-                    {/* Location Header */}
-                    <th 
-                      style={{ width: `${columnWidths.location}%` }} 
-                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                        <div
+                          onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'company'); }}
+                          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
+                        />
+                      </th>
+
+                      {/* Location Header */}
+                      <th
+                        style={{ width: `${columnWidths.location}%` }}
+                        className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
                         dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
                         cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
                         active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
-                      onClick={() => handleSort('location')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Location</span>
-                        <div className={`transition-all duration-200 ${sortColumn === 'location' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
-                          {sortColumn === 'location' && sortDirection === 'desc' ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
-                          ) : (
-                            <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
-                          )}
+                        onClick={() => handleSort('location')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Location</span>
+                          <div className={`transition-all duration-200 ${sortColumn === 'location' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                            {sortColumn === 'location' && sortDirection === 'desc' ? (
+                              <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
+                            ) : (
+                              <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div 
-                        onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'location'); }}
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
-                      />
-                    </th>
-                    
-                    {/* Email Header */}
-                    <th 
-                      style={{ width: `${columnWidths.email}%` }} 
-                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                        <div
+                          onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'location'); }}
+                          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
+                        />
+                      </th>
+
+                      {/* Email Header */}
+                      <th
+                        style={{ width: `${columnWidths.email}%` }}
+                        className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
                         dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
                         cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
                         active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
-                      onClick={() => handleSort('email')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</span>
-                        <div className={`transition-all duration-200 ${sortColumn === 'email' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
-                          {sortColumn === 'email' && sortDirection === 'desc' ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
-                          ) : (
-                            <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
-                          )}
+                        onClick={() => handleSort('email')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</span>
+                          <div className={`transition-all duration-200 ${sortColumn === 'email' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                            {sortColumn === 'email' && sortDirection === 'desc' ? (
+                              <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
+                            ) : (
+                              <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div 
-                        onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'email'); }}
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
-                      />
-                    </th>
-                    
-                    {/* LinkedIn Header */}
-                    <th 
-                      style={{ width: `${columnWidths.linkedin}%` }} 
-                      className="relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                        <div
+                          onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'email'); }}
+                          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
+                        />
+                      </th>
+
+                      {/* LinkedIn Header */}
+                      <th
+                        style={{ width: `${columnWidths.linkedin}%` }}
+                        className="relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
                         dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
                         transition-colors duration-200"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Linkedin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">LinkedIn</span>
-                      </div>
-                      <div 
-                        onMouseDown={(e) => handleResizeStart(e, 'linkedin')}
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
-                      />
-                    </th>
-                    
-                    {/* Status Header */}
-                    <th 
-                      style={{ width: `${columnWidths.status}%` }} 
-                      className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                      >
+                        <div className="flex items-center gap-2">
+                          <Linkedin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">LinkedIn</span>
+                        </div>
+                        <div
+                          onMouseDown={(e) => handleResizeStart(e, 'linkedin')}
+                          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
+                        />
+                      </th>
+
+                      {/* Status Header */}
+                      <th
+                        style={{ width: `${columnWidths.status}%` }}
+                        className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
                         dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
                         cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
                         active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
-                      onClick={() => handleSort('status')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Activity className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</span>
-                        <div className={`transition-all duration-200 ${sortColumn === 'status' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
-                          {sortColumn === 'status' && sortDirection === 'desc' ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
-                          ) : (
-                            <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
-                          )}
+                        onClick={() => handleSort('status')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Activity className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</span>
+                          <div className={`transition-all duration-200 ${sortColumn === 'status' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                            {sortColumn === 'status' && sortDirection === 'desc' ? (
+                              <ChevronDown className="w-3.5 h-3.5 text-violet-500" />
+                            ) : (
+                              <ChevronUp className="w-3.5 h-3.5 text-violet-500" />
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div 
-                        onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'status'); }}
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
-                      />
-                    </th>
-                    
-                    {/* Actions Header */}
-                    <th 
-                      style={{ width: `${columnWidths.actions}%` }} 
-                      className="px-4 py-3.5 text-center bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
+                        <div
+                          onMouseDown={(e) => { e.stopPropagation(); handleResizeStart(e, 'status'); }}
+                          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-violet-500 transition-colors"
+                        />
+                      </th>
+
+                      {/* Actions Header */}
+                      <th
+                        style={{ width: `${columnWidths.actions}%` }}
+                        className="px-4 py-3.5 text-center bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
                         dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
                         backdrop-blur-md transition-colors duration-200"
-                    >
-                      <div className="flex items-center justify-center gap-2">
-                        <Zap className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</span>
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                
-                <tbody className="divide-y divide-gray-100/50 dark:divide-white/[0.03]">
-                  {/* Loading State with Premium Skeleton */}
-                  {isLoadingRecipients ? (
-                    Array.from({ length: 8 }).map((_, i) => (
-                      <tr key={i} className="animate-pulse">
-                        <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200/60 to-gray-300/40 dark:from-white/[0.08] dark:to-white/[0.04]" />
-                            <div className="flex-1 space-y-2">
-                              <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-24" />
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <Zap className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</span>
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-gray-100/50 dark:divide-white/[0.03]">
+                    {/* Loading State with Premium Skeleton */}
+                    {isLoadingRecipients ? (
+                      Array.from({ length: 8 }).map((_, i) => (
+                        <tr key={i} className="animate-pulse">
+                          <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200/60 to-gray-300/40 dark:from-white/[0.08] dark:to-white/[0.04]" />
+                              <div className="flex-1 space-y-2">
+                                <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-24" />
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
-                          <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-32" />
-                        </td>
-                        <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
-                          <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
-                            <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-20" />
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
-                          <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-28" />
-                        </td>
-                        <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
-                          <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-36" />
-                        </td>
-                        <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
-                          <div className="w-6 h-6 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
-                        </td>
-                        <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
-                          <div className="h-6 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-16" />
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center justify-center gap-1">
-                            <div className="w-7 h-7 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
-                            <div className="w-7 h-7 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
-                          </div>
+                          </td>
+                          <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
+                            <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-32" />
+                          </td>
+                          <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
+                              <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-20" />
+                            </div>
+                          </td>
+                          <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
+                            <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-28" />
+                          </td>
+                          <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
+                            <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-36" />
+                          </td>
+                          <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
+                            <div className="w-6 h-6 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
+                          </td>
+                          <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
+                            <div className="h-6 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-16" />
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <div className="flex items-center justify-center gap-1">
+                              <div className="w-7 h-7 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
+                              <div className="w-7 h-7 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : recipients.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="px-6 py-20 text-center">
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex flex-col items-center"
+                          >
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-white/[0.05] dark:to-white/[0.02] flex items-center justify-center mb-4 shadow-inner">
+                              <Users className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                            </div>
+                            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-1">No contacts yet</h3>
+                            <p className="text-[13px] text-gray-500 dark:text-gray-500 max-w-xs">
+                              {selectedCampaign ? 'No contacts found for this campaign. Try adjusting your targeting criteria.' : 'Select a campaign to view contacts.'}
+                            </p>
+                          </motion.div>
                         </td>
                       </tr>
-                    ))
-                  ) : recipients.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="px-6 py-20 text-center">
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex flex-col items-center"
-                        >
-                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-white/[0.05] dark:to-white/[0.02] flex items-center justify-center mb-4 shadow-inner">
-                            <Users className="w-8 h-8 text-gray-400 dark:text-gray-500" />
-                          </div>
-                          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-1">No contacts yet</h3>
-                          <p className="text-[13px] text-gray-500 dark:text-gray-500 max-w-xs">
-                            {selectedCampaign ? 'No contacts found for this campaign. Try adjusting your targeting criteria.' : 'Select a campaign to view contacts.'}
-                          </p>
-                        </motion.div>
-                      </td>
-                    </tr>
-                  ) : sortedRecipients.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="px-6 py-20 text-center">
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex flex-col items-center"
-                        >
-                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-100 to-purple-200 dark:from-violet-500/10 dark:to-purple-500/5 flex items-center justify-center mb-4">
-                            <Search className="w-8 h-8 text-violet-500 dark:text-violet-400" />
-                          </div>
-                          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-1">No results found</h3>
-                          <p className="text-[13px] text-gray-500 dark:text-gray-500 mb-3">
-                            No contacts match "{searchQuery}"
-                          </p>
-                          <button
-                            onClick={() => setSearchQuery('')}
-                            className="text-sm font-medium text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
+                    ) : sortedRecipients.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="px-6 py-20 text-center">
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex flex-col items-center"
                           >
-                            Clear search
-                          </button>
-                        </motion.div>
-                      </td>
-                    </tr>
-                  ) : (
-                    sortedRecipients.map((recipient, index) => (
-                      <motion.tr 
-                        key={recipient.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.2, delay: 0.015 * Math.min(index, 20) }}
-                        className={`group relative transition-all duration-200 ease-out
-                          ${index % 2 === 0 
-                            ? 'bg-white dark:bg-[#2b2a2c]' 
-                            : 'bg-gray-50/40 dark:bg-[#2a2829]'
-                          }
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-100 to-purple-200 dark:from-violet-500/10 dark:to-purple-500/5 flex items-center justify-center mb-4">
+                              <Search className="w-8 h-8 text-violet-500 dark:text-violet-400" />
+                            </div>
+                            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-1">No results found</h3>
+                            <p className="text-[13px] text-gray-500 dark:text-gray-500 mb-3">
+                              No contacts match "{searchQuery}"
+                            </p>
+                            <button
+                              onClick={() => setSearchQuery('')}
+                              className="text-sm font-medium text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
+                            >
+                              Clear search
+                            </button>
+                          </motion.div>
+                        </td>
+                      </tr>
+                    ) : (
+                      sortedRecipients.map((recipient, index) => (
+                        <motion.tr
+                          key={recipient.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.2, delay: 0.015 * Math.min(index, 20) }}
+                          className={`group relative transition-all duration-200 ease-out
+                          ${index % 2 === 0
+                              ? 'bg-white dark:bg-[#2b2a2c]'
+                              : 'bg-gray-50/40 dark:bg-[#2a2829]'
+                            }
                           hover:bg-gray-50/90 dark:hover:bg-white/[0.02] 
                           hover:shadow-[0_1px_3px_-1px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_1px_3px_-1px_rgba(0,0,0,0.4)]
                           active:bg-gray-100/80 dark:active:bg-white/[0.03]
                           border-l-[3px] ${getStatusBorderColor(recipient.status)}`}
-                      >
-                        {/* Contact Cell with Avatar */}
-                        <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
-                          <div className="flex items-center gap-3">
-                            {/* Premium Gendered Avatar */}
-                            <div className="relative flex-shrink-0">
-                              <ProfileAvatar
-                                config={generateGenderedAvatarConfig(recipient.firstName, recipient.id)}
-                                size={32}
-                                className="rounded-full shadow-sm"
-                              />
-                              {recipient.status === 'replied' && (
-                                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0a0a0a] flex items-center justify-center">
-                                  <Check className="w-2 h-2 text-white" strokeWidth={3} />
-                                </div>
-                              )}
-                            </div>
-                            <span className="text-[13px] font-medium text-gray-900 dark:text-gray-50 truncate 
+                        >
+                          {/* Contact Cell with Avatar */}
+                          <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
+                            <div className="flex items-center gap-3">
+                              {/* Premium Gendered Avatar */}
+                              <div className="relative flex-shrink-0">
+                                <ProfileAvatar
+                                  config={generateGenderedAvatarConfig(recipient.firstName, recipient.id)}
+                                  size={32}
+                                  className="rounded-full shadow-sm"
+                                />
+                                {recipient.status === 'replied' && (
+                                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0a0a0a] flex items-center justify-center">
+                                    <Check className="w-2 h-2 text-white" strokeWidth={3} />
+                                  </div>
+                                )}
+                              </div>
+                              <span className="text-[13px] font-medium text-gray-900 dark:text-gray-50 truncate 
                               group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors cursor-default">
-                              {recipient.fullName}
-                            </span>
-                          </div>
-                        </td>
-                        
-                        {/* Title Cell */}
-                        <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
-                          <span className="text-[13px] text-gray-700 dark:text-gray-300 truncate block">
-                            {recipient.title || <span className="text-gray-300 dark:text-gray-600/60">—</span>}
-                          </span>
-                        </td>
-                        
-                        {/* Company Cell with Logo */}
-                        <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
-                          <div className="flex items-center gap-2.5">
-                            {recipient.company && (
-                              <CompanyLogo companyName={recipient.company} size="sm" />
-                            )}
-                            <span className="text-[13px] font-medium text-gray-800 dark:text-gray-100 truncate">
-                              {recipient.company || <span className="text-gray-300 dark:text-gray-600 font-normal">—</span>}
-                            </span>
-                          </div>
-                        </td>
-                        
-                        {/* Location Cell */}
-                        <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
-                          {recipient.location ? (
-                            <div className="flex items-center gap-1.5">
-                              <Globe className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 flex-shrink-0" />
-                              <span className="text-[13px] text-gray-700 dark:text-gray-300 truncate">
-                                {recipient.location}
+                                {recipient.fullName}
                               </span>
                             </div>
-                          ) : (
-                            <span className="text-[13px] text-gray-300 dark:text-gray-600">—</span>
-                          )}
-                        </td>
-                        
-                        {/* Email Cell with Copy */}
-                        <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
-                          {recipient.email && !recipient.email.includes('not_unlocked') ? (
-                            <div className="flex items-center gap-2 group/email">
-                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                <BadgeCheck className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
+                          </td>
+
+                          {/* Title Cell */}
+                          <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
+                            <span className="text-[13px] text-gray-700 dark:text-gray-300 truncate block">
+                              {recipient.title || <span className="text-gray-300 dark:text-gray-600/60">—</span>}
+                            </span>
+                          </td>
+
+                          {/* Company Cell with Logo */}
+                          <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
+                            <div className="flex items-center gap-2.5">
+                              {recipient.company && (
+                                recipient.isDemo && recipient.companyInitialsLogo ? (
+                                  <div
+                                    className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm"
+                                    style={{ backgroundColor: recipient.companyInitialsLogo.color }}
+                                  >
+                                    <span className="text-xs font-semibold text-white drop-shadow-sm">
+                                      {recipient.companyInitialsLogo.initials}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <CompanyLogo companyName={recipient.company} size="sm" />
+                                )
+                              )}
+                              <span className="text-[13px] font-medium text-gray-800 dark:text-gray-100 truncate">
+                                {recipient.company || <span className="text-gray-300 dark:text-gray-600 font-normal">—</span>}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Location Cell */}
+                          <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
+                            {recipient.location ? (
+                              <div className="flex items-center gap-1.5">
+                                <Globe className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 flex-shrink-0" />
                                 <span className="text-[13px] text-gray-700 dark:text-gray-300 truncate">
-                                  {recipient.email}
+                                  {recipient.location}
                                 </span>
                               </div>
-                              <button
-                                onClick={() => handleCopyEmail(recipient.email!)}
-                                className={`p-1 rounded transition-all duration-200 opacity-0 group-hover/email:opacity-100
-                                  ${copiedEmail === recipient.email 
-                                    ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' 
-                                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]'
-                                  }`}
-                                title="Copy email"
-                              >
-                                {copiedEmail === recipient.email ? (
-                                  <Check className="w-3.5 h-3.5" />
-                                ) : (
-                                  <Copy className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-[13px] text-gray-300 dark:text-gray-600">—</span>
-                          )}
-                        </td>
-                        
-                        {/* LinkedIn Cell */}
-                        <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
-                          {recipient.linkedinUrl ? (
-                            <a
-                              href={recipient.linkedinUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg
+                            ) : (
+                              <span className="text-[13px] text-gray-300 dark:text-gray-600">—</span>
+                            )}
+                          </td>
+
+                          {/* Email Cell with Copy */}
+                          <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
+                            {recipient.email && !recipient.email.includes('not_unlocked') ? (
+                              <div className="flex items-center gap-2 group/email">
+                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                  <BadgeCheck className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
+                                  <span className="text-[13px] text-gray-700 dark:text-gray-300 truncate">
+                                    {recipient.email}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => handleCopyEmail(recipient.email!)}
+                                  className={`p-1 rounded transition-all duration-200 opacity-0 group-hover/email:opacity-100
+                                  ${copiedEmail === recipient.email
+                                      ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10'
+                                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]'
+                                    }`}
+                                  title="Copy email"
+                                >
+                                  {copiedEmail === recipient.email ? (
+                                    <Check className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[13px] text-gray-300 dark:text-gray-600">—</span>
+                            )}
+                          </td>
+
+                          {/* LinkedIn Cell */}
+                          <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
+                            {recipient.linkedinUrl ? (
+                              <a
+                                href={recipient.linkedinUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-lg
                                 text-[#0A66C2] dark:text-[#71b7fb] 
                                 hover:bg-[#0A66C2]/10 dark:hover:bg-[#71b7fb]/10 
                                 hover:shadow-[0_0_0_4px_rgba(10,102,194,0.1)] dark:hover:shadow-[0_0_0_4px_rgba(113,183,251,0.1)]
                                 transition-all duration-200"
-                              title="View LinkedIn Profile"
+                                title="View LinkedIn Profile"
+                              >
+                                <Linkedin className="w-4 h-4" />
+                              </a>
+                            ) : (
+                              <span className="text-[13px] text-gray-300 dark:text-gray-600">—</span>
+                            )}
+                          </td>
+
+                          {/* Status Cell with Premium Badge */}
+                          <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold
+                            ${recipient.status === 'replied'
+                                ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200/50 dark:ring-emerald-500/20'
+                                : recipient.status === 'opened'
+                                  ? 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-500/10 dark:to-cyan-500/10 text-blue-700 dark:text-blue-400 ring-1 ring-blue-200/50 dark:ring-blue-500/20'
+                                  : recipient.status === 'sent'
+                                    ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200/50 dark:ring-amber-500/20'
+                                    : recipient.status === 'email_generated' || recipient.status === 'email_ready'
+                                      ? 'bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-500/10 dark:to-purple-500/10 text-violet-700 dark:text-violet-400 ring-1 ring-violet-200/50 dark:ring-violet-500/20'
+                                      : 'bg-gray-100 dark:bg-white/[0.05] text-gray-500 dark:text-gray-500 ring-1 ring-gray-200/50 dark:ring-white/[0.05]'
+                              }`}
                             >
-                              <Linkedin className="w-4 h-4" />
-                            </a>
-                          ) : (
-                            <span className="text-[13px] text-gray-300 dark:text-gray-600">—</span>
-                          )}
-                        </td>
-                        
-                        {/* Status Cell with Premium Badge */}
-                        <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold
-                            ${recipient.status === 'replied' 
-                              ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200/50 dark:ring-emerald-500/20' 
-                              : recipient.status === 'opened' 
-                              ? 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-500/10 dark:to-cyan-500/10 text-blue-700 dark:text-blue-400 ring-1 ring-blue-200/50 dark:ring-blue-500/20' 
-                              : recipient.status === 'sent' 
-                              ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200/50 dark:ring-amber-500/20' 
-                              : recipient.status === 'email_generated' || recipient.status === 'email_ready'
-                              ? 'bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-500/10 dark:to-purple-500/10 text-violet-700 dark:text-violet-400 ring-1 ring-violet-200/50 dark:ring-violet-500/20' 
-                              : 'bg-gray-100 dark:bg-white/[0.05] text-gray-500 dark:text-gray-500 ring-1 ring-gray-200/50 dark:ring-white/[0.05]'
-                            }`}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full ${
-                              recipient.status === 'replied' ? 'bg-emerald-500 animate-pulse' :
-                              recipient.status === 'opened' ? 'bg-blue-500' :
-                              recipient.status === 'sent' ? 'bg-amber-500 animate-pulse' :
-                              recipient.status === 'email_generated' || recipient.status === 'email_ready' ? 'bg-violet-500' :
-                              'bg-gray-400 dark:bg-[#4a494b]'
-                            }`} />
-                            {getStatusLabel(recipient.status)}
-                          </span>
-                        </td>
-                        
-                        {/* Actions Cell */}
-                        <td className="px-3 py-3">
-                          <div className="flex items-center justify-center gap-1">
-                            <button
-                              onClick={() => setEmailPreviewRecipient(recipient)}
-                              disabled={!recipient.emailGenerated}
-                              className={`p-1.5 rounded-lg transition-all duration-200 ${
-                                recipient.emailGenerated 
+                              <span className={`w-1.5 h-1.5 rounded-full ${recipient.status === 'replied' ? 'bg-emerald-500 animate-pulse' :
+                                recipient.status === 'opened' ? 'bg-blue-500' :
+                                  recipient.status === 'sent' ? 'bg-amber-500 animate-pulse' :
+                                    recipient.status === 'email_generated' || recipient.status === 'email_ready' ? 'bg-violet-500' :
+                                      'bg-gray-400 dark:bg-[#4a494b]'
+                                }`} />
+                              {getStatusLabel(recipient.status)}
+                            </span>
+                          </td>
+
+                          {/* Actions Cell */}
+                          <td className="px-3 py-3">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => setEmailPreviewRecipient(recipient)}
+                                disabled={!recipient.emailGenerated}
+                                className={`p-1.5 rounded-lg transition-all duration-200 ${recipient.emailGenerated
                                   ? 'text-gray-400 dark:text-gray-500 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50/80 dark:hover:bg-violet-500/15 hover:shadow-sm hover:scale-105 active:scale-95'
                                   : 'text-gray-200 dark:text-gray-700/50 cursor-not-allowed opacity-50'
-                              }`}
-                              title={recipient.emailGenerated ? "View email" : "Email not generated yet"}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleViewReply(recipient)}
-                              disabled={recipient.status !== 'replied'}
-                              className={`p-1.5 rounded-lg transition-all duration-200 ${
-                                recipient.status === 'replied'
+                                  }`}
+                                title={recipient.emailGenerated ? "View email" : "Email not generated yet"}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleViewReply(recipient)}
+                                disabled={recipient.status !== 'replied'}
+                                className={`p-1.5 rounded-lg transition-all duration-200 ${recipient.status === 'replied'
                                   ? 'text-emerald-500 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-emerald-50/80 dark:hover:bg-emerald-500/15 hover:shadow-sm hover:scale-105 active:scale-95'
                                   : 'text-gray-200 dark:text-gray-700/50 cursor-not-allowed opacity-50'
-                              }`}
-                              title={recipient.status === 'replied' ? "View reply" : "No reply yet"}
-                            >
-                              <Reply className="w-4 h-4" />
-                            </button>
-                            <div className="relative" ref={(el) => {
-                              if (el) menuRefs.current.set(recipient.id, el);
-                            }}>
-                              <button
-                                onClick={() => setOpenMenuRecipientId(openMenuRecipientId === recipient.id ? null : recipient.id)}
-                                className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 
+                                  }`}
+                                title={recipient.status === 'replied' ? "View reply" : "No reply yet"}
+                              >
+                                <Reply className="w-4 h-4" />
+                              </button>
+                              <div className="relative" ref={(el) => {
+                                if (el) menuRefs.current.set(recipient.id, el);
+                              }}>
+                                <button
+                                  onClick={() => setOpenMenuRecipientId(openMenuRecipientId === recipient.id ? null : recipient.id)}
+                                  className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 
                                   hover:bg-gray-100/80 dark:hover:bg-white/[0.08] active:bg-gray-200/60 dark:active:bg-white/[0.12]
                                   transition-all duration-200 hover:scale-105 active:scale-95
                                   opacity-0 group-hover:opacity-100"
-                                title="More options"
-                              >
-                                <MoreHorizontal className="w-4 h-4" />
-                              </button>
-                              
-                              {/* Dropdown Menu */}
-                              {openMenuRecipientId === recipient.id && (
-                                <motion.div
-                                  initial={{ opacity: 0, scale: 0.95, y: -5 }}
-                                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                                  exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                                  transition={{ duration: 0.15 }}
-                                  className="absolute right-0 top-full mt-1 z-50 w-48 bg-white dark:bg-[#1a1a1a] 
+                                  title="More options"
+                                >
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </button>
+
+                                {/* Dropdown Menu */}
+                                {openMenuRecipientId === recipient.id && (
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: -5 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="absolute right-0 top-full mt-1 z-50 w-48 bg-white dark:bg-[#1a1a1a] 
                                     rounded-xl shadow-xl dark:shadow-2xl border border-gray-200/80 dark:border-white/[0.08] 
                                     py-1.5 backdrop-blur-sm"
-                                >
-                                  <button
-                                    onClick={() => handleAddToBoard(recipient)}
-                                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 
+                                  >
+                                    <button
+                                      onClick={() => handleAddToBoard(recipient)}
+                                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 
                                       hover:bg-gray-50 dark:hover:bg-white/[0.05] active:bg-gray-100 dark:active:bg-white/[0.08]
                                       transition-all duration-150"
-                                  >
-                                    <FolderKanban className="w-4 h-4" />
-                                    <span>Add to Board</span>
-                                  </button>
-                                  <div className="h-px bg-gray-100 dark:bg-white/[0.06] my-1" />
-                                  <button
-                                    onClick={() => handleRemoveRecipient(recipient.id)}
-                                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 
+                                    >
+                                      <FolderKanban className="w-4 h-4" />
+                                      <span>Add to Board</span>
+                                    </button>
+                                    <div className="h-px bg-gray-100 dark:bg-white/[0.06] my-1" />
+                                    <button
+                                      onClick={() => handleRemoveRecipient(recipient.id)}
+                                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 
                                       hover:bg-red-50 dark:hover:bg-red-500/10 active:bg-red-100 dark:active:bg-red-500/15
                                       transition-all duration-150"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                    <span>Remove</span>
-                                  </button>
-                                </motion.div>
-                              )}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                      <span>Remove</span>
+                                    </button>
+                                  </motion.div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-            
-            {/* Premium Table Footer */}
-            {sortedRecipients.length > 0 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200/60 dark:border-white/[0.04] 
-                bg-gradient-to-b from-gray-50/30 via-white to-white dark:from-[#2a2829] dark:via-[#2a2829] dark:to-[#2b2a2c]">
-                <div className="text-[12px] text-gray-500 dark:text-gray-400">
-                  Showing <span className="font-semibold text-gray-700 dark:text-gray-200">{sortedRecipients.length}</span> of <span className="font-semibold text-gray-700 dark:text-gray-200">{recipients.length}</span> contacts
-                </div>
-                <div className="flex items-center gap-2">
-                  <button className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 
-                    hover:bg-gray-100/80 dark:hover:bg-white/[0.06] active:bg-gray-200/60 dark:active:bg-white/[0.08]
-                    transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                    disabled
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <span className="text-[12px] text-gray-500 dark:text-gray-400 px-2">Page 1 of 1</span>
-                  <button className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 
-                    hover:bg-gray-100/80 dark:hover:bg-white/[0.06] active:bg-gray-200/60 dark:active:bg-white/[0.08]
-                    transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                    disabled
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
+                          </td>
+                        </motion.tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
-            )}
-          </motion.div>
+
+              {/* Premium Table Footer */}
+              {sortedRecipients.length > 0 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200/60 dark:border-white/[0.04] 
+                bg-gradient-to-b from-gray-50/30 via-white to-white dark:from-[#2a2829] dark:via-[#2a2829] dark:to-[#2b2a2c]">
+                  <div className="text-[12px] text-gray-500 dark:text-gray-400">
+                    Showing <span className="font-semibold text-gray-700 dark:text-gray-200">{sortedRecipients.length}</span> of <span className="font-semibold text-gray-700 dark:text-gray-200">{recipients.length}</span> contacts
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 
+                    hover:bg-gray-100/80 dark:hover:bg-white/[0.06] active:bg-gray-200/60 dark:active:bg-white/[0.08]
+                    transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                      disabled
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-[12px] text-gray-500 dark:text-gray-400 px-2">Page 1 of 1</span>
+                    <button className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 
+                    hover:bg-gray-100/80 dark:hover:bg-white/[0.06] active:bg-gray-200/60 dark:active:bg-white/[0.08]
+                    transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                      disabled
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
           )}
-          
+
           {/* Empty State - Only show when NO campaigns AND NO recipients exist */}
           {campaigns.length === 0 && recipients.length === 0 && !isLoadingRecipients && (
             <div className="flex-1 flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-[#2b2a2c] border-y border-gray-200 dark:border-[#3d3c3e]">
-                <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center mb-4">
-                  <Mail className="w-8 h-8 text-gray-400 dark:text-gray-500" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center mb-4">
+                <Mail className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                 No campaigns yet
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm mb-6">
-                  Start a new campaign to automatically reach out to potential employers and find interview opportunities.
-                </p>
-              <button 
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm mb-6">
+                Start a new campaign to automatically reach out to potential employers and find interview opportunities.
+              </p>
+              <button
                 onClick={() => setIsNewCampaignModalOpen(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
               >
-                  <Sparkles className="w-4 h-4" />
-                  <span>New Campaign</span>
-                </button>
-              </div>
-            )}
+                <Sparkles className="w-4 h-4" />
+                <span>New Campaign</span>
+              </button>
+            </div>
+          )}
 
-          {/* Apollo Search Loading Overlay */}
+          {/* Contact Search Loading Overlay - Minimalist */}
           <AnimatePresence>
             {isSearchingApollo && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+                className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a1a1a]/95"
               >
                 <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.9, opacity: 0 }}
-                  className="bg-white dark:bg-[#2b2a2c] rounded-2xl p-8 shadow-2xl flex flex-col items-center"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex flex-col items-center"
                 >
-                  <div className="relative w-16 h-16 mb-4">
-                    <div className="absolute inset-0 border-4 border-purple-200 dark:border-purple-900 rounded-full" />
-                    <div className="absolute inset-0 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                    <Search className="absolute inset-0 m-auto w-6 h-6 text-purple-500" />
+                  {/* Simple elegant spinner */}
+                  <div className="relative w-10 h-10 mb-5">
+                    <div className="absolute inset-0 rounded-full border-2 border-white/[0.08]" />
+                    <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-white/60 animate-spin" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                    Searching Apollo
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Finding contacts matching your criteria...
-                  </p>
-          </motion.div>
-          </motion.div>
+
+                  <span className="text-[15px] font-medium text-white/90 mb-1">
+                    Finding prospects
+                  </span>
+                  <span className="text-[13px] text-white/40">
+                    This may take a moment...
+                  </span>
+                </motion.div>
+              </motion.div>
             )}
           </AnimatePresence>
         </div>
@@ -2500,7 +2509,7 @@ export default function CampaignsAutoPage() {
         exportWidth={1584}
         exportHeight={396}
       />
-      
+
       <CoverPhotoGallery
         isOpen={isCoverGalleryOpen}
         onClose={() => setIsCoverGalleryOpen(false)}
@@ -2512,7 +2521,7 @@ export default function CampaignsAutoPage() {
       {/* Delete Campaign Confirmation Modal */}
       {deleteCampaignModal.show && deleteCampaignModal.campaign && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
@@ -2532,7 +2541,7 @@ export default function CampaignsAutoPage() {
             </div>
 
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              Are you sure you want to delete <strong>Campaign {campaigns.indexOf(deleteCampaignModal.campaign) + 1}</strong>? 
+              Are you sure you want to delete <strong>Campaign {campaigns.indexOf(deleteCampaignModal.campaign) + 1}</strong>?
               This will permanently delete all {deleteCampaignModal.campaign.stats?.contactsFound || 0} contacts and cannot be undone.
             </p>
 
@@ -2790,12 +2799,11 @@ export default function CampaignsAutoPage() {
                     {/* Status Badge */}
                     <div className="mt-6 flex items-center gap-3">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${getStatusStyles(emailPreviewRecipient.status)}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          emailPreviewRecipient.status === 'replied' ? 'bg-emerald-500' :
+                        <span className={`w-1.5 h-1.5 rounded-full ${emailPreviewRecipient.status === 'replied' ? 'bg-emerald-500' :
                           emailPreviewRecipient.status === 'opened' ? 'bg-blue-500' :
-                          emailPreviewRecipient.status === 'sent' ? 'bg-amber-500' :
-                          'bg-purple-500'
-                        }`} />
+                            emailPreviewRecipient.status === 'sent' ? 'bg-amber-500' :
+                              'bg-purple-500'
+                          }`} />
                         {getStatusLabel(emailPreviewRecipient.status)}
                       </span>
                       {emailPreviewRecipient.sentAt && (
