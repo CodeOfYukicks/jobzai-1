@@ -1,44 +1,50 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { XCircle, ArrowLeft } from 'lucide-react';
+import { X, ArrowLeft } from 'lucide-react';
 
 export default function PaymentCancelPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#333234] flex items-center justify-center px-4">
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-md w-full text-center"
       >
+        {/* Icon */}
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          transition={{ delay: 0.2, type: 'spring' }}
-          className="mb-6"
+          transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
+          className="mb-8"
         >
-          <XCircle className="h-20 w-20 text-orange-500 mx-auto" />
+          <div className="w-16 h-16 mx-auto rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+            <X className="h-8 w-8 text-orange-500" />
+          </div>
         </motion.div>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
-          Payment Cancelled
+        {/* Title */}
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+          Payment cancelled
         </h1>
 
-        <p className="text-gray-600 mb-6">
+        {/* Description */}
+        <p className="text-gray-500 dark:text-gray-400 mb-8">
           Your payment was cancelled. No charges were made to your account.
         </p>
 
+        {/* Button */}
         <button
           onClick={() => navigate('/billing')}
-          className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all flex items-center justify-center gap-2"
+          className="inline-flex items-center justify-center gap-2 px-6 py-2.5 
+            bg-[#635bff] text-white font-medium rounded-lg
+            hover:brightness-110 transition-all"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-4 w-4" />
           Back to Billing
         </button>
       </motion.div>
     </div>
   );
 }
-
-

@@ -425,7 +425,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname.startsWith('/whiteboard/');
 
   // Pages that should not be wrapped in a white card so they inherit the layout background
-  const isPlainBackground = location.pathname === '/recommendations' || location.pathname === '/recommendations-legacy' || location.pathname === '/dashboard';
+  const isPlainBackground = location.pathname === '/recommendations' || location.pathname === '/recommendations-legacy' || location.pathname === '/dashboard' || location.pathname === '/billing';
 
   // Pages that have their own full-page background (need to override AuthLayout background)
   const hasOwnBackground = location.pathname.startsWith('/ats-analysis/') && !location.pathname.endsWith('/cv-editor');

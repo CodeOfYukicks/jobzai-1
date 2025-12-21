@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { doc, onSnapshot, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  CreditCard, Plus, Check, Download, Calendar, TrendingUp, 
-  Zap, BarChart3, Users, FileText, Mail, Target, Sparkles,
-  ArrowRight, Crown, Gift, AlertCircle, Clock, Activity,
-  PieChart, ArrowUpRight, ArrowDownRight, Loader2
+import {
+  CreditCard, Plus, Check, Download, Calendar, TrendingUp,
+  Zap, FileText, Target, Activity, Loader2
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { getCreditHistory, type CreditHistoryEntry } from '../lib/creditHistory';
@@ -31,92 +29,90 @@ interface BillingInvoice {
   invoiceUrl?: string;
 }
 
-// Plans optimisés basés sur les features réelles de l'application
+// Minimalist coin icon component
+const CoinIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.5">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 6v12M9 9c0-1 1-2 3-2s3 1 3 2-1 2-3 2-3 1-3 2 1 2 3 2 3-1 3-2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+// Plans matching landing page
 const plans = [
   {
     id: 'free',
     name: 'Free',
-    price: '0',
-    period: 'month',
-    credits: 25,
-    description: 'Perfect for trying out the basics of Cubbbe',
-    icon: Gift,
-    color: 'gray',
+    price: { monthly: 0, biMonthly: 0 },
+    credits: '10 credits',
+    creditsValue: 10,
+    description: 'Start your job search journey with essential tools',
     features: [
-      { text: '25 Credits / month', included: true },
-      { text: 'Basic Job Application Templates', included: true },
-      { text: 'AI-Powered Cover Letter Assistance', included: true },
-      { text: 'Application Tracking Dashboard', included: true },
-      { text: 'Standard Email Support', included: true },
-      { text: 'CV Analysis (Limited)', included: true },
-      { text: 'Interview Prep (Basic)', included: true },
-      { text: 'Advanced Analytics', included: false },
-      { text: 'Automated Campaigns', included: false },
-      { text: 'Priority Support', included: false },
+      'Access to Job Board',
+      'Application Tracking',
+      'Calendar Follow-up View',
+      'Full Interview Prep',
+      '1 Resume Analysis / month',
+      '4 Resume Templates',
     ],
+    cta: 'Start Free',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
+        <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
   },
   {
     id: 'standard',
-    name: 'Standard',
-    price: '39',
-    period: 'month',
-    credits: 500,
-    description: 'Ideal for regular job seekers who need more credits and features.',
-    icon: Zap,
-    color: 'purple',
-    mostPopular: true,
+    name: 'Premium',
+    price: { monthly: 39, biMonthly: 75 },
+    credits: '250 credits',
+    creditsValue: 250,
+    description: 'Supercharge your applications with AI power',
     features: [
-      { text: '500 Credits / month', included: true, highlight: true },
-      { text: 'All Free Features', included: true },
-      { text: 'Automated Campaigns for targeted job applications', included: true },
-      { text: 'Basic Analytics (open rates, response rates)', included: true },
-      { text: 'AI-Generated Personalized Content', included: true },
-      { text: 'Advanced Email Templates', included: true },
-      { text: 'Priority Email Support', included: true },
-      { text: 'CV Analysis (Unlimited)', included: true },
-      { text: 'Interview Prep (Advanced)', included: true },
-      { text: 'Job Recommendations', included: true },
+      'Personalized Job Board',
+      'Track Applications + Outreach',
+      '2 Mock Interviews / month',
+      '10 Resume Analyses / month',
+      'Premium Resume Templates',
+      '2 Campaigns (200 contacts)',
     ],
+    cta: 'Get Premium',
+    popular: true,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
+        <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
   },
   {
     id: 'premium',
-    name: 'Premium',
-    price: '69',
-    period: 'month',
-    credits: 999999,
-    description: 'Designed for power users needing high-volume applications and advanced features.',
-    icon: Crown,
-    color: 'indigo',
+    name: 'Pro',
+    price: { monthly: 79, biMonthly: 139 },
+    credits: '500 credits',
+    creditsValue: 500,
+    description: 'The ultimate toolkit for ambitious professionals',
     features: [
-      { text: 'Unlimited Credits', included: true, highlight: true },
-      { text: 'All Standard Features', included: true },
-      { text: 'Premium AI Templates Library', included: true },
-      { text: 'Advanced Analytics Dashboard', included: true },
-      { text: 'Custom Integration Options', included: true },
-      { text: 'Priority Support 24/7', included: true },
-      { text: 'Team Collaboration Tools', included: true },
-      { text: 'API Access', included: true },
-      { text: 'White-label Options', included: true },
-      { text: 'Dedicated Account Manager', included: true },
+      'AI Interview Coaching',
+      '5 Mock Interviews / month',
+      '20 Resume Analyses / month',
+      'Premium Resume Templates',
+      '5 Campaigns (500 contacts)',
+      'Priority Support 24/7',
     ],
+    cta: 'Go Pro',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
+        <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
   },
 ];
 
 const creditPackages = [
-  { id: 'small', amount: 100, price: '19', popular: false, savings: 0 },
-  { id: 'medium', amount: 250, price: '39', popular: true, savings: 10 },
-  { id: 'large', amount: 500, price: '69', popular: false, savings: 15 },
+  { id: 'small', amount: 100, price: '19', popular: false },
+  { id: 'medium', amount: 250, price: '39', popular: true },
+  { id: 'large', amount: 500, price: '69', popular: false },
 ];
-
-// Helper function pour déterminer l'action du bouton
-const getButtonAction = (planId: string, currentPlanId: string | undefined) => {
-  const planHierarchy = { premium: 3, standard: 2, free: 1 };
-  const currentLevel = currentPlanId ? planHierarchy[currentPlanId as keyof typeof planHierarchy] : 1;
-  const targetLevel = planHierarchy[planId as keyof typeof planHierarchy];
-
-  if (planId === currentPlanId) return 'Current Plan';
-  return targetLevel > currentLevel ? 'Upgrade' : 'Downgrade';
-};
 
 export default function BillingPage() {
   const navigate = useNavigate();
@@ -135,6 +131,7 @@ export default function BillingPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
   const [processingPackageId, setProcessingPackageId] = useState<string | null>(null);
+  const [isBiMonthly, setIsBiMonthly] = useState(false);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -145,70 +142,55 @@ export default function BillingPage() {
         if (doc.exists()) {
           const data = doc.data() as UserPlanData;
           setUserPlanData(data);
-          
-          // Charger l'historique des crédits
+
           const history = await getCreditHistory(currentUser.uid, 100);
           setCreditHistory(history);
-          
-          // Calculer les statistiques d'usage basées sur l'historique réel
+
           const currentPlan = plans.find(p => p.id === data.plan) || plans[0];
           const currentCredits = data.credits || 0;
-          
-          // Calculer la date de début du cycle (plan sélectionné ou il y a 30 jours)
-          const planStartDate = data.planSelectedAt 
+
+          const planStartDate = data.planSelectedAt
             ? new Date(data.planSelectedAt)
             : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-          
+
           const daysSinceStart = Math.max(1, Math.floor((Date.now() - planStartDate.getTime()) / (1000 * 60 * 60 * 24)));
-          
-          // Filtrer l'historique pour ce cycle (depuis le début du plan)
+
           const cycleHistory = history.filter(entry => {
             const entryDate = entry.timestamp instanceof Date ? entry.timestamp : new Date(entry.timestamp);
             return entryDate >= planStartDate;
           });
-          
-          // Calculer les crédits réellement utilisés (seulement les déductions, change < 0)
+
           const creditsUsed = cycleHistory
             .filter(entry => entry.change < 0)
             .reduce((sum, entry) => sum + Math.abs(entry.change), 0);
-          
-          // Calculer les crédits ajoutés (pour référence)
-          const creditsAdded = cycleHistory
-            .filter(entry => entry.change > 0)
-            .reduce((sum, entry) => sum + entry.change, 0);
-          
-          // Calculer le pourcentage d'usage basé sur les crédits du plan
-          // Si l'utilisateur a plus de crédits que son plan (achats supplémentaires), 
-          // on calcule le % par rapport au plan initial
-          const planCredits = currentPlan.credits;
-          const usagePercentage = planCredits > 0 
+
+          const planCredits = currentPlan.creditsValue;
+          const usagePercentage = planCredits > 0
             ? Math.min(100, (creditsUsed / planCredits) * 100)
             : 0;
-          
-          // Calculer la moyenne par jour (basé sur les crédits réellement utilisés)
-          const averagePerDay = daysSinceStart > 0 
-            ? creditsUsed / daysSinceStart 
+
+          const averagePerDay = daysSinceStart > 0
+            ? creditsUsed / daysSinceStart
             : 0;
-          
+
           setUsageStats({
             creditsUsed,
             creditsRemaining: currentCredits,
             usagePercentage: Math.max(0, Math.min(100, usagePercentage)),
             averagePerDay: Math.round(averagePerDay * 10) / 10,
           });
-          
-          // Préparer les données pour le graphique
+
           const usageData = history
-            .filter(h => h.change < 0) // Seulement les déductions
+            .filter(h => h.change < 0)
             .slice(0, 30)
             .reverse()
-            .map((entry, index) => ({
-              date: entry.timestamp instanceof Date 
+            .map((entry) => ({
+              date: entry.timestamp instanceof Date
                 ? entry.timestamp.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })
                 : new Date(entry.timestamp).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }),
               credits: Math.abs(entry.change),
             }));
-          
+
           setCreditUsage(usageData);
         }
         setIsLoading(false);
@@ -219,7 +201,7 @@ export default function BillingPage() {
   }, [currentUser]);
 
   const currentPlan = plans.find(plan => plan.id === userPlanData?.plan) || plans[0];
-  const nextBillingDate = userPlanData?.planSelectedAt 
+  const nextBillingDate = userPlanData?.planSelectedAt
     ? new Date(new Date(userPlanData.planSelectedAt).setMonth(new Date(userPlanData.planSelectedAt).getMonth() + 1))
     : new Date(new Date().setMonth(new Date().getMonth() + 1));
 
@@ -230,31 +212,27 @@ export default function BillingPage() {
       return;
     }
 
-    if (isProcessing) return; // Prevent multiple clicks
+    if (isProcessing) return;
 
     setIsProcessing(true);
     setProcessingPlanId(plan.id);
-    
-    // Show immediate feedback
     toast.loading('Preparing checkout...', { id: 'checkout' });
 
     try {
-      const params = {
+      const price = isBiMonthly ? plan.price.biMonthly : plan.price.monthly;
+      await redirectToStripeCheckout({
         userId: currentUser.uid,
         planId: plan.id,
         planName: plan.name,
-        price: plan.price,
-        credits: plan.credits,
-        type: 'plan' as const,
+        price: price.toString(),
+        credits: plan.creditsValue,
+        type: 'plan',
         customerEmail: currentUser.email || undefined,
-      };
-
-      await redirectToStripeCheckout(params);
-      // User will be redirected to Stripe Checkout
+      });
       toast.success('Redirecting to payment...', { id: 'checkout' });
     } catch (error: any) {
       console.error('Error initiating checkout:', error);
-      toast.error(error.message || 'Failed to initiate payment. Please try again.', { id: 'checkout' });
+      toast.error(error.message || 'Failed to initiate payment.', { id: 'checkout' });
       setIsProcessing(false);
       setProcessingPlanId(null);
     }
@@ -267,31 +245,26 @@ export default function BillingPage() {
       return;
     }
 
-    if (isProcessing) return; // Prevent multiple clicks
+    if (isProcessing) return;
 
     setIsProcessing(true);
     setProcessingPackageId(pkg.id);
-    
-    // Show immediate feedback
     toast.loading('Preparing checkout...', { id: 'checkout' });
 
     try {
-      const params = {
+      await redirectToStripeCheckout({
         userId: currentUser.uid,
         planId: pkg.id,
         planName: `${pkg.amount} Credits`,
         price: pkg.price,
         credits: pkg.amount,
-        type: 'credits' as const,
+        type: 'credits',
         customerEmail: currentUser.email || undefined,
-      };
-
-      await redirectToStripeCheckout(params);
-      // User will be redirected to Stripe Checkout
+      });
       toast.success('Redirecting to payment...', { id: 'checkout' });
     } catch (error: any) {
       console.error('Error initiating checkout:', error);
-      toast.error(error.message || 'Failed to initiate payment. Please try again.', { id: 'checkout' });
+      toast.error(error.message || 'Failed to initiate payment.', { id: 'checkout' });
       setIsProcessing(false);
       setProcessingPackageId(null);
     }
@@ -301,7 +274,7 @@ export default function BillingPage() {
     return (
       <AuthLayout>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          <Loader2 className="h-8 w-8 animate-spin text-[#635bff]" />
         </div>
       </AuthLayout>
     );
@@ -309,194 +282,161 @@ export default function BillingPage() {
 
   return (
     <AuthLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Header avec résumé du plan actuel */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 rounded-2xl shadow-xl p-8 text-white"
-        >
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <currentPlan.icon className="h-6 w-6" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold">{currentPlan.name} Plan</h1>
-                  <p className="text-purple-100 text-sm">Active subscription</p>
-                </div>
+      <div className="py-8 space-y-10">
+        {/* Current Plan Summary - Minimal card */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-8 border-b border-gray-200 dark:border-[#3d3c3e]">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] flex items-center justify-center text-gray-700 dark:text-gray-300">
+                {currentPlan.icon}
               </div>
-              <div className="flex items-center gap-4 text-sm text-purple-100">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>Next billing: {nextBillingDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{currentPlan.name} Cubber</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Current plan</p>
               </div>
             </div>
-            <div className="flex items-center gap-6">
-              <div className="text-right">
-                <div className="text-sm text-purple-100">Current Credits</div>
-                <div className="text-3xl font-bold">{userPlanData?.credits || 0}</div>
+            {currentPlan.id !== 'free' && (
+              <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-3">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-4 w-4" />
+                  <span>Next billing: {nextBillingDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                </div>
               </div>
-              <div className="h-12 w-px bg-white/20"></div>
-              <div className="text-right">
-                <div className="text-sm text-purple-100">Monthly Price</div>
-                <div className="text-3xl font-bold">€{currentPlan.price}</div>
-              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-8">
+            <div className="text-right">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Credits</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">{userPlanData?.credits || 0}</div>
+            </div>
+            <div className="h-10 w-px bg-gray-200 dark:bg-[#3d3c3e]"></div>
+            <div className="text-right">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Monthly</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">€{currentPlan.price.monthly}</div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Statistiques d'usage */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/30 p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <Activity className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <span className="text-xs font-medium text-gray-500">Usage</span>
+        {/* Stats Grid - Minimal cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Activity className="h-4 w-4 text-gray-500" />
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Usage</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-              {usageStats.usagePercentage.toFixed(1)}%
-            </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
-              <div 
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 h-2 rounded-full transition-all duration-500" 
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.usagePercentage.toFixed(0)}%</div>
+            <div className="w-full bg-gray-200 dark:bg-[#3d3c3e] rounded-full h-1.5 mt-3">
+              <div
+                className="bg-[#635bff] h-1.5 rounded-full transition-all duration-500"
                 style={{ width: `${usageStats.usagePercentage}%` }}
               />
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/30 p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <span className="text-xs font-medium text-gray-500">Used</span>
+          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="h-4 w-4 text-gray-500" />
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Used</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
-              {usageStats.creditsUsed}
-            </div>
-            <div className="text-sm text-gray-500 mt-1">credits this month</div>
-          </motion.div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.creditsUsed}</div>
+            <div className="text-sm text-gray-500 mt-1">this month</div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/30 p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <Target className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
-              <span className="text-xs font-medium text-gray-500">Remaining</span>
+          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Target className="h-4 w-4 text-gray-500" />
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Remaining</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
-              {usageStats.creditsRemaining}
-            </div>
-            <div className="text-sm text-gray-500 mt-1">credits available</div>
-          </motion.div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.creditsRemaining}</div>
+            <div className="text-sm text-gray-500 mt-1">available</div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/30 p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-              </div>
-              <span className="text-xs font-medium text-gray-500">Daily Avg</span>
+          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="h-4 w-4 text-gray-500" />
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Daily Avg</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
-              {usageStats.averagePerDay}
-            </div>
-            <div className="text-sm text-gray-500 mt-1">credits per day</div>
-          </motion.div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.averagePerDay}</div>
+            <div className="text-sm text-gray-500 mt-1">per day</div>
+          </div>
         </div>
 
-        {/* Graphique d'usage des crédits */}
+        {/* Chart */}
         {creditUsage.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/30 p-6"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Credit Usage</h2>
-                <p className="text-sm text-gray-500">Last 30 days activity</p>
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={250}>
+          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Credit Usage</h2>
+            <p className="text-sm text-gray-500 mb-6">Last 30 days</p>
+            <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={creditUsage}>
                 <defs>
                   <linearGradient id="colorCredits" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#635bff" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#635bff" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fill: '#6B7280' }}
-                  className="text-xs"
-                />
-                <YAxis 
-                  tick={{ fill: '#6B7280' }}
-                  className="text-xs"
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none', 
+                <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
+                <XAxis dataKey="date" tick={{ fill: '#6B7280', fontSize: 12 }} />
+                <YAxis tick={{ fill: '#6B7280', fontSize: 12 }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2937',
+                    border: 'none',
                     borderRadius: '8px',
-                    color: '#fff'
+                    color: '#fff',
+                    fontSize: '13px'
                   }}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="credits" 
-                  stroke="#8B5CF6" 
+                <Area
+                  type="monotone"
+                  dataKey="credits"
+                  stroke="#635bff"
                   fillOpacity={1}
                   fill="url(#colorCredits)"
                   strokeWidth={2}
                 />
               </AreaChart>
             </ResponsiveContainer>
-          </motion.div>
+          </div>
         )}
 
-        {/* Plans Grid */}
+        {/* Plans Section */}
         <div>
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              Choose Your Plan
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight mb-4">
+              Choose your plan
             </h2>
-            <p className="text-gray-500">
-              Select the plan that best fits your job search needs
-            </p>
+
+            {/* Toggle */}
+            <div className="flex items-center justify-center">
+              <div className="inline-flex items-center bg-gray-100 dark:bg-[#2b2a2c] p-1 rounded-full">
+                <button
+                  onClick={() => setIsBiMonthly(false)}
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 ${!isBiMonthly
+                    ? 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                    }`}
+                >
+                  Pay monthly
+                </button>
+                <button
+                  onClick={() => setIsBiMonthly(true)}
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 flex items-center gap-2 ${isBiMonthly
+                    ? 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                    }`}
+                >
+                  <span>Pay every 2 months</span>
+                  <span className="text-[#635bff] font-medium">save ~10%</span>
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="grid md:grid-cols-3 gap-6 items-stretch">
+
+          {/* Pricing Cards - Notion style */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {plans.map((plan, index) => {
-              const Icon = plan.icon;
               const isCurrentPlan = plan.id === userPlanData?.plan;
-              const buttonAction = getButtonAction(plan.id, userPlanData?.plan);
-              
+
               return (
                 <motion.div
                   key={plan.id}
@@ -504,374 +444,237 @@ export default function BillingPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 * index }}
                   className={`
-                    relative p-8 rounded-2xl border-2 transition-all duration-300 flex flex-col h-full
-                    ${isCurrentPlan 
-                      ? 'bg-gradient-to-br from-purple-600 to-indigo-600 text-white border-transparent shadow-2xl scale-105' 
-                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-xl'
+                    bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-6 relative transition-all duration-300
+                    ${isCurrentPlan
+                      ? 'ring-2 ring-[#635bff]'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-750'
                     }
                   `}
+                  style={{ display: 'grid', gridTemplateRows: 'auto auto auto 1fr auto' }}
                 >
-                  {plan.mostPopular && !isCurrentPlan && (
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-gradient-to-r from-purple-600 to-indigo-600 
-                        text-white text-xs font-semibold px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1">
-                        <Sparkles className="h-3 w-3" />
+                  {plan.popular && !isCurrentPlan && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="px-4 py-1.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[11px] font-bold rounded-full uppercase tracking-wider">
                         Most Popular
                       </span>
                     </div>
                   )}
 
-                  <div className="flex flex-col h-full space-y-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className={`p-3 rounded-xl ${
-                            isCurrentPlan 
-                              ? 'bg-white/20 backdrop-blur-sm' 
-                              : plan.color === 'purple' 
-                                ? 'bg-purple-100 dark:bg-purple-900/30'
-                                : plan.color === 'indigo'
-                                ? 'bg-indigo-100 dark:bg-indigo-900/30'
-                                : 'bg-gray-100 dark:bg-gray-900/30'
-                          }`}>
-                            <Icon className={`h-6 w-6 ${
-                              isCurrentPlan 
-                                ? 'text-white' 
-                                : plan.color === 'purple'
-                                  ? 'text-purple-600 dark:text-purple-400'
-                                  : plan.color === 'indigo'
-                                  ? 'text-indigo-600 dark:text-indigo-400'
-                                  : 'text-gray-600 dark:text-gray-400'
-                            }`} />
-                          </div>
-                          <div>
-                            <h3 className="text-2xl font-bold">{plan.name}</h3>
-                            {isCurrentPlan && (
-                              <span className="text-xs text-purple-100 bg-white/20 px-2 py-0.5 rounded-full">
-                                Current
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <p className={`text-sm mt-2 ${
-                          isCurrentPlan ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'
-                        }`}>
-                          {plan.description}
-                        </p>
+                  {isCurrentPlan && (
+                    <div className="absolute top-4 right-4">
+                      <div className="w-6 h-6 rounded-full bg-[#635bff] flex items-center justify-center">
+                        <Check className="w-4 h-4 text-white" />
                       </div>
                     </div>
+                  )}
 
-                    <div>
-                      <div className="flex items-baseline gap-1">
-                        <span className={`text-4xl font-bold ${
-                          isCurrentPlan ? 'text-white' : 'text-gray-900 dark:text-white'
-                        }`}>
-                          €{plan.price}
-                        </span>
-                        <span className={`text-base ${
-                          isCurrentPlan ? 'text-white/70' : 'text-gray-500'
-                        }`}>
-                          /{plan.period}
-                        </span>
-                      </div>
-                      <div className={`text-sm mt-1 ${
-                        isCurrentPlan ? 'text-white/70' : 'text-gray-500'
-                      }`}>
-                        {plan.credits === 999999 ? 'Unlimited' : `${plan.credits.toLocaleString()} credits`}
-                      </div>
+                  {/* Icon */}
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-white dark:bg-[#3d3c3e] shadow-sm border border-gray-100 dark:border-[#3d3c3e] text-gray-700 dark:text-gray-300">
+                    {plan.icon}
+                  </div>
+
+                  {/* Title + Description */}
+                  <div className="mb-4">
+                    <h3 className="text-xl font-bold mb-1 text-gray-900 dark:text-white">
+                      {plan.name} Cubber
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {plan.description}
+                    </p>
+                  </div>
+
+                  {/* Price + Credits */}
+                  <div className="mb-6">
+                    <div className="flex items-baseline gap-1 mb-2">
+                      <span className="text-4xl font-black text-gray-900 dark:text-white">
+                        €{isBiMonthly ? plan.price.biMonthly : plan.price.monthly}
+                      </span>
+                      <span className="text-sm font-medium text-gray-500">
+                        {plan.price.monthly === 0 ? '/forever' : isBiMonthly ? '/2 months' : '/month'}
+                      </span>
                     </div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-[#635bff]/10 text-[#635bff]">
+                      <CoinIcon className="w-4 h-4" />
+                      <span>{plan.credits}/month</span>
+                    </div>
+                  </div>
 
-                    <ul className="space-y-3 flex-grow">
-                      {plan.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-3">
-                          {feature.included ? (
-                            <Check className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
-                              isCurrentPlan 
-                                ? 'text-white' 
-                                : 'text-purple-600 dark:text-purple-400'
-                            }`} />
-                          ) : (
-                            <div className={`h-5 w-5 flex-shrink-0 mt-0.5 rounded-full border-2 ${
-                              isCurrentPlan 
-                                ? 'border-white/30' 
-                                : 'border-gray-300 dark:border-gray-600'
-                            }`} />
-                          )}
-                          <span className={`text-sm ${
-                            feature.highlight 
-                              ? 'font-semibold' 
-                              : ''
-                          } ${
-                            isCurrentPlan 
-                              ? feature.included ? 'text-white/90' : 'text-white/50 line-through' 
-                              : feature.included ? 'text-gray-600 dark:text-gray-300' : 'text-gray-400 dark:text-gray-600 line-through'
-                          }`}>
-                            {feature.text}
+                  {/* Features list */}
+                  <div className="space-y-3 mb-6">
+                    <p className="text-[13px] font-bold text-gray-900 dark:text-white">
+                      {index === 0 ? 'Includes:' : `Everything in ${plans[index - 1].name} +`}
+                    </p>
+                    <ul className="space-y-2">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-start gap-2 text-[13px] leading-tight text-gray-600 dark:text-gray-400">
+                          <span className="mt-0.5 flex-shrink-0 text-green-500">
+                            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
                           </span>
+                          <span>{feature}</span>
                         </li>
                       ))}
                     </ul>
-
-                    <button
-                      onClick={() => !isCurrentPlan && handleUpgrade(plan)}
-                      disabled={isCurrentPlan || (isProcessing && processingPlanId === plan.id)}
-                      className={`
-                        w-full py-3.5 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 mt-auto
-                        ${isCurrentPlan
-                          ? 'bg-white text-purple-600 hover:bg-gray-50 cursor-default'
-                          : isProcessing && processingPlanId === plan.id
-                            ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white cursor-wait opacity-75'
-                            : buttonAction === 'Upgrade'
-                              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-xl active:scale-95'
-                              : 'bg-gray-600 text-white hover:bg-gray-700 dark:bg-gray-600/90 dark:hover:bg-gray-600 active:scale-95'
-                        }
-                      `}
-                    >
-                      {isCurrentPlan ? (
-                        <>
-                          <Check className="h-5 w-5" />
-                          Current Plan
-                        </>
-                      ) : isProcessing && processingPlanId === plan.id ? (
-                        <>
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          {buttonAction}
-                          <ArrowRight className="h-4 w-4" />
-                        </>
-                      )}
-                    </button>
                   </div>
+
+                  {/* CTA Button */}
+                  <button
+                    onClick={() => !isCurrentPlan && plan.id !== 'free' && handleUpgrade(plan)}
+                    disabled={isCurrentPlan || (isProcessing && processingPlanId === plan.id)}
+                    className={`
+                      w-full py-3 rounded-xl text-sm font-bold transition-all
+                      ${isCurrentPlan
+                        ? 'bg-white dark:bg-[#3d3c3e] text-gray-500 cursor-default border border-gray-200 dark:border-[#3d3c3e]'
+                        : isProcessing && processingPlanId === plan.id
+                          ? 'bg-[#635bff] text-white opacity-75 cursor-wait'
+                          : plan.popular
+                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
+                            : plan.name === 'Pro'
+                              ? 'bg-[#635bff] text-white hover:brightness-110'
+                              : 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-gray-600'
+                      }
+                    `}
+                  >
+                    {isCurrentPlan ? (
+                      'Current Plan'
+                    ) : isProcessing && processingPlanId === plan.id ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Processing...
+                      </span>
+                    ) : (
+                      plan.cta
+                    )}
+                  </button>
                 </motion.div>
               );
             })}
           </div>
         </div>
 
-        {/* Credits Packages */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/30 p-8"
-        >
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              Need More Credits?
-            </h2>
-            <p className="text-gray-500">
-              Purchase additional credits anytime. Credits never expire.
-            </p>
-          </div>
+        {/* Credit Packages */}
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Need More Credits?</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">Purchase additional credits anytime. Credits never expire.</p>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {creditPackages.map((pkg) => (
-              <motion.div
+              <div
                 key={pkg.id}
-                whileHover={{ scale: 1.02 }}
                 className={`
-                  relative p-6 rounded-xl text-center transition-all border-2
-                  ${pkg.popular 
-                    ? 'border-purple-600 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20' 
-                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
-                  }
+                  bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-6 text-center relative transition-all
+                  ${pkg.popular ? 'ring-2 ring-[#635bff]' : ''}
                 `}
               >
                 {pkg.popular && (
-                  <div className="absolute -top-3 right-4">
-                    <span className="bg-gradient-to-r from-purple-600 to-indigo-600 
-                      text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="px-3 py-1 bg-[#635bff] text-white text-[11px] font-bold rounded-full">
                       Best Value
                     </span>
                   </div>
                 )}
 
-                {pkg.savings > 0 && (
-                  <div className="absolute -top-3 left-4">
-                    <span className="bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
-                      Save {pkg.savings}%
-                    </span>
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  <div className="text-5xl font-bold text-gray-900 dark:text-white">
-                    {pkg.amount.toLocaleString()}
-                  </div>
-                  <div className="text-gray-500 text-sm">credits</div>
-                  <div className="space-y-1">
-                    <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                      €{pkg.price}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      €{(parseFloat(pkg.price) / pkg.amount * 100).toFixed(2)} per 100 credits
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleBuyCredits(pkg)}
-                    disabled={isProcessing && processingPackageId === pkg.id}
-                    className={`
-                      w-full py-3 rounded-xl font-semibold
-                      transition-all duration-200 shadow-lg hover:shadow-xl
-                      flex items-center justify-center gap-2
-                      ${isProcessing && processingPackageId === pkg.id
-                        ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white cursor-wait opacity-75'
-                        : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 dark:bg-purple-600/90 dark:hover:bg-purple-600 active:scale-95'
-                      }
-                    `}
-                  >
-                    {isProcessing && processingPackageId === pkg.id ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      'Buy Now'
-                    )}
-                  </button>
+                <div className="text-4xl font-black text-gray-900 dark:text-white mb-1">
+                  {pkg.amount}
                 </div>
-              </motion.div>
+                <div className="text-sm text-gray-500 mb-4">credits</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">€{pkg.price}</div>
+                <div className="text-sm text-gray-500 mb-6">
+                  €{(parseFloat(pkg.price) / pkg.amount * 100).toFixed(2)} per 100
+                </div>
+                <button
+                  onClick={() => handleBuyCredits(pkg)}
+                  disabled={isProcessing && processingPackageId === pkg.id}
+                  className="w-full py-3 rounded-xl text-sm font-bold bg-[#635bff] text-white hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                >
+                  {isProcessing && processingPackageId === pkg.id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Buy Now'
+                  )}
+                </button>
+              </div>
             ))}
           </div>
-        </motion.div>
+        </div>
 
-        {/* Payment Methods */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/30"
-        >
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        {/* Payment Methods - Minimal */}
+        <div className="border-t border-gray-200 dark:border-[#3d3c3e] pt-8">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Payment Methods
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Manage your payment methods and billing information
-              </p>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Payment Methods</h2>
+              <p className="text-sm text-gray-500">Manage your billing</p>
             </div>
-            <button 
-              onClick={() => navigate('/add-payment')}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium
-                text-purple-600 hover:text-purple-700 dark:text-purple-400 
-                dark:hover:text-purple-300 transition-colors"
-            >
+            <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#635bff] hover:bg-[#635bff]/5 rounded-lg transition-colors">
               <Plus className="h-4 w-4" />
-              Add New Card
+              Add Card
             </button>
           </div>
 
-          <div className="p-6">
-            <div className="group p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl 
-              hover:bg-gray-100 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-600">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-10 bg-white dark:bg-gray-800 rounded-lg 
-                    flex items-center justify-center border border-gray-200 dark:border-gray-700 shadow-sm">
-                    <CreditCard className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-900 dark:text-white">
-                      •••• •••• •••• 4242
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      Expires 12/24
-                    </div>
-                  </div>
+          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-8 bg-white dark:bg-[#3d3c3e] rounded-lg flex items-center justify-center border border-gray-200 dark:border-[#3d3c3e]">
+                  <CreditCard className="h-5 w-5 text-gray-500" />
                 </div>
-                
-                <div className="flex items-center gap-3">
-                  <span className="px-3 py-1 text-xs font-medium rounded-full
-                    bg-purple-100 dark:bg-purple-900/20 
-                    text-purple-600 dark:text-purple-400">
-                    Default
-                  </span>
-                  <button className="text-purple-600 dark:text-purple-400 opacity-0 group-hover:opacity-100 
-                    transition-opacity text-sm font-medium">
-                    Update
-                  </button>
+                <div>
+                  <div className="font-medium text-gray-900 dark:text-white">•••• •••• •••• 4242</div>
+                  <div className="text-sm text-gray-500">Expires 12/24</div>
                 </div>
               </div>
+              <span className="px-3 py-1 text-xs font-medium rounded-full bg-[#635bff]/10 text-[#635bff]">
+                Default
+              </span>
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Billing History */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/30"
-        >
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Billing History
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                View and download your invoices
-              </p>
-            </div>
-          </div>
+        {/* Billing History - Minimal */}
+        <div className="border-t border-gray-200 dark:border-[#3d3c3e] pt-8">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Billing History</h2>
+          <p className="text-sm text-gray-500 mb-6">View and download invoices</p>
 
-          <div className="p-6">
-            {invoices.length > 0 ? (
-              <div className="space-y-4">
-                {invoices.map((invoice) => (
-                  <div
-                    key={invoice.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                        <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-900 dark:text-white">
-                          {invoice.plan} Plan - {invoice.date}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Invoice #{invoice.id}
-                        </div>
-                      </div>
+          {invoices.length > 0 ? (
+            <div className="space-y-3">
+              {invoices.map((invoice) => (
+                <div
+                  key={invoice.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#2b2a2c] rounded-xl"
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-white">{invoice.plan} - {invoice.date}</div>
+                      <div className="text-sm text-gray-500">#{invoice.id}</div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <div className="font-semibold text-gray-900 dark:text-white">
-                          €{invoice.amount.toFixed(2)}
-                        </div>
-                        <div className={`text-xs px-2 py-1 rounded-full inline-block ${
-                          invoice.status === 'paid' 
-                            ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400'
-                            : invoice.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400'
-                            : 'bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <div className="font-medium text-gray-900 dark:text-white">€{invoice.amount.toFixed(2)}</div>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${invoice.status === 'paid' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'
                         }`}>
-                          {invoice.status}
-                        </div>
-                      </div>
-                      <button className="p-2 text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
-                        <Download className="h-5 w-5" />
-                      </button>
+                        {invoice.status}
+                      </span>
                     </div>
+                    <button className="p-2 text-gray-400 hover:text-[#635bff] transition-colors">
+                      <Download className="h-5 w-5" />
+                    </button>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No billing history yet</p>
-                <p className="text-sm text-gray-400 mt-1">
-                  Your invoices will appear here once you make a purchase
-                </p>
-              </div>
-            )}
-          </div>
-        </motion.div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-gray-50 dark:bg-[#2b2a2c] rounded-xl">
+              <FileText className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No billing history yet</p>
+              <p className="text-sm text-gray-400">Invoices will appear here</p>
+            </div>
+          )}
+        </div>
       </div>
     </AuthLayout>
   );
