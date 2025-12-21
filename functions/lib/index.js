@@ -1873,15 +1873,37 @@ const handleCheckoutCompleted = async (session) => {
             });
             console.log(`✅ User ${userId} purchased ${creditsToAdd} credits`);
         }
-        // Create invoice record
+        // Create invoice record with Stripe invoice URL if available
+        let invoiceUrl = null;
+        let invoicePdfUrl = null;
+        let invoiceNumber = null;
+        // Try to get the invoice from the session for PDF URL
+        if (session.invoice) {
+            try {
+                const stripe = await getStripeClient();
+                const invoiceId = typeof session.invoice === 'string' ? session.invoice : session.invoice.id;
+                const stripeInvoice = await stripe.invoices.retrieve(invoiceId);
+                invoiceUrl = stripeInvoice.hosted_invoice_url || null;
+                invoicePdfUrl = stripeInvoice.invoice_pdf || null;
+                invoiceNumber = stripeInvoice.number || null;
+            }
+            catch (error) {
+                console.warn('⚠️  Could not retrieve invoice details:', error === null || error === void 0 ? void 0 : error.message);
+            }
+        }
         await admin.firestore().collection('users').doc(userId).collection('invoices').add({
             stripeSessionId: session.id,
+            stripeInvoiceId: session.invoice ? (typeof session.invoice === 'string' ? session.invoice : session.invoice.id) : null,
+            invoiceNumber: invoiceNumber || `INV-${Date.now()}`,
             amount: (session.amount_total || 0) / 100,
             currency: session.currency || 'eur',
             status: 'paid',
             planId,
-            planName,
+            planName: planName || (type === 'credits' ? `${credits} Credits` : planId),
             type,
+            invoiceUrl,
+            invoicePdfUrl,
+            customerEmail: session.customer_email || null,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
     }

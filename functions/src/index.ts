@@ -30,12 +30,12 @@ export { enrichSkillsWorker } from './workers/enrichSkillsWorker';
 // 🎯 DISTRIBUTED QUEUE SYSTEM (Scale to 100K+ jobs)
 // Modern queue-based architecture with automatic retry and monitoring
 export {
-	createFetchTasks,       // Scheduled task creator (every 6 hours)
-	createFetchTasksManual, // Manual HTTP endpoint for testing
-	getQueueStatus,         // Queue monitoring endpoint
-	processFetchTask,       // Firestore trigger for task processing
-	processTaskManual,      // Manual task processing endpoint
-	retryFailedTasks,       // Retry failed tasks
+  createFetchTasks,       // Scheduled task creator (every 6 hours)
+  createFetchTasksManual, // Manual HTTP endpoint for testing
+  getQueueStatus,         // Queue monitoring endpoint
+  processFetchTask,       // Firestore trigger for task processing
+  processTaskManual,      // Manual task processing endpoint
+  retryFailedTasks,       // Retry failed tasks
 } from './queue';
 
 // 🔄 DYNAMIC BATCH PROCESSOR (replaces hardcoded batches)
@@ -45,69 +45,69 @@ export { processDynamicBatch } from './dynamicBatchProcessor';
 // 🧹 MAINTENANCE & CLEANUP
 // Database cleanup, TTL, and statistics
 export {
-	scheduledCleanup,
-	manualCleanup,
-	getDatabaseStats,
+  scheduledCleanup,
+  manualCleanup,
+  getDatabaseStats,
 } from './maintenance';
 
 // 🚀 APOLLO LEAD SOURCING
 // Search and enrich contacts from Apollo.io
 export {
-	searchApolloContacts,
-	enrichApolloContact,
+  searchApolloContacts,
+  enrichApolloContact,
 } from './apollo';
 
 // 🔍 COMPANY DISCOVERY
 // Automatic discovery of new companies from ATS sitemaps
 export {
-	scheduledDiscovery,
-	manualDiscovery,
-	getDiscoveredCompanies,
-	activateDiscoveredCompany,
+  scheduledDiscovery,
+  manualDiscovery,
+  getDiscoveredCompanies,
+  activateDiscoveredCompany,
 } from './discovery';
 
 // 🌐 JOB AGGREGATORS
 // External job aggregators (RemoteOK, WeWorkRemotely, Adzuna, HN Who's Hiring, etc.)
 export {
-	fetchFromAggregators,
-	fetchAggregatorsManual,
+  fetchFromAggregators,
+  fetchAggregatorsManual,
 } from './aggregators';
 
 // 🏢 GAFAM + ENTERPRISE DIRECT FETCHERS
 // Dedicated fetchers for Big Tech (Google, Meta, Amazon, Apple, Microsoft)
 // and Enterprise Consulting (Salesforce, Accenture, Deloitte, Capgemini, SAP, Oracle)
 export {
-	// GAFAM / MAANG
-	fetchGoogleCareers,
-	fetchMetaCareers,
-	fetchAmazonJobs,
-	fetchAppleJobs,
-	fetchMicrosoftJobs,
-	fetchAllGAFAM,
-	// Enterprise Tech
-	fetchSalesforceJobs,
-	fetchSAPJobs,
-	fetchOracleJobs,
-	// Enterprise Consulting
-	fetchAccentureJobs,
-	fetchDeloitteJobs,
-	fetchCapgeminiJobs,
-	// Aggregated
-	fetchAllEnterprise,
-	fetchAllBigTechAndEnterprise,
-	// Manual HTTP endpoint
-	fetchGAFAMManual,
+  // GAFAM / MAANG
+  fetchGoogleCareers,
+  fetchMetaCareers,
+  fetchAmazonJobs,
+  fetchAppleJobs,
+  fetchMicrosoftJobs,
+  fetchAllGAFAM,
+  // Enterprise Tech
+  fetchSalesforceJobs,
+  fetchSAPJobs,
+  fetchOracleJobs,
+  // Enterprise Consulting
+  fetchAccentureJobs,
+  fetchDeloitteJobs,
+  fetchCapgeminiJobs,
+  // Aggregated
+  fetchAllEnterprise,
+  fetchAllBigTechAndEnterprise,
+  // Manual HTTP endpoint
+  fetchGAFAMManual,
 } from './utils/gafamFetchers';
 
 // 📋 ADDITIONAL ATS FETCHERS
 // European and SMB ATS platforms (Teamtailor, BreezyHR, Recruitee, Personio, Workable)
 export {
-	fetchTeamtailor,
-	fetchBreezyHR,
-	fetchRecruitee,
-	fetchPersonio,
-	fetchWorkable,
-	fetchAllAdditionalATS,
+  fetchTeamtailor,
+  fetchBreezyHR,
+  fetchRecruitee,
+  fetchPersonio,
+  fetchWorkable,
+  fetchAllAdditionalATS,
 } from './utils/additionalATSFetchers';
 
 // 🤖 LEGACY: Master + Batch Architecture (kept for backwards compatibility)
@@ -624,7 +624,7 @@ async function handlePremiumAnalysis(
     });
   } catch (error: any) {
     console.error('❌ Error in premium analysis:', error);
-    
+
     // CRITICAL: Always update Firestore to mark analysis as failed
     // This prevents the analysis from staying in loading state forever
     if (userId && analysisId) {
@@ -645,7 +645,7 @@ async function handlePremiumAnalysis(
         console.error('❌ Failed to update Firestore with error status:', firestoreError);
       }
     }
-    
+
     res.status(500).json({
       status: 'error',
       message: error.message || 'Internal server error'
@@ -2158,15 +2158,38 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
       console.log(`✅ User ${userId} purchased ${creditsToAdd} credits`);
     }
 
-    // Create invoice record
+    // Create invoice record with Stripe invoice URL if available
+    let invoiceUrl: string | null = null;
+    let invoicePdfUrl: string | null = null;
+    let invoiceNumber: string | null = null;
+
+    // Try to get the invoice from the session for PDF URL
+    if (session.invoice) {
+      try {
+        const stripe = await getStripeClient();
+        const invoiceId = typeof session.invoice === 'string' ? session.invoice : session.invoice.id;
+        const stripeInvoice = await stripe.invoices.retrieve(invoiceId);
+        invoiceUrl = stripeInvoice.hosted_invoice_url || null;
+        invoicePdfUrl = stripeInvoice.invoice_pdf || null;
+        invoiceNumber = stripeInvoice.number || null;
+      } catch (error: any) {
+        console.warn('⚠️  Could not retrieve invoice details:', error?.message);
+      }
+    }
+
     await admin.firestore().collection('users').doc(userId).collection('invoices').add({
       stripeSessionId: session.id,
+      stripeInvoiceId: session.invoice ? (typeof session.invoice === 'string' ? session.invoice : session.invoice.id) : null,
+      invoiceNumber: invoiceNumber || `INV-${Date.now()}`,
       amount: (session.amount_total || 0) / 100, // Convert from cents
       currency: session.currency || 'eur',
       status: 'paid',
       planId,
-      planName,
+      planName: planName || (type === 'credits' ? `${credits} Credits` : planId),
       type,
+      invoiceUrl,
+      invoicePdfUrl,
+      customerEmail: session.customer_email || null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   } catch (error: any) {
@@ -2427,19 +2450,19 @@ const TECH_ALIASES: Record<string, string[]> = {
 function getTechVariations(tech: string): string[] {
   const lower = tech.toLowerCase();
   const variations = [lower];
-  
+
   // Check if this tech has aliases
   if (TECH_ALIASES[lower]) {
     variations.push(...TECH_ALIASES[lower]);
   }
-  
+
   // Check if this is an alias for another tech
   for (const [main, aliases] of Object.entries(TECH_ALIASES)) {
     if (aliases.includes(lower)) {
       variations.push(main, ...aliases);
     }
   }
-  
+
   return [...new Set(variations)];
 }
 
@@ -2494,7 +2517,7 @@ export const searchJobs = onRequest({
     // ============================================
     // EXTRACT PARAMETERS (V2 + Legacy support)
     // ============================================
-    
+
     // V2 Smart Parser Parameters
     const keyword = req.query.keyword as string | undefined;
     const locationsParam = req.query.locations as string | undefined;
@@ -2502,7 +2525,7 @@ export const searchJobs = onRequest({
     const workLocation = req.query.workLocation as string | undefined;
     const roleFunction = req.query.roleFunction as string | undefined;
     const employmentType = req.query.employmentType as string | undefined;
-    
+
     // Legacy parameters (for backwards compatibility)
     const legacyLocation = req.query.location as string | undefined;
     const remote = req.query.remote === 'true';
@@ -2513,14 +2536,14 @@ export const searchJobs = onRequest({
     const jobType = req.query.jobType as string | undefined;
 
     // Parse multi-value parameters
-    const locations = locationsParam 
+    const locations = locationsParam
       ? locationsParam.split(',').map(l => l.trim().toLowerCase())
       : (legacyLocation ? [legacyLocation.toLowerCase()] : []);
-    
-    const technologies = technologiesParam 
+
+    const technologies = technologiesParam
       ? technologiesParam.split(',').map(t => t.trim().toLowerCase())
       : [];
-    
+
     // Other enriched tags from UI filters
     const industries = req.query.industries ? (req.query.industries as string).split(',') : [];
     const skills = req.query.skills ? (req.query.skills as string).split(',') : [];
@@ -2538,7 +2561,7 @@ export const searchJobs = onRequest({
     console.log(`   Senior (legacy): ${senior}`);
     console.log(`   Industries: ${industries.length > 0 ? industries.join(', ') : 'none'}`);
     console.log(`   Skills: ${skills.length > 0 ? skills.join(', ') : 'none'}`);
-    
+
     const limitParam = parseInt((req.query.limit as string) || '200', 10);
 
     // Build optimized Firestore query
@@ -2559,10 +2582,10 @@ export const searchJobs = onRequest({
 
     // Limit results
     // If any filter is active, we need to search deeper to find matches in older jobs
-    const hasAnyFilter = keyword || locations.length > 0 || technologies.length > 0 || 
-                         workLocation || roleFunction || employmentType ||
-                         remote || fullTime || senior || experienceLevel || jobType || 
-                         industries.length > 0 || skills.length > 0;
+    const hasAnyFilter = keyword || locations.length > 0 || technologies.length > 0 ||
+      workLocation || roleFunction || employmentType ||
+      remote || fullTime || senior || experienceLevel || jobType ||
+      industries.length > 0 || skills.length > 0;
     const effectiveLimit = hasAnyFilter ? 4000 : Math.min(limitParam, 1000);
     jobsQuery = jobsQuery.limit(effectiveLimit);
 
@@ -2631,13 +2654,13 @@ export const searchJobs = onRequest({
       const jobRoleFunction = (job.roleFunction || '').toLowerCase();
 
       return title.includes(lower) ||
-             description.includes(lower) ||
-             company.includes(lower) ||
-             jobLocation.includes(lower) ||
-             jobSkills.includes(lower) ||
-             jobTechs.includes(lower) ||
-             jobIndustries.includes(lower) ||
-             jobRoleFunction.includes(lower);
+        description.includes(lower) ||
+        company.includes(lower) ||
+        jobLocation.includes(lower) ||
+        jobSkills.includes(lower) ||
+        jobTechs.includes(lower) ||
+        jobIndustries.includes(lower) ||
+        jobRoleFunction.includes(lower);
     };
 
     /**
@@ -2654,27 +2677,27 @@ export const searchJobs = onRequest({
      */
     const matchesTechnologies = (job: JobDoc, techs: string[]): boolean => {
       if (techs.length === 0) return true;
-      
-      const jobTechs = Array.isArray(job.technologies) 
-        ? job.technologies.map(t => t.toLowerCase()) 
+
+      const jobTechs = Array.isArray(job.technologies)
+        ? job.technologies.map(t => t.toLowerCase())
         : [];
       const title = (job.title || '').toLowerCase();
       const description = (job.description || job.summary || '').toLowerCase();
-      
+
       return techs.some(tech => {
         // Get all variations of this technology
         const variations = getTechVariations(tech);
-        
+
         // Check in technologies array
         if (variations.some(v => jobTechs.some(jt => jt.includes(v) || v.includes(jt)))) {
           return true;
         }
-        
+
         // Also check in title and description for broader matching
         if (variations.some(v => title.includes(v) || description.includes(v))) {
           return true;
         }
-        
+
         return false;
       });
     };
@@ -2685,23 +2708,23 @@ export const searchJobs = onRequest({
     const matchesWorkLocation = (job: JobDoc, wl: string): boolean => {
       const remotePolicy = (job.remote || job.remotePolicy || '').toLowerCase();
       const jobWorkLocations = job.workLocations || [];
-      
+
       if (wl === 'remote') {
         return remotePolicy.includes('remote') ||
-               remotePolicy.includes('fully remote') ||
-               remotePolicy.includes('work from home') ||
-               jobWorkLocations.includes('remote');
+          remotePolicy.includes('fully remote') ||
+          remotePolicy.includes('work from home') ||
+          jobWorkLocations.includes('remote');
       }
       if (wl === 'hybrid') {
         return remotePolicy.includes('hybrid') ||
-               remotePolicy.includes('flex') ||
-               jobWorkLocations.includes('hybrid');
+          remotePolicy.includes('flex') ||
+          jobWorkLocations.includes('hybrid');
       }
       if (wl === 'on-site') {
         return remotePolicy.includes('on-site') ||
-               remotePolicy.includes('onsite') ||
-               remotePolicy.includes('in-office') ||
-               jobWorkLocations.includes('on-site');
+          remotePolicy.includes('onsite') ||
+          remotePolicy.includes('in-office') ||
+          jobWorkLocations.includes('on-site');
       }
       return true;
     };
@@ -2712,12 +2735,12 @@ export const searchJobs = onRequest({
     const matchesRoleFunction = (job: JobDoc, rf: string): boolean => {
       const jobRoleFunction = (job.roleFunction || '').toLowerCase();
       const title = (job.title || '').toLowerCase();
-      
+
       // Direct match on roleFunction field
       if (jobRoleFunction === rf.toLowerCase()) {
         return true;
       }
-      
+
       // Fallback: check title for role keywords
       const roleKeywords: Record<string, string[]> = {
         'engineering': ['engineer', 'developer', 'développeur', 'devops', 'sre', 'architect', 'programmer'],
@@ -2733,7 +2756,7 @@ export const searchJobs = onRequest({
         'support': ['support', 'customer success', 'customer service'],
         'legal': ['legal', 'lawyer', 'juriste', 'compliance'],
       };
-      
+
       const keywords = roleKeywords[rf.toLowerCase()] || [];
       return keywords.some(kw => title.includes(kw));
     };
@@ -2745,7 +2768,7 @@ export const searchJobs = onRequest({
     // Apply keyword filter with tokenization
     if (keyword) {
       const tokens = keyword.toLowerCase().split(/\s+/).filter(t => t.length > 1);
-      
+
       if (tokens.length > 0) {
         jobs = jobs.filter(job => {
           // Job must match ALL keyword tokens (AND logic)
@@ -2785,8 +2808,8 @@ export const searchJobs = onRequest({
       jobs = jobs.filter(job => {
         const jobTypeStr = (job.type || job.employmentType || '').toLowerCase();
         const employmentTypes = job.employmentTypes || [];
-        return jobTypeStr.includes(etLower) || 
-               employmentTypes.some(et => et.toLowerCase().includes(etLower));
+        return jobTypeStr.includes(etLower) ||
+          employmentTypes.some(et => et.toLowerCase().includes(etLower));
       });
       console.log(`   Jobs after employmentType filter: ${jobs.length}`);
     }
@@ -2802,9 +2825,9 @@ export const searchJobs = onRequest({
         const jobTypeStr = (job.type || job.employmentType || '').toLowerCase();
         const employmentTypes = job.employmentTypes || [];
         return jobTypeStr.includes('full') ||
-               jobTypeStr.includes('full-time') ||
-               jobTypeStr.includes('fulltime') ||
-               employmentTypes.includes('full-time');
+          jobTypeStr.includes('full-time') ||
+          jobTypeStr.includes('fulltime') ||
+          employmentTypes.includes('full-time');
       });
     }
 
@@ -2814,11 +2837,11 @@ export const searchJobs = onRequest({
         const seniorityLevel = (job.seniority || job.level || '').toLowerCase();
         const experienceLevels = job.experienceLevels || [];
         return seniorityLevel.includes('senior') ||
-               seniorityLevel.includes('sr') ||
-               seniorityLevel.includes('lead') ||
-               seniorityLevel.includes('principal') ||
-               experienceLevels.includes('senior') ||
-               experienceLevels.includes('lead');
+          seniorityLevel.includes('sr') ||
+          seniorityLevel.includes('lead') ||
+          seniorityLevel.includes('principal') ||
+          experienceLevels.includes('senior') ||
+          experienceLevels.includes('lead');
       });
     }
 
@@ -2829,7 +2852,7 @@ export const searchJobs = onRequest({
         const jobLevel = (job.seniority || job.level || '').toLowerCase();
         const experienceLevels = job.experienceLevels || [];
         return jobLevel.includes(levelLower) ||
-               experienceLevels.some(level => level.toLowerCase().includes(levelLower));
+          experienceLevels.some(level => level.toLowerCase().includes(levelLower));
       });
       console.log(`   Jobs after experienceLevel filter: ${jobs.length}`);
     }
@@ -2841,7 +2864,7 @@ export const searchJobs = onRequest({
         const jobTypeValue = (job.type || job.employmentType || '').toLowerCase();
         const employmentTypes = job.employmentTypes || [];
         return jobTypeValue.includes(typeLower) ||
-               employmentTypes.some(type => type.toLowerCase().includes(typeLower));
+          employmentTypes.some(type => type.toLowerCase().includes(typeLower));
       });
     }
 
@@ -2870,7 +2893,7 @@ export const searchJobs = onRequest({
     // ============================================
     // RELEVANCE SCORING
     // ============================================
-    
+
     // Calculate relevance scores for sorting
     const calculateRelevanceScore = (job: JobDoc): number => {
       let score = 0;
@@ -2926,7 +2949,7 @@ export const searchJobs = onRequest({
         // First by relevance score
         const scoreDiff = (b._score || 0) - (a._score || 0);
         if (scoreDiff !== 0) return scoreDiff;
-        
+
         // Then by date
         const dateA = a.postedAt?._seconds || 0;
         const dateB = b.postedAt?._seconds || 0;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { doc, onSnapshot, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -13,20 +13,28 @@ import { getCreditHistory, type CreditHistoryEntry } from '../lib/creditHistory'
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { redirectToStripeCheckout } from '../services/stripe';
 import { toast } from 'react-hot-toast';
+import { generateInvoicePDF } from '../lib/invoiceGenerator';
 
 interface UserPlanData {
   plan: string;
   credits: number;
   planSelectedAt: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
 }
 
 interface BillingInvoice {
   id: string;
-  date: string;
+  invoiceNumber: string;
   amount: number;
-  plan: string;
+  currency: string;
+  planName: string;
+  type: 'plan' | 'credits';
   status: 'paid' | 'pending' | 'failed';
-  invoiceUrl?: string;
+  invoiceUrl: string | null;
+  invoicePdfUrl: string | null;
+  createdAt: Date;
 }
 
 // Minimalist coin icon component
@@ -192,6 +200,29 @@ export default function BillingPage() {
             }));
 
           setCreditUsage(usageData);
+
+          // Fetch invoices from subcollection
+          const invoicesRef = collection(db, 'users', currentUser.uid, 'invoices');
+          const invoicesQuery = query(invoicesRef, orderBy('createdAt', 'desc'));
+          const invoicesSnapshot = await getDocs(invoicesQuery);
+
+          const fetchedInvoices: BillingInvoice[] = invoicesSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              invoiceNumber: data.invoiceNumber || `INV-${doc.id.slice(0, 8).toUpperCase()}`,
+              amount: data.amount || 0,
+              currency: data.currency || 'eur',
+              planName: data.planName || data.plan || 'Unknown',
+              type: data.type || 'plan',
+              status: data.status || 'paid',
+              invoiceUrl: data.invoiceUrl || null,
+              invoicePdfUrl: data.invoicePdfUrl || null,
+              createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+            };
+          });
+
+          setInvoices(fetchedInvoices);
         }
         setIsLoading(false);
       }
@@ -201,9 +232,28 @@ export default function BillingPage() {
   }, [currentUser]);
 
   const currentPlan = plans.find(plan => plan.id === userPlanData?.plan) || plans[0];
-  const nextBillingDate = userPlanData?.planSelectedAt
-    ? new Date(new Date(userPlanData.planSelectedAt).setMonth(new Date(userPlanData.planSelectedAt).getMonth() + 1))
-    : new Date(new Date().setMonth(new Date().getMonth() + 1));
+
+  // Calculate next billing date - should always be in the future
+  const getNextBillingDate = () => {
+    const now = new Date();
+    let billingDate: Date;
+
+    if (userPlanData?.planSelectedAt) {
+      billingDate = new Date(userPlanData.planSelectedAt);
+      // Keep adding months until we get a future date
+      while (billingDate <= now) {
+        billingDate.setMonth(billingDate.getMonth() + 1);
+      }
+    } else {
+      // Default to 1 month from now
+      billingDate = new Date();
+      billingDate.setMonth(billingDate.getMonth() + 1);
+    }
+
+    return billingDate;
+  };
+
+  const nextBillingDate = getNextBillingDate();
 
   const handleUpgrade = async (plan: typeof plans[0]) => {
     if (!currentUser) {
@@ -646,21 +696,57 @@ export default function BillingPage() {
                   className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#2b2a2c] rounded-xl"
                 >
                   <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-gray-400" />
+                    <div className="w-10 h-10 rounded-lg bg-white dark:bg-[#3d3c3e] flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-gray-400" />
+                    </div>
                     <div>
-                      <div className="font-medium text-gray-900 dark:text-white">{invoice.plan} - {invoice.date}</div>
-                      <div className="text-sm text-gray-500">#{invoice.id}</div>
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        {invoice.planName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {invoice.invoiceNumber} • {invoice.createdAt.toLocaleDateString('en-US', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <div className="font-medium text-gray-900 dark:text-white">€{invoice.amount.toFixed(2)}</div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${invoice.status === 'paid' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        {invoice.currency === 'eur' ? '€' : '$'}{invoice.amount.toFixed(2)}
+                      </div>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${invoice.status === 'paid'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                        : invoice.status === 'failed'
+                          ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                          : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400'
                         }`}>
                         {invoice.status}
                       </span>
                     </div>
-                    <button className="p-2 text-gray-400 hover:text-[#635bff] transition-colors">
+                    <button
+                      onClick={() => {
+                        generateInvoicePDF(
+                          {
+                            invoiceNumber: invoice.invoiceNumber,
+                            date: invoice.createdAt,
+                            planName: invoice.planName,
+                            amount: invoice.amount,
+                            currency: invoice.currency,
+                            status: invoice.status,
+                          },
+                          currentUser?.email || 'customer@email.com',
+                          userPlanData?.fullName || (userPlanData?.firstName && userPlanData?.lastName
+                            ? `${userPlanData.firstName} ${userPlanData.lastName}`
+                            : userPlanData?.firstName) || currentUser?.displayName || undefined
+                        );
+                        toast.success('Invoice downloaded!');
+                      }}
+                      className="p-2 text-gray-400 hover:text-[#635bff] hover:bg-[#635bff]/10 rounded-lg transition-colors"
+                      title="Download Invoice PDF"
+                    >
                       <Download className="h-5 w-5" />
                     </button>
                   </div>
@@ -669,13 +755,13 @@ export default function BillingPage() {
             </div>
           ) : (
             <div className="text-center py-12 bg-gray-50 dark:bg-[#2b2a2c] rounded-xl">
-              <FileText className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">No billing history yet</p>
-              <p className="text-sm text-gray-400">Invoices will appear here</p>
+              <FileText className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-500 dark:text-gray-400">No billing history yet</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Invoices will appear here after your first payment</p>
             </div>
           )}
         </div>
       </div>
-    </AuthLayout>
+    </AuthLayout >
   );
 }

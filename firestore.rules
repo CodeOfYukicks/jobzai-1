@@ -99,6 +99,12 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && isOwner(userId);
       }
       
+      // Invoices subcollection (for Billing History)
+      match /invoices/{invoiceId} {
+        allow read: if isSignedIn() && isOwner(userId);
+        allow write: if false; // Only backend can create invoices
+      }
+      
       // Background Tasks subcollection (for CV generation, etc.)
       match /backgroundTasks/{taskId} {
         allow read, write: if isSignedIn() && isOwner(userId);
