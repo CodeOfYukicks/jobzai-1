@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Menu, 
-  X, 
+import {
+  Menu,
+  X,
   LayoutDashboard,
   Mail,
   ScrollText,
@@ -40,8 +40,7 @@ const productFeatures = {
 const publicNavigation = [
   { name: 'Products', hasDropdown: true },
   { name: 'AI', href: '#ai' },
-  { name: 'Job Board', href: '#jobs' },
-  { name: 'Interview Prep', href: '#interview' },
+  { name: 'Blog', href: '/blog' },
   { name: 'Pricing', href: '#pricing' },
 ];
 
@@ -109,28 +108,27 @@ export default function Navbar() {
   const showPublicMenu = !currentUser || isLandingPage;
 
   return (
-    <nav className={`fixed top-2 left-0 right-0 z-50 transition-all duration-300 ${
-      scrolled 
-        ? 'bg-white/80 backdrop-blur-lg shadow-sm border-b border-gray-100' 
-        : 'bg-transparent'
-    }`}>
+    <nav className={`fixed top-2 left-0 right-0 z-50 transition-all duration-300 ${scrolled
+      ? 'bg-white/80 backdrop-blur-lg shadow-sm border-b border-gray-100'
+      : 'bg-transparent'
+      }`}>
       <div className="w-full px-4 sm:px-6">
         <div className="relative flex items-center justify-between h-14">
           {/* Logo - Left */}
           <div className="flex-shrink-0">
-            <a 
+            <a
               href="/"
               onClick={handleLogoClick}
               className="flex items-center"
             >
-              <FirebaseImage 
-                path="images/logo-only.png" 
+              <FirebaseImage
+                path="images/logo-only.png"
                 alt="Cubbbe"
                 className="h-10 w-auto"
               />
             </a>
           </div>
-          
+
           {/* Desktop Navigation - Centered */}
           {showPublicMenu && (
             <div className="hidden md:flex items-center gap-0.5 absolute left-1/2 -translate-x-1/2" ref={dropdownRef}>
@@ -141,11 +139,10 @@ export default function Navbar() {
                     key={item.name}
                     onMouseEnter={() => handleMouseEnter(item.name)}
                     onMouseLeave={handleMouseLeave}
-                    className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors ${
-                      scrolled || isLandingPage
-                        ? 'text-gray-900 hover:text-gray-600'
-                        : 'text-white/90 hover:text-white'
-                    }`}
+                    className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || isLandingPage
+                      ? 'text-gray-900 hover:text-gray-600'
+                      : 'text-white/90 hover:text-white'
+                      }`}
                   >
                     {item.name}
                     <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${openDropdown === item.name ? 'rotate-180' : ''}`} />
@@ -155,11 +152,10 @@ export default function Navbar() {
                   <a
                     key={item.name}
                     href={item.href}
-                    className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                      scrolled || isLandingPage
-                        ? 'text-gray-900 hover:text-gray-600' 
-                        : 'text-white/90 hover:text-white'
-                    }`}
+                    className={`px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || isLandingPage
+                      ? 'text-gray-900 hover:text-gray-600'
+                      : 'text-white/90 hover:text-white'
+                      }`}
                   >
                     {item.name}
                   </a>
@@ -189,17 +185,16 @@ export default function Navbar() {
             <div className="hidden md:flex items-center gap-3">
               <Link
                 to="/login"
-                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                  scrolled || isLandingPage
-                    ? 'text-gray-900 hover:text-gray-600'
-                    : 'text-white/90 hover:text-white'
-                }`}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || isLandingPage
+                  ? 'text-gray-900 hover:text-gray-600'
+                  : 'text-white/90 hover:text-white'
+                  }`}
               >
                 Log in
               </Link>
               <Link
                 to="/signup"
-                className="px-4 py-1.5 text-sm font-medium text-white bg-[#7066fd] rounded-md transition-colors duration-200 hover:bg-[#5b52e0]"
+                className="px-5 py-2 text-sm font-medium text-white bg-[#635bff] rounded-md transition-colors duration-200 hover:bg-[#5147e5]"
               >
                 Get Started
               </Link>
@@ -210,11 +205,10 @@ export default function Navbar() {
           <div className="flex md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className={`p-1.5 rounded-md transition-colors ${
-                scrolled || isLandingPage 
-                  ? 'text-gray-600 hover:bg-gray-100' 
-                  : 'text-white hover:bg-white/10'
-              }`}
+              className={`p-1.5 rounded-md transition-colors ${scrolled || isLandingPage
+                ? 'text-gray-600 hover:bg-gray-100'
+                : 'text-white hover:bg-white/10'
+                }`}
             >
               {isMobileMenuOpen ? (
                 <X className="h-6 w-6" />
@@ -311,24 +305,24 @@ export default function Navbar() {
                     {/* DiceBear Avatars */}
                     <div className="mt-5 flex items-center justify-center">
                       <div className="flex -space-x-2">
-                        <img 
-                          src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=b6e3f4" 
-                          alt="" 
+                        <img
+                          src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=b6e3f4"
+                          alt=""
                           className="w-8 h-8 rounded-full ring-2 ring-white"
                         />
-                        <img 
-                          src="https://api.dicebear.com/7.x/notionists/svg?seed=Aneka&backgroundColor=c0aede" 
-                          alt="" 
+                        <img
+                          src="https://api.dicebear.com/7.x/notionists/svg?seed=Aneka&backgroundColor=c0aede"
+                          alt=""
                           className="w-8 h-8 rounded-full ring-2 ring-white"
                         />
-                        <img 
-                          src="https://api.dicebear.com/7.x/notionists/svg?seed=Leo&backgroundColor=ffd5dc" 
-                          alt="" 
+                        <img
+                          src="https://api.dicebear.com/7.x/notionists/svg?seed=Leo&backgroundColor=ffd5dc"
+                          alt=""
                           className="w-8 h-8 rounded-full ring-2 ring-white"
                         />
-                        <img 
-                          src="https://api.dicebear.com/7.x/notionists/svg?seed=Sara&backgroundColor=d1f4d1" 
-                          alt="" 
+                        <img
+                          src="https://api.dicebear.com/7.x/notionists/svg?seed=Sara&backgroundColor=d1f4d1"
+                          alt=""
                           className="w-8 h-8 rounded-full ring-2 ring-white"
                         />
                         <div className="w-8 h-8 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-600">
@@ -383,7 +377,7 @@ export default function Navbar() {
                       </a>
                     ))}
                   </div>
-                  
+
                   {/* Track Section */}
                   <div>
                     <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">

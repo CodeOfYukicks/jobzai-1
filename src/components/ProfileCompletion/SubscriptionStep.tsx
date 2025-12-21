@@ -133,14 +133,14 @@ export default function SubscriptionStep({ onComplete, onBack }: SubscriptionSte
             key={plan.id}
             className={`relative rounded-lg border-2 p-6 cursor-pointer transition-all ${
               selectedPlan === plan.id
-                ? 'border-[#8D75E6] dark:border-[#7C3AED] bg-[#8D75E6]/5 dark:bg-[#8D75E6]/10'
-                : 'border-gray-200 dark:border-gray-700 hover:border-[#8D75E6]/50 dark:hover:border-[#8D75E6]/50'
+                ? 'border-[#635bff] dark:border-[#7C3AED] bg-[#635bff]/5 dark:bg-[#635bff]/10'
+                : 'border-gray-200 dark:border-gray-700 hover:border-[#635bff]/50 dark:hover:border-[#635bff]/50'
             }`}
             onClick={() => handlePlanSelect(plan.id)}
           >
             {plan.popular && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#8D75E6] dark:bg-[#7C3AED] text-white">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#635bff] dark:bg-[#7C3AED] text-white">
                   <Crown className="w-3 h-3 mr-1" />
                   Most Popular
                 </span>
@@ -158,7 +158,7 @@ export default function SubscriptionStep({ onComplete, onBack }: SubscriptionSte
             <ul className="space-y-3 mb-6">
               {plan.features.map((feature) => (
                 <li key={feature} className="flex items-start">
-                  <Check className="h-5 w-5 text-[#8D75E6] dark:text-[#A78BFA] shrink-0 mr-2" />
+                  <Check className="h-5 w-5 text-[#635bff] dark:text-[#A78BFA] shrink-0 mr-2" />
                   <span className="text-sm text-gray-600">{feature}</span>
                 </li>
               ))}

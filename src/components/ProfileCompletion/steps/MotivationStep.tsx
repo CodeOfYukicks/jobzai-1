@@ -26,10 +26,10 @@ export default function MotivationStep({ value, onNext, onBack, isSubmitting }: 
 
     setIsImproving(true);
     setShowImproved(false);
-    
+
     try {
       const openai = await getOpenAIInstance();
-      
+
       const completion = await openai.chat.completions.create({
         model: "gpt-5.1", // Updated from gpt-4o (Nov 2025)
         messages: [
@@ -58,7 +58,7 @@ Return only the improved text, nothing else.`
       });
 
       const improved = completion.choices[0]?.message?.content?.trim() || '';
-      
+
       if (improved) {
         setImprovedText(improved);
         setShowImproved(true);
@@ -105,33 +105,28 @@ Return only the improved text, nothing else.`
           }}
           rows={6}
           placeholder="Example: I'm looking to transition from my current role in marketing to a product management position. I'm particularly interested in tech companies with strong mentorship programs..."
-          className="w-full p-4 pr-32 border-2 border-gray-200 dark:border-gray-700 rounded-xl
+          className="w-full p-4 pb-12 border border-gray-200 dark:border-gray-700 rounded-xl
             bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
-            focus:ring-2 focus:ring-[#8D75E6]/20 dark:focus:ring-[#7C3AED]/20 focus:border-[#8D75E6] dark:focus:border-[#7C3AED]
+            focus:ring-2 focus:ring-[#635bff]/20 dark:focus:ring-[#635bff]/20 focus:border-[#635bff] dark:focus:border-[#635bff]
             transition-all duration-200 resize-none
-            shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]
-            focus:shadow-md dark:focus:shadow-[0_4px_8px_rgba(141,117,230,0.2),0_2px_4px_rgba(0,0,0,0.3)]"
+            shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]"
         />
-        
-        {/* AI Improve Button - Centered vertically on the right */}
+
+        {/* AI Improve Button - Bottom right corner, integrated */}
         {motivation.trim() && !showImproved && (
           <button
             onClick={improveWithAI}
             disabled={isImproving}
-            className="absolute top-1/2 -translate-y-1/2 right-3 group flex items-center gap-1.5 px-3 py-1.5 
-              bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm
-              border border-gray-200 dark:border-gray-700
-              text-gray-600 dark:text-gray-400 rounded-lg 
-              text-xs font-medium transition-all duration-200
+            className="absolute bottom-3 right-3 group flex items-center gap-1.5 px-2.5 py-1.5 
+              text-gray-400 dark:text-gray-500 rounded-md 
+              text-xs font-medium transition-all duration-150
               disabled:opacity-50 disabled:cursor-not-allowed
-              hover:bg-[#8D75E6]/10 dark:hover:bg-[#8D75E6]/20
-              hover:border-[#8D75E6]/40 dark:hover:border-[#8D75E6]/50
-              hover:text-[#8D75E6] dark:hover:text-[#A78BFA]
-              hover:shadow-md active:scale-[0.98]"
+              hover:text-[#635bff] dark:hover:text-[#635bff]
+              hover:bg-[#635bff]/5 dark:hover:bg-[#635bff]/10"
           >
             {isImproving ? (
               <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#8D75E6] dark:text-[#A78BFA]" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 <span>Improving...</span>
               </>
             ) : (
@@ -144,52 +139,61 @@ Return only the improved text, nothing else.`
         )}
       </div>
 
-      {/* Improved Text Preview */}
+      {/* Improved Text Preview - Notion-style minimal design */}
       <AnimatePresence>
         {showImproved && improvedText && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-gradient-to-br from-[#8D75E6]/10 to-[#7B64D3]/10 dark:from-[#8D75E6]/20 dark:to-[#7B64D3]/20 
-              border-2 border-[#8D75E6] dark:border-[#7C3AED]/50 rounded-xl p-4 space-y-3
-              shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.2)]"
+            className="bg-white dark:bg-gray-800 rounded-xl p-5 space-y-4
+              border border-gray-200 dark:border-gray-700
+              shadow-lg dark:shadow-[0_8px_24px_rgba(0,0,0,0.3)]"
           >
+            {/* Header */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-[#8D75E6] dark:text-[#A78BFA]" />
-                <h3 className="font-semibold text-gray-900 dark:text-white">AI Improved Version</h3>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#635bff]/10 flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-[#635bff]" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm">AI Suggestion</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Review the improved version below</p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={acceptImproved}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-[#8D75E6] dark:bg-[#7C3AED] text-white rounded-lg 
-                    text-sm font-medium hover:bg-[#7B64D3] transition-all duration-200
-                    shadow-sm hover:shadow-md"
+                  onClick={rejectImproved}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 
+                    hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 
+                    rounded-lg transition-all duration-150"
                 >
-                  <Check className="h-4 w-4" />
-                  Accept
+                  Dismiss
                 </button>
                 <button
-                  onClick={rejectImproved}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 
-                    rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200"
+                  onClick={acceptImproved}
+                  className="px-4 py-1.5 bg-[#635bff] text-white rounded-lg 
+                    text-sm font-medium hover:bg-[#5147e5] transition-all duration-150
+                    shadow-sm hover:shadow-md"
                 >
-                  <X className="h-4 w-4" />
-                  Reject
+                  Apply
                 </button>
               </div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+
+            {/* Improved text content */}
+            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-100 dark:border-gray-700/50">
               <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                 {improvedText}
               </p>
             </div>
+
+            {/* Revert option */}
             {motivation !== originalText && (
               <button
                 onClick={revertToOriginal}
-                className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 
-                  hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 
+                  hover:text-gray-600 dark:hover:text-gray-400 transition-colors"
               >
                 <RotateCcw className="h-3 w-3" />
                 Revert to original
@@ -209,9 +213,9 @@ Return only the improved text, nothing else.`
         <button
           onClick={() => motivation.trim() && onNext({ motivation: motivation.trim() })}
           disabled={!motivation.trim() || isSubmitting}
-          className="px-8 py-2 bg-[#8D75E6] dark:bg-[#7C3AED] text-white rounded-lg font-medium
+          className="px-8 py-2 bg-[#635bff] dark:bg-[#7C3AED] text-white rounded-lg font-medium
             disabled:opacity-50 disabled:cursor-not-allowed
-            hover:bg-[#7D65D6] dark:hover:bg-[#6D28D9] transition-all duration-200
+            hover:brightness-110 dark:hover:brightness-110 transition-all duration-200
             shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]
             hover:shadow-lg dark:hover:shadow-[0_6px_12px_rgba(141,117,230,0.4)]
             flex items-center gap-2"

@@ -24,7 +24,7 @@ export default function Hero() {
   };
 
   return (
-    <div id="home" className="relative isolate overflow-hidden bg-[#8D75E6] dark:bg-[#6D28D9] min-h-screen flex items-center">
+    <div id="home" className="relative isolate overflow-hidden bg-[#635bff] dark:bg-[#6D28D9] min-h-screen flex items-center">
       <AnimatedGridPattern 
         width={40} 
         height={40} 

@@ -628,12 +628,14 @@ function PressQuote() {
       className="py-16 lg:py-20"
     >
       <div className="text-center">
-        <p className="text-2xl lg:text-4xl font-serif italic text-gray-900 mb-4">
+        <p className="text-2xl lg:text-4xl font-serif italic text-gray-900 mb-1">
           "The unfair advantage every job seeker needs."
         </p>
-        <p className="text-lg font-bold text-gray-900">
-          ProductHunt
-        </p>
+        <img
+          src="/images/Product_Hunt-Logo.wine.png"
+          alt="Product Hunt"
+          className="h-32 w-auto mx-auto object-contain"
+        />
       </div>
     </motion.div>
   );

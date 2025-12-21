@@ -82,7 +82,7 @@ export default function AvatarSetupStep({ onNext, onBack }: AvatarSetupStepProps
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="text-[#8D75E6]/30 dark:text-[#A78BFA]/30"
+            className="text-[#635bff]/30 dark:text-[#A78BFA]/30"
           >
             {/* Lightning bolt connector */}
             <motion.path
@@ -124,14 +124,14 @@ export default function AvatarSetupStep({ onNext, onBack }: AvatarSetupStepProps
           >
             {/* Card */}
             <div className="relative p-4 sm:p-5 bg-white dark:bg-gray-800/80 rounded-2xl border-2 border-gray-100 dark:border-gray-700
-              hover:border-[#8D75E6]/50 dark:hover:border-[#8D75E6]/50
+              hover:border-[#635bff]/50 dark:hover:border-[#635bff]/50
               shadow-lg dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)]
               hover:shadow-xl dark:hover:shadow-[0_12px_40px_rgba(141,117,230,0.2)]
               transition-all duration-300"
             >
               {/* Sparkle effects on hover */}
               <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Sparkles className="w-4 h-4 text-[#8D75E6] dark:text-[#A78BFA] animate-pulse" />
+                <Sparkles className="w-4 h-4 text-[#635bff] dark:text-[#A78BFA] animate-pulse" />
               </div>
               
               {/* Avatar */}
@@ -143,8 +143,8 @@ export default function AvatarSetupStep({ onNext, onBack }: AvatarSetupStepProps
                 transition={{ duration: 0.3 }}
                 className="relative"
               >
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-gradient-to-br from-[#8D75E6]/10 to-[#6366F1]/10
-                  dark:from-[#8D75E6]/20 dark:to-[#6366F1]/20">
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-gradient-to-br from-[#635bff]/10 to-[#6366F1]/10
+                  dark:from-[#635bff]/20 dark:to-[#6366F1]/20">
                   <ProfileAvatar config={profileConfig} size={112} className="w-full h-full" />
                 </div>
                 
@@ -157,7 +157,7 @@ export default function AvatarSetupStep({ onNext, onBack }: AvatarSetupStepProps
                       exit={{ opacity: 0, scale: 0 }}
                       className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-800/80 rounded-xl"
                     >
-                      <Shuffle className="w-6 h-6 text-[#8D75E6] animate-spin" />
+                      <Shuffle className="w-6 h-6 text-[#635bff] animate-spin" />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -173,7 +173,7 @@ export default function AvatarSetupStep({ onNext, onBack }: AvatarSetupStepProps
 
               {/* Shuffle button overlay on hover */}
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <div className="p-2.5 bg-[#8D75E6]/90 dark:bg-[#7C3AED]/90 rounded-full shadow-lg">
+                <div className="p-2.5 bg-[#635bff]/90 dark:bg-[#7C3AED]/90 rounded-full shadow-lg">
                   <Shuffle className="w-4 h-4 text-white" />
                 </div>
               </div>
@@ -186,10 +186,10 @@ export default function AvatarSetupStep({ onNext, onBack }: AvatarSetupStepProps
                 setShowProfileEditor(true);
               }}
               className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 
-                bg-gray-50 dark:bg-gray-700/50 hover:bg-[#8D75E6]/10 dark:hover:bg-[#8D75E6]/20
-                border border-gray-200 dark:border-gray-600 hover:border-[#8D75E6]/30
+                bg-gray-50 dark:bg-gray-700/50 hover:bg-[#635bff]/10 dark:hover:bg-[#635bff]/20
+                border border-gray-200 dark:border-gray-600 hover:border-[#635bff]/30
                 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 
-                hover:text-[#8D75E6] dark:hover:text-[#A78BFA]
+                hover:text-[#635bff] dark:hover:text-[#A78BFA]
                 transition-all duration-200"
             >
               <Pencil className="w-3 h-3" />
@@ -199,7 +199,7 @@ export default function AvatarSetupStep({ onNext, onBack }: AvatarSetupStepProps
         </motion.div>
 
         {/* Mobile connector */}
-        <div className="sm:hidden flex items-center gap-2 text-[#8D75E6]/40 dark:text-[#A78BFA]/40">
+        <div className="sm:hidden flex items-center gap-2 text-[#635bff]/40 dark:text-[#A78BFA]/40">
           <div className="w-6 h-0.5 bg-current rounded-full" />
           <Sparkles className="w-4 h-4" />
           <div className="w-6 h-0.5 bg-current rounded-full" />
@@ -230,7 +230,7 @@ export default function AvatarSetupStep({ onNext, onBack }: AvatarSetupStepProps
               
               {/* AI Badge */}
               <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
-                <span className="px-2 py-0.5 bg-gradient-to-r from-[#8D75E6] to-[#6366F1] text-white text-xs font-semibold rounded-full shadow-md">
+                <span className="px-2 py-0.5 bg-gradient-to-r from-[#635bff] to-[#6366F1] text-white text-xs font-semibold rounded-full shadow-md">
                   AI
                 </span>
               </div>
@@ -244,8 +244,8 @@ export default function AvatarSetupStep({ onNext, onBack }: AvatarSetupStepProps
                 transition={{ duration: 0.3 }}
                 className="relative"
               >
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-gradient-to-br from-[#6366F1]/10 to-[#8D75E6]/10
-                  dark:from-[#6366F1]/20 dark:to-[#8D75E6]/20">
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-gradient-to-br from-[#6366F1]/10 to-[#635bff]/10
+                  dark:from-[#6366F1]/20 dark:to-[#635bff]/20">
                   <Avatar config={assistantConfig} size={112} className="w-full h-full" />
                 </div>
                 
@@ -319,10 +319,10 @@ export default function AvatarSetupStep({ onNext, onBack }: AvatarSetupStepProps
         
         <button
           onClick={handleContinue}
-          className="group px-8 py-3 bg-gradient-to-r from-[#8D75E6] to-[#6366F1] text-white rounded-xl font-medium
+          className="group px-8 py-3 bg-gradient-to-r from-[#635bff] to-[#6366F1] text-white rounded-xl font-medium
             hover:from-[#7D65D6] hover:to-[#5558E3] transition-all duration-200
-            shadow-lg shadow-[#8D75E6]/25 dark:shadow-[#8D75E6]/20
-            hover:shadow-xl hover:shadow-[#8D75E6]/30
+            shadow-lg shadow-[#635bff]/25 dark:shadow-[#635bff]/20
+            hover:shadow-xl hover:shadow-[#635bff]/30
             flex items-center gap-2"
         >
           <span>Continue</span>

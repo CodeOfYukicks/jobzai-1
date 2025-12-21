@@ -12,12 +12,12 @@ interface OnboardingLayoutProps {
   subtitle?: string;
 }
 
-export default function OnboardingLayout({ 
-  children, 
-  currentStep, 
+export default function OnboardingLayout({
+  children,
+  currentStep,
   totalSteps,
   title,
-  subtitle 
+  subtitle
 }: OnboardingLayoutProps) {
   const { currentUser } = useAuth();
   const [logoUrl, setLogoUrl] = useState('');
@@ -25,7 +25,7 @@ export default function OnboardingLayout({
   useEffect(() => {
     const fetchLogo = async () => {
       try {
-        const logoRef = ref(storage, 'images/logo-dark.png');
+        const logoRef = ref(storage, 'images/logo-only.png');
         const url = await getDownloadURL(logoRef);
         setLogoUrl(url);
       } catch (error) {
@@ -45,9 +45,9 @@ export default function OnboardingLayout({
           shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]">
           <div className="max-w-md mx-auto px-4 py-4 lg:max-w-none lg:px-6 flex justify-between items-center">
             {logoUrl ? (
-              <img 
-                src={logoUrl} 
-                alt="Cubbbe" 
+              <img
+                src={logoUrl}
+                alt="Cubbbe"
                 className="h-8 w-auto object-contain"
               />
             ) : (
@@ -60,11 +60,10 @@ export default function OnboardingLayout({
         </header>
 
         {/* Content */}
-        <div className={`pt-20 px-4 pb-12 mx-auto lg:px-8 ${
-          title.toLowerCase().includes('subscription') || title.toLowerCase().includes('plan')
-            ? 'max-w-7xl' // Full width for subscription page
-            : 'max-w-md lg:max-w-2xl' // Standard width for other pages
-        }`}>
+        <div className={`pt-20 px-4 pb-12 mx-auto lg:px-8 ${title.toLowerCase().includes('subscription') || title.toLowerCase().includes('plan')
+          ? 'max-w-7xl' // Full width for subscription page
+          : 'max-w-md lg:max-w-2xl' // Standard width for other pages
+          }`}>
           {/* Step Indicator */}
           <div className="mb-8 text-center lg:text-left">
             <div className="flex items-baseline justify-center lg:justify-start gap-2">
@@ -91,11 +90,10 @@ export default function OnboardingLayout({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.3),0_2px_4px_-1px_rgba(0,0,0,0.2)] dark:shadow-purple-500/10 ${
-              title.toLowerCase().includes('subscription') || title.toLowerCase().includes('plan')
-                ? 'p-0 shadow-none dark:shadow-none bg-transparent dark:bg-transparent' // No padding/background for subscription
-                : 'p-4 sm:p-6 overflow-hidden'
-            }`}
+            className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.3),0_2px_4px_-1px_rgba(0,0,0,0.2)] dark:shadow-purple-500/10 ${title.toLowerCase().includes('subscription') || title.toLowerCase().includes('plan')
+              ? 'p-0 shadow-none dark:shadow-none bg-transparent dark:bg-transparent' // No padding/background for subscription
+              : 'p-4 sm:p-6 overflow-hidden'
+              }`}
           >
             {children}
           </motion.div>
@@ -103,17 +101,17 @@ export default function OnboardingLayout({
       </main>
 
       {/* Right Side Banner - Desktop only */}
-      <div className="hidden lg:block w-[35%] bg-[#8D75E6] dark:bg-[#6D28D9] fixed right-0 top-0 bottom-0">
+      <div className="hidden lg:block w-[35%] bg-gray-900 dark:bg-black fixed right-0 top-0 bottom-0">
         <div className="h-full flex flex-col justify-center px-12 text-white">
           <h2 className="text-4xl font-bold mb-6">
             LET'S SET UP YOUR
             <br />
-            <span className="italic">SHINY</span> NEW ACCOUNT
+            <span className="italic text-[#635bff]">SHINY</span> NEW ACCOUNT
           </h2>
           <p className="text-lg opacity-80">
             Complete your profile to get started with personalized job recommendations and connect with top companies.
           </p>
-          
+
           {/* Progress Indicator */}
           <div className="mt-12">
             <div className="flex justify-between items-center mb-2">
@@ -126,7 +124,7 @@ export default function OnboardingLayout({
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${(currentStep / totalSteps) * 100}%` }}
-                className="bg-white rounded-full h-2"
+                className="bg-[#635bff] rounded-full h-2"
                 transition={{ duration: 0.5 }}
               />
             </div>

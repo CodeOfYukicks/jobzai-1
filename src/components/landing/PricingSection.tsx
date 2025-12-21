@@ -34,7 +34,7 @@ const pricingTiers = [
   },
   {
     name: 'Premium',
-    price: { monthly: 39, biMonthly: 70 },
+    price: { monthly: 39, biMonthly: 75 },
     credits: '250 credits',
     description: 'Supercharge your applications with AI power',
     features: [
@@ -59,7 +59,7 @@ const pricingTiers = [
   },
   {
     name: 'Pro',
-    price: { monthly: 74, biMonthly: 133 },
+    price: { monthly: 79, biMonthly: 139 },
     credits: '500 credits',
     description: 'The ultimate toolkit for ambitious professionals',
     features: [
@@ -87,16 +87,16 @@ export default function PricingSection() {
   const [isBiMonthly, setIsBiMonthly] = useState(false);
 
   return (
-    <section className="py-20 bg-white">
+    <section id="pricing" className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h2 className="text-4xl lg:text-6xl font-black text-gray-900 mb-6 tracking-tight">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl lg:text-6xl font-black text-gray-900 tracking-tight">
             One tool for your whole career.
           </h2>
 
           {/* Toggle */}
-          <div className="flex items-center justify-center mt-10">
+          <div className="flex items-center justify-center mt-12">
             <div className="inline-flex items-center bg-[#f0f0f0] p-1 rounded-full">
               <button
                 onClick={() => setIsBiMonthly(false)}

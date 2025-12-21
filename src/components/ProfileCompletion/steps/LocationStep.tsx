@@ -22,7 +22,6 @@ interface CitySuggestion {
 }
 
 const popularCities: CitySuggestion[] = [
-  { name: 'Remote', country: 'Remote', displayName: 'Remote' },
   { name: 'London', country: 'United Kingdom', displayName: 'London, United Kingdom' },
   { name: 'New York', country: 'United States', displayName: 'New York, United States' },
   { name: 'Paris', country: 'France', displayName: 'Paris, France' },
@@ -104,14 +103,14 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
       // Use Photon API which is better for autocomplete
       // Add lang parameter to get English names
       let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(searchTerm)}&limit=15&lang=en`;
-      
+
       const response = await fetch(url, {
         headers: {
           'Accept': 'application/json',
           'Accept-Language': 'en'
         }
       });
-      
+
       if (response.ok) {
         const data: any = await response.json();
         if (data.features && Array.isArray(data.features)) {
@@ -120,11 +119,11 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
               // Filter for cities, towns, villages, municipalities
               const placeType = item.properties?.osm_value || item.properties?.type;
               const osmKey = item.properties?.osm_key;
-              
+
               // Accept places (cities, towns, villages) or administrative boundaries
               return (osmKey === 'place' && (placeType === 'city' || placeType === 'town' || placeType === 'village' || placeType === 'municipality')) ||
-                     (osmKey === 'boundary' && placeType === 'administrative') ||
-                     (item.properties?.name && item.geometry?.type === 'Point'); // Fallback for any named place
+                (osmKey === 'boundary' && placeType === 'administrative') ||
+                (item.properties?.name && item.geometry?.type === 'Point'); // Fallback for any named place
             })
             .map((item: any) => {
               // Prefer English name if available, otherwise use default name
@@ -145,7 +144,7 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
               return acc;
             }, [])
             .slice(0, 10);
-          
+
           if (suggestions.length > 0) {
             setCitySuggestions(suggestions);
           } else {
@@ -177,22 +176,22 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
       if (countryCode) {
         url += `&countrycodes=${countryCode}`;
       }
-      
+
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'Cubbbe Location Selector',
           'Accept-Language': 'en'
         }
       });
-      
+
       if (response.ok) {
         const data: any[] = await response.json();
         const suggestions: CitySuggestion[] = data
           .filter(item => {
             // More flexible filtering
             const type = item.type || item.class;
-            return type === 'city' || type === 'town' || type === 'village' || 
-                   item.class === 'place' || item.place_type === 'city';
+            return type === 'city' || type === 'town' || type === 'village' ||
+              item.class === 'place' || item.place_type === 'city';
           })
           .map(item => {
             // Nominatim returns localized names, try to get English name from address
@@ -208,7 +207,7 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
           })
           .filter(suggestion => suggestion.name) // Remove empty names
           .slice(0, 10);
-        
+
         setCitySuggestions(suggestions);
       } else {
         setCitySuggestions([]);
@@ -221,7 +220,7 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
 
   // Debounce timer for city search
   const citySearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Debounce timer for country search
   const countrySearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -229,12 +228,12 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
   const handleCityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setCity(value);
-    
+
     // Clear previous timeout
     if (citySearchTimeoutRef.current) {
       clearTimeout(citySearchTimeoutRef.current);
     }
-    
+
     if (value.length >= 2) {
       // Debounce the API call
       citySearchTimeoutRef.current = setTimeout(() => {
@@ -251,12 +250,12 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
   const handleCountryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setCountry(value);
-    
+
     // Clear previous timeout
     if (countrySearchTimeoutRef.current) {
       clearTimeout(countrySearchTimeoutRef.current);
     }
-    
+
     if (value.length >= 2) {
       // Debounce the API call
       countrySearchTimeoutRef.current = setTimeout(() => {
@@ -298,7 +297,7 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        citySuggestionsRef.current && 
+        citySuggestionsRef.current &&
         !citySuggestionsRef.current.contains(event.target as Node) &&
         cityInputRef.current &&
         !cityInputRef.current.contains(event.target as Node)
@@ -306,7 +305,7 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
         setShowCitySuggestions(false);
       }
       if (
-        countrySuggestionsRef.current && 
+        countrySuggestionsRef.current &&
         !countrySuggestionsRef.current.contains(event.target as Node) &&
         countryInputRef.current &&
         !countryInputRef.current.contains(event.target as Node)
@@ -329,10 +328,10 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
           City
         </label>
         <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <MapPin className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-        </div>
-        <input
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <MapPin className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+          </div>
+          <input
             ref={cityInputRef}
             type="text"
             value={city}
@@ -341,7 +340,7 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
             placeholder="Enter city..."
             className="w-full pl-12 pr-10 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl
               bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
-              focus:ring-2 focus:ring-[#8D75E6]/20 dark:focus:ring-[#7C3AED]/20 focus:border-[#8D75E6] dark:focus:border-[#7C3AED]
+              focus:ring-2 focus:ring-[#635bff]/20 dark:focus:ring-[#7C3AED]/20 focus:border-[#635bff] dark:focus:border-[#7C3AED]
               transition-all duration-200
               shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]
               focus:shadow-md dark:focus:shadow-[0_4px_8px_rgba(141,117,230,0.2),0_2px_4px_rgba(0,0,0,0.3)]"
@@ -352,7 +351,7 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
             </div>
           )}
         </div>
-        
+
         {/* City Suggestions Dropdown */}
         <AnimatePresence>
           {showCitySuggestions && (citySuggestions.length > 0 || loadingCities) && (
@@ -397,25 +396,25 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
           </div>
           <input
             ref={countryInputRef}
-          type="text"
+            type="text"
             value={country}
             onChange={handleCountryChange}
             onFocus={() => country.length >= 2 && setShowCountrySuggestions(true)}
             placeholder="Enter country..."
             className="w-full pl-12 pr-10 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl
             bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
-            focus:ring-2 focus:ring-[#8D75E6]/20 dark:focus:ring-[#7C3AED]/20 focus:border-[#8D75E6] dark:focus:border-[#7C3AED]
+            focus:ring-2 focus:ring-[#635bff]/20 dark:focus:ring-[#7C3AED]/20 focus:border-[#635bff] dark:focus:border-[#7C3AED]
             transition-all duration-200
             shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]
             focus:shadow-md dark:focus:shadow-[0_4px_8px_rgba(141,117,230,0.2),0_2px_4px_rgba(0,0,0,0.3)]"
-        />
+          />
           {loadingCountries && (
             <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
               <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
             </div>
           )}
         </div>
-        
+
         {/* Country Suggestions Dropdown */}
         <AnimatePresence>
           {showCountrySuggestions && (countrySuggestions.length > 0 || loadingCountries) && (
@@ -457,7 +456,7 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
               className={`
                 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
                 ${city === suggestion.name && country === suggestion.country
-                  ? 'bg-[#8D75E6] dark:bg-[#7C3AED] text-white shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]' 
+                  ? 'bg-[#635bff] dark:bg-[#7C3AED] text-white shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]'
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)]'
                 }
               `}
@@ -479,9 +478,9 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
         <button
           onClick={() => canContinue && onNext({ city: city.trim(), country: country.trim() })}
           disabled={!canContinue}
-          className="px-8 py-2 bg-[#8D75E6] dark:bg-[#7C3AED] text-white rounded-lg font-medium
+          className="px-8 py-2 bg-[#635bff] dark:bg-[#7C3AED] text-white rounded-lg font-medium
             disabled:opacity-50 disabled:cursor-not-allowed
-            hover:bg-[#7D65D6] dark:hover:bg-[#6D28D9] transition-all duration-200
+            hover:brightness-110 dark:hover:brightness-110 transition-all duration-200
             shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]
             hover:shadow-lg dark:hover:shadow-[0_6px_12px_rgba(141,117,230,0.4)]"
         >

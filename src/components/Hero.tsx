@@ -20,14 +20,14 @@ const FloatingElement = ({ icon: Icon, color, bgColor, barColor, delay, x, y, ro
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
-      animate={{ 
-        opacity: 1, 
+      animate={{
+        opacity: 1,
         scale: scale,
         x: x,
         y: y,
       }}
-      transition={{ 
-        duration: 0.8, 
+      transition={{
+        duration: 0.8,
         delay: delay,
         type: "spring",
         stiffness: 50
@@ -42,7 +42,7 @@ const FloatingElement = ({ icon: Icon, color, bgColor, barColor, delay, x, y, ro
         rotate: rotation,
       }}
     >
-      <div 
+      <div
         className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl"
         style={{ backgroundColor: barColor }}
       />
@@ -142,43 +142,32 @@ export default function Hero() {
 
   return (
     <div id="home" className="relative bg-white min-h-screen flex flex-col items-center pt-24 pb-16 overflow-hidden">
-      
+
       {/* Decorative Grid Background - Optional but adds to Notion feel */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
 
       {/* Main Content Container */}
       <div className="relative w-full max-w-7xl mx-auto px-6 flex flex-col items-center">
-        
+
         {/* Content Wrapper */}
         <div className="relative z-10 max-w-4xl mx-auto text-center pointer-events-none">
           {/* Floating Elements - Positioned relative to this content wrapper */}
           <div className="absolute inset-0 flex items-center justify-center z-[-1] pointer-events-none">
-             {floatingElements.map((el, index) => (
+            {floatingElements.map((el, index) => (
               <div key={index} className="absolute">
                 <FloatingElement {...el} />
               </div>
             ))}
           </div>
 
-          {/* AI Badge - Glassmorphism */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="mb-8 pointer-events-auto"
-          >
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 backdrop-blur-md border border-white/60 shadow-sm text-sm font-medium text-gray-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#7066fd] animate-pulse"></span>
-              AI-powered
-            </span>
-          </motion.div>
+
 
           {/* Main Headline */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-gray-900 leading-[1.1] mb-6 pointer-events-auto"
+            className="mt-16 text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-gray-900 leading-[1.1] mb-6 pointer-events-auto"
           >
             Your job search.
             <br />
@@ -204,7 +193,7 @@ export default function Hero() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16 pointer-events-auto"
           >
-            <Link 
+            <Link
               to="/signup"
               className="inline-flex items-center justify-center h-12 px-8 text-[16px] font-semibold text-white bg-[#000000] hover:bg-[#333333] rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
             >
@@ -236,7 +225,7 @@ export default function Hero() {
                 <div className="w-[10px] h-[10px] rounded-full bg-[#27C93F] border border-[#1AAB29]"></div>
               </div>
             </div>
-            
+
             {/* Video Content */}
             <div className="relative bg-gray-50">
               {videoUrl ? (
@@ -256,7 +245,7 @@ export default function Hero() {
                   <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
                 </div>
               )}
-              
+
               {/* Play/Pause Button */}
               {videoUrl && (
                 <button
@@ -277,7 +266,7 @@ export default function Hero() {
               )}
             </div>
           </div>
-          
+
           {/* Subtle shadow underneath */}
           <div className="absolute -inset-x-4 -bottom-4 h-24 -z-10 bg-gradient-to-b from-transparent to-gray-100/60 blur-2xl"></div>
         </motion.div>
@@ -292,15 +281,15 @@ export default function Hero() {
           <p className="text-center text-sm text-gray-500 mb-8 uppercase tracking-wider font-semibold">
             Our users landed offers at
           </p>
-          
+
           {/* Logo Marquee */}
           <div className="relative overflow-hidden py-4">
             {/* Fade gradients */}
             <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
             <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
-            
+
             {/* Marquee track */}
-            <div 
+            <div
               className="flex items-center gap-20 animate-marquee"
               style={{
                 width: 'max-content',
@@ -325,7 +314,7 @@ export default function Hero() {
               ))}
             </div>
           </div>
-          
+
           {/* CSS for marquee animation */}
           <style>{`
             @keyframes marquee {
