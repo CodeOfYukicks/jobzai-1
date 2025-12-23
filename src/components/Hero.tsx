@@ -161,13 +161,25 @@ export default function Hero() {
           </div>
 
 
+          {/* Trust Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mt-16 mb-4 pointer-events-auto"
+          >
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-gray-600 text-sm font-medium">
+              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              Trusted by 20,000+ job seekers
+            </span>
+          </motion.div>
 
           {/* Main Headline */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="mt-16 text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-gray-900 leading-[1.1] mb-6 pointer-events-auto"
+            className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-gray-900 leading-[1.1] mb-6 pointer-events-auto"
             style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 900 }}
           >
             Stop applying.

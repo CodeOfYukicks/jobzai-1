@@ -9,6 +9,30 @@ const CoinIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   </svg>
 );
 
+// Feature descriptions for tooltips
+const featureDescriptions: Record<string, string> = {
+  'Access to Job Board': 'Browse thousands of job listings from top companies, updated daily.',
+  'Application Tracking': 'Keep track of all your applications in one organized dashboard.',
+  'Calendar Follow-up View': 'Never miss a follow-up with integrated calendar reminders.',
+  'Full Interview Prep': 'Access comprehensive interview preparation materials and tips.',
+  '1 Resume Analysis / month': 'Get AI-powered feedback to improve your resume.',
+  '4 Resume Templates': 'Choose from professionally designed resume templates.',
+  'Professional Profile': 'Build a compelling professional profile to showcase your skills.',
+  'Analytics Dashboard': 'Track your job search performance with detailed analytics.',
+  'Personalized Job Board': 'Get job recommendations tailored to your skills and preferences.',
+  'Track Applications + Outreach': 'Manage both job applications and networking outreach in one place.',
+  '2 Mock Interviews / month': 'Practice with AI-powered mock interviews to build confidence.',
+  '10 Resume Analyses / month': 'Get unlimited AI feedback to perfect your resume.',
+  'Premium Resume Templates': 'Access exclusive premium resume designs.',
+  '2 Campaigns (200 contacts)': 'Launch targeted outreach campaigns to hiring managers.',
+  'AI Recommendations': 'Receive smart suggestions to optimize your job search strategy.',
+  'Priority Support': 'Get faster responses from our dedicated support team.',
+  'AI Interview Coaching': 'Personalized AI coaching to ace any interview question.',
+  '5 Mock Interviews / month': 'More practice sessions to master your interview skills.',
+  '20 Resume Analyses / month': 'Comprehensive resume optimization for every application.',
+  '5 Campaigns (500 contacts)': 'Scale your outreach with larger campaign capacity.',
+};
+
 const pricingTiers = [
   {
     name: 'Free',
@@ -157,7 +181,7 @@ export default function PricingSection() {
                     {tier.price.monthly === 0 ? '/forever' : isBiMonthly ? '/2 months' : '/month'}
                   </span>
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-[#001d3d] text-white">
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#001d3d] text-white">
                   <CoinIcon className="w-4 h-4" />
                   <span>{tier.credits}/month</span>
                 </div>
@@ -166,7 +190,7 @@ export default function PricingSection() {
               {/* Row 4: CTA Button */}
               <Link
                 to="/signup"
-                className={`w-full py-3 rounded-xl text-sm font-bold transition-all text-center mb-6 ${tier.popular
+                className={`w-full py-3 rounded-xl text-sm font-medium transition-all text-center mb-6 ${tier.popular
                   ? 'bg-gray-900 text-white hover:bg-gray-800'
                   : 'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 shadow-sm'
                   }`}
@@ -181,13 +205,22 @@ export default function PricingSection() {
                 </p>
                 <ul className="space-y-2.5">
                   {tier.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2.5 text-[14px] leading-tight text-gray-600">
+                    <li key={feature} className="group relative flex items-start gap-2.5 text-[14px] leading-tight text-gray-600 cursor-help">
                       <span className="mt-1 flex-shrink-0 text-[#ffc300]">
                         <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       </span>
-                      <span>{feature}</span>
+                      <span className="border-b border-dashed border-gray-300 group-hover:border-gray-500 transition-colors">{feature}</span>
+                      {/* Tooltip */}
+                      {featureDescriptions[feature] && (
+                        <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-64">
+                          <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg">
+                            {featureDescriptions[feature]}
+                            <div className="absolute top-full left-4 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-gray-900"></div>
+                          </div>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
