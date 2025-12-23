@@ -11,6 +11,7 @@ const CoinIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
 
 // Feature descriptions for tooltips
 const featureDescriptions: Record<string, string> = {
+  'Basic page access': 'Access core features to explore the platform and start your job search.',
   'Access to Job Board': 'Browse thousands of job listings from top companies, updated daily.',
   'Application Tracking': 'Keep track of all your applications in one organized dashboard.',
   'Calendar Follow-up View': 'Never miss a follow-up with integrated calendar reminders.',
@@ -40,14 +41,8 @@ const pricingTiers = [
     credits: '10 credits',
     description: 'Start your job search journey with essential tools',
     features: [
-      'Access to Job Board',
-      'Application Tracking',
-      'Calendar Follow-up View',
-      'Full Interview Prep',
+      'Basic page access',
       '1 Resume Analysis / month',
-      '4 Resume Templates',
-      'Professional Profile',
-      'Analytics Dashboard',
     ],
     cta: 'Sign up',
     icon: (

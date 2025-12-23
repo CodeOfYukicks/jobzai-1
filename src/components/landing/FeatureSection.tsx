@@ -262,8 +262,8 @@ function SecondaryFeatureCard() {
 
           {/* Title */}
           <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 leading-tight">
-            Transform your CV<br />
-            with AI precision.
+            Your CV tailored to each role.<br />
+            Optimized for recruiters.
           </h3>
 
           {/* CTA Button */}
@@ -360,8 +360,8 @@ function MockInterviewCard() {
 
           {/* Title */}
           <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 leading-tight">
-            Practice makes<br />
-            perfect interviews.
+            Train like it's<br />
+            the real interview.
           </h3>
 
           {/* CTA Button */}
@@ -591,7 +591,7 @@ function ApplicationTrackingCard() {
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-4">Every application, tracked.</h3>
+        <h3 className="text-2xl font-bold text-gray-900 mb-4">Know exactly what's working — and what isn't.</h3>
 
         {/* Toggle Pills */}
         <div className="flex gap-2">
@@ -1056,7 +1056,7 @@ export default function FeatureSection() {
   const gridFeatures = [
     {
       label: 'Interview Prep',
-      title: 'Ace every call.',
+      title: 'Practice with AI. Show up confident.',
       icon: MessageSquare,
       accentColor: 'text-[#4A9EFF]',
       accentBg: 'bg-[#E8F4FF]',

@@ -4,7 +4,7 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 
 export default function FinalCTA() {
   return (
-    <section className="py-24 bg-[#001d3d] relative overflow-hidden">
+    <section className="py-24 bg-black relative overflow-hidden">
       {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
