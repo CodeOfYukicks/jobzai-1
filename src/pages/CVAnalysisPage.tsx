@@ -8129,7 +8129,7 @@ URL to visit: ${jobUrl}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="flex items-center justify-between"
+                className="flex items-start justify-between"
               >
                 {/* Title left */}
                 <div>
@@ -8145,14 +8145,16 @@ URL to visit: ${jobUrl}
                   </p>
                   {/* Usage Quota Indicator */}
                   {!isLoadingLimits && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className={`text-xs font-medium ${coverPhoto ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>
-                        Analyses used:
-                      </span>
-                      <span className={`text-xs font-bold ${coverPhoto ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
-                        {getUsageStats('resumeAnalyses').used}/{getUsageStats('resumeAnalyses').limit}
-                      </span>
-                      <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="inline-flex items-center gap-3 px-4 py-2 mt-3 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                          Analyses used:
+                        </span>
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">
+                          {getUsageStats('resumeAnalyses').used}/{getUsageStats('resumeAnalyses').limit}
+                        </span>
+                      </div>
+                      <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all ${getUsageStats('resumeAnalyses').percentage >= 100
                             ? 'bg-red-500'
@@ -8164,7 +8166,7 @@ URL to visit: ${jobUrl}
                         />
                       </div>
                       {getUsageStats('resumeAnalyses').remaining === 0 && (
-                        <span className="text-xs text-amber-500 font-medium">
+                        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                           25 credits/analysis
                         </span>
                       )}
@@ -8192,7 +8194,7 @@ URL to visit: ${jobUrl}
                     setShowJobDropdown(false);
                     setIsModalOpen(true);
                   }}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200
+                  className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200
                     text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015]"
                 >
                   <Sparkles className="w-4 h-4" />

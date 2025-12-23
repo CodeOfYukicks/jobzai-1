@@ -1504,17 +1504,29 @@ export default function CampaignsAutoPage() {
                     if (!stats) return null;
                     const isExhausted = stats.used >= stats.limit;
                     return (
-                      <div className={`mt-2 flex items-center gap-2 text-xs ${coverPhoto ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
-                        <span>Campaigns used: {stats.used}/{stats.limit}</span>
-                        <div className={`w-16 h-1.5 rounded-full overflow-hidden ${coverPhoto ? 'bg-white/20' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                      <div className="inline-flex items-center gap-3 px-4 py-2 mt-3 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            Campaigns used:
+                          </span>
+                          <span className="text-sm font-bold text-gray-900 dark:text-white">
+                            {stats.used}/{stats.limit}
+                          </span>
+                        </div>
+                        <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                           <div
-                            className={`h-full transition-all duration-300 ${isExhausted ? 'bg-purple-500' : 'bg-purple-400'}`}
-                            style={{ width: `${Math.min((stats.used / stats.limit) * 100, 100)}%` }}
+                            className={`h-full rounded-full transition-all ${stats.percentage >= 100
+                              ? 'bg-red-500'
+                              : stats.percentage >= 80
+                                ? 'bg-amber-500'
+                                : 'bg-[#635bff]'
+                              }`}
+                            style={{ width: `${Math.min(100, stats.percentage)}%` }}
                           />
                         </div>
                         {isExhausted && (
-                          <span className="text-purple-500 dark:text-purple-400">
-                            ({CREDIT_COSTS.campaignPer100} credits/campaign)
+                          <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                            {CREDIT_COSTS.campaign} credits/campaign
                           </span>
                         )}
                       </div>
