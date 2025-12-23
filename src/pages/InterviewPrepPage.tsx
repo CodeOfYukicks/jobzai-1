@@ -54,6 +54,9 @@ import { Resume } from './ResumeBuilderPage';
 import { NotionDocument, getNotes } from '../lib/notionDocService';
 import { WhiteboardDocument, getWhiteboards } from '../lib/whiteboardDocService';
 import { ImportedDocument } from '../components/resume-builder/PDFPreviewCard';
+import { usePlanLimits } from '../hooks/usePlanLimits';
+import { CREDIT_COSTS } from '../lib/planLimits';
+import CreditConfirmModal from '../components/CreditConfirmModal';
 
 // Interface for the job application data
 interface Note {
@@ -396,7 +399,7 @@ export default function InterviewPrepPage() {
   const [isRegeneratingQuestions, setIsRegeneratingQuestions] = useState(false);
   const [isNotesExpanded, setIsNotesExpanded] = useState(false);
   const [showStarExportModal, setShowStarExportModal] = useState(false);
-  const [pendingStarExport, setPendingStarExport] = useState<{skill: string, storyId: string} | null>(null);
+  const [pendingStarExport, setPendingStarExport] = useState<{ skill: string, storyId: string } | null>(null);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [isDrawingConnection, setIsDrawingConnection] = useState(false);
   const [notePositions, setNotePositions] = useState<Record<string, { x: number; y: number }>>({});
@@ -468,6 +471,11 @@ export default function InterviewPrepPage() {
   const [contextDocuments, setContextDocuments] = useState<ContextDocument[]>([]);
   const [documentTextCache, setDocumentTextCache] = useState<Record<string, string>>({});
 
+  // Plan limits for Practice Live
+  const { canUseForFree, getUsageStats, checkAndUseFeature, userCredits, isLoading: isLoadingLimits } = usePlanLimits();
+  const [showCreditModal, setShowCreditModal] = useState(false);
+  const [pendingLiveSession, setPendingLiveSession] = useState(false);
+
   // Play sound from Firebase Storage when user clicks "Prepare Live"
   const playFuturisticSound = async () => {
     try {
@@ -475,14 +483,14 @@ export default function InterviewPrepPage() {
       // Get download URL from Firebase Storage
       const soundRef = ref(storage, 'sound/mixkit-magic-marimba-2820.wav');
       console.log('📁 Sound reference created:', soundRef.fullPath);
-      
+
       const downloadURL = await getDownloadURL(soundRef);
       console.log('✅ Got download URL:', downloadURL);
-      
+
       // Create and play audio
       const audio = new Audio(downloadURL);
       audio.volume = 0.7; // Increased volume
-      
+
       // Add event listeners for debugging
       audio.addEventListener('loadstart', () => console.log('🔊 Audio loading started'));
       audio.addEventListener('loadeddata', () => console.log('✅ Audio data loaded'));
@@ -491,7 +499,7 @@ export default function InterviewPrepPage() {
         console.error('❌ Audio error:', e);
         console.error('Audio error details:', audio.error);
       });
-      
+
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise
@@ -509,7 +517,7 @@ export default function InterviewPrepPage() {
       console.error('❌ Could not load sound from Firebase Storage:', error);
       console.error('Error code:', error?.code);
       console.error('Error message:', error?.message);
-      
+
       // Show user-friendly error
       if (error?.code === 'storage/object-not-found') {
         notify.error('Sound file not found in Firebase Storage');
@@ -521,8 +529,41 @@ export default function InterviewPrepPage() {
     }
   };
 
-  const handleStartLiveSession = () => {
-    playFuturisticSound(); // Play sound when user clicks "Prepare Live"
+  const handleStartLiveSession = async (useCreditsParam?: boolean | React.MouseEvent) => {
+    // Ignore React event objects - only accept explicit boolean true
+    const useCredits = useCreditsParam === true;
+
+    // Get fresh stats to check quota
+    const stats = getUsageStats('liveSessions');
+    const isFree = stats.remaining > 0;
+
+    console.log('🎯 Practice Live - Quota check:', {
+      used: stats.used,
+      limit: stats.limit,
+      remaining: stats.remaining,
+      isFree,
+      useCredits
+    });
+
+    if (!isFree && !useCredits) {
+      // Quota exhausted - show credit confirmation modal before proceeding
+      console.log('📋 Showing credit confirmation modal');
+      setShowCreditModal(true);
+      setPendingLiveSession(true);
+      return;
+    }
+
+    // Use the feature (either free or with credits)
+    const result = await checkAndUseFeature('liveSession');
+    console.log('✅ checkAndUseFeature result:', result);
+
+    if (!result.success) {
+      notify.error(result.error || 'Unable to start session');
+      return;
+    }
+
+    // Success - start the session
+    playFuturisticSound();
     setIsLiveSessionOpen(true);
   };
 
@@ -557,12 +598,12 @@ export default function InterviewPrepPage() {
     try {
       const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
       const applicationDoc = await getDoc(applicationRef);
-      
+
       if (applicationDoc.exists()) {
         const appData = applicationDoc.data();
         const interviews = appData.interviews || [];
         const interviewIndex = interviews.findIndex((i: Interview) => i.id === interviewId);
-        
+
         if (interviewIndex !== -1) {
           interviews[interviewIndex].liveSessionHistory = updatedHistory;
           await updateDoc(applicationRef, { interviews });
@@ -811,21 +852,21 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
     const updatedDocs = [...noteDocuments, newDoc];
     setNoteDocuments(updatedDocs);
     setActiveNoteDocumentId(newDoc.id);
-    
+
     // Highlight the newly created document
     setHighlightedDocumentId(newDoc.id);
-    
+
     // Clear highlight after 3 seconds
     setTimeout(() => {
       setHighlightedDocumentId(null);
     }, 3000);
-    
+
     // Open notes tab
     setSidebarTab('notes');
 
     // Save to Firebase
     await saveNoteDocuments(updatedDocs, newDoc.id);
-    
+
     notify.success('Company update saved to Notes');
   };
 
@@ -870,7 +911,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
           const interviewData = appData.interviews?.find(interview => interview.id === interviewId);
           if (interviewData) {
             setInterview(interviewData);
-            
+
             // Load live session history
             if (interviewData.liveSessionHistory) {
               setLiveSessionHistory(interviewData.liveSessionHistory);
@@ -1013,12 +1054,12 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
     // Load chat history from interview data if available
     if (interview?.chatHistory) {
       setChatMessages(interview.chatHistory);
-      
+
       // When loading from Firestore, mark all messages as already animated
       // and initialize typingMessages with full content to avoid animation
       const loadedMessages = interview.chatHistory;
       const initialTypingMessages: Record<number, string> = {};
-      
+
       loadedMessages.forEach((msg, index) => {
         if (msg.role === 'assistant' && msg.content !== '__thinking__') {
           const fullText = msg.content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
@@ -1029,7 +1070,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
           }
         }
       });
-      
+
       setTypingMessages(initialTypingMessages);
       // Reset isInitialLoadRef to true so the animation effect treats this as initial load
       isInitialLoadRef.current = true;
@@ -1453,7 +1494,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
           const documentTexts = await Promise.all(
             contextDocuments.map(doc => loadDocumentText(doc))
           );
-          
+
           documentContextText = '\n\nADDITIONAL CONTEXT FROM USER DOCUMENTS:\n';
           contextDocuments.forEach((doc, index) => {
             const text = documentTexts[index];
@@ -1560,14 +1601,14 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
       // Only animate assistant messages that are not thinking
       if (msg.role === 'assistant' && msg.content !== '__thinking__') {
         const fullText = msg.content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-        
+
         if (fullText.length === 0) {
           return; // Skip empty messages
         }
 
         // Create a unique ID for this message based on timestamp and content
         const messageId = `${msg.timestamp}-${fullText.substring(0, 20)}`;
-        
+
         // Check if this message is already fully typed (loaded from Firestore)
         const currentTypedText = typingMessages[index];
         if (currentTypedText === fullText) {
@@ -1580,20 +1621,20 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
         const prevMsg = prevMessagesRef.current[index];
         const isContentChanged = !prevMsg || prevMsg.content !== msg.content;
         const isNewMessage = index >= prevMessagesRef.current.length;
-        
+
         // Check if message was already marked as animated (loaded from Firestore)
         const isAlreadyAnimated = animatedMessagesRef.current.has(messageId);
-        
+
         // Determine if we should animate: new message, content changed, or not yet animated
         // But NOT if it's initial load (messages loaded from Firestore) or already animated
-        const shouldAnimate = (isNewMessage || isContentChanged) && 
-                             !isAlreadyAnimated &&
-                             !wasInitialLoad;
+        const shouldAnimate = (isNewMessage || isContentChanged) &&
+          !isAlreadyAnimated &&
+          !wasInitialLoad;
 
         if (shouldAnimate && fullText.length > 0) {
           // Mark as being animated
           animatedMessagesRef.current.add(messageId);
-          
+
           // Clear any existing interval for this index
           const existingInterval = typingIntervalsRef.current.get(index);
           if (existingInterval) {
@@ -1603,7 +1644,7 @@ Include source (e.g., "Company Website", "LinkedIn", "Press Release") and URL wh
           // Calculate adaptive typing speed based on message length
           // Longer messages get slightly faster typing to avoid too long animations
           const baseDelay = 15; // Base delay in ms per character
-          const adaptiveDelay = fullText.length > 500 
+          const adaptiveDelay = fullText.length > 500
             ? Math.max(8, baseDelay - Math.floor((fullText.length - 500) / 100)) // Faster for very long messages
             : baseDelay;
 
@@ -2882,18 +2923,18 @@ Generate exactly ${count} questions.
   const handleNoteDragStart = useCallback((noteId: string, e: React.MouseEvent) => {
     // Only start drag from the drag handle - check if target or its parent has the class
     const target = e.target as HTMLElement;
-    const isDragHandle = target.classList.contains('drag-handle') || 
-                         target.closest('.drag-handle') !== null;
-    
+    const isDragHandle = target.classList.contains('drag-handle') ||
+      target.closest('.drag-handle') !== null;
+
     // Don't start drag if clicking on resize zones
-    const isResizeZone = target.classList.contains('resize-zone') || 
-                         target.closest('.resize-zone') !== null;
-    
+    const isResizeZone = target.classList.contains('resize-zone') ||
+      target.closest('.resize-zone') !== null;
+
     // Don't start drag if clicking on buttons or content
-    const isInteractive = target.tagName === 'BUTTON' || 
-                          target.closest('button') !== null ||
-                          target.closest('.note-content') !== null;
-    
+    const isInteractive = target.tagName === 'BUTTON' ||
+      target.closest('button') !== null ||
+      target.closest('.note-content') !== null;
+
     if (!isDragHandle || isResizeZone || isInteractive) {
       return;
     }
@@ -2902,7 +2943,7 @@ Generate exactly ${count} questions.
     e.stopPropagation();
 
     const notePosition = notePositions[noteId] || { x: 0, y: 0 };
-    
+
     // Store potential drag info in ref instead of state
     // This prevents event listeners from being added until we actually drag
     potentialDragRef.current = {
@@ -2914,7 +2955,7 @@ Generate exactly ${count} questions.
         mouseY: e.clientY
       }
     };
-    
+
     setDragStartTime(Date.now());
 
     // Add event listeners directly here instead of using useEffect
@@ -2928,7 +2969,7 @@ Generate exactly ${count} questions.
       }
       handleNoteDragMove(moveEvent);
     };
-    
+
     const upHandler = (upEvent: MouseEvent) => {
       handleNoteDragEnd(upEvent);
       // Always remove listeners after mouseup
@@ -3395,11 +3436,11 @@ Generate exactly ${count} questions.
     if (!application || !interview) return [];
     setIsGeneratingQuestions(true);
     try {
-      const interviewType = interview.type === 'hr' ? 'HR/recruiter' : 
-                           interview.type === 'technical' ? 'technical' : 
-                           interview.type === 'manager' ? 'hiring manager' : 
-                           interview.type === 'final' ? 'final round' : 'general';
-      
+      const interviewType = interview.type === 'hr' ? 'HR/recruiter' :
+        interview.type === 'technical' ? 'technical' :
+          interview.type === 'manager' ? 'hiring manager' :
+            interview.type === 'final' ? 'final round' : 'general';
+
       const prompt = `Generate 6 smart, thoughtful questions that a candidate should ask during a ${interviewType} interview at ${application.companyName} for a ${application.position} position.
 
 Requirements:
@@ -3413,7 +3454,7 @@ Return ONLY a JSON array of 6 question strings, no other text. Example format:
 
       const response = await queryPerplexity(prompt);
       let questions: string[] = [];
-      
+
       try {
         // Try to parse the response as JSON
         const text = response.text || '';
@@ -3426,7 +3467,7 @@ Return ONLY a JSON array of 6 question strings, no other text. Example format:
         const lines = (response.text || '').split('\n').filter(line => line.trim().length > 10 && line.includes('?'));
         questions = lines.slice(0, 6).map(q => q.replace(/^[\d\.\-\*]+\s*/, '').trim());
       }
-      
+
       return questions.slice(0, 6);
     } catch (error) {
       console.error('Error generating questions:', error);
@@ -3442,18 +3483,18 @@ Return ONLY a JSON array of 6 question strings, no other text. Example format:
     setIsGeneratingPitch(true);
     try {
       const skills = interview?.preparation?.requiredSkills?.slice(0, 5).join(', ') || '';
-      
+
       // Build user profile context for personalization
-      const userName = userProfile?.firstName 
+      const userName = userProfile?.firstName
         ? `${userProfile.firstName}${userProfile.lastName ? ' ' + userProfile.lastName : ''}`
         : '';
-      const userSkills = userProfile?.skills?.slice(0, 8).join(', ') 
-        || userProfile?.cvSkills?.slice(0, 8).join(', ') 
+      const userSkills = userProfile?.skills?.slice(0, 8).join(', ')
+        || userProfile?.cvSkills?.slice(0, 8).join(', ')
         || '';
-      const userBackground = userProfile?.cvText 
-        ? userProfile.cvText.slice(0, 800) 
+      const userBackground = userProfile?.cvText
+        ? userProfile.cvText.slice(0, 800)
         : '';
-      
+
       const userInfo = userProfile ? `
 About the candidate (use this to personalize the pitch):
 ${userName ? `- Name: ${userName}` : ''}
@@ -3463,7 +3504,7 @@ ${userSkills ? `- Key skills: ${userSkills}` : ''}
 ${userProfile.professionalSummary ? `- Professional summary: ${userProfile.professionalSummary}` : ''}
 ${userBackground ? `- Background from CV: ${userBackground}...` : ''}
 ` : '';
-      
+
       const prompt = `Write a concise 30-second elevator pitch for someone interviewing for a ${application.position} position at ${application.companyName}.
 ${userInfo}
 ${skills ? `Relevant skills required for this role: ${skills}` : ''}
@@ -3481,7 +3522,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
 
       const response = await queryPerplexity(prompt);
       const pitch = (response.text || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-      
+
       return pitch;
     } catch (error) {
       console.error('Error generating pitch:', error);
@@ -3551,7 +3592,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
   // Load text content for a document (with caching)
   const loadDocumentText = async (doc: ContextDocument): Promise<string> => {
     const cacheKey = `${doc.type}-${doc.documentId}`;
-    
+
     // Check cache first
     if (documentTextCache[cacheKey]) {
       return documentTextCache[cacheKey];
@@ -3584,7 +3625,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
         }
         case 'note': {
           // Fetch note from Firestore
-          const note = await getNotes(currentUser!.uid).then(notes => 
+          const note = await getNotes(currentUser!.uid).then(notes =>
             notes.find(n => n.id === doc.documentId)
           );
           if (note) {
@@ -3741,21 +3782,21 @@ Return ONLY the pitch text, no explanations or formatting.`;
     const updatedDocs = [...noteDocuments, newDoc];
     setNoteDocuments(updatedDocs);
     setActiveNoteDocumentId(newDoc.id);
-    
+
     // Highlight the newly created document
     setHighlightedDocumentId(newDoc.id);
-    
+
     // Clear highlight after 3 seconds
     setTimeout(() => {
       setHighlightedDocumentId(null);
     }, 3000);
-    
+
     // Open notes tab
     setSidebarTab('notes');
 
     // Save to Firebase
     await saveNoteDocuments(updatedDocs, newDoc.id);
-    
+
     notify.success('STAR story exported to Notes');
   };
 
@@ -3918,23 +3959,23 @@ Return ONLY the pitch text, no explanations or formatting.`;
     const latestStory = (skillCoach?.starStories?.[skill] || [])[0];
     const position = application?.position || 'this role';
     const company = application?.companyName || 'this company';
-    
+
     // Create a more conversational and clear question
     let practiceMessage = `Can you help me practice answering questions about ${skill} for the ${position} position at ${company}?`;
-    
+
     // If there's a STAR story, include it in the context
     if (latestStory) {
       practiceMessage += `\n\nI have prepared a STAR story for this skill:\n\nSituation: ${latestStory.situation}\nAction: ${latestStory.action}\nResult: ${latestStory.result}\n\nCan you ask me a question about ${skill} and then provide feedback on my answer?`;
     } else {
       practiceMessage += ` Please ask me a relevant interview question about ${skill} so I can practice my answer.`;
     }
-    
+
     // Switch to chat tab
     setTab('chat');
-    
+
     // Set the message in the input field (for visual feedback)
     setMessage(practiceMessage);
-    
+
     // Wait for the tab to switch, then send the message automatically
     setTimeout(() => {
       sendMessageWithText(practiceMessage);
@@ -4022,10 +4063,10 @@ Return ONLY the pitch text, no explanations or formatting.`;
   // Register page data with AI Assistant
   const interviewPrepSummary = useMemo(() => {
     if (!application || !interview) return null;
-    
+
     const preparation = interview.preparation;
     const questions = preparation?.questions || [];
-    
+
     return {
       company: application.companyName,
       position: application.position,
@@ -4038,7 +4079,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
         roleOverview: preparation.roleOverview?.substring(0, 500),
         keyRequirements: preparation.keyRequirements?.slice(0, 5),
         questionsCount: questions.length,
-        sampleQuestions: questions.slice(0, 5).map((q: any) => 
+        sampleQuestions: questions.slice(0, 5).map((q: any) =>
           typeof q === 'string' ? q : q.text || q.question
         ),
       } : null,
@@ -4195,11 +4236,10 @@ Return ONLY the pitch text, no explanations or formatting.`;
                     <button
                       key={tabItem.id}
                       onClick={() => setTab(tabItem.id)}
-                      className={`relative pb-3 text-sm font-medium transition-colors ${
-                        tab === tabItem.id
-                          ? 'text-gray-900 dark:text-white'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                      }`}
+                      className={`relative pb-3 text-sm font-medium transition-colors ${tab === tabItem.id
+                        ? 'text-gray-900 dark:text-white'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                        }`}
                     >
                       {tabItem.label}
                       {tab === tabItem.id && (
@@ -6277,7 +6317,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                       )}
                     </h3>
                   </div>
-                  
+
                   {/* Center: Collapse button (only when expanded) */}
                   {isNotesExpanded && (
                     <div className="absolute left-1/2 transform -translate-x-1/2">
@@ -6290,7 +6330,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                       </button>
                     </div>
                   )}
-                  
+
                   {/* Right: Other buttons */}
                   <div className="flex-1 flex items-center justify-end gap-2">
                     {!isNotesExpanded && (
@@ -6711,12 +6751,10 @@ Return ONLY the pitch text, no explanations or formatting.`;
                               return (
                                 <div
                                   key={note.id}
-                                  className={`absolute rounded-lg shadow-lg z-20 transition-all duration-200 ${
-                                    isDraggingNote && draggedNoteId === note.id
-                                      ? 'cursor-grabbing shadow-2xl scale-105 rotate-1'
-                                      : 'hover:shadow-xl'
-                                  } ${
-                                    isResizing && resizingNoteId === note.id
+                                  className={`absolute rounded-lg shadow-lg z-20 transition-all duration-200 ${isDraggingNote && draggedNoteId === note.id
+                                    ? 'cursor-grabbing shadow-2xl scale-105 rotate-1'
+                                    : 'hover:shadow-xl'
+                                    } ${isResizing && resizingNoteId === note.id
                                       ? 'ring-2 ring-jobzai-400 ring-offset-2'
                                       : !isDraggingNote && 'hover:scale-[1.02]'
                                     }`}
@@ -6730,22 +6768,22 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                       ? 'none'
                                       : (isResizing && resizingNoteId === note.id)
                                         ? 'width 0s, height 0s, transform 0.2s'
-                                      : 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        : 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                                   }}
                                   onMouseDown={(e) => {
                                     // Don't interfere with drag-handle or resize zones
                                     // Let them handle their own events
                                     const target = e.target as HTMLElement;
-                                    const isDragHandle = target.classList.contains('drag-handle') || 
-                                                         target.closest('.drag-handle') !== null;
-                                    const isResizeZone = target.classList.contains('resize-zone') || 
-                                                         target.closest('.resize-zone') !== null;
-                                    
+                                    const isDragHandle = target.classList.contains('drag-handle') ||
+                                      target.closest('.drag-handle') !== null;
+                                    const isResizeZone = target.classList.contains('resize-zone') ||
+                                      target.closest('.resize-zone') !== null;
+
                                     // If clicking on drag-handle or resize zone, let them handle it
                                     if (isDragHandle || isResizeZone) {
                                       return; // Don't interfere
                                     }
-                                    
+
                                     // Only cancel drag if clicking on content/other areas
                                     // Cancel any pending drag if clicking elsewhere
                                     if (draggedNoteId === note.id) {
@@ -6769,7 +6807,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                   {/* Drag handle - visible zone at the top for dragging */}
                                   <div
                                     className="drag-handle absolute top-0 left-0 right-0 h-6 cursor-grab active:cursor-grabbing z-10 rounded-t-lg transition-all"
-                                    style={{ 
+                                    style={{
                                       background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, transparent 100%)',
                                       borderBottom: '1px dashed rgba(0, 0, 0, 0.1)',
                                       pointerEvents: 'auto'
@@ -6793,8 +6831,8 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                     const scaledPadding = Math.max(12, Math.min(24, currentWidth / 12));
 
                                     return (
-                                      <div 
-                                        className="h-full flex flex-col no-drag" 
+                                      <div
+                                        className="h-full flex flex-col no-drag"
                                         style={{ padding: `${scaledPadding}px`, pointerEvents: 'auto' }}
                                         onMouseDown={(e) => {
                                           // Prevent drag when clicking on content
@@ -6832,7 +6870,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                       </div>
                                     );
                                   }, [noteSizes[note.id]?.width, noteSizes[note.id]?.height, note.width, note.height, note.title, note.content, note.id, isDraggingNote, isResizing, selectedTool])}
-                                  
+
                                   {/* Resize zones - corners */}
                                   {/* Top-left corner */}
                                   <div
@@ -6854,7 +6892,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                     className="resize-zone absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-30"
                                     onMouseDown={(e) => handleResizeStart(note.id, 'se', e)}
                                   />
-                                  
+
                                   {/* Resize zones - edges */}
                                   {/* Top edge */}
                                   <div
@@ -6876,7 +6914,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                                     className="resize-zone absolute right-0 top-4 bottom-4 w-2 cursor-e-resize z-30"
                                     onMouseDown={(e) => handleResizeStart(note.id, 'e', e)}
                                   />
-                                  </div>
+                                </div>
                               );
                             })}
                           </Xwrapper>
@@ -6983,9 +7021,9 @@ Return ONLY the pitch text, no explanations or formatting.`;
                   initial={{ opacity: 0, scale: 0.95, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                  transition={{ 
-                    type: "spring", 
-                    damping: 25, 
+                  transition={{
+                    type: "spring",
+                    damping: 25,
                     stiffness: 300,
                     duration: 0.3
                   }}
@@ -6996,19 +7034,19 @@ Return ONLY the pitch text, no explanations or formatting.`;
                   }}
                 >
                   {/* Decorative gradient accent */}
-                  <div 
+                  <div
                     className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
-                    style={{ 
+                    style={{
                       background: `linear-gradient(90deg, ${noteColor} 0%, ${noteColor}dd 100%)`,
                       opacity: 0.8
                     }}
                   />
-                  
+
                   <div className="flex justify-between items-center mb-6">
                     <div>
                       <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-                      {activeNote ? 'Edit Note' : 'New Note'}
-                    </h3>
+                        {activeNote ? 'Edit Note' : 'New Note'}
+                      </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {activeNote ? 'Update your note details' : 'Create a new sticky note'}
                       </p>
@@ -7079,10 +7117,9 @@ Return ONLY the pitch text, no explanations or formatting.`;
                             onClick={() => setNoteColor(colorOption.color)}
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.95 }}
-                            className={`w-10 h-10 rounded-xl transition-all duration-200 shadow-md ${
-                              noteColor === colorOption.color
-                                ? 'ring-3 ring-offset-2 ring-jobzai-500 scale-110 shadow-lg'
-                                : 'hover:shadow-lg hover:scale-105'
+                            className={`w-10 h-10 rounded-xl transition-all duration-200 shadow-md ${noteColor === colorOption.color
+                              ? 'ring-3 ring-offset-2 ring-jobzai-500 scale-110 shadow-lg'
+                              : 'hover:shadow-lg hover:scale-105'
                               }`}
                             style={{ backgroundColor: colorOption.color }}
                             title={colorOption.name}
@@ -7135,9 +7172,9 @@ Return ONLY the pitch text, no explanations or formatting.`;
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ 
-                type: "spring", 
-                damping: 25, 
+              transition={{
+                type: "spring",
+                damping: 25,
                 stiffness: 300,
                 duration: 0.3
               }}
@@ -7239,6 +7276,25 @@ Return ONLY the pitch text, no explanations or formatting.`;
         position={application?.position}
         previousSessions={liveSessionHistory}
         historySession={historySessionData || undefined}
+      />
+
+      {/* Credit Confirmation Modal for Practice Live */}
+      <CreditConfirmModal
+        isOpen={showCreditModal}
+        onClose={() => {
+          setShowCreditModal(false);
+          setPendingLiveSession(false);
+        }}
+        onConfirm={() => {
+          setShowCreditModal(false);
+          if (pendingLiveSession) {
+            handleStartLiveSession(true);
+            setPendingLiveSession(false);
+          }
+        }}
+        featureName="Practice Live Session"
+        creditCost={CREDIT_COSTS.liveSession}
+        userCredits={userCredits}
       />
     </AuthLayout>
   );

@@ -15,6 +15,7 @@ import {
 export interface UsageData {
     resumeAnalyses: number;
     mockInterviews: number;
+    liveSessions: number;
     campaignsCreated: number;
     campaignContactsSent: number;
     aiMessages: number;
@@ -48,6 +49,8 @@ const featureToUsageKey: Record<string, keyof UsageData> = {
     resumeAnalyses: 'resumeAnalyses',
     mockInterview: 'mockInterviews',
     mockInterviews: 'mockInterviews',
+    liveSession: 'liveSessions',
+    liveSessions: 'liveSessions',
     campaign: 'campaignsCreated',
     campaignsCreated: 'campaignsCreated',
     campaignContact: 'campaignContactsSent',
@@ -62,6 +65,8 @@ const featureToLimitKey: Record<string, keyof PlanLimits> = {
     resumeAnalyses: 'resumeAnalyses',
     mockInterview: 'mockInterviews',
     mockInterviews: 'mockInterviews',
+    liveSession: 'liveSessions',
+    liveSessions: 'liveSessions',
     campaign: 'campaigns',
     campaigns: 'campaigns',
     campaignsCreated: 'campaigns',
@@ -75,6 +80,7 @@ const featureToLimitKey: Record<string, keyof PlanLimits> = {
 const defaultUsage: UsageData = {
     resumeAnalyses: 0,
     mockInterviews: 0,
+    liveSessions: 0,
     campaignsCreated: 0,
     campaignContactsSent: 0,
     aiMessages: 0,

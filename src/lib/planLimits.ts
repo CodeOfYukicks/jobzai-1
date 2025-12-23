@@ -18,6 +18,7 @@ export type FeatureId =
 export interface PlanLimits {
     resumeAnalyses: number;
     mockInterviews: number;
+    liveSessions: number;
     campaigns: number;
     campaignContacts: number;
     aiMessages: number;
@@ -29,6 +30,7 @@ export const CREDIT_COSTS: Record<string, number> = {
     aiMessage: 1,           // Per message
     resumeAnalysis: 25,     // Per analysis
     mockInterview: 50,      // Per session
+    liveSession: 35,        // Per practice live session
     campaign: 200,          // Per campaign
     campaignPer100: 200,    // Per 100 emails (2 credits per contact)
 };
@@ -38,6 +40,7 @@ export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
     free: {
         resumeAnalyses: 1,
         mockInterviews: 0,
+        liveSessions: 0,
         campaigns: 0,
         campaignContacts: 0,
         aiMessages: 10,
@@ -46,6 +49,7 @@ export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
     standard: {
         resumeAnalyses: 10,
         mockInterviews: 2,
+        liveSessions: 5,
         campaigns: 2,
         campaignContacts: 200,
         aiMessages: 100,
@@ -54,6 +58,7 @@ export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
     premium: {
         resumeAnalyses: 20,
         mockInterviews: 5,
+        liveSessions: 10,
         campaigns: 5,
         campaignContacts: 500,
         aiMessages: 500,

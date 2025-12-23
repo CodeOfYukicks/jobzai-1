@@ -3,8 +3,8 @@ import { Play } from 'lucide-react';
 import { InterviewQuestionsHeader } from '../questions/InterviewQuestionsHeader';
 import { QuestionEntry } from '../../../types/interview';
 import QuestionsVirtualizedList from './QuestionsVirtualizedList';
-import { useAvatarConfig } from '@/hooks/useAvatarConfig';
-import Avatar from '@/components/assistant/avatar/Avatar';
+import { usePlanLimits } from '../../../hooks/usePlanLimits';
+import { CREDIT_COSTS } from '../../../lib/planLimits';
 
 const QUESTION_FILTERS = [
   { id: 'all', label: 'All' },
@@ -51,7 +51,8 @@ const QuestionsTab = memo(function QuestionsTab({
   setFocusedQuestion,
   onStartLiveSession,
 }: QuestionsTabProps) {
-  const avatarConfig = useAvatarConfig();
+  const { getUsageStats, isLoading: isLoadingLimits } = usePlanLimits();
+  const stats = getUsageStats('liveSessions');
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -86,31 +87,53 @@ const QuestionsTab = memo(function QuestionsTab({
         onRegenerate={regenerateQuestions}
         isRegenerating={isRegeneratingQuestions}
         actionSlot={
-          <button
-            onClick={onStartLiveSession}
-            className="
-              group inline-flex items-center gap-2
-              px-4 py-2 rounded-lg
-              text-sm font-medium
-              bg-slate-900 dark:bg-white
-              text-white dark:text-slate-900
-              hover:bg-slate-800 dark:hover:bg-slate-100
-              transition-all duration-200
-              hover:shadow-lg hover:shadow-[#b7e219]/20
-            "
-          >
-            <div className="relative flex-shrink-0">
-              {/* Lime ring glow on hover */}
-              <div className="absolute -inset-0.5 rounded-full bg-[#b7e219]/0 group-hover:bg-[#b7e219]/30 transition-all duration-300" />
-              <Avatar 
-                config={avatarConfig} 
-                size={18} 
-                className="relative rounded-full ring-1 ring-white/30 dark:ring-slate-900/30 group-hover:ring-[#b7e219]/50 transition-all duration-300"
-              />
-            </div>
-            <span>Practice Live</span>
-            <Play className="w-3 h-3 fill-current opacity-60" />
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Usage Quota Indicator */}
+            {!isLoadingLimits && stats && (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Sessions:
+                </span>
+                <span className="text-xs font-bold text-gray-900 dark:text-white">
+                  {stats.used}/{stats.limit}
+                </span>
+                <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${stats.percentage >= 100
+                      ? 'bg-red-500'
+                      : stats.percentage >= 80
+                        ? 'bg-amber-500'
+                        : 'bg-[#635bff]'
+                      }`}
+                    style={{ width: `${Math.min(100, stats.percentage)}%` }}
+                  />
+                </div>
+                {stats.remaining === 0 && (
+                  <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                    {CREDIT_COSTS.liveSession}cr
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Practice Live Button */}
+            <button
+              onClick={onStartLiveSession}
+              className="
+                inline-flex items-center gap-2
+                px-4 py-2 rounded-lg
+                text-sm font-medium
+                bg-slate-900 dark:bg-white
+                text-white dark:text-slate-900
+                hover:bg-slate-800 dark:hover:bg-slate-100
+                transition-all duration-200
+                hover:shadow-lg hover:shadow-[#b7e219]/20
+              "
+            >
+              <span>Practice Live</span>
+              <Play className="w-3 h-3 fill-current opacity-60" />
+            </button>
+          </div>
         }
       />
 
