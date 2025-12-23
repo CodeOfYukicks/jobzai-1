@@ -194,7 +194,7 @@ export default function Navbar() {
               </Link>
               <Link
                 to="/signup"
-                className="px-5 py-2 text-sm font-medium text-white bg-[#635bff] rounded-md transition-colors duration-200 hover:bg-[#5147e5]"
+                className="px-5 py-2 text-sm font-medium text-gray-900 bg-[#ffc300] rounded-md transition-colors duration-200 hover:bg-[#e6b000]"
               >
                 Get Started
               </Link>

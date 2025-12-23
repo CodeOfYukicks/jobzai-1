@@ -4,7 +4,7 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 
 export default function FinalCTA() {
   return (
-    <section className="py-24 bg-[#4D3E78] relative overflow-hidden">
+    <section className="py-24 bg-[#001d3d] relative overflow-hidden">
       {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
@@ -27,7 +27,8 @@ export default function FinalCTA() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
-          className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6"
+          className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white mb-6"
+          style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}
         >
           Ready to supercharge
           <br />
@@ -41,8 +42,8 @@ export default function FinalCTA() {
           transition={{ delay: 0.2 }}
           className="text-xl text-white/80 mb-10 max-w-2xl mx-auto"
         >
-          Join thousands of job seekers who are landing more interviews with less effort. 
-          Get started with 25 free credits.
+          Join thousands of job seekers who are landing more interviews with less effort.
+          Get started with 10 free credits.
         </motion.p>
 
         <motion.div
@@ -54,7 +55,7 @@ export default function FinalCTA() {
         >
           <Link
             to="/signup"
-            className="inline-flex items-center justify-center h-14 px-8 text-lg font-semibold text-[#4D3E78] bg-white hover:bg-gray-100 rounded-xl transition-colors duration-200 shadow-lg"
+            className="inline-flex items-center justify-center h-14 px-8 text-lg font-semibold text-[#001d3d] bg-white hover:bg-gray-100 rounded-xl transition-colors duration-200 shadow-lg"
           >
             Get started free
             <ArrowRight className="ml-2 w-5 h-5" />
@@ -74,7 +75,7 @@ export default function FinalCTA() {
           transition={{ delay: 0.4 }}
           className="mt-8 text-sm text-white/60"
         >
-          No credit card required • 25 free credits • Cancel anytime
+          No credit card required • 10 free credits • Cancel anytime
         </motion.p>
       </div>
     </section>

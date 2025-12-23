@@ -25,7 +25,7 @@ const pricingTiers = [
       'Professional Profile',
       'Analytics Dashboard',
     ],
-    cta: 'Start Free',
+    cta: 'Sign up',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
         <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -49,7 +49,7 @@ const pricingTiers = [
       'AI Recommendations',
       'Priority Support',
     ],
-    cta: 'Get Premium',
+    cta: 'Get started',
     popular: true,
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
@@ -74,7 +74,7 @@ const pricingTiers = [
       'AI Recommendations',
       'Priority Support',
     ],
-    cta: 'Go Pro',
+    cta: 'Get started',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
         <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -91,7 +91,7 @@ export default function PricingSection() {
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
         <div className="text-center mb-12">
-          <h2 className="text-4xl lg:text-6xl font-black text-gray-900 tracking-tight">
+          <h2 className="text-4xl lg:text-6xl font-extrabold text-gray-900 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
             One tool for your whole career.
           </h2>
 
@@ -137,15 +137,10 @@ export default function PricingSection() {
                 </div>
               )}
 
-              {/* Row 1: Icon */}
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-white shadow-sm border border-gray-100 text-gray-700">
-                {tier.icon}
-              </div>
-
-              {/* Row 2: Title + Description (fixed height) */}
+              {/* Row 1: Title + Description (fixed height) */}
               <div className="h-[72px]">
                 <h3 className="text-xl font-bold mb-1 text-gray-900">
-                  {tier.name} Cubber
+                  {tier.name} Cubbber
                 </h3>
                 <p className="text-sm text-gray-500 line-clamp-2">
                   {tier.description}
@@ -162,7 +157,7 @@ export default function PricingSection() {
                     {tier.price.monthly === 0 ? '/forever' : isBiMonthly ? '/2 months' : '/month'}
                   </span>
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-[#0275de]/10 text-[#0275de]">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-[#001d3d] text-white">
                   <CoinIcon className="w-4 h-4" />
                   <span>{tier.credits}/month</span>
                 </div>
@@ -173,9 +168,7 @@ export default function PricingSection() {
                 to="/signup"
                 className={`w-full py-3 rounded-xl text-sm font-bold transition-all text-center mb-6 ${tier.popular
                   ? 'bg-gray-900 text-white hover:bg-gray-800'
-                  : tier.name === 'Pro'
-                    ? 'bg-[#0275de] text-white hover:bg-[#0260b8]'
-                    : 'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 shadow-sm'
+                  : 'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 shadow-sm'
                   }`}
               >
                 {tier.cta}
@@ -189,7 +182,7 @@ export default function PricingSection() {
                 <ul className="space-y-2.5">
                   {tier.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2.5 text-[14px] leading-tight text-gray-600">
-                      <span className="mt-1 flex-shrink-0 text-green-500">
+                      <span className="mt-1 flex-shrink-0 text-[#ffc300]">
                         <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>

@@ -168,10 +168,11 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
             className="mt-16 text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-gray-900 leading-[1.1] mb-6 pointer-events-auto"
+            style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 900 }}
           >
-            Your job search.
+            Stop applying.
             <br />
-            <span className="text-gray-900">Supercharged.</span>
+            <span className="text-gray-900">Start getting answers.</span>
           </motion.h1>
 
           {/* Subtitle */}
@@ -181,9 +182,9 @@ export default function Hero() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-8 leading-relaxed pointer-events-auto"
           >
-            Send hundreds of personalized applications in minutes.
+            <span className="font-semibold text-gray-900">Send</span> high-quality personalized spontaneous applications — at scale.
             <br className="hidden sm:block" />
-            Track every opportunity. Prepare smarter. Get more interviews.
+            <span className="font-semibold text-gray-900">Track</span> every lead. <span className="font-semibold text-gray-900">Prepare</span> smarter. <span className="font-semibold text-gray-900">Get</span> more interviews.
           </motion.p>
 
           {/* CTAs */}

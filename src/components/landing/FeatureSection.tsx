@@ -219,6 +219,28 @@ function HeroFeatureCard() {
 
 // Secondary Card - CV Rewrite
 function SecondaryFeatureCard() {
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Load video URL from Firebase Storage
+  useEffect(() => {
+    const loadVideo = async () => {
+      try {
+        const storage = getStorage();
+        const videoStorageRef = ref(storage, 'images/CVeditor.mp4');
+        const url = await getDownloadURL(videoStorageRef);
+        setVideoUrl(url);
+      } catch (error) {
+        console.log('CV Editor video not found:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadVideo();
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -258,23 +280,132 @@ function SecondaryFeatureCard() {
           {/* Decorative stripe */}
           <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-b from-blue-200/50 via-indigo-300/30 to-blue-200/50" />
 
-          {/* Mockup */}
-          <div className="absolute top-6 bottom-6 left-8 right-0 bg-white rounded-l-xl shadow-lg overflow-hidden">
-            <div className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 rounded-md bg-blue-100 flex items-center justify-center">
-                  <FileText className="w-3 h-3 text-blue-600" />
+          {/* Video Container */}
+          <div className="absolute top-6 bottom-6 left-8 right-6 rounded-xl shadow-lg overflow-hidden">
+            {isLoading ? (
+              <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+              </div>
+            ) : videoUrl ? (
+              <video
+                ref={videoRef}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              >
+                <source src={videoUrl} type="video/mp4" />
+              </video>
+            ) : (
+              <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                <div className="text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-100 flex items-center justify-center">
+                    <FileText className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <p className="text-sm text-gray-400">CV Rewrite Demo</p>
+                  <p className="text-xs text-gray-300 mt-1">Video coming soon</p>
                 </div>
-                <div className="h-2 w-20 bg-gray-200 rounded"></div>
               </div>
-              <div className="space-y-2">
-                <div className="h-2 w-full bg-gray-100 rounded"></div>
-                <div className="h-2 w-4/5 bg-gray-100 rounded"></div>
-                <div className="h-2 w-3/5 bg-gray-100 rounded"></div>
-                <div className="h-2 w-full bg-blue-100 rounded mt-3"></div>
-                <div className="h-2 w-4/5 bg-blue-50 rounded"></div>
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// Mock Interview Card - Similar to CV Rewrite
+function MockInterviewCard() {
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Load video URL from Firebase Storage
+  useEffect(() => {
+    const loadVideo = async () => {
+      try {
+        const storage = getStorage();
+        const videoStorageRef = ref(storage, 'images/mockinterview.mp4');
+        const url = await getDownloadURL(videoStorageRef);
+        setVideoUrl(url);
+      } catch (error) {
+        console.log('Mock Interview video not found:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadVideo();
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: 0.1 }}
+      className="bg-white rounded-2xl overflow-hidden shadow-sm"
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-[45%_55%]">
+        {/* Left Content */}
+        <div className="p-6 lg:p-8 flex flex-col">
+          {/* Label + Badge */}
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-sm font-medium text-gray-500">Mock Interview</span>
+            <span className="px-2.5 py-1 text-xs font-semibold bg-purple-100 text-purple-700 rounded-full">
+              AI Powered
+            </span>
+          </div>
+
+          {/* Title */}
+          <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 leading-tight">
+            Practice makes<br />
+            perfect interviews.
+          </h3>
+
+          {/* CTA Button */}
+          <Link
+            to="/signup"
+            className="inline-flex items-center justify-center w-9 h-9 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors"
+          >
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        {/* Right Preview */}
+        <div className="relative bg-gradient-to-br from-purple-50 to-violet-100 min-h-[320px] lg:min-h-[380px]">
+          {/* Decorative stripe */}
+          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-b from-purple-200/50 via-violet-300/30 to-purple-200/50" />
+
+          {/* Video Container */}
+          <div className="absolute top-6 bottom-6 left-8 right-6 rounded-xl shadow-lg overflow-hidden">
+            {isLoading ? (
+              <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
               </div>
-            </div>
+            ) : videoUrl ? (
+              <video
+                ref={videoRef}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              >
+                <source src={videoUrl} type="video/mp4" />
+              </video>
+            ) : (
+              <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                <div className="text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-purple-100 flex items-center justify-center">
+                    <MessageSquare className="w-8 h-8 text-purple-600" />
+                  </div>
+                  <p className="text-sm text-gray-400">Mock Interview Demo</p>
+                  <p className="text-xs text-gray-300 mt-1">Video coming soon</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -292,9 +423,34 @@ interface GridCardProps {
   accentBorder: string;
   href: string;
   delay?: number;
+  videoPath?: string;
 }
 
-function GridFeatureCard({ label, title, icon: Icon, accentColor, accentBg, accentBorder, href, delay = 0 }: GridCardProps) {
+function GridFeatureCard({ label, title, icon: Icon, accentColor, accentBg, accentBorder, href, delay = 0, videoPath }: GridCardProps) {
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(!!videoPath);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Load video URL from Firebase Storage if videoPath is provided
+  useEffect(() => {
+    if (!videoPath) return;
+
+    const loadVideo = async () => {
+      try {
+        const storage = getStorage();
+        const videoStorageRef = ref(storage, videoPath);
+        const url = await getDownloadURL(videoStorageRef);
+        setVideoUrl(url);
+      } catch (error) {
+        console.log(`Video not found: ${videoPath}`, error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadVideo();
+  }, [videoPath]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -303,7 +459,7 @@ function GridFeatureCard({ label, title, icon: Icon, accentColor, accentBg, acce
       transition={{ delay }}
       className="bg-white rounded-2xl overflow-hidden shadow-sm group"
     >
-      {/* Header */}
+      {/* Header - matched height with ApplicationTrackingCard */}
       <div className="p-6 pb-4">
         <div className="flex items-start justify-between mb-2">
           <span className="text-sm font-medium text-gray-500">{label}</span>
@@ -314,29 +470,190 @@ function GridFeatureCard({ label, title, icon: Icon, accentColor, accentBg, acce
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
-        <h3 className="text-2xl font-bold text-gray-900">{title}</h3>
+        <h3 className="text-2xl font-bold text-gray-900 mb-4">{title}</h3>
+
+        {/* Spacer to match ApplicationTrackingCard toggle height */}
+        <div className="h-[34px]"></div>
       </div>
 
       {/* Preview Zone */}
-      <div className={`relative h-48 ${accentBg}`}>
+      <div className={`relative h-96 ${accentBg}`}>
         {/* Accent border at top */}
         <div className={`absolute top-0 left-0 right-0 h-1 ${accentBorder}`} />
 
-        {/* Mini Mockup */}
-        <div className="absolute inset-4 top-5 bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="p-3">
-            <div className="flex items-center gap-2 mb-3">
-              <div className={`w-6 h-6 rounded-md ${accentBg} flex items-center justify-center`}>
-                <Icon className={`w-3 h-3 ${accentColor}`} />
+        {/* Video or Placeholder - Notion style: starts from middle, rounded top, extends to bottom */}
+        <div className="absolute left-6 right-6 top-6 bottom-0 rounded-t-2xl shadow-lg overflow-hidden">
+          {isLoading ? (
+            <div className="h-full flex items-center justify-center bg-white">
+              <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+            </div>
+          ) : videoUrl ? (
+            <video
+              ref={videoRef}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover object-top"
+            >
+              <source src={videoUrl} type="video/mp4" />
+            </video>
+          ) : (
+            <div className="h-full bg-white p-3">
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`w-6 h-6 rounded-md ${accentBg} flex items-center justify-center`}>
+                  <Icon className={`w-3 h-3 ${accentColor}`} />
+                </div>
+                <div className="h-2 w-20 bg-gray-200 rounded"></div>
               </div>
-              <div className="h-2 w-20 bg-gray-200 rounded"></div>
+              <div className="space-y-2">
+                <div className="h-2 w-full bg-gray-100 rounded"></div>
+                <div className="h-2 w-4/5 bg-gray-100 rounded"></div>
+                <div className="h-2 w-3/5 bg-gray-100 rounded"></div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <div className="h-2 w-full bg-gray-100 rounded"></div>
-              <div className="h-2 w-4/5 bg-gray-100 rounded"></div>
-              <div className="h-2 w-3/5 bg-gray-100 rounded"></div>
-            </div>
-          </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// Application Tracking Card with Toggle
+const trackingModes = [
+  {
+    id: 'jobs',
+    label: 'Job Applications',
+    videoPath: 'images/jobapplication.mp4',
+  },
+  {
+    id: 'outreach',
+    label: 'Outreach Campaigns',
+    videoPath: 'images/outreach applcation.mp4',
+  },
+];
+
+function ApplicationTrackingCard() {
+  const [activeMode, setActiveMode] = useState(trackingModes[0].id);
+  const [videoUrls, setVideoUrls] = useState<Record<string, string>>({});
+  const [loadingVideos, setLoadingVideos] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const activeModeData = trackingModes.find(m => m.id === activeMode);
+
+  // Load video URLs from Firebase Storage
+  useEffect(() => {
+    const loadVideos = async () => {
+      const storage = getStorage();
+      const urls: Record<string, string> = {};
+
+      for (const mode of trackingModes) {
+        try {
+          const videoStorageRef = ref(storage, mode.videoPath);
+          const url = await getDownloadURL(videoStorageRef);
+          urls[mode.id] = url;
+        } catch {
+          console.log(`Video not found: ${mode.videoPath}`);
+        }
+      }
+
+      setVideoUrls(urls);
+      setLoadingVideos(false);
+    };
+
+    loadVideos();
+  }, []);
+
+  // Reset video when active mode changes
+  useEffect(() => {
+    if (videoRef.current && videoUrls[activeMode]) {
+      videoRef.current.load();
+      videoRef.current.play();
+    }
+  }, [activeMode, videoUrls]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: 0.1 }}
+      className="bg-white rounded-2xl overflow-hidden shadow-sm"
+    >
+      {/* Header */}
+      <div className="p-6 pb-4">
+        <div className="flex items-start justify-between mb-2">
+          <span className="text-sm font-medium text-gray-500">Application Tracking</span>
+          <Link
+            to="/signup"
+            className="inline-flex items-center justify-center w-10 h-10 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-all"
+          >
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+        <h3 className="text-2xl font-bold text-gray-900 mb-4">Every application, tracked.</h3>
+
+        {/* Toggle Pills */}
+        <div className="flex gap-2">
+          {trackingModes.map((mode) => (
+            <button
+              key={mode.id}
+              onClick={() => setActiveMode(mode.id)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${activeMode === mode.id
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Preview Zone */}
+      <div className="relative h-96 bg-[#FFECE8]">
+        {/* Accent border at top */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-[#FF6B5B]" />
+
+        {/* Video - Notion style */}
+        <div className="absolute left-6 right-6 top-6 bottom-0 rounded-t-2xl shadow-lg overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeMode}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="h-full"
+            >
+              {loadingVideos ? (
+                <div className="h-full flex items-center justify-center bg-white">
+                  <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+                </div>
+              ) : videoUrls[activeMode] ? (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover object-top"
+                >
+                  <source src={videoUrls[activeMode]} type="video/mp4" />
+                </video>
+              ) : (
+                <div className="h-full flex items-center justify-center bg-white">
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#FFECE8] flex items-center justify-center">
+                      <BarChart3 className="w-8 h-8 text-[#FF6B5B]" />
+                    </div>
+                    <p className="text-sm text-gray-400">{activeModeData?.label}</p>
+                    <p className="text-xs text-gray-300 mt-1">Video coming soon</p>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </motion.div>
@@ -373,7 +690,7 @@ function SavingsCalculator() {
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 mb-8">
         {/* Left Content */}
         <div className="flex-shrink-0">
-          <h3 className="text-3xl lg:text-[42px] font-black text-gray-900 mb-3 leading-[1.1] tracking-tight">
+          <h3 className="text-3xl lg:text-[42px] font-extrabold text-gray-900 mb-3 leading-[1.1] tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
             More productivity.<br />
             Fewer tools.
           </h3>
@@ -429,12 +746,12 @@ function SavingsCalculator() {
               key={tool.id}
               onClick={() => toggleTool(tool.id)}
               className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 text-left ${selectedTools.includes(tool.id)
-                ? 'border-[#0275de] bg-[#e6f3fe]'
+                ? 'border-[#ffc300] bg-[#ffd60a]/20'
                 : 'border-gray-200 hover:border-gray-300 bg-white'
                 }`}
             >
               <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${selectedTools.includes(tool.id)
-                ? 'bg-[#0275de]'
+                ? 'bg-[#ffc300]'
                 : 'border-2 border-gray-300'
                 }`}>
                 {selectedTools.includes(tool.id) && (
@@ -486,10 +803,10 @@ function TryForFree() {
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="pt-8 pb-16"
+      className="pt-16 pb-16"
     >
       {/* Title */}
-      <h2 className="text-5xl lg:text-6xl font-black text-gray-900 mb-10 tracking-tight">
+      <h2 className="text-5xl lg:text-6xl font-extrabold text-gray-900 mb-10 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
         Try for free.
       </h2>
 
@@ -738,15 +1055,6 @@ function MarketingStats() {
 export default function FeatureSection() {
   const gridFeatures = [
     {
-      label: 'Application Tracking',
-      title: 'Every application, tracked.',
-      icon: BarChart3,
-      accentColor: 'text-[#FF6B5B]',
-      accentBg: 'bg-[#FFECE8]',
-      accentBorder: 'bg-[#FF6B5B]',
-      href: '/signup',
-    },
-    {
       label: 'Interview Prep',
       title: 'Ace every call.',
       icon: MessageSquare,
@@ -754,11 +1062,12 @@ export default function FeatureSection() {
       accentBg: 'bg-[#E8F4FF]',
       accentBorder: 'bg-[#4A9EFF]',
       href: '/signup',
+      videoPath: 'images/interviewprep.mp4',
     },
   ];
 
   return (
-    <section id="features" className="pt-8 pb-0 lg:pt-12 lg:pb-0">
+    <section id="features" className="pt-16 pb-0 lg:pt-20 lg:pb-0">
       <div className="max-w-7xl mx-auto px-6">
         {/* Section Title */}
         <motion.div
@@ -767,7 +1076,7 @@ export default function FeatureSection() {
           viewport={{ once: true }}
           className="mb-10"
         >
-          <h2 className="text-5xl lg:text-6xl font-black text-gray-900 tracking-tight" style={{ fontWeight: 900 }}>
+          <h2 className="text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
             Introducing <span className="italic font-black">Cubbbe 3.0</span>
           </h2>
         </motion.div>
@@ -780,8 +1089,12 @@ export default function FeatureSection() {
           <SecondaryFeatureCard />
         </div>
 
-        {/* Grid Cards - 2x2 */}
+        {/* Grid Cards - Application Tracking + Interview Prep */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          {/* Application Tracking with Toggle */}
+          <ApplicationTrackingCard />
+
+          {/* Interview Prep */}
           {gridFeatures.map((feature, index) => (
             <GridFeatureCard
               key={feature.label}
@@ -789,6 +1102,11 @@ export default function FeatureSection() {
               delay={0.1 + index * 0.1}
             />
           ))}
+        </div>
+
+        {/* Mock Interview Card - Full width like CV Rewrite */}
+        <div className="mt-6">
+          <MockInterviewCard />
         </div>
       </div>
 
@@ -802,11 +1120,6 @@ export default function FeatureSection() {
       {/* Try For Free Section */}
       <div className="max-w-7xl mx-auto px-6">
         <TryForFree />
-      </div>
-
-      {/* Press Quote - Back to container */}
-      <div className="max-w-7xl mx-auto px-6">
-        <PressQuote />
       </div>
     </section>
   );
