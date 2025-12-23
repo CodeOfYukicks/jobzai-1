@@ -105,6 +105,11 @@ service cloud.firestore {
         allow write: if false; // Only backend can create invoices
       }
       
+      // Monthly Usage Tracking subcollection (for plan limits)
+      match /usage/{monthId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+      
       // Background Tasks subcollection (for CV generation, etc.)
       match /backgroundTasks/{taskId} {
         allow read, write: if isSignedIn() && isOwner(userId);

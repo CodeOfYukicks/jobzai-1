@@ -60,6 +60,9 @@ import jsPDF from 'jspdf';
 import { queryPerplexityForJobExtraction } from '../lib/perplexity';
 import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
 import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
+import { usePlanLimits } from '../hooks/usePlanLimits';
+import { CREDIT_COSTS } from '../lib/planLimits';
+import { CreditConfirmModal } from '../components/CreditConfirmModal';
 
 // Configurer le worker correctement pour utiliser le fichier local depuis public
 // Cela évite les problèmes CORS et 404 depuis les CDN externes
@@ -2534,6 +2537,17 @@ export default function CVAnalysisPage() {
   const [isCoverDark, setIsCoverDark] = useState<boolean | null>(null); // null = pas encore détecté, true = sombre, false = claire
   const coverFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Plan limits
+  const {
+    userCredits,
+    getUsageStats,
+    canUseForFree,
+    checkAndUseFeature,
+    isLoading: isLoadingLimits
+  } = usePlanLimits();
+  const [showCreditModal, setShowCreditModal] = useState(false);
+  const [pendingAnalysis, setPendingAnalysis] = useState(false);
+
   // Fonction pour charger le CV depuis le profil utilisateur
   const fetchUserCV = useCallback(async () => {
     if (!currentUser) {
@@ -2661,7 +2675,8 @@ export default function CVAnalysisPage() {
           const data = { id: doc.id, ...doc.data() } as JobApplication;
           // Inclure tous les jobs, même ceux sans fullJobDescription
           // L'utilisateur pourra toujours utiliser description si disponible
-          if (data.position && data.companyName) {
+          // Exclude campaign/outreach records - only include regular job applications
+          if (data.position && data.companyName && data.boardType !== 'campaigns') {
             jobs.push(data);
           }
         });
@@ -4132,7 +4147,38 @@ URL to visit: ${jobUrl}
   };
 
   // Fonction pour effectuer l'analyse en arrière-plan
-  const handleAnalysis = async () => {
+  const handleAnalysis = async (useCredits: boolean = false) => {
+    // Check plan limits first
+    const isFree = canUseForFree('resumeAnalyses');
+
+    if (!isFree && !useCredits) {
+      // Close the Job Information modal first, then show credit modal
+      setIsModalOpen(false);
+      // Small delay to let the first modal close smoothly
+      setTimeout(() => {
+        setShowCreditModal(true);
+        setPendingAnalysis(true);
+      }, 150);
+      return;
+    }
+
+    // Use the feature (either free quota or deduct credits)
+    const result = await checkAndUseFeature('resumeAnalysis', 1);
+
+    if (!result.success) {
+      notify.error(result.error || 'Failed to start analysis');
+      setShowCreditModal(false);
+      setPendingAnalysis(false);
+      return;
+    }
+
+    if (result.usedCredits) {
+      notify.info(`${result.creditCost} credits used for this resume analysis`);
+    }
+
+    setShowCreditModal(false);
+    setPendingAnalysis(false);
+
     // Capture selectedSavedJob at call time to avoid stale closure issues
     const jobToLink = selectedSavedJob;
 
@@ -6398,8 +6444,8 @@ URL to visit: ${jobUrl}
           initial={false}
           animate={{ height: showCVSelector ? 'auto' : 'auto' }}
           className={`border-2 rounded-xl overflow-hidden transition-all duration-200 ${selectedBuilderItem
-              ? 'border-indigo-500 dark:border-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20'
-              : 'border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c]'
+            ? 'border-indigo-500 dark:border-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20'
+            : 'border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c]'
             }`}
         >
           {/* Header - Always visible */}
@@ -6409,12 +6455,12 @@ URL to visit: ${jobUrl}
           >
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedBuilderItem
-                  ? 'bg-indigo-600 dark:bg-indigo-500'
-                  : 'bg-indigo-100 dark:bg-indigo-900/30'
+                ? 'bg-indigo-600 dark:bg-indigo-500'
+                : 'bg-indigo-100 dark:bg-indigo-900/30'
                 }`}>
                 <FileText className={`w-5 h-5 ${selectedBuilderItem
-                    ? 'text-white'
-                    : 'text-indigo-600 dark:text-indigo-400'
+                  ? 'text-white'
+                  : 'text-indigo-600 dark:text-indigo-400'
                   }`} />
               </div>
               <div className="text-left">
@@ -6491,13 +6537,13 @@ URL to visit: ${jobUrl}
                                 setCvFile(null);
                               }}
                               className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${isSelected
-                                  ? 'bg-indigo-50 dark:bg-indigo-900/30'
-                                  : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
+                                ? 'bg-indigo-50 dark:bg-indigo-900/30'
+                                : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
                                 }`}
                             >
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isSelected
-                                  ? 'bg-indigo-600 dark:bg-indigo-500'
-                                  : 'bg-purple-100 dark:bg-purple-900/30'
+                                ? 'bg-indigo-600 dark:bg-indigo-500'
+                                : 'bg-purple-100 dark:bg-purple-900/30'
                                 }`}>
                                 <FileText className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-purple-600 dark:text-purple-400'
                                   }`} />
@@ -6534,13 +6580,13 @@ URL to visit: ${jobUrl}
                                 setCvFile(null);
                               }}
                               className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${isSelected
-                                  ? 'bg-indigo-50 dark:bg-indigo-900/30'
-                                  : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
+                                ? 'bg-indigo-50 dark:bg-indigo-900/30'
+                                : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
                                 }`}
                             >
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isSelected
-                                  ? 'bg-indigo-600 dark:bg-indigo-500'
-                                  : 'bg-red-100 dark:bg-red-900/30'
+                                ? 'bg-indigo-600 dark:bg-indigo-500'
+                                : 'bg-red-100 dark:bg-red-900/30'
                                 }`}>
                                 <FileText className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-red-600 dark:text-red-400'
                                   }`} />
@@ -7104,8 +7150,8 @@ URL to visit: ${jobUrl}
           {/* Choose from My CVs (Resume Builder) */}
           <div
             className={`border-2 rounded-xl overflow-hidden transition-all duration-200 ${selectedBuilderItem
-                ? 'border-[#635BFF] dark:border-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
-                : 'border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#1A1A1A]'
+              ? 'border-[#635BFF] dark:border-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
+              : 'border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#1A1A1A]'
               }`}
           >
             {/* Header - Always visible */}
@@ -7115,12 +7161,12 @@ URL to visit: ${jobUrl}
             >
               <div className="flex items-center gap-2.5">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${selectedBuilderItem
-                    ? 'bg-[#635BFF] dark:bg-[#635BFF]'
-                    : 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
+                  ? 'bg-[#635BFF] dark:bg-[#635BFF]'
+                  : 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
                   }`}>
                   <FileText className={`w-4 h-4 ${selectedBuilderItem
-                      ? 'text-white'
-                      : 'text-[#635BFF] dark:text-[#a5a0ff]'
+                    ? 'text-white'
+                    : 'text-[#635BFF] dark:text-[#a5a0ff]'
                     }`} />
                 </div>
                 <div className="text-left">
@@ -7190,13 +7236,13 @@ URL to visit: ${jobUrl}
                                 setCvFile(null);
                               }}
                               className={`px-3 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors ${isSelected
-                                  ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
-                                  : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
+                                ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
+                                : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
                                 }`}
                             >
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isSelected
-                                  ? 'bg-[#635BFF] dark:bg-[#635BFF]'
-                                  : 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
+                                ? 'bg-[#635BFF] dark:bg-[#635BFF]'
+                                : 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
                                 }`}>
                                 <FileText className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-[#635BFF] dark:text-[#a5a0ff]'
                                   }`} />
@@ -7233,13 +7279,13 @@ URL to visit: ${jobUrl}
                                 setCvFile(null);
                               }}
                               className={`px-3 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors ${isSelected
-                                  ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
-                                  : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
+                                ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
+                                : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60'
                                 }`}
                             >
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isSelected
-                                  ? 'bg-[#635BFF] dark:bg-[#635BFF]'
-                                  : 'bg-red-100 dark:bg-red-900/30'
+                                ? 'bg-[#635BFF] dark:bg-[#635BFF]'
+                                : 'bg-red-100 dark:bg-red-900/30'
                                 }`}>
                                 <FileText className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-red-600 dark:text-red-400'
                                   }`} />
@@ -7623,16 +7669,16 @@ URL to visit: ${jobUrl}
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="fixed z-[100] bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-xl shadow-xl max-h-80 overflow-y-auto"
+                        className="fixed z-[10010] bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-xl shadow-xl max-h-80 overflow-y-auto"
                         style={dropdownPosition ? {
                           position: 'fixed',
                           top: `${dropdownPosition.top}px`,
                           left: `${dropdownPosition.left}px`,
                           width: `${dropdownPosition.width}px`,
-                          zIndex: 100
+                          zIndex: 10010
                         } : {
                           position: 'fixed',
-                          zIndex: 100
+                          zIndex: 10010
                         }}
                       >
                         {isLoadingSavedJobs ? (
@@ -8097,6 +8143,33 @@ URL to visit: ${jobUrl}
                     }`}>
                     AI-powered resume analysis for smarter applications
                   </p>
+                  {/* Usage Quota Indicator */}
+                  {!isLoadingLimits && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className={`text-xs font-medium ${coverPhoto ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>
+                        Analyses used:
+                      </span>
+                      <span className={`text-xs font-bold ${coverPhoto ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+                        {getUsageStats('resumeAnalyses').used}/{getUsageStats('resumeAnalyses').limit}
+                      </span>
+                      <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${getUsageStats('resumeAnalyses').percentage >= 100
+                            ? 'bg-red-500'
+                            : getUsageStats('resumeAnalyses').percentage >= 80
+                              ? 'bg-amber-500'
+                              : 'bg-[#635bff]'
+                            }`}
+                          style={{ width: `${Math.min(100, getUsageStats('resumeAnalyses').percentage)}%` }}
+                        />
+                      </div>
+                      {getUsageStats('resumeAnalyses').remaining === 0 && (
+                        <span className="text-xs text-amber-500 font-medium">
+                          25 credits/analysis
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* New Analysis Button right */}
@@ -8493,6 +8566,22 @@ URL to visit: ${jobUrl}
         onDirectApply={handleDirectApplyCover}
         onRemove={coverPhoto ? handleRemoveCover : undefined}
         currentCover={coverPhoto || undefined}
+      />
+
+      {/* Credit Confirmation Modal */}
+      <CreditConfirmModal
+        isOpen={showCreditModal}
+        onClose={() => {
+          setShowCreditModal(false);
+          setPendingAnalysis(false);
+        }}
+        onConfirm={() => handleAnalysis(true)}
+        featureName="Resume Analysis"
+        creditCost={CREDIT_COSTS.resumeAnalysis}
+        userCredits={userCredits}
+        remainingQuota={getUsageStats('resumeAnalyses').remaining}
+        planLimit={getUsageStats('resumeAnalyses').limit}
+        isLoading={pendingAnalysis && !showCreditModal}
       />
     </AuthLayout>
   );

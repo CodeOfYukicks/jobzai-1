@@ -32,6 +32,9 @@ import type { MockInterviewAnalysis } from '../types/interview';
 import { AIOrb, type OrbState } from '../components/interview/AIOrb';
 import { CompanyLogo } from '../components/common/CompanyLogo';
 import { MockInterviewResultsView } from '../components/interview/MockInterviewResultsView';
+import { usePlanLimits } from '../hooks/usePlanLimits';
+import { CREDIT_COSTS } from '../lib/planLimits';
+import { CreditConfirmModal } from '../components/CreditConfirmModal';
 
 // ============================================
 // INTERFACES
@@ -117,7 +120,7 @@ function convertLegacyAnalysis(legacy: LegacyInterviewAnalysis): MockInterviewAn
   const structureScore = (legacy.scores?.structure || 5) * 10;
   const confidenceScore = (legacy.scores?.confidence || 5) * 10;
   const jobFitScore = (legacy.jobFit?.score || 5) * 10;
-  
+
   return {
     verdict: {
       passed: overallScore >= 60,
@@ -129,9 +132,9 @@ function convertLegacyAnalysis(legacy: LegacyInterviewAnalysis): MockInterviewAn
     contentAnalysis: {
       relevanceScore: relevanceScore,
       specificityScore: relevanceScore,
-      didAnswerQuestions: legacy.answerQuality?.didTheyAnswer ? 
-        (legacy.answerQuality.didTheyAnswer.toLowerCase().includes('yes') ? 'yes' : 
-         legacy.answerQuality.didTheyAnswer.toLowerCase().includes('partial') ? 'partially' : 'no') 
+      didAnswerQuestions: legacy.answerQuality?.didTheyAnswer ?
+        (legacy.answerQuality.didTheyAnswer.toLowerCase().includes('yes') ? 'yes' :
+          legacy.answerQuality.didTheyAnswer.toLowerCase().includes('partial') ? 'partially' : 'no')
         : 'partially',
       examplesProvided: 0,
       examplesQuality: 'generic',
@@ -232,13 +235,13 @@ function normalizeAnalysis(rawAnalysis: Partial<MockInterviewAnalysis>): MockInt
 export default function MockInterviewPage() {
   const { currentUser } = useAuth();
   const location = useLocation();
-  
+
   // Navigation state from JobDetailPanel
-  const navigationState = location.state as { 
-    viewSessionId?: string; 
+  const navigationState = location.state as {
+    viewSessionId?: string;
     selectedJobId?: string;
   } | null;
-  
+
   // ============================================
   // REALTIME INTERVIEW HOOK
   // ============================================
@@ -257,10 +260,10 @@ export default function MockInterviewPage() {
     inputAudioLevel,
     outputAudioLevel,
   } = useRealtimeInterview();
-  
+
   // Phase state
   const [phase, setPhase] = useState<Phase>('setup');
-  
+
   // State
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
@@ -268,34 +271,34 @@ export default function MockInterviewPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
-  
+
   // Derived error (hook error or local error)
   const error = hookError || localError;
-  
+
   // Past sessions state
   const [pastSessions, setPastSessions] = useState<MockInterviewSession[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
-  
+
   // Timer state (use hook's elapsed time)
   const elapsedTime = hookElapsedTime;
   const [isTimeWarning, setIsTimeWarning] = useState(false);
-  
+
   // Results state
   const [finalTranscript, setFinalTranscript] = useState<TranscriptEntry[]>([]);
   const [analysis, setAnalysis] = useState<MockInterviewAnalysis | null>(null);
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  
+
   // Viewing past session state (when clicking on history)
   const [viewingSession, setViewingSession] = useState<MockInterviewSession | null>(null);
-  
+
   // Confirmation modal state
   const [showEndConfirmation, setShowEndConfirmation] = useState(false);
   const [showBackConfirmation, setShowBackConfirmation] = useState(false);
-  
+
   // Refs
   const transcriptEndRef = useRef<HTMLDivElement>(null);
-  
+
   // Microphone test state (for preparation phase)
   const [micLevel, setMicLevel] = useState(0);
   const [micStatus, setMicStatus] = useState<'idle' | 'requesting' | 'active' | 'error'>('idle');
@@ -303,6 +306,17 @@ export default function MockInterviewPage() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const micAnimationRef = useRef<number | null>(null);
+
+  // Plan limits state
+  const {
+    userCredits,
+    getUsageStats,
+    canUseForFree,
+    checkAndUseFeature,
+    isLoading: isLoadingLimits
+  } = usePlanLimits();
+  const [showCreditModal, setShowCreditModal] = useState(false);
+  const [pendingInterviewStart, setPendingInterviewStart] = useState(false);
 
   // ============================================
   // EFFECTS
@@ -312,39 +326,39 @@ export default function MockInterviewPage() {
   useEffect(() => {
     const loadApplications = async () => {
       if (!currentUser) return;
-      
+
       try {
         setIsLoadingApplications(true);
-        
+
         // First, load boards to identify campaign boards
         const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
         const boardsSnapshot = await getDocs(query(boardsRef));
         const campaignBoardIds = new Set<string>();
-        
+
         boardsSnapshot.forEach((doc) => {
           const board = { id: doc.id, ...doc.data() } as KanbanBoard;
           if (board.boardType === 'campaigns') {
             campaignBoardIds.add(board.id);
           }
         });
-        
+
         // Then load applications
         const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
         const snapshot = await getDocs(query(applicationsRef));
-        
+
         const apps: JobApplication[] = [];
         snapshot.forEach((doc) => {
           const data = doc.data();
-          
+
           // Skip applications that belong to campaign boards
           // Check if application has boardType: 'campaigns' or boardId pointing to a campaign board
-          const isCampaignApp = data.boardType === 'campaigns' || 
-                                (data.boardId && campaignBoardIds.has(data.boardId));
-          
+          const isCampaignApp = data.boardType === 'campaigns' ||
+            (data.boardId && campaignBoardIds.has(data.boardId));
+
           if (isCampaignApp) {
             return; // Skip this application
           }
-          
+
           apps.push({
             id: doc.id,
             companyName: data.companyName || 'Unknown Company',
@@ -355,7 +369,7 @@ export default function MockInterviewPage() {
             status: data.status || 'pending',
           });
         });
-        
+
         // Sort by company name
         apps.sort((a, b) => a.companyName.localeCompare(b.companyName));
         setApplications(apps);
@@ -366,7 +380,7 @@ export default function MockInterviewPage() {
         setIsLoadingApplications(false);
       }
     };
-    
+
     loadApplications();
   }, [currentUser]);
 
@@ -374,7 +388,7 @@ export default function MockInterviewPage() {
   useEffect(() => {
     const loadUserProfile = async () => {
       if (!currentUser) return;
-      
+
       try {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (userDoc.exists()) {
@@ -396,7 +410,7 @@ export default function MockInterviewPage() {
         console.error('Error loading user profile:', error);
       }
     };
-    
+
     loadUserProfile();
   }, [currentUser]);
 
@@ -404,11 +418,11 @@ export default function MockInterviewPage() {
   useEffect(() => {
     const loadPastSessions = async () => {
       if (!currentUser) return;
-      
+
       try {
         setIsLoadingSessions(true);
         const sessionsRef = collection(db, 'users', currentUser.uid, 'mockInterviewSessions');
-        
+
         // Try with orderBy first, fallback to simple query if index doesn't exist
         let snapshot;
         try {
@@ -417,7 +431,7 @@ export default function MockInterviewPage() {
           console.warn('Firestore index not ready, using unordered query:', indexError);
           snapshot = await getDocs(query(sessionsRef));
         }
-        
+
         const sessions: MockInterviewSession[] = [];
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
@@ -433,10 +447,10 @@ export default function MockInterviewPage() {
             createdAt: data.createdAt,
           });
         });
-        
+
         // Sort by date if we got unordered results
         sessions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        
+
         console.log('📋 Loaded past sessions:', sessions.length);
         setPastSessions(sessions);
       } catch (error) {
@@ -445,14 +459,14 @@ export default function MockInterviewPage() {
         setIsLoadingSessions(false);
       }
     };
-    
+
     loadPastSessions();
   }, [currentUser]);
 
   // Handle navigation state from JobDetailPanel
   useEffect(() => {
     if (!navigationState) return;
-    
+
     // Handle viewing a specific session
     if (navigationState.viewSessionId && pastSessions.length > 0 && !isLoadingSessions) {
       const session = pastSessions.find(s => s.id === navigationState.viewSessionId);
@@ -466,24 +480,24 @@ export default function MockInterviewPage() {
             analysisData = normalizeAnalysis(session.analysis as MockInterviewAnalysis);
           }
         }
-        
+
         setViewingSession(session);
         setAnalysis(analysisData);
         setFinalTranscript(session.transcript);
         setIsLoadingAnalysis(!session.analysis);
         setPhase('results');
-        
+
         // Clear the navigation state to prevent re-triggering
         window.history.replaceState({}, document.title);
       }
     }
-    
+
     // Handle pre-selecting a job for new interview
     if (navigationState.selectedJobId && applications.length > 0 && !isLoadingApplications) {
       const app = applications.find(a => a.id === navigationState.selectedJobId);
       if (app) {
         setSelectedApplication(app);
-        
+
         // Clear the navigation state to prevent re-triggering
         window.history.replaceState({}, document.title);
       }
@@ -513,24 +527,24 @@ export default function MockInterviewPage() {
     if (!currentUser || !viewingSession || analysis || !isLoadingAnalysis || phase !== 'results') {
       return;
     }
-    
+
     console.log('🔄 Polling for analysis on past session:', viewingSession.id);
-    
+
     const pollInterval = setInterval(async () => {
       try {
         const sessionRef = doc(db, 'users', currentUser.uid, 'mockInterviewSessions', viewingSession.id);
         const sessionDoc = await getDoc(sessionRef);
-        
+
         if (sessionDoc.exists()) {
           const data = sessionDoc.data();
           if (data.analysis) {
             // Analysis ready - normalize and display
             const analysisData = normalizeAnalysis(
-              isLegacyAnalysis(data.analysis) 
-                ? convertLegacyAnalysis(data.analysis) 
+              isLegacyAnalysis(data.analysis)
+                ? convertLegacyAnalysis(data.analysis)
                 : data.analysis as MockInterviewAnalysis
             );
-            
+
             console.log('✅ Analysis received via polling');
             setAnalysis(analysisData);
             setIsLoadingAnalysis(false);
@@ -540,7 +554,7 @@ export default function MockInterviewPage() {
         console.error('Error polling for analysis:', error);
       }
     }, 3000); // Poll every 3 seconds
-    
+
     return () => clearInterval(pollInterval);
   }, [currentUser, viewingSession, analysis, isLoadingAnalysis, phase]);
 
@@ -557,7 +571,7 @@ export default function MockInterviewPage() {
         micStreamRef.current = null;
       }
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current.close().catch(() => { });
         audioContextRef.current = null;
       }
       setMicLevel(0);
@@ -569,39 +583,39 @@ export default function MockInterviewPage() {
     const startMicTest = async () => {
       try {
         setMicStatus('requesting');
-        
+
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         micStreamRef.current = stream;
-        
+
         const audioContext = new AudioContext();
         audioContextRef.current = audioContext;
-        
+
         const analyser = audioContext.createAnalyser();
         analyser.fftSize = 256;
         analyserRef.current = analyser;
-        
+
         const source = audioContext.createMediaStreamSource(stream);
         source.connect(analyser);
-        
+
         setMicStatus('active');
-        
+
         // Animation loop for audio level
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        
+
         const updateLevel = () => {
           if (!analyserRef.current) return;
-          
+
           analyserRef.current.getByteFrequencyData(dataArray);
-          
+
           // Calculate average level
           const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
           const normalizedLevel = Math.min(average / 128, 1); // Normalize to 0-1
-          
+
           setMicLevel(normalizedLevel);
-          
+
           micAnimationRef.current = requestAnimationFrame(updateLevel);
         };
-        
+
         updateLevel();
       } catch (err) {
         console.error('Microphone access error:', err);
@@ -620,7 +634,7 @@ export default function MockInterviewPage() {
         micStreamRef.current.getTracks().forEach(track => track.stop());
       }
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current.close().catch(() => { });
       }
     };
   }, [phase]);
@@ -628,18 +642,18 @@ export default function MockInterviewPage() {
   // Block browser refresh/close when interview is active
   useEffect(() => {
     const isInterviewActive = phase === 'live' && (connectionStatus === 'connecting' || connectionStatus === 'ready' || connectionStatus === 'live');
-    
+
     if (!isInterviewActive) return;
-    
+
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       // Modern browsers require returnValue to be set
       e.returnValue = 'You have an active interview session. Are you sure you want to leave?';
       return e.returnValue;
     };
-    
+
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
@@ -659,17 +673,17 @@ export default function MockInterviewPage() {
   const isInterviewActive = phase === 'live' && (connectionStatus === 'connecting' || connectionStatus === 'ready' || connectionStatus === 'live');
   const isInterviewActiveRef = useRef(isInterviewActive);
   isInterviewActiveRef.current = isInterviewActive;
-  
+
   const [showNavigationConfirmation, setShowNavigationConfirmation] = useState(false);
   const pendingNavigationRef = useRef<string | null>(null);
-  
+
   // Block browser back button
   useEffect(() => {
     if (!isInterviewActive) return;
-    
+
     // Push a dummy state to detect back button
     window.history.pushState({ interviewActive: true }, '');
-    
+
     const handlePopState = () => {
       if (isInterviewActiveRef.current) {
         // Prevent navigation by pushing state back
@@ -679,9 +693,9 @@ export default function MockInterviewPage() {
         pendingNavigationRef.current = 'back';
       }
     };
-    
+
     window.addEventListener('popstate', handlePopState);
-    
+
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
@@ -690,21 +704,21 @@ export default function MockInterviewPage() {
   // Block link clicks (sidebar navigation, etc.)
   useEffect(() => {
     if (!isInterviewActive) return;
-    
+
     const handleLinkClick = (event: MouseEvent) => {
       // Find if click was on a link or inside a link
       const target = event.target as HTMLElement;
       const link = target.closest('a[href]') as HTMLAnchorElement | null;
-      
+
       if (!link) return;
-      
+
       const href = link.getAttribute('href');
-      
+
       // Only intercept internal navigation links (not external links or anchors)
       if (!href || href.startsWith('http') || href.startsWith('#') || href.startsWith('mailto:')) {
         return;
       }
-      
+
       // Check if it's navigating away from mock-interview page
       if (href !== '/mock-interview' && !href.startsWith('/mock-interview?')) {
         event.preventDefault();
@@ -713,10 +727,10 @@ export default function MockInterviewPage() {
         setShowNavigationConfirmation(true);
       }
     };
-    
+
     // Use capture phase to intercept before React Router handles it
     document.addEventListener('click', handleLinkClick, true);
-    
+
     return () => {
       document.removeEventListener('click', handleLinkClick, true);
     };
@@ -726,11 +740,11 @@ export default function MockInterviewPage() {
   const handleConfirmNavigation = useCallback(() => {
     setShowNavigationConfirmation(false);
     handleStopInterview();
-    
+
     // Navigate after stopping
     const destination = pendingNavigationRef.current;
     pendingNavigationRef.current = null;
-    
+
     if (destination === 'back') {
       window.history.back();
     } else if (destination) {
@@ -768,18 +782,18 @@ export default function MockInterviewPage() {
     transcriptData: TranscriptEntry[],
     analysisData: InterviewAnalysisUnion | null = null
   ) => {
-    console.log('🔄 saveSessionToFirestore called', { 
-      hasUser: !!currentUser, 
+    console.log('🔄 saveSessionToFirestore called', {
+      hasUser: !!currentUser,
       hasApp: !!selectedApplication,
       transcriptLength: transcriptData.length,
-      hasAnalysis: !!analysisData 
+      hasAnalysis: !!analysisData
     });
-    
+
     if (!currentUser || !selectedApplication) {
       console.error('❌ Cannot save session: missing user or application');
       return null;
     }
-    
+
     try {
       const sessionsRef = collection(db, 'users', currentUser.uid, 'mockInterviewSessions');
       const now = new Date().toISOString();
@@ -793,10 +807,10 @@ export default function MockInterviewPage() {
         analysis: analysisData,
         createdAt: serverTimestamp(),
       };
-      
+
       const docRef = await addDoc(sessionsRef, sessionData);
       console.log('✅ Mock interview session saved:', docRef.id);
-      
+
       // Add to local state with actual date (not serverTimestamp sentinel)
       const newSession: MockInterviewSession = {
         id: docRef.id,
@@ -811,7 +825,7 @@ export default function MockInterviewPage() {
       };
       setPastSessions(prev => [newSession, ...prev]);
       setCurrentSessionId(docRef.id);
-      
+
       return docRef.id;
     } catch (error) {
       console.error('❌ Error saving session:', error);
@@ -827,18 +841,18 @@ export default function MockInterviewPage() {
   ) => {
     // 1. Update local state IMMEDIATELY - this ensures clicking on history shows correct data
     console.log('📊 Updating local pastSessions state:', sessionId);
-    setPastSessions(prev => prev.map(session => 
-      session.id === sessionId 
+    setPastSessions(prev => prev.map(session =>
+      session.id === sessionId
         ? { ...session, analysis: analysisData }
         : session
     ));
-    
+
     // 2. Save to Firestore (can be async - we don't need to wait)
     if (!currentUser) {
       console.warn('⚠️ No user - skipping Firestore save');
       return;
     }
-    
+
     try {
       const sessionRef = doc(db, 'users', currentUser.uid, 'mockInterviewSessions', sessionId);
       await updateDoc(sessionRef, {
@@ -856,7 +870,7 @@ export default function MockInterviewPage() {
   // sessionIdOverride is used when called immediately after saving
   const analyzeInterview = useCallback(async (transcriptData: TranscriptEntry[], sessionIdOverride?: string) => {
     if (!selectedApplication) return;
-    
+
     // Validate transcript is not empty and contains user responses
     if (!transcriptData || transcriptData.length === 0) {
       console.error('❌ Cannot analyze: transcript is empty');
@@ -864,7 +878,7 @@ export default function MockInterviewPage() {
       notify.error('No transcript data available for analysis');
       return;
     }
-    
+
     const userResponses = transcriptData.filter(e => e.role === 'user' && e.text && e.text.trim().length > 0);
     if (userResponses.length === 0) {
       console.error('❌ Cannot analyze: no user responses in transcript');
@@ -872,19 +886,19 @@ export default function MockInterviewPage() {
       notify.error('No user responses found in transcript');
       return;
     }
-    
+
     console.log('📊 Analyzing transcript with', transcriptData.length, 'entries and', userResponses.length, 'user responses');
-    
+
     setIsLoadingAnalysis(true);
-    
+
     // Track start time to ensure minimum loading duration
     const startTime = Date.now();
     const MIN_LOADING_DURATION = 2000; // Minimum 2 seconds loading
-    
+
     try {
       // Use transcript passed as parameter to avoid stale closure
       const transcriptToAnalyze = transcriptData;
-      
+
       const response = await fetch('/api/analyze-live-interview', {
         method: 'POST',
         headers: {
@@ -912,21 +926,21 @@ export default function MockInterviewPage() {
           } : null,
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to analyze interview');
       }
-      
+
       const analysisResult = await response.json();
       console.log('📊 Analysis result received:', {
         overallScore: analysisResult.overallScore,
         hasExecutiveSummary: !!analysisResult.executiveSummary,
         executiveSummaryLength: analysisResult.executiveSummary?.length,
       });
-      
+
       // Normalize analysis with all required fields and defaults
       const processedAnalysis = normalizeAnalysis(analysisResult);
-      
+
       console.log('📊 Processed analysis:', {
         overallScore: processedAnalysis.overallScore,
         hasExecutiveSummary: !!processedAnalysis.executiveSummary,
@@ -934,7 +948,7 @@ export default function MockInterviewPage() {
         criticalIssuesCount: processedAnalysis.criticalIssues?.length,
         actionPlanCount: processedAnalysis.actionPlan?.length,
       });
-      
+
       // Validate that analysis is complete and not empty
       const isAnalysisComplete = (
         processedAnalysis.overallScore > 0 ||
@@ -942,28 +956,28 @@ export default function MockInterviewPage() {
         (processedAnalysis.strengths && processedAnalysis.strengths.length > 0) ||
         (processedAnalysis.criticalIssues && processedAnalysis.criticalIssues.length > 0)
       );
-      
+
       if (!isAnalysisComplete) {
         console.warn('⚠️ Analysis appears incomplete or empty');
         notify.error('Analysis returned incomplete results. Please try again.');
         setIsLoadingAnalysis(false);
         return;
       }
-      
+
       // Ensure minimum loading duration for better UX
       const elapsedTime = Date.now() - startTime;
       const remainingTime = Math.max(0, MIN_LOADING_DURATION - elapsedTime);
-      
+
       if (remainingTime > 0) {
         await new Promise(resolve => setTimeout(resolve, remainingTime));
       }
-      
+
       // SIMPLE PATTERN (like InterviewPrepPage):
       // 1. Set analysis to state IMMEDIATELY (only when complete)
       // 2. Save to Firestore in background (updates pastSessions too)
       setAnalysis(processedAnalysis);
       setIsLoadingAnalysis(false);
-      
+
       // Save to Firestore in background - this also updates pastSessions state
       const sessionIdToUpdate = sessionIdOverride || currentSessionId;
       if (sessionIdToUpdate) {
@@ -987,24 +1001,24 @@ export default function MockInterviewPage() {
   const handleConfirmEndInterview = useCallback(async () => {
     console.log('🎬 handleConfirmEndInterview called');
     setShowEndConfirmation(false);
-    
+
     // Get transcript before stopping
     const transcriptData = getFullTranscript();
     console.log('📝 Got transcript:', transcriptData.length, 'entries');
     setFinalTranscript(transcriptData);
-    
+
     // Stop the interview
     handleStopInterview();
     console.log('🛑 Interview stopped');
-    
+
     // Save session immediately (before analysis) so it appears in history
     const sessionId = await saveSessionToFirestore(transcriptData, null);
     console.log('💾 Session saved with ID:', sessionId);
-    
+
     // Go to results and start analysis
     setPhase('results');
     setIsLoadingAnalysis(true);
-    
+
     // Analyze interview - pass transcript and sessionId directly to avoid stale closure
     analyzeInterview(transcriptData, sessionId || undefined);
   }, [handleStopInterview, getFullTranscript, saveSessionToFirestore, analyzeInterview]);
@@ -1015,28 +1029,54 @@ export default function MockInterviewPage() {
       notify.error('Please select a job application first');
       return;
     }
-    
+
     if (!userProfile) {
       notify.error('User profile not loaded. Please try again.');
       return;
     }
-    
+
     // Transition to preparation phase
     setPhase('preparation');
   }, [selectedApplication, userProfile]);
 
   // Begin interview handler - actually starts the live interview
-  const handleBeginInterview = useCallback(async () => {
+  const handleBeginInterview = useCallback(async (useCredits: boolean = false) => {
     if (!selectedApplication || !userProfile) {
       notify.error('Missing required data. Please go back and try again.');
       setPhase('setup');
       return;
     }
-    
+
+    // Check if user can use for free or needs to pay
+    const isFree = canUseForFree('mockInterviews');
+
+    if (!isFree && !useCredits) {
+      // Show credit confirmation modal
+      setShowCreditModal(true);
+      setPendingInterviewStart(true);
+      return;
+    }
+
+    // Use the feature (either free quota or deduct credits)
+    const result = await checkAndUseFeature('mockInterview', 1);
+
+    if (!result.success) {
+      notify.error(result.error || 'Failed to start interview');
+      setShowCreditModal(false);
+      setPendingInterviewStart(false);
+      return;
+    }
+
+    if (result.usedCredits) {
+      notify.info(`${result.creditCost} credits used for this mock interview`);
+    }
+
+    setShowCreditModal(false);
+    setPendingInterviewStart(false);
     setLocalError(null);
     setCurrentSessionId(null);
     setPhase('live');
-    
+
     // Create job context from selected application
     const jobContext: JobContext = {
       companyName: selectedApplication.companyName,
@@ -1044,7 +1084,7 @@ export default function MockInterviewPage() {
       jobDescription: selectedApplication.jobDescription,
       requirements: selectedApplication.requirements,
     };
-    
+
     try {
       await connect(jobContext, userProfile);
       notify.success('Interview session started');
@@ -1054,7 +1094,7 @@ export default function MockInterviewPage() {
       setLocalError(errorMsg);
       notify.error(errorMsg);
     }
-  }, [selectedApplication, userProfile, connect]);
+  }, [selectedApplication, userProfile, connect, canUseForFree, checkAndUseFeature]);
 
   // Format elapsed time as MM:SS
   const formatTime = (seconds: number): string => {
@@ -1107,7 +1147,7 @@ export default function MockInterviewPage() {
   const handleDeleteSession = useCallback(async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentUser) return;
-    
+
     try {
       await deleteDoc(doc(db, 'users', currentUser.uid, 'mockInterviewSessions', sessionId));
       setPastSessions(prev => prev.filter(s => s.id !== sessionId));
@@ -1131,7 +1171,7 @@ export default function MockInterviewPage() {
         analysisData = normalizeAnalysis(session.analysis as MockInterviewAnalysis);
       }
     }
-    
+
     // CRITICAL: Set all state together for React to batch updates properly
     // This ensures consistent behavior with the immediate analysis display
     setViewingSession(session);
@@ -1154,13 +1194,13 @@ export default function MockInterviewPage() {
     const now = new Date();
     const diffTime = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays} days ago`;
-    
-    return date.toLocaleDateString(undefined, { 
-      month: 'short', 
+
+    return date.toLocaleDateString(undefined, {
+      month: 'short',
       day: 'numeric',
       year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
     });
@@ -1204,9 +1244,39 @@ export default function MockInterviewPage() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
           Mock Interview
         </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
           Select a position to practice
         </p>
+
+        {/* Usage Quota Indicator */}
+        {!isLoadingLimits && (
+          <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                Sessions used:
+              </span>
+              <span className="text-sm font-bold text-gray-900 dark:text-white">
+                {getUsageStats('mockInterviews').used}/{getUsageStats('mockInterviews').limit}
+              </span>
+            </div>
+            <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${getUsageStats('mockInterviews').percentage >= 100
+                  ? 'bg-red-500'
+                  : getUsageStats('mockInterviews').percentage >= 80
+                    ? 'bg-amber-500'
+                    : 'bg-[#635bff]'
+                  }`}
+                style={{ width: `${Math.min(100, getUsageStats('mockInterviews').percentage)}%` }}
+              />
+            </div>
+            {getUsageStats('mockInterviews').remaining === 0 && (
+              <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                50 credits/session
+              </span>
+            )}
+          </div>
+        )}
       </motion.div>
 
       {/* Job Selection */}
@@ -1259,20 +1329,20 @@ export default function MockInterviewPage() {
                     transition={{ delay: 0.25 + index * 0.03 }}
                     onClick={() => handleSelectApplication(app)}
                     className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all text-left group
-                      ${selectedApplication?.id === app.id 
-                        ? 'bg-violet-500/10 border-violet-500/30' 
+                      ${selectedApplication?.id === app.id
+                        ? 'bg-violet-500/10 border-violet-500/30'
                         : 'bg-white dark:bg-white/[0.02] border-gray-200 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/[0.04] hover:border-gray-300 dark:hover:border-white/10'
                       }`}
                   >
-                    <CompanyLogo 
-                      companyName={app.companyName} 
-                      size="lg" 
+                    <CompanyLogo
+                      companyName={app.companyName}
+                      size="lg"
                       className="!rounded-lg"
                     />
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-medium truncate transition-colors
-                        ${selectedApplication?.id === app.id 
-                          ? 'text-gray-900 dark:text-white' 
+                        ${selectedApplication?.id === app.id
+                          ? 'text-gray-900 dark:text-white'
                           : 'text-gray-700 dark:text-white/80 group-hover:text-gray-900 dark:group-hover:text-white'
                         }`}
                       >
@@ -1336,7 +1406,7 @@ export default function MockInterviewPage() {
     const isAnalyzing = !session.analysis;
     const overallScore = getAnalysisOverallScore(session.analysis);
     const scoreColors = getScoreColor(overallScore ? Math.round(overallScore / 10) : 0);
-    
+
     return (
       <motion.div
         key={session.id}
@@ -1462,7 +1532,7 @@ export default function MockInterviewPage() {
 
   const renderSetupPhase = () => {
     const hasPastSessions = pastSessions.length > 0 || isLoadingSessions;
-    
+
     return (
       <motion.div
         key="setup"
@@ -1521,7 +1591,7 @@ export default function MockInterviewPage() {
         {/* Decorative Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
         <div className="w-full max-w-sm mx-auto flex flex-col items-center">
-          
+
           {/* Hero: Company Logo with Glow */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -1531,12 +1601,12 @@ export default function MockInterviewPage() {
           >
             {/* Glow Effect */}
             <div className="absolute inset-0 blur-2xl opacity-30 bg-gradient-to-br from-violet-500 to-cyan-500 rounded-full scale-150" />
-            
+
             {selectedApplication && (
               <div className="relative">
-                <CompanyLogo 
-                  companyName={selectedApplication.companyName} 
-                  size="xl" 
+                <CompanyLogo
+                  companyName={selectedApplication.companyName}
+                  size="xl"
                   className="!rounded-2xl !w-20 !h-20 shadow-2xl ring-1 ring-white/10"
                 />
               </div>
@@ -1631,13 +1701,12 @@ export default function MockInterviewPage() {
             <motion.button
               whileHover={{ scale: 1.02, boxShadow: '0 8px 30px rgba(183, 226, 25, 0.3)' }}
               whileTap={{ scale: 0.98 }}
-              onClick={handleBeginInterview}
+              onClick={() => handleBeginInterview()}
               disabled={!isMicReady}
-              className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                isMicReady
-                  ? 'bg-[#b7e219] hover:bg-[#c5eb2d] text-gray-900 shadow-lg shadow-[#b7e219]/20'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-              }`}
+              className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 ${isMicReady
+                ? 'bg-[#b7e219] hover:bg-[#c5eb2d] text-gray-900 shadow-lg shadow-[#b7e219]/20'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                }`}
             >
               <Play className="h-4 w-4" />
               Start Interview
@@ -1662,7 +1731,7 @@ export default function MockInterviewPage() {
   // ============================================
 
   const renderLivePhase = () => (
-              <motion.div
+    <motion.div
       key="live"
       initial={{ opacity: 0, scale: 1.02 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -1692,13 +1761,13 @@ export default function MockInterviewPage() {
               >
                 <ArrowLeft className="h-4 w-4" />
               </motion.button>
-              
+
               {selectedApplication && (
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="h-10 w-px bg-gradient-to-b from-transparent via-gray-300 dark:via-gray-600 to-transparent" />
-                  <CompanyLogo 
-                    companyName={selectedApplication.companyName} 
-                    size="md" 
+                  <CompanyLogo
+                    companyName={selectedApplication.companyName}
+                    size="md"
                     className="!rounded-xl flex-shrink-0 ring-1 ring-gray-200/50 dark:ring-gray-700/50 shadow-sm"
                   />
                   <div className="min-w-0 flex-1">
@@ -1722,19 +1791,16 @@ export default function MockInterviewPage() {
                 className="flex items-center h-10 rounded-full bg-[#1a1a1b] dark:bg-[#1a1a1b] border border-[#2d2d2e] shadow-lg overflow-hidden"
               >
                 {/* Timer Section */}
-                <div className={`flex items-center gap-2 px-4 h-full border-r border-[#2d2d2e] ${
-                  isTimeWarning ? 'bg-orange-500/10' : ''
-                }`}>
-                  <Clock className={`h-3.5 w-3.5 flex-shrink-0 ${
-                    isTimeWarning 
-                      ? 'text-orange-400' 
-                      : 'text-gray-400'
-                  }`} />
-                  <span className={`text-sm font-mono font-medium tracking-tight whitespace-nowrap ${
-                    isTimeWarning 
-                      ? 'text-orange-400' 
-                      : 'text-gray-300'
+                <div className={`flex items-center gap-2 px-4 h-full border-r border-[#2d2d2e] ${isTimeWarning ? 'bg-orange-500/10' : ''
                   }`}>
+                  <Clock className={`h-3.5 w-3.5 flex-shrink-0 ${isTimeWarning
+                    ? 'text-orange-400'
+                    : 'text-gray-400'
+                    }`} />
+                  <span className={`text-sm font-mono font-medium tracking-tight whitespace-nowrap ${isTimeWarning
+                    ? 'text-orange-400'
+                    : 'text-gray-300'
+                    }`}>
                     {formatTime(elapsedTime)} <span className="text-gray-500">/ 10:00</span>
                   </span>
                 </div>
@@ -1765,7 +1831,7 @@ export default function MockInterviewPage() {
           </div>
         </div>
       </div>
-                
+
       {/* Main Content */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Orb Section - Center */}
@@ -1777,8 +1843,8 @@ export default function MockInterviewPage() {
             className="flex flex-col items-center overflow-visible"
           >
             {/* The Orb */}
-            <AIOrb 
-              state={getOrbState()} 
+            <AIOrb
+              state={getOrbState()}
               audioLevel={Math.max(inputAudioLevel, outputAudioLevel)}
               className="w-40 h-40 md:w-52 md:h-52 lg:w-64 lg:h-64"
             />
@@ -1792,34 +1858,32 @@ export default function MockInterviewPage() {
             >
               {/* AI Status */}
               <div className="flex items-center gap-2">
-                <motion.span 
+                <motion.span
                   animate={{
                     scale: getOrbState() !== 'idle' && !isMuted ? [1, 1.3, 1] : 1,
                     opacity: getOrbState() !== 'idle' && !isMuted ? [0.6, 1, 0.6] : 0.4
                   }}
                   transition={{ duration: 1.5, repeat: Infinity }}
-                  className={`w-2 h-2 rounded-full ${
-                    getOrbState() === 'speaking' 
-                      ? 'bg-violet-500' 
-                      : getOrbState() === 'listening' 
-                      ? 'bg-cyan-500' 
+                  className={`w-2 h-2 rounded-full ${getOrbState() === 'speaking'
+                    ? 'bg-violet-500'
+                    : getOrbState() === 'listening'
+                      ? 'bg-cyan-500'
                       : 'bg-gray-400 dark:bg-gray-500'
-                  }`}
+                    }`}
                 />
-                <span className={`text-sm font-medium ${
-                  getOrbState() === 'speaking' 
-                    ? 'text-violet-600 dark:text-violet-400' 
-                    : getOrbState() === 'listening' 
-                    ? 'text-cyan-600 dark:text-cyan-400' 
+                <span className={`text-sm font-medium ${getOrbState() === 'speaking'
+                  ? 'text-violet-600 dark:text-violet-400'
+                  : getOrbState() === 'listening'
+                    ? 'text-cyan-600 dark:text-cyan-400'
                     : 'text-gray-500 dark:text-gray-400'
-                }`}>
-                  {getOrbState() === 'speaking' 
-                    ? 'AI Speaking' 
-                    : getOrbState() === 'listening' 
-                    ? 'Listening to you' 
-                    : connectionStatus === 'connecting'
-                    ? 'Connecting...'
-                    : 'AI Interviewer'}
+                  }`}>
+                  {getOrbState() === 'speaking'
+                    ? 'AI Speaking'
+                    : getOrbState() === 'listening'
+                      ? 'Listening to you'
+                      : connectionStatus === 'connecting'
+                        ? 'Connecting...'
+                        : 'AI Interviewer'}
                 </span>
               </div>
 
@@ -1828,11 +1892,10 @@ export default function MockInterviewPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={toggleMute}
-                className={`group relative flex items-center gap-2.5 px-5 py-2.5 rounded-full backdrop-blur-md transition-all duration-300 ${
-                  isMuted
-                    ? 'bg-red-500/15 border border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.15)]'
-                    : 'bg-white/5 dark:bg-white/[0.03] border border-white/10 dark:border-white/[0.08] hover:bg-white/10 dark:hover:bg-white/[0.06] hover:border-white/20 dark:hover:border-white/15'
-                }`}
+                className={`group relative flex items-center gap-2.5 px-5 py-2.5 rounded-full backdrop-blur-md transition-all duration-300 ${isMuted
+                  ? 'bg-red-500/15 border border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.15)]'
+                  : 'bg-white/5 dark:bg-white/[0.03] border border-white/10 dark:border-white/[0.08] hover:bg-white/10 dark:hover:bg-white/[0.06] hover:border-white/20 dark:hover:border-white/15'
+                  }`}
               >
                 {/* Animated ring when muted */}
                 {isMuted && (
@@ -1843,26 +1906,24 @@ export default function MockInterviewPage() {
                     className="absolute inset-0 rounded-full border border-red-500/50"
                   />
                 )}
-                
+
                 {/* Icon */}
-                <div className={`relative p-1.5 rounded-full transition-colors ${
-                  isMuted 
-                    ? 'bg-red-500/20' 
-                    : 'bg-white/5 dark:bg-white/[0.05] group-hover:bg-white/10'
-                }`}>
+                <div className={`relative p-1.5 rounded-full transition-colors ${isMuted
+                  ? 'bg-red-500/20'
+                  : 'bg-white/5 dark:bg-white/[0.05] group-hover:bg-white/10'
+                  }`}>
                   {isMuted ? (
                     <MicOff className="h-4 w-4 text-red-400" />
                   ) : (
                     <Mic className="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-gray-300" />
                   )}
                 </div>
-                
+
                 {/* Label */}
-                <span className={`text-sm font-medium transition-colors ${
-                  isMuted 
-                    ? 'text-red-400' 
-                    : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-300'
-                }`}>
+                <span className={`text-sm font-medium transition-colors ${isMuted
+                  ? 'text-red-400'
+                  : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-300'
+                  }`}>
                   {isMuted ? 'Tap to unmute' : 'Mute mic'}
                 </span>
               </motion.button>
@@ -1875,7 +1936,7 @@ export default function MockInterviewPage() {
             </motion.div>
           </motion.div>
         </div>
-            
+
         {/* Transcript Panel - Right */}
         <motion.div
           initial={{ opacity: 0, x: 40 }}
@@ -1894,32 +1955,30 @@ export default function MockInterviewPage() {
                   Live Transcript
                 </h2>
               </div>
-              <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full ${
-                connectionStatus === 'live'
+              <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full ${connectionStatus === 'live'
+                ? outputAudioLevel > 0.1
+                  ? 'bg-violet-50 dark:bg-violet-500/10'
+                  : 'bg-cyan-50 dark:bg-cyan-500/10'
+                : connectionStatus === 'connecting'
+                  ? 'bg-amber-50 dark:bg-amber-500/10'
+                  : 'bg-gray-100 dark:bg-[#2b2a2c]'
+                }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${connectionStatus === 'live'
                   ? outputAudioLevel > 0.1
-                    ? 'bg-violet-50 dark:bg-violet-500/10'
-                    : 'bg-cyan-50 dark:bg-cyan-500/10'
+                    ? 'bg-violet-500 dark:bg-violet-400 animate-pulse'
+                    : 'bg-cyan-500 dark:bg-cyan-400 animate-pulse'
                   : connectionStatus === 'connecting'
-                    ? 'bg-amber-50 dark:bg-amber-500/10'
-                    : 'bg-gray-100 dark:bg-[#2b2a2c]'
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${
-                  connectionStatus === 'live' 
-                    ? outputAudioLevel > 0.1 
-                      ? 'bg-violet-500 dark:bg-violet-400 animate-pulse' 
-                      : 'bg-cyan-500 dark:bg-cyan-400 animate-pulse'
-                    : connectionStatus === 'connecting'
-                      ? 'bg-amber-500 dark:bg-amber-400 animate-pulse'
-                      : 'bg-gray-400 dark:bg-gray-500'
-                }`} />
+                    ? 'bg-amber-500 dark:bg-amber-400 animate-pulse'
+                    : 'bg-gray-400 dark:bg-gray-500'
+                  }`} />
                 <span className={`text-[11px] font-medium ${getAIStatusColor()}`}>
                   {getAIStatusLabel()}
                 </span>
               </div>
             </div>
           </div>
-              
-              {/* Transcript Content */}
+
+          {/* Transcript Content */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {transcript.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center py-12">
@@ -1927,62 +1986,59 @@ export default function MockInterviewPage() {
                   <Mic className="h-6 w-6 text-violet-500 dark:text-violet-400" />
                 </div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
-                  {connectionStatus === 'connecting' 
-                    ? 'Connecting...' 
+                  {connectionStatus === 'connecting'
+                    ? 'Connecting...'
                     : 'Ready to listen'}
                 </p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 max-w-[180px]">
-                  {connectionStatus === 'connecting' 
-                    ? 'Setting up your AI interviewer' 
+                  {connectionStatus === 'connecting'
+                    ? 'Setting up your AI interviewer'
                     : 'The conversation will appear here'}
                 </p>
               </div>
-                ) : (
-                  <>
-                    {transcript.map((entry) => (
-                      <motion.div
-                        key={entry.id}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`p-3 rounded-xl ${
-                          entry.role === 'assistant' 
-                            ? 'bg-white dark:bg-[#2b2a2c] border border-gray-100 dark:border-[#3d3c3e]' 
-                            : 'bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20'
-                        }`}
-                      >
-                        {/* Role label */}
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className={`text-[10px] font-semibold uppercase tracking-wider ${
-                            entry.role === 'assistant' 
-                              ? 'text-violet-600 dark:text-violet-400' 
-                              : 'text-cyan-600 dark:text-cyan-400'
-                          }`}>
-                            {entry.role === 'assistant' ? 'AI Interviewer' : 'You'}
-                          </span>
-                          {!entry.isComplete && (
-                            <Loader2 className="h-3 w-3 animate-spin text-gray-400 dark:text-gray-500" />
-                          )}
-                        </div>
-                        
-                        {/* Message text */}
-                        <p className={`text-sm leading-relaxed ${
-                          entry.role === 'assistant' 
-                            ? 'text-gray-700 dark:text-gray-200' 
-                            : 'text-gray-600 dark:text-gray-300'
+            ) : (
+              <>
+                {transcript.map((entry) => (
+                  <motion.div
+                    key={entry.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`p-3 rounded-xl ${entry.role === 'assistant'
+                      ? 'bg-white dark:bg-[#2b2a2c] border border-gray-100 dark:border-[#3d3c3e]'
+                      : 'bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20'
+                      }`}
+                  >
+                    {/* Role label */}
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className={`text-[10px] font-semibold uppercase tracking-wider ${entry.role === 'assistant'
+                        ? 'text-violet-600 dark:text-violet-400'
+                        : 'text-cyan-600 dark:text-cyan-400'
                         }`}>
-                          {entry.text || (
-                            <span className="text-gray-400 dark:text-gray-500 italic">
-                              Listening...
-                            </span>
-                          )}
-                        </p>
-                      </motion.div>
-                    ))}
-                    <div ref={transcriptEndRef} />
-                  </>
-                )}
-              </div>
-              
+                        {entry.role === 'assistant' ? 'AI Interviewer' : 'You'}
+                      </span>
+                      {!entry.isComplete && (
+                        <Loader2 className="h-3 w-3 animate-spin text-gray-400 dark:text-gray-500" />
+                      )}
+                    </div>
+
+                    {/* Message text */}
+                    <p className={`text-sm leading-relaxed ${entry.role === 'assistant'
+                      ? 'text-gray-700 dark:text-gray-200'
+                      : 'text-gray-600 dark:text-gray-300'
+                      }`}>
+                      {entry.text || (
+                        <span className="text-gray-400 dark:text-gray-500 italic">
+                          Listening...
+                        </span>
+                      )}
+                    </p>
+                  </motion.div>
+                ))}
+                <div ref={transcriptEndRef} />
+              </>
+            )}
+          </div>
+
           {/* Error Display */}
           <AnimatePresence>
             {error && (
@@ -2006,8 +2062,8 @@ export default function MockInterviewPage() {
               </motion.div>
             )}
           </AnimatePresence>
-            </motion.div>
-          </div>
+        </motion.div>
+      </div>
 
       {/* End Interview Confirmation Modal */}
       <AnimatePresence>
@@ -2170,14 +2226,14 @@ export default function MockInterviewPage() {
     const displayCompanyName = viewingSession ? viewingSession.companyName : (selectedApplication?.companyName || 'Company');
     const displayPosition = viewingSession ? viewingSession.position : (selectedApplication?.position || 'Position');
     const displayElapsedTime = viewingSession ? viewingSession.elapsedTime : elapsedTime;
-    
+
     return (
-    <motion.div
-      key="results"
-      initial={{ opacity: 0, scale: 1.02 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ duration: 0.4 }}
+      <motion.div
+        key="results"
+        initial={{ opacity: 0, scale: 1.02 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.98 }}
+        transition={{ duration: 0.4 }}
         className="h-full"
       >
         <MockInterviewResultsView
@@ -2189,8 +2245,8 @@ export default function MockInterviewPage() {
           elapsedTime={displayElapsedTime}
           onBack={handleBackToSetup}
         />
-    </motion.div>
-  );
+      </motion.div>
+    );
   };
 
   // ============================================
@@ -2280,6 +2336,22 @@ export default function MockInterviewPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Credit Confirmation Modal */}
+      <CreditConfirmModal
+        isOpen={showCreditModal}
+        onClose={() => {
+          setShowCreditModal(false);
+          setPendingInterviewStart(false);
+        }}
+        onConfirm={() => handleBeginInterview(true)}
+        featureName="Mock Interview"
+        creditCost={CREDIT_COSTS.mockInterview}
+        userCredits={userCredits}
+        remainingQuota={getUsageStats('mockInterviews').remaining}
+        planLimit={getUsageStats('mockInterviews').limit}
+        isLoading={pendingInterviewStart && !showCreditModal}
+      />
     </AuthLayout>
   );
 }

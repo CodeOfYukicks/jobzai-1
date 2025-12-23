@@ -62,6 +62,9 @@ import { CompanyLogo } from '../components/common/CompanyLogo';
 import SelectBoardModal from '../components/boards/SelectBoardModal';
 import { KanbanBoard } from '../types/job';
 import { ProfileAvatar, generateGenderedAvatarConfig } from '../components/profile/avatar';
+import { usePlanLimits } from '../hooks/usePlanLimits';
+import { CREDIT_COSTS } from '../lib/planLimits';
+import CreditConfirmModal from '../components/CreditConfirmModal';
 
 type RecipientStatus = 'pending' | 'email_generated' | 'email_ready' | 'sent' | 'opened' | 'replied';
 
@@ -245,6 +248,11 @@ export default function CampaignsAutoPage() {
   // Sorting state
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Plan limits
+  const { canUseForFree, getUsageStats, checkAndUseFeature, userCredits, loading: planLoading } = usePlanLimits();
+  const [showCreditModal, setShowCreditModal] = useState(false);
+  const [pendingCampaignCreation, setPendingCampaignCreation] = useState(false);
 
   // Column resize state (percentages) - adjusted for checkbox column
   const [columnWidths, setColumnWidths] = useState({
@@ -675,6 +683,33 @@ export default function CampaignsAutoPage() {
       notify.error('Failed to rename campaign');
     }
   }, []);
+
+  // Handle new campaign button click with plan limits check
+  const handleNewCampaignClick = useCallback(async (useCredits: boolean = false) => {
+    const isFree = canUseForFree('campaigns');
+
+    if (!isFree && !useCredits) {
+      // Show credit confirmation modal
+      setShowCreditModal(true);
+      setPendingCampaignCreation(true);
+      return;
+    }
+
+    if (!isFree && useCredits) {
+      // Deduct credits for the campaign
+      const result = await checkAndUseFeature('campaigns');
+      if (!result.success) {
+        notify.error(result.message || 'Not enough credits');
+        return;
+      }
+    } else if (isFree) {
+      // Increment free usage
+      await checkAndUseFeature('campaigns');
+    }
+
+    // Open the modal
+    setIsNewCampaignModalOpen(true);
+  }, [canUseForFree, checkAndUseFeature]);
 
   // Get backend URL
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
@@ -1456,10 +1491,33 @@ export default function CampaignsAutoPage() {
                     }`}>
                     Send autonomous applications to find interviews quickly
                   </p>
+
+                  {/* Usage Quota Indicator */}
+                  {!planLoading && (() => {
+                    const stats = getUsageStats('campaigns');
+                    if (!stats) return null;
+                    const isExhausted = stats.used >= stats.limit;
+                    return (
+                      <div className={`mt-2 flex items-center gap-2 text-xs ${coverPhoto ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
+                        <span>Campaigns used: {stats.used}/{stats.limit}</span>
+                        <div className={`w-16 h-1.5 rounded-full overflow-hidden ${coverPhoto ? 'bg-white/20' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                          <div
+                            className={`h-full transition-all duration-300 ${isExhausted ? 'bg-purple-500' : 'bg-purple-400'}`}
+                            style={{ width: `${Math.min((stats.used / stats.limit) * 100, 100)}%` }}
+                          />
+                        </div>
+                        {isExhausted && (
+                          <span className="text-purple-500 dark:text-purple-400">
+                            ({CREDIT_COSTS.campaignPer100} credits/campaign)
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <motion.button
-                  onClick={() => setIsNewCampaignModalOpen(true)}
+                  onClick={() => handleNewCampaignClick()}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200
@@ -2446,7 +2504,7 @@ export default function CampaignsAutoPage() {
                 Start a new campaign to automatically reach out to potential employers and find interview opportunities.
               </p>
               <button
-                onClick={() => setIsNewCampaignModalOpen(true)}
+                onClick={() => handleNewCampaignClick()}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
               >
                 <Sparkles className="w-4 h-4" />
@@ -2863,6 +2921,25 @@ export default function CampaignsAutoPage() {
         jobTitle={selectedRecipientForBoard?.title || 'Contact'}
         companyName={selectedRecipientForBoard?.company || ''}
         isLoading={isAddingToBoard}
+      />
+
+      {/* Credit Confirmation Modal */}
+      <CreditConfirmModal
+        isOpen={showCreditModal}
+        onClose={() => {
+          setShowCreditModal(false);
+          setPendingCampaignCreation(false);
+        }}
+        onConfirm={() => {
+          setShowCreditModal(false);
+          if (pendingCampaignCreation) {
+            handleNewCampaignClick(true);
+            setPendingCampaignCreation(false);
+          }
+        }}
+        featureName="Campaign"
+        creditCost={CREDIT_COSTS.campaignPer100}
+        userCredits={userCredits}
       />
     </AuthLayout>
   );
