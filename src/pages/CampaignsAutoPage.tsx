@@ -253,6 +253,7 @@ export default function CampaignsAutoPage() {
   const { canUseForFree, getUsageStats, checkAndUseFeature, userCredits, loading: planLoading } = usePlanLimits();
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [pendingCampaignCreation, setPendingCampaignCreation] = useState(false);
+  const [shouldDeductCredits, setShouldDeductCredits] = useState(false);
 
   // Column resize state (percentages) - adjusted for checkbox column
   const [columnWidths, setColumnWidths] = useState({
@@ -622,6 +623,13 @@ export default function CampaignsAutoPage() {
     console.log('🎯 handleCampaignCreated called for campaign:', campaignId);
     setIsNewCampaignModalOpen(false);
 
+    // Increment usage now that campaign is actually created
+    const isFree = canUseForFree('campaignsCreated');
+    if (isFree || shouldDeductCredits) {
+      await checkAndUseFeature('campaign');
+      setShouldDeductCredits(false);
+    }
+
     // Get the campaign data to trigger search
     try {
       const campaignDoc = await getDoc(doc(db, 'campaigns', campaignId));
@@ -636,7 +644,7 @@ export default function CampaignsAutoPage() {
     } catch (error) {
       console.error('Error fetching campaign for search:', error);
     }
-  }, [handleSearchApollo]);
+  }, [handleSearchApollo, canUseForFree, shouldDeductCredits, checkAndUseFeature]);
 
   // Handle campaign deletion
   const handleDeleteCampaign = useCallback(async () => {
@@ -686,7 +694,7 @@ export default function CampaignsAutoPage() {
 
   // Handle new campaign button click with plan limits check
   const handleNewCampaignClick = useCallback(async (useCredits: boolean = false) => {
-    const isFree = canUseForFree('campaigns');
+    const isFree = canUseForFree('campaignsCreated');
 
     if (!isFree && !useCredits) {
       // Show credit confirmation modal
@@ -696,20 +704,18 @@ export default function CampaignsAutoPage() {
     }
 
     if (!isFree && useCredits) {
-      // Deduct credits for the campaign
-      const result = await checkAndUseFeature('campaigns');
-      if (!result.success) {
-        notify.error(result.message || 'Not enough credits');
+      // Check if user has enough credits (don't deduct yet)
+      if (userCredits < CREDIT_COSTS.campaignPer100) {
+        notify.error('Not enough credits');
         return;
       }
-    } else if (isFree) {
-      // Increment free usage
-      await checkAndUseFeature('campaigns');
+      // Mark that we need to deduct credits when campaign is actually created
+      setShouldDeductCredits(true);
     }
 
     // Open the modal
     setIsNewCampaignModalOpen(true);
-  }, [canUseForFree, checkAndUseFeature]);
+  }, [canUseForFree, userCredits]);
 
   // Get backend URL
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
@@ -1494,7 +1500,7 @@ export default function CampaignsAutoPage() {
 
                   {/* Usage Quota Indicator */}
                   {!planLoading && (() => {
-                    const stats = getUsageStats('campaigns');
+                    const stats = getUsageStats('campaignsCreated');
                     if (!stats) return null;
                     const isExhausted = stats.used >= stats.limit;
                     return (

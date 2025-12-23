@@ -29,6 +29,7 @@ export const CREDIT_COSTS: Record<string, number> = {
     aiMessage: 1,           // Per message
     resumeAnalysis: 25,     // Per analysis
     mockInterview: 50,      // Per session
+    campaign: 200,          // Per campaign
     campaignPer100: 200,    // Per 100 emails (2 credits per contact)
 };
 

@@ -45,19 +45,31 @@ export interface PlanLimitsHook {
 // Map feature keys to usage keys
 const featureToUsageKey: Record<string, keyof UsageData> = {
     resumeAnalysis: 'resumeAnalyses',
+    resumeAnalyses: 'resumeAnalyses',
     mockInterview: 'mockInterviews',
+    mockInterviews: 'mockInterviews',
     campaign: 'campaignsCreated',
+    campaignsCreated: 'campaignsCreated',
     campaignContact: 'campaignContactsSent',
+    campaignContactsSent: 'campaignContactsSent',
     aiMessage: 'aiMessages',
+    aiMessages: 'aiMessages',
 };
 
 // Map feature keys to limit keys
 const featureToLimitKey: Record<string, keyof PlanLimits> = {
     resumeAnalysis: 'resumeAnalyses',
+    resumeAnalyses: 'resumeAnalyses',
     mockInterview: 'mockInterviews',
+    mockInterviews: 'mockInterviews',
     campaign: 'campaigns',
+    campaigns: 'campaigns',
+    campaignsCreated: 'campaigns',
     campaignContact: 'campaignContacts',
+    campaignContacts: 'campaignContacts',
+    campaignContactsSent: 'campaignContacts',
     aiMessage: 'aiMessages',
+    aiMessages: 'aiMessages',
 };
 
 const defaultUsage: UsageData = {
