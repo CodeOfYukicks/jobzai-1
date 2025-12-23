@@ -32,7 +32,7 @@ export function InterviewQuestionsHeader<T extends string = string>({
     <section className="rounded-2xl bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 p-6 mb-6">
       {/* Top Row: Title + Actions */}
       <div className="flex items-center justify-between mb-5">
-        {/* Left: Title + Badge */}
+        {/* Left: Title + Badge + Regenerate */}
         <div className="flex items-center gap-3">
           <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-slate-400 dark:text-slate-500">
             Interview Questions
@@ -47,10 +47,6 @@ export function InterviewQuestionsHeader<T extends string = string>({
               {totalCount}
             </span>
           )}
-        </div>
-
-        {/* Right: Actions */}
-        <div className="flex items-center gap-2">
           {onRegenerate && (
             <button
               onClick={onRegenerate}
@@ -69,6 +65,10 @@ export function InterviewQuestionsHeader<T extends string = string>({
               {isRegenerating ? 'Generating...' : 'Regenerate'}
             </button>
           )}
+        </div>
+
+        {/* Right: Action slot (Sessions + Practice Live) */}
+        <div className="flex items-center gap-2">
           {actionSlot}
         </div>
       </div>
@@ -77,9 +77,9 @@ export function InterviewQuestionsHeader<T extends string = string>({
       <div className="flex items-center gap-2 flex-wrap">
         {filters.map((filter) => {
           const isActive = filter.id === activeFilter;
-          const count = filter.id === 'all' ? totalCount : 
+          const count = filter.id === 'all' ? totalCount :
             (filter.id === activeFilter ? filteredCount : null);
-          
+
           return (
             <button
               key={filter.id}
