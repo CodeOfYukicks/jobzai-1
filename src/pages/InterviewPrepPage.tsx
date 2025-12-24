@@ -3383,7 +3383,7 @@ Generate exactly ${count} questions.
         icon: <MessageSquare className="w-4 h-4" />,
         completed: hasPassingSession,
         description: hasPassingSession ? 'Session passed!' : 'Score 70%+ in Live Interview',
-        action: () => setIsLiveSessionOpen(true)
+        action: () => handleStartLiveSession()
       }
     ];
     return milestones;
