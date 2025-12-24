@@ -6474,31 +6474,129 @@ app.post('/api/apollo/search', verifyFirebaseToken, async (req, res) => {
 
     console.log('📡 Apollo search params:', JSON.stringify(searchParams));
 
-    // Call Apollo People Search API
-    const apolloResponse = await fetch('https://api.apollo.io/v1/mixed_people/search', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
-        'X-Api-Key': apiKey
-      },
-      body: JSON.stringify(searchParams)
-    });
+    // Check if we have target companies (priority blending)
+    const targetCompanies = targeting.targetCompanies || [];
+    let allPeople = [];
 
-    if (!apolloResponse.ok) {
-      const errorText = await apolloResponse.text();
-      console.error('❌ Apollo API error:', apolloResponse.status, errorText);
-      return res.status(500).json({ error: `Apollo API error: ${apolloResponse.status}`, details: errorText });
+    if (targetCompanies.length > 0) {
+      console.log('⭐ Priority companies specified:', targetCompanies);
+
+      // 1. Search each target company separately (Apollo doesn't handle OR properly)
+      const perCompanyLimit = Math.max(5, Math.ceil((maxResults * 0.4) / targetCompanies.length));
+
+      console.log('🔍 Searching each target company (limit', perCompanyLimit, 'per company)...');
+
+      const targetPeopleArrays = await Promise.all(
+        targetCompanies.map(async (company) => {
+          try {
+            const targetParams = {
+              ...searchParams,
+              q_organization_name: company,
+              per_page: perCompanyLimit
+            };
+
+            const response = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'X-Api-Key': apiKey
+              },
+              body: JSON.stringify(targetParams)
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              const people = data.people || [];
+              console.log(`   ⭐ ${company}: ${people.length} people found`);
+              return people;
+            }
+            return [];
+          } catch (error) {
+            console.error(`   ❌ Error fetching ${company}:`, error.message);
+            return [];
+          }
+        })
+      );
+
+      // Flatten target people arrays
+      const targetPeople = targetPeopleArrays.flat();
+      console.log(`⭐ Total from priority companies: ${targetPeople.length}`);
+
+      // 2. Search WITHOUT company filter (get ~60% = 60 contacts)
+      const generalParams = {
+        ...searchParams,
+        per_page: Math.ceil(maxResults * 0.6)
+      };
+
+      console.log('🔍 Searching general prospects...');
+      const generalResponse = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'X-Api-Key': apiKey
+        },
+        body: JSON.stringify(generalParams)
+      });
+
+      let generalPeople = [];
+      if (generalResponse.ok) {
+        const generalData = await generalResponse.json();
+        generalPeople = generalData.people || [];
+        console.log(`✅ Found ${generalPeople.length} general prospects`);
+      }
+
+      // 3. Merge and dedupe (prioritize target companies - add them FIRST)
+      const seenIds = new Set();
+
+      // Add target company people first
+      for (const person of targetPeople) {
+        if (!seenIds.has(person.id)) {
+          seenIds.add(person.id);
+          allPeople.push(person);
+        }
+      }
+
+      // Add general people (avoiding duplicates), up to maxResults
+      for (const person of generalPeople) {
+        if (allPeople.length >= maxResults) break;
+        if (!seenIds.has(person.id)) {
+          seenIds.add(person.id);
+          allPeople.push(person);
+        }
+      }
+
+      console.log(`📊 Total merged: ${allPeople.length} people (${targetPeople.length} from priority companies)`);
+
+    } else {
+      // Standard search (no target companies)
+      const apolloResponse = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'X-Api-Key': apiKey
+        },
+        body: JSON.stringify(searchParams)
+      });
+
+      if (!apolloResponse.ok) {
+        const errorText = await apolloResponse.text();
+        console.error('❌ Apollo API error:', apolloResponse.status, errorText);
+        return res.status(500).json({ error: `Apollo API error: ${apolloResponse.status}`, details: errorText });
+      }
+
+      const data = await apolloResponse.json();
+      allPeople = data.people || [];
+      console.log('✅ Apollo returned', allPeople.length, 'people');
     }
-
-    const data = await apolloResponse.json();
-    console.log('✅ Apollo returned', data.people?.length || 0, 'people');
 
     // Filter out excluded companies
     const excludedCompanies = targeting.excludedCompanies || [];
     const excludedLower = excludedCompanies.map(c => c.toLowerCase());
 
-    let filteredPeople = (data.people || []).filter(person => {
+    let filteredPeople = allPeople.filter(person => {
       if (!person.organization?.name) return true;
       return !excludedLower.some(excluded =>
         person.organization.name.toLowerCase().includes(excluded)
@@ -6568,7 +6666,7 @@ app.post('/api/apollo/search', verifyFirebaseToken, async (req, res) => {
       success: true,
       contactsFound: contacts.length,
       emailsRevealed: emailCount,
-      totalAvailable: data.pagination?.total_entries || 0,
+      totalAvailable: allPeople.length,
       contacts: contacts.map(c => ({
         fullName: c.fullName,
         title: c.title,
@@ -6625,6 +6723,356 @@ app.post('/api/apollo/enrich', verifyFirebaseToken, async (req, res) => {
   } catch (error) {
     console.error('❌ Apollo enrich error:', error);
     res.status(500).json({ error: 'Failed to enrich contact', details: error.message });
+  }
+});
+
+// Apollo Search Preview endpoint (count estimation)
+app.post('/api/apollo/preview', verifyFirebaseToken, async (req, res) => {
+  console.log('👁️ Apollo preview request from user:', req.user.uid);
+
+  try {
+    const { targeting } = req.body;
+
+    if (!targeting) {
+      return res.status(400).json({ error: 'Missing targeting' });
+    }
+
+    // Need at least personTitles and personLocations
+    if (!targeting.personTitles?.length || !targeting.personLocations?.length) {
+      return res.json({
+        success: true,
+        totalAvailable: 0,
+        isLowVolume: true,
+        message: 'Add job titles and locations to see estimated prospects'
+      });
+    }
+
+    // Get Apollo API key
+    const apiKey = await getApolloApiKey();
+    if (!apiKey) {
+      return res.status(500).json({ error: 'Apollo API key not configured' });
+    }
+
+    // Map seniority values to Apollo format
+    const SENIORITY_MAPPING = {
+      'entry': 'entry',
+      'senior': 'senior',
+      'manager': 'manager',
+      'director': 'director',
+      'vp': 'vp',
+      'c_suite': 'c_suite'
+    };
+
+    // Map company size to Apollo ranges
+    const COMPANY_SIZE_MAPPING = {
+      '1-10': '1,10',
+      '11-50': '11,50',
+      '51-200': '51,200',
+      '201-500': '201,500',
+      '501-1000': '501,1000',
+      '1001-5000': '1001,5000',
+      '5001+': '5001,10000'
+    };
+
+    // Build minimal search params (just for count)
+    const searchParams = {
+      per_page: 1,  // Only need pagination info
+      page: 1
+    };
+
+    if (targeting.personTitles?.length > 0) {
+      searchParams.person_titles = targeting.personTitles;
+    }
+
+    if (targeting.personLocations?.length > 0) {
+      searchParams.person_locations = targeting.personLocations;
+    }
+
+    if (targeting.seniorities?.length > 0) {
+      searchParams.person_seniorities = targeting.seniorities.map(
+        s => SENIORITY_MAPPING[s] || s
+      );
+    }
+
+    if (targeting.companySizes?.length > 0) {
+      searchParams.organization_num_employees_ranges = targeting.companySizes.map(
+        s => COMPANY_SIZE_MAPPING[s] || s
+      );
+    }
+
+    // NOTE: Industries filter disabled for now
+    // Apollo's organization_industries requires exact industry names from their taxonomy
+    // Our simplified values (technology, finance, etc.) don't match Apollo's format
+    // TODO: Map to Apollo industry IDs or use organization_industry_tag_ids
+    // if (targeting.industries?.length > 0) {
+    //   searchParams.organization_industries = targeting.industries;
+    // }
+
+    // NOTE: We intentionally don't filter by targetCompanies in preview
+    // because the actual search uses blending (40/60), not strict filtering.
+    // Filtering in preview would give misleadingly low counts.
+
+    console.log('📡 Apollo preview params:', JSON.stringify(searchParams));
+
+    // Call Apollo API (minimal request for total count)
+    const apolloResponse = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'X-Api-Key': apiKey
+      },
+      body: JSON.stringify(searchParams)
+    });
+
+    if (!apolloResponse.ok) {
+      const errorText = await apolloResponse.text();
+      console.error('❌ Apollo preview API error:', apolloResponse.status, errorText);
+      return res.status(500).json({ error: `Apollo API error: ${apolloResponse.status}` });
+    }
+
+    const data = await apolloResponse.json();
+    const totalAvailable = data.pagination?.total_entries || 0;
+    const isLowVolume = totalAvailable < 20;
+
+    console.log('✅ Apollo preview result:', totalAvailable, 'prospects', isLowVolume ? '(low volume)' : '');
+
+    // If there are priority companies, fetch counts for each
+    let priorityBreakdown = null;
+    if (targeting.targetCompanies?.length > 0) {
+      console.log('📊 Fetching priority company breakdown for:', targeting.targetCompanies);
+
+      const priorityCounts = await Promise.all(
+        targeting.targetCompanies.map(async (company) => {
+          try {
+            const priorityParams = {
+              ...searchParams,
+              q_organization_name: company
+            };
+
+            const priorityResponse = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'X-Api-Key': apiKey
+              },
+              body: JSON.stringify(priorityParams)
+            });
+
+            if (!priorityResponse.ok) {
+              console.error(`❌ Priority fetch failed for ${company}`);
+              return { company, count: 0 };
+            }
+
+            const priorityData = await priorityResponse.json();
+            const count = priorityData.pagination?.total_entries || 0;
+            console.log(`   ⭐ ${company}: ${count} prospects`);
+            return { company, count };
+          } catch (error) {
+            console.error(`❌ Error fetching ${company}:`, error.message);
+            return { company, count: 0 };
+          }
+        })
+      );
+
+      const totalPriority = priorityCounts.reduce((sum, pc) => sum + pc.count, 0);
+      priorityBreakdown = {
+        companies: priorityCounts,
+        total: totalPriority
+      };
+
+      console.log('📊 Priority breakdown total:', totalPriority);
+    }
+
+    res.json({
+      success: true,
+      totalAvailable,
+      isLowVolume,
+      priorityBreakdown,
+      message: isLowVolume
+        ? 'Low prospect volume. Consider broadening your search.'
+        : undefined
+    });
+
+  } catch (error) {
+    console.error('❌ Apollo preview error:', error);
+    res.status(500).json({ error: 'Failed to preview search', details: error.message });
+  }
+});
+
+// Suggest alternative job titles for priority companies with 0 results
+app.post('/api/apollo/suggest-titles', verifyFirebaseToken, async (req, res) => {
+  const { originalTitles, company, targeting } = req.body;
+  const userId = req.user.uid;
+
+  console.log(`🤖 AI Title Suggestion request for ${company} from user ${userId}`);
+
+  try {
+    // Get API keys from multiple sources
+    const db = admin.firestore();
+    let openaiApiKey = null;
+    let apolloApiKey = null;
+
+    // Try settings/openai document first (common pattern)
+    try {
+      const openaiDoc = await db.collection('settings').doc('openai').get();
+      if (openaiDoc.exists) {
+        openaiApiKey = openaiDoc.data()?.apiKey;
+        console.log('✅ Found OpenAI key in settings/openai');
+      }
+    } catch (e) { /* ignore */ }
+
+    // Try settings/apollo document
+    try {
+      const apolloDoc = await db.collection('settings').doc('apollo').get();
+      if (apolloDoc.exists) {
+        apolloApiKey = apolloDoc.data()?.apiKey;
+        console.log('✅ Found Apollo key in settings/apollo');
+      }
+    } catch (e) { /* ignore */ }
+
+    // Fallback to env vars
+    openaiApiKey = openaiApiKey || process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+    apolloApiKey = apolloApiKey || process.env.APOLLO_API_KEY || process.env.VITE_APOLLO_API_KEY;
+
+    console.log('🔑 OpenAI key found:', !!openaiApiKey);
+    console.log('🔑 Apollo key found:', !!apolloApiKey);
+
+    if (!openaiApiKey) {
+      console.error('❌ Missing OpenAI API key');
+      return res.status(500).json({ error: 'Missing OpenAI API key', suggestions: [] });
+    }
+    if (!apolloApiKey) {
+      console.error('❌ Missing Apollo API key');
+      return res.status(500).json({ error: 'Missing Apollo API key', suggestions: [] });
+    }
+
+    // Ask GPT for alternative titles
+    const prompt = `You are a job title expert. Given these job titles that found 0 results at "${company}":
+${originalTitles.join(', ')}
+
+Suggest 5 alternative job titles that are similar but might be used at ${company}. Consider:
+- ${company}'s company culture and naming conventions
+- Common tech industry variations
+- Senior/Lead/Principal prefixes that might apply
+- Similar roles with different names
+
+Return ONLY a JSON array of strings, no explanation. Example: ["Growth Manager", "Program Manager", "Technical Program Manager", "Product Operations", "Business Operations"]`;
+
+    console.log('🤖 Asking GPT for suggestions...');
+
+    const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 200
+      })
+    });
+
+    if (!gptResponse.ok) {
+      console.error('❌ GPT API error:', gptResponse.status);
+      return res.status(500).json({ error: 'GPT API error' });
+    }
+
+    const gptData = await gptResponse.json();
+    let suggestedTitles = [];
+
+    try {
+      const content = gptData.choices[0]?.message?.content || '[]';
+      suggestedTitles = JSON.parse(content.replace(/```json|```/g, '').trim());
+    } catch (parseError) {
+      console.error('❌ Failed to parse GPT response:', parseError);
+      return res.status(500).json({ error: 'Failed to parse suggestions' });
+    }
+
+    console.log('🤖 GPT suggested:', suggestedTitles);
+
+    // Test each suggested title against Apollo for this company
+    const SENIORITY_MAPPING = {
+      'entry': 'entry',
+      'senior': 'senior',
+      'manager': 'manager',
+      'director': 'director',
+      'vp': 'vp',
+      'c_suite': 'c_suite'
+    };
+
+    const COMPANY_SIZE_MAPPING = {
+      '1-10': '1,10',
+      '11-50': '11,50',
+      '51-200': '51,200',
+      '201-500': '201,500',
+      '501-1000': '501,1000',
+      '1001-5000': '1001,5000',
+      '5001+': '5001,10000'
+    };
+
+    const suggestions = await Promise.all(
+      suggestedTitles.slice(0, 5).map(async (title) => {
+        try {
+          const searchParams = {
+            per_page: 1,
+            page: 1,
+            person_titles: [title],
+            q_organization_name: company
+          };
+
+          if (targeting?.personLocations?.length > 0) {
+            searchParams.person_locations = targeting.personLocations;
+          }
+          if (targeting?.seniorities?.length > 0) {
+            searchParams.person_seniorities = targeting.seniorities.map(s => SENIORITY_MAPPING[s] || s);
+          }
+          if (targeting?.companySizes?.length > 0) {
+            searchParams.organization_num_employees_ranges = targeting.companySizes.map(s => COMPANY_SIZE_MAPPING[s] || s);
+          }
+
+          const apolloResponse = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache',
+              'X-Api-Key': apolloApiKey
+            },
+            body: JSON.stringify(searchParams)
+          });
+
+          if (!apolloResponse.ok) {
+            return { title, count: 0 };
+          }
+
+          const data = await apolloResponse.json();
+          const count = data.pagination?.total_entries || 0;
+          console.log(`   💡 "${title}" at ${company}: ${count} prospects`);
+          return { title, count };
+        } catch (error) {
+          console.error(`Error testing "${title}":`, error.message);
+          return { title, count: 0 };
+        }
+      })
+    );
+
+    // Filter to only suggestions with results
+    const validSuggestions = suggestions.filter(s => s.count > 0);
+
+    console.log(`✅ Found ${validSuggestions.length} valid suggestions for ${company}`);
+
+    res.json({
+      success: true,
+      company,
+      suggestions: validSuggestions
+    });
+
+  } catch (error) {
+    console.error('❌ Title suggestion error:', error);
+    res.status(500).json({ error: 'Failed to suggest titles', details: error.message });
   }
 });
 

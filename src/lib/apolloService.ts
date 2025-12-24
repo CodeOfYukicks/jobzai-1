@@ -9,6 +9,8 @@ export interface ApolloTargeting {
   companySizes: string[];
   industries: string[];
   excludedCompanies: string[];
+  targetCompanies?: string[];  // Priority companies (blended, not strict filter)
+  expandTitles?: boolean;      // Include similar job titles
 }
 
 export interface ApolloContactPreview {
@@ -322,7 +324,8 @@ async function getAuthToken(): Promise<string> {
 export async function searchApolloContacts(
   campaignId: string,
   targeting: ApolloTargeting,
-  maxResults: number = 50
+  maxResults: number = 50,
+  expandTitles: boolean = true
 ): Promise<SearchApolloResult> {
   // Check for demo mode
   if (isDemoMode(targeting)) {
@@ -338,7 +341,7 @@ export async function searchApolloContacts(
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     },
-    body: JSON.stringify({ campaignId, targeting, maxResults })
+    body: JSON.stringify({ campaignId, targeting, maxResults, expandTitles })
   });
 
   if (!response.ok) {
@@ -366,6 +369,52 @@ export async function enrichApolloContact(apolloId: string): Promise<{
       'Authorization': `Bearer ${token}`
     },
     body: JSON.stringify({ apolloId })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(errorData.error || `HTTP error ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Preview Apollo search (get estimated count before creating campaign)
+ */
+export interface ApolloPreviewResult {
+  success: boolean;
+  totalAvailable: number;
+  isLowVolume: boolean;
+  message?: string;
+  priorityBreakdown?: {
+    companies: { company: string; count: number }[];
+    total: number;
+  };
+}
+
+export async function previewApolloSearch(
+  targeting: Partial<ApolloTargeting>
+): Promise<ApolloPreviewResult> {
+  // Check for demo mode
+  if (targeting.personTitles?.some(title => title.includes('#1'))) {
+    return {
+      success: true,
+      totalAvailable: 100,
+      isLowVolume: false,
+      message: 'Demo mode - 100 fake contacts will be created'
+    };
+  }
+
+  const token = await getAuthToken();
+
+  const response = await fetch(`${BACKEND_URL}/api/apollo/preview`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ targeting })
   });
 
   if (!response.ok) {
@@ -451,4 +500,43 @@ export function estimateContactCount(targeting: ApolloTargeting): {
   } else {
     return { estimate: '500+', confidence: 'high' };
   }
+}
+
+/**
+ * Suggest alternative job titles for a company with 0 results
+ * Uses AI to generate suggestions and tests them against Apollo
+ */
+export interface TitleSuggestion {
+  title: string;
+  count: number;
+}
+
+export interface TitleSuggestionsResult {
+  success: boolean;
+  company: string;
+  suggestions: TitleSuggestion[];
+}
+
+export async function suggestAlternativeTitles(
+  originalTitles: string[],
+  company: string,
+  targeting: Partial<ApolloTargeting>
+): Promise<TitleSuggestionsResult> {
+  const token = await getAuthToken();
+
+  const response = await fetch(`${BACKEND_URL}/api/apollo/suggest-titles`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ originalTitles, company, targeting })
+  });
+
+  if (!response.ok) {
+    console.error('Failed to get title suggestions:', response.status);
+    return { success: false, company, suggestions: [] };
+  }
+
+  return response.json();
 }

@@ -1,19 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Briefcase, MapPin, Users, Building2, X, Plus, 
+import {
+  Briefcase, MapPin, Users, Building2, X, Plus,
   Sparkles, ChevronDown, Check, Loader2, Ban, Info,
-  GraduationCap, UserPlus
+  GraduationCap, UserPlus, Star, Lightbulb
 } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { CampaignData, Seniority, CompanySize } from '../NewCampaignModal';
 import LocationAutocomplete from '../LocationAutocomplete';
+import { previewApolloSearch, suggestAlternativeTitles, type ApolloPreviewResult, type TitleSuggestion } from '../../../lib/apolloService';
 
 interface TargetingStepProps {
   data: CampaignData;
   onUpdate: (updates: Partial<CampaignData>) => void;
+  onEstimatedProspectsChange?: (count: number) => void;
 }
 
 const COMPANY_SIZE_OPTIONS: { value: CompanySize; label: string }[] = [
@@ -47,7 +49,7 @@ function mapExperienceToSeniority(years: string | undefined): Seniority[] {
   return ['manager', 'director'];
 }
 
-export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
+export default function TargetingStep({ data, onUpdate, onEstimatedProspectsChange }: TargetingStepProps) {
   const { currentUser } = useAuth();
 
   // Apollo-compatible options
@@ -88,13 +90,23 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
     industries: string[];
     seniorities: Seniority[];
   }>({ titles: [], locations: [], skills: [], industries: [], seniorities: [] });
-  
+
   // Input states
   const [titleInput, setTitleInput] = useState('');
   const [excludeInput, setExcludeInput] = useState('');
+  const [targetCompanyInput, setTargetCompanyInput] = useState('');
   const [showIndustryDropdown, setShowIndustryDropdown] = useState(false);
   const [showGoalTooltip, setShowGoalTooltip] = useState(false);
   const goalTooltipRef = useRef<HTMLDivElement>(null);
+
+  // Preview state
+  const [previewResult, setPreviewResult] = useState<ApolloPreviewResult | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // AI Suggestions state
+  const [aiSuggestions, setAiSuggestions] = useState<Record<string, TitleSuggestion[]>>({});
+  const [loadingSuggestions, setLoadingSuggestions] = useState<Record<string, boolean>>({});
 
   // Close tooltip when clicking outside
   useEffect(() => {
@@ -113,6 +125,51 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
     };
   }, [showGoalTooltip]);
 
+  // Debounced preview fetch
+  useEffect(() => {
+    // Clear existing timeout
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+    }
+
+    // Only preview if we have required fields
+    if (data.personTitles.length === 0 || data.personLocations.length === 0) {
+      setPreviewResult(null);
+      return;
+    }
+
+    // Debounce the API call
+    previewTimeoutRef.current = setTimeout(async () => {
+      setIsLoadingPreview(true);
+      try {
+        const result = await previewApolloSearch({
+          personTitles: data.personTitles,
+          personLocations: data.personLocations,
+          seniorities: data.seniorities,
+          companySizes: data.companySizes,
+          industries: data.industries,
+          targetCompanies: data.targetCompanies,
+        });
+        setPreviewResult(result);
+        // Report to parent for use in ReviewStep
+        if (result.totalAvailable !== undefined) {
+          onEstimatedProspectsChange?.(result.totalAvailable);
+        }
+      } catch (error) {
+        console.error('Preview error:', error);
+        setPreviewResult(null);
+      } finally {
+        setIsLoadingPreview(false);
+      }
+    }, 800); // 800ms debounce
+
+    return () => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+      }
+    };
+  }, [data.personTitles, data.personLocations, data.seniorities, data.companySizes, data.industries, data.targetCompanies]);
+
   // Load user profile for smart suggestions
   useEffect(() => {
     const loadProfile = async () => {
@@ -125,18 +182,18 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (userDoc.exists()) {
           const profile = userDoc.data() as UserProfile;
-          
+
           // Build suggestions from profile
           const newSuggestions = {
             titles: profile.targetPosition ? [profile.targetPosition] : [],
-            locations: profile.city && profile.country 
-              ? [`${profile.city}, ${profile.country}`] 
+            locations: profile.city && profile.country
+              ? [`${profile.city}, ${profile.country}`]
               : [],
             skills: profile.skills?.slice(0, 5) || [],
             industries: profile.targetSectors || [],
             seniorities: mapExperienceToSeniority(profile.yearsOfExperience)
           };
-          
+
           setSuggestions(newSuggestions);
         }
       } catch (error) {
@@ -242,8 +299,8 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
     seniorities: suggestions.seniorities.filter(s => !data.seniorities.includes(s))
   };
 
-  const hasSuggestions = availableSuggestions.titles.length > 0 || 
-    availableSuggestions.locations.length > 0 || 
+  const hasSuggestions = availableSuggestions.titles.length > 0 ||
+    availableSuggestions.locations.length > 0 ||
     availableSuggestions.industries.length > 0 ||
     availableSuggestions.seniorities.length > 0 ||
     availableSuggestions.skills.length > 0;
@@ -286,7 +343,7 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
             >
               <Info className="w-3.5 h-3.5" />
             </button>
-            
+
             <AnimatePresence>
               {showGoalTooltip && (
                 <motion.div
@@ -322,13 +379,13 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
             </AnimatePresence>
           </div>
         </div>
-        
+
         {/* Goal Pills */}
         <div className="flex items-center gap-2">
           {OUTREACH_GOALS.map((goal) => {
             const Icon = goal.icon;
             const isSelected = data.outreachGoal === goal.id;
-            
+
             return (
               <button
                 key={goal.id}
@@ -467,6 +524,32 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
             <Plus className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Expand Titles Toggle */}
+        <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-white/[0.06]">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
+            <span className="text-[12px] text-gray-600 dark:text-white/60">
+              Include similar titles
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => onUpdate({ expandTitles: !data.expandTitles })}
+            className={`relative w-11 h-6 rounded-full transition-colors ${data.expandTitles
+              ? 'bg-violet-500'
+              : 'bg-gray-300 dark:bg-white/20'
+              }`}
+          >
+            <span className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200 ${data.expandTitles ? 'translate-x-5' : 'translate-x-0'
+              }`} />
+          </button>
+        </div>
+        {data.expandTitles && (
+          <p className="text-[11px] text-violet-600 dark:text-violet-400">
+            We'll also search for related titles like "Developer", "SWE" for "Software Engineer"
+          </p>
+        )}
       </div>
 
       {/* Locations */}
@@ -539,13 +622,13 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
               rounded-lg text-[14px] text-left"
           >
             <span className={data.industries.length > 0 ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-white/30'}>
-              {data.industries.length > 0 
-                ? `${data.industries.length} selected` 
+              {data.industries.length > 0
+                ? `${data.industries.length} selected`
                 : 'Select industries'}
             </span>
             <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showIndustryDropdown ? 'rotate-180' : ''}`} />
           </button>
-          
+
           <AnimatePresence>
             {showIndustryDropdown && (
               <motion.div
@@ -562,8 +645,8 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
                     className="w-full flex items-center justify-between px-4 py-2.5 text-[14px] text-left
                       hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                   >
-                    <span className={data.industries.includes(industry.key) 
-                      ? 'text-gray-900 dark:text-white' 
+                    <span className={data.industries.includes(industry.key)
+                      ? 'text-gray-900 dark:text-white'
                       : 'text-gray-600 dark:text-white/60'
                     }>
                       {industry.label}
@@ -577,7 +660,7 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
             )}
           </AnimatePresence>
         </div>
-        
+
         {data.industries.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
             {data.industries.map(ind => {
@@ -650,6 +733,72 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
         </p>
       </div>
 
+      {/* Target Companies (Priority Companies) */}
+      <div className="space-y-2">
+        <label className="block text-[12px] text-gray-500 dark:text-white/40 uppercase tracking-wider font-medium flex items-center gap-2">
+          <Star className="w-3.5 h-3.5" />
+          Priority Companies
+        </label>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {data.targetCompanies.map(company => (
+            <span
+              key={company}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 
+                bg-blue-50 dark:bg-blue-500/10 rounded-full
+                text-[12px] font-medium text-blue-700 dark:text-blue-400
+                border border-blue-200 dark:border-blue-500/20"
+            >
+              {company}
+              <button
+                onClick={() => onUpdate({ targetCompanies: data.targetCompanies.filter(c => c !== company) })}
+                className="hover:text-blue-900 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={targetCompanyInput}
+            onChange={(e) => setTargetCompanyInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (targetCompanyInput.trim() && !data.targetCompanies.includes(targetCompanyInput.trim())) {
+                  onUpdate({ targetCompanies: [...data.targetCompanies, targetCompanyInput.trim()] });
+                  setTargetCompanyInput('');
+                }
+              }
+            }}
+            placeholder="e.g., Google, Stripe, Notion"
+            className="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-white/[0.04] 
+              border border-gray-200 dark:border-white/[0.08] rounded-lg
+              text-[14px] text-gray-900 dark:text-white 
+              placeholder:text-gray-400 dark:placeholder:text-white/30
+              focus:outline-none focus:border-gray-300 dark:focus:border-white/20"
+          />
+          <button
+            onClick={() => {
+              if (targetCompanyInput.trim() && !data.targetCompanies.includes(targetCompanyInput.trim())) {
+                onUpdate({ targetCompanies: [...data.targetCompanies, targetCompanyInput.trim()] });
+                setTargetCompanyInput('');
+              }
+            }}
+            disabled={!targetCompanyInput.trim()}
+            className="px-4 py-2.5 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 
+              rounded-lg text-[13px] font-medium disabled:opacity-40 
+              hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+        <p className="text-[11px] text-gray-400 dark:text-white/30">
+          These companies will be prioritized in your search (not strictly filtered)
+        </p>
+      </div>
+
       {/* Summary */}
       {(data.personTitles.length > 0 || data.personLocations.length > 0) && (
         <motion.div
@@ -685,6 +834,152 @@ export default function TargetingStep({ data, onUpdate }: TargetingStepProps) {
               </>
             )}
           </p>
+        </motion.div>
+      )}
+
+      {/* Estimated Prospects Preview */}
+      {(data.personTitles.length > 0 && data.personLocations.length > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-4 rounded-xl border ${previewResult?.isLowVolume
+            ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20'
+            : 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20'
+            }`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${previewResult?.isLowVolume
+                ? 'bg-amber-100 dark:bg-amber-500/20'
+                : 'bg-emerald-100 dark:bg-emerald-500/20'
+                }`}>
+                <Users className={`w-4 h-4 ${previewResult?.isLowVolume
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : 'text-emerald-600 dark:text-emerald-400'
+                  }`} />
+              </div>
+              <div>
+                <p className="text-[12px] text-gray-500 dark:text-white/40 uppercase tracking-wider font-medium">
+                  Estimated Prospects
+                </p>
+                {isLoadingPreview ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                    <span className="text-[13px] text-gray-500 dark:text-white/50">Calculating...</span>
+                  </div>
+                ) : previewResult ? (
+                  <p className={`text-[18px] font-semibold ${previewResult.isLowVolume
+                    ? 'text-amber-700 dark:text-amber-400'
+                    : 'text-emerald-700 dark:text-emerald-400'
+                    }`}>
+                    {previewResult.totalAvailable.toLocaleString()} prospects
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            {previewResult?.isLowVolume && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 max-w-[200px] text-right">
+                Consider adding more job titles or locations to increase results
+              </p>
+            )}
+          </div>
+
+          {/* Priority Company Breakdown */}
+          {previewResult?.priorityBreakdown && previewResult.priorityBreakdown.companies.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-emerald-200/50 dark:border-emerald-500/20">
+              <p className="text-[11px] text-gray-500 dark:text-white/40 uppercase tracking-wider font-medium mb-2 flex items-center gap-1.5">
+                <Star className="w-3 h-3" />
+                Priority Companies Breakdown
+              </p>
+              <div className="space-y-2">
+                {previewResult.priorityBreakdown.companies.map(({ company, count }) => (
+                  <div key={company}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] text-gray-600 dark:text-white/60">{company}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[12px] font-medium ${count > 0
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-gray-400 dark:text-white/30'}`}>
+                          {count.toLocaleString()} {count > 0 ? '✓' : ''}
+                        </span>
+                        {/* AI Suggestions button for 0 results */}
+                        {count === 0 && !aiSuggestions[company] && (
+                          <button
+                            onClick={async () => {
+                              setLoadingSuggestions(prev => ({ ...prev, [company]: true }));
+                              const result = await suggestAlternativeTitles(
+                                data.personTitles,
+                                company,
+                                {
+                                  personLocations: data.personLocations,
+                                  seniorities: data.seniorities,
+                                  companySizes: data.companySizes
+                                }
+                              );
+                              setAiSuggestions(prev => ({ ...prev, [company]: result.suggestions }));
+                              setLoadingSuggestions(prev => ({ ...prev, [company]: false }));
+                            }}
+                            disabled={loadingSuggestions[company]}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-500/20 text-[10px] font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-200 dark:hover:bg-violet-500/30 transition-colors disabled:opacity-50"
+                          >
+                            {loadingSuggestions[company] ? (
+                              <><Loader2 className="w-2.5 h-2.5 animate-spin" /> Finding...</>
+                            ) : (
+                              <><Lightbulb className="w-2.5 h-2.5" /> Find alternatives</>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* AI Suggestions for this company */}
+                    {aiSuggestions[company] && aiSuggestions[company].length > 0 && (
+                      <div className="mt-1.5 ml-3 pl-3 border-l-2 border-violet-200 dark:border-violet-500/30">
+                        <p className="text-[10px] text-violet-600 dark:text-violet-400 mb-1 flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          AI found similar titles at {company}:
+                        </p>
+                        <div className="space-y-0.5">
+                          {aiSuggestions[company].map(({ title, count: sugCount }) => (
+                            <div key={title} className="flex items-center justify-between">
+                              <button
+                                onClick={() => {
+                                  // Add the suggested title to personTitles
+                                  if (!data.personTitles.includes(title)) {
+                                    onUpdate({ personTitles: [...data.personTitles, title] });
+                                  }
+                                }}
+                                className="text-[11px] text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-1"
+                              >
+                                <Plus className="w-2.5 h-2.5" />
+                                {title}
+                              </button>
+                              <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                                {sugCount} ✓
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* No alternatives found message */}
+                    {aiSuggestions[company] && aiSuggestions[company].length === 0 && (
+                      <p className="mt-1 ml-3 text-[10px] text-gray-400 dark:text-white/30 italic">
+                        No matching alternatives found at {company}
+                      </p>
+                    )}
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-1.5 mt-1.5 border-t border-emerald-200/30 dark:border-emerald-500/10">
+                  <span className="text-[12px] font-medium text-gray-700 dark:text-white/70">Total priority</span>
+                  <span className="text-[13px] font-semibold text-emerald-700 dark:text-emerald-400">
+                    {previewResult.priorityBreakdown.total.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </motion.div>
       )}
     </div>

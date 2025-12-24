@@ -55,6 +55,7 @@ export {
 export {
   searchApolloContacts,
   enrichApolloContact,
+  previewApolloSearch,
 } from './apollo';
 
 // 🔍 COMPANY DISCOVERY

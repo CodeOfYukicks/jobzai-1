@@ -11,6 +11,8 @@ interface ApolloSearchParams {
   organization_num_employees_ranges?: string[];
   organization_industry_tag_ids?: string[];
   organization_not_ids?: string[];
+  organization_industries?: string[];  // Industry names as strings
+  q_organization_name?: string;  // For target companies search
   per_page?: number;
   page?: number;
 }
@@ -71,7 +73,7 @@ const COMPANY_SIZE_MAPPING: Record<string, string> = {
  * Using onRequest with cors: true to avoid CORS issues (same pattern as other functions)
  */
 export const searchApolloContacts = onRequest(
-  { 
+  {
     region: 'us-central1',
     cors: true,
     maxInstances: 10,
@@ -102,7 +104,7 @@ export const searchApolloContacts = onRequest(
       }
 
       const userId = decodedToken.uid;
-      const { campaignId, targeting, maxResults = 50 } = req.body;
+      const { campaignId, targeting, maxResults = 50, expandTitles = true } = req.body;
 
       if (!campaignId || !targeting) {
         res.status(400).json({ error: 'Missing campaignId or targeting' });
@@ -122,6 +124,15 @@ export const searchApolloContacts = onRequest(
         return;
       }
 
+      // Import and apply title expansion if enabled
+      let personTitles = targeting.personTitles || [];
+      if (expandTitles && personTitles.length > 0) {
+        const { expandJobTitles } = await import('../data/jobTitleSynonyms');
+        const originalCount = personTitles.length;
+        personTitles = expandJobTitles(personTitles);
+        console.log(`Title expansion: ${originalCount} → ${personTitles.length} titles`);
+      }
+
       // Build Apollo search params
       const searchParams: ApolloSearchParams = {
         per_page: Math.min(maxResults, 100),
@@ -129,8 +140,8 @@ export const searchApolloContacts = onRequest(
       };
 
       // Map targeting to Apollo params
-      if (targeting.personTitles?.length > 0) {
-        searchParams.person_titles = targeting.personTitles;
+      if (personTitles.length > 0) {
+        searchParams.person_titles = personTitles;
       }
 
       if (targeting.personLocations?.length > 0) {
@@ -149,39 +160,104 @@ export const searchApolloContacts = onRequest(
         );
       }
 
-      console.log('Apollo search params:', JSON.stringify(searchParams));
-
-      // Call Apollo People Search API
-      const response = await fetch('https://api.apollo.io/v1/mixed_people/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'X-Api-Key': apiKey
-        },
-        body: JSON.stringify(searchParams)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Apollo API error:', response.status, errorText);
-        res.status(500).json({ error: `Apollo API error: ${response.status}`, details: errorText });
-        return;
+      // Map industries to Apollo
+      if (targeting.industries?.length > 0) {
+        searchParams.organization_industries = targeting.industries;
       }
 
-      const data: ApolloResponse = await response.json();
-      console.log('Apollo returned', data.people?.length, 'people');
+      console.log('Apollo search params:', JSON.stringify(searchParams));
+
+      // Helper function to call Apollo API
+      async function callApolloSearch(params: ApolloSearchParams): Promise<ApolloPerson[]> {
+        const response = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'X-Api-Key': apiKey
+          },
+          body: JSON.stringify(params)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Apollo API error:', response.status, errorText);
+          throw new Error(`Apollo API error: ${response.status}`);
+        }
+
+        const data: ApolloResponse = await response.json();
+        return data.people || [];
+      }
+
+      let allPeople: ApolloPerson[] = [];
+
+      // Check if we have target companies (priority blending)
+      const targetCompanies = targeting.targetCompanies || [];
+
+      if (targetCompanies.length > 0) {
+        console.log('Priority companies specified:', targetCompanies);
+
+        // 1. Search WITH target companies filter (get ~40% = 40 contacts)
+        const targetParams: ApolloSearchParams = {
+          ...searchParams,
+          q_organization_name: targetCompanies.join(' OR '),
+          per_page: 40
+        };
+
+        console.log('Searching target companies:', targetCompanies.join(', '));
+        const targetPeople = await callApolloSearch(targetParams);
+        console.log(`Found ${targetPeople.length} people from target companies`);
+
+        // 2. Search WITHOUT company filter (get ~60% = 60 contacts)
+        const generalParams: ApolloSearchParams = {
+          ...searchParams,
+          per_page: 60
+        };
+
+        console.log('Searching general prospects...');
+        const generalPeople = await callApolloSearch(generalParams);
+        console.log(`Found ${generalPeople.length} general prospects`);
+
+        // 3. Merge and dedupe (prioritize target companies)
+        const seenIds = new Set<string>();
+
+        // Add target company people first
+        for (const person of targetPeople) {
+          if (!seenIds.has(person.id)) {
+            seenIds.add(person.id);
+            allPeople.push(person);
+          }
+        }
+
+        // Add general people (avoiding duplicates)
+        for (const person of generalPeople) {
+          if (!seenIds.has(person.id)) {
+            seenIds.add(person.id);
+            allPeople.push(person);
+          }
+        }
+
+        console.log(`Total merged: ${allPeople.length} people (${targetPeople.length} from target, ${allPeople.length - targetPeople.length} general)`);
+
+      } else {
+        // Standard search (no target companies)
+        allPeople = await callApolloSearch(searchParams);
+        console.log('Apollo returned', allPeople.length, 'people');
+      }
 
       // Filter out excluded companies
       const excludedCompanies = targeting.excludedCompanies || [];
       const excludedLower = excludedCompanies.map((c: string) => c.toLowerCase());
-      
-      let filteredPeople = data.people.filter(person => {
+
+      let filteredPeople = allPeople.filter(person => {
         if (!person.organization?.name) return true;
-        return !excludedLower.some(excluded => 
+        return !excludedLower.some(excluded =>
           person.organization!.name.toLowerCase().includes(excluded)
         );
       });
+
+      // Limit to maxResults
+      filteredPeople = filteredPeople.slice(0, maxResults);
 
       // Store contacts in campaign recipients subcollection
       const batch = db.batch();
@@ -208,7 +284,13 @@ export const searchApolloContacts = onRequest(
         sentAt: null,
         openedAt: null,
         repliedAt: null,
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        // Mark if from target company
+        isTargetCompany: targetCompanies.length > 0 && person.organization?.name
+          ? targetCompanies.some(tc =>
+            person.organization!.name.toLowerCase().includes(tc.toLowerCase())
+          )
+          : false
       }));
 
       // Add each contact to batch
@@ -229,12 +311,13 @@ export const searchApolloContacts = onRequest(
       res.status(200).json({
         success: true,
         contactsFound: contacts.length,
-        totalAvailable: data.pagination?.total_entries || 0,
+        totalAvailable: contacts.length,
         contacts: contacts.map(c => ({
           fullName: c.fullName,
           title: c.title,
           company: c.company,
-          hasEmail: !!c.email
+          hasEmail: !!c.email,
+          isTargetCompany: c.isTargetCompany
         }))
       });
 
@@ -249,7 +332,7 @@ export const searchApolloContacts = onRequest(
  * Get Apollo contact email (some emails require enrichment)
  */
 export const enrichApolloContact = onRequest(
-  { 
+  {
     region: 'us-central1',
     cors: true,
     maxInstances: 10,

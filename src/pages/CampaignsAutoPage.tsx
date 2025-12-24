@@ -602,7 +602,7 @@ export default function CampaignsAutoPage() {
     setSelectedCampaignId(campaignId);
 
     try {
-      const result = await searchApolloContacts(campaignId, targeting, 100);
+      const result = await searchApolloContacts(campaignId, targeting, 100, targeting.expandTitles ?? true);
 
       if (result.success) {
         notify.success(`Found ${result.contactsFound} prospects!`);

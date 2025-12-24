@@ -13,6 +13,7 @@ import EmailGenerationModeStep from './steps/EmailGenerationModeStep';
 import TemplateGenerationStep from './steps/TemplateGenerationStep';
 import ABTestingStep from './steps/ABTestingStep';
 import CVAttachmentStep from './steps/CVAttachmentStep';
+import ReviewStep from './steps/ReviewStep';
 
 // Types
 export type EmailTone = 'casual' | 'professional' | 'bold';
@@ -24,7 +25,7 @@ export type GenerationMode = 'template' | 'abtest' | 'auto';
 export interface CampaignData {
   // Campaign name
   name: string;
-  
+
   // Step 1: Targeting (Apollo-ready)
   personTitles: string[];           // ["Software Engineer", "Tech Lead"]
   personLocations: string[];        // ["Paris, France", "Remote"]
@@ -32,37 +33,39 @@ export interface CampaignData {
   companySizes: CompanySize[];      // ["51-200", "201-500"]
   industries: string[];             // ["technology", "finance"]
   excludedCompanies: string[];      // Company names to exclude
-  
+  targetCompanies: string[];        // Priority companies (blended, not strict filter)
+  expandTitles: boolean;            // Include similar job titles (synonyms)
+
   // Step 2: Gmail
   gmailConnected: boolean;
   gmailEmail?: string;
-  
+
   // Step 3: Email Preferences (AI generates per-contact later)
   emailTone: EmailTone;
   emailLength: EmailLength;
   keyPoints?: string;
   language: 'en' | 'fr';
-  
+
   // Step 4: Generation Mode
   emailGenerationMode?: GenerationMode;
-  
+
   // For template mode
   selectedTemplate?: {
     id: string;
     subject: string;
     body: string;
   };
-  
+
   // For A/B testing mode
   abTestConfig?: {
     hooks: string[];
     bodies: string[];
     ctas: string[];
   };
-  
+
   // Outreach goal (for A/B testing context)
   outreachGoal?: 'job' | 'internship' | 'networking';
-  
+
   // CV Attachment
   attachCV?: boolean;
   cvAttachment?: {
@@ -79,7 +82,7 @@ interface NewCampaignModalProps {
   onCampaignCreated?: (campaignId: string) => void;
 }
 
-type Step = 'targeting' | 'gmail' | 'mode' | 'template' | 'abtest' | 'cvAttachment';
+type Step = 'targeting' | 'gmail' | 'mode' | 'template' | 'abtest' | 'cvAttachment' | 'review';
 
 export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }: NewCampaignModalProps) {
   const { currentUser } = useAuth();
@@ -114,13 +117,19 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
       title: 'CV Attachment',
       subtitle: 'Attach your resume',
       number: 5
+    },
+    review: {
+      title: 'Review',
+      subtitle: 'Confirm and launch',
+      number: 6
     }
   };
   const [currentStep, setCurrentStep] = useState<Step>('targeting');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [nameError, setNameError] = useState(false);
-  
+  const [estimatedProspects, setEstimatedProspects] = useState(0);
+
   const [campaignData, setCampaignData] = useState<CampaignData>({
     name: '',
     personTitles: [],
@@ -129,6 +138,8 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
     companySizes: [],
     industries: [],
     excludedCompanies: [],
+    targetCompanies: [],
+    expandTitles: true, // Default to enabled for better search results
     gmailConnected: false,
     gmailEmail: '',
     emailTone: 'casual',
@@ -148,15 +159,15 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
   // Get dynamic steps based on generation mode
   const getSteps = (): Step[] => {
     const baseSteps: Step[] = ['targeting', 'gmail', 'mode'];
-    
+
     if (campaignData.emailGenerationMode === 'template') {
-      return [...baseSteps, 'template', 'cvAttachment'];
+      return [...baseSteps, 'template', 'cvAttachment', 'review'];
     } else if (campaignData.emailGenerationMode === 'abtest') {
-      return [...baseSteps, 'abtest', 'cvAttachment'];
+      return [...baseSteps, 'abtest', 'cvAttachment', 'review'];
     } else if (campaignData.emailGenerationMode === 'auto') {
-      return [...baseSteps, 'cvAttachment'];
+      return [...baseSteps, 'cvAttachment', 'review'];
     }
-    
+
     return baseSteps;
   };
 
@@ -186,39 +197,39 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
           return false;
         }
         return true;
-      
+
       case 'gmail':
         if (!campaignData.gmailConnected) {
           notify.error('Connect Gmail to send emails');
           return false;
         }
         return true;
-      
+
       case 'mode':
         if (!campaignData.emailGenerationMode) {
           notify.error('This field is required');
           return false;
         }
         return true;
-      
+
       case 'template':
         if (!campaignData.selectedTemplate) {
           notify.error('This field is required');
           return false;
         }
         return true;
-      
+
       case 'abtest':
         const config = campaignData.abTestConfig;
-        if (!config || 
-            !config.hooks.some(h => h.trim()) ||
-            !config.bodies.some(b => b.trim()) ||
-            !config.ctas.some(c => c.trim())) {
+        if (!config ||
+          !config.hooks.some(h => h.trim()) ||
+          !config.bodies.some(b => b.trim()) ||
+          !config.ctas.some(c => c.trim())) {
           notify.error('This field is required');
           return false;
         }
         return true;
-      
+
       default:
         return true;
     }
@@ -227,7 +238,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
   // Navigation
   const handleNext = () => {
     if (!validateCurrentStep()) return;
-    
+
     const nextIndex = currentStepIndex + 1;
     if (nextIndex < steps.length) {
       setCurrentStep(steps[nextIndex]);
@@ -247,7 +258,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
   // Launch campaign
   const handleLaunchCampaign = async () => {
     if (!currentUser) return;
-    
+
     // Validate campaign name
     if (!campaignData.name.trim()) {
       setNameError(true);
@@ -255,7 +266,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
       return;
     }
     setNameError(false);
-    
+
     setIsSubmitting(true);
     try {
       const campaignDoc: any = {
@@ -268,7 +279,9 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
           seniorities: campaignData.seniorities,
           companySizes: campaignData.companySizes,
           industries: campaignData.industries,
-          excludedCompanies: campaignData.excludedCompanies
+          excludedCompanies: campaignData.excludedCompanies,
+          targetCompanies: campaignData.targetCompanies,
+          expandTitles: campaignData.expandTitles
         },
         gmail: {
           email: campaignData.gmailEmail,
@@ -323,7 +336,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
       }
 
       const docRef = await addDoc(collection(db, 'campaigns'), campaignDoc);
-      
+
       notify.success('Campaign launched successfully!');
       onCampaignCreated?.(docRef.id);
       onClose();
@@ -348,12 +361,15 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
         return !!campaignData.selectedTemplate;
       case 'abtest':
         const config = campaignData.abTestConfig;
-        return !!(config && 
+        return !!(config &&
           config.hooks.some(h => h.trim()) &&
           config.bodies.some(b => b.trim()) &&
           config.ctas.some(c => c.trim()));
       case 'cvAttachment':
         // CV attachment is optional, always valid
+        return true;
+      case 'review':
+        // Review step is always valid, user can launch
         return true;
       default:
         return false;
@@ -373,7 +389,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
       >
         {/* Backdrop */}
         <div className="absolute inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-md" />
-        
+
         {/* Modal */}
         <motion.div
           initial={{ opacity: 0, scale: 0.98, y: 20 }}
@@ -408,13 +424,13 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                     <ArrowLeft className="w-5 h-5" />
                   )}
                 </button>
-                
+
                 {/* Title with editable name */}
                 <div className="flex-1 min-w-0">
                   <div className={`
                     relative rounded-lg transition-all duration-200
-                    ${nameError 
-                      ? 'ring-2 ring-red-500 dark:ring-red-400 bg-red-50/50 dark:bg-red-500/[0.08] -mx-2 px-2 py-1' 
+                    ${nameError
+                      ? 'ring-2 ring-red-500 dark:ring-red-400 bg-red-50/50 dark:bg-red-500/[0.08] -mx-2 px-2 py-1'
                       : ''
                     }
                   `}>
@@ -429,14 +445,14 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                       className={`
                         w-full text-[14px] font-medium tracking-tight 
                         bg-transparent border-none outline-none focus:ring-0 p-0
-                        ${nameError 
-                          ? 'text-red-600 dark:text-red-400 placeholder-red-400 dark:placeholder-red-400/60' 
+                        ${nameError
+                          ? 'text-red-600 dark:text-red-400 placeholder-red-400 dark:placeholder-red-400/60'
                           : 'text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30'
                         }
                       `}
                     />
                     {nameError && (
-                      <motion.p 
+                      <motion.p
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="text-[11px] text-red-500 dark:text-red-400 mt-0.5"
@@ -458,13 +474,12 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                 {steps.map((step, idx) => (
                   <div
                     key={step}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      idx < currentStepIndex
-                        ? 'w-2 bg-[#b7e219]'
-                        : idx === currentStepIndex
+                    className={`h-2 rounded-full transition-all duration-300 ${idx < currentStepIndex
+                      ? 'w-2 bg-[#b7e219]'
+                      : idx === currentStepIndex
                         ? 'w-6 bg-[#b7e219]'
                         : 'w-2 bg-gray-200 dark:bg-white/20'
-                    }`}
+                      }`}
                   />
                 ))}
               </div>
@@ -496,6 +511,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                   <TargetingStep
                     data={campaignData}
                     onUpdate={updateCampaignData}
+                    onEstimatedProspectsChange={setEstimatedProspects}
                   />
                 )}
                 {currentStep === 'gmail' && (
@@ -529,6 +545,12 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                     onUpdate={updateCampaignData}
                   />
                 )}
+                {currentStep === 'review' && (
+                  <ReviewStep
+                    data={campaignData}
+                    estimatedProspects={estimatedProspects}
+                  />
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -552,7 +574,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                 >
                   {currentStepIndex === 0 ? 'Cancel' : 'Back'}
                 </button>
-                
+
                 <button
                   onClick={handleNext}
                   disabled={!canProceed() || isSubmitting}
