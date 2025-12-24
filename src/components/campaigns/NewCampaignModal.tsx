@@ -154,6 +154,40 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
     cvAttachment: undefined
   });
 
+  // Reset all state when modal opens (so new campaigns start fresh)
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep('targeting');
+      setIsSubmitting(false);
+      setCampaignId(null);
+      setNameError(false);
+      setEstimatedProspects(0);
+      setCampaignData({
+        name: '',
+        personTitles: [],
+        personLocations: [],
+        seniorities: [],
+        companySizes: [],
+        industries: [],
+        excludedCompanies: [],
+        targetCompanies: [],
+        expandTitles: true,
+        gmailConnected: false,
+        gmailEmail: '',
+        emailTone: 'casual',
+        emailLength: 'short',
+        keyPoints: '',
+        language: 'en',
+        emailGenerationMode: undefined,
+        selectedTemplate: undefined,
+        abTestConfig: { hooks: [''], bodies: [''], ctas: [''] },
+        outreachGoal: undefined,
+        attachCV: false,
+        cvAttachment: undefined
+      });
+    }
+  }, [isOpen]);
+
   // outreachGoal is now set in step 1 (Targeting), no need for auto-setting
 
   // Get dynamic steps based on generation mode
