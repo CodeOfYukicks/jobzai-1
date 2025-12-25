@@ -174,7 +174,7 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
             const data = await response.json();
             if (data.status === 'success') {
                 setAnalysis(data.analysis);
-                
+
                 // Save session to history
                 if (onSessionComplete) {
                     onSessionComplete({
@@ -246,11 +246,11 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed top-12 left-16 right-0 bottom-0 z-40 flex flex-col bg-white dark:bg-[#1a1a1c]"
+                    className="fixed inset-0 md:top-12 md:left-16 bottom-[calc(64px+env(safe-area-inset-bottom))] md:bottom-0 z-30 flex flex-col bg-white dark:bg-[#1a1a1c]"
                 >
                     {/* Header - Compact */}
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-black/5 dark:border-white/5">
-                        <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between px-4 py-3 sm:py-2 border-b border-black/5 dark:border-white/5" style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}>
+                        <div className="flex items-center gap-2 min-w-0">
                             {isHistoryMode ? (
                                 <>
                                     <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />

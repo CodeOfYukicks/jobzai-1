@@ -87,17 +87,17 @@ const QuestionsTab = memo(function QuestionsTab({
         onRegenerate={regenerateQuestions}
         isRegenerating={isRegeneratingQuestions}
         actionSlot={
-          <div className="flex items-center gap-3">
-            {/* Usage Quota Indicator */}
+          <div className="flex items-center gap-1.5 sm:gap-3">
+            {/* Usage Quota Indicator - Compact on mobile */}
             {!isLoadingLimits && stats && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+              <div className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                <span className="hidden sm:inline text-xs font-medium text-gray-600 dark:text-gray-400">
                   Sessions:
                 </span>
-                <span className="text-xs font-bold text-gray-900 dark:text-white">
+                <span className="text-[10px] sm:text-xs font-bold text-gray-900 dark:text-white">
                   {stats.used}/{stats.limit}
                 </span>
-                <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div className="w-6 sm:w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${stats.percentage >= 100
                       ? 'bg-red-500'
@@ -109,28 +109,29 @@ const QuestionsTab = memo(function QuestionsTab({
                   />
                 </div>
                 {stats.remaining === 0 && (
-                  <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                  <span className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 font-medium">
                     {CREDIT_COSTS.liveSession}cr
                   </span>
                 )}
               </div>
             )}
 
-            {/* Practice Live Button */}
+            {/* Practice Live Button - Compact on mobile */}
             <button
               onClick={onStartLiveSession}
               className="
-                inline-flex items-center gap-2
-                px-4 py-2 rounded-lg
-                text-sm font-medium
+                inline-flex items-center gap-1 sm:gap-2
+                px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg
+                text-xs sm:text-sm font-medium
                 bg-slate-900 dark:bg-white
                 text-white dark:text-slate-900
                 hover:bg-slate-800 dark:hover:bg-slate-100
-                transition-all duration-200
+                transition-all duration-200 whitespace-nowrap
                 hover:shadow-lg hover:shadow-[#b7e219]/20
               "
             >
-              <span>Practice Live</span>
+              <span className="hidden sm:inline">Practice Live</span>
+              <span className="sm:hidden">Practice</span>
               <Play className="w-3 h-3 fill-current opacity-60" />
             </button>
           </div>

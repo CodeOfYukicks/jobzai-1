@@ -753,12 +753,12 @@ END:VCALENDAR`;
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border bg-white dark:bg-[#2b2a2c] border-gray-200 dark:border-[#3d3c3e] ${coverPhoto ? 'drop-shadow-lg' : ''}`}
                   >
                     <stat.icon className={`w-4 h-4 ${stat.color === 'blue'
-                        ? 'text-[#635BFF] dark:text-[#a5a0ff]'
-                        : 'text-gray-600 dark:text-gray-400'
+                      ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                      : 'text-gray-600 dark:text-gray-400'
                       }`} />
                     <div className={`text-lg font-bold ${stat.color === 'blue'
-                        ? 'text-[#635BFF] dark:text-[#a5a0ff]'
-                        : 'text-gray-900 dark:text-gray-100'
+                      ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                      : 'text-gray-900 dark:text-gray-100'
                       }`}>
                       {stat.count}
                     </div>
@@ -778,12 +778,12 @@ END:VCALENDAR`;
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
                 className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-2">
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   {/* Period Filter */}
-                  <div className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50/80 p-0.5 text-xs dark:border-[#3d3c3e] dark:bg-[#242325]/60">
+                  <div className="inline-flex items-center gap-0.5 rounded-full border border-gray-200 bg-gray-50/80 p-0.5 text-xs dark:border-[#3d3c3e] dark:bg-[#242325]/60">
                     <button
                       onClick={() => setFilterPeriod('all')}
-                      className={`px-3 py-1.5 rounded-full font-medium transition-colors
+                      className={`px-3 py-2 sm:py-1.5 rounded-full font-medium transition-colors min-h-[36px] sm:min-h-0
                     ${filterPeriod === 'all'
                           ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-50 dark:text-gray-900'
                           : 'text-gray-600 hover:bg-white/70 dark:text-gray-300 dark:hover:bg-[#3d3c3e]/80'}`}
@@ -863,7 +863,7 @@ END:VCALENDAR`;
                 {/* Sort Button */}
                 <button
                   onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="inline-flex items-center justify-center self-start rounded-full border border-gray-200 bg-white/80 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-[#3d3c3e] dark:bg-[#242325]/70 dark:text-gray-200 dark:hover:bg-[#3d3c3e]"
+                  className="inline-flex items-center justify-center self-start rounded-full border border-gray-200 bg-white/80 px-3 py-2 sm:py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-[#3d3c3e] dark:bg-[#242325]/70 dark:text-gray-200 dark:hover:bg-[#3d3c3e] min-h-[36px] sm:min-h-0"
                   aria-label={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
                 >
                   <Calendar className={`h-4 w-4 ${sortOrder === 'desc' ? 'rotate-180' : ''} transition-transform`} />

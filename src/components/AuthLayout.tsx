@@ -7,6 +7,7 @@ import { doc, onSnapshot, collection, query, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase';
 import { notify } from '@/lib/notify';
 import '../styles/navigation.css';
+import MobileNavigation from './mobile/MobileNavigation';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import SidebarLink from './SidebarLink';
 import TopBar from './TopBar';
@@ -440,7 +441,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const displaySidebarWidth = isEffectivelyExpanded ? sidebarExpandedWidth : sidebarCollapsedWidth;
 
   return (
-    <div className={`${needsFullHeight ? 'h-screen' : 'min-h-screen'} bg-gray-50 dark:bg-[#333234] flex flex-col overflow-x-hidden`}>
+    <div className={`${needsFullHeight ? 'h-dvh md:h-screen' : 'min-h-dvh md:min-h-screen'} bg-gray-50 dark:bg-[#333234] flex flex-col overflow-x-hidden`}>
       {/* Top Bar - Desktop only */}
       <div className="hidden md:block">
         <TopBar
@@ -872,7 +873,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           className={`flex-1 min-h-0 flex flex-col ${isCollapsed ? 'md:ml-[64px]' : 'md:ml-[256px]'
             }`}
         >
-          <div className={`${needsFullHeight ? 'h-full flex flex-col flex-1 min-h-0 pt-2 md:pt-0 pb-0' : 'pt-6 md:py-6 pb-6'}`}>
+          <div className={`${needsFullHeight ? 'h-full flex flex-col flex-1 min-h-0 pt-2 md:pt-0 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-0' : 'pt-4 md:pt-6 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-6'}`}>
             {needsFullWidth ? (
               // Full width mode for Applications, Jobs, Professional Profile, etc.
               <div className={needsFullHeight ? "h-full flex flex-col flex-1 min-h-0 overflow-hidden" : ""}>{children}</div>
@@ -893,8 +894,12 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </main>
       </div>
 
-      {/* MobileNavigation disabled for now - will revisit responsive mode later */}
-      {/* {location.pathname !== '/applications' && <MobileNavigation />} */}
+      {/* Mobile Bottom Navigation - hidden on pages with full-screen modes */}
+      {!location.pathname.startsWith('/mock-interview') &&
+        !location.pathname.startsWith('/notes/') &&
+        !location.pathname.startsWith('/whiteboard/') && (
+          <MobileNavigation />
+        )}
 
       {/* Global Search Command Palette */}
       <CommandPalette

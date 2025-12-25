@@ -358,7 +358,7 @@ export default function Navbar() {
               exit={{ opacity: 0, y: -10 }}
               className="absolute top-16 left-0 right-0 bg-white md:hidden shadow-lg border-t border-gray-100"
             >
-              <div className="px-6 py-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="px-4 py-6 space-y-4 max-h-[calc(100vh-80px)] overflow-y-auto" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
                 {/* Navigation Section */}
                 <div className="space-y-4">
                   {/* Apply Section */}
@@ -370,7 +370,7 @@ export default function Navbar() {
                       <a
                         key={item.name}
                         href={item.href}
-                        className="block py-2.5 px-4 text-gray-900 font-medium hover:text-[#7066fd] transition-colors"
+                        className="block py-3 px-4 text-gray-900 font-medium hover:text-[#7066fd] hover:bg-gray-50 rounded-lg transition-colors min-h-[44px] flex items-center"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         {item.name}
@@ -446,14 +446,14 @@ export default function Navbar() {
                   <div className="space-y-2 pt-4 border-t border-gray-100">
                     <Link
                       to="/login"
-                      className="flex items-center justify-center py-2.5 px-4 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium text-sm"
+                      className="flex items-center justify-center py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-base min-h-[48px]"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       Log in
                     </Link>
                     <Link
                       to="/signup"
-                      className="flex items-center justify-center py-2.5 px-4 text-white bg-[#7066fd] rounded-md hover:bg-[#5b52e0] transition-colors font-medium text-sm"
+                      className="flex items-center justify-center py-3 px-4 text-white bg-[#7066fd] rounded-lg hover:bg-[#5b52e0] transition-colors font-semibold text-base min-h-[48px]"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       Get Started

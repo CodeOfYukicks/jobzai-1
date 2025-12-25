@@ -4191,7 +4191,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
 
       <MotionConfig transition={{ duration: 0.2 }}>
         <div className="min-h-0 flex-1 overflow-y-auto lg:pr-[400px]">
-          <div className="max-w-4xl mx-auto px-6 lg:px-8 py-8">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
             {/* Premium Hero Section */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -4223,8 +4223,8 @@ Return ONLY the pitch text, no explanations or formatting.`;
             )}
 
             {/* Tab navigation */}
-            <nav className="mb-8 border-b border-gray-200 dark:border-[#3d3c3e]">
-              <div className="flex gap-8">
+            <nav className="mb-6 sm:mb-8 border-b border-gray-200 dark:border-[#3d3c3e] overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
+              <div className="flex gap-4 sm:gap-8 min-w-max">
                 {[
                   { id: 'overview' as const, label: 'Overview', icon: LayoutDashboard },
                   { id: 'questions' as const, label: 'Questions', icon: HelpCircle },
@@ -4236,7 +4236,7 @@ Return ONLY the pitch text, no explanations or formatting.`;
                     <button
                       key={tabItem.id}
                       onClick={() => setTab(tabItem.id)}
-                      className={`relative pb-3 text-sm font-medium transition-colors ${tab === tabItem.id
+                      className={`relative pb-3 text-sm font-medium transition-colors whitespace-nowrap min-h-[44px] flex items-center ${tab === tabItem.id
                         ? 'text-gray-900 dark:text-white'
                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                         }`}

@@ -118,7 +118,7 @@ export const LiveInterviewQuestion: React.FC<LiveInterviewQuestionProps> = ({
             // Convert to base64
             const reader = new FileReader();
             reader.readAsDataURL(audioBlob);
-            
+
             await new Promise((resolve, reject) => {
                 reader.onloadend = async () => {
                     try {
@@ -145,19 +145,19 @@ export const LiveInterviewQuestion: React.FC<LiveInterviewQuestionProps> = ({
                         }
 
                         const data = await response.json();
-                        
+
                         if (data.status === 'success') {
                             const transcription = data.transcription || '';
                             const language = data.detectedLanguage;
-                            
+
                             console.log('✅ Transcription received:', {
                                 transcription: transcription.substring(0, 50) + '...',
                                 language: language,
                                 isFirstDetection: !detectedLanguage
                             });
-                            
+
                             setTranscript(transcription);
-                            
+
                             // Store detected language for subsequent questions
                             if (!detectedLanguage && language) {
                                 console.log('🌍 Language detected for session:', language);
@@ -229,12 +229,12 @@ export const LiveInterviewQuestion: React.FC<LiveInterviewQuestionProps> = ({
     const displayTranscript = transcript;
 
     return (
-        <div className="flex h-full w-full flex-col items-center justify-center p-6">
-            <div className="w-full max-w-3xl">
+        <div className="flex h-full w-full flex-col items-center justify-start sm:justify-center p-4 sm:p-6 overflow-y-auto">
+            <div className="w-full max-w-3xl py-4 sm:py-0">
                 {/* Progress */}
-                <div className="mb-12 flex items-center justify-between text-sm font-medium text-neutral-500 dark:text-neutral-400">
+                <div className="mb-6 sm:mb-12 flex items-center justify-between text-xs sm:text-sm font-medium text-neutral-500 dark:text-neutral-400">
                     <span>Question {questionIndex + 1} of {totalQuestions}</span>
-                    <span>{question.tags[0] || 'General'}</span>
+                    <span className="truncate ml-2">{question.tags[0] || 'General'}</span>
                 </div>
 
                 {/* Question Card */}
@@ -243,9 +243,9 @@ export const LiveInterviewQuestion: React.FC<LiveInterviewQuestionProps> = ({
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="mb-12 text-center"
+                    className="mb-6 sm:mb-12 text-center"
                 >
-                    <h2 className="text-3xl font-bold leading-tight text-neutral-900 dark:text-white md:text-4xl">
+                    <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold leading-tight text-neutral-900 dark:text-white">
                         {question.text}
                     </h2>
                 </motion.div>
@@ -260,7 +260,7 @@ export const LiveInterviewQuestion: React.FC<LiveInterviewQuestionProps> = ({
                 {/* Recording Interface */}
                 <div className="flex flex-col items-center">
                     {/* Visualizer / Transcription Display */}
-                    <div className="mb-8 flex min-h-[160px] w-full items-center justify-center rounded-2xl bg-neutral-50 p-6 dark:bg-white/5 border-2 border-transparent transition-colors" style={{ borderColor: isRecording ? 'rgba(239, 68, 68, 0.3)' : isTranscribing ? 'rgba(147, 51, 234, 0.3)' : 'transparent' }}>
+                    <div className="mb-6 sm:mb-8 flex min-h-[120px] sm:min-h-[160px] w-full items-center justify-center rounded-xl sm:rounded-2xl bg-neutral-50 p-4 sm:p-6 dark:bg-white/5 border-2 border-transparent transition-colors" style={{ borderColor: isRecording ? 'rgba(239, 68, 68, 0.3)' : isTranscribing ? 'rgba(147, 51, 234, 0.3)' : 'transparent' }}>
                         {isTranscribing ? (
                             <div className="flex flex-col items-center w-full gap-4">
                                 <Loader2 className="h-12 w-12 animate-spin text-purple-600" />
@@ -317,9 +317,9 @@ export const LiveInterviewQuestion: React.FC<LiveInterviewQuestionProps> = ({
                         {!isRecording && !transcript && !isProcessing && (
                             <button
                                 onClick={startRecording}
-                                className="group flex h-20 w-20 items-center justify-center rounded-full bg-red-500 text-white shadow-lg transition-all hover:scale-105 hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-500/30"
+                                className="group flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-red-500 text-white shadow-lg transition-all hover:scale-105 hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-500/30"
                             >
-                                <Mic className="h-10 w-10" />
+                                <Mic className="h-8 w-8 sm:h-10 sm:w-10" />
                             </button>
                         )}
 
@@ -327,7 +327,7 @@ export const LiveInterviewQuestion: React.FC<LiveInterviewQuestionProps> = ({
                         {isRecording && (
                             <button
                                 onClick={stopRecording}
-                                className="group flex h-20 w-20 items-center justify-center rounded-full bg-neutral-900 text-white shadow-lg transition-all hover:scale-105 hover:bg-neutral-800 focus:outline-none focus:ring-4 focus:ring-neutral-500/30 dark:bg-white dark:text-neutral-900"
+                                className="group flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-neutral-900 text-white shadow-lg transition-all hover:scale-105 hover:bg-neutral-800 focus:outline-none focus:ring-4 focus:ring-neutral-500/30 dark:bg-white dark:text-neutral-900"
                             >
                                 <Square className="h-8 w-8 fill-current" />
                             </button>

@@ -14,14 +14,14 @@ const XIcon = ({ className }: { className?: string }) => (
 export default function Footer() {
   return (
     <footer className="bg-white border-t border-gray-200">
-      <div className="max-w-7xl mx-auto px-6 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-12 gap-6 sm:gap-8">
           {/* Brand Column - Logo + Social Icons */}
-          <div className="md:col-span-4 space-y-6">
+          <div className="col-span-2 sm:col-span-2 md:col-span-4 space-y-6">
             <Link to="/">
-              <img 
-                src={LOGO_URL} 
-                alt="Cubbbe" 
+              <img
+                src={LOGO_URL}
+                alt="Cubbbe"
                 className="h-20 w-auto object-contain"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
@@ -30,50 +30,49 @@ export default function Footer() {
                 }}
               />
             </Link>
-            
-            {/* Social Icons */}
-            <div className="flex items-center gap-5">
-              <a 
-                href="https://instagram.com/cubbbe" 
-                target="_blank" 
+
+            <div className="flex items-center gap-4 sm:gap-5">
+              <a
+                href="https://instagram.com/cubbbe"
+                target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
                 aria-label="Instagram"
               >
                 <Instagram className="w-5 h-5" />
               </a>
-              <a 
-                href="https://x.com/cubbbe" 
-                target="_blank" 
+              <a
+                href="https://x.com/cubbbe"
+                target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
                 aria-label="X (Twitter)"
               >
                 <XIcon className="w-5 h-5" />
               </a>
-              <a 
-                href="https://linkedin.com/company/cubbbe" 
-                target="_blank" 
+              <a
+                href="https://linkedin.com/company/cubbbe"
+                target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
                 aria-label="LinkedIn"
               >
                 <Linkedin className="w-5 h-5" />
               </a>
-              <a 
-                href="https://facebook.com/cubbbe" 
-                target="_blank" 
+              <a
+                href="https://facebook.com/cubbbe"
+                target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
                 aria-label="Facebook"
               >
                 <Facebook className="w-5 h-5" />
               </a>
-              <a 
-                href="https://youtube.com/@cubbbe" 
-                target="_blank" 
+              <a
+                href="https://youtube.com/@cubbbe"
+                target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
                 aria-label="YouTube"
               >
                 <Youtube className="w-5 h-5" />

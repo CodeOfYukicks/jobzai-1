@@ -442,9 +442,9 @@ export default function BillingPage() {
 
   return (
     <AuthLayout>
-      <div className="py-8 space-y-10">
+      <div className="px-4 sm:px-0 py-6 sm:py-8 space-y-8 sm:space-y-10">
         {/* Current Plan Summary - Minimal card */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-8 border-b border-gray-200 dark:border-[#3d3c3e]">
+        <div className="flex flex-col gap-4 sm:gap-6 pb-6 sm:pb-8 border-b border-gray-200 dark:border-[#3d3c3e]">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] flex items-center justify-center text-gray-700 dark:text-gray-300">
@@ -464,27 +464,27 @@ export default function BillingPage() {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-8">
-            <div className="text-right">
-              <div className="text-sm text-gray-500 dark:text-gray-400">Credits</div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">{userPlanData?.credits || 0}</div>
+          <div className="flex items-center gap-4 sm:gap-8 w-full sm:w-auto justify-between sm:justify-end">
+            <div className="text-left sm:text-right">
+              <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Credits</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{userPlanData?.credits || 0}</div>
             </div>
-            <div className="h-10 w-px bg-gray-200 dark:bg-[#3d3c3e]"></div>
+            <div className="h-8 sm:h-10 w-px bg-gray-200 dark:bg-[#3d3c3e]"></div>
             <div className="text-right">
-              <div className="text-sm text-gray-500 dark:text-gray-400">Monthly</div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">€{currentPlan.price.monthly}</div>
+              <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Monthly</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">€{currentPlan.price.monthly}</div>
             </div>
           </div>
         </div>
 
         {/* Stats Grid - Minimal cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-5">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-3">
               <Activity className="h-4 w-4 text-gray-500" />
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Usage</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.usagePercentage.toFixed(0)}%</div>
+            <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{usageStats.usagePercentage.toFixed(0)}%</div>
             <div className="w-full bg-gray-200 dark:bg-[#3d3c3e] rounded-full h-1.5 mt-3">
               <div
                 className="bg-[#635bff] h-1.5 rounded-full transition-all duration-500"
@@ -493,7 +493,7 @@ export default function BillingPage() {
             </div>
           </div>
 
-          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-5">
+          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-3">
               <Zap className="h-4 w-4 text-gray-500" />
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Used</span>

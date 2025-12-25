@@ -29,16 +29,16 @@ export function InterviewQuestionsHeader<T extends string = string>({
   actionSlot,
 }: InterviewQuestionsHeaderProps<T>) {
   return (
-    <section className="rounded-2xl bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 p-6 mb-6">
+    <section className="rounded-2xl bg-white dark:bg-[#2b2a2c] ring-1 ring-slate-200/60 dark:ring-[#3d3c3e]/60 p-4 sm:p-6 mb-6">
       {/* Top Row: Title + Actions */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between gap-2 mb-5 overflow-hidden">
         {/* Left: Title + Badge + Regenerate */}
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-slate-400 dark:text-slate-500">
+        <div className="flex items-center gap-2 min-w-0 flex-shrink">
+          <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-slate-400 dark:text-slate-500 whitespace-nowrap">
             Interview Questions
           </span>
           {totalCount > 0 && (
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold"
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold flex-shrink-0"
               style={{
                 background: 'linear-gradient(135deg, rgba(99, 91, 255, 0.1) 0%, rgba(82, 73, 230, 0.1) 100%)',
                 color: '#635BFF',
@@ -52,13 +52,13 @@ export function InterviewQuestionsHeader<T extends string = string>({
               onClick={onRegenerate}
               disabled={isRegenerating}
               className="
-                inline-flex items-center gap-1.5 px-3 py-1.5
+                hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5
                 text-xs font-medium rounded-lg
                 text-slate-500 dark:text-slate-400
                 hover:text-jobzai-600 dark:hover:text-jobzai-400
                 hover:bg-jobzai-50 dark:hover:bg-jobzai-500/10
                 disabled:opacity-40 disabled:cursor-not-allowed
-                transition-all duration-200
+                transition-all duration-200 min-h-[36px]
               "
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRegenerating ? 'animate-spin' : ''}`} />
@@ -68,7 +68,7 @@ export function InterviewQuestionsHeader<T extends string = string>({
         </div>
 
         {/* Right: Action slot (Sessions + Practice Live) */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 overflow-x-auto scrollbar-hide">
           {actionSlot}
         </div>
       </div>
@@ -85,7 +85,7 @@ export function InterviewQuestionsHeader<T extends string = string>({
               key={filter.id}
               onClick={() => onFilterChange(filter.id)}
               className={`
-                px-4 py-2 text-xs font-semibold rounded-xl
+                px-3 sm:px-4 py-2 text-xs font-semibold rounded-xl min-h-[36px]
                 transition-all duration-200
                 ${isActive
                   ? 'text-white shadow-sm'

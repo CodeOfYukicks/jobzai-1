@@ -26,6 +26,28 @@ export default {
 				'space-grotesk': ['Space Grotesk', 'system-ui', 'sans-serif'],
 				'display': ['Instrument Serif', 'Georgia', 'serif'],
 			},
+			// Mobile-first responsive breakpoints
+			screens: {
+				'xs': '360px',  // Small Android phones
+				// Default Tailwind breakpoints preserved: sm, md, lg, xl, 2xl
+			},
+			// Mobile-friendly spacing additions
+			spacing: {
+				'safe-top': 'env(safe-area-inset-top)',
+				'safe-bottom': 'env(safe-area-inset-bottom)',
+				'safe-left': 'env(safe-area-inset-left)',
+				'safe-right': 'env(safe-area-inset-right)',
+				'mobile-nav': 'calc(64px + env(safe-area-inset-bottom))',
+			},
+			// Mobile viewport height utilities
+			minHeight: {
+				'dvh': '100dvh',
+				'screen-safe': 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
+			},
+			height: {
+				'dvh': '100dvh',
+				'screen-safe': 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',

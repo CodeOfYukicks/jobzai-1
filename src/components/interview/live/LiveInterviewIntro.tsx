@@ -30,33 +30,33 @@ export const LiveInterviewIntro: React.FC<LiveInterviewIntroProps> = ({
     interviewType,
 }) => {
     return (
-        <div className="flex h-full w-full flex-col items-center justify-center p-6 text-center">
+        <div className="flex h-full w-full flex-col items-center justify-start sm:justify-center p-4 sm:p-6 text-center overflow-y-auto">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="max-w-2xl"
+                className="max-w-2xl w-full py-4 sm:py-0"
             >
-                <div className="mb-8 flex justify-center">
-                    <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
+                <div className="mb-6 sm:mb-8 flex justify-center">
+                    <div className="relative flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
                         <div className="absolute inset-0 animate-ping rounded-full bg-purple-200 opacity-20 dark:bg-purple-800"></div>
-                        <Mic className="h-10 w-10 text-purple-600 dark:text-purple-400" />
-                        <div className="absolute -right-2 -top-2 rounded-full bg-white p-2 shadow-lg dark:bg-neutral-800">
-                            <Sparkles className="h-5 w-5 text-amber-500" />
+                        <Mic className="h-8 w-8 sm:h-10 sm:w-10 text-purple-600 dark:text-purple-400" />
+                        <div className="absolute -right-2 -top-2 rounded-full bg-white p-1.5 sm:p-2 shadow-lg dark:bg-neutral-800">
+                            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
                         </div>
                     </div>
                 </div>
 
-                <h1 className="mb-4 text-4xl font-bold tracking-tight text-neutral-900 dark:text-white">
+                <h1 className="mb-3 sm:mb-4 text-2xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-white">
                     Live Interview Simulation
                 </h1>
 
-                <p className="mb-10 text-lg text-neutral-600 dark:text-neutral-300">
+                <p className="mb-6 sm:mb-10 text-base sm:text-lg text-neutral-600 dark:text-neutral-300">
                     {getInterviewTypeLabel(interviewType)} interview • {questionCount} questions
                 </p>
 
-                <div className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-                    <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
+                <div className="mb-8 sm:mb-12 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+                    <div className="rounded-xl sm:rounded-2xl bg-white p-4 sm:p-6 shadow-sm ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
                         <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
                             <span className="font-bold">1</span>
                         </div>
@@ -66,7 +66,7 @@ export const LiveInterviewIntro: React.FC<LiveInterviewIntroProps> = ({
                         </p>
                     </div>
 
-                    <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
+                    <div className="rounded-xl sm:rounded-2xl bg-white p-4 sm:p-6 shadow-sm ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
                         <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
                             <span className="font-bold">2</span>
                         </div>
@@ -76,7 +76,7 @@ export const LiveInterviewIntro: React.FC<LiveInterviewIntroProps> = ({
                         </p>
                     </div>
 
-                    <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
+                    <div className="rounded-xl sm:rounded-2xl bg-white p-4 sm:p-6 shadow-sm ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
                         <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 text-green-600 dark:bg-green-500/20 dark:text-green-400">
                             <span className="font-bold">3</span>
                         </div>
