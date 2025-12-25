@@ -10,6 +10,7 @@ import {
     type PlanId,
     type PlanLimits
 } from '../lib/planLimits';
+import { recordCreditHistory } from '../lib/creditHistory';
 
 // Usage data structure
 export interface UsageData {
@@ -255,14 +256,24 @@ export function usePlanLimits(): PlanLimitsHook {
                 }
 
                 // Deduct credits and increment usage
+                const newBalance = userCredits - creditCost;
                 await updateDoc(userRef, {
-                    credits: userCredits - creditCost,
+                    credits: newBalance,
                 });
 
                 await updateDoc(usageRef, {
                     [usageKey]: currentUsage + count,
                     lastUpdated: new Date(),
                 });
+
+                // Record in credit history for billing visibility
+                await recordCreditHistory(
+                    currentUser.uid,
+                    newBalance,
+                    -creditCost,  // negative = spent
+                    feature,      // reason: mockInterview, resumeAnalysis, campaign, etc.
+                    undefined     // no reference ID needed
+                );
 
                 return { success: true, usedCredits: true, creditCost };
             }

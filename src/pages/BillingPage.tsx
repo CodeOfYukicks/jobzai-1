@@ -10,7 +10,10 @@ import {
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { getCreditHistory, type CreditHistoryEntry } from '../lib/creditHistory';
-import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import {
+  ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
+  Line, ComposedChart, Scatter, Cell
+} from 'recharts';
 import { redirectToStripeCheckout } from '../services/stripe';
 import { toast } from 'react-hot-toast';
 import { generateInvoicePDF } from '../lib/invoiceGenerator';
@@ -128,7 +131,16 @@ export default function BillingPage() {
   const [userPlanData, setUserPlanData] = useState<UserPlanData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [creditHistory, setCreditHistory] = useState<CreditHistoryEntry[]>([]);
-  const [creditUsage, setCreditUsage] = useState<Array<{ date: string; credits: number }>>([]);
+  const [creditUsage, setCreditUsage] = useState<Array<{
+    date: string;
+    time: string;
+    credits: number;
+    balance: number;
+    type: 'purchase' | 'spent';
+    reason: string;
+    reasonLabel: string;
+    count: number;
+  }>>([]);
   const [invoices, setInvoices] = useState<BillingInvoice[]>([]);
   const [usageStats, setUsageStats] = useState({
     creditsUsed: 0,
@@ -188,18 +200,116 @@ export default function BillingPage() {
             averagePerDay: Math.round(averagePerDay * 10) / 10,
           });
 
-          const usageData = history
-            .filter(h => h.change < 0)
-            .slice(0, 30)
-            .reverse()
-            .map((entry) => ({
-              date: entry.timestamp instanceof Date
-                ? entry.timestamp.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })
-                : new Date(entry.timestamp).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }),
-              credits: Math.abs(entry.change),
-            }));
+          // Helper function to get readable label for reason (no emojis)
+          const getReasonLabel = (reason: string | undefined): string => {
+            const labels: Record<string, string> = {
+              // Feature keys from usePlanLimits
+              'resumeanalysis': 'CV Analysis',
+              'mockinterview': 'Mock Interview',
+              'livesession': 'Practice Live',
+              'campaign': 'Campaign Launch',
+              'aimessage': 'AI Assistant',
+              // Alternative formats
+              'campaign_launch': 'Campaign Launch',
+              'cv_analysis': 'CV Analysis',
+              'cv-analysis': 'CV Analysis',
+              'mock_interview': 'Mock Interview',
+              'mock-interview': 'Mock Interview',
+              'interview_prep': 'Interview Prep',
+              'live_session': 'Practice Live',
+              'practice': 'Practice Session',
+              'practice_live': 'Practice Live',
+              // Purchase/Subscription
+              'purchase': 'Credit Purchase',
+              'credit_purchase': 'Credit Purchase',
+              'plan': 'Plan Subscription',
+              'plan_subscription': 'Plan Subscription',
+              // Others
+              'refund': 'Refund',
+              'bonus': 'Bonus Credits',
+              'ai_assistant': 'AI Assistant',
+              'assistant': 'AI Assistant',
+              'resume': 'Resume Edit',
+              'resume_edit': 'Resume Edit',
+              'cover_letter': 'Cover Letter',
+              'job_description': 'Job Description',
+              'initial': 'Initial Balance',
+              'unknown': 'Transaction',
+            };
+            return labels[reason?.toLowerCase() || 'unknown'] || reason || 'Transaction';
+          };
 
-          setCreditUsage(usageData);
+          // Transform and GROUP history data for chart readability
+          // Group consecutive transactions of the same type within the same hour
+          const rawData = history
+            .slice(0, 100)
+            .reverse()
+            .map((entry) => {
+              const timestamp = entry.timestamp instanceof Date
+                ? entry.timestamp
+                : (entry.timestamp as any)?.toDate?.() || new Date(entry.timestamp as any);
+
+              return {
+                timestamp,
+                date: timestamp.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }),
+                time: timestamp.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+                hourKey: `${timestamp.toLocaleDateString()}-${timestamp.getHours()}`,
+                credits: Math.abs(entry.change),
+                balance: entry.balance,
+                type: entry.change > 0 ? 'purchase' as const : 'spent' as const,
+                reason: entry.reason || 'unknown',
+                reasonLabel: getReasonLabel(entry.reason),
+              };
+            });
+
+          // Smart grouping: group consecutive same-type transactions
+          const groupedData: Array<{
+            date: string;
+            time: string;
+            credits: number;
+            balance: number;
+            type: 'purchase' | 'spent';
+            reason: string;
+            reasonLabel: string;
+            count: number;
+          }> = [];
+
+          let i = 0;
+          while (i < rawData.length) {
+            const current = rawData[i];
+            let count = 1;
+            let totalCredits = current.credits;
+
+            // Group consecutive entries with same reason and type
+            while (
+              i + count < rawData.length &&
+              rawData[i + count].reason === current.reason &&
+              rawData[i + count].type === current.type
+            ) {
+              totalCredits += rawData[i + count].credits;
+              count++;
+            }
+
+            // Use the last entry's balance (most recent after all operations)
+            const lastEntry = rawData[i + count - 1];
+
+            groupedData.push({
+              date: current.date,
+              time: count > 1 ? `${current.time} - ${lastEntry.time}` : current.time,
+              credits: totalCredits,
+              balance: lastEntry.balance,
+              type: current.type,
+              reason: current.reason,
+              reasonLabel: count > 1
+                ? `${current.reasonLabel} (×${count})`
+                : current.reasonLabel,
+              count,
+            });
+
+            i += count;
+          }
+
+          setCreditUsage(groupedData);
 
           // Fetch invoices from subcollection
           const invoicesRef = collection(db, 'users', currentUser.uid, 'invoices');
@@ -411,41 +521,190 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {/* Chart */}
+        {/* Enhanced Credit Usage Chart */}
         {creditUsage.length > 0 && (
           <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Credit Usage</h2>
-            <p className="text-sm text-gray-500 mb-6">Last 30 days</p>
-            <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={creditUsage}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Credit Activity</h2>
+                <p className="text-sm text-gray-500">Balance & transactions over time</p>
+              </div>
+              {/* Legend */}
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                  <span className="text-gray-500 dark:text-gray-400">Purchased</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-rose-500"></div>
+                  <span className="text-gray-500 dark:text-gray-400">Spent</span>
+                </div>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={280}>
+              <ComposedChart data={creditUsage} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <defs>
-                  <linearGradient id="colorCredits" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#635bff" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#635bff" stopOpacity={0} />
+                  <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#635bff" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#635bff" stopOpacity={0.02} />
                   </linearGradient>
+                  {/* Glow effect for line */}
+                  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                    <feMerge>
+                      <feMergeNode in="coloredBlur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
-                <XAxis dataKey="date" tick={{ fill: '#6B7280', fontSize: 12 }} />
-                <YAxis tick={{ fill: '#6B7280', fontSize: 12 }} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#374151"
+                  opacity={0.15}
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: '#6B7280', fontSize: 11 }}
+                  axisLine={{ stroke: '#374151', strokeOpacity: 0.3 }}
+                  tickLine={false}
+                  dy={8}
+                />
+                <YAxis
+                  tick={{ fill: '#6B7280', fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  dx={-8}
+                  domain={['dataMin - 5', 'dataMax + 10']}
+                />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1F2937',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#fff',
-                    fontSize: '13px'
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      const isSpent = data.type === 'spent';
+                      return (
+                        <div className="bg-gray-900 border border-gray-700 rounded-xl p-3 shadow-xl min-w-[180px]">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className={`w-2 h-2 rounded-full ${isSpent ? 'bg-rose-500' : 'bg-emerald-500'}`}></div>
+                            <span className="text-white font-semibold text-sm">{data.reasonLabel}</span>
+                          </div>
+                          <div className="space-y-1 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">Date:</span>
+                              <span className="text-white font-medium">{data.date} • {data.time}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">{isSpent ? 'Spent:' : 'Added:'}</span>
+                              <span className={`font-bold ${isSpent ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                {isSpent ? '-' : '+'}{data.credits} credits
+                              </span>
+                            </div>
+                            <div className="flex justify-between pt-1 border-t border-gray-700 mt-1">
+                              <span className="text-gray-400">Balance:</span>
+                              <span className="text-white font-bold">{data.balance} credits</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
                   }}
                 />
-                <Area
+                {/* Balance Line */}
+                <Line
                   type="monotone"
-                  dataKey="credits"
+                  dataKey="balance"
                   stroke="#635bff"
-                  fillOpacity={1}
-                  fill="url(#colorCredits)"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
+                  dot={false}
+                  activeDot={false}
+                  filter="url(#glow)"
                 />
-              </AreaChart>
+                {/* Transaction Points */}
+                <Scatter
+                  dataKey="balance"
+                  shape={(props: any) => {
+                    const { cx, cy, payload } = props;
+                    const isSpent = payload.type === 'spent';
+                    const color = isSpent ? '#f43f5e' : '#10b981';
+                    const glowColor = isSpent ? 'rgba(244, 63, 94, 0.4)' : 'rgba(16, 185, 129, 0.4)';
+
+                    return (
+                      <g>
+                        {/* Outer glow */}
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={12}
+                          fill={glowColor}
+                          className="animate-pulse"
+                        />
+                        {/* Main dot */}
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={6}
+                          fill={color}
+                          stroke="#1f2937"
+                          strokeWidth={2}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        {/* Inner highlight */}
+                        <circle
+                          cx={cx - 1.5}
+                          cy={cy - 1.5}
+                          r={2}
+                          fill="rgba(255,255,255,0.3)"
+                        />
+                      </g>
+                    );
+                  }}
+                >
+                  {creditUsage.map((entry, index) => (
+                    <Cell key={`cell-${index}`} />
+                  ))}
+                </Scatter>
+              </ComposedChart>
             </ResponsiveContainer>
+
+            {/* Recent Activity Feed */}
+            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Recent Activity</h3>
+              <div className="space-y-2 max-h-[180px] overflow-y-auto pr-2">
+                {[...creditUsage].reverse().slice(0, 8).map((entry, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="flex items-center justify-between py-2 px-3 bg-white dark:bg-[#1f1f21] rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm
+                        ${entry.type === 'spent'
+                          ? 'bg-rose-500/10 text-rose-500'
+                          : 'bg-emerald-500/10 text-emerald-500'
+                        }`}
+                      >
+                        {entry.type === 'spent' ? '−' : '+'}
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {entry.reasonLabel}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {entry.date} • {entry.time}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={`text-sm font-bold ${entry.type === 'spent' ? 'text-rose-500' : 'text-emerald-500'
+                      }`}>
+                      {entry.type === 'spent' ? '−' : '+'}{entry.credits}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
