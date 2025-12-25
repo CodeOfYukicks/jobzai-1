@@ -144,6 +144,11 @@ service cloud.firestore {
       match /notifications/{notificationId} {
         allow read, write: if isSignedIn() && isOwner(userId);
       }
+      
+      // Settings subcollection (for Blog Scheduler, etc.)
+      match /settings/{settingId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
     }
 
     // Jobs collection

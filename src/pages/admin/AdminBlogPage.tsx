@@ -2,14 +2,19 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit, Trash2, Eye, FileText, CheckCircle, Clock, TrendingUp, Search } from 'lucide-react';
 import { useBlogPosts } from '../../hooks/useBlogPosts';
+import { useBlogScheduler } from '../../hooks/useBlogScheduler';
 import { BlogPost } from '../../data/blogPosts';
 import DeleteBlogPostModal from '../../components/blog/DeleteBlogPostModal';
+import BlogSchedulerPanel from '../../components/blog/BlogSchedulerPanel';
+import { generateSEOArticle, generateSEOCoverImage } from '../../services/blogAI';
 
 export default function AdminBlogPage() {
     const navigate = useNavigate();
-    const { getAllPosts, deletePost, loading } = useBlogPosts();
+    const { getAllPosts, deletePost, createPost, loading } = useBlogPosts();
+    const { config, updateConfig, reload: reloadScheduler } = useBlogScheduler();
     const [posts, setPosts] = useState<(BlogPost & { status: string })[]>([]);
     const [stats, setStats] = useState({ total: 0, published: 0, drafts: 0, views: 0 });
+    const [isAutoGenerating, setIsAutoGenerating] = useState(false);
 
     // Delete modal state
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -48,6 +53,82 @@ export default function AdminBlogPage() {
             await deletePost(postToDelete.id);
             loadPosts();
             setPostToDelete(null);
+        }
+    };
+
+    // Auto-generate a new article using AI
+    const handleAutoGenerate = async () => {
+        if (config.monthlyGenerated >= config.monthlyLimit) {
+            alert('Monthly limit reached (100 articles). Please wait for next month.');
+            return;
+        }
+
+        setIsAutoGenerating(true);
+        try {
+            // Get existing titles to avoid duplicates
+            const existingTitles = posts.map(p => p.title.toLowerCase());
+
+            // Pick a random category from configured ones
+            const categories = config.categories.length > 0 ? config.categories : ['Career Advice'];
+            const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+
+            // Generate unique topic using existing titles context
+            const topicPrompt = `Generate a unique blog topic for category "${randomCategory}" that is NOT similar to these existing articles: ${existingTitles.slice(0, 10).join(', ')}. Focus on job search, career development, CV writing, interviews, or LinkedIn optimization.`;
+
+            // Generate the article
+            const article = await generateSEOArticle({
+                topic: topicPrompt,
+                targetKeywords: [randomCategory.toLowerCase(), 'career', 'job'],
+                targetAudience: 'job_seekers',
+                articleLength: 'medium',
+                language: config.language,
+                tone: config.tone
+            });
+
+            // Generate cover image
+            let imageUrl = '';
+            try {
+                const generatedImage = await generateSEOCoverImage(article.title, [randomCategory]);
+                imageUrl = generatedImage || '';
+            } catch (imgError) {
+                console.warn('Image generation failed, continuing without image:', imgError);
+            }
+
+            // Calculate read time
+            const wordCount = article.content.split(/\s+/).filter(Boolean).length;
+            const readTime = Math.max(1, Math.ceil(wordCount / 200));
+
+            // Create the post
+            await createPost({
+                title: article.title,
+                slug: article.slug,
+                excerpt: article.excerpt,
+                content: article.content,
+                category: randomCategory,
+                author: 'Team Cubbbe',
+                image: imageUrl,
+                readTime: `${readTime} min read`,
+                status: 'published',
+                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            });
+
+            // Update scheduler stats
+            await updateConfig({
+                lastRun: new Date(),
+                totalGenerated: config.totalGenerated + 1,
+                monthlyGenerated: config.monthlyGenerated + 1
+            });
+
+            // Reload everything
+            await loadPosts();
+            await reloadScheduler();
+
+            alert(`✅ Article "${article.title}" generated and published successfully!`);
+        } catch (error) {
+            console.error('Auto-generation error:', error);
+            alert('Error generating article. Please try again.');
+        } finally {
+            setIsAutoGenerating(false);
         }
     };
 
@@ -91,11 +172,19 @@ export default function AdminBlogPage() {
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <StatCard icon={FileText} label="Total Posts" value={stats.total} color="bg-blue-50 text-blue-600" />
                     <StatCard icon={CheckCircle} label="Published" value={stats.published} color="bg-green-50 text-green-600" />
                     <StatCard icon={Clock} label="Drafts" value={stats.drafts} color="bg-yellow-50 text-yellow-600" />
                     <StatCard icon={TrendingUp} label="Total Views" value={stats.views.toLocaleString()} color="bg-purple-50 text-purple-600" />
+                </div>
+
+                {/* Auto Pilot Scheduler */}
+                <div className="mb-8">
+                    <BlogSchedulerPanel
+                        onGenerateNow={handleAutoGenerate}
+                        isGenerating={isAutoGenerating}
+                    />
                 </div>
 
                 {/* Content Table */}
@@ -128,6 +217,7 @@ export default function AdminBlogPage() {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-gray-50/50 text-xs uppercase tracking-wider text-gray-400 border-b border-gray-50">
+                                    <th className="px-6 py-4 font-medium w-16">Image</th>
                                     <th className="px-6 py-4 font-medium">Article</th>
                                     <th className="px-6 py-4 font-medium">Status</th>
                                     <th className="px-6 py-4 font-medium">Category</th>
@@ -138,6 +228,21 @@ export default function AdminBlogPage() {
                             <tbody className="divide-y divide-gray-50">
                                 {posts.map((post) => (
                                     <tr key={post.id} className="group hover:bg-gray-50/80 transition-colors">
+                                        <td className="px-6 py-4">
+                                            {post.image ? (
+                                                <div className="w-12 h-8 rounded overflow-hidden bg-gray-100">
+                                                    <img
+                                                        src={post.image}
+                                                        alt={post.title}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div className="w-12 h-8 rounded bg-gray-100 flex items-center justify-center">
+                                                    <FileText className="w-4 h-4 text-gray-300" />
+                                                </div>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4 max-w-md">
                                             <div className="font-semibold text-gray-900 group-hover:text-black transition-colors">{post.title}</div>
                                             <div className="text-xs text-gray-400 font-mono mt-0.5 truncate">/{post.slug}</div>

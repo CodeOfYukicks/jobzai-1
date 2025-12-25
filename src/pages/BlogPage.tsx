@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
-import { ArrowRight, ChevronRight, Search, Clock, Calendar, ArrowLeft } from 'lucide-react';
+import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { forceLightMode } from '../lib/theme';
 import { motion } from 'framer-motion';
 import { CATEGORIES } from '../data/blogPosts';
 import { useBlogPosts } from '../hooks/useBlogPosts';
-import { useNavigate } from 'react-router-dom';
 
 export default function BlogPage() {
     const [activeCategory, setActiveCategory] = useState('All');
+    const [carouselIndex, setCarouselIndex] = useState(0);
 
     // Force light mode
     useEffect(() => {
@@ -29,18 +29,20 @@ export default function BlogPage() {
         setPosts(data);
     };
 
-    // If no posts yet, fallback to static for demo or show empty state? 
-    // Let's mix: if dynamic empty, use static for now to avoid breaking UI until user adds content?
-    // User asked for CMS to write article. 
-    // Let's prioritize dynamic. If empty, show "Coming Soon" or empty state.
-    // Actually, let's keep static as fallback *only* if dynamic fails? No, clean switch.
-    // But for demo purposes, if db is empty, maybe we want to initialize it?
-    // Let's just render `posts`. If empty, the UI handles it naturally (map won't render).
-
-    const featuredPost = posts.find(post => post.featured) || posts[0];
+    // Get the 3 latest posts for the carousel
+    const featuredPosts = posts.slice(0, 3);
+    const featuredPost = featuredPosts[carouselIndex] || posts[0];
     const otherPosts = (!featuredPost) ? [] : (activeCategory === 'All'
-        ? posts.filter(post => post.id !== featuredPost.id)
-        : posts.filter(post => post.category === activeCategory && post.id !== featuredPost.id));
+        ? posts.filter(post => !featuredPosts.some(fp => fp.id === post.id))
+        : posts.filter(post => post.category === activeCategory && !featuredPosts.some(fp => fp.id === post.id)));
+
+    const handlePrevious = () => {
+        setCarouselIndex((prev) => (prev === 0 ? featuredPosts.length - 1 : prev - 1));
+    };
+
+    const handleNext = () => {
+        setCarouselIndex((prev) => (prev === featuredPosts.length - 1 ? 0 : prev + 1));
+    };
 
     if (loading) {
         return (
@@ -110,27 +112,52 @@ export default function BlogPage() {
                                             <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
                                         </button>
 
-                                        {/* Carousel Controls (Mock) */}
-                                        <div className="flex gap-2">
-                                            <button className="w-10 h-10 bg-black text-white flex items-center justify-center hover:bg-gray-800 transition-colors">
+                                        {/* Carousel Controls */}
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={handlePrevious}
+                                                className="w-10 h-10 bg-black text-white flex items-center justify-center hover:bg-gray-800 transition-colors"
+                                            >
                                                 <ArrowLeft className="w-5 h-5" />
                                             </button>
-                                            <button className="w-10 h-10 bg-black text-white flex items-center justify-center hover:bg-gray-800 transition-colors">
+                                            <button
+                                                onClick={handleNext}
+                                                className="w-10 h-10 bg-black text-white flex items-center justify-center hover:bg-gray-800 transition-colors"
+                                            >
                                                 <ArrowRight className="w-5 h-5" />
                                             </button>
+
+                                            {/* Pagination Dots */}
+                                            <div className="flex gap-1.5 ml-2">
+                                                {featuredPosts.map((_, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => setCarouselIndex(idx)}
+                                                        className={`w-2 h-2 rounded-full transition-all ${idx === carouselIndex ? 'bg-black w-6' : 'bg-gray-300 hover:bg-gray-400'
+                                                            }`}
+                                                    />
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Right Image */}
                                 <div className="order-1 md:order-2">
-                                    <div className="aspect-[4/3] rounded-lg overflow-hidden relative bg-gray-100">
+                                    <motion.div
+                                        key={carouselIndex}
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        transition={{ duration: 0.3 }}
+                                        className="aspect-[4/3] rounded-lg overflow-hidden relative bg-gray-100"
+                                    >
                                         <img
                                             src={featuredPost.image}
                                             alt={featuredPost.title}
                                             className="w-full h-full object-cover"
                                         />
-                                    </div>
+                                    </motion.div>
                                 </div>
                             </div>
                         </section>
