@@ -613,7 +613,7 @@ export default function BlogEditorPage() {
                                             name="category"
                                             value={form.category}
                                             onChange={handleChange}
-                                            className="w-full text-sm bg-white border border-gray-200 rounded-lg focus:ring-black focus:border-black transition-shadow"
+                                            className="w-full text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:ring-black focus:border-black transition-shadow"
                                         >
                                             {CATEGORIES.filter(c => c !== 'All').map(c => (<option key={c} value={c}>{c}</option>))}
                                         </select>
@@ -637,7 +637,7 @@ export default function BlogEditorPage() {
                                             value={form.excerpt}
                                             onChange={handleChange}
                                             rows={3}
-                                            className="w-full text-sm bg-white border border-gray-200 rounded-lg focus:ring-black focus:border-black resize-none"
+                                            className="w-full text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:ring-black focus:border-black resize-none"
                                         />
                                     </div>
                                 </div>

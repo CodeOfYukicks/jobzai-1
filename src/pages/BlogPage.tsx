@@ -149,7 +149,7 @@ export default function BlogPage() {
                                     Here's our latest selection of articles on running your career effectively with minimal fuss.
                                 </p>
                                 <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
-                                    Last update: October 26, 2025
+                                    Last update: {posts[0]?.date || 'N/A'}
                                 </p>
 
                                 {/* Categories List (Vertical now) */}

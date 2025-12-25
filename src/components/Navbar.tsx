@@ -124,7 +124,7 @@ export default function Navbar() {
               <FirebaseImage
                 path={location.pathname.startsWith('/blog') ? "images/logo_blog.png" : "images/logo-only.png"}
                 alt="Cubbbe"
-                className="h-10 w-auto"
+                className={location.pathname.startsWith('/blog') ? "h-14 w-auto" : "h-10 w-auto"}
               />
             </a>
           </div>

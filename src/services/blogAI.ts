@@ -335,9 +335,11 @@ ${servicesContext}
 - Includes main keyword
 - Click incentive with clear benefit
 
-### 9. SLUG
-- All lowercase, hyphen-separated
-- 3-5 words max with main keyword
+### 9. SLUG (CRITICAL FOR SEO)
+- All lowercase, hyphen-separated, no special characters
+- 5-8 words including the MAIN KEYWORD and year if relevant
+- Must be descriptive and match the title closely
+- Examples: "comment-faire-un-bon-cv-2026-guide-complet", "reussir-entretien-embauche-conseils-experts"
 
 ## OUTPUT FORMAT (STRICT JSON)
 
