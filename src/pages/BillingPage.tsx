@@ -5,16 +5,16 @@ import { doc, onSnapshot, collection, query, orderBy, getDocs } from 'firebase/f
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  CreditCard, Plus, Check, Download, Calendar, TrendingUp,
+  Check, Download, Calendar, TrendingUp,
   Zap, FileText, Target, Activity, Loader2
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
-import { getCreditHistory, type CreditHistoryEntry } from '../lib/creditHistory';
+import { getCreditHistory } from '../lib/creditHistory';
 import {
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
   Line, ComposedChart, Scatter, Cell
 } from 'recharts';
-import { redirectToStripeCheckout } from '../services/stripe';
+import { redirectToStripeCheckout, redirectToStripePortal } from '../services/stripe';
 import { toast } from 'react-hot-toast';
 import { generateInvoicePDF } from '../lib/invoiceGenerator';
 
@@ -130,7 +130,7 @@ export default function BillingPage() {
   const { currentUser } = useAuth();
   const [userPlanData, setUserPlanData] = useState<UserPlanData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [creditHistory, setCreditHistory] = useState<CreditHistoryEntry[]>([]);
+
   const [creditUsage, setCreditUsage] = useState<Array<{
     date: string;
     time: string;
@@ -152,6 +152,7 @@ export default function BillingPage() {
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
   const [processingPackageId, setProcessingPackageId] = useState<string | null>(null);
   const [isBiMonthly, setIsBiMonthly] = useState(false);
+  const [isManagingSubscription, setIsManagingSubscription] = useState(false);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -164,7 +165,7 @@ export default function BillingPage() {
           setUserPlanData(data);
 
           const history = await getCreditHistory(currentUser.uid, 100);
-          setCreditHistory(history);
+
 
           const currentPlan = plans.find(p => p.id === data.plan) || plans[0];
           const currentCredits = data.credits || 0;
@@ -176,7 +177,9 @@ export default function BillingPage() {
           const daysSinceStart = Math.max(1, Math.floor((Date.now() - planStartDate.getTime()) / (1000 * 60 * 60 * 24)));
 
           const cycleHistory = history.filter(entry => {
-            const entryDate = entry.timestamp instanceof Date ? entry.timestamp : new Date(entry.timestamp);
+            const entryDate = entry.timestamp instanceof Date
+              ? entry.timestamp
+              : (entry.timestamp as any)?.toDate?.() || new Date(entry.timestamp as any);
             return entryDate >= planStartDate;
           });
 
@@ -430,6 +433,22 @@ export default function BillingPage() {
     }
   };
 
+  const handleManageSubscription = async () => {
+    if (!currentUser) return;
+
+    setIsManagingSubscription(true);
+    toast.loading('Redirecting to billing portal...', { id: 'portal' });
+
+    try {
+      await redirectToStripePortal(currentUser.uid);
+      // Success is handled by redirect
+    } catch (error: any) {
+      console.error('Error redirecting to portal:', error);
+      toast.error('Failed to redirect to billing portal. Please contact support.', { id: 'portal' });
+      setIsManagingSubscription(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <AuthLayout>
@@ -445,7 +464,7 @@ export default function BillingPage() {
       <div className="px-4 sm:px-0 py-6 sm:py-8 space-y-8 sm:space-y-10">
         {/* Current Plan Summary - Minimal card */}
         <div className="flex flex-col gap-4 sm:gap-6 pb-6 sm:pb-8 border-b border-gray-200 dark:border-[#3d3c3e]">
-          <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] flex items-center justify-center text-gray-700 dark:text-gray-300">
                 {currentPlan.icon}
@@ -455,26 +474,45 @@ export default function BillingPage() {
                 <p className="text-sm text-gray-500 dark:text-gray-400">Current plan</p>
               </div>
             </div>
-            {currentPlan.id !== 'free' && (
-              <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-3">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4" />
-                  <span>Next billing: {nextBillingDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                </div>
+
+            <div className="flex items-center gap-4 sm:gap-8 w-full sm:w-auto justify-between sm:justify-end">
+              {currentPlan.id !== 'free' && currentUser?.stripeCustomerId && (
+                <button
+                  onClick={handleManageSubscription}
+                  disabled={isManagingSubscription}
+                  className="text-sm font-medium text-[#635bff] hover:text-[#635bff]/80 disabled:opacity-50 transition-colors"
+                >
+                  {isManagingSubscription ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Redirecting...
+                    </span>
+                  ) : (
+                    'Manage Subscription'
+                  )}
+                </button>
+              )}
+
+              <div className="text-left sm:text-right">
+                <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Credits</div>
+                <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{userPlanData?.credits || 0}</div>
               </div>
-            )}
-          </div>
-          <div className="flex items-center gap-4 sm:gap-8 w-full sm:w-auto justify-between sm:justify-end">
-            <div className="text-left sm:text-right">
-              <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Credits</div>
-              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{userPlanData?.credits || 0}</div>
-            </div>
-            <div className="h-8 sm:h-10 w-px bg-gray-200 dark:bg-[#3d3c3e]"></div>
-            <div className="text-right">
-              <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Monthly</div>
-              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">€{currentPlan.price.monthly}</div>
+              <div className="h-8 sm:h-10 w-px bg-gray-200 dark:bg-[#3d3c3e]"></div>
+              <div className="text-right">
+                <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Monthly</div>
+                <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">€{currentPlan.price.monthly}</div>
+              </div>
             </div>
           </div>
+
+          {currentPlan.id !== 'free' && (
+            <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-4 w-4" />
+                <span>Next billing: {nextBillingDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Grid - Minimal cards */}
@@ -660,7 +698,7 @@ export default function BillingPage() {
                     );
                   }}
                 >
-                  {creditUsage.map((entry, index) => (
+                  {creditUsage.map((_, index) => (
                     <Cell key={`cell-${index}`} />
                   ))}
                 </Scatter>
@@ -911,36 +949,7 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {/* Payment Methods - Minimal */}
-        <div className="border-t border-gray-200 dark:border-[#3d3c3e] pt-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Payment Methods</h2>
-              <p className="text-sm text-gray-500">Manage your billing</p>
-            </div>
-            <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#635bff] hover:bg-[#635bff]/5 rounded-lg transition-colors">
-              <Plus className="h-4 w-4" />
-              Add Card
-            </button>
-          </div>
 
-          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-8 bg-white dark:bg-[#3d3c3e] rounded-lg flex items-center justify-center border border-gray-200 dark:border-[#3d3c3e]">
-                  <CreditCard className="h-5 w-5 text-gray-500" />
-                </div>
-                <div>
-                  <div className="font-medium text-gray-900 dark:text-white">•••• •••• •••• 4242</div>
-                  <div className="text-sm text-gray-500">Expires 12/24</div>
-                </div>
-              </div>
-              <span className="px-3 py-1 text-xs font-medium rounded-full bg-[#635bff]/10 text-[#635bff]">
-                Default
-              </span>
-            </div>
-          </div>
-        </div>
 
         {/* Billing History - Minimal */}
         <div className="border-t border-gray-200 dark:border-[#3d3c3e] pt-8">

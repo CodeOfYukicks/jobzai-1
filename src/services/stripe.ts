@@ -13,6 +13,17 @@ interface CreateCheckoutSessionParams {
   customerEmail?: string;
 }
 
+interface CreatePortalSessionParams {
+  userId: string;
+  returnUrl?: string;
+}
+
+interface CreatePortalSessionResponse {
+  success: boolean;
+  url?: string;
+  message?: string;
+}
+
 interface CreateCheckoutSessionResponse {
   success: boolean;
   sessionId?: string;
@@ -29,7 +40,7 @@ const getFunctionsUrl = (): string => {
   if (import.meta.env.PROD || window.location.hostname !== 'localhost') {
     return ''; // Relative URL = same domain = no CORS!
   }
-  
+
   // In development, use direct Firebase Functions (CORS is configured)
   return 'https://us-central1-jobzai.cloudfunctions.net';
 };
@@ -44,10 +55,10 @@ export const createCheckoutSession = async (
   try {
     const functionsUrl = getFunctionsUrl();
     // In production: use relative URL (no CORS), in dev: use direct Firebase Functions
-    const url = functionsUrl 
+    const url = functionsUrl
       ? `${functionsUrl}/createCheckoutSession`
       : '/api/stripe/create-checkout-session';
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -59,18 +70,18 @@ export const createCheckoutSession = async (
         cancelUrl: `${window.location.origin}/payment/cancel`,
       }),
     });
-    
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || 'Failed to create checkout session');
     }
-    
+
     const data = await response.json();
-    
+
     if (!data.success || !data.url) {
       throw new Error(data.message || 'Failed to create checkout session');
     }
-    
+
     return data;
   } catch (error: any) {
     console.error('Error creating Stripe checkout session:', error);
@@ -89,7 +100,7 @@ export const redirectToStripeCheckout = async (
   params: CreateCheckoutSessionParams
 ): Promise<void> => {
   const result = await createCheckoutSession(params);
-  
+
   if (result.success && result.url) {
     // Redirect to Stripe Checkout
     window.location.href = result.url;
@@ -103,13 +114,13 @@ export const redirectToStripeCheckout = async (
  * This can be used to verify payment status after redirect
  */
 export const verifyCheckoutSession = async (
-  sessionId: string
+  _sessionId: string
 ): Promise<{ success: boolean; paid?: boolean; message?: string }> => {
   try {
     // Note: This would require a backend endpoint to retrieve the session
     // For now, we'll rely on the webhook to update the user's status
     // You can add a backend endpoint if needed
-    
+
     return {
       success: true,
       paid: true, // Assume paid if session exists (webhook will update)
@@ -123,3 +134,64 @@ export const verifyCheckoutSession = async (
   }
 };
 
+
+
+/**
+ * Create a Stripe Portal Session
+ */
+export const createPortalSession = async (
+  params: CreatePortalSessionParams
+): Promise<CreatePortalSessionResponse> => {
+  try {
+    const functionsUrl = getFunctionsUrl();
+    const url = functionsUrl
+      ? `${functionsUrl}/createPortalSession`
+      : '/api/stripe/create-portal-session';
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...params,
+        returnUrl: params.returnUrl || window.location.href,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to create portal session');
+    }
+
+    const data = await response.json();
+
+    if (!data.success || !data.url) {
+      throw new Error(data.message || 'Failed to create portal session');
+    }
+
+    return data;
+  } catch (error: any) {
+    console.error('Error creating Stripe portal session:', error);
+    return {
+      success: false,
+      message: error.message || 'Failed to create portal session',
+    };
+  }
+};
+
+/**
+ * Redirect to Stripe Portal
+ */
+export const redirectToStripePortal = async (
+  userId: string,
+  returnUrl?: string
+): Promise<void> => {
+  const result = await createPortalSession({ userId, returnUrl });
+
+  if (result.success && result.url) {
+    window.location.href = result.url;
+  } else {
+    throw new Error(result.message || 'Failed to create portal session');
+  }
+};

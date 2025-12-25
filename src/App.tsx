@@ -14,6 +14,7 @@ import { AIAssistantModal } from './components/assistant';
 import { TourOverlay } from './components/tour';
 
 import Navbar from './components/Navbar';
+import AdminGuard from './components/admin/AdminGuard';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
 import CampaignsPage from './pages/CampaignsPage';
@@ -65,6 +66,10 @@ import MockInterviewPage from './pages/MockInterviewPage';
 import MockIntroScene from './pages/MockIntroScene';
 import CareerIntelligencePage from './pages/CareerIntelligencePage';
 import CampaignsAutoPage from './pages/CampaignsAutoPage';
+import BlogPage from './pages/BlogPage';
+import BlogPostPage from './pages/BlogPostPage';
+import AdminBlogPage from './pages/admin/AdminBlogPage';
+import BlogEditorPage from './pages/admin/BlogEditorPage';
 
 import { initNotificationService } from './services/notificationService';
 import { useBackgroundTasks } from './hooks/useBackgroundTasks';
@@ -134,6 +139,39 @@ function AppContent() {
           <PublicRoute>
             <><Navbar /><HomePage /></>
           </PublicRoute>
+        } />
+        <Route path="/blog" element={
+          <PublicRoute>
+            <BlogPage />
+          </PublicRoute>
+        } />
+        <Route path="/blog/:slug" element={
+          <PublicRoute>
+            <BlogPostPage />
+          </PublicRoute>
+        } />
+
+        {/* Admin Blog Routes - Protected */}
+        <Route path="/admin/blog" element={
+          <PrivateRoute requireProfileCompleted={false}>
+            <AdminGuard>
+              <AdminBlogPage />
+            </AdminGuard>
+          </PrivateRoute>
+        } />
+        <Route path="/admin/blog/new" element={
+          <PrivateRoute requireProfileCompleted={false}>
+            <AdminGuard>
+              <BlogEditorPage />
+            </AdminGuard>
+          </PrivateRoute>
+        } />
+        <Route path="/admin/blog/edit/:id" element={
+          <PrivateRoute requireProfileCompleted={false}>
+            <AdminGuard>
+              <BlogEditorPage />
+            </AdminGuard>
+          </PrivateRoute>
         } />
         <Route path="/login" element={
           <PublicRoute>

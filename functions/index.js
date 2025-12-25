@@ -20,7 +20,7 @@ async function getOpenAIApiKey() {
   try {
     console.log('🔑 Attempting to retrieve OpenAI API key from Firestore...');
     const settingsDoc = await admin.firestore().collection('settings').doc('openai').get();
-    
+
     if (settingsDoc.exists) {
       const data = settingsDoc.data();
       const apiKey = data?.apiKey || data?.api_key;
@@ -32,13 +32,13 @@ async function getOpenAIApiKey() {
   } catch (error) {
     console.error('❌ Failed to retrieve API key from Firestore:', error.message);
   }
-  
+
   // Fallback to environment variable
   if (process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY) {
     console.log('Using OpenAI API key from environment variable');
     return process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
   }
-  
+
   // Fallback to Firebase config
   try {
     const config = functions.config();
@@ -49,7 +49,7 @@ async function getOpenAIApiKey() {
   } catch (e) {
     console.warn('Could not access Firebase config:', e);
   }
-  
+
   return null;
 }
 
@@ -78,25 +78,25 @@ app.get('/api/test', (req, res) => {
 app.post('/api/claude', async (req, res) => {
   try {
     console.log("Claude API endpoint called");
-    
+
     // Logs de débogage pour voir ce qui est disponible
     console.log("Environment variables:", {
       ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ? "defined" : "undefined",
       VITE_ANTHROPIC_API_KEY: process.env.VITE_ANTHROPIC_API_KEY ? "defined" : "undefined"
     });
-    
+
     console.log("Firebase Config:", JSON.stringify(functions.config()));
-    
+
     // IMPORTANT: Ne plus utiliser de clé API hardcodée - Utiliser les variables d'environnement
     const hardcodedApiKey = "REMOVED_API_KEY"; // La clé a été supprimée pour des raisons de sécurité
-    
+
     // Priorité: 1) Variable d'environnement Firebase 2) Variable .env
-    const apiKey = process.env.ANTHROPIC_API_KEY || 
-                   process.env.VITE_ANTHROPIC_API_KEY;
-                   // Ne pas utiliser de clé API hardcodée
-    
+    const apiKey = process.env.ANTHROPIC_API_KEY ||
+      process.env.VITE_ANTHROPIC_API_KEY;
+    // Ne pas utiliser de clé API hardcodée
+
     console.log("API Key found:", apiKey ? "YES" : "NO");
-    
+
     if (!apiKey) {
       console.error("Claude API key is missing");
       return res.status(500).json({
@@ -104,10 +104,10 @@ app.post('/api/claude', async (req, res) => {
         message: "Claude API key is missing in environment"
       });
     }
-    
+
     // Extraire les données de la requête
     const { model, max_tokens, temperature, system, messages } = req.body;
-    
+
     if (!messages || !Array.isArray(messages)) {
       console.error("Invalid request format: messages array missing or invalid");
       return res.status(400).json({
@@ -115,9 +115,9 @@ app.post('/api/claude', async (req, res) => {
         message: "Invalid request format: messages array is required"
       });
     }
-    
+
     console.log("Request validation passed, preparing Claude API call");
-    
+
     // Créer des messages modifiés avec le format corrigé
     const modifiedMessages = messages.map(msg => {
       if (msg.content && Array.isArray(msg.content)) {
@@ -132,7 +132,7 @@ app.post('/api/claude', async (req, res) => {
           }
           return contentItem;
         });
-        
+
         return {
           ...msg,
           content: modifiedContent
@@ -140,7 +140,7 @@ app.post('/api/claude', async (req, res) => {
       }
       return msg;
     });
-    
+
     // Créer la requête Claude API
     const claudeRequest = {
       model: model || "claude-3-5-sonnet-20241022",
@@ -149,9 +149,9 @@ app.post('/api/claude', async (req, res) => {
       system: system || "You are a helpful assistant",
       messages: modifiedMessages
     };
-    
+
     console.log("Sending request to Claude API with model:", claudeRequest.model);
-    
+
     // Envoyer la requête à l'API Claude
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -162,18 +162,18 @@ app.post('/api/claude', async (req, res) => {
       },
       body: JSON.stringify(claudeRequest)
     });
-    
+
     console.log(`Claude API response status: ${claudeResponse.status}`);
-    
+
     // Traiter la réponse
     const responseText = await claudeResponse.text();
     console.log("Received response from Claude API");
-    
+
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(responseText);
       console.log("Successfully parsed response as JSON");
-      
+
       if (claudeResponse.status !== 200) {
         console.error("Claude API error response:", parsedResponse);
         return res.status(claudeResponse.status).json({
@@ -182,13 +182,13 @@ app.post('/api/claude', async (req, res) => {
           details: parsedResponse
         });
       }
-      
+
       // Retourner la réponse Claude complète
       return res.json({
         status: 'success',
         content: parsedResponse.content
       });
-      
+
     } catch (parseError) {
       console.error("Error parsing Claude API response:", parseError);
       return res.status(500).json({
@@ -197,7 +197,7 @@ app.post('/api/claude', async (req, res) => {
         rawResponse: responseText.substring(0, 500) + "..." // Premier 500 caractères pour débogage
       });
     }
-    
+
   } catch (error) {
     console.error("Error in Claude API handler:", error);
     res.status(500).json({
@@ -211,36 +211,36 @@ app.post('/api/claude', async (req, res) => {
 app.post('/api/chatgpt', async (req, res) => {
   try {
     console.log("ChatGPT API endpoint called for recommendations");
-    
+
     // Get API key from Firestore or environment variables
     let apiKey = await getOpenAIApiKey();
-    
+
     if (!apiKey) {
       console.error('❌ ERREUR: Clé API OpenAI manquante');
-      return res.status(500).json({ 
-        status: 'error', 
-        message: 'OpenAI API key is missing. Please add it to Firestore (settings/openai) or .env file (OPENAI_API_KEY).' 
+      return res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key is missing. Please add it to Firestore (settings/openai) or .env file (OPENAI_API_KEY).'
       });
     }
-    
+
     const { prompt, type, cvContent } = req.body;
-    
+
     if (!prompt) {
       return res.status(400).json({
         status: 'error',
         message: 'Prompt is required'
       });
     }
-    
+
     // Build messages for ChatGPT
     // Adapt system message based on request type for better context
     let systemMessage = "You are an expert career coach. Always respond with valid JSON matching the exact format requested. Do not include any markdown code blocks, just return the raw JSON object.";
-    
+
     // Enhanced system message for CV section rewriting
     if (type === 'cv-section-rewrite') {
       systemMessage = "You are an elite CV strategist specializing in ATS optimization and professional content enhancement. You analyze CV sections deeply and provide powerful, achievement-focused rewrites. Always respond with valid JSON in this exact format: {\"content\": \"the improved text\"}. Never include markdown code blocks or extra formatting.";
     }
-    
+
     const messages = [
       {
         role: "system",
@@ -251,11 +251,11 @@ app.post('/api/chatgpt', async (req, res) => {
         content: prompt
       }
     ];
-    
+
     console.log('📡 Sending request to ChatGPT API...');
     console.log(`   Type: ${type}`);
     console.log(`   Prompt length: ${prompt.length}`);
-    
+
     // Call OpenAI API
     const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -271,13 +271,13 @@ app.post('/api/chatgpt', async (req, res) => {
         temperature: 0.3 // Lower temperature for more consistent, structured responses
       })
     });
-    
+
     console.log(`OpenAI API response status: ${openaiResponse.status}`);
-    
+
     // Handle response
     const responseText = await openaiResponse.text();
     console.log("Response received, length:", responseText.length);
-    
+
     if (!openaiResponse.ok) {
       console.error("Non-200 response:", responseText);
       try {
@@ -294,33 +294,33 @@ app.post('/api/chatgpt', async (req, res) => {
         });
       }
     }
-    
+
     // Parse and return response
     try {
       const parsedResponse = JSON.parse(responseText);
       const content = parsedResponse.choices[0]?.message?.content;
-      
+
       if (!content) {
         throw new Error('Empty response from ChatGPT API');
       }
-      
+
       // Parse JSON content
       let parsedContent;
       try {
         parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
       } catch (e) {
         // If parsing fails, try to extract JSON from markdown
-        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
-                          content.match(/{[\s\S]*}/);
+        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) ||
+          content.match(/{[\s\S]*}/);
         if (jsonMatch) {
           parsedContent = JSON.parse(jsonMatch[1] || jsonMatch[0]);
         } else {
           throw new Error('Could not parse JSON from response');
         }
       }
-      
+
       console.log('✅ ChatGPT recommendation completed successfully');
-      
+
       return res.json({
         status: 'success',
         content: parsedContent,
@@ -334,7 +334,7 @@ app.post('/api/chatgpt', async (req, res) => {
         rawResponse: responseText.substring(0, 500) + "..."
       });
     }
-    
+
   } catch (error) {
     console.error("Error in ChatGPT API handler:", error);
     res.status(500).json({
@@ -369,3 +369,6 @@ exports.getMatchedJobs = serverlessFunctions.getMatchedJobs;
 
 // Export job search function
 exports.searchJobs = serverlessFunctions.searchJobs;
+
+// Export Stripe Portal function
+exports.createPortalSession = serverlessFunctions.createPortalSession;

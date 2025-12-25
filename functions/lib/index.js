@@ -12,7 +12,7 @@ var __rest = (this && this.__rest) || function (s, e) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fetchTeamtailor = exports.fetchGAFAMManual = exports.fetchAllBigTechAndEnterprise = exports.fetchAllEnterprise = exports.fetchCapgeminiJobs = exports.fetchDeloitteJobs = exports.fetchAccentureJobs = exports.fetchOracleJobs = exports.fetchSAPJobs = exports.fetchSalesforceJobs = exports.fetchAllGAFAM = exports.fetchMicrosoftJobs = exports.fetchAppleJobs = exports.fetchAmazonJobs = exports.fetchMetaCareers = exports.fetchGoogleCareers = exports.fetchAggregatorsManual = exports.fetchFromAggregators = exports.activateDiscoveredCompany = exports.getDiscoveredCompanies = exports.manualDiscovery = exports.scheduledDiscovery = exports.previewApolloSearch = exports.enrichApolloContact = exports.searchApolloContacts = exports.getDatabaseStats = exports.manualCleanup = exports.scheduledCleanup = exports.processDynamicBatch = exports.retryFailedTasks = exports.processTaskManual = exports.processFetchTask = exports.getQueueStatus = exports.createFetchTasksManual = exports.createFetchTasks = exports.enrichSkillsWorker = exports.fetchJobsWorker = exports.scheduleFetchJobs = exports.backfillUserEmbeddings = exports.backfillJobsV5Manual = exports.getUserInteractionStats = exports.getSavedJobs = exports.trackJobInteraction = exports.getMatchedJobs = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.updateJobEmbeddingOnEnrichment = exports.generateJobEmbedding = exports.fetchGAFAMEnterprise = exports.fetchJobsFromATS = void 0;
-exports.downloadCV = exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.reEnrichAllJobsV4 = exports.enrichSingleJob = exports.enrichJobsManual = exports.testNewFunction = exports.queueStatus = exports.testFetchTask = exports.fetchAggregators = exports.cleanupJobs = exports.dbStats = exports.runDynamicBatch = exports.fetchJobsBatch4 = exports.fetchJobsBatch3 = exports.fetchJobsBatch2 = exports.fetchJobsBatch1 = exports.masterTrigger = exports.fetchAllAdditionalATS = exports.fetchWorkable = exports.fetchPersonio = exports.fetchRecruitee = exports.fetchBreezyHR = void 0;
+exports.createPortalSession = exports.downloadCV = exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.reEnrichAllJobsV4 = exports.enrichSingleJob = exports.enrichJobsManual = exports.testNewFunction = exports.queueStatus = exports.testFetchTask = exports.fetchAggregators = exports.cleanupJobs = exports.dbStats = exports.runDynamicBatch = exports.fetchJobsBatch4 = exports.fetchJobsBatch3 = exports.fetchJobsBatch2 = exports.fetchJobsBatch1 = exports.masterTrigger = exports.fetchAllAdditionalATS = exports.fetchWorkable = exports.fetchPersonio = exports.fetchRecruitee = exports.fetchBreezyHR = void 0;
 // Version 3.0 - Scalable Queue-based Architecture (Dec 2025)
 // Supports 1000+ companies with distributed task processing
 const admin = require("firebase-admin");
@@ -1652,7 +1652,7 @@ exports.createCheckoutSession = (0, https_1.onRequest)({
                 product: product.id,
                 limit: 100,
             });
-            let existingPrice = prices.data.find(p => p.unit_amount === priceInCents && !p.recurring);
+            let existingPrice = prices.data.find(p => p.unit_amount === priceInCents);
             if (!existingPrice) {
                 existingPrice = await stripe.prices.create({
                     product: product.id,
@@ -1667,9 +1667,8 @@ exports.createCheckoutSession = (0, https_1.onRequest)({
             }
             priceId = existingPrice.id;
         }
-        // Create Checkout Session
-        const sessionParams = {
-            mode: isSubscription ? 'subscription' : 'payment',
+        // Create checkout session
+        const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: [
                 {
@@ -1677,41 +1676,26 @@ exports.createCheckoutSession = (0, https_1.onRequest)({
                     quantity: 1,
                 },
             ],
-            customer_email: req.body.customerEmail,
+            mode: isSubscription ? 'subscription' : 'payment',
+            success_url: successUrl.replace('{CHECKOUT_SESSION_ID}', '{CHECKOUT_SESSION_ID}'),
+            cancel_url: cancelUrl,
+            customer_email: req.body.customerEmail || undefined,
+            client_reference_id: userId,
+            allow_promotion_codes: true,
             metadata: {
                 userId,
                 planId,
-                planName,
                 credits: credits.toString(),
-                type: type || 'plan',
+                type,
             },
-            success_url: successUrl || `${req.headers.origin || 'https://jobzai.firebaseapp.com'}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: cancelUrl || `${req.headers.origin || 'https://jobzai.firebaseapp.com'}/payment/cancel`,
-        };
-        // For subscriptions, add subscription metadata
-        if (isSubscription) {
-            sessionParams.subscription_data = {
-                metadata: {
-                    userId,
-                    planId,
-                    planName,
-                    credits: credits.toString(),
-                },
-            };
-        }
-        const session = await stripe.checkout.sessions.create(sessionParams);
-        console.log('✅ Stripe Checkout Session created:', session.id);
-        res.status(200).json({
-            success: true,
-            sessionId: session.id,
-            url: session.url,
         });
+        res.status(200).json({ success: true, sessionId: session.id, url: session.url });
     }
     catch (error) {
-        console.error('❌ Error creating Stripe Checkout Session:', error);
+        console.error('Error creating checkout session:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to create checkout session',
+            message: error.message || 'Internal server error'
         });
     }
 });
@@ -2688,6 +2672,73 @@ exports.downloadCV = (0, https_1.onRequest)({
             success: false,
             error: 'internal',
             message: `Failed to download CV: ${error.message}`
+        });
+    }
+});
+/**
+ * Create a Stripe Portal Session
+ * This endpoint creates a portal session for customer to manage billing
+ */
+exports.createPortalSession = (0, https_1.onRequest)({
+    region: 'us-central1',
+    cors: true,
+    maxInstances: 10,
+    invoker: 'public',
+}, async (req, res) => {
+    // Get origin from request
+    const origin = req.headers.origin;
+    // Set CORS headers
+    if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Max-Age', '3600');
+    // Handle preflight OPTIONS request
+    if (req.method === 'OPTIONS') {
+        res.status(204).end();
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.status(405).json({ success: false, message: 'Method not allowed' });
+        return;
+    }
+    try {
+        const { userId, returnUrl } = req.body;
+        if (!userId) {
+            res.status(400).json({
+                success: false,
+                message: 'userId is required'
+            });
+            return;
+        }
+        const stripe = await getStripeClient();
+        // Get customer ID from Firestore
+        const userDoc = await admin.firestore().collection('users').doc(userId).get();
+        if (!userDoc.exists) {
+            throw new Error('User not found');
+        }
+        const userData = userDoc.data();
+        const customerId = userData === null || userData === void 0 ? void 0 : userData.stripeCustomerId;
+        if (!customerId) {
+            throw new Error('No Stripe customer found for this user');
+        }
+        // Create portal session
+        const session = await stripe.billingPortal.sessions.create({
+            customer: customerId,
+            return_url: returnUrl || req.headers.referer || 'https://jobz.ai',
+        });
+        res.status(200).json({ success: true, url: session.url });
+    }
+    catch (error) {
+        console.error('Error creating portal session:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Internal server error'
         });
     }
 });

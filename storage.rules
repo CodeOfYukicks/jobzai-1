@@ -24,6 +24,14 @@ service firebase.storage {
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }
+
+    // Blog images folder - allow read for all, write for authenticated users
+    match /blog/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn()
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
     
     // Public sound folder - allow read for all, write for authenticated users
     match /sound/{allSounds=**} {

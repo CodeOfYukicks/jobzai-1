@@ -103,9 +103,9 @@ export default function Navbar() {
     }
   };
 
-  // Sur la landing page, toujours afficher le menu public
-  const isLandingPage = location.pathname === '/';
-  const showPublicMenu = !currentUser || isLandingPage;
+  // Sur la landing page et le blog, toujours afficher le menu public
+  const isPublicPage = location.pathname === '/' || location.pathname === '/blog';
+  const showPublicMenu = !currentUser || isPublicPage;
 
   return (
     <nav className={`fixed top-2 left-0 right-0 z-50 transition-all duration-300 ${scrolled
@@ -122,7 +122,7 @@ export default function Navbar() {
               className="flex items-center"
             >
               <FirebaseImage
-                path="images/logo-only.png"
+                path={location.pathname.startsWith('/blog') ? "images/logo_blog.png" : "images/logo-only.png"}
                 alt="Cubbbe"
                 className="h-10 w-auto"
               />
@@ -139,7 +139,7 @@ export default function Navbar() {
                     key={item.name}
                     onMouseEnter={() => handleMouseEnter(item.name)}
                     onMouseLeave={handleMouseLeave}
-                    className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || isLandingPage
+                    className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || isPublicPage
                       ? 'text-gray-900 hover:text-gray-600'
                       : 'text-white/90 hover:text-white'
                       }`}
@@ -152,7 +152,7 @@ export default function Navbar() {
                   <a
                     key={item.name}
                     href={item.href}
-                    className={`px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || isLandingPage
+                    className={`px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || isPublicPage
                       ? 'text-gray-900 hover:text-gray-600'
                       : 'text-white/90 hover:text-white'
                       }`}
@@ -164,8 +164,8 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Authenticated Navigation - Seulement si connecté ET pas sur landing page */}
-          {currentUser && !isLandingPage && (
+          {/* Authenticated Navigation - Seulement si connecté ET pas sur landing page ou blog */}
+          {currentUser && !isPublicPage && (
             <div className="hidden md:flex items-center space-x-8">
               {authenticatedNavigation.map((item) => (
                 <Link
@@ -185,7 +185,7 @@ export default function Navbar() {
             <div className="hidden md:flex items-center gap-3">
               <Link
                 to="/login"
-                className={`px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || isLandingPage
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || isPublicPage
                   ? 'text-gray-900 hover:text-gray-600'
                   : 'text-white/90 hover:text-white'
                   }`}
@@ -205,7 +205,7 @@ export default function Navbar() {
           <div className="flex md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className={`p-1.5 rounded-md transition-colors ${scrolled || isLandingPage
+              className={`p-1.5 rounded-md transition-colors ${scrolled || isPublicPage
                 ? 'text-gray-600 hover:bg-gray-100'
                 : 'text-white hover:bg-white/10'
                 }`}
@@ -461,8 +461,8 @@ export default function Navbar() {
                   </div>
                 )}
 
-                {/* Authenticated Navigation Mobile - Seulement si connecté ET pas sur landing page */}
-                {currentUser && !isLandingPage && (
+                {/* Authenticated Navigation Mobile - Seulement si connecté ET pas sur landing page ou blog */}
+                {currentUser && !isPublicPage && (
                   <div className="space-y-1 pt-4 border-t border-gray-100">
                     {authenticatedNavigation.map((item) => (
                       <Link

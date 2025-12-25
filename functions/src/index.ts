@@ -1902,7 +1902,7 @@ export const createCheckoutSession = onRequest({
       });
 
       let existingPrice = prices.data.find(
-        p => p.unit_amount === priceInCents && !p.recurring
+        p => p.unit_amount === priceInCents
       );
 
       if (!existingPrice) {
@@ -1921,9 +1921,8 @@ export const createCheckoutSession = onRequest({
       priceId = existingPrice.id;
     }
 
-    // Create Checkout Session
-    const sessionParams: Stripe.Checkout.SessionCreateParams = {
-      mode: isSubscription ? 'subscription' : 'payment',
+    // Create checkout session
+    const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
@@ -1931,44 +1930,27 @@ export const createCheckoutSession = onRequest({
           quantity: 1,
         },
       ],
-      customer_email: req.body.customerEmail, // Optional: if you have user email
+      mode: isSubscription ? 'subscription' : 'payment',
+      success_url: successUrl.replace('{CHECKOUT_SESSION_ID}', '{CHECKOUT_SESSION_ID}'),
+      cancel_url: cancelUrl,
+      customer_email: req.body.customerEmail || undefined,
+      client_reference_id: userId,
+      allow_promotion_codes: true,
       metadata: {
         userId,
         planId,
-        planName,
         credits: credits.toString(),
-        type: type || 'plan',
+        type,
       },
-      success_url: successUrl || `${req.headers.origin || 'https://jobzai.firebaseapp.com'}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl || `${req.headers.origin || 'https://jobzai.firebaseapp.com'}/payment/cancel`,
-    };
-
-    // For subscriptions, add subscription metadata
-    if (isSubscription) {
-      sessionParams.subscription_data = {
-        metadata: {
-          userId,
-          planId,
-          planName,
-          credits: credits.toString(),
-        },
-      };
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionParams);
-
-    console.log('✅ Stripe Checkout Session created:', session.id);
-
-    res.status(200).json({
-      success: true,
-      sessionId: session.id,
-      url: session.url,
     });
+
+    res.status(200).json({ success: true, sessionId: session.id, url: session.url });
+
   } catch (error: any) {
-    console.error('❌ Error creating Stripe Checkout Session:', error);
+    console.error('Error creating checkout session:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to create checkout session',
+      message: error.message || 'Internal server error'
     });
   }
 });
@@ -3109,6 +3091,84 @@ export const downloadCV = onRequest({
       success: false,
       error: 'internal',
       message: `Failed to download CV: ${error.message}`
+    });
+  }
+});
+
+/**
+ * Create a Stripe Portal Session
+ * This endpoint creates a portal session for customer to manage billing
+ */
+export const createPortalSession = onRequest({
+  region: 'us-central1',
+  cors: true,
+  maxInstances: 10,
+  invoker: 'public',
+}, async (req, res) => {
+  // Get origin from request
+  const origin = req.headers.origin;
+
+  // Set CORS headers
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '3600');
+
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    res.status(204).end();
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).json({ success: false, message: 'Method not allowed' });
+    return;
+  }
+
+  try {
+    const { userId, returnUrl } = req.body;
+
+    if (!userId) {
+      res.status(400).json({
+        success: false,
+        message: 'userId is required'
+      });
+      return;
+    }
+
+    const stripe = await getStripeClient();
+
+    // Get customer ID from Firestore
+    const userDoc = await admin.firestore().collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+      throw new Error('User not found');
+    }
+
+    const userData = userDoc.data();
+    const customerId = userData?.stripeCustomerId;
+
+    if (!customerId) {
+      throw new Error('No Stripe customer found for this user');
+    }
+
+    // Create portal session
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: returnUrl || req.headers.referer || 'https://jobz.ai',
+    });
+
+    res.status(200).json({ success: true, url: session.url });
+
+  } catch (error: any) {
+    console.error('Error creating portal session:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error'
     });
   }
 });

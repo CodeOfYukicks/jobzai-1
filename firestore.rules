@@ -195,5 +195,11 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && get(/databases/$(database)/documents/campaigns/$(campaignId)).data.userId == request.auth.uid;
       }
     }
+
+    // Blog Posts collection
+    match /blog_posts/{postId} {
+      allow read: if true; // Public read access
+      allow write: if isSignedIn(); // Authenticated write access
+    }
   }
 } 
