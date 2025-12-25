@@ -11,7 +11,7 @@ import { forceLightMode } from '../lib/theme';
 export default function BlogPostPage() {
     const { slug } = useParams();
     const navigate = useNavigate();
-    const { getPostBySlug } = useBlogPosts();
+    const { getPostBySlug, incrementViews } = useBlogPosts();
     const [post, setPost] = useState<BlogPost | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -26,6 +26,13 @@ export default function BlogPostPage() {
         const data = await getPostBySlug(slug);
         if (data) {
             setPost(data);
+
+            // Track view (only once per session per post)
+            const viewedKey = `viewed_post_${data.id}`;
+            if (!sessionStorage.getItem(viewedKey)) {
+                incrementViews(data.id);
+                sessionStorage.setItem(viewedKey, 'true');
+            }
         } else {
             // Handle 404
             console.log('Post not found');
@@ -93,9 +100,12 @@ export default function BlogPostPage() {
 
                     <div className="flex items-center justify-between border-b border-gray-100 pb-8">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
-                                <User className="w-5 h-5" />
-                            </div>
+                            {/* DiceBear avatar based on author name */}
+                            <img
+                                src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(post.author || 'Cubbbe')}`}
+                                alt={post.author}
+                                className="w-10 h-10 rounded-full bg-gray-100"
+                            />
                             <div>
                                 <div className="text-sm font-bold text-gray-900">{post.author}</div>
                                 <div className="text-xs text-gray-500">{post.date}</div>

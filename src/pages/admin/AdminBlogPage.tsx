@@ -21,11 +21,13 @@ export default function AdminBlogPage() {
         // Calculate stats
         const published = data.filter(p => p.status === 'published').length;
         const drafts = data.filter(p => p.status !== 'published').length;
+        // Sum actual views from all posts (views field in Firestore if it exists)
+        const totalViews = data.reduce((sum, post) => sum + ((post as any).views || 0), 0);
         setStats({
             total: data.length,
             published,
             drafts,
-            views: 12450 // Mock data for "Super Premium" feel
+            views: totalViews
         });
     };
 

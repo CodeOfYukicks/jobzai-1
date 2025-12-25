@@ -330,6 +330,46 @@ app.get('/api/fetch-cv', async (req, res) => {
   }
 });
 
+// Endpoint to proxy external images (bypass CORS for DALL-E images)
+app.get('/api/proxy-image', async (req, res) => {
+  try {
+    const imageUrl = req.query.url;
+    if (!imageUrl) {
+      return res.status(400).json({ status: 'error', message: 'Image URL is required' });
+    }
+
+    console.log("Proxying image from URL:", imageUrl.substring(0, 100) + "...");
+
+    // Fetch the image
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.statusText}`);
+    }
+
+    // Get content type
+    const contentType = response.headers.get('content-type') || 'image/png';
+
+    // Get the image as buffer
+    const imageBuffer = await response.arrayBuffer();
+
+    // Set appropriate headers
+    res.set({
+      'Content-Type': contentType,
+      'Content-Length': imageBuffer.byteLength,
+      'Cache-Control': 'public, max-age=3600'
+    });
+
+    // Send the image
+    return res.send(Buffer.from(imageBuffer));
+  } catch (error) {
+    console.error("Error proxying image:", error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
 // Claude API route
 app.post('/api/claude', async (req, res) => {
   try {

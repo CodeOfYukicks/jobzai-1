@@ -1,20 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Upload, Loader2, Sparkles, Layout, BarChart2, Globe, FileText, Check, ChevronLeft, Wand2, RefreshCw } from 'lucide-react';
+import { Upload, Loader2, Sparkles, Layout, Globe, Check, ChevronLeft, Wand2 } from 'lucide-react';
 import { useBlogPosts } from '../../hooks/useBlogPosts';
 import { CATEGORIES } from '../../data/blogPosts';
-import { generateAIArticle, generateAIImage } from '../../services/blogAI';
+import { generateAIImage, generateSEOArticle, generateSEOCoverImage, SEOArticleConfig, GeneratedSEOArticle } from '../../services/blogAI';
+import AIArticleGeneratorModal from '../../components/blog/AIArticleGeneratorModal';
+import { NotionEditor, NotionEditorRef } from '../../components/notion-editor';
 
 export default function BlogEditorPage() {
     const navigate = useNavigate();
     const { id } = useParams();
     const { createPost, updatePost, getAllPosts, uploadImage, loading: hookLoading } = useBlogPosts();
+    const editorRef = useRef<NotionEditorRef>(null);
 
     const [form, setForm] = useState({
         title: '',
         slug: '',
         excerpt: '',
-        content: '',
+        content: '' as string | any, // Can be string (markdown) or TipTap JSON
         category: CATEGORIES[1],
         author: 'Team Cubbbe',
         readTime: '5 min read',
@@ -23,21 +26,237 @@ export default function BlogEditorPage() {
     });
 
     const [uploading, setUploading] = useState(false);
-    const [generatingText, setGeneratingText] = useState(false);
     const [generatingImage, setGeneratingImage] = useState(false);
     const [initialLoading, setInitialLoading] = useState(!!id);
     const [activeTab, setActiveTab] = useState<'settings' | 'seo'>('settings');
+
+    // States for AI SEO Generator
+    const [showAIModal, setShowAIModal] = useState(false);
+    const [isGeneratingFull, setIsGeneratingFull] = useState(false);
+    const [generationStatus, setGenerationStatus] = useState('');
+
+    // Convert markdown to TipTap JSON format
+    const markdownToTipTap = useCallback((markdown: string): any => {
+        // Simple conversion - parse markdown and create TipTap JSON structure
+        const lines = markdown.split('\n');
+        const content: any[] = [];
+        let i = 0;
+
+        while (i < lines.length) {
+            const line = lines[i];
+
+            // Heading 1
+            if (line.startsWith('# ')) {
+                content.push({
+                    type: 'heading',
+                    attrs: { level: 1 },
+                    content: [{ type: 'text', text: line.substring(2) }]
+                });
+            }
+            // Heading 2
+            else if (line.startsWith('## ')) {
+                content.push({
+                    type: 'heading',
+                    attrs: { level: 2 },
+                    content: [{ type: 'text', text: line.substring(3) }]
+                });
+            }
+            // Heading 3
+            else if (line.startsWith('### ')) {
+                content.push({
+                    type: 'heading',
+                    attrs: { level: 3 },
+                    content: [{ type: 'text', text: line.substring(4) }]
+                });
+            }
+            // Bullet list item
+            else if (line.startsWith('- ') || line.startsWith('* ')) {
+                const items: any[] = [];
+                while (i < lines.length && (lines[i].startsWith('- ') || lines[i].startsWith('* '))) {
+                    const itemText = lines[i].substring(2);
+                    items.push({
+                        type: 'listItem',
+                        content: [{
+                            type: 'paragraph',
+                            content: parseInlineMarks(itemText)
+                        }]
+                    });
+                    i++;
+                }
+                content.push({
+                    type: 'bulletList',
+                    content: items
+                });
+                continue;
+            }
+            // Numbered list item
+            else if (/^\d+\.\s/.test(line)) {
+                const items: any[] = [];
+                while (i < lines.length && /^\d+\.\s/.test(lines[i])) {
+                    const itemText = lines[i].replace(/^\d+\.\s/, '');
+                    items.push({
+                        type: 'listItem',
+                        content: [{
+                            type: 'paragraph',
+                            content: parseInlineMarks(itemText)
+                        }]
+                    });
+                    i++;
+                }
+                content.push({
+                    type: 'orderedList',
+                    content: items
+                });
+                continue;
+            }
+            // Blockquote
+            else if (line.startsWith('> ')) {
+                content.push({
+                    type: 'blockquote',
+                    content: [{
+                        type: 'paragraph',
+                        content: parseInlineMarks(line.substring(2))
+                    }]
+                });
+            }
+            // Horizontal rule
+            else if (line.match(/^[-*_]{3,}$/)) {
+                content.push({ type: 'horizontalRule' });
+            }
+            // Empty line
+            else if (line.trim() === '') {
+                // Skip empty lines or add empty paragraph
+            }
+            // Regular paragraph
+            else {
+                const inlineContent = parseInlineMarks(line);
+                if (inlineContent.length > 0) {
+                    content.push({
+                        type: 'paragraph',
+                        content: inlineContent
+                    });
+                }
+            }
+            i++;
+        }
+
+        return {
+            type: 'doc',
+            content: content.length > 0 ? content : [{ type: 'paragraph' }]
+        };
+    }, []);
+
+    // Parse inline markdown marks (bold, italic, etc.)
+    const parseInlineMarks = (text: string): any[] => {
+        if (!text || text.trim() === '') return [];
+
+        const result: any[] = [];
+        let remaining = text;
+
+        // Simple regex-based parsing
+        const patterns = [
+            { regex: /\*\*(.+?)\*\*/g, mark: 'bold' },
+            { regex: /\*(.+?)\*/g, mark: 'italic' },
+            { regex: /`(.+?)`/g, mark: 'code' },
+        ];
+
+        // For simplicity, just handle bold and return plain text for the rest
+        // A full implementation would handle nested marks properly
+        const boldRegex = /\*\*(.+?)\*\*/;
+        const parts: any[] = [];
+
+        while (remaining.length > 0) {
+            const match = remaining.match(boldRegex);
+            if (match && match.index !== undefined) {
+                // Add text before the match
+                if (match.index > 0) {
+                    parts.push({ type: 'text', text: remaining.substring(0, match.index) });
+                }
+                // Add bold text
+                parts.push({
+                    type: 'text',
+                    marks: [{ type: 'bold' }],
+                    text: match[1]
+                });
+                remaining = remaining.substring(match.index + match[0].length);
+            } else {
+                // No more matches, add remaining text
+                if (remaining.length > 0) {
+                    parts.push({ type: 'text', text: remaining });
+                }
+                break;
+            }
+        }
+
+        return parts.length > 0 ? parts : [{ type: 'text', text: text }];
+    };
+
+    // Convert TipTap JSON to markdown for storage
+    const tipTapToMarkdown = useCallback((json: any): string => {
+        if (!json || !json.content) return '';
+
+        const convertNode = (node: any): string => {
+            switch (node.type) {
+                case 'heading':
+                    const prefix = '#'.repeat(node.attrs?.level || 1);
+                    return `${prefix} ${getTextContent(node)}\n\n`;
+                case 'paragraph':
+                    const text = getTextContent(node);
+                    return text ? `${text}\n\n` : '\n';
+                case 'bulletList':
+                    return node.content?.map((item: any) => `- ${getTextContent(item)}`).join('\n') + '\n\n';
+                case 'orderedList':
+                    return node.content?.map((item: any, idx: number) => `${idx + 1}. ${getTextContent(item)}`).join('\n') + '\n\n';
+                case 'blockquote':
+                    return `> ${getTextContent(node)}\n\n`;
+                case 'horizontalRule':
+                    return '---\n\n';
+                case 'codeBlock':
+                    return `\`\`\`\n${getTextContent(node)}\n\`\`\`\n\n`;
+                default:
+                    return getTextContent(node);
+            }
+        };
+
+        const getTextContent = (node: any): string => {
+            if (node.text) {
+                let text = node.text;
+                if (node.marks) {
+                    node.marks.forEach((mark: any) => {
+                        if (mark.type === 'bold') text = `**${text}**`;
+                        if (mark.type === 'italic') text = `*${text}*`;
+                        if (mark.type === 'code') text = `\`${text}\``;
+                    });
+                }
+                return text;
+            }
+            return node.content?.map((child: any) => {
+                if (child.type === 'listItem') {
+                    return getTextContent(child);
+                }
+                return getTextContent(child);
+            }).join('') || '';
+        };
+
+        return json.content.map(convertNode).join('').trim();
+    }, []);
 
     useEffect(() => {
         if (id) {
             getAllPosts().then(posts => {
                 const post = posts.find(p => p.id === id);
                 if (post) {
+                    // Convert markdown content to TipTap JSON if needed
+                    let contentToSet = post.content || '';
+                    if (typeof contentToSet === 'string' && contentToSet.trim()) {
+                        contentToSet = markdownToTipTap(contentToSet);
+                    }
+
                     setForm({
                         title: post.title,
                         slug: post.slug || '',
                         excerpt: post.excerpt || '',
-                        content: post.content || '',
+                        content: contentToSet,
                         category: post.category || CATEGORIES[1],
                         author: post.author || 'Team Cubbbe',
                         readTime: post.readTime || '5 min read',
@@ -48,7 +267,7 @@ export default function BlogEditorPage() {
                 setInitialLoading(false);
             });
         }
-    }, [id]);
+    }, [id, markdownToTipTap]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -60,6 +279,11 @@ export default function BlogEditorPage() {
             return newData;
         });
     };
+
+    // Handle editor content change
+    const handleEditorChange = useCallback((content: any) => {
+        setForm(prev => ({ ...prev, content }));
+    }, []);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -75,29 +299,64 @@ export default function BlogEditorPage() {
         }
     };
 
-    const handleAIWrite = async () => {
-        if (!form.title) {
-            alert('Please enter a title to guide the AI.');
-            return;
-        }
+    // Full SEO Article Generation
+    const handleSEOGenerate = async (config: SEOArticleConfig) => {
+        setIsGeneratingFull(true);
 
-        setGeneratingText(true);
         try {
-            const article = await generateAIArticle({
-                topic: form.title,
-                tone: 'Premium, authoritative, and actionable',
-                keywords: form.category
-            });
+            // Step 1: Generate the article
+            setGenerationStatus('✨ Rédaction de l\'article SEO...');
+            const article: GeneratedSEOArticle = await generateSEOArticle(config);
 
-            // If AI returns content starting with title in markdown, remove it to avoid dup
-            const cleanContent = article.replace(/^# .+\n/, '');
+            // Convert markdown to TipTap JSON for the editor
+            const editorContent = markdownToTipTap(article.content);
 
-            setForm(prev => ({ ...prev, content: prev.content + '\n' + cleanContent }));
-            setActiveTab('seo'); // Switch to SEO tab to show stats
+            // Update form with generated content
+            setForm(prev => ({
+                ...prev,
+                title: article.title,
+                slug: article.slug,
+                excerpt: article.excerpt,
+                content: editorContent,
+            }));
+
+            // Update editor content
+            if (editorRef.current) {
+                editorRef.current.setContent(editorContent);
+            }
+
+            // Step 2: Generate the cover image
+            setGenerationStatus('🎨 Génération de l\'image de couverture...');
+            const imageUrl = await generateSEOCoverImage(article.title, config.targetKeywords);
+
+            if (imageUrl) {
+                // Download via proxy and upload to our storage (DALL-E URLs expire and have CORS issues)
+                setGenerationStatus('📤 Upload de l\'image...');
+                const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+                const response = await fetch(proxyUrl);
+                const blob = await response.blob();
+                const file = new File([blob], "ai-seo-cover.png", { type: "image/png" });
+                const uploadedUrl = await uploadImage(file);
+
+                setForm(prev => ({ ...prev, image: uploadedUrl }));
+            }
+
+            // Calculate read time based on word count
+            const wordCount = article.content.split(/\s+/).filter(Boolean).length;
+            const readTime = Math.max(1, Math.ceil(wordCount / 200));
+            setForm(prev => ({ ...prev, readTime: `${readTime} min read` }));
+
+            // Close modal and switch to SEO tab
+            setShowAIModal(false);
+            setActiveTab('seo');
+            setGenerationStatus('');
+
         } catch (error) {
-            alert('Failed to auto-write article. Please check your AI settings.');
+            console.error('SEO generation error:', error);
+            alert('Erreur lors de la génération. Veuillez réessayer.');
         } finally {
-            setGeneratingText(false);
+            setIsGeneratingFull(false);
+            setGenerationStatus('');
         }
     };
 
@@ -111,16 +370,11 @@ export default function BlogEditorPage() {
         try {
             const imageUrl = await generateAIImage(form.title);
             if (imageUrl) {
-                // Determine if we need to upload this DALL-E URL to our storage to persist it?
-                // DALL-E URLs expire. For production, we should fetch blob and upload.
-                // For this MVP step, let's try to upload it via our uploadImage if it accepts blobs, 
-                // or just set it directly if we want to confirm it works first.
-                // Re-using uploadImage flow:
-
-                const response = await fetch(imageUrl);
+                // Use proxy to bypass CORS on DALL-E image URLs
+                const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+                const response = await fetch(proxyUrl);
                 const blob = await response.blob();
                 const file = new File([blob], "ai-generated-cover.png", { type: "image/png" });
-
                 const uploadedUrl = await uploadImage(file);
                 setForm(prev => ({ ...prev, image: uploadedUrl }));
             }
@@ -135,7 +389,20 @@ export default function BlogEditorPage() {
         try {
             const statusToSave = statusOverride || form.status;
             const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            const dataToSave = { ...form, status: statusToSave, date };
+
+            // Convert TipTap JSON content to markdown for storage
+            let contentToSave = form.content;
+            if (typeof contentToSave === 'object') {
+                contentToSave = tipTapToMarkdown(contentToSave);
+            }
+
+            const dataToSave = {
+                ...form,
+                content: contentToSave,
+                status: statusToSave,
+                date
+            };
+
             if (id) {
                 await updatePost(id, dataToSave);
             } else {
@@ -150,9 +417,22 @@ export default function BlogEditorPage() {
     if (initialLoading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
 
     // SEO Calculations
-    const titleScore = Math.min(100, (form.title.length / 60) * 100);
     const isTitleGood = form.title.length > 20 && form.title.length < 70;
-    const wordCount = form.content.split(/\s+/).filter(Boolean).length;
+
+    // Calculate word count from content
+    const getWordCount = () => {
+        if (typeof form.content === 'string') {
+            return form.content.split(/\s+/).filter(Boolean).length;
+        }
+        // For TipTap JSON, extract text
+        const extractText = (node: any): string => {
+            if (node.text) return node.text;
+            if (node.content) return node.content.map(extractText).join(' ');
+            return '';
+        };
+        return extractText(form.content).split(/\s+/).filter(Boolean).length;
+    };
+    const wordCount = getWordCount();
 
     return (
         <div className="bg-[#fafafa] h-screen flex flex-col font-sans overflow-hidden">
@@ -170,9 +450,29 @@ export default function BlogEditorPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {/* Generation Status */}
+                    {generationStatus && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-violet-50 text-violet-700 rounded-lg text-sm font-medium">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            {generationStatus}
+                        </div>
+                    )}
+
                     <div className="text-xs text-gray-400 font-mono hidden sm:block mr-2">
                         {wordCount} words
                     </div>
+
+                    {/* AI Generate Button */}
+                    <button
+                        onClick={() => setShowAIModal(true)}
+                        disabled={isGeneratingFull}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-700 hover:to-purple-700 transition-all shadow-lg shadow-violet-500/25 font-medium text-sm"
+                    >
+                        <Sparkles className="w-4 h-4" />
+                        <span className="hidden sm:inline">Générer avec IA</span>
+                        <span className="sm:hidden">IA</span>
+                    </button>
+
                     <button
                         onClick={() => savePost('draft')}
                         className="text-sm px-4 py-2 hover:bg-gray-100 text-gray-600 rounded-lg transition-colors font-medium"
@@ -194,33 +494,29 @@ export default function BlogEditorPage() {
                 {/* Main Editor */}
                 <div className="flex-1 overflow-y-auto bg-white shadow-xl shadow-gray-200/50 z-10 max-w-4xl mx-auto my-6 rounded-xl border border-gray-100">
                     <div className="p-8 sm:p-12 space-y-6">
+                        {/* Title Input */}
                         <input
                             type="text"
                             name="title"
                             value={form.title}
                             onChange={handleChange}
                             placeholder="Enter a captivating title..."
-                            className="w-full text-4xl sm:text-5xl font-extrabold tracking-tight placeholder-gray-300 border-none focus:ring-0 p-0 text-gray-900"
+                            className="w-full text-4xl sm:text-5xl font-extrabold tracking-tight placeholder-gray-300 border-none focus:ring-0 p-0 text-gray-900 bg-transparent"
                         />
-                        <div className="flex items-center justify-between border-b border-gray-100 pb-6">
-                            <div className="h-px w-20 bg-gray-100" />
-                            <button
-                                onClick={handleAIWrite}
-                                disabled={generatingText || !form.title}
-                                className="flex items-center gap-2 text-sm font-medium text-[#7066fd] hover:text-[#584cf4] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                {generatingText ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                                {generatingText ? 'Writing Article...' : 'Auto-Write with AI'}
-                            </button>
-                        </div>
 
-                        <textarea
-                            name="content"
-                            value={form.content}
-                            onChange={handleChange}
-                            placeholder="Tell your story..."
-                            className="w-full h-[calc(100vh-400px)] resize-none text-lg leading-relaxed text-gray-700 placeholder-gray-300 border-none focus:ring-0 p-0"
-                        />
+                        <div className="h-px bg-gray-100" />
+
+                        {/* Rich Text Editor (TipTap) */}
+                        <div className="min-h-[calc(100vh-400px)]">
+                            <NotionEditor
+                                ref={editorRef}
+                                content={typeof form.content === 'object' ? form.content : markdownToTipTap(form.content || '')}
+                                onChange={handleEditorChange}
+                                placeholder="Start writing your article... Use '/' for formatting options"
+                                editable={true}
+                                className="prose-lg"
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -360,6 +656,14 @@ export default function BlogEditorPage() {
                     </div>
                 </div>
             </div>
+
+            {/* AI Article Generator Modal */}
+            <AIArticleGeneratorModal
+                isOpen={showAIModal}
+                onClose={() => setShowAIModal(false)}
+                onGenerate={handleSEOGenerate}
+                isGenerating={isGeneratingFull}
+            />
         </div>
     );
 }

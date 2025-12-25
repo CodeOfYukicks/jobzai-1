@@ -10,7 +10,8 @@ import {
     query,
     where,
     orderBy,
-    Timestamp
+    Timestamp,
+    increment
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
@@ -170,6 +171,19 @@ export function useBlogPosts() {
         }
     };
 
+    // Increment view count for a post
+    const incrementViews = async (postId: string) => {
+        try {
+            const docRef = doc(db, 'blog_posts', postId);
+            await updateDoc(docRef, {
+                views: increment(1)
+            });
+        } catch (err: any) {
+            // Silent fail - don't interrupt user experience for view tracking
+            console.error("Error incrementing views:", err);
+        }
+    };
+
     return {
         loading,
         error,
@@ -179,6 +193,7 @@ export function useBlogPosts() {
         createPost,
         updatePost,
         deletePost,
-        uploadImage
+        uploadImage,
+        incrementViews
     };
 }

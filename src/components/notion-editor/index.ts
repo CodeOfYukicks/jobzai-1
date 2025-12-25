@@ -10,7 +10,7 @@ export { default as Toggle } from './extensions/Toggle';
 export { default as Callout } from './extensions/Callout';
 export { Columns, Column } from './extensions/Columns';
 export { default as DragHandle } from './extensions/DragHandle';
-export { default as MentionEmbed, mentionTypeConfig } from './extensions/MentionEmbed';
+export { default as MentionEmbed } from './extensions/MentionEmbed';
 export type { MentionEmbedType, MentionEmbedData } from './extensions/MentionEmbed';
 
 // Menus
