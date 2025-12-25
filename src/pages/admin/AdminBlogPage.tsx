@@ -3,12 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Edit, Trash2, Eye, FileText, CheckCircle, Clock, TrendingUp, Search } from 'lucide-react';
 import { useBlogPosts } from '../../hooks/useBlogPosts';
 import { BlogPost } from '../../data/blogPosts';
+import DeleteBlogPostModal from '../../components/blog/DeleteBlogPostModal';
 
 export default function AdminBlogPage() {
     const navigate = useNavigate();
     const { getAllPosts, deletePost, loading } = useBlogPosts();
     const [posts, setPosts] = useState<(BlogPost & { status: string })[]>([]);
     const [stats, setStats] = useState({ total: 0, published: 0, drafts: 0, views: 0 });
+
+    // Delete modal state
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [postToDelete, setPostToDelete] = useState<{ id: string; title: string } | null>(null);
 
     useEffect(() => {
         loadPosts();
@@ -31,10 +36,18 @@ export default function AdminBlogPage() {
         });
     };
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Delete this masterpiece?')) {
-            await deletePost(id);
+    // Open delete confirmation modal
+    const handleDelete = (id: string, title: string) => {
+        setPostToDelete({ id, title });
+        setShowDeleteModal(true);
+    };
+
+    // Confirm and execute delete
+    const confirmDelete = async () => {
+        if (postToDelete) {
+            await deletePost(postToDelete.id);
             loadPosts();
+            setPostToDelete(null);
         }
     };
 
@@ -155,7 +168,7 @@ export default function AdminBlogPage() {
                                                     <Edit className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(post.id)}
+                                                    onClick={() => handleDelete(post.id, post.title)}
                                                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-white rounded-lg transition-all"
                                                     title="Delete"
                                                 >
@@ -170,6 +183,17 @@ export default function AdminBlogPage() {
                     )}
                 </div>
             </main>
+
+            {/* Delete Confirmation Modal */}
+            <DeleteBlogPostModal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setPostToDelete(null);
+                }}
+                onConfirm={confirmDelete}
+                postTitle={postToDelete?.title || ''}
+            />
         </div>
     );
 }

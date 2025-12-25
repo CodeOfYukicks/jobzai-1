@@ -41,6 +41,9 @@ export default function BlogEditorPage() {
     const [isApplyingCover, setIsApplyingCover] = useState(false);
     const coverButtonRef = useRef<HTMLButtonElement>(null);
 
+    // Toast notification state
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
     // Convert markdown to TipTap JSON format
     const markdownToTipTap = useCallback((markdown: string): any => {
         // Simple conversion - parse markdown and create TipTap JSON structure
@@ -430,9 +433,21 @@ export default function BlogEditorPage() {
             } else {
                 await createPost(dataToSave);
             }
-            navigate('/admin/blog');
+
+            // Show toast notification
+            const message = statusToSave === 'published'
+                ? '✨ Article published successfully!'
+                : '📝 Draft saved successfully!';
+            setToast({ message, type: 'success' });
+
+            // Auto-hide toast after 3 seconds
+            setTimeout(() => setToast(null), 3000);
+
+            // Update form status
+            setForm(prev => ({ ...prev, status: statusToSave }));
         } catch (err) {
-            alert('Error saving post');
+            setToast({ message: 'Error saving post', type: 'error' });
+            setTimeout(() => setToast(null), 3000);
         }
     };
 
@@ -458,56 +473,79 @@ export default function BlogEditorPage() {
 
     return (
         <div className="bg-[#fafafa] h-screen flex flex-col font-sans overflow-hidden">
-            {/* Header */}
-            <header className="h-16 border-b border-gray-200 bg-white px-6 flex items-center justify-between z-20 shrink-0">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => navigate('/admin/blog')} className="p-2 -ml-2 text-gray-400 hover:text-black hover:bg-gray-100 rounded-lg transition-colors">
-                        <ChevronLeft className="w-5 h-5" />
+            {/* Header - Clean Premium Minimalist */}
+            <header className="h-14 border-b border-gray-100 bg-white px-4 flex items-center justify-between z-20 shrink-0">
+                {/* Left side - Navigation & Status */}
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => navigate('/admin/blog')}
+                        className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
                     </button>
-                    <div className="h-6 w-px bg-gray-200" />
-                    <span className="text-sm font-medium text-gray-500 hidden sm:inline-block">
-                        {id ? 'Editing Article' : 'Drafting New Article'}
+
+                    <span className="text-sm text-gray-400 hidden sm:inline">
+                        {id ? 'Editing' : 'New article'}
                     </span>
-                    {form.status === 'published' && <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-medium">Published</span>}
+
+                    {form.status === 'published' && (
+                        <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-medium rounded tracking-wide uppercase">
+                            Live
+                        </span>
+                    )}
                 </div>
 
-                <div className="flex items-center gap-3">
+                {/* Center - Word count (subtle) */}
+                <div className="absolute left-1/2 -translate-x-1/2 hidden md:block">
+                    <span className="text-xs text-gray-300 font-mono tabular-nums">
+                        {wordCount} words
+                    </span>
+                </div>
+
+                {/* Right side - Actions */}
+                <div className="flex items-center gap-2">
                     {/* Generation Status */}
                     {generationStatus && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-violet-50 text-violet-700 rounded-lg text-sm font-medium">
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            {generationStatus}
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-violet-50 text-violet-600 rounded-md text-xs font-medium mr-2">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <span className="hidden sm:inline">{generationStatus}</span>
                         </div>
                     )}
 
-                    <div className="text-xs text-gray-400 font-mono hidden sm:block mr-2">
-                        {wordCount} words
-                    </div>
-
-                    {/* AI Generate Button */}
+                    {/* AI Generate */}
                     <button
                         onClick={() => setShowAIModal(true)}
                         disabled={isGeneratingFull}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-700 hover:to-purple-700 transition-all shadow-lg shadow-violet-500/25 font-medium text-sm"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white rounded-md hover:bg-violet-700 transition-colors text-xs font-medium"
                     >
-                        <Sparkles className="w-4 h-4" />
-                        <span className="hidden sm:inline">Générer avec IA</span>
-                        <span className="sm:hidden">IA</span>
+                        <Sparkles className="w-3 h-3" />
+                        <span className="hidden sm:inline">Write AI article</span>
+                        <span className="sm:hidden">AI</span>
                     </button>
 
+                    {/* Separator */}
+                    <div className="h-4 w-px bg-gray-100 mx-1" />
+
+                    {/* Save as Draft */}
                     <button
                         onClick={() => savePost('draft')}
-                        className="text-sm px-4 py-2 hover:bg-gray-100 text-gray-600 rounded-lg transition-colors font-medium"
+                        className="px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
                     >
-                        Save Draft
+                        Draft
                     </button>
+
+                    {/* Publish */}
                     <button
                         onClick={() => savePost('published')}
                         disabled={hookLoading}
-                        className="flex items-center gap-2 px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors shadow-lg shadow-black/10 font-medium"
+                        className="flex items-center gap-1.5 px-4 py-1.5 bg-gray-900 text-white rounded-md hover:bg-black transition-colors text-xs font-medium disabled:opacity-50"
                     >
-                        {hookLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                        Publish
+                        {hookLoading ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                            <Globe className="w-3 h-3" />
+                        )}
+                        <span>Publish</span>
                     </button>
                 </div>
             </header>
@@ -710,6 +748,21 @@ export default function BlogEditorPage() {
                 currentCover={form.image}
                 triggerRef={coverButtonRef}
             />
+
+            {/* Toast Notification */}
+            {toast && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300">
+                    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border ${toast.type === 'success' ? 'bg-white border-gray-100 text-gray-900' : 'bg-red-50 border-red-100 text-red-700'}`}>
+                        <span className="text-sm font-medium">{toast.message}</span>
+                        <button
+                            onClick={() => setToast(null)}
+                            className="text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                            ×
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

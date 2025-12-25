@@ -99,7 +99,7 @@ export default function AIArticleGeneratorModal({
                             value={topic}
                             onChange={(e) => setTopic(e.target.value)}
                             placeholder="Comment décrocher un job en 2025..."
-                            className="w-full px-3 py-2 text-[14px] bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-gray-400"
+                            className="w-full px-3 py-2 text-[14px] text-gray-900 bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-gray-400"
                             autoFocus
                         />
                     </div>
@@ -114,7 +114,7 @@ export default function AIArticleGeneratorModal({
                             value={keywords}
                             onChange={(e) => setKeywords(e.target.value)}
                             placeholder="CV, entretien, recruteur, LinkedIn..."
-                            className="w-full px-3 py-2 text-[14px] bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-gray-400"
+                            className="w-full px-3 py-2 text-[14px] text-gray-900 bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-gray-400"
                         />
                         <p className="mt-1 text-[11px] text-gray-400">
                             Séparez par des virgules
@@ -131,7 +131,7 @@ export default function AIArticleGeneratorModal({
                             <select
                                 value={audience}
                                 onChange={(e) => setAudience(e.target.value as SEOArticleConfig['targetAudience'])}
-                                className="w-full px-3 py-2 text-[14px] bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all appearance-none cursor-pointer"
+                                className="w-full px-3 py-2 text-[14px] text-gray-900 bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all appearance-none cursor-pointer"
                             >
                                 {AUDIENCE_OPTIONS.map((option) => (
                                     <option key={option.value} value={option.value}>
@@ -152,8 +152,8 @@ export default function AIArticleGeneratorModal({
                                         key={option.value}
                                         onClick={() => setLength(option.value)}
                                         className={`flex-1 py-1.5 text-[12px] font-medium rounded transition-all ${length === option.value
-                                                ? 'bg-white text-gray-900 shadow-sm'
-                                                : 'text-gray-500 hover:text-gray-700'
+                                            ? 'bg-white text-gray-900 shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700'
                                             }`}
                                     >
                                         {option.label}
@@ -174,8 +174,8 @@ export default function AIArticleGeneratorModal({
                                 <button
                                     onClick={() => setLanguage('fr')}
                                     className={`flex-1 py-1.5 text-[12px] font-medium rounded transition-all ${language === 'fr'
-                                            ? 'bg-white text-gray-900 shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-700'
+                                        ? 'bg-white text-gray-900 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700'
                                         }`}
                                 >
                                     🇫🇷 Français
@@ -183,8 +183,8 @@ export default function AIArticleGeneratorModal({
                                 <button
                                     onClick={() => setLanguage('en')}
                                     className={`flex-1 py-1.5 text-[12px] font-medium rounded transition-all ${language === 'en'
-                                            ? 'bg-white text-gray-900 shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-700'
+                                        ? 'bg-white text-gray-900 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700'
                                         }`}
                                 >
                                     🇬🇧 English
@@ -200,7 +200,7 @@ export default function AIArticleGeneratorModal({
                             <select
                                 value={tone}
                                 onChange={(e) => setTone(e.target.value as SEOArticleConfig['tone'])}
-                                className="w-full px-3 py-2 text-[14px] bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all appearance-none cursor-pointer"
+                                className="w-full px-3 py-2 text-[14px] text-gray-900 bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all appearance-none cursor-pointer"
                             >
                                 {TONE_OPTIONS.map((option) => (
                                     <option key={option.value} value={option.value}>
