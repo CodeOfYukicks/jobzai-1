@@ -152,13 +152,13 @@ function HeroFeatureCard() {
         </div>
 
         {/* Right Preview - Changes based on active feature */}
-        <div className="relative bg-gradient-to-br from-emerald-50 to-emerald-100 min-h-[450px] lg:min-h-[520px]">
+        <div className="relative bg-gradient-to-br from-emerald-50 to-emerald-100 min-h-[350px] sm:min-h-[450px] lg:min-h-[520px]">
           {/* Decorative stripe - like Notion's wavy pattern */}
-          <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-b from-teal-300/40 via-emerald-400/30 to-teal-300/40"
+          <div className="absolute left-0 top-0 bottom-0 w-8 sm:w-16 bg-gradient-to-b from-teal-300/40 via-emerald-400/30 to-teal-300/40"
             style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M0 30 Q15 20 30 30 T60 30\' fill=\'none\' stroke=\'%2310b981\' stroke-width=\'2\' opacity=\'0.3\'/%3E%3C/svg%3E")', backgroundRepeat: 'repeat-y' }} />
 
           {/* Dynamic Preview Content */}
-          <div className="absolute top-6 bottom-6 left-10 right-0 bg-white rounded-l-xl shadow-lg overflow-hidden">
+          <div className="absolute top-4 sm:top-6 bottom-4 sm:bottom-6 left-6 sm:left-10 right-0 bg-white rounded-l-xl shadow-lg overflow-hidden">
             {/* Browser Chrome */}
             <div className="flex items-center gap-2 px-4 py-2.5 bg-[#fafafa] border-b border-gray-100">
               <div className="flex gap-1.5">
@@ -189,7 +189,7 @@ function HeroFeatureCard() {
                     loop
                     muted
                     playsInline
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain sm:object-cover bg-gray-50"
                   >
                     <source src={videoUrls[activeFeature]} type="video/mp4" />
                   </video>
@@ -276,12 +276,12 @@ function SecondaryFeatureCard() {
         </div>
 
         {/* Right Preview */}
-        <div className="relative bg-gradient-to-br from-blue-50 to-indigo-100 min-h-[320px] lg:min-h-[380px]">
+        <div className="relative bg-gradient-to-br from-blue-50 to-indigo-100 min-h-[280px] sm:min-h-[320px] lg:min-h-[380px]">
           {/* Decorative stripe */}
           <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-b from-blue-200/50 via-indigo-300/30 to-blue-200/50" />
 
           {/* Video Container */}
-          <div className="absolute top-6 bottom-6 left-8 right-6 rounded-xl shadow-lg overflow-hidden">
+          <div className="absolute top-4 sm:top-6 bottom-4 sm:bottom-6 left-4 sm:left-8 right-4 sm:right-6 rounded-xl shadow-lg overflow-hidden bg-white">
             {isLoading ? (
               <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
                 <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
@@ -293,7 +293,7 @@ function SecondaryFeatureCard() {
                 loop
                 muted
                 playsInline
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain sm:object-cover bg-gray-50"
               >
                 <source src={videoUrl} type="video/mp4" />
               </video>
@@ -374,12 +374,12 @@ function MockInterviewCard() {
         </div>
 
         {/* Right Preview */}
-        <div className="relative bg-gradient-to-br from-purple-50 to-violet-100 min-h-[320px] lg:min-h-[380px]">
+        <div className="relative bg-gradient-to-br from-purple-50 to-violet-100 min-h-[280px] sm:min-h-[320px] lg:min-h-[380px]">
           {/* Decorative stripe */}
           <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-b from-purple-200/50 via-violet-300/30 to-purple-200/50" />
 
           {/* Video Container */}
-          <div className="absolute top-6 bottom-6 left-8 right-6 rounded-xl shadow-lg overflow-hidden">
+          <div className="absolute top-4 sm:top-6 bottom-4 sm:bottom-6 left-4 sm:left-8 right-4 sm:right-6 rounded-xl shadow-lg overflow-hidden bg-white">
             {isLoading ? (
               <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
                 <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
@@ -391,7 +391,7 @@ function MockInterviewCard() {
                 loop
                 muted
                 playsInline
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain sm:object-cover bg-gray-50"
               >
                 <source src={videoUrl} type="video/mp4" />
               </video>
@@ -477,12 +477,12 @@ function GridFeatureCard({ label, title, icon: Icon, accentColor, accentBg, acce
       </div>
 
       {/* Preview Zone */}
-      <div className={`relative h-96 ${accentBg}`}>
+      <div className={`relative h-80 sm:h-96 ${accentBg}`}>
         {/* Accent border at top */}
         <div className={`absolute top-0 left-0 right-0 h-1 ${accentBorder}`} />
 
         {/* Video or Placeholder - Notion style: starts from middle, rounded top, extends to bottom */}
-        <div className="absolute left-6 right-6 top-6 bottom-0 rounded-t-2xl shadow-lg overflow-hidden">
+        <div className="absolute left-4 sm:left-6 right-4 sm:right-6 top-4 sm:top-6 bottom-0 rounded-t-2xl shadow-lg overflow-hidden bg-white">
           {isLoading ? (
             <div className="h-full flex items-center justify-center bg-white">
               <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
@@ -494,7 +494,7 @@ function GridFeatureCard({ label, title, icon: Icon, accentColor, accentBg, acce
               loop
               muted
               playsInline
-              className="w-full h-full object-cover object-top"
+              className="w-full h-full object-contain sm:object-cover object-top bg-gray-50"
             >
               <source src={videoUrl} type="video/mp4" />
             </video>
@@ -611,12 +611,12 @@ function ApplicationTrackingCard() {
       </div>
 
       {/* Preview Zone */}
-      <div className="relative h-96 bg-[#FFECE8]">
+      <div className="relative h-80 sm:h-96 bg-[#FFECE8]">
         {/* Accent border at top */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-[#FF6B5B]" />
 
         {/* Video - Notion style */}
-        <div className="absolute left-6 right-6 top-6 bottom-0 rounded-t-2xl shadow-lg overflow-hidden">
+        <div className="absolute left-4 sm:left-6 right-4 sm:right-6 top-4 sm:top-6 bottom-0 rounded-t-2xl shadow-lg overflow-hidden bg-white">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeMode}
@@ -637,7 +637,7 @@ function ApplicationTrackingCard() {
                   loop
                   muted
                   playsInline
-                  className="w-full h-full object-cover object-top"
+                  className="w-full h-full object-contain sm:object-cover object-top bg-gray-50"
                 >
                   <source src={videoUrls[activeMode]} type="video/mp4" />
                 </video>

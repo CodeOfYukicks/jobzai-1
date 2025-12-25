@@ -141,7 +141,7 @@ export default function Hero() {
   ];
 
   return (
-    <div id="home" className="relative bg-white min-h-screen flex flex-col items-center pt-24 pb-16 overflow-hidden">
+    <div id="home" className="relative bg-white min-h-screen flex flex-col items-center pt-24 pb-16 overflow-x-hidden">
 
       {/* Decorative Grid Background - Optional but adds to Notion feel */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
@@ -151,8 +151,8 @@ export default function Hero() {
 
         {/* Content Wrapper */}
         <div className="relative z-10 max-w-4xl mx-auto text-center pointer-events-none">
-          {/* Floating Elements - Positioned relative to this content wrapper */}
-          <div className="absolute inset-0 flex items-center justify-center z-[-1] pointer-events-none">
+          {/* Floating Elements - Hidden on mobile to prevent overflow */}
+          <div className="absolute inset-0 hidden lg:flex items-center justify-center z-[-1] pointer-events-none">
             {floatingElements.map((el, index) => (
               <div key={index} className="absolute">
                 <FloatingElement {...el} />

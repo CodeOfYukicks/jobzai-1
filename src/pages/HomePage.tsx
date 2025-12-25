@@ -13,7 +13,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="bg-[#f6f5f4]">
+    <div className="bg-[#f6f5f4] overflow-x-hidden">
       {/* Hero Section */}
       <Hero />
 
