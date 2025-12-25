@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Upload, Loader2, Sparkles, Layout, Globe, Check, ChevronLeft, Wand2 } from 'lucide-react';
+import { Upload, Loader2, Sparkles, Layout, Globe, Check, ChevronLeft, Wand2, Image as ImageIcon } from 'lucide-react';
 import { useBlogPosts } from '../../hooks/useBlogPosts';
 import { CATEGORIES } from '../../data/blogPosts';
 import { generateAIImage, generateSEOArticle, generateSEOCoverImage, SEOArticleConfig, GeneratedSEOArticle } from '../../services/blogAI';
 import AIArticleGeneratorModal from '../../components/blog/AIArticleGeneratorModal';
 import { NotionEditor, NotionEditorRef } from '../../components/notion-editor';
+import CoverPhotoGallery from '../../components/profile/CoverPhotoGallery';
 
 export default function BlogEditorPage() {
     const navigate = useNavigate();
@@ -34,6 +35,11 @@ export default function BlogEditorPage() {
     const [showAIModal, setShowAIModal] = useState(false);
     const [isGeneratingFull, setIsGeneratingFull] = useState(false);
     const [generationStatus, setGenerationStatus] = useState('');
+
+    // State for Cover Photo Gallery
+    const [showCoverGallery, setShowCoverGallery] = useState(false);
+    const [isApplyingCover, setIsApplyingCover] = useState(false);
+    const coverButtonRef = useRef<HTMLButtonElement>(null);
 
     // Convert markdown to TipTap JSON format
     const markdownToTipTap = useCallback((markdown: string): any => {
@@ -385,6 +391,22 @@ export default function BlogEditorPage() {
         }
     };
 
+    // Handle cover photo selection from gallery
+    const handleCoverPhotoApply = async (blob: Blob): Promise<void> => {
+        setIsApplyingCover(true);
+        try {
+            const file = new File([blob], "cover-image.png", { type: blob.type || "image/png" });
+            const uploadedUrl = await uploadImage(file);
+            setForm(prev => ({ ...prev, image: uploadedUrl }));
+            setShowCoverGallery(false);
+        } catch (error) {
+            console.error('Error applying cover photo:', error);
+            alert('Failed to apply cover photo. Please try again.');
+        } finally {
+            setIsApplyingCover(false);
+        }
+    };
+
     const savePost = async (statusOverride?: 'draft' | 'published') => {
         try {
             const statusToSave = statusOverride || form.status;
@@ -597,15 +619,30 @@ export default function BlogEditorPage() {
                                             </div>
                                         )}
 
-                                        <div className="grid grid-cols-2 gap-2">
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {/* Gallery Button */}
+                                            <button
+                                                ref={coverButtonRef}
+                                                onClick={() => setShowCoverGallery(true)}
+                                                disabled={isApplyingCover}
+                                                className="flex flex-col items-center justify-center gap-1 px-2 py-3 border border-dashed border-blue-200 bg-blue-50/50 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all text-center h-20 disabled:opacity-50"
+                                            >
+                                                {isApplyingCover ? <Loader2 className="w-4 h-4 animate-spin text-blue-500" /> : <ImageIcon className="w-4 h-4 text-blue-500" />}
+                                                <span className="text-[10px] text-blue-700 font-medium leading-tight">
+                                                    {isApplyingCover ? 'Applying...' : 'Gallery'}
+                                                </span>
+                                            </button>
+
+                                            {/* Upload Button */}
                                             <label className="flex flex-col items-center justify-center gap-1 px-2 py-3 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-gray-400 transition-all text-center h-20">
                                                 {uploading ? <Loader2 className="w-4 h-4 animate-spin text-gray-400" /> : <Upload className="w-4 h-4 text-gray-400" />}
                                                 <span className="text-[10px] text-gray-500 font-medium leading-tight">
-                                                    {uploading ? 'Uploading...' : 'Upload File'}
+                                                    {uploading ? 'Uploading...' : 'Upload'}
                                                 </span>
                                                 <input type="file" className="hidden" onChange={handleImageUpload} accept="image/*" />
                                             </label>
 
+                                            {/* AI Generate Button */}
                                             <button
                                                 onClick={handleAIGenerateImage}
                                                 disabled={generatingImage || !form.title}
@@ -613,7 +650,7 @@ export default function BlogEditorPage() {
                                             >
                                                 {generatingImage ? <Loader2 className="w-4 h-4 animate-spin text-purple-500" /> : <Wand2 className="w-4 h-4 text-purple-500" />}
                                                 <span className="text-[10px] text-purple-700 font-medium leading-tight">
-                                                    {generatingImage ? 'Generating...' : 'Generate AI'}
+                                                    {generatingImage ? 'Generating...' : 'AI Generate'}
                                                 </span>
                                             </button>
                                         </div>
@@ -663,6 +700,15 @@ export default function BlogEditorPage() {
                 onClose={() => setShowAIModal(false)}
                 onGenerate={handleSEOGenerate}
                 isGenerating={isGeneratingFull}
+            />
+
+            {/* Cover Photo Gallery Picker */}
+            <CoverPhotoGallery
+                isOpen={showCoverGallery}
+                onClose={() => setShowCoverGallery(false)}
+                onDirectApply={handleCoverPhotoApply}
+                currentCover={form.image}
+                triggerRef={coverButtonRef}
             />
         </div>
     );
