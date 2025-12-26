@@ -18,79 +18,79 @@
 /* Heading styles */
 .notion-editor-content h1 {
   @apply text-3xl font-bold mt-8 mb-4;
-  color: #111827;
+  color: #111827 !important;
 }
 
 .dark .notion-editor-content h1 {
-  color: #ffffff;
+  color: #ffffff !important;
 }
 
 .notion-editor-content h2 {
   @apply text-2xl font-semibold mt-6 mb-3;
-  color: #111827;
+  color: #111827 !important;
 }
 
 .dark .notion-editor-content h2 {
-  color: #ffffff;
+  color: #ffffff !important;
 }
 
 .notion-editor-content h3 {
   @apply text-xl font-medium mt-4 mb-2;
-  color: #111827;
+  color: #111827 !important;
 }
 
 .dark .notion-editor-content h3 {
-  color: #ffffff;
+  color: #ffffff !important;
 }
 
 /* Bold/Strong text */
 .notion-editor-content strong,
 .notion-editor-content b {
-  color: #111827;
+  color: #111827 !important;
   font-weight: 700;
 }
 
 .dark .notion-editor-content strong,
 .dark .notion-editor-content b {
-  color: #ffffff;
+  color: #ffffff !important;
 }
 
 /* Paragraph spacing */
 .notion-editor-content p {
   @apply my-3 leading-relaxed;
-  color: #111827;
+  color: #111827 !important;
 }
 
 .dark .notion-editor-content p {
-  color: #f3f4f6;
+  color: #f3f4f6 !important;
 }
 
 /* List styles */
 .notion-editor-content ul {
   @apply my-3 pl-6 list-disc;
-  color: #111827;
+  color: #111827 !important;
 }
 
 .dark .notion-editor-content ul {
-  color: #f3f4f6;
+  color: #f3f4f6 !important;
 }
 
 .notion-editor-content ol {
   @apply my-3 pl-6 list-decimal;
-  color: #111827;
+  color: #111827 !important;
 }
 
 .dark .notion-editor-content ol {
-  color: #f3f4f6;
+  color: #f3f4f6 !important;
 }
 
 .notion-editor-content li {
   @apply my-1;
-  color: #111827;
+  color: #111827 !important;
 }
 
 .dark .notion-editor-content li {
-  color: #f3f4f6;
+  color: #f3f4f6 !important;
 }
 
 .notion-editor-content li p {

@@ -12,13 +12,15 @@ import {
   Building2, CalendarDays as CalendarIcon, AlignLeft, Info,
   SearchCheck, LineChart, TrendingUp, TrendingDown, Activity, Palette, UserRound,
   Search, Filter, LayoutGrid, List, ArrowUpDown, Link2, Wand2, Loader2,
-  Eye, Zap, MoreHorizontal, Copy, MapPin, Image as ImageIcon, Camera
+  Eye, Zap, MoreHorizontal, Copy, MapPin, Image as ImageIcon, Camera, SlidersHorizontal
 } from 'lucide-react';
 import { Dialog, Disclosure, Transition } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { CompanyLogo } from '../components/common/CompanyLogo';
+import CircularMiniProgress from '../components/common/CircularMiniProgress';
+import BottomSheet, { FilterBottomSheet } from '../components/common/BottomSheet';
 import { getDoc, doc, setDoc, collection, query, where, getDocs, orderBy, addDoc, serverTimestamp, deleteDoc, onSnapshot, updateDoc, Unsubscribe } from 'firebase/firestore';
 import { JobApplication } from '../types/job';
 import { getDownloadURL, ref, getStorage, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
@@ -2518,6 +2520,7 @@ export default function CVAnalysisPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'date' | 'score' | 'company'>('date');
   const [filterScore, setFilterScore] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   // States for Resume Builder CV selector
   const [builderCVs, setBuilderCVs] = useState<Resume[]>([]);
@@ -5114,7 +5117,7 @@ URL to visit: ${jobUrl}
         whileHover={{ y: -2 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
         layout={false}
-        className="group relative bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-xl p-5 
+        className="group relative bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-xl p-4 sm:p-5 
           border border-gray-200/60 dark:border-[#3d3c3e]/50
           hover:border-gray-300/80 dark:hover:border-gray-600/60
           shadow-sm hover:shadow-md
@@ -5139,24 +5142,57 @@ URL to visit: ${jobUrl}
 
             {/* Content */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start justify-between gap-2 sm:gap-3">
                 <div className="min-w-0">
-                  <h3 className="text-base font-medium text-gray-900 dark:text-white truncate">
+                  <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white truncate">
                     {analysis.jobTitle}
                   </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate flex items-center gap-1.5 mt-0.5">
-                    <Building2 className="w-3.5 h-3.5 flex-shrink-0 opacity-60" />
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate flex items-center gap-1.5 mt-0.5">
+                    <Building2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 flex-shrink-0 opacity-60" />
                     <span className="truncate">{analysis.company}</span>
                   </p>
                 </div>
 
-                {/* Score Badge - Minimal */}
-                <span className={`flex-shrink-0 px-2.5 py-1 rounded-md text-xs font-medium tabular-nums
-                  ${scoreStyles.bg} ${scoreStyles.text}
-                  transition-colors duration-200`}
-                >
-                  {analysis.matchScore}%
-                </span>
+                {/* Score Badge - Circular for native app feel */}
+                <div className="flex-shrink-0 relative" style={{ width: 40, height: 40 }}>
+                  <svg
+                    width={40}
+                    height={40}
+                    viewBox="0 0 40 40"
+                    className="transform -rotate-90"
+                  >
+                    {/* Background circle */}
+                    <circle
+                      cx={20}
+                      cy={20}
+                      r={16}
+                      fill="transparent"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                      className="text-gray-100 dark:text-gray-700"
+                    />
+                    {/* Progress circle */}
+                    <motion.circle
+                      cx={20}
+                      cy={20}
+                      r={16}
+                      fill="transparent"
+                      stroke={analysis.matchScore >= 80 ? '#635BFF' : analysis.matchScore >= 65 ? '#3b82f6' : '#f43f5e'}
+                      strokeWidth={3}
+                      strokeLinecap="round"
+                      strokeDasharray={100.53}
+                      initial={{ strokeDashoffset: 100.53 }}
+                      animate={{ strokeDashoffset: 100.53 - (analysis.matchScore / 100) * 100.53 }}
+                      transition={{ duration: 0.8, ease: 'easeOut' }}
+                    />
+                  </svg>
+                  {/* Score value in center */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className={`text-xs font-bold tabular-nums ${scoreStyles.text}`}>
+                      {analysis.matchScore}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -8033,7 +8069,7 @@ URL to visit: ${jobUrl}
           onMouseLeave={() => setIsHoveringCover(false)}
         >
           {/* Cover Photo Area - Height adjusted to contain all header elements */}
-          <div className={`relative w-full transition-all duration-300 ease-in-out ${coverPhoto ? 'h-auto min-h-[160px] sm:min-h-[180px]' : 'h-auto min-h-[120px] sm:min-h-[140px]'}`}>
+          <div className={`relative w-full transition-all duration-300 ease-in-out ${coverPhoto ? 'h-auto min-h-[100px] sm:min-h-[160px]' : 'h-auto min-h-[80px] sm:min-h-[120px]'}`}>
             {/* Cover Background */}
             {coverPhoto ? (
               <div className="absolute inset-0 w-full h-full overflow-hidden">
@@ -8123,7 +8159,7 @@ URL to visit: ${jobUrl}
             </div>
 
             {/* All Header Content - Positioned directly on cover */}
-            <div className="relative z-10 px-4 sm:px-6 pt-6 pb-3 flex flex-col gap-2">
+            <div className="relative z-10 px-4 sm:px-6 pt-3 sm:pt-6 pb-2 sm:pb-3 flex flex-col gap-1 sm:gap-2">
               {/* Title and New Analysis Button Row */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -8133,44 +8169,59 @@ URL to visit: ${jobUrl}
               >
                 {/* Title left */}
                 <div>
-                  <h1 className={`text-2xl font-bold ${coverPhoto
+                  <h1 className={`text-xl sm:text-2xl font-bold ${coverPhoto
                     ? 'text-white drop-shadow-2xl'
                     : 'text-gray-900 dark:text-white'
                     }`}>Resume Lab</h1>
-                  <p className={`text-sm mt-0.5 ${coverPhoto
+                  <p className={`text-xs sm:text-sm mt-0.5 hidden sm:block ${coverPhoto
                     ? 'text-white/90 drop-shadow-lg'
                     : 'text-gray-500 dark:text-gray-400'
                     }`}>
                     AI-powered resume analysis for smarter applications
                   </p>
-                  {/* Usage Quota Indicator */}
+                  {/* Usage Quota Indicator - Mobile: Compact circular, Desktop: Full */}
                   {!isLoadingLimits && (
-                    <div className="inline-flex items-center gap-3 px-4 py-2 mt-3 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                          Analyses used:
-                        </span>
-                        <span className="text-sm font-bold text-gray-900 dark:text-white">
-                          {getUsageStats('resumeAnalyses').used}/{getUsageStats('resumeAnalyses').limit}
-                        </span>
-                      </div>
-                      <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${getUsageStats('resumeAnalyses').percentage >= 100
-                            ? 'bg-red-500'
-                            : getUsageStats('resumeAnalyses').percentage >= 80
-                              ? 'bg-amber-500'
-                              : 'bg-[#635bff]'
-                            }`}
-                          style={{ width: `${Math.min(100, getUsageStats('resumeAnalyses').percentage)}%` }}
+                    <>
+                      {/* Mobile - Compact circular progress */}
+                      <div className="sm:hidden mt-2">
+                        <CircularMiniProgress
+                          value={getUsageStats('resumeAnalyses').used}
+                          max={getUsageStats('resumeAnalyses').limit}
+                          size={40}
+                          strokeWidth={3.5}
+                          label="Analyses"
+                          creditCost={getUsageStats('resumeAnalyses').remaining === 0 ? 25 : undefined}
+                          className={coverPhoto ? 'bg-white/80 dark:bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full' : 'bg-gray-100/80 dark:bg-white/5 px-3 py-1.5 rounded-full'}
                         />
                       </div>
-                      {getUsageStats('resumeAnalyses').remaining === 0 && (
-                        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                          25 credits/analysis
-                        </span>
-                      )}
-                    </div>
+                      {/* Desktop - Full indicator */}
+                      <div className="hidden sm:inline-flex items-center gap-3 px-4 py-2 mt-3 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            Analyses used:
+                          </span>
+                          <span className="text-sm font-bold text-gray-900 dark:text-white">
+                            {getUsageStats('resumeAnalyses').used}/{getUsageStats('resumeAnalyses').limit}
+                          </span>
+                        </div>
+                        <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${getUsageStats('resumeAnalyses').percentage >= 100
+                              ? 'bg-red-500'
+                              : getUsageStats('resumeAnalyses').percentage >= 80
+                                ? 'bg-amber-500'
+                                : 'bg-[#635bff]'
+                              }`}
+                            style={{ width: `${Math.min(100, getUsageStats('resumeAnalyses').percentage)}%` }}
+                          />
+                        </div>
+                        {getUsageStats('resumeAnalyses').remaining === 0 && (
+                          <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                            25 credits/analysis
+                          </span>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
 
@@ -8217,11 +8268,11 @@ URL to visit: ${jobUrl}
         {/* Main Content Area */}
         <div className="px-4 pt-6 pb-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
 
-          {/* Minimal Search and Filters - Notion Style */}
+          {/* Minimal Search and Filters - Mobile: Search + FAB, Desktop: Full inline */}
           {analyses.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
-              {/* Search Input */}
-              <div className="relative flex-1 w-full">
+            <div className="flex items-center gap-3 mb-6">
+              {/* Search Input - Always full width */}
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <input
                   type="text"
@@ -8238,7 +8289,26 @@ URL to visit: ${jobUrl}
                 />
               </div>
 
-              <div className="flex items-center gap-3">
+              {/* Mobile: Filter FAB button */}
+              <button
+                onClick={() => setIsFilterSheetOpen(true)}
+                className="sm:hidden flex items-center justify-center w-10 h-10 rounded-lg
+                  border border-gray-200 dark:border-[#3d3c3e]
+                  bg-white dark:bg-[#2b2a2c]
+                  hover:bg-gray-50 dark:hover:bg-[#3d3c3e]
+                  text-gray-500 dark:text-gray-400
+                  transition-colors relative"
+                aria-label="Filter options"
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                {/* Active filter indicator */}
+                {(filterScore !== 'all' || sortBy !== 'date') && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#635BFF] rounded-full border-2 border-white dark:border-[#2b2a2c]" />
+                )}
+              </button>
+
+              {/* Desktop: Inline Filters (hidden on mobile) */}
+              <div className="hidden sm:flex items-center gap-3">
                 {/* Score Filter */}
                 <div className="relative">
                   <select
@@ -8294,6 +8364,91 @@ URL to visit: ${jobUrl}
               </div>
             </div>
           )}
+
+          {/* Mobile Filter Bottom Sheet */}
+          <FilterBottomSheet
+            isOpen={isFilterSheetOpen}
+            onClose={() => setIsFilterSheetOpen(false)}
+            onReset={() => {
+              setFilterScore('all');
+              setSortBy('date');
+              setViewMode('grid');
+            }}
+            hasActiveFilters={filterScore !== 'all' || sortBy !== 'date' || viewMode !== 'grid'}
+          >
+            <div className="space-y-6">
+              {/* Score Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Score Filter
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {(['all', 'high', 'medium', 'low'] as const).map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => setFilterScore(option)}
+                      className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${filterScore === option
+                        ? 'bg-[#635BFF] text-white shadow-lg shadow-[#635BFF]/20'
+                        : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
+                        }`}
+                    >
+                      {option.charAt(0).toUpperCase() + option.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sort By */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Sort By
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['date', 'score', 'company'] as const).map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => setSortBy(option)}
+                      className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${sortBy === option
+                        ? 'bg-[#635BFF] text-white shadow-lg shadow-[#635BFF]/20'
+                        : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
+                        }`}
+                    >
+                      {option.charAt(0).toUpperCase() + option.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* View Mode */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  View Mode
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${viewMode === 'grid'
+                      ? 'bg-[#635BFF] text-white shadow-lg shadow-[#635BFF]/20'
+                      : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
+                      }`}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                    Grid
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${viewMode === 'list'
+                      ? 'bg-[#635BFF] text-white shadow-lg shadow-[#635BFF]/20'
+                      : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
+                      }`}
+                  >
+                    <List className="w-4 h-4" />
+                    List
+                  </button>
+                </div>
+              </div>
+            </div>
+          </FilterBottomSheet>
 
           {/* Analyses Grid/List */}
           {filteredAnalyses.length > 0 ? (

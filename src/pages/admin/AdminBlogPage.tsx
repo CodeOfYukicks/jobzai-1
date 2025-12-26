@@ -7,8 +7,13 @@ import { BlogPost } from '../../data/blogPosts';
 import DeleteBlogPostModal from '../../components/blog/DeleteBlogPostModal';
 import BlogSchedulerPanel from '../../components/blog/BlogSchedulerPanel';
 import { generateSEOArticle, generateSEOCoverImage } from '../../services/blogAI';
+import { forceLightMode } from '../../lib/theme';
 
 export default function AdminBlogPage() {
+    // Force light mode for admin pages
+    useEffect(() => {
+        forceLightMode();
+    }, []);
     const navigate = useNavigate();
     const { getAllPosts, deletePost, createPost, loading } = useBlogPosts();
     const { config, updateConfig, reload: reloadScheduler } = useBlogScheduler();

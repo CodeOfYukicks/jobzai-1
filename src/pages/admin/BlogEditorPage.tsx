@@ -7,8 +7,13 @@ import { generateAIImage, generateSEOArticle, generateSEOCoverImage, SEOArticleC
 import AIArticleGeneratorModal from '../../components/blog/AIArticleGeneratorModal';
 import { NotionEditor, NotionEditorRef } from '../../components/notion-editor';
 import CoverPhotoGallery from '../../components/profile/CoverPhotoGallery';
+import { forceLightMode } from '../../lib/theme';
 
 export default function BlogEditorPage() {
+    // Force light mode for blog editor
+    useEffect(() => {
+        forceLightMode();
+    }, []);
     const navigate = useNavigate();
     const { id } = useParams();
     const { createPost, updatePost, getAllPosts, uploadImage, loading: hookLoading } = useBlogPosts();
