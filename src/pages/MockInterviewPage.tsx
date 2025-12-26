@@ -1552,49 +1552,41 @@ export default function MockInterviewPage() {
         {/* Decorative Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
         {/* Mobile Layout (md:hidden) */}
-        <div className="flex-1 flex items-center justify-center p-6 md:hidden">
-          {/* Mobile-Native Job Selection Panel */}
-          <div className="w-full max-w-md mx-auto flex flex-col h-full">
-            {/* Minimal Header */}
-            <div className="text-center pt-8 pb-6">
-              {userProfile?.firstName && (
-                <motion.p
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-lg font-medium text-gray-500 dark:text-gray-400 mb-1"
-                >
-                  {getGreeting()}, {userProfile.firstName}
-                </motion.p>
-              )}
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                Mock Interview
+        <div className="flex-1 flex flex-col items-center justify-center px-4 pt-16 md:hidden overflow-hidden pb-24">
+          {/* Mobile-Native Job Selection Panel - Centered */}
+          <div className="w-full max-w-md flex flex-col">
+
+            {/* Header */}
+            <div className="text-center mb-6">
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
+                {userProfile?.firstName ? `${getGreeting()}, ${userProfile.firstName}` : getGreeting()}
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Select a role to start practicing
+              <p className="text-sm text-gray-400 dark:text-gray-500">
+                Select a position to practice
               </p>
             </div>
 
             {/* Search */}
             <div className="relative mb-4">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search roles..."
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-100/50 dark:bg-white/[0.03] border-none text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-gray-100/50 dark:bg-white/[0.03] border-none text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
               />
             </div>
 
-            {/* Job List */}
-            <div className="flex-1 overflow-y-auto space-y-2.5 pb-24 -mx-4 px-4">
+            {/* Job List - Fixed height showing ~4 items */}
+            <div className="overflow-y-auto space-y-1.5 max-h-[280px] mb-6">
               {isLoadingApplications ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-violet-500" />
                 </div>
               ) : applications.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-sm text-gray-500">No applications found</p>
+                <div className="text-center py-8">
+                  <p className="text-xs text-gray-500">No applications found</p>
                 </div>
               ) : (
                 filteredApplications.map((app, index) => (
@@ -1602,9 +1594,9 @@ export default function MockInterviewPage() {
                     key={app.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
+                    transition={{ delay: index * 0.03 }}
                     onClick={() => handleSelectApplication(app)}
-                    className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all text-left
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left overflow-hidden
                         ${selectedApplication?.id === app.id
                         ? 'bg-violet-500/10 border-violet-500/30'
                         : 'bg-white dark:bg-[#2b2a2c] border-transparent shadow-sm'
@@ -1612,53 +1604,49 @@ export default function MockInterviewPage() {
                   >
                     <CompanyLogo
                       companyName={app.companyName}
-                      size="md"
-                      className="!rounded-lg"
+                      size="sm"
+                      className="!rounded-lg !w-9 !h-9 flex-shrink-0"
                     />
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-base font-semibold truncate ${selectedApplication?.id === app.id ? 'text-gray-900 dark:text-white' : 'text-gray-800 dark:text-gray-200'
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <p className={`text-sm font-semibold truncate ${selectedApplication?.id === app.id ? 'text-gray-900 dark:text-white' : 'text-gray-800 dark:text-gray-200'
                         }`}>
                         {app.position}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
                         {app.companyName}
                       </p>
                     </div>
                     {selectedApplication?.id === app.id && (
-                      <CheckCircle2 className="h-5 w-5 text-violet-500 flex-shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-violet-500 flex-shrink-0" />
                     )}
                   </motion.button>
                 ))
               )}
             </div>
 
-            {/* Sticky Bottom Action - Mobile Only */}
-            <div className="fixed bottom-[64px] left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent dark:from-[#1a1a1a] dark:via-[#1a1a1a] pb-4 z-30 md:hidden">
-              <div className="max-w-md mx-auto space-y-3">
-                {/* Start Button */}
-                <button
-                  onClick={handleStartInterview}
-                  disabled={!selectedApplication}
-                  className={`w-full py-3.5 rounded-xl text-base font-semibold shadow-lg transition-all
-                      ${selectedApplication
-                      ? 'bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 translate-y-0 opacity-100'
-                      : 'bg-gray-200 dark:bg-zinc-800 text-gray-400 cursor-not-allowed'
-                    }`}
-                >
-                  Start practicing
-                </button>
+            {/* Bottom Actions */}
+            <div className="space-y-3">
+              <button
+                onClick={handleStartInterview}
+                disabled={!selectedApplication}
+                className={`w-full py-3 rounded-xl text-base font-semibold shadow-lg transition-all
+                    ${selectedApplication
+                    ? 'bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900'
+                    : 'bg-gray-200 dark:bg-zinc-800 text-gray-400 cursor-not-allowed'
+                  }`}
+              >
+                Start practicing
+              </button>
 
-                {/* Past Sessions Trigger */}
-                {hasPastSessions && (
-                  <button
-                    onClick={() => setShowPastSessions(true)}
-                    className="w-full py-2 text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1.5"
-                  >
-                    <History className="w-3.5 h-3.5" />
-                    View past sessions ({pastSessions.length})
-                  </button>
-                )}
-              </div>
+              {hasPastSessions && (
+                <button
+                  onClick={() => setShowPastSessions(true)}
+                  className="w-full py-2 text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1.5"
+                >
+                  <History className="w-3.5 h-3.5" />
+                  View past sessions ({pastSessions.length})
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1719,17 +1707,17 @@ export default function MockInterviewPage() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1, duration: 0.4 }}
-            className="relative mb-8"
+            className="relative mb-4"
           >
             {/* Glow Effect */}
-            <div className="absolute inset-0 blur-2xl opacity-30 bg-gradient-to-br from-violet-500 to-cyan-500 rounded-full scale-150" />
+            <div className="absolute inset-0 blur-xl opacity-20 bg-gradient-to-br from-violet-500 to-cyan-500 rounded-full scale-125" />
 
             {selectedApplication && (
               <div className="relative">
                 <CompanyLogo
                   companyName={selectedApplication.companyName}
-                  size="xl"
-                  className="!rounded-2xl !w-20 !h-20 shadow-2xl ring-1 ring-white/10"
+                  size="lg"
+                  className="!rounded-xl !w-14 !h-14 shadow-xl ring-1 ring-white/10"
                 />
               </div>
             )}
@@ -1740,11 +1728,30 @@ export default function MockInterviewPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-center mb-12"
+            className="text-center mb-4"
           >
             {selectedApplication && (
               <>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1 leading-tight">
+                <h1 className="text-base font-bold text-gray-900 dark:text-white mb-0.5 leading-tight">
+                  {selectedApplication.position}
+                </h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  at {selectedApplication.companyName}
+                </p>
+              </>
+            )}
+          </motion.div>
+
+          {/* Position & Company */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-center mb-6"
+          >
+            {selectedApplication && (
+              <>
+                <h1 className="text-lg font-bold text-gray-900 dark:text-white mb-0.5 leading-tight">
                   {selectedApplication.position}
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -1755,58 +1762,58 @@ export default function MockInterviewPage() {
           </motion.div>
 
           {/* Mobile-Native Settings Card (md:hidden) */}
-          <div className="w-full bg-white dark:bg-[#2b2a2c] rounded-2xl p-0 overflow-hidden border border-gray-100 dark:border-[#3d3c3e] mb-24 md:hidden">
+          <div className="w-full bg-white dark:bg-[#2b2a2c] rounded-xl p-0 overflow-hidden border border-gray-100 dark:border-[#3d3c3e] mb-36 md:hidden">
             {/* Setting: Environment */}
-            <button className="w-full flex items-center justify-between p-4 border-b border-gray-100 dark:border-[#3d3c3e/50] active:bg-gray-50 dark:active:bg-[#343335] transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-violet-50 dark:bg-violet-500/10 flex items-center justify-center">
-                  <Volume2 className="w-4 h-4 text-violet-500" />
+            <button className="w-full flex items-center justify-between p-3 border-b border-gray-100 dark:border-[#3d3c3e/50] active:bg-gray-50 dark:active:bg-[#343335] transition-colors">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-violet-50 dark:bg-violet-500/10 flex items-center justify-center">
+                  <Volume2 className="w-3.5 h-3.5 text-violet-500" />
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">Environment</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Quiet space</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Quiet space</p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-gray-400" />
             </button>
 
             {/* Setting: Duration */}
-            <button className="w-full flex items-center justify-between p-4 border-b border-gray-100 dark:border-[#3d3c3e/50] active:bg-gray-50 dark:active:bg-[#343335] transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-blue-500" />
+            <button className="w-full flex items-center justify-between p-3 border-b border-gray-100 dark:border-[#3d3c3e/50] active:bg-gray-50 dark:active:bg-[#343335] transition-colors">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+                  <Clock className="w-3.5 h-3.5 text-blue-500" />
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">Duration</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">10 minutes</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">10 minutes</p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-gray-400" />
             </button>
 
             {/* Setting: Mode */}
-            <button className="w-full flex items-center justify-between p-4 border-b border-gray-100 dark:border-[#3d3c3e/50] active:bg-gray-50 dark:active:bg-[#343335] transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
-                  <Mic className="w-4 h-4 text-emerald-500" />
+            <button className="w-full flex items-center justify-between p-3 border-b border-gray-100 dark:border-[#3d3c3e/50] active:bg-gray-50 dark:active:bg-[#343335] transition-colors">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
+                  <Mic className="w-3.5 h-3.5 text-emerald-500" />
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">Mode</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Speaking</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Speaking</p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-gray-400" />
             </button>
 
             {/* Setting: Feedback */}
-            <button className="w-full flex items-center justify-between p-4 active:bg-gray-50 dark:active:bg-[#343335] transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
-                  <BarChart3 className="w-4 h-4 text-amber-500" />
+            <button className="w-full flex items-center justify-between p-3 active:bg-gray-50 dark:active:bg-[#343335] transition-colors">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
+                  <BarChart3 className="w-3.5 h-3.5 text-amber-500" />
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">Feedback</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Structure & Content</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Structure & Content</p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -1853,25 +1860,26 @@ export default function MockInterviewPage() {
           </motion.div>
 
           {/* Sticky Bottom Action - Mobile Only (fixed bottom-16) */}
-          <div className="fixed bottom-[64px] left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent dark:from-[#1a1a1a] dark:via-[#1a1a1a] pb-4 z-30 md:hidden">
-            <div className="max-w-md mx-auto">
-              <p className="text-center text-xs text-gray-400 mb-3">
+          <div className="fixed bottom-[64px] left-0 right-0 p-4 pt-10 bg-gradient-to-t from-white via-white to-transparent dark:from-[#1a1a1a] dark:via-[#1a1a1a] z-30 md:hidden">
+            <div className="max-w-md mx-auto space-y-3">
+              <p className="text-center text-xs text-gray-400">
                 Ready? The AI interviewer will start speaking first.
               </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setPhase('setup')}
-                  className="p-3.5 rounded-xl bg-gray-100 dark:bg-[#2b2a2c] text-gray-900 dark:text-white"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => handleBeginInterview(false)}
-                  className="flex-1 py-3.5 rounded-xl bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 text-base font-semibold shadow-lg active:scale-[0.98] transition-all"
-                >
-                  Start Interview
-                </button>
-              </div>
+              {/* Start Interview Button (Full Width) */}
+              <button
+                onClick={() => handleBeginInterview(false)}
+                className="w-full py-3.5 rounded-xl bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 text-base font-semibold shadow-lg active:scale-[0.98] transition-all"
+              >
+                Start Interview
+              </button>
+              {/* Back Link (Subtle) */}
+              <button
+                onClick={() => setPhase('setup')}
+                className="w-full py-2 text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1.5"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to role selection
+              </button>
             </div>
           </div>
 
