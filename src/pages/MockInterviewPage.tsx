@@ -1728,25 +1728,6 @@ export default function MockInterviewPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-center mb-4"
-          >
-            {selectedApplication && (
-              <>
-                <h1 className="text-base font-bold text-gray-900 dark:text-white mb-0.5 leading-tight">
-                  {selectedApplication.position}
-                </h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  at {selectedApplication.companyName}
-                </p>
-              </>
-            )}
-          </motion.div>
-
-          {/* Position & Company */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
             className="text-center mb-6"
           >
             {selectedApplication && (

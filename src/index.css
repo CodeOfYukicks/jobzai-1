@@ -7,6 +7,24 @@
     font-family: 'Inter', system-ui, sans-serif;
     scroll-behavior: smooth;
     overflow-x: hidden;
+    /* Mobile: dark background matching content, Desktop: lighter */
+    background-color: #1a1a1a;
+  }
+
+  @media (min-width: 768px) {
+    html {
+      background-color: #333234;
+    }
+  }
+
+  html.light {
+    background-color: white;
+  }
+
+  @media (min-width: 768px) {
+    html.light {
+      background-color: #f9fafb;
+    }
   }
 
   body {
@@ -14,6 +32,16 @@
     overflow-x: hidden;
     width: 100%;
     max-width: 100vw;
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0;
+    padding: 0;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   h1,
@@ -259,7 +287,7 @@
   }
 
   body {
-    @apply bg-white dark:bg-[#2A2831] text-foreground m-0 p-0 transition-colors duration-200;
+    @apply bg-white dark:bg-[#1a1a1a] md:dark:bg-[#2A2831] text-foreground m-0 p-0 transition-colors duration-200;
   }
 }
 

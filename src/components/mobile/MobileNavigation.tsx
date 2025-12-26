@@ -62,10 +62,9 @@ export default function MobileNavigation() {
       <motion.div
         initial={{ y: 100 }}
         animate={{ y: 0 }}
-        className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] safe-bottom"
+        className="fixed bottom-4 left-4 right-4 z-40 md:hidden rounded-2xl bg-white/70 dark:bg-[#2b2a2c]/70 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-2xl shadow-black/10"
         style={{
-          paddingBottom: 'env(safe-area-inset-bottom)',
-          boxShadow: '0 -4px 20px rgba(0,0,0,0.08)',
+          marginBottom: 'env(safe-area-inset-bottom)',
         }}
       >
         <div>

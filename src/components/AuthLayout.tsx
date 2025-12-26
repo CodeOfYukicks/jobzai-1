@@ -446,8 +446,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const isFullScreenMobile = (location.pathname.startsWith('/ats-analysis/') && location.pathname.endsWith('/cv-editor'));
 
   // Pages where we should hide ONLY the mobile Top Bar (but keep Bottom Nav)
-  // Pages where we should hide ONLY the mobile Top Bar (but keep Bottom Nav)
-  const hideMobileTopBar = false;
+  // Set to true to hide top bar on all mobile pages for more vertical space
+  const hideMobileTopBar = true;
 
   // Sidebar width values
   const sidebarExpandedWidth = 256; // 16rem = 256px
@@ -459,7 +459,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const displaySidebarWidth = isEffectivelyExpanded ? sidebarExpandedWidth : sidebarCollapsedWidth;
 
   return (
-    <div className={`${needsFullHeight ? 'h-dvh md:h-screen' : 'min-h-dvh md:min-h-screen'} bg-gray-50 dark:bg-[#333234] flex flex-col overflow-x-hidden`}>
+    <div className="min-h-dvh md:min-h-screen bg-white dark:bg-[#1a1a1a] md:bg-gray-50 md:dark:bg-[#333234] flex flex-col overflow-x-hidden">
       {/* Top Bar - Desktop only */}
       <div className="hidden md:block">
         <TopBar
@@ -893,18 +893,20 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           className={`flex-1 min-h-0 flex flex-col ${isCollapsed ? 'md:ml-[64px]' : 'md:ml-[256px]'
             }`}
         >
-          <div className={`${needsFullHeight ? `h-full flex flex-col flex-1 min-h-0 ${needsNoTopPadding ? '' : 'pt-2'} md:pt-0 ${isFullScreenMobile ? 'pb-0' : 'pb-[calc(80px+env(safe-area-inset-bottom))]'} md:pb-0` : 'pt-4 md:pt-6 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-6'}`}>
+          <div className={`${needsFullHeight ? `h-full flex flex-col flex-1 min-h-0 ${needsNoTopPadding ? '' : 'pt-2'} md:pt-0 pb-0 md:pb-0` : 'pt-4 md:pt-6 pb-0 md:pb-6'}`}>
             {needsFullWidth ? (
               // Full width mode for Applications, Jobs, Professional Profile, etc.
-              <div className={needsFullHeight ? "h-full flex flex-col flex-1 min-h-0 overflow-hidden" : ""}>{children}</div>
+              // Mobile: overflow-y-auto for scroll, Desktop: overflow-hidden
+              <div className={needsFullHeight ? "h-full flex flex-col flex-1 min-h-0 overflow-y-auto md:overflow-hidden" : "overflow-y-auto md:overflow-visible"}>{children}</div>
             ) : (
               // Normal mode with max-width for other pages
-              <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+              // Mobile: no padding (edge-to-edge), Desktop: padded with max-width
+              <div className="md:px-4 lg:px-8 md:max-w-7xl md:mx-auto w-full h-full overflow-y-auto md:overflow-visible">
                 {isPlainBackground ? (
                   children
                 ) : (
-                  /* Wrapper for main content with white background */
-                  <div className="md:bg-white md:dark:bg-[#2b2a2c] md:rounded-xl md:shadow-sm overflow-hidden">
+                  /* Wrapper for main content - no visual styling on mobile, card style on desktop */
+                  <div className="md:bg-white md:dark:bg-[#2b2a2c] md:rounded-xl md:shadow-sm md:overflow-hidden">
                     {children}
                   </div>
                 )}
