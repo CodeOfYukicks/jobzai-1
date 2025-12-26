@@ -1482,6 +1482,95 @@ export default function CampaignsAutoPage() {
               </AnimatePresence>
             </div>
 
+            {/* Mobile Header Overlay Controls - Absolute Bottom of Cover */}
+            <div className="md:hidden absolute bottom-0 left-0 right-0 p-4 z-40 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-12">
+              <div className="flex items-center gap-3">
+                {/* Campaign Switcher */}
+                <div className="relative flex-1 min-w-0">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setIsCampaignDropdownOpen(!isCampaignDropdownOpen); }}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-[#1a1a1a]/80 backdrop-blur-md border border-white/10 rounded-xl active:scale-[0.98] transition-all shadow-lg"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-violet-600 to-purple-700 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-900/20 ring-1 ring-white/10">
+                        <Zap className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="flex flex-col items-start min-w-0">
+                        <span className="text-[9px] uppercase tracking-wider text-white/60 font-medium">Campaign</span>
+                        <span className="text-[13px] font-bold text-white truncate max-w-[140px] leading-tight">
+                          {selectedCampaign?.name || 'Select Campaign'}
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${isCampaignDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  <AnimatePresence>
+                    {isCampaignDropdownOpen && (
+                      <>
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          onClick={(e) => { e.stopPropagation(); setIsCampaignDropdownOpen(false); }}
+                          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden max-h-[60vh] overflow-y-auto"
+                        >
+                          {campaigns.map((campaign, index) => (
+                            <button
+                              key={campaign.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedCampaignId(campaign.id);
+                                setIsCampaignDropdownOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between p-3 border-b border-white/5 last:border-0 text-left transition-colors ${selectedCampaign?.id === campaign.id ? 'bg-white/5' : 'hover:bg-white/5'}`}
+                            >
+                              <div className="flex-1 min-w-0 pr-2">
+                                <div className={`text-sm font-semibold truncate ${selectedCampaign?.id === campaign.id ? 'text-violet-400' : 'text-gray-200'}`}>
+                                  {campaign.name || `Campaign ${index + 1}`}
+                                </div>
+                                <div className="text-[10px] text-gray-500 mt-0.5 truncate">
+                                  {campaign.stats?.contactsFound || 0} contacts • {campaign.emailGenerationMode || 'Auto'}
+                                </div>
+                              </div>
+                              {selectedCampaign?.id === campaign.id && <Check className="w-4 h-4 text-violet-400 flex-shrink-0" />}
+                            </button>
+                          ))}
+                          <div className="p-2 bg-white/5">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsCampaignDropdownOpen(false);
+                                handleNewCampaignClick();
+                              }}
+                              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-violet-300 bg-violet-500/20 hover:bg-violet-500/30 rounded-lg transition-colors border border-violet-500/20"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Create New Campaign
+                            </button>
+                          </div>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* New Campaign Button */}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => { e.stopPropagation(); handleNewCampaignClick(); }}
+                  className="flex-shrink-0 flex items-center justify-center w-[52px] h-[52px] bg-[#b7e219] rounded-xl shadow-lg border border-[#9fc015] active:bg-[#a5cb17] ring-1 ring-white/10"
+                >
+                  <Plus className="w-6 h-6 text-gray-900" />
+                </motion.button>
+              </div>
+            </div>
+
             {/* Header Content - Hidden on Mobile */}
             <div className="hidden md:flex relative z-10 px-4 sm:px-6 pt-6 pb-4 flex-col gap-4">
               <motion.div
@@ -1796,9 +1885,9 @@ export default function CampaignsAutoPage() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-visible bg-white dark:bg-[#1a1a1a] px-0 pt-4 pb-6">
-          {/* Mobile Header Controls (Campaign Switcher & New Campaign) */}
-          <div className="md:hidden px-4 pb-4 flex items-center justify-between gap-3">
+        <div className="flex-1 flex flex-col min-w-0 overflow-visible bg-white dark:bg-[#1a1a1a] px-0 pt-0 pb-6">
+          {/* Mobile Header Controls (Campaign Switcher & New Campaign) - REMOVED/HIDDEN */}
+          <div className="hidden">
             {/* Campaign Selector */}
             <div className="relative flex-1 min-w-0 z-30">
               <button
@@ -1895,34 +1984,27 @@ export default function CampaignsAutoPage() {
           {/* Mobile Stats & Search Section */}
           <div className="md:hidden flex flex-col gap-4 p-4 pb-2">
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gray-50 dark:bg-white/[0.05] p-3 rounded-xl border border-gray-100 dark:border-white/[0.05]">
-                <div className="flex items-center gap-2 mb-1">
-                  <Users className="w-3.5 h-3.5 text-gray-500" />
-                  <span className="text-xs font-medium text-gray-500">Contacts</span>
-                </div>
-                <span className="text-xl font-bold text-gray-900 dark:text-white">{stats.contacts}</span>
+            {/* Compact Stats Row - Single Line */}
+            <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 scroll-smooth">
+              {/* Contacts */}
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 dark:bg-[#252525] border border-gray-100 dark:border-white/[0.05] rounded-xl flex-shrink-0 shadow-sm">
+                <Users className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <span className="text-sm font-bold text-gray-900 dark:text-white">{stats.contactsFound || stats.contacts}</span>
               </div>
-              <div className="bg-amber-50 dark:bg-amber-500/10 p-3 rounded-xl border border-amber-100 dark:border-amber-500/20">
-                <div className="flex items-center gap-2 mb-1">
-                  <Send className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Sent</span>
-                </div>
-                <span className="text-xl font-bold text-amber-700 dark:text-amber-300">{stats.sent}</span>
+              {/* Sent */}
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/10 rounded-xl flex-shrink-0 shadow-sm">
+                <Send className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span className="text-sm font-bold text-amber-900 dark:text-amber-100">{stats.emailsSent || stats.sent}</span>
               </div>
-              <div className="bg-blue-50 dark:bg-blue-500/10 p-3 rounded-xl border border-blue-100 dark:border-blue-500/20">
-                <div className="flex items-center gap-2 mb-1">
-                  <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Opened</span>
-                </div>
-                <span className="text-xl font-bold text-blue-700 dark:text-blue-300">{stats.opened}</span>
+              {/* Opened */}
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/10 rounded-xl flex-shrink-0 shadow-sm">
+                <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm font-bold text-blue-900 dark:text-blue-100">{stats.opened}</span>
               </div>
-              <div className="bg-emerald-50 dark:bg-emerald-500/10 p-3 rounded-xl border border-emerald-100 dark:border-emerald-500/20">
-                <div className="flex items-center gap-2 mb-1">
-                  <Reply className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Replied</span>
-                </div>
-                <span className="text-xl font-bold text-emerald-700 dark:text-emerald-300">{stats.replied}</span>
+              {/* Replied */}
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/10 rounded-xl flex-shrink-0 shadow-sm">
+                <Reply className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-sm font-bold text-emerald-900 dark:text-emerald-100">{stats.replied}</span>
               </div>
             </div>
 
