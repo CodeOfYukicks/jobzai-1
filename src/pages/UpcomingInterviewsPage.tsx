@@ -20,10 +20,11 @@ import {
   History,
   TrendingUp,
   Filter,
-  Image,
+  Image as ImageIcon,
   Camera,
   Loader2,
-  X
+  X,
+  ArrowUpDown
 } from 'lucide-react';
 import InterviewCard from '../components/interview/InterviewCard';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -621,7 +622,7 @@ END:VCALENDAR`;
           onMouseLeave={() => setIsHoveringCover(false)}
         >
           {/* Cover Photo Area - Height adjusted to contain all header elements */}
-          <div className={`relative w-full transition-all duration-300 ease-in-out ${coverPhoto ? 'h-auto min-h-[200px] sm:min-h-[220px]' : 'h-auto min-h-[150px] sm:min-h-[170px]'}`}>
+          <div className={`relative w-full transition-all duration-300 ease-in-out ${coverPhoto ? 'h-auto min-h-[160px] sm:min-h-[180px]' : 'h-auto min-h-[120px] sm:min-h-[140px]'}`}>
             {/* Cover Background */}
             {coverPhoto ? (
               <div className="absolute inset-0 w-full h-full overflow-hidden">
@@ -663,7 +664,7 @@ END:VCALENDAR`;
                           border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-sm transition-all duration-200
                           hover:shadow-md group"
                       >
-                        <Image className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+                        <ImageIcon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
                         <span>Add cover</span>
                       </button>
                     ) : (
@@ -673,7 +674,7 @@ END:VCALENDAR`;
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
                             hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
                         >
-                          <Image className="w-3.5 h-3.5" />
+                          <ImageIcon className="w-3.5 h-3.5" />
                           Change cover
                         </button>
 
@@ -710,14 +711,16 @@ END:VCALENDAR`;
               </AnimatePresence>
             </div>
 
-            {/* All Header Content - Positioned directly on cover */}
-            <div className="relative z-10 px-4 sm:px-6 pt-4 pb-4 flex flex-col gap-3">
+            {/* All Header Content - Positioned directly on cover (Desktop Only) */}
+            <div className="hidden md:flex relative z-10 px-4 sm:px-6 pt-4 pb-4 flex-col gap-3">
+
+
               {/* Title Row */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="flex items-center justify-between mb-2"
+                className="hidden md:flex items-center justify-between mb-2"
               >
                 {/* Title left */}
                 <div>
@@ -739,7 +742,7 @@ END:VCALENDAR`;
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="flex items-center gap-3 mb-2">
+                className="hidden md:flex items-center gap-3 mb-2">
                 {[
                   { label: 'Total', count: allInterviews.length, color: 'gray', icon: Calendar },
                   { label: 'Upcoming', count: getUpcomingInterviews().length, color: 'blue', icon: TrendingUp },
@@ -885,8 +888,69 @@ END:VCALENDAR`;
           </div>
         </div>
 
+        {/* Mobile Mobile Controls Section (Stats + Filters) - Below Cover */}
+        <div className="md:hidden flex flex-col gap-4 px-4 py-4 bg-white dark:bg-[#1a1a1a] border-b border-gray-100 dark:border-[#333]">
+          {/* Interactive Stats Row -> Acts as Period Filter */}
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              onClick={() => setFilterPeriod('all')}
+              className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${filterPeriod === 'all'
+                ? 'bg-gray-900 text-white border-gray-900 dark:bg-white dark:text-gray-900 dark:border-white shadow-md transform scale-[1.02]'
+                : 'bg-gray-50 text-gray-600 border-gray-100 dark:bg-[#252525] dark:text-gray-400 dark:border-white/[0.05]'
+                }`}
+            >
+              <div className="text-xl font-bold mb-0.5">{allInterviews.length}</div>
+              <div className="text-[10px] font-medium opacity-80 uppercase tracking-wider">Total</div>
+            </button>
+            <button
+              onClick={() => setFilterPeriod('upcoming')}
+              className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${filterPeriod === 'upcoming'
+                ? 'bg-[#635BFF] text-white border-[#635BFF] shadow-md shadow-indigo-500/20 transform scale-[1.02]'
+                : 'bg-gray-50 text-gray-600 border-gray-100 dark:bg-[#252525] dark:text-gray-400 dark:border-white/[0.05]'
+                }`}
+            >
+              <div className="text-xl font-bold mb-0.5">{getUpcomingInterviews().length}</div>
+              <div className="text-[10px] font-medium opacity-80 uppercase tracking-wider">Upcoming</div>
+            </button>
+            <button
+              onClick={() => setFilterPeriod('past')}
+              className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${filterPeriod === 'past'
+                ? 'bg-gray-800 text-white border-gray-800 dark:bg-gray-700 dark:border-gray-600 shadow-md transform scale-[1.02]'
+                : 'bg-gray-50 text-gray-600 border-gray-100 dark:bg-[#252525] dark:text-gray-400 dark:border-white/[0.05]'
+                }`}
+            >
+              <div className="text-xl font-bold mb-0.5">{getPastInterviews().length}</div>
+              <div className="text-[10px] font-medium opacity-80 uppercase tracking-wider">Past</div>
+            </button>
+          </div>
+
+          {/* Filters Row - Horizontal Scroll */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-[#252525] text-gray-600 dark:text-gray-400 border border-transparent mr-1"
+            >
+              <ArrowUpDown className="w-4 h-4" />
+            </button>
+            <div className="w-px h-6 bg-gray-200 dark:bg-[#333] flex-shrink-0 mx-1" />
+
+            {['all', 'technical', 'hr', 'manager', 'final'].map((type) => (
+              <button
+                key={type}
+                onClick={() => setFilterType(type)}
+                className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors border ${filterType === type
+                  ? 'bg-gray-900 text-white border-gray-900 dark:bg-white dark:text-gray-900 dark:border-white'
+                  : 'bg-white text-gray-600 border-gray-200 dark:bg-[#252525] dark:text-gray-400 dark:border-[#333]'
+                  }`}
+              >
+                {type === 'all' ? 'All Types' : type.charAt(0).toUpperCase() + type.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Main Content Area */}
-        <div className="px-4 pt-6 pb-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
+        <div className="px-4 pt-6 pb-6 flex flex-col">
           {isLoading ? (
             <motion.div
               initial={{ opacity: 0 }}
