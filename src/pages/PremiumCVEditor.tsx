@@ -1980,16 +1980,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
           />
         </MobileBottomSheet>
 
-        {/* Mobile Export FAB */}
-        <motion.button
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.3, type: 'spring', stiffness: 300 }}
-          onClick={() => setIsExportModalOpen(true)}
-          className="lg:hidden fixed bottom-[140px] right-4 z-30 w-14 h-14 rounded-full bg-[#b7e219] hover:bg-[#a5cb17] active:bg-[#9fc015] shadow-lg shadow-[#b7e219]/30 flex items-center justify-center transition-colors"
-        >
-          <Download className="w-6 h-6 text-gray-900" />
-        </motion.button>
+
       </div >
     </AuthLayout >
   );

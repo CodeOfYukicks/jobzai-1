@@ -883,7 +883,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           className={`flex-1 min-h-0 flex flex-col ${isCollapsed ? 'md:ml-[64px]' : 'md:ml-[256px]'
             }`}
         >
-          <div className={`${needsFullHeight ? `h-full flex flex-col flex-1 min-h-0 ${needsNoTopPadding ? '' : 'pt-2'} md:pt-0 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-0` : 'pt-4 md:pt-6 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-6'}`}>
+          <div className={`${needsFullHeight ? `h-full flex flex-col flex-1 min-h-0 ${needsNoTopPadding ? '' : 'pt-2'} md:pt-0 ${isFullScreenMobile ? 'pb-0' : 'pb-[calc(80px+env(safe-area-inset-bottom))]'} md:pb-0` : 'pt-4 md:pt-6 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-6'}`}>
             {needsFullWidth ? (
               // Full width mode for Applications, Jobs, Professional Profile, etc.
               <div className={needsFullHeight ? "h-full flex flex-col flex-1 min-h-0 overflow-hidden" : ""}>{children}</div>
