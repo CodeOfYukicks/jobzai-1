@@ -1215,9 +1215,10 @@ export default function CampaignsAutoPage() {
 
   // Calculate stats
   const stats = useMemo(() => {
-    if (!selectedCampaign) return { contacts: 0, sent: 0, opened: 0, replied: 0 };
+    if (!selectedCampaign) return { contacts: 0, generated: 0, sent: 0, opened: 0, replied: 0 };
     return {
       contacts: recipients.length,
+      generated: recipients.filter(r => r.emailGenerated).length,
       sent: recipients.filter(r => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length,
       opened: recipients.filter(r => r.status === 'opened' || r.status === 'replied').length,
       replied: recipients.filter(r => r.status === 'replied').length
@@ -1825,7 +1826,7 @@ export default function CampaignsAutoPage() {
                       : 'bg-white dark:bg-white/[0.08] border border-gray-200/60 dark:border-white/[0.12]'
                       } rounded-lg shadow-sm dark:shadow-none`}>
                       <Users className={`w-3.5 h-3.5 ${coverPhoto ? 'text-gray-600 dark:text-gray-300' : 'text-gray-600 dark:text-gray-300'}`} />
-                      <span className={`text-base font-bold tabular-nums ${coverPhoto ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}>{stats.contactsFound}</span>
+                      <span className={`text-base font-bold tabular-nums ${coverPhoto ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}>{stats.contacts}</span>
                       <span className={`text-[10px] uppercase tracking-wider ${coverPhoto ? 'text-gray-600 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>Contacts</span>
                     </div>
 
@@ -1835,7 +1836,7 @@ export default function CampaignsAutoPage() {
                       : 'bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-500/[0.15] dark:to-indigo-500/[0.12] border border-purple-200/60 dark:border-purple-400/30'
                       } rounded-lg shadow-sm dark:shadow-none`}>
                       <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-300" />
-                      <span className="text-base font-bold text-purple-700 dark:text-purple-200 tabular-nums">{stats.emailsGenerated}</span>
+                      <span className="text-base font-bold text-purple-700 dark:text-purple-200 tabular-nums">{stats.generated}</span>
                       <span className="text-[10px] text-purple-600/70 dark:text-purple-300/80 uppercase tracking-wider">Generated</span>
                     </div>
 
@@ -1845,7 +1846,7 @@ export default function CampaignsAutoPage() {
                       : 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-500/[0.15] dark:to-orange-500/[0.12] border border-amber-200/60 dark:border-amber-400/30'
                       } rounded-lg shadow-sm dark:shadow-none`}>
                       <Send className="w-3.5 h-3.5 text-amber-600 dark:text-amber-300" />
-                      <span className="text-base font-bold text-amber-700 dark:text-amber-200 tabular-nums">{stats.emailsSent}</span>
+                      <span className="text-base font-bold text-amber-700 dark:text-amber-200 tabular-nums">{stats.sent}</span>
                       <span className="text-[10px] text-amber-600/70 dark:text-amber-300/80 uppercase tracking-wider">Sent</span>
                     </div>
 
@@ -1989,12 +1990,17 @@ export default function CampaignsAutoPage() {
               {/* Contacts */}
               <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 dark:bg-[#252525] border border-gray-100 dark:border-white/[0.05] rounded-xl flex-shrink-0 shadow-sm">
                 <Users className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                <span className="text-sm font-bold text-gray-900 dark:text-white">{stats.contactsFound || stats.contacts}</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-white">{stats.contacts}</span>
+              </div>
+              {/* Generated */}
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/10 rounded-xl flex-shrink-0 shadow-sm">
+                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <span className="text-sm font-bold text-purple-900 dark:text-purple-100">{stats.generated}</span>
               </div>
               {/* Sent */}
               <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/10 rounded-xl flex-shrink-0 shadow-sm">
                 <Send className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                <span className="text-sm font-bold text-amber-900 dark:text-amber-100">{stats.emailsSent || stats.sent}</span>
+                <span className="text-sm font-bold text-amber-900 dark:text-amber-100">{stats.sent}</span>
               </div>
               {/* Opened */}
               <div className="flex items-center gap-2 px-3 py-2.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/10 rounded-xl flex-shrink-0 shadow-sm">
@@ -2006,6 +2012,33 @@ export default function CampaignsAutoPage() {
                 <Reply className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span className="text-sm font-bold text-emerald-900 dark:text-emerald-100">{stats.replied}</span>
               </div>
+
+              {/* Vertical Divider */}
+              <div className="w-px h-8 bg-gray-200 dark:bg-white/10 mx-1 flex-shrink-0" />
+
+              {/* Action Buttons */}
+              <button
+                onClick={(e) => { e.stopPropagation(); handleGenerateEmails(); }}
+                disabled={isGeneratingEmails || recipients.filter(r => !r.emailGenerated).length === 0}
+                className={`flex items-center justify-center w-[42px] h-[42px] rounded-xl border flex-shrink-0 transition-colors
+                  ${recipients.filter(r => !r.emailGenerated).length > 0
+                    ? 'border-purple-200 dark:border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 active:bg-purple-100 dark:active:bg-purple-500/20'
+                    : 'border-gray-100 dark:border-white/5 text-gray-300 dark:text-gray-600 bg-transparent cursor-not-allowed'
+                  }`}
+              >
+                {isGeneratingEmails ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleSendEmails(); }}
+                disabled={isSendingEmails || recipients.filter(r => r.status === 'email_generated').length === 0}
+                className={`flex items-center justify-center w-[42px] h-[42px] rounded-xl border flex-shrink-0 transition-colors
+                  ${recipients.filter(r => r.status === 'email_generated').length > 0
+                    ? 'border-emerald-200 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 active:bg-emerald-100 dark:active:bg-emerald-500/20'
+                    : 'border-gray-100 dark:border-white/5 text-gray-300 dark:text-gray-600 bg-transparent cursor-not-allowed'
+                  }`}
+              >
+                {isSendingEmails ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 ml-0.5" />}
+              </button>
             </div>
 
             {/* Mobile Search & Filter */}

@@ -12,7 +12,7 @@ import {
   Building2, CalendarDays as CalendarIcon, AlignLeft, Info,
   SearchCheck, LineChart, TrendingUp, TrendingDown, Activity, Palette, UserRound,
   Search, Filter, LayoutGrid, List, ArrowUpDown, Link2, Wand2, Loader2,
-  Eye, Zap, MoreHorizontal, Copy, MapPin, Image as ImageIcon, Camera, SlidersHorizontal
+  Eye, Zap, MoreHorizontal, Copy, MapPin, Image as ImageIcon, Camera, SlidersHorizontal, Plus
 } from 'lucide-react';
 import { Dialog, Disclosure, Transition } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
@@ -8069,7 +8069,7 @@ URL to visit: ${jobUrl}
           onMouseLeave={() => setIsHoveringCover(false)}
         >
           {/* Cover Photo Area - Height adjusted to contain all header elements */}
-          <div className={`relative w-full transition-all duration-300 ease-in-out ${coverPhoto ? 'h-auto min-h-[100px] sm:min-h-[160px]' : 'h-auto min-h-[80px] sm:min-h-[120px]'}`}>
+          <div className={`relative w-full transition-all duration-300 ease-in-out ${coverPhoto ? 'h-auto min-h-[160px] sm:min-h-[180px]' : 'h-auto min-h-[120px] sm:min-h-[140px]'}`}>
             {/* Cover Background */}
             {coverPhoto ? (
               <div className="absolute inset-0 w-full h-full overflow-hidden">
@@ -8157,9 +8157,36 @@ URL to visit: ${jobUrl}
                 )}
               </AnimatePresence>
             </div>
+            {/* Mobile Header Overlay Controls - Absolute Bottom of Cover */}
+            <div className="md:hidden absolute bottom-0 left-0 right-0 p-4 z-40 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-12 pointer-events-none">
+              <div className="flex items-center justify-end gap-3 pointer-events-auto">
+                {/* New Analysis Button (Mobile FAB) */}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setFormData({
+                      jobTitle: '',
+                      company: '',
+                      jobDescription: '',
+                      jobUrl: '',
+                    });
+                    setCvFile(null);
+                    setCurrentStep(1);
+                    setJobInputMode('ai');
+                    setSelectedSavedJob(null);
+                    setJobSearchQuery('');
+                    setShowJobDropdown(false);
+                    setIsModalOpen(true);
+                  }}
+                  className="flex-shrink-0 flex items-center justify-center w-[52px] h-[52px] bg-[#b7e219] rounded-xl shadow-lg border border-[#9fc015] active:bg-[#a5cb17] ring-1 ring-white/10"
+                >
+                  <Plus className="w-6 h-6 text-gray-900" />
+                </motion.button>
+              </div>
+            </div>
 
-            {/* All Header Content - Positioned directly on cover */}
-            <div className="relative z-10 px-4 sm:px-6 pt-3 sm:pt-6 pb-2 sm:pb-3 flex flex-col gap-1 sm:gap-2">
+            {/* All Header Content - Positioned directly on cover - Hidden on Mobile */}
+            <div className="hidden md:flex relative z-10 px-4 sm:px-6 pt-3 sm:pt-6 pb-2 sm:pb-3 flex-col gap-1 sm:gap-2">
               {/* Title and New Analysis Button Row */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -8179,49 +8206,34 @@ URL to visit: ${jobUrl}
                     }`}>
                     AI-powered resume analysis for smarter applications
                   </p>
-                  {/* Usage Quota Indicator - Mobile: Compact circular, Desktop: Full */}
+                  {/* Usage Quota Indicator - Desktop Only */}
                   {!isLoadingLimits && (
-                    <>
-                      {/* Mobile - Compact circular progress */}
-                      <div className="sm:hidden mt-2">
-                        <CircularMiniProgress
-                          value={getUsageStats('resumeAnalyses').used}
-                          max={getUsageStats('resumeAnalyses').limit}
-                          size={40}
-                          strokeWidth={3.5}
-                          label="Analyses"
-                          creditCost={getUsageStats('resumeAnalyses').remaining === 0 ? 25 : undefined}
-                          className={coverPhoto ? 'bg-white/80 dark:bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full' : 'bg-gray-100/80 dark:bg-white/5 px-3 py-1.5 rounded-full'}
+                    <div className="inline-flex items-center gap-3 px-4 py-2 mt-3 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                          Analyses used:
+                        </span>
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">
+                          {getUsageStats('resumeAnalyses').used}/{getUsageStats('resumeAnalyses').limit}
+                        </span>
+                      </div>
+                      <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${getUsageStats('resumeAnalyses').percentage >= 100
+                            ? 'bg-red-500'
+                            : getUsageStats('resumeAnalyses').percentage >= 80
+                              ? 'bg-amber-500'
+                              : 'bg-[#635bff]'
+                            }`}
+                          style={{ width: `${Math.min(100, getUsageStats('resumeAnalyses').percentage)}%` }}
                         />
                       </div>
-                      {/* Desktop - Full indicator */}
-                      <div className="hidden sm:inline-flex items-center gap-3 px-4 py-2 mt-3 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                            Analyses used:
-                          </span>
-                          <span className="text-sm font-bold text-gray-900 dark:text-white">
-                            {getUsageStats('resumeAnalyses').used}/{getUsageStats('resumeAnalyses').limit}
-                          </span>
-                        </div>
-                        <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${getUsageStats('resumeAnalyses').percentage >= 100
-                              ? 'bg-red-500'
-                              : getUsageStats('resumeAnalyses').percentage >= 80
-                                ? 'bg-amber-500'
-                                : 'bg-[#635bff]'
-                              }`}
-                            style={{ width: `${Math.min(100, getUsageStats('resumeAnalyses').percentage)}%` }}
-                          />
-                        </div>
-                        {getUsageStats('resumeAnalyses').remaining === 0 && (
-                          <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                            25 credits/analysis
-                          </span>
-                        )}
-                      </div>
-                    </>
+                      {getUsageStats('resumeAnalyses').remaining === 0 && (
+                        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                          25 credits/analysis
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
 
