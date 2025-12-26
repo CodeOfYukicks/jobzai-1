@@ -15,7 +15,7 @@ import TemplatesTab from './tabs/TemplatesTab';
 import AIReviewTab from './tabs/AIReviewTab';
 import { Palette } from 'lucide-react';
 
-type TabType = 'ai-review' | 'editor' | 'templates' | 'layout-style';
+export type TabType = 'ai-review' | 'editor' | 'templates' | 'layout-style';
 
 interface EditorPanelProps {
   cvData: CVData;
@@ -54,6 +54,9 @@ interface EditorPanelProps {
   // Panel collapse
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  // External Tab Control
+  activeTab?: TabType;
+  onTabChange?: (tab: TabType) => void;
 }
 
 const sectionIcons: Record<string, React.ReactNode> = {
@@ -97,9 +100,17 @@ export default function EditorPanel({
   isAnalyzing,
   onReanalyze,
   isCollapsed,
-  onToggleCollapse
+  onToggleCollapse,
+  activeTab: propsActiveTab,
+  onTabChange
 }: EditorPanelProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('editor');
+  const [internalActiveTab, setInternalActiveTab] = useState<TabType>('editor');
+  const activeTab = propsActiveTab || internalActiveTab;
+
+  const setActiveTab = (tab: TabType) => {
+    setInternalActiveTab(tab);
+    onTabChange?.(tab);
+  };
   const [expandedSection, setExpandedSection] = useState<string | null>(null); // All sections closed by default
   const [searchQuery, setSearchQuery] = useState('');
   const [externalItemId, setExternalItemId] = useState<string | null>(null);
@@ -267,8 +278,8 @@ export default function EditorPanel({
   // Full version
   return (
     <div className="h-full flex flex-col overflow-hidden bg-white dark:bg-[#242325]">
-      {/* Premium Tabs Navigation - Scrollable on mobile */}
-      <div className="flex-shrink-0 border-b border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325]">
+      {/* Premium Tabs Navigation - Hidden on mobile, handled by bottom sheet */}
+      <div className="hidden lg:block flex-shrink-0 border-b border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325]">
         <div className="flex items-center overflow-x-auto scrollbar-hide snap-x snap-mandatory">
           {/* Tabs Container */}
           <div className="flex items-center px-2 sm:px-4 py-2 gap-1 sm:gap-0">

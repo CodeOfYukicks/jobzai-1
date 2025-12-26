@@ -433,7 +433,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
   // Pages that need no top padding on mobile (content flush with navbar)
   const needsNoTopPadding = location.pathname === '/cv-analysis' ||
-    (location.pathname.startsWith('/ats-analysis/') && !location.pathname.endsWith('/cv-editor'));
+    location.pathname.startsWith('/ats-analysis/');
+
+  // Pages where we should hide the mobile global elements (Top Bar & Bottom Nav)
+  // This gives a true native "full screen" app feel for specific editors
+  const isFullScreenMobile = (location.pathname.startsWith('/ats-analysis/') && location.pathname.endsWith('/cv-editor'));
 
   // Sidebar width values
   const sidebarExpandedWidth = 256; // 16rem = 256px
@@ -811,57 +815,59 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       </aside>
 
       {/* Mobile Top App Bar */}
-      <div
-        className={`sticky top-0 z-30 md:hidden transition-shadow ${hasScrolled ? 'shadow-sm' : ''
-          } bg-white/75 dark:bg-[#2b2a2c]/70 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md border-b border-gray-200/60 dark:border-[#3d3c3e]/60`}
-        style={{ paddingTop: 'max(env(safe-area-inset-top), 0px)' }}
-      >
-        <div className="flex items-center justify-between h-[56px] px-4">
-          <div className="flex items-center gap-2">
-            <button
-              aria-label="Go back"
-              onClick={() => (canGoBack ? navigate(-1) : navigate('/'))}
-              className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] active:scale-95 transition"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
+      {!isFullScreenMobile && (
+        <div
+          className={`sticky top-0 z-30 md:hidden transition-shadow ${hasScrolled ? 'shadow-sm' : ''
+            } bg-white/75 dark:bg-[#2b2a2c]/70 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md border-b border-gray-200/60 dark:border-[#3d3c3e]/60`}
+          style={{ paddingTop: 'max(env(safe-area-inset-top), 0px)' }}
+        >
+          <div className="flex items-center justify-between h-[56px] px-4">
             <div className="flex items-center gap-2">
-              {(isDarkMode ? logoUrlDark : logoUrlLight) && (
-                <img
-                  src={isDarkMode ? logoUrlDark : logoUrlLight}
-                  alt="Logo"
-                  className="h-7 w-auto opacity-90 transition-opacity duration-300"
-                />
-              )}
-              <span className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">
-                {currentTitle}
-              </span>
+              <button
+                aria-label="Go back"
+                onClick={() => (canGoBack ? navigate(-1) : navigate('/'))}
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] active:scale-95 transition"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <div className="flex items-center gap-2">
+                {(isDarkMode ? logoUrlDark : logoUrlLight) && (
+                  <img
+                    src={isDarkMode ? logoUrlDark : logoUrlLight}
+                    alt="Logo"
+                    className="h-7 w-auto opacity-90 transition-opacity duration-300"
+                  />
+                )}
+                <span className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">
+                  {currentTitle}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                aria-label="Search"
+                onClick={globalSearch.openSearch}
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] active:scale-95 transition"
+              >
+                <Search className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => navigate('/settings')}
+                aria-label="Open profile"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full overflow-hidden ring-1 ring-gray-200/70 dark:ring-[#3d3c3e]/60 bg-gray-100/50 dark:bg-[#3d3c3e]/60 active:scale-95 transition"
+              >
+                {profileAvatarType === 'avatar' && profileAvatarConfig.hair ? (
+                  <ProfileAvatar config={profileAvatarConfig} size={36} className="h-full w-full" />
+                ) : profilePhoto ? (
+                  <img src={profilePhoto} alt={userFirstName} className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                )}
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              aria-label="Search"
-              onClick={globalSearch.openSearch}
-              className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] active:scale-95 transition"
-            >
-              <Search className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => navigate('/settings')}
-              aria-label="Open profile"
-              className="inline-flex items-center justify-center h-9 w-9 rounded-full overflow-hidden ring-1 ring-gray-200/70 dark:ring-[#3d3c3e]/60 bg-gray-100/50 dark:bg-[#3d3c3e]/60 active:scale-95 transition"
-            >
-              {profileAvatarType === 'avatar' && profileAvatarConfig.hair ? (
-                <ProfileAvatar config={profileAvatarConfig} size={36} className="h-full w-full" />
-              ) : profilePhoto ? (
-                <img src={profilePhoto} alt={userFirstName} className="h-full w-full object-cover" />
-              ) : (
-                <User className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-              )}
-            </button>
-          </div>
         </div>
-      </div>
+      )}
 
       {/* Main content */}
       <div
@@ -901,7 +907,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       {/* Mobile Bottom Navigation - hidden on pages with full-screen modes */}
       {!location.pathname.startsWith('/mock-interview') &&
         !location.pathname.startsWith('/notes/') &&
-        !location.pathname.startsWith('/whiteboard/') && (
+        !location.pathname.startsWith('/whiteboard/') &&
+        !isFullScreenMobile && (
           <MobileNavigation />
         )}
 

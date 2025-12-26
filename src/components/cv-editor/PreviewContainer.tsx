@@ -151,7 +151,7 @@ export default function PreviewContainer({
   const effectiveZoom = isMobile ? mobileZoom : zoom;
 
   return (
-    <div ref={containerRef} className="h-full flex flex-col bg-gray-100 dark:bg-[#333234]">
+    <div ref={containerRef} className="h-full flex flex-col bg-gray-100 dark:bg-[#333234] relative">
       {/* Zoom Controls Bar - Hidden on mobile */}
       {!isMobile && (
         <div className="flex-shrink-0 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e]">
@@ -255,7 +255,7 @@ export default function PreviewContainer({
       )}
 
       {/* Preview Area - Less padding on mobile */}
-      <div className={`flex-1 min-h-0 overflow-auto ${isMobile ? 'p-4' : 'p-8'}`}>
+      <div className={`flex-1 min-h-0 overflow-auto ${isMobile ? 'p-4' : 'p-8'} flex flex-col items-center`}>
         <div className="flex justify-center" style={{ minWidth: 'fit-content' }}>
           <motion.div
             animate={{ scale: effectiveZoom / 100 }}
@@ -352,9 +352,10 @@ export default function PreviewContainer({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50"
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="fixed bottom-24 lg:absolute lg:bottom-8 left-0 right-0 z-50 px-4 flex justify-center pointer-events-none"
           >
-            <div className="flex items-center gap-3 px-6 py-3 bg-red-500 text-white rounded-full shadow-2xl backdrop-blur-sm border border-red-400">
+            <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 sm:py-3 bg-red-500 text-white rounded-full shadow-2xl backdrop-blur-sm border border-red-400 pointer-events-auto max-w-full">
               <AlertTriangle className="w-5 h-5 flex-shrink-0" />
               <span className="font-medium text-sm whitespace-nowrap">
                 Content exceeds A4 page

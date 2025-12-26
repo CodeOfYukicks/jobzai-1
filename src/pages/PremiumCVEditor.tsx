@@ -2,14 +2,14 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Download, Save, Eye, EyeOff, X, ZoomIn, ZoomOut, RefreshCw, FolderOpen, Languages, Loader2, GitCompare, MoreHorizontal, ChevronLeft, Sparkles, Palette, Settings, FileText
+  Download, Save, Eye, X, ZoomIn, ZoomOut, RefreshCw, FolderOpen, Languages, Loader2, GitCompare, MoreHorizontal, ChevronLeft, Sparkles, Palette, Settings, FileText
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { notify } from '@/lib/notify';
 import { getDoc, doc, updateDoc, serverTimestamp, collection, query, orderBy, getDocs, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
-import EditorPanel from '../components/cv-editor/EditorPanel';
+import EditorPanel, { TabType } from '../components/cv-editor/EditorPanel';
 import PreviewContainer from '../components/cv-editor/PreviewContainer';
 import AICompanionPanel from '../components/cv-editor/AICompanionPanel';
 import CompanyHeader from '../components/cv-editor/CompanyHeader';
@@ -39,6 +39,7 @@ import SwissPhoto from '../components/cv-editor/templates/SwissPhoto';
 import CorporatePhoto from '../components/cv-editor/templates/CorporatePhoto';
 import ElegantSimple from '../components/cv-editor/templates/ElegantSimple';
 import { useAssistantPageData } from '../hooks/useAssistantPageData';
+import { CompanyLogo } from '../components/common/CompanyLogo';
 
 // Initial empty CV data structure
 const initialCVData: CVData = {
@@ -130,6 +131,7 @@ export default function PremiumCVEditor() {
 
   // Mobile menu state
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [editorTab, setEditorTab] = useState<TabType>('editor');
 
   // Click-to-edit from preview
   const [activeSectionTarget, setActiveSectionTarget] = useState<SectionClickTarget | null>(null);
@@ -1268,18 +1270,24 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
               <ChevronLeft className="w-5 h-5" />
             </button>
 
-            {/* Title - Dynamic */}
-            <h1 className="flex-1 text-center text-base font-semibold text-gray-900 dark:text-white truncate px-4">
-              {isResumeBuilder ? resumeName : (jobContext?.jobTitle || 'CV Editor')}
-            </h1>
+            {/* Title & Logo */}
+            <div className="flex items-center gap-3 flex-1 min-w-0 px-2">
+              {/* Logo */}
+              {/* Logo */}
+              {!isResumeBuilder && jobContext?.company && (
+                <CompanyLogo
+                  companyName={jobContext.company}
+                  className="w-8 h-8 rounded-lg"
+                  showInitials={true}
+                />
+              )}
 
-            {/* More Menu */}
-            <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 -mr-2 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
-            >
-              <MoreHorizontal className="w-5 h-5" />
-            </button>
+              <h1 className="text-base font-semibold text-gray-900 dark:text-white truncate text-left">
+                {isResumeBuilder ? resumeName : (jobContext?.jobTitle || 'CV Editor')}
+              </h1>
+            </div>
+
+            {/* More Menu - REMOVED (Moved to bottom nav) */}
           </div>
         </header>
 
@@ -1548,6 +1556,8 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                   onReanalyze={handleReanalyze}
                   isCollapsed={isLeftPanelCollapsed}
                   onToggleCollapse={() => setIsLeftPanelCollapsed(!isLeftPanelCollapsed)}
+                  activeTab={editorTab}
+                  onTabChange={setEditorTab}
                 />
               </div>
             </div>
@@ -1588,18 +1598,30 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                   className="lg:hidden fixed inset-0 z-40 bg-gray-100 dark:bg-[#333234] flex flex-col"
                 >
                   {/* Mobile Preview Header */}
-                  <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e] safe-area-top">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      CV Preview
-                    </span>
-                    <button
-                      onClick={() => setShowPreview(false)}
-                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
-                    >
-                      <EyeOff className="w-4 h-4" />
-                      <span>Close</span>
-                    </button>
-                  </div>
+                  {/* Mobile Preview Header */}
+                  <header className="flex-shrink-0 h-14 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e] flex items-center px-4 safe-area-top z-50">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <button
+                        onClick={() => setShowPreview(false)}
+                        className="-ml-2 p-2 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg text-gray-700 dark:text-gray-300 transition-colors"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+
+                      {/* Logo */}
+                      {!isResumeBuilder && jobContext?.company && (
+                        <CompanyLogo
+                          companyName={jobContext.company}
+                          className="w-8 h-8 rounded-lg"
+                          showInitials={true}
+                        />
+                      )}
+
+                      <h1 className="text-base font-semibold text-gray-900 dark:text-white truncate text-left">
+                        {isResumeBuilder ? resumeName : (jobContext?.jobTitle || 'CV Preview')}
+                      </h1>
+                    </div>
+                  </header>
 
                   {/* Preview Content */}
                   <div className="flex-1 min-h-0">
@@ -1616,14 +1638,51 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                       highlightTarget={highlightTarget}
                     />
                   </div>
+
+                  {/* Bottom Nav Spacer */}
+                  <div className="h-[60px] flex-shrink-0" />
+
+                  {/* Mobile Bottom Navigation Bar - Inside Preview Overlay */}
+                  <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#242325] border-t border-gray-200 dark:border-[#3d3c3e] safe-area-bottom">
+                    <div className="flex">
+                      <button
+                        onClick={() => setShowPreview(false)}
+                        className={`flex-1 flex flex-col items-center justify-center py-3 transition-colors text-gray-500 dark:text-gray-400`}
+                      >
+                        <svg className="w-5 h-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        <span className="text-xs font-medium">Editor</span>
+                      </button>
+
+                      <div className="w-px bg-gray-200 dark:bg-[#3d3c3e]" />
+                      <button
+                        onClick={() => setShowPreview(true)}
+                        className={`flex-1 flex flex-col items-center justify-center py-3 transition-colors text-gray-900 dark:text-white bg-gray-50 dark:bg-[#2b2a2c]`}
+                      >
+                        <Eye className="w-5 h-5 mb-1" />
+                        <span className="text-xs font-medium">Preview</span>
+                      </button>
+                      <div className="w-px bg-gray-200 dark:bg-[#3d3c3e]" />
+                      <button
+                        onClick={() => setIsMobileMenuOpen(true)}
+                        className="w-20 flex flex-col items-center justify-center py-3 transition-colors text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2b2a2c]"
+                      >
+                        <MoreHorizontal className="w-5 h-5 mb-1" />
+                        <span className="text-xs font-medium">Menu</span>
+                      </button>
+                    </div>
+                  </nav>
                 </motion.div>
               )}
             </AnimatePresence>
+
           </div>
         </main>
 
         {/* Mobile Bottom Navigation Bar - Editor/Preview Toggle */}
-        <nav className="lg:hidden fixed bottom-[68px] left-0 right-0 z-30 bg-white dark:bg-[#242325] border-t border-gray-200 dark:border-[#3d3c3e] safe-area-bottom">
+        {/* Mobile Bottom Navigation Bar - Editor/Preview Toggle */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-[#242325] border-t border-gray-200 dark:border-[#3d3c3e] safe-area-bottom">
           <div className="flex">
             <button
               onClick={() => setShowPreview(false)}
@@ -1647,6 +1706,14 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
             >
               <Eye className="w-5 h-5 mb-1" />
               <span className="text-xs font-medium">Preview</span>
+            </button>
+            <div className="w-px bg-gray-200 dark:bg-[#3d3c3e]" />
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="w-20 flex flex-col items-center justify-center py-3 transition-colors text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2b2a2c]"
+            >
+              <MoreHorizontal className="w-5 h-5 mb-1" />
+              <span className="text-xs font-medium">Menu</span>
             </button>
           </div>
         </nav>
@@ -1834,12 +1901,23 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
           title="Options"
         >
           <BottomSheetMenuItem
+            icon={<FileText className="w-5 h-5" />}
+            label="Content"
+            description="Edit resume sections"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              setEditorTab('editor');
+              setShowPreview(false);
+            }}
+          />
+          <BottomSheetMenuItem
             icon={<Sparkles className="w-5 h-5" />}
             label="AI Review"
             description="Get AI suggestions"
             onClick={() => {
               setIsMobileMenuOpen(false);
-              // Switch to AI Review tab in EditorPanel
+              setEditorTab('ai-review');
+              setShowPreview(false); // Switch to editor view
             }}
           />
           <BottomSheetMenuItem
@@ -1848,6 +1926,8 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
             description="Change CV template"
             onClick={() => {
               setIsMobileMenuOpen(false);
+              setEditorTab('templates');
+              setShowPreview(false);
             }}
           />
           <BottomSheetMenuItem
@@ -1856,6 +1936,8 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
             description="Font, colors, spacing"
             onClick={() => {
               setIsMobileMenuOpen(false);
+              setEditorTab('layout-style');
+              setShowPreview(false);
             }}
           />
           <BottomSheetDivider />
@@ -1908,7 +1990,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
         >
           <Download className="w-6 h-6 text-gray-900" />
         </motion.button>
-      </div>
-    </AuthLayout>
+      </div >
+    </AuthLayout >
   );
 }
