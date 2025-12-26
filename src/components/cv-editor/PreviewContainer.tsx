@@ -47,23 +47,43 @@ export default function PreviewContainer({
   const [fitToPageZoom, setFitToPageZoom] = useState(100);
   const [isOverflowing, setIsOverflowing] = useState(false);
   const [overflowAmount, setOverflowAmount] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileZoom, setMobileZoom] = useState(50);
 
-  // Calculate fit-to-width and fit-to-page zoom levels
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 1024; // lg breakpoint
+      setIsMobile(mobile);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Calculate fit-to-width zoom for mobile
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const containerWidth = containerRef.current.clientWidth - 80; // Account for padding
-    const containerHeight = containerRef.current.clientHeight - 80;
+    const containerWidth = containerRef.current.clientWidth - (isMobile ? 32 : 80); // Less padding on mobile
+    const containerHeight = containerRef.current.clientHeight - (isMobile ? 32 : 80);
 
-    // Fit to width
+    // Fit to width - calculate zoom to fit A4 width in container
     const widthZoom = Math.floor((containerWidth / A4_WIDTH_PX) * 100);
     setFitToWidthZoom(Math.min(widthZoom, 150));
+
+    // For mobile, auto-set zoom to fit width
+    if (isMobile) {
+      const autoZoom = Math.min(widthZoom, 80); // Cap at 80% for readability
+      setMobileZoom(Math.max(autoZoom, 35)); // Minimum 35%
+    }
 
     // Fit to page
     const heightZoom = Math.floor((containerHeight / A4_HEIGHT_PX) * 100);
     const pageZoom = Math.min(widthZoom, heightZoom);
     setFitToPageZoom(Math.min(pageZoom, 150));
-  }, []);
+  }, [isMobile]);
 
   // Detect A4 overflow with ResizeObserver
   useEffect(() => {
@@ -73,14 +93,14 @@ export default function PreviewContainer({
       for (const entry of entries) {
         const contentHeight = entry.target.scrollHeight;
         const overflow = contentHeight > A4_HEIGHT_PX;
-        
+
         setIsOverflowing(overflow);
         setOverflowAmount(overflow ? contentHeight - A4_HEIGHT_PX : 0);
       }
     });
 
     observer.observe(contentRef.current);
-    
+
     return () => observer.disconnect();
   }, [cvData, template, layoutSettings]);
 
@@ -115,7 +135,7 @@ export default function PreviewContainer({
     // For now, we'll use the existing zoom controls
     const currentZoom = zoom;
     const steps = Math.abs(preset - currentZoom) / 10;
-    
+
     if (preset > currentZoom) {
       for (let i = 0; i < steps; i++) {
         setTimeout(() => onZoomIn(), i * 50);
@@ -127,92 +147,118 @@ export default function PreviewContainer({
     }
   };
 
+  // Effective zoom - use mobile auto-zoom on mobile devices
+  const effectiveZoom = isMobile ? mobileZoom : zoom;
+
   return (
     <div ref={containerRef} className="h-full flex flex-col bg-gray-100 dark:bg-[#333234]">
-      {/* Zoom Controls Bar */}
-      <div className="flex-shrink-0 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e]">
-        <div className="px-4 py-3 flex items-center justify-between">
-          {/* Zoom Controls */}
-          <div className="flex items-center gap-2">
-            {/* Zoom Out */}
-            <button
-              onClick={onZoomOut}
-              disabled={zoom <= 50}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Zoom out (Ctrl -)"
-            >
-              <ZoomOut className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-            </button>
+      {/* Zoom Controls Bar - Hidden on mobile */}
+      {!isMobile && (
+        <div className="flex-shrink-0 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e]">
+          <div className="px-4 py-3 flex items-center justify-between">
+            {/* Zoom Controls */}
+            <div className="flex items-center gap-2">
+              {/* Zoom Out */}
+              <button
+                onClick={onZoomOut}
+                disabled={zoom <= 50}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Zoom out (Ctrl -)"
+              >
+                <ZoomOut className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              </button>
 
-            {/* Zoom Percentage */}
-            <div className="flex items-center gap-1">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[50px] text-center">
-                {zoom}%
-              </span>
-            </div>
+              {/* Zoom Percentage */}
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[50px] text-center">
+                  {zoom}%
+                </span>
+              </div>
 
-            {/* Zoom In */}
-            <button
-              onClick={onZoomIn}
-              disabled={zoom >= 150}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Zoom in (Ctrl +)"
-            >
-              <ZoomIn className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-            </button>
+              {/* Zoom In */}
+              <button
+                onClick={onZoomIn}
+                disabled={zoom >= 150}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Zoom in (Ctrl +)"
+              >
+                <ZoomIn className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              </button>
 
-            {/* Divider */}
-            <div className="w-px h-6 bg-gray-200 dark:bg-[#3d3c3e] mx-2" />
+              {/* Divider */}
+              <div className="w-px h-6 bg-gray-200 dark:bg-[#3d3c3e] mx-2" />
 
-            {/* Zoom Presets */}
-            <div className="flex items-center gap-1">
-              {ZOOM_PRESETS.map(preset => (
-                <button
-                  key={preset}
-                  onClick={() => handleZoomPreset(preset)}
-                  className={`
+              {/* Zoom Presets */}
+              <div className="flex items-center gap-1">
+                {ZOOM_PRESETS.map(preset => (
+                  <button
+                    key={preset}
+                    onClick={() => handleZoomPreset(preset)}
+                    className={`
                     px-3 py-1 text-xs font-medium rounded-md transition-colors
                     ${zoom === preset
-                      ? 'bg-[#635BFF]/10 dark:bg-[#5249e6]/30 text-[#635BFF] dark:text-[#a5a0ff]'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                    }
+                        ? 'bg-[#635BFF]/10 dark:bg-[#5249e6]/30 text-[#635BFF] dark:text-[#a5a0ff]'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      }
                   `}
-                >
-                  {preset}%
-                </button>
-              ))}
+                  >
+                    {preset}%
+                  </button>
+                ))}
+              </div>
+
+              {/* Reset */}
+              <button
+                onClick={onZoomReset}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                title="Reset zoom"
+              >
+                <RefreshCw className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              </button>
             </div>
 
-            {/* Reset */}
-            <button
-              onClick={onZoomReset}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-              title="Reset zoom"
-            >
-              <RefreshCw className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-            </button>
-          </div>
-
-          {/* Right side actions */}
-          <div className="flex items-center gap-2">
-            {onToggleFullscreen && (
-              <button
-                onClick={onToggleFullscreen}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                title="Fullscreen"
-              >
-                <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </button>
-            )}
+            {/* Right side actions */}
+            <div className="flex items-center gap-2">
+              {onToggleFullscreen && (
+                <button
+                  onClick={onToggleFullscreen}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  title="Fullscreen"
+                >
+                  <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Preview Area */}
-      <div className="flex-1 min-h-0 overflow-auto p-8">
+      {/* Mobile Zoom Controls - Simple floating buttons */}
+      {isMobile && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-md rounded-full px-3 py-2 shadow-lg border border-gray-200 dark:border-[#3d3c3e]">
+          <button
+            onClick={() => setMobileZoom(prev => Math.max(prev - 10, 30))}
+            className="p-1.5 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
+          >
+            <ZoomOut className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+          </button>
+          <span className="text-xs font-medium text-gray-600 dark:text-gray-400 min-w-[40px] text-center">
+            {mobileZoom}%
+          </span>
+          <button
+            onClick={() => setMobileZoom(prev => Math.min(prev + 10, 100))}
+            className="p-1.5 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
+          >
+            <ZoomIn className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+          </button>
+        </div>
+      )}
+
+      {/* Preview Area - Less padding on mobile */}
+      <div className={`flex-1 min-h-0 overflow-auto ${isMobile ? 'p-4' : 'p-8'}`}>
         <div className="flex justify-center" style={{ minWidth: 'fit-content' }}>
           <motion.div
-            animate={{ scale: zoom / 100 }}
+            animate={{ scale: effectiveZoom / 100 }}
             transition={{ duration: 0.2, ease: 'easeInOut' }}
             style={{
               transformOrigin: 'top center',
@@ -233,8 +279,8 @@ export default function PreviewContainer({
                 }}
               >
                 {/* Template Content */}
-                <TemplateComponent 
-                  cvData={cvData} 
+                <TemplateComponent
+                  cvData={cvData}
                   layoutSettings={{
                     fontSize: layoutSettings?.fontSize ?? 10,
                     dateFormat: layoutSettings?.dateFormat ?? 'jan-24',
@@ -265,19 +311,19 @@ export default function PreviewContainer({
                   {/* Red border line marking the A4 limit */}
                   <div className="relative">
                     {/* Thick red line */}
-                    <div 
+                    <div
                       className="w-full bg-red-500"
                       style={{ height: '4px' }}
                     />
-                    
+
                     {/* Red overlay tint on overflow area */}
-                    <div 
+                    <div
                       className="absolute top-0 left-0 w-full bg-red-500 opacity-10"
                       style={{
                         height: `${overflowAmount}px`
                       }}
                     />
-                    
+
                     {/* Label indicator */}
                     <div className="absolute -top-8 right-4 flex items-center gap-2 px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded-full shadow-lg">
                       <AlertTriangle className="w-3.5 h-3.5" />

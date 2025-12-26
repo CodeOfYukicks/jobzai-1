@@ -6,15 +6,15 @@ interface OverviewTabProps {
   analysis: PremiumATSAnalysis;
 }
 
-// Minimalist metric card - Vercel style
-function MetricCard({ 
-  label, 
-  value, 
+// Minimalist metric card - Mobile optimized
+function MetricCard({
+  label,
+  value,
   maxValue,
-  subtitle 
-}: { 
-  label: string; 
-  value: number; 
+  subtitle
+}: {
+  label: string;
+  value: number;
   maxValue?: number;
   subtitle?: string;
 }) {
@@ -34,28 +34,31 @@ function MetricCard({
 
   return (
     <div className="flex-1 min-w-0">
-      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-        {label}
-      </div>
-      <div className="flex items-baseline gap-1.5 mb-3">
-        <span className={`text-3xl font-semibold tabular-nums ${getColor(value)}`}>
-          {value}
-        </span>
-        {maxValue && (
-          <span className="text-sm text-gray-400 dark:text-gray-500">
-            /{maxValue}
+      {/* Mobile: Horizontal layout | Desktop: Vertical */}
+      <div className="flex items-center justify-between sm:block">
+        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider sm:mb-2">
+          {label}
+        </div>
+        <div className="flex items-baseline gap-1 sm:gap-1.5 sm:mb-3">
+          <span className={`text-xl sm:text-3xl font-semibold tabular-nums ${getColor(value)}`}>
+            {value}
           </span>
-        )}
+          {maxValue && (
+            <span className="text-xs sm:text-sm text-gray-400 dark:text-gray-500">
+              /{maxValue}
+            </span>
+          )}
+        </div>
       </div>
-      {/* Progress bar - ultra thin */}
-      <div className="h-1 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
-        <div 
+      {/* Progress bar */}
+      <div className="h-1 mt-1.5 sm:mt-0 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
+        <div
           className={`h-full ${getBgColor(value)} transition-all duration-700 ease-out`}
           style={{ width: `${value}%` }}
         />
       </div>
       {subtitle && (
-        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
           {subtitle}
         </div>
       )}
@@ -108,64 +111,63 @@ export default function OverviewTab({ analysis }: OverviewTabProps) {
         </div>
       )}
 
-      {/* Score Metrics Grid - 4 columns */}
+      {/* Score Metrics Grid - Compact on mobile */}
       <section>
-        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 sm:mb-4">
           Score Breakdown
         </h2>
-        <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-200 dark:border-[#3d3c3e] p-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <MetricCard 
-              label="Skills" 
+        <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-200 dark:border-[#3d3c3e] p-4 sm:p-6">
+          <div className="grid grid-cols-2 gap-4 sm:gap-8 md:grid-cols-4">
+            <MetricCard
+              label="Skills"
               value={analysis.match_scores.skills_score}
             />
-            <MetricCard 
-              label="Experience" 
+            <MetricCard
+              label="Experience"
               value={analysis.match_scores.experience_score}
             />
-            <MetricCard 
-              label="Education" 
+            <MetricCard
+              label="Education"
               value={analysis.match_scores.education_score}
             />
-            <MetricCard 
-              label="Industry Fit" 
+            <MetricCard
+              label="Industry Fit"
               value={analysis.match_scores.industry_fit_score}
             />
           </div>
         </div>
       </section>
 
-      {/* Keywords Score - Separate section */}
+      {/* Keywords Score - Mobile optimized */}
       <section>
-        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 sm:mb-4">
           ATS Keywords
         </h2>
-        <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-200 dark:border-[#3d3c3e] p-6">
-          <div className="flex items-center gap-6">
-            <div className="flex items-baseline gap-2">
-              <span className={`text-4xl font-semibold tabular-nums ${
-                analysis.match_scores.ats_keywords_score >= 70 
-                  ? 'text-emerald-600 dark:text-emerald-400' 
+        <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-200 dark:border-[#3d3c3e] p-4 sm:p-6">
+          {/* Score + Progress bar */}
+          <div className="flex items-center gap-3 sm:gap-6">
+            <div className="flex items-baseline gap-1 sm:gap-2 flex-shrink-0">
+              <span className={`text-2xl sm:text-4xl font-semibold tabular-nums ${analysis.match_scores.ats_keywords_score >= 70
+                  ? 'text-emerald-600 dark:text-emerald-400'
                   : 'text-amber-600 dark:text-amber-400'
-              }`}>
+                }`}>
                 {analysis.match_scores.ats_keywords_score}%
               </span>
-              <span className="text-sm text-gray-400 dark:text-gray-500">match</span>
+              <span className="text-xs sm:text-sm text-gray-400 dark:text-gray-500">match</span>
             </div>
-            <div className="flex-1 h-2 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
-              <div 
-                className={`h-full transition-all duration-700 ${
-                  analysis.match_scores.ats_keywords_score >= 70 
-                    ? 'bg-emerald-500' 
+            <div className="flex-1 h-1.5 sm:h-2 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-700 ${analysis.match_scores.ats_keywords_score >= 70
+                    ? 'bg-emerald-500'
                     : 'bg-amber-500'
-                }`}
+                  }`}
                 style={{ width: `${analysis.match_scores.ats_keywords_score}%` }}
               />
             </div>
           </div>
-          
-          {/* Quick keyword stats */}
-          <div className="mt-4 flex gap-6 text-sm">
+
+          {/* Quick keyword stats - Stacked on mobile */}
+          <div className="mt-3 sm:mt-4 flex flex-wrap gap-3 sm:gap-6 text-xs sm:text-sm">
             <span className="text-gray-600 dark:text-gray-400">
               <span className="text-emerald-600 dark:text-emerald-400 font-medium">
                 {analysis.match_breakdown.keywords.found.length}
@@ -179,7 +181,7 @@ export default function OverviewTab({ analysis }: OverviewTabProps) {
             <span className="text-gray-600 dark:text-gray-400">
               <span className="text-gray-500 dark:text-gray-500 font-medium">
                 {analysis.match_breakdown.keywords.missing.length}
-              </span> other missing
+              </span> other
             </span>
           </div>
         </div>

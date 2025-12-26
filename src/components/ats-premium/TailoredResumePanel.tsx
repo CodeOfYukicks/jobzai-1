@@ -143,7 +143,7 @@ export default function TailoredResumePanel({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, x: -20 }}
-              className="flex-1 flex flex-col items-center justify-center p-5"
+              className="flex-1 flex flex-col items-center justify-center p-5 min-h-[300px] text-center"
             >
               <div className="relative group mb-5">
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500" />
@@ -152,11 +152,11 @@ export default function TailoredResumePanel({
                 </div>
               </div>
 
-              <div className="text-center mb-5">
+              <div className="mb-5">
                 <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1.5">
                   Tailor Your Resume
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed max-w-[220px]">
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed max-w-[220px] mx-auto">
                   Generate a CV optimized for this job using AI
                 </p>
               </div>
@@ -213,11 +213,10 @@ export default function TailoredResumePanel({
                     <button
                       key={levelKey}
                       onClick={() => setSelectedLevel(levelKey)}
-                      className={`relative w-full text-left p-3.5 rounded-xl border transition-all duration-200 ${
-                        isSelected
+                      className={`relative w-full text-left p-3.5 rounded-xl border transition-all duration-200 ${isSelected
                           ? `${colors.selectedBorder} ${colors.bg}`
                           : `border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325] hover:border-gray-300 dark:hover:border-[#4a494b]`
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start gap-3">
                         {/* Icon Container */}

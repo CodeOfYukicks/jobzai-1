@@ -21,8 +21,8 @@ import { OverviewTab, MatchDetailsTab, GapsActionsTab } from '../components/ats-
 // Types
 import type { PremiumATSAnalysis, AdaptationLevel } from '../types/premiumATS';
 
-// Tab type
-type MainTab = 'overview' | 'match' | 'gaps';
+// Tab type - extended for mobile sidebar access
+type MainTab = 'overview' | 'match' | 'gaps' | 'summary' | 'cv';
 
 // Helper function to get company initials
 function getInitials(name: string): string {
@@ -48,11 +48,11 @@ function CompanyLogoMinimal({ companyName }: { companyName: string }) {
   }
 
   if (logoSrc) {
-  return (
-        <img
-          src={logoSrc}
-          alt={`${companyName} logo`}
-          onError={handleLogoError}
+    return (
+      <img
+        src={logoSrc}
+        alt={`${companyName} logo`}
+        onError={handleLogoError}
         className="h-12 w-12 object-contain"
       />
     );
@@ -63,7 +63,7 @@ function CompanyLogoMinimal({ companyName }: { companyName: string }) {
       <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">
         {getInitials(companyName)}
       </span>
-        </div>
+    </div>
   );
 }
 
@@ -96,8 +96,7 @@ function RightSidebar({
         <div className="flex border-b border-gray-100 dark:border-[#3d3c3e]">
           <button
             onClick={() => setSidebarTab('summary')}
-            className={`flex-1 px-4 py-3.5 text-xs font-medium transition-all relative ${
-              sidebarTab === 'summary'
+            className={`flex-1 px-4 py-3.5 text-xs font-medium transition-all relative ${sidebarTab === 'summary'
               ? 'text-gray-900 dark:text-white'
               : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
@@ -116,8 +115,7 @@ function RightSidebar({
           </button>
           <button
             onClick={() => setSidebarTab('cv')}
-            className={`flex-1 px-4 py-3.5 text-xs font-medium transition-all relative ${
-              sidebarTab === 'cv'
+            className={`flex-1 px-4 py-3.5 text-xs font-medium transition-all relative ${sidebarTab === 'cv'
               ? 'text-gray-900 dark:text-white'
               : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
@@ -294,7 +292,7 @@ export default function ATSAnalysisPagePremium() {
       { includeMetadataChanges: false },
       async () => {
         const task = await getActiveTaskForAnalysis(currentUser.uid, id, 'cv_rewrite');
-        
+
         if (task) {
           setActiveBackgroundTask(task);
           setIsGeneratingCV(true);
@@ -348,11 +346,11 @@ export default function ATSAnalysisPagePremium() {
       (docSnap) => {
         if (docSnap.exists()) {
           const task = docSnap.data() as BackgroundTask;
-          
+
           if (task.status === 'completed') {
             setIsGeneratingCV(false);
             setActiveBackgroundTask(null);
-            
+
             getDoc(doc(db, 'users', currentUser.uid, 'analyses', id!)).then((analysisDoc) => {
               if (analysisDoc.exists()) {
                 const data = analysisDoc.data();
@@ -496,26 +494,26 @@ export default function ATSAnalysisPagePremium() {
 
     const cvText = analysis.cvText || '';
     const matchScore = analysis.match_scores?.overall_score || 0;
-    
+
     const enrichedStrengths = (analysis.top_strengths || []).map((s: any) => ({
       name: s.name || '',
       example_from_resume: s.example_from_resume || '',
       why_it_matters: s.why_it_matters || '',
     }));
-    
+
     const enrichedGaps = (analysis.top_gaps || []).map((g: any) => ({
       name: g.name || '',
       severity: g.severity || 'Medium',
       how_to_fix: g.how_to_fix || '',
       why_it_matters: g.why_it_matters || '',
     }));
-    
+
     const keywordsBreakdown = {
       missing: analysis.match_breakdown?.keywords?.missing || [],
       priority_missing: analysis.match_breakdown?.keywords?.priority_missing || [],
       found: analysis.match_breakdown?.keywords?.found || [],
     };
-    
+
     const cvFixes = analysis.cv_fixes ? {
       high_impact_bullets_to_add: analysis.cv_fixes.high_impact_bullets_to_add || [],
       bullets_to_rewrite: analysis.cv_fixes.bullets_to_rewrite || [],
@@ -523,13 +521,13 @@ export default function ATSAnalysisPagePremium() {
       sections_to_reorder: analysis.cv_fixes.sections_to_reorder || [],
       estimated_score_gain: analysis.cv_fixes.estimated_score_gain || 0,
     } : undefined;
-    
+
     const jobSummary = analysis.job_summary ? {
       hidden_expectations: analysis.job_summary.hidden_expectations || [],
       core_requirements: analysis.job_summary.core_requirements || [],
       mission: analysis.job_summary.mission || '',
     } : undefined;
-    
+
     const positioning = analysis.action_plan_48h?.job_specific_positioning || '';
 
     const inputData = {
@@ -614,29 +612,29 @@ export default function ATSAnalysisPagePremium() {
 
   // Get score category styling
   const getScoreStyle = (score: number) => {
-    if (score >= 80) return { 
-      color: 'text-emerald-500', 
+    if (score >= 80) return {
+      color: 'text-emerald-500',
       ring: 'stroke-emerald-500',
       bg: 'bg-emerald-500/10',
-      label: 'Excellent Match' 
+      label: 'Excellent Match'
     };
-    if (score >= 60) return { 
-      color: 'text-blue-500', 
+    if (score >= 60) return {
+      color: 'text-blue-500',
       ring: 'stroke-blue-500',
       bg: 'bg-blue-500/10',
-      label: 'Good Match' 
+      label: 'Good Match'
     };
-    if (score >= 40) return { 
-      color: 'text-amber-500', 
+    if (score >= 40) return {
+      color: 'text-amber-500',
       ring: 'stroke-amber-500',
       bg: 'bg-amber-500/10',
-      label: 'Fair Match' 
+      label: 'Fair Match'
     };
-    return { 
-      color: 'text-rose-500', 
+    return {
+      color: 'text-rose-500',
       ring: 'stroke-rose-500',
       bg: 'bg-rose-500/10',
-      label: 'Low Match' 
+      label: 'Low Match'
     };
   };
 
@@ -661,30 +659,35 @@ export default function ATSAnalysisPagePremium() {
 
       {/* Main Content */}
       <div className="min-h-screen lg:pr-[380px]">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 py-8">
-          
-          {/* Header - Minimalist */}
-          <header className="mb-8">
-            <div className="flex items-start justify-between gap-6">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+
+          {/* Header - Compact on mobile */}
+          <header className="mb-4 sm:mb-8">
+            <div className="flex items-start justify-between gap-3 sm:gap-6">
               {/* Left: Logo + Info */}
-              <div className="flex items-start gap-4 flex-1 min-w-0">
-                <CompanyLogoMinimal companyName={analysis.company} />
-                <div className="flex-1 min-w-0 pt-0.5">
-                  <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">
+              <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                {/* Logo - smaller on mobile */}
+                <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12">
+                  <CompanyLogoMinimal companyName={analysis.company} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-lg sm:text-2xl font-semibold text-gray-900 dark:text-white tracking-tight line-clamp-2 sm:line-clamp-none">
                     {analysis.jobTitle}
                   </h1>
-                  <div className="flex items-center gap-2 mt-1.5 text-sm text-gray-500 dark:text-gray-400">
-                    <Building2 className="w-3.5 h-3.5" />
-                    <span>{analysis.company}</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2 mt-1 sm:mt-1.5 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                    <Building2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 flex-shrink-0" />
+                    <span className="truncate">{analysis.company}</span>
+                    {/* Location - hidden on mobile */}
                     {analysis.location && (
-                      <>
+                      <span className="hidden sm:flex items-center gap-1.5">
                         <span className="text-gray-300 dark:text-gray-600">·</span>
                         <MapPin className="w-3.5 h-3.5" />
                         <span>{analysis.location}</span>
-                      </>
+                      </span>
                     )}
+                    {/* Job URL - hidden on mobile */}
                     {analysis.jobUrl && (
-                      <>
+                      <span className="hidden sm:flex items-center gap-1.5">
                         <span className="text-gray-300 dark:text-gray-600">·</span>
                         <a
                           href={analysis.jobUrl}
@@ -695,17 +698,17 @@ export default function ATSAnalysisPagePremium() {
                           <ExternalLink className="w-3.5 h-3.5" />
                           View Job
                         </a>
-                      </>
+                      </span>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Right: Score Card - Circular Progress */}
-              <div className="flex-shrink-0 flex items-center gap-4">
-                {/* Circular Progress */}
-                <div className="relative w-20 h-20">
-                  <svg className="w-20 h-20 -rotate-90" viewBox="0 0 100 100">
+              {/* Right: Score Card - Smaller on mobile */}
+              <div className="flex-shrink-0 flex items-center gap-2 sm:gap-4">
+                {/* Circular Progress - 48px mobile, 80px desktop */}
+                <div className="relative w-12 h-12 sm:w-20 sm:h-20">
+                  <svg className="w-12 h-12 sm:w-20 sm:h-20 -rotate-90" viewBox="0 0 100 100">
                     {/* Background circle */}
                     <circle
                       cx="50"
@@ -733,27 +736,37 @@ export default function ATSAnalysisPagePremium() {
                   </svg>
                   {/* Score text in center */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className={`text-2xl font-bold tabular-nums ${scoreStyle.color}`}>
+                    <span className={`text-base sm:text-2xl font-bold tabular-nums ${scoreStyle.color}`}>
                       {analysis.match_scores.overall_score}
                     </span>
-                    </div>
-                    </div>
-                {/* Label */}
-                <div className="text-right">
+                  </div>
+                </div>
+                {/* Label - Vertical stack on mobile */}
+                <div className="text-right hidden sm:block">
                   <div className={`text-sm font-semibold ${scoreStyle.color}`}>
                     {scoreStyle.label}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     Match Score
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+            {/* Mobile-only: Score label below header */}
+            <div className="sm:hidden mt-2 flex items-center justify-end gap-2">
+              <span className={`text-xs font-semibold ${scoreStyle.color}`}>
+                {scoreStyle.label}
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                · Match Score
+              </span>
+            </div>
           </header>
 
-          {/* Tabs Navigation */}
-          <nav className="mb-8 border-b border-gray-200 dark:border-[#3d3c3e]">
-            <div className="flex gap-8">
+          {/* Tabs Navigation - Scroll snap on mobile, larger touch targets */}
+          <nav className="mb-4 sm:mb-8 -mx-4 sm:mx-0 border-b border-gray-200 dark:border-[#3d3c3e] overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory">
+            <div className="flex gap-1 sm:gap-6 min-w-max px-4 sm:px-0">
+              {/* Main analysis tabs - always visible */}
               {[
                 { id: 'overview' as MainTab, label: 'Overview' },
                 { id: 'match' as MainTab, label: 'Match Details' },
@@ -762,23 +775,52 @@ export default function ATSAnalysisPagePremium() {
                 <button
                   key={tab.id}
                   onClick={() => setMainTab(tab.id)}
-                  className={`relative pb-3 text-sm font-medium transition-colors ${
-                    mainTab === tab.id
-                      ? 'text-gray-900 dark:text-white'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                  }`}
+                  className={`relative px-3 sm:px-0 py-3 sm:pb-3 text-sm font-medium transition-colors whitespace-nowrap snap-start ${mainTab === tab.id
+                    ? 'text-gray-900 dark:text-white'
+                    : 'text-gray-500 dark:text-gray-400 active:text-gray-700 dark:active:text-gray-300'
+                    }`}
                 >
                   {tab.label}
                   {mainTab === tab.id && (
                     <motion.div
                       layoutId="mainTab"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 dark:bg-white"
+                      className="absolute bottom-0 left-3 right-3 sm:left-0 sm:right-0 h-0.5 bg-gray-900 dark:bg-white rounded-full"
                       transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
                     />
                   )}
                 </button>
-                    ))}
-                  </div>
+              ))}
+
+              {/* Mobile-only sidebar tabs - hidden on desktop (lg) */}
+              <div className="lg:hidden flex gap-1 sm:gap-6 items-center">
+                <div className="w-px h-5 bg-gray-200 dark:bg-[#3d3c3e] mx-1" />
+                {[
+                  { id: 'summary' as MainTab, label: 'Summary' },
+                  { id: 'cv' as MainTab, label: 'CV', hasIndicator: !!cvRewrite },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setMainTab(tab.id)}
+                    className={`relative px-3 sm:px-0 py-3 sm:pb-3 text-sm font-medium transition-colors whitespace-nowrap snap-start flex items-center gap-1.5 ${mainTab === tab.id
+                      ? 'text-gray-900 dark:text-white'
+                      : 'text-gray-500 dark:text-gray-400 active:text-gray-700 dark:active:text-gray-300'
+                      }`}
+                  >
+                    {tab.label}
+                    {tab.hasIndicator && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    )}
+                    {mainTab === tab.id && (
+                      <motion.div
+                        layoutId="mainTab"
+                        className="absolute bottom-0 left-3 right-3 sm:left-0 sm:right-0 h-0.5 bg-gray-900 dark:bg-white rounded-full"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           </nav>
 
           {/* Tab Content */}
@@ -793,6 +835,26 @@ export default function ATSAnalysisPagePremium() {
               {mainTab === 'overview' && <OverviewTab analysis={analysis} />}
               {mainTab === 'match' && <MatchDetailsTab analysis={analysis} />}
               {mainTab === 'gaps' && <GapsActionsTab analysis={analysis} />}
+
+              {/* Mobile-only tab content for sidebar panels */}
+              {mainTab === 'summary' && (
+                <div className="lg:hidden">
+                  <JobSummaryPanel jobSummary={analysis.job_summary} />
+                </div>
+              )}
+              {mainTab === 'cv' && (
+                <div className="lg:hidden">
+                  <TailoredResumePanel
+                    analysis={analysis}
+                    cvRewrite={cvRewrite}
+                    isGenerating={isGeneratingCV}
+                    onGenerate={handleGenerateCVRewrite}
+                    onViewFull={() => navigate(`/ats-analysis/${analysis.id}/cv-editor`)}
+                    optimizedScore={optimizedScore || undefined}
+                    premiumAnalysis={premiumAnalysis}
+                  />
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
 

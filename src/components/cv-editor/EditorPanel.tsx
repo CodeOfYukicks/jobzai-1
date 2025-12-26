@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   GripVertical, Plus, Eye, EyeOff, ChevronDown, ChevronLeft, ChevronRight,
   User, FileText, Briefcase, GraduationCap, Code, Award,
   FolderOpen, Globe, Sparkles, Edit3, Layout
@@ -104,12 +104,12 @@ export default function EditorPanel({
   const [searchQuery, setSearchQuery] = useState('');
   const [externalItemId, setExternalItemId] = useState<string | null>(null);
   const sectionsContainerRef = useRef<HTMLDivElement>(null);
-  
+
   // Handle applying suggestions from AI Review
   const handleApplySuggestion = (suggestion: CVSuggestion) => {
     console.log('🟡 EditorPanel.handleApplySuggestion called');
     console.log('   Has onApplySuggestion prop:', !!onApplySuggestion);
-    
+
     if (onApplySuggestion) {
       onApplySuggestion(suggestion);
     } else {
@@ -122,18 +122,18 @@ export default function EditorPanel({
     if (activeSectionTarget) {
       // Switch to editor tab
       setActiveTab('editor');
-      
+
       // Find the section by type
       const targetSection = cvData.sections.find(s => s.type === activeSectionTarget.sectionType);
       if (targetSection) {
         // Expand the section
         setExpandedSection(targetSection.id);
-        
+
         // If there's an item ID, set it for the SectionEditor
         if (activeSectionTarget.itemId) {
           setExternalItemId(activeSectionTarget.itemId);
         }
-        
+
         // Scroll to the section after a short delay to allow for animation
         setTimeout(() => {
           const sectionElement = document.getElementById(`section-${targetSection.id}`);
@@ -142,7 +142,7 @@ export default function EditorPanel({
           }
         }, 100);
       }
-      
+
       // Clear the target
       onActiveSectionProcessed?.();
     }
@@ -267,107 +267,110 @@ export default function EditorPanel({
   // Full version
   return (
     <div className="h-full flex flex-col overflow-hidden bg-white dark:bg-[#242325]">
-      {/* Premium Tabs Navigation */}
+      {/* Premium Tabs Navigation - Scrollable on mobile */}
       <div className="flex-shrink-0 border-b border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325]">
-        <div className="px-4 py-3 flex items-center">
-          {/* AI Review Tab */}
-          <button
-            onClick={() => setActiveTab('ai-review')}
-            className={`
-              relative flex items-center gap-1.5 px-2.5 text-[13px] font-medium transition-all whitespace-nowrap
-              ${activeTab === 'ai-review' 
-                ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }
-            `}
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>AI Review</span>
-            {activeTab === 'ai-review' && (
-              <motion.div
-                layoutId="activeTab"
-                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#635BFF]"
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              />
-            )}
-          </button>
+        <div className="flex items-center overflow-x-auto scrollbar-hide snap-x snap-mandatory">
+          {/* Tabs Container */}
+          <div className="flex items-center px-2 sm:px-4 py-2 gap-1 sm:gap-0">
+            {/* AI Review Tab */}
+            <button
+              onClick={() => setActiveTab('ai-review')}
+              className={`
+                relative flex items-center gap-1.5 px-3 sm:px-2.5 py-2.5 sm:py-2 text-[13px] font-medium transition-all whitespace-nowrap rounded-lg snap-start
+                ${activeTab === 'ai-review'
+                  ? 'text-[#635BFF] dark:text-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
+                }
+              `}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>AI Review</span>
+              {activeTab === 'ai-review' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute -bottom-2 left-2 right-2 h-0.5 bg-[#635BFF] rounded-full"
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                />
+              )}
+            </button>
 
-          {/* Editor Tab */}
-          <button
-            onClick={() => setActiveTab('editor')}
-            className={`
-              relative flex items-center gap-1.5 px-2.5 text-[13px] font-medium transition-all whitespace-nowrap
-              ${activeTab === 'editor' 
-                ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }
-            `}
-          >
-            <Edit3 className="w-4 h-4" />
-            <span>Editor</span>
-            {activeTab === 'editor' && (
-              <motion.div
-                layoutId="activeTab"
-                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#635BFF]"
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              />
-            )}
-          </button>
+            {/* Editor Tab */}
+            <button
+              onClick={() => setActiveTab('editor')}
+              className={`
+                relative flex items-center gap-1.5 px-3 sm:px-2.5 py-2.5 sm:py-2 text-[13px] font-medium transition-all whitespace-nowrap rounded-lg snap-start
+                ${activeTab === 'editor'
+                  ? 'text-[#635BFF] dark:text-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
+                }
+              `}
+            >
+              <Edit3 className="w-4 h-4" />
+              <span>Editor</span>
+              {activeTab === 'editor' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute -bottom-2 left-2 right-2 h-0.5 bg-[#635BFF] rounded-full"
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                />
+              )}
+            </button>
 
-          {/* Templates Tab */}
-          <button
-            onClick={() => setActiveTab('templates')}
-            className={`
-              relative flex items-center gap-1.5 px-2.5 text-[13px] font-medium transition-all whitespace-nowrap
-              ${activeTab === 'templates' 
-                ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }
-            `}
-          >
-            <Palette className="w-4 h-4" />
-            <span>Templates</span>
-            {activeTab === 'templates' && (
-              <motion.div
-                layoutId="activeTab"
-                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#635BFF]"
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              />
-            )}
-          </button>
+            {/* Templates Tab */}
+            <button
+              onClick={() => setActiveTab('templates')}
+              className={`
+                relative flex items-center gap-1.5 px-3 sm:px-2.5 py-2.5 sm:py-2 text-[13px] font-medium transition-all whitespace-nowrap rounded-lg snap-start
+                ${activeTab === 'templates'
+                  ? 'text-[#635BFF] dark:text-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
+                }
+              `}
+            >
+              <Palette className="w-4 h-4" />
+              <span>Templates</span>
+              {activeTab === 'templates' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute -bottom-2 left-2 right-2 h-0.5 bg-[#635BFF] rounded-full"
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                />
+              )}
+            </button>
 
-          {/* Layout & Style Tab */}
-          <button
-            onClick={() => setActiveTab('layout-style')}
-            className={`
-              relative flex items-center gap-1.5 px-2.5 text-[13px] font-medium transition-all whitespace-nowrap
-              ${activeTab === 'layout-style' 
-                ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }
-            `}
-          >
-            <Layout className="w-4 h-4" />
-            <span>Style</span>
-            {activeTab === 'layout-style' && (
-              <motion.div
-                layoutId="activeTab"
-                className="absolute -bottom-3 left-0 right-0 h-0.5 bg-[#635BFF]"
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              />
-            )}
-          </button>
+            {/* Layout & Style Tab */}
+            <button
+              onClick={() => setActiveTab('layout-style')}
+              className={`
+                relative flex items-center gap-1.5 px-3 sm:px-2.5 py-2.5 sm:py-2 text-[13px] font-medium transition-all whitespace-nowrap rounded-lg snap-start
+                ${activeTab === 'layout-style'
+                  ? 'text-[#635BFF] dark:text-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
+                }
+              `}
+            >
+              <Layout className="w-4 h-4" />
+              <span>Style</span>
+              {activeTab === 'layout-style' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute -bottom-2 left-2 right-2 h-0.5 bg-[#635BFF] rounded-full"
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                />
+              )}
+            </button>
+          </div>
 
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Collapse Panel Button */}
+          {/* Collapse Panel Button - Hidden on mobile */}
           {onToggleCollapse && (
             <motion.button
               onClick={onToggleCollapse}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] hover:bg-gray-200 dark:hover:bg-[#3d3c3e] border border-gray-200 dark:border-[#3d3c3e] transition-all duration-200 group"
+              className="hidden lg:flex items-center justify-center w-8 h-8 mr-4 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] hover:bg-gray-200 dark:hover:bg-[#3d3c3e] border border-gray-200 dark:border-[#3d3c3e] transition-all duration-200 group"
               aria-label={isCollapsed ? 'Expand panel' : 'Collapse panel'}
               title="Réduire le panneau"
             >
@@ -428,9 +431,8 @@ export default function EditorPanel({
                     <div
                       {...provided.droppableProps}
                       ref={provided.innerRef}
-                      className={`space-y-3 rounded-xl p-1 -m-1 ${
-                        droppableSnapshot.isDraggingOver ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
-                      }`}
+                      className={`space-y-3 rounded-xl p-1 -m-1 ${droppableSnapshot.isDraggingOver ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
+                        }`}
                     >
                       {filteredSections.map((section, index) => (
                         <Draggable
@@ -445,8 +447,8 @@ export default function EditorPanel({
                               {...provided.draggableProps}
                               className={`
                                 group rounded-xl border overflow-hidden
-                                ${snapshot.isDragging 
-                                  ? 'shadow-2xl ring-2 ring-[#635BFF] bg-white dark:bg-[#2b2a2c] border-[#635BFF] z-50' 
+                                ${snapshot.isDragging
+                                  ? 'shadow-2xl ring-2 ring-[#635BFF] bg-white dark:bg-[#2b2a2c] border-[#635BFF] z-50'
                                   : expandedSection === section.id
                                     ? 'bg-white dark:bg-[#242325]/50 shadow-sm border-gray-200 dark:border-[#3d3c3e]/60 ring-1 ring-gray-100 dark:ring-gray-800'
                                     : 'bg-white/50 dark:bg-[#242325]/30 backdrop-blur-sm border-gray-100 dark:border-[#3d3c3e]/60 hover:border-gray-200 dark:hover:border-gray-700/80 hover:shadow-sm hover:bg-white/80 dark:hover:bg-gray-900/40'
@@ -455,7 +457,7 @@ export default function EditorPanel({
                               style={provided.draggableProps.style}
                             >
                               {/* Section Header */}
-                              <div 
+                              <div
                                 className="w-full flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-[#3d3c3e]/30 transition-colors"
                                 onClick={() => toggleExpanded(section.id)}
                               >
@@ -465,8 +467,8 @@ export default function EditorPanel({
                                   onClick={(e) => e.stopPropagation()}
                                   className={`
                                     p-1.5 rounded-lg cursor-grab active:cursor-grabbing transition-all duration-200
-                                    ${snapshot.isDragging 
-                                      ? 'text-[#635BFF] bg-[#635BFF]/10' 
+                                    ${snapshot.isDragging
+                                      ? 'text-[#635BFF] bg-[#635BFF]/10'
                                       : 'text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-gray-800'
                                     }
                                   `}
@@ -480,8 +482,8 @@ export default function EditorPanel({
                                   p-1.5 rounded-lg transition-all duration-200
                                   ${snapshot.isDragging
                                     ? 'bg-[#635BFF]/10 text-[#635BFF]'
-                                    : expandedSection === section.id 
-                                      ? 'bg-[#635BFF]/10 text-[#635BFF] dark:text-[#a5a0ff]' 
+                                    : expandedSection === section.id
+                                      ? 'bg-[#635BFF]/10 text-[#635BFF] dark:text-[#a5a0ff]'
                                       : 'bg-gray-100/80 dark:bg-[#2b2a2c]/60 text-gray-500 dark:text-gray-400'
                                   }
                                 `}>
@@ -494,8 +496,8 @@ export default function EditorPanel({
                                     text-sm font-medium transition-colors duration-200
                                     ${snapshot.isDragging
                                       ? 'text-[#635BFF]'
-                                      : expandedSection === section.id 
-                                        ? 'text-gray-900 dark:text-white' 
+                                      : expandedSection === section.id
+                                        ? 'text-gray-900 dark:text-white'
                                         : 'text-gray-700 dark:text-gray-300'
                                     }
                                   `}>
@@ -527,7 +529,7 @@ export default function EditorPanel({
                                 </div>
 
                                 {/* Expand/Collapse Chevron */}
-                                <ChevronDown 
+                                <ChevronDown
                                   className={`
                                     w-4 h-4 transition-transform duration-200
                                     ${expandedSection === section.id ? 'rotate-0' : '-rotate-90'}
@@ -603,8 +605,8 @@ export default function EditorPanel({
             transition={{ duration: 0.2 }}
             className="flex-1 min-h-0 overflow-hidden flex flex-col"
           >
-            <LayoutStyleTab 
-              sections={cvData.sections} 
+            <LayoutStyleTab
+              sections={cvData.sections}
               onReorder={onReorder}
               layoutSettings={layoutSettings}
               onSettingsChange={onLayoutSettingsChange}

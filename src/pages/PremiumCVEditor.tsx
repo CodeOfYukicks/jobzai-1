@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Download, Save, Eye, EyeOff, X, ZoomIn, ZoomOut, RefreshCw, FolderOpen, Languages, Loader2, GitCompare
+import {
+  Download, Save, Eye, EyeOff, X, ZoomIn, ZoomOut, RefreshCw, FolderOpen, Languages, Loader2, GitCompare, MoreHorizontal, ChevronLeft, Sparkles, Palette, Settings, FileText
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { notify } from '@/lib/notify';
@@ -29,6 +29,7 @@ import { compareCVData, detectAppliedSuggestions } from '../lib/cvComparison';
 import AuthLayout from '../components/AuthLayout';
 import SaveAsModal, { Folder } from '../components/cv-editor/SaveAsModal';
 import ExportPDFModal from '../components/cv-editor/ExportPDFModal';
+import MobileBottomSheet, { BottomSheetMenuItem, BottomSheetDivider } from '../components/cv-editor/MobileBottomSheet';
 import ModernProfessional from '../components/cv-editor/templates/ModernProfessional';
 import ExecutiveClassic from '../components/cv-editor/templates/ExecutiveClassic';
 import TechMinimalist from '../components/cv-editor/templates/TechMinimalist';
@@ -88,10 +89,10 @@ export default function PremiumCVEditor() {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, userData } = useAuth();
-  
+
   // Check if this is a resume-builder route
   const isResumeBuilder = location.pathname.startsWith('/resume-builder/');
-  
+
   // Editor state
   const [cvData, setCvData] = useState<CVData>(initialCVData);
   const [template, setTemplate] = useState<CVTemplate>('modern-professional');
@@ -114,7 +115,7 @@ export default function PremiumCVEditor() {
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  
+
   // Save As modal state
   const [isSaveAsModalOpen, setIsSaveAsModalOpen] = useState(false);
   const [isSavingAs, setIsSavingAs] = useState(false);
@@ -123,36 +124,39 @@ export default function PremiumCVEditor() {
   // Translation state
   const [isTranslationModalOpen, setIsTranslationModalOpen] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
-  
+
   // Export PDF modal state
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  
+
+  // Mobile menu state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   // Click-to-edit from preview
   const [activeSectionTarget, setActiveSectionTarget] = useState<SectionClickTarget | null>(null);
-  
+
   // Highlight section from AI review
   const [highlightTarget, setHighlightTarget] = useState<HighlightTarget | null>(null);
-  
+
   // AI Review state - managed at page level for auto-loading
   const [reviewState, setReviewState] = useState<{
     result: CVReviewResult | null;
     ignoredIds: Set<string>;
     hasAnalyzed: boolean;
   }>({ result: null, ignoredIds: new Set(), hasAnalyzed: false });
-  
+
   // Track if analysis is currently running
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  
+
   // AbortController ref for cancelling ongoing analysis requests
   const analysisAbortControllerRef = useRef<AbortController | null>(null);
-  
+
   // Store CV snapshot from last analysis for comparison
   const [lastAnalyzedCVSnapshot, setLastAnalyzedCVSnapshot] = useState<CVData | null>(null);
-  
+
   // Before/After comparison state - stores original CV data for diff
   const [initialCVMarkdown, setInitialCVMarkdown] = useState<string | undefined>(undefined);
   const [originalStructuredData, setOriginalStructuredData] = useState<any>(undefined);
-  
+
   // Layout settings state
   const [layoutSettings, setLayoutSettings] = useState<CVLayoutSettings>({
     fontSize: 10,
@@ -163,7 +167,7 @@ export default function PremiumCVEditor() {
     experienceSpacing: 6,
     showSkillLevel: true
   });
-  
+
   // Use custom hook for editor logic
   const {
     loadCVData,
@@ -210,12 +214,12 @@ export default function PremiumCVEditor() {
   useEffect(() => {
     const fetchFolders = async () => {
       if (!currentUser || isResumeBuilder) return;
-      
+
       try {
         const foldersRef = collection(db, 'users', currentUser.uid, 'folders');
         const q = query(foldersRef, orderBy('order', 'asc'));
         const querySnapshot = await getDocs(q);
-        
+
         const foldersList: Folder[] = [];
         querySnapshot.forEach((docSnap) => {
           const data = docSnap.data();
@@ -229,13 +233,13 @@ export default function PremiumCVEditor() {
             updatedAt: data.updatedAt
           });
         });
-        
+
         setFolders(foldersList);
       } catch (error) {
         console.error('Error fetching folders:', error);
       }
     };
-    
+
     fetchFolders();
   }, [currentUser, isResumeBuilder]);
 
@@ -245,19 +249,19 @@ export default function PremiumCVEditor() {
     if (analysisAbortControllerRef.current) {
       analysisAbortControllerRef.current.abort();
     }
-    
+
     // Create new AbortController for this analysis
     const abortController = new AbortController();
     analysisAbortControllerRef.current = abortController;
-    
+
     setIsAnalyzing(true);
-    
+
     try {
       console.log('🚀 Starting AI review analysis...');
-      
+
       // Build previous analysis context if we have history
       let previousAnalysis: PreviousAnalysisContext | undefined;
-      
+
       if (reviewState.result && lastAnalyzedCVSnapshot) {
         // Detect which suggestions were applied by comparing CV states
         const changes = compareCVData(cvData, lastAnalyzedCVSnapshot);
@@ -265,7 +269,7 @@ export default function PremiumCVEditor() {
           changes,
           reviewState.result.suggestions
         );
-        
+
         previousAnalysis = {
           score: reviewState.result.summary.overallScore,
           suggestions: reviewState.result.suggestions,
@@ -273,36 +277,36 @@ export default function PremiumCVEditor() {
           previousCVSnapshot: lastAnalyzedCVSnapshot,
           timestamp: reviewState.result.analyzedAt
         };
-        
+
         console.log(`   📊 Previous analysis context:`, {
           previousScore: previousAnalysis.score,
           appliedSuggestionsCount: appliedSuggestionIds.length,
           hasChanges: changes.hasChanges
         });
       }
-      
+
       const analysisResult = await analyzeCVWithAI({
         cvData,
         jobContext,
         previousAnalysis,
         signal: abortController.signal
       });
-      
+
       // Check if request was aborted before updating state
       if (abortController.signal.aborted) {
         console.log('Analysis was cancelled, skipping state update');
         return;
       }
-      
+
       // Store current CV snapshot for next comparison
       setLastAnalyzedCVSnapshot(JSON.parse(JSON.stringify(cvData)));
-      
+
       setReviewState({
         result: analysisResult,
         ignoredIds: new Set(),
         hasAnalyzed: true
       });
-      
+
       // Show success message with score improvement if applicable
       if (previousAnalysis) {
         const scoreImprovement = analysisResult.summary.overallScore - previousAnalysis.score;
@@ -314,7 +318,7 @@ export default function PremiumCVEditor() {
           notify.success('Analysis complete!');
         }
       }
-      
+
       console.log('✅ AI review analysis completed');
     } catch (error: any) {
       // Ignore abort errors - these are expected when navigating away or starting new analysis
@@ -322,7 +326,7 @@ export default function PremiumCVEditor() {
         console.log('Analysis request was cancelled');
         return;
       }
-      
+
       console.error('❌ AI review analysis error:', error);
       notify.error('Failed to analyze CV. Please try again.');
       // Mark as analyzed even on error to prevent re-triggering
@@ -342,10 +346,10 @@ export default function PremiumCVEditor() {
     // 2. We haven't analyzed yet
     // 3. We're not currently analyzing
     // 4. We have at least some content to analyze
-    const hasContent = 
-      cvData.personalInfo.firstName || 
-      cvData.personalInfo.lastName || 
-      cvData.summary || 
+    const hasContent =
+      cvData.personalInfo.firstName ||
+      cvData.personalInfo.lastName ||
+      cvData.summary ||
       cvData.experiences.length > 0 ||
       cvData.education.length > 0;
 
@@ -370,24 +374,24 @@ export default function PremiumCVEditor() {
       notify.error('Please sign in to access the CV editor');
       return;
     }
-    
+
     try {
       // Use the new unified loading function
       console.log('Loading CV data for analysis:', analysisId);
-      const { 
-        cvData: loadedCvData, 
-        jobContext: loadedJobContext, 
-        editorState, 
+      const {
+        cvData: loadedCvData,
+        jobContext: loadedJobContext,
+        editorState,
         initialCVMarkdown: loadedInitialCV,
         originalStructuredData: loadedOriginalStructured
       } = await loadOrInitializeCVData(
         currentUser.uid,
         analysisId
       );
-      
+
       setCvData(loadedCvData);
       setJobContext(loadedJobContext);
-      
+
       // Store original CV data for before/after comparison
       // PRIORITY: Use structured data (more accurate) over raw markdown
       if (loadedOriginalStructured) {
@@ -398,7 +402,7 @@ export default function PremiumCVEditor() {
         setInitialCVMarkdown(loadedInitialCV);
         console.log('Initial CV markdown loaded for comparison (fallback)');
       }
-      
+
       // Restore editor state if it exists
       if (editorState) {
         console.log('Restoring editor state:', editorState);
@@ -412,9 +416,9 @@ export default function PremiumCVEditor() {
           setZoom(editorState.zoom);
         }
       }
-      
+
       return; // Exit early since we've handled everything
-      
+
     } catch (error) {
       console.error('Error loading ATS analysis data:', error);
       notify.error('Failed to load CV data');
@@ -422,7 +426,7 @@ export default function PremiumCVEditor() {
       loadUserProfile();
     }
   };
-  
+
   // Load Resume Builder data
   const loadResumeData = async (resumeId: string) => {
     if (!currentUser) {
@@ -430,32 +434,32 @@ export default function PremiumCVEditor() {
       notify.error('Please sign in to access the CV editor');
       return;
     }
-    
+
     try {
       console.log('Loading Resume Builder data:', resumeId);
       const resumeDoc = await getDoc(doc(db, 'users', currentUser.uid, 'cvs', resumeId));
-      
+
       if (resumeDoc.exists()) {
         const data = resumeDoc.data();
         console.log('Resume data found:', data);
-        
+
         setResumeName(data.name || 'Untitled Resume');
-        
+
         // Load CV data
         if (data.cvData) {
           setCvData(data.cvData);
         }
-        
+
         // Load template preferences
         if (data.template) {
           setTemplate(data.template as CVTemplate);
         }
-        
+
         // Load layout settings
         if (data.layoutSettings) {
           setLayoutSettings(data.layoutSettings);
         }
-        
+
         // Load job context if available
         if (data.sourceJobContext) {
           setJobContext({
@@ -467,7 +471,7 @@ export default function PremiumCVEditor() {
             gaps: []
           });
         }
-        
+
         notify.success('Resume loaded successfully');
       } else {
         console.error('Resume document not found');
@@ -483,7 +487,7 @@ export default function PremiumCVEditor() {
   // Load user profile data (fallback/standalone mode)
   const loadUserProfile = async () => {
     if (!currentUser) return;
-    
+
     try {
       console.log('Loading user profile data...');
       // ... (implementation omitted for brevity, same as before)
@@ -513,12 +517,12 @@ export default function PremiumCVEditor() {
     // Ensure panel is open
     setIsLeftPanelCollapsed(false);
   };
-  
+
   // Clear active target after processing
   const clearActiveSectionTarget = () => {
     setActiveSectionTarget(null);
   };
-  
+
   // Handle re-analyze request
   const handleReanalyze = () => {
     runAnalysis();
@@ -540,24 +544,24 @@ export default function PremiumCVEditor() {
       notify.success('Suggestion dismissed');
       return;
     }
-    
+
     try {
       // ==========================================
       // PERSONAL INFO SECTION
       // ==========================================
       if (targetSection === 'personal' || targetSection === 'contact') {
         if (targetField && suggestedValue) {
-        setCvData(prev => ({
-          ...prev,
-          personalInfo: {
-            ...prev.personalInfo,
+          setCvData(prev => ({
+            ...prev,
+            personalInfo: {
+              ...prev.personalInfo,
               [targetField]: suggestedValue
-          }
-        }));
-        setIsDirty(true);
-        setHighlightTarget(null);
+            }
+          }));
+          setIsDirty(true);
+          setHighlightTarget(null);
           notify.success('Personal info updated!');
-        return;
+          return;
         }
       }
 
@@ -566,14 +570,14 @@ export default function PremiumCVEditor() {
       // ==========================================
       if (targetSection === 'summary') {
         if (suggestedValue) {
-        setCvData(prev => ({
-          ...prev,
+          setCvData(prev => ({
+            ...prev,
             summary: suggestedValue
-        }));
-        setIsDirty(true);
-        setHighlightTarget(null);
-        notify.success('Summary updated!');
-        return;
+          }));
+          setIsDirty(true);
+          setHighlightTarget(null);
+          notify.success('Summary updated!');
+          return;
         }
       }
 
@@ -621,8 +625,8 @@ export default function PremiumCVEditor() {
             // Update description by default if no field specified
             setCvData(prev => ({
               ...prev,
-              experiences: prev.experiences.map(item => 
-                item.id === action.targetItemId 
+              experiences: prev.experiences.map(item =>
+                item.id === action.targetItemId
                   ? { ...item, description: action.suggestedValue! }
                   : item
               )
@@ -803,7 +807,7 @@ export default function PremiumCVEditor() {
       // ==========================================
       if (targetField) {
         console.log('✅ Applying generic field update:', targetField, 'to section:', targetSection);
-        
+
         // Try to update personal info if field matches
         const personalFields = ['firstName', 'lastName', 'email', 'phone', 'location', 'linkedin', 'github', 'portfolio', 'title'];
         if (personalFields.includes(targetField)) {
@@ -827,7 +831,7 @@ export default function PremiumCVEditor() {
       console.error('   targetField:', targetField);
       console.error('   targetItemId:', action.targetItemId);
       notify.error('Unable to apply this suggestion automatically. Please edit manually.');
-      
+
     } catch (error) {
       console.error('❌ Error applying suggestion:', error);
       notify.error('Failed to apply suggestion');
@@ -844,7 +848,7 @@ export default function PremiumCVEditor() {
         layoutSettings,
         zoom
       };
-      
+
       await saveCVData(id, editorStateToSave, isResumeBuilder);
       setIsDirty(false);
       notify.success('CV saved successfully');
@@ -890,15 +894,15 @@ export default function PremiumCVEditor() {
     try {
       // Generate PDF as blob
       const { blob } = await exportToPDFBlob(cvData, template, 'high');
-      
+
       // Use custom filename (ensure it ends with .pdf)
       const finalFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
-      
+
       // Generate unique document ID
       const documentId = generateId();
       const storageFileName = `${documentId}_${finalFileName}`;
       const fileRef = ref(storage, `cvs/${currentUser.uid}/${storageFileName}`);
-      
+
       // Upload to Firebase Storage
       await uploadBytes(fileRef, blob, { contentType: 'application/pdf' });
       const downloadUrl = await getDownloadURL(fileRef);
@@ -915,11 +919,11 @@ export default function PremiumCVEditor() {
       });
 
       setIsExportModalOpen(false);
-      
+
       notify.success(
         <div className="flex flex-col gap-1">
           <span>PDF saved to library!</span>
-          <button 
+          <button
             onClick={() => navigate('/resume-builder')}
             className="text-xs text-purple-600 dark:text-purple-400 hover:underline text-left"
           >
@@ -955,12 +959,12 @@ export default function PremiumCVEditor() {
       notify.error('Please sign in to save');
       return;
     }
-    
+
     setIsSavingAs(true);
     try {
       const newResumeId = generateId();
       const resumeRef = doc(db, 'users', currentUser.uid, 'cvs', newResumeId);
-      
+
       await setDoc(resumeRef, {
         name,
         cvData,
@@ -977,13 +981,13 @@ export default function PremiumCVEditor() {
           company: jobContext.company
         } : null
       });
-      
+
       setIsSaveAsModalOpen(false);
-      
+
       notify.success(
         <div className="flex flex-col gap-1">
           <span>CV saved to library!</span>
-          <button 
+          <button
             onClick={() => navigate('/resume-builder')}
             className="text-xs text-purple-600 dark:text-purple-400 hover:underline text-left"
           >
@@ -1060,7 +1064,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
             retries--;
             if (retries > 0) {
               console.log(`Rate limit hit, retrying in ${delay}ms... (${retries} retries left)`);
-              toast.loading(`Rate limit reached. Retrying in ${Math.round(delay/1000)}s...`, { id: 'translation-retry' });
+              toast.loading(`Rate limit reached. Retrying in ${Math.round(delay / 1000)}s...`, { id: 'translation-retry' });
               await new Promise(resolve => setTimeout(resolve, delay));
               delay = Math.min(delay * 2, 30000); // Max 30 seconds
               continue;
@@ -1092,19 +1096,19 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
       }
 
       const data = await response.json();
-      
+
       if (data.status === 'success' && data.content) {
         const translatedCVData = typeof data.content === 'string' ? JSON.parse(data.content) : data.content;
-        
+
         // Create new resume document
         const newResumeId = generateId();
         const resumeRef = doc(db, 'users', currentUser.uid, 'cvs', newResumeId);
-        
+
         // Use the same naming convention as Save As but append language
         // This assumes resumeName is available in scope, otherwise default to 'Tailored Resume'
         const baseName = resumeName || 'Tailored Resume';
         const newName = `${baseName} (${targetLanguage})`;
-        
+
         await setDoc(resumeRef, {
           name: newName,
           cvData: translatedCVData,
@@ -1117,9 +1121,9 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
           sourceResumeId: id,
           language: targetLanguage
         });
-        
+
         notify.success('CV translated successfully!');
-        
+
         // Navigate to new resume
         navigate(`/resume-builder/${newResumeId}/cv-editor`);
       } else {
@@ -1196,7 +1200,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
       company: jobContext.company,
       jobTitle: jobContext.jobTitle,
       // Job description (limited to 5000 chars for very long descriptions)
-      jobDescription: jobContext.jobDescription 
+      jobDescription: jobContext.jobDescription
         ? jobContext.jobDescription.substring(0, 5000) + (jobContext.jobDescription.length > 5000 ? '...' : '')
         : null,
       // All keywords
@@ -1253,82 +1257,108 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
   return (
     <AuthLayout>
       <div className="h-full flex flex-col bg-gray-50 dark:bg-[#333234]">
-        {/* Header */}
-        <header className="h-16 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e] flex-shrink-0 z-20">
+        {/* Mobile Compact Header */}
+        <header className="lg:hidden h-14 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e] flex-shrink-0 z-20 safe-area-top">
+          <div className="flex items-center justify-between h-full px-4">
+            {/* Back Button */}
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            {/* Title - Dynamic */}
+            <h1 className="flex-1 text-center text-base font-semibold text-gray-900 dark:text-white truncate px-4">
+              {isResumeBuilder ? resumeName : (jobContext?.jobTitle || 'CV Editor')}
+            </h1>
+
+            {/* More Menu */}
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 -mr-2 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
+            >
+              <MoreHorizontal className="w-5 h-5" />
+            </button>
+          </div>
+        </header>
+
+        {/* Desktop Header - Hidden on mobile */}
+        <header className="hidden lg:block h-16 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e] flex-shrink-0 z-20">
           <div className="h-full max-w-[1920px] mx-auto px-4 lg:px-6">
             <div className="flex items-center justify-between h-full">
               {/* Left: Title & Company */}
               <div className="flex items-center gap-4 min-w-0 flex-1">
-                <button 
+                <button
                   onClick={() => navigate(-1)}
                   className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg text-gray-500 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
-                
+
                 <div className="h-6 w-px bg-gray-200 dark:bg-[#3d3c3e] mx-2" />
-                
+
                 {isResumeBuilder ? (
-                <div className="flex items-center min-w-0 flex-1">
-                  {isEditingName ? (
-                    <input
-                      type="text"
-                      value={editedName}
-                      onChange={(e) => setEditedName(e.target.value)}
-                      onBlur={async () => {
-                        if (editedName.trim() && editedName !== resumeName && id) {
-                          try {
-                            const resumeRef = doc(db, 'users', currentUser!.uid, 'cvs', id);
-                            await updateDoc(resumeRef, {
-                              name: editedName.trim(),
-                              updatedAt: serverTimestamp()
-                            });
-                            setResumeName(editedName.trim());
-                            notify.success('Resume renamed');
-                          } catch (error) {
-                            console.error('Error renaming resume:', error);
-                            notify.error('Failed to rename resume');
+                  <div className="flex items-center min-w-0 flex-1">
+                    {isEditingName ? (
+                      <input
+                        type="text"
+                        value={editedName}
+                        onChange={(e) => setEditedName(e.target.value)}
+                        onBlur={async () => {
+                          if (editedName.trim() && editedName !== resumeName && id) {
+                            try {
+                              const resumeRef = doc(db, 'users', currentUser!.uid, 'cvs', id);
+                              await updateDoc(resumeRef, {
+                                name: editedName.trim(),
+                                updatedAt: serverTimestamp()
+                              });
+                              setResumeName(editedName.trim());
+                              notify.success('Resume renamed');
+                            } catch (error) {
+                              console.error('Error renaming resume:', error);
+                              notify.error('Failed to rename resume');
+                              setEditedName(resumeName);
+                            }
+                          } else {
                             setEditedName(resumeName);
                           }
-                        } else {
-                          setEditedName(resumeName);
-                        }
-                        setIsEditingName(false);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.currentTarget.blur();
-                        } else if (e.key === 'Escape') {
-                          setEditedName(resumeName);
                           setIsEditingName(false);
-                        }
-                      }}
-                      className="text-lg font-semibold text-gray-900 dark:text-white 
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur();
+                          } else if (e.key === 'Escape') {
+                            setEditedName(resumeName);
+                            setIsEditingName(false);
+                          }
+                        }}
+                        className="text-lg font-semibold text-gray-900 dark:text-white 
                         bg-transparent border-b-2 border-blue-500 dark:border-blue-400
                         focus:outline-none px-1 min-w-0 flex-1"
-                      autoFocus
-                    />
-                  ) : (
-                    <h1 
-                      className="text-lg font-semibold text-gray-900 dark:text-white truncate
+                        autoFocus
+                      />
+                    ) : (
+                      <h1
+                        className="text-lg font-semibold text-gray-900 dark:text-white truncate
                         cursor-text hover:text-blue-600 dark:hover:text-blue-400 transition-colors
                         px-2 py-1 rounded"
-                      onClick={() => {
-                        setEditedName(resumeName);
-                        setIsEditingName(true);
-                      }}
-                      title="Click to rename"
-                    >
-                      {resumeName}
-                    </h1>
-                  )}
-                </div>
-              ) : (
-                <CompanyHeader
-                  companyName={jobContext?.company}
-                  jobTitle={jobContext?.jobTitle}
-                />
-              )}
+                        onClick={() => {
+                          setEditedName(resumeName);
+                          setIsEditingName(true);
+                        }}
+                        title="Click to rename"
+                      >
+                        {resumeName}
+                      </h1>
+                    )}
+                  </div>
+                ) : (
+                  <CompanyHeader
+                    companyName={jobContext?.company}
+                    jobTitle={jobContext?.jobTitle}
+                  />
+                )}
               </div>
 
               {/* Right: Actions - Premium Grouped Toolbar */}
@@ -1348,19 +1378,6 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                     </span>
                   )}
                 </div>
-
-                {/* Toggle preview on mobile */}
-                <button
-                  onClick={() => setShowPreview(!showPreview)}
-                  className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
-                  title={showPreview ? 'Hide preview' : 'Show preview'}
-                >
-                  {showPreview ? (
-                    <EyeOff className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                  ) : (
-                    <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                  )}
-                </button>
 
                 {/* Separator */}
                 <div className="hidden md:block h-6 w-px bg-gray-200 dark:bg-[#3d3c3e]" />
@@ -1503,99 +1520,136 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
         {/* Main Content */}
         <main className="flex-1 min-h-0 overflow-hidden">
           <div className="h-full flex overflow-hidden relative">
-          {/* Left: Editor Panel */}
-          <div
-            className={`h-full relative border-r border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325] overflow-visible flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-              isLeftPanelCollapsed 
-                ? 'w-16' 
+            {/* Left: Editor Panel */}
+            <div
+              className={`h-full relative border-r border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325] overflow-visible flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${isLeftPanelCollapsed
+                ? 'w-16'
                 : 'w-full lg:w-[480px]'
-            }`}
-          >
-            <div className="h-full w-full overflow-hidden">
-              <EditorPanel
-                cvData={cvData}
-                onUpdate={updateSection}
-                onReorder={reorderSections}
-                onToggleSection={toggleSection}
-                layoutSettings={layoutSettings}
-                onLayoutSettingsChange={handleLayoutSettingsChange}
-                template={template}
-                onTemplateChange={setTemplate}
-                jobContext={jobContext}
-                activeSectionTarget={activeSectionTarget}
-                onActiveSectionProcessed={clearActiveSectionTarget}
-                onHighlightSection={setHighlightTarget}
-                onApplySuggestion={handleApplySuggestion}
-                reviewState={reviewState}
-                onReviewStateChange={setReviewState}
-                isAnalyzing={isAnalyzing}
-                onReanalyze={handleReanalyze}
-                isCollapsed={isLeftPanelCollapsed}
-                onToggleCollapse={() => setIsLeftPanelCollapsed(!isLeftPanelCollapsed)}
-              />
+                }`}
+            >
+              <div className="h-full w-full overflow-hidden">
+                <EditorPanel
+                  cvData={cvData}
+                  onUpdate={updateSection}
+                  onReorder={reorderSections}
+                  onToggleSection={toggleSection}
+                  layoutSettings={layoutSettings}
+                  onLayoutSettingsChange={handleLayoutSettingsChange}
+                  template={template}
+                  onTemplateChange={setTemplate}
+                  jobContext={jobContext}
+                  activeSectionTarget={activeSectionTarget}
+                  onActiveSectionProcessed={clearActiveSectionTarget}
+                  onHighlightSection={setHighlightTarget}
+                  onApplySuggestion={handleApplySuggestion}
+                  reviewState={reviewState}
+                  onReviewStateChange={setReviewState}
+                  isAnalyzing={isAnalyzing}
+                  onReanalyze={handleReanalyze}
+                  isCollapsed={isLeftPanelCollapsed}
+                  onToggleCollapse={() => setIsLeftPanelCollapsed(!isLeftPanelCollapsed)}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Right: Preview Panel */}
-          <AnimatePresence>
-            {showPreview && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="h-full flex-1 bg-gray-100 dark:bg-[#333234] hidden lg:block"
-                transition={{ duration: 0.2 }}
-              >
-                <PreviewContainer
-                  cvData={cvData}
-                  template={template}
-                  zoom={zoom}
-                  layoutSettings={layoutSettings}
-                  onZoomIn={handleZoomIn}
-                  onZoomOut={handleZoomOut}
-                  onZoomReset={handleZoomReset}
-                  onToggleFullscreen={handleToggleFullscreen}
-                  onSectionClick={handlePreviewSectionClick}
-                  highlightTarget={highlightTarget}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Mobile Preview Overlay */}
-          <AnimatePresence>
-            {showPreview && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="lg:hidden fixed inset-0 z-40 bg-gray-100 dark:bg-[#333234]"
-              >
-                <PreviewContainer
-                  cvData={cvData}
-                  template={template}
-                  zoom={zoom}
-                  layoutSettings={layoutSettings}
-                  onZoomIn={handleZoomIn}
-                  onZoomOut={handleZoomOut}
-                  onZoomReset={handleZoomReset}
-                  onToggleFullscreen={handleToggleFullscreen}
-                  onSectionClick={handlePreviewSectionClick}
-                  highlightTarget={highlightTarget}
-                />
-                
-                {/* Close button for mobile preview */}
-                <button
-                  onClick={() => setShowPreview(false)}
-                  className="fixed top-20 right-4 z-50 p-3 bg-white dark:bg-[#2b2a2c] rounded-full shadow-lg"
+            {/* Right: Preview Panel */}
+            <AnimatePresence>
+              {showPreview && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="h-full flex-1 bg-gray-100 dark:bg-[#333234] hidden lg:block"
+                  transition={{ duration: 0.2 }}
                 >
-                  <EyeOff className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </main>
+                  <PreviewContainer
+                    cvData={cvData}
+                    template={template}
+                    zoom={zoom}
+                    layoutSettings={layoutSettings}
+                    onZoomIn={handleZoomIn}
+                    onZoomOut={handleZoomOut}
+                    onZoomReset={handleZoomReset}
+                    onToggleFullscreen={handleToggleFullscreen}
+                    onSectionClick={handlePreviewSectionClick}
+                    highlightTarget={highlightTarget}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Mobile Preview Overlay */}
+            <AnimatePresence>
+              {showPreview && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="lg:hidden fixed inset-0 z-40 bg-gray-100 dark:bg-[#333234] flex flex-col"
+                >
+                  {/* Mobile Preview Header */}
+                  <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e] safe-area-top">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      CV Preview
+                    </span>
+                    <button
+                      onClick={() => setShowPreview(false)}
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
+                    >
+                      <EyeOff className="w-4 h-4" />
+                      <span>Close</span>
+                    </button>
+                  </div>
+
+                  {/* Preview Content */}
+                  <div className="flex-1 min-h-0">
+                    <PreviewContainer
+                      cvData={cvData}
+                      template={template}
+                      zoom={zoom}
+                      layoutSettings={layoutSettings}
+                      onZoomIn={handleZoomIn}
+                      onZoomOut={handleZoomOut}
+                      onZoomReset={handleZoomReset}
+                      onToggleFullscreen={handleToggleFullscreen}
+                      onSectionClick={handlePreviewSectionClick}
+                      highlightTarget={highlightTarget}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </main>
+
+        {/* Mobile Bottom Navigation Bar - Editor/Preview Toggle */}
+        <nav className="lg:hidden fixed bottom-[68px] left-0 right-0 z-30 bg-white dark:bg-[#242325] border-t border-gray-200 dark:border-[#3d3c3e] safe-area-bottom">
+          <div className="flex">
+            <button
+              onClick={() => setShowPreview(false)}
+              className={`flex-1 flex flex-col items-center justify-center py-3 transition-colors ${!showPreview
+                ? 'text-gray-900 dark:text-white bg-gray-50 dark:bg-[#2b2a2c]'
+                : 'text-gray-500 dark:text-gray-400'
+                }`}
+            >
+              <svg className="w-5 h-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              <span className="text-xs font-medium">Editor</span>
+            </button>
+            <div className="w-px bg-gray-200 dark:bg-[#3d3c3e]" />
+            <button
+              onClick={() => setShowPreview(true)}
+              className={`flex-1 flex flex-col items-center justify-center py-3 transition-colors ${showPreview
+                ? 'text-gray-900 dark:text-white bg-gray-50 dark:bg-[#2b2a2c]'
+                : 'text-gray-500 dark:text-gray-400'
+                }`}
+            >
+              <Eye className="w-5 h-5 mb-1" />
+              <span className="text-xs font-medium">Preview</span>
+            </button>
+          </div>
+        </nav>
 
         {/* AI Companion Panel */}
         <AICompanionPanel
@@ -1635,8 +1689,8 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                   {[50, 70, 100, 120, 150].map((level) => (
                     <button
                       key={level}
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
+                      onClick={(e) => {
+                        e.stopPropagation();
                         const steps = Math.abs(level - zoom) / 10;
                         if (level > zoom) {
                           for (let i = 0; i < steps; i++) {
@@ -1648,9 +1702,8 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                           }
                         }
                       }}
-                      className={`px-3 py-1 text-xs font-semibold ${
-                        zoom === level ? 'bg-white text-gray-900' : 'text-white/80'
-                      }`}
+                      className={`px-3 py-1 text-xs font-semibold ${zoom === level ? 'bg-white text-gray-900' : 'text-white/80'
+                        }`}
                     >
                       {level}%
                     </button>
@@ -1681,51 +1734,51 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                     }}
                     className="m-8"
                   >
-                  <div
-                    id="cv-fullscreen-preview"
-                    className="bg-white shadow-xl"
-                    style={{
-                      width: `${A4_WIDTH_PX}px`,
-                      minHeight: `${A4_HEIGHT_PX}px`,
-                      padding: '40px',
-                      boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-                      borderRadius: '2px'
-                    }}
-                  >
-                    {/* Render template based on current selection */}
-                    {(() => {
-                      const layoutSettingsWithDefaults = {
-                        fontSize: layoutSettings?.fontSize ?? 10,
-                        dateFormat: layoutSettings?.dateFormat ?? 'jan-24',
-                        lineHeight: layoutSettings?.lineHeight ?? 1.3,
-                        fontFamily: layoutSettings?.fontFamily ?? 'Inter',
-                        accentColor: layoutSettings?.accentColor,
-                        experienceSpacing: layoutSettings?.experienceSpacing,
-                        showSkillLevel: layoutSettings?.showSkillLevel ?? true
-                      };
+                    <div
+                      id="cv-fullscreen-preview"
+                      className="bg-white shadow-xl"
+                      style={{
+                        width: `${A4_WIDTH_PX}px`,
+                        minHeight: `${A4_HEIGHT_PX}px`,
+                        padding: '40px',
+                        boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+                        borderRadius: '2px'
+                      }}
+                    >
+                      {/* Render template based on current selection */}
+                      {(() => {
+                        const layoutSettingsWithDefaults = {
+                          fontSize: layoutSettings?.fontSize ?? 10,
+                          dateFormat: layoutSettings?.dateFormat ?? 'jan-24',
+                          lineHeight: layoutSettings?.lineHeight ?? 1.3,
+                          fontFamily: layoutSettings?.fontFamily ?? 'Inter',
+                          accentColor: layoutSettings?.accentColor,
+                          experienceSpacing: layoutSettings?.experienceSpacing,
+                          showSkillLevel: layoutSettings?.showSkillLevel ?? true
+                        };
 
-                      switch (template) {
-                        case 'executive-classic':
-                          return <ExecutiveClassic cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
-                        case 'tech-minimalist':
-                          return <TechMinimalist cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
-                        case 'creative-balance':
-                          return <CreativeBalance cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
-                        case 'harvard-classic':
-                          return <HarvardClassic cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
-                        case 'swiss-photo':
-                          return <SwissPhoto cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
-                        case 'corporate-photo':
-                          return <CorporatePhoto cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
-                        case 'elegant-simple':
-                          return <ElegantSimple cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
-                        case 'modern-professional':
-                        default:
-                          return <ModernProfessional cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
-                      }
-                    })()}
-                  </div>
-                </motion.div>
+                        switch (template) {
+                          case 'executive-classic':
+                            return <ExecutiveClassic cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                          case 'tech-minimalist':
+                            return <TechMinimalist cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                          case 'creative-balance':
+                            return <CreativeBalance cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                          case 'harvard-classic':
+                            return <HarvardClassic cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                          case 'swiss-photo':
+                            return <SwissPhoto cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                          case 'corporate-photo':
+                            return <CorporatePhoto cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                          case 'elegant-simple':
+                            return <ElegantSimple cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                          case 'modern-professional':
+                          default:
+                            return <ModernProfessional cvData={cvData} layoutSettings={layoutSettingsWithDefaults} />;
+                        }
+                      })()}
+                    </div>
+                  </motion.div>
                 </div>
               </div>
             </motion.div>
@@ -1773,6 +1826,88 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
           folders={folders}
           isExporting={isExporting}
         />
+
+        {/* Mobile Bottom Sheet Menu */}
+        <MobileBottomSheet
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
+          title="Options"
+        >
+          <BottomSheetMenuItem
+            icon={<Sparkles className="w-5 h-5" />}
+            label="AI Review"
+            description="Get AI suggestions"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              // Switch to AI Review tab in EditorPanel
+            }}
+          />
+          <BottomSheetMenuItem
+            icon={<Palette className="w-5 h-5" />}
+            label="Templates"
+            description="Change CV template"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+            }}
+          />
+          <BottomSheetMenuItem
+            icon={<Settings className="w-5 h-5" />}
+            label="Style"
+            description="Font, colors, spacing"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+            }}
+          />
+          <BottomSheetDivider />
+          <BottomSheetMenuItem
+            icon={<Save className="w-5 h-5" />}
+            label="Save"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              handleSave();
+            }}
+            badge={isDirty ? 'Unsaved' : undefined}
+          />
+          <BottomSheetMenuItem
+            icon={<FolderOpen className="w-5 h-5" />}
+            label="Save to Library"
+            description="Save as new resume"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              setIsSaveAsModalOpen(true);
+            }}
+          />
+          <BottomSheetDivider />
+          <BottomSheetMenuItem
+            icon={<Languages className="w-5 h-5" />}
+            label="Translate"
+            description="Translate CV to another language"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              setIsTranslationModalOpen(true);
+            }}
+          />
+          <BottomSheetMenuItem
+            icon={<Download className="w-5 h-5" />}
+            label="Export PDF"
+            variant="primary"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              setIsExportModalOpen(true);
+            }}
+          />
+        </MobileBottomSheet>
+
+        {/* Mobile Export FAB */}
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.3, type: 'spring', stiffness: 300 }}
+          onClick={() => setIsExportModalOpen(true)}
+          className="lg:hidden fixed bottom-[140px] right-4 z-30 w-14 h-14 rounded-full bg-[#b7e219] hover:bg-[#a5cb17] active:bg-[#9fc015] shadow-lg shadow-[#b7e219]/30 flex items-center justify-center transition-colors"
+        >
+          <Download className="w-6 h-6 text-gray-900" />
+        </motion.button>
       </div>
     </AuthLayout>
   );

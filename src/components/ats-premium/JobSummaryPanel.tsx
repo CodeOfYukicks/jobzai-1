@@ -96,17 +96,17 @@ export default function JobSummaryPanel({ jobSummary, compact = false }: JobSumm
   return (
     <div className="space-y-6">
       {/* Role & Mission */}
-      <div className="bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 space-y-4">
-        <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
-            <Target className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+      <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl border border-gray-200 dark:border-[#3d3c3e] p-5 sm:p-6 space-y-4">
+        <div className="flex items-start gap-3 sm:gap-4">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center flex-shrink-0">
+            <Target className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-gray-400" />
           </div>
           <div className="space-y-3 flex-1">
             <div>
               <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
                 Role
               </h3>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+              <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                 {jobSummary.role}
               </p>
             </div>
@@ -125,9 +125,9 @@ export default function JobSummaryPanel({ jobSummary, compact = false }: JobSumm
       {/* Grid Layout for Lists */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Key Responsibilities */}
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-200 dark:border-[#3d3c3e] p-5 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center">
               <Briefcase className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </div>
             <h3 className="font-semibold text-gray-900 dark:text-white">
@@ -147,9 +147,9 @@ export default function JobSummaryPanel({ jobSummary, compact = false }: JobSumm
         </div>
 
         {/* Core Requirements */}
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-200 dark:border-[#3d3c3e] p-5 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center">
               <CheckCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </div>
             <h3 className="font-semibold text-gray-900 dark:text-white">
@@ -171,10 +171,10 @@ export default function JobSummaryPanel({ jobSummary, compact = false }: JobSumm
 
       {/* Hidden Expectations - Full Width */}
       {jobSummary.hidden_expectations.length > 0 && (
-        <div className="bg-amber-50/50 dark:bg-amber-950/10 rounded-xl border border-amber-200 dark:border-amber-900/30 p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-              <Eye className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+        <div className="bg-amber-50/50 dark:bg-amber-950/10 rounded-xl border border-amber-200 dark:border-amber-900/30 p-5 sm:p-6">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+              <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="flex-1 space-y-3">
               <h3 className="font-semibold text-amber-900 dark:text-amber-300">
