@@ -437,7 +437,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/campaigns-auto' ||
     location.pathname === '/cv-analysis' ||
     location.pathname === '/upcoming-interviews' ||
-    location.pathname === '/calendar';
+    location.pathname === '/calendar' ||
+    location.pathname === '/applications';
 
   // Pages where we should hide the mobile global elements (Top Bar & Bottom Nav)
   // This gives a true native "full screen" app feel for specific editors

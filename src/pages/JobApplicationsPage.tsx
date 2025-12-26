@@ -186,12 +186,12 @@ export default function JobApplicationsPage() {
 
   // Get effective cover photo (board cover takes priority when in a board)
   const currentBoard = boards.find(b => b.id === currentBoardId);
-  
+
   // Get current board type (defaults to 'jobs')
   const currentBoardType: BoardType = currentBoard?.boardType || 'jobs';
-  
-  const effectiveCoverPhoto = view !== 'boards' && currentBoard?.coverPhoto 
-    ? currentBoard.coverPhoto 
+
+  const effectiveCoverPhoto = view !== 'boards' && currentBoard?.coverPhoto
+    ? currentBoard.coverPhoto
     : coverPhoto;
 
   // Handle file select for cover
@@ -329,7 +329,7 @@ export default function JobApplicationsPage() {
       const cleanBoardData = Object.fromEntries(
         Object.entries(boardData).filter(([_, v]) => v !== undefined)
       );
-      
+
       const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
       await addDoc(boardsRef, {
         ...cleanBoardData,
@@ -353,7 +353,7 @@ export default function JobApplicationsPage() {
       const cleanBoardData = Object.fromEntries(
         Object.entries(boardData).filter(([_, v]) => v !== undefined)
       );
-      
+
       const boardRef = doc(db, 'users', currentUser.uid, 'boards', editingBoard.id);
       await updateDoc(boardRef, {
         ...cleanBoardData,
@@ -373,10 +373,10 @@ export default function JobApplicationsPage() {
     try {
       // Get the board type (default to 'jobs' for backwards compatibility)
       const deletedBoardType = boardToDelete.boardType || 'jobs';
-      
+
       // Get applications in this board
       const boardApplications = applications.filter(app => app.boardId === boardToDelete.id);
-      
+
       if (targetBoardId) {
         // Transfer applications to the specified board
         const targetBoard = boards.find(b => b.id === targetBoardId);
@@ -407,8 +407,8 @@ export default function JobApplicationsPage() {
         setCurrentBoardId(defaultBoard?.id || null);
       }
 
-      const message = targetBoardId 
-        ? 'Board deleted and applications transferred!' 
+      const message = targetBoardId
+        ? 'Board deleted and applications transferred!'
         : 'Board and applications deleted!';
       notify.success(message);
     } catch (error) {
@@ -449,7 +449,7 @@ export default function JobApplicationsPage() {
         boardId: targetBoardId,
         updatedAt: serverTimestamp(),
       });
-      
+
       const targetBoard = boards.find(b => b.id === targetBoardId);
       notify.success(`Moved to ${targetBoard?.name || 'board'}`);
       setShowMoveToBoardModal(false);
@@ -485,7 +485,7 @@ export default function JobApplicationsPage() {
 
     try {
       const updates = checkAndApplyAutomations(applications, automationSettings);
-      
+
       if (updates.length === 0) return;
 
       // Apply updates to Firestore
@@ -564,7 +564,7 @@ export default function JobApplicationsPage() {
   useEffect(() => {
     const highlightId = searchParams.get('highlight');
     const boardId = searchParams.get('board');
-    
+
     if (highlightId && applications.length > 0 && boards.length > 0 && !isLoading) {
       const app = applications.find(a => a.id === highlightId);
       if (app && (!selectedApplication || selectedApplication.id !== highlightId)) {
@@ -583,11 +583,11 @@ export default function JobApplicationsPage() {
             setView('kanban');
           }
         }
-        
+
         // Open the application modal
         setSelectedApplication(app);
         setTimelineModal(true);
-        
+
         // Remove params from URL after opening
         searchParams.delete('highlight');
         searchParams.delete('board');
@@ -602,27 +602,27 @@ export default function JobApplicationsPage() {
     return new Promise((resolve) => {
       const img = new window.Image();
       img.crossOrigin = 'anonymous';
-      
+
       img.onload = () => {
         try {
           const canvas = document.createElement('canvas');
           canvas.width = img.width;
           canvas.height = img.height;
           const ctx = canvas.getContext('2d');
-          
+
           if (!ctx) {
             resolve(true); // Default to dark if canvas fails
             return;
           }
-          
+
           ctx.drawImage(img, 0, 0);
-          
+
           // Sample pixels from the image (sample every 10th pixel for performance)
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const data = imageData.data;
           let totalBrightness = 0;
           let sampleCount = 0;
-          
+
           for (let i = 0; i < data.length; i += 40) { // Sample every 10th pixel (RGBA = 4 bytes)
             const r = data[i];
             const g = data[i + 1];
@@ -632,7 +632,7 @@ export default function JobApplicationsPage() {
             totalBrightness += luminance;
             sampleCount++;
           }
-          
+
           const averageBrightness = totalBrightness / sampleCount;
           // If average brightness is less than 0.5, consider it dark
           resolve(averageBrightness < 0.5);
@@ -641,11 +641,11 @@ export default function JobApplicationsPage() {
           resolve(true); // Default to dark on error
         }
       };
-      
+
       img.onerror = () => {
         resolve(true); // Default to dark on error
       };
-      
+
       img.src = imageUrl;
     });
   };
@@ -681,7 +681,7 @@ export default function JobApplicationsPage() {
   const fireConfetti = () => {
     // Ultra Premium Side Cannons Confetti
     // Sophisticated dual-origin celebration effect
-    
+
     const defaults = {
       zIndex: 1500,
       ticks: 300,
@@ -708,7 +708,7 @@ export default function JobApplicationsPage() {
     ) => {
       const angle = side === 'left' ? 60 : 120;
       const origin = side === 'left' ? { x: 0, y: 0.5 } : { x: 1, y: 0.5 };
-      
+
       confetti({
         ...defaults,
         particleCount,
@@ -757,7 +757,7 @@ export default function JobApplicationsPage() {
     try {
       const timestamp = Date.now();
       const isInBoard = view !== 'boards' && currentBoardId;
-      const fileName = isInBoard 
+      const fileName = isInBoard
         ? `board_cover_${currentBoardId}_${timestamp}.jpg`
         : `applications_cover_${timestamp}.jpg`;
       const storagePath = isInBoard
@@ -794,26 +794,26 @@ export default function JobApplicationsPage() {
         notify.success('Board cover updated');
       } else {
         // Update global page cover in Firestore
-      const userRef = doc(db, 'users', currentUser.uid);
-      const userDoc = await getDoc(userRef);
-      const currentData = userDoc.exists() ? userDoc.data() : {};
-      const currentPagePreferences = currentData.pagePreferences || {};
-      const currentApplicationsPrefs = currentPagePreferences.applications || {};
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userRef);
+        const currentData = userDoc.exists() ? userDoc.data() : {};
+        const currentPagePreferences = currentData.pagePreferences || {};
+        const currentApplicationsPrefs = currentPagePreferences.applications || {};
 
-      await updateDoc(userRef, {
-        pagePreferences: {
-          ...currentPagePreferences,
-          applications: {
-            ...currentApplicationsPrefs,
-            coverPhoto: coverUrl
+        await updateDoc(userRef, {
+          pagePreferences: {
+            ...currentPagePreferences,
+            applications: {
+              ...currentApplicationsPrefs,
+              coverPhoto: coverUrl
+            }
           }
-        }
-      });
+        });
 
-      setCoverPhoto(coverUrl);
+        setCoverPhoto(coverUrl);
         notify.success('Cover updated');
       }
-      
+
       // Detect brightness of new cover
       const isDark = await detectCoverBrightness(coverUrl);
       setIsCoverDark(isDark);
@@ -831,7 +831,7 @@ export default function JobApplicationsPage() {
 
     const isInBoard = view !== 'boards' && currentBoardId;
     const targetCover = isInBoard ? currentBoard?.coverPhoto : coverPhoto;
-    
+
     if (!targetCover) return;
 
     setIsUpdatingCover(true);
@@ -859,26 +859,26 @@ export default function JobApplicationsPage() {
         notify.success('Board cover removed');
       } else {
         // Remove global page cover from Firestore
-      const userRef = doc(db, 'users', currentUser.uid);
-      const userDoc = await getDoc(userRef);
-      const currentData = userDoc.exists() ? userDoc.data() : {};
-      const currentPagePreferences = currentData.pagePreferences || {};
-      const currentApplicationsPrefs = currentPagePreferences.applications || {};
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userRef);
+        const currentData = userDoc.exists() ? userDoc.data() : {};
+        const currentPagePreferences = currentData.pagePreferences || {};
+        const currentApplicationsPrefs = currentPagePreferences.applications || {};
 
-      await updateDoc(userRef, {
-        pagePreferences: {
-          ...currentPagePreferences,
-          applications: {
-            ...currentApplicationsPrefs,
-            coverPhoto: null
+        await updateDoc(userRef, {
+          pagePreferences: {
+            ...currentPagePreferences,
+            applications: {
+              ...currentApplicationsPrefs,
+              coverPhoto: null
+            }
           }
-        }
-      });
+        });
 
-      setCoverPhoto(null);
-      notify.success('Cover removed');
+        setCoverPhoto(null);
+        notify.success('Cover removed');
       }
-      
+
       setIsCoverDark(null);
     } catch (error) {
       console.error('Error removing cover:', error);
@@ -943,14 +943,14 @@ export default function JobApplicationsPage() {
     }
 
     const jobUrl = formData.url.trim();
-    
+
     // Detect URL type
     const urlType = detectUrlType(jobUrl);
     const platformName = getPlatformName(urlType);
     setDetectedPlatform(platformName);
-    
+
     console.log(`🔍 [handleExtractJobInfo] Detected URL type: ${urlType} (${platformName})`);
-    
+
     // Check if this platform requires manual paste (LinkedIn, Indeed)
     if (requiresPasteMode(jobUrl)) {
       console.log(`⚠️ [handleExtractJobInfo] ${platformName} requires manual paste mode`);
@@ -973,7 +973,7 @@ export default function JobApplicationsPage() {
       // Validate extracted data - only require position to be valid
       // Company name might be extracted incorrectly but user can fix it
       const hasValidData = extractedData.position && extractedData.position.length > 2;
-      
+
       if (!hasValidData) {
         console.warn('⚠️ Extracted data seems incomplete, switching to manual mode');
         setShowPasteMode(true);
@@ -984,7 +984,7 @@ export default function JobApplicationsPage() {
       }
 
       applyExtractedDataToForm(extractedData);
-      
+
       // Show success with note if company name looks wrong
       if (!extractedData.companyName || extractedData.companyName.length <= 2) {
         notify.success('Job extracted! Please verify the company name.', { duration: 3000 });
@@ -993,7 +993,7 @@ export default function JobApplicationsPage() {
       }
     } catch (error) {
       console.error('❌ Error extracting job info:', error);
-      
+
       // On failure, open manual form as fallback
       setShowPasteMode(true);
       setShowFullForm(true); // Open manual form automatically
@@ -1015,16 +1015,16 @@ export default function JobApplicationsPage() {
 
     try {
       const extractedData = await extractFromPastedContent(pastedJobContent, formData.url);
-      
+
       console.log('✅ Successfully extracted from pasted content:', extractedData);
-      
+
       applyExtractedDataToForm(extractedData);
-      
+
       // Hide paste mode and reset
       setShowPasteMode(false);
       setPastedJobContent('');
       setDetectedPlatform(null);
-      
+
       notify.success('Job information extracted successfully!');
     } catch (error) {
       console.error('❌ Error analyzing pasted content:', error);
@@ -1057,12 +1057,12 @@ export default function JobApplicationsPage() {
       if (eventType === 'application') {
         // Determine default status based on board type
         const defaultStatus = currentBoardType === 'campaigns' ? 'targets' : 'applied';
-        
+
         // For campaigns, use contactRole as position if position is empty
-        const effectivePosition = currentBoardType === 'campaigns' 
+        const effectivePosition = currentBoardType === 'campaigns'
           ? (formData.position || formData.contactRole || 'Outreach')
           : formData.position;
-        
+
         // For campaigns, location is optional
         const effectiveLocation = currentBoardType === 'campaigns'
           ? (formData.location || '')
@@ -1135,13 +1135,13 @@ export default function JobApplicationsPage() {
         setLinkedApplicationId(null);
         setLookupSearchQuery('');
         setShowLookupDropdown(false);
-        
+
         // Check if we need to generate AI summary in background
-        const needsAiAnalysis = newApplication.fullJobDescription && 
-                                newApplication.fullJobDescription.length >= 50 && 
-                                !newApplication.description &&
-                                !formData.jobInsights;
-        
+        const needsAiAnalysis = newApplication.fullJobDescription &&
+          newApplication.fullJobDescription.length >= 50 &&
+          !newApplication.description &&
+          !formData.jobInsights;
+
         setFormData({
           companyName: '',
           position: '',
@@ -1158,7 +1158,7 @@ export default function JobApplicationsPage() {
         });
 
         notify.success('Application created successfully');
-        
+
         // Generate AI summary in background if job description was entered manually
         if (needsAiAnalysis && currentUser) {
           // Don't await - run in background
@@ -1168,7 +1168,7 @@ export default function JobApplicationsPage() {
                 newApplication.fullJobDescription,
                 newApplication.url || ''
               );
-              
+
               // Format the summary with bullet points
               let formattedDescription = extractedData.summary || '';
               if (formattedDescription) {
@@ -1177,7 +1177,7 @@ export default function JobApplicationsPage() {
                   .replace(/\\"/g, '"')
                   .replace(/\\'/g, "'")
                   .trim();
-                  
+
                 if (!formattedDescription.includes('•') && !formattedDescription.includes('-')) {
                   const lines = formattedDescription.split('\n').filter((line: string) => line.trim().length > 0);
                   if (lines.length > 0) {
@@ -1191,7 +1191,7 @@ export default function JobApplicationsPage() {
                   }
                 }
               }
-              
+
               // Update the document with AI-generated data
               await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
                 description: formattedDescription,
@@ -1199,7 +1199,7 @@ export default function JobApplicationsPage() {
                 ...(extractedData.jobTags && { jobTags: extractedData.jobTags }),
                 updatedAt: serverTimestamp(),
               });
-              
+
               notify.success('✨ AI insights generated for your application!', { duration: 3000 });
             } catch (error) {
               console.error('Background AI analysis failed:', error);
@@ -1293,7 +1293,7 @@ export default function JobApplicationsPage() {
 
         // Mise à jour de la candidature avec le nouvel entretien (don't change status yet if prompting)
         const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
-        
+
         if (shouldPromptMove && existingApplication) {
           // Just add interview, keep current status
           await updateDoc(applicationRef, {
@@ -1505,7 +1505,7 @@ export default function JobApplicationsPage() {
 
     try {
       const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', pendingMoveApplication.id);
-      
+
       // Add status history entry
       const statusHistory = pendingMoveApplication.statusHistory || [{
         status: pendingMoveApplication.status,
@@ -1621,8 +1621,8 @@ export default function JobApplicationsPage() {
         case 'custom':
           if (customDateRange) {
             filtered = filtered.filter(app => {
-              const dateField = currentBoardType === 'campaigns' 
-                ? (app.lastContactedAt || app.appliedDate) 
+              const dateField = currentBoardType === 'campaigns'
+                ? (app.lastContactedAt || app.appliedDate)
                 : app.appliedDate;
               const appDate = new Date(dateField);
               const startDate = new Date(customDateRange.start);
@@ -1636,8 +1636,8 @@ export default function JobApplicationsPage() {
 
       if (dateFilter !== 'custom' || !customDateRange) {
         filtered = filtered.filter(app => {
-          const dateField = currentBoardType === 'campaigns' 
-            ? (app.lastContactedAt || app.appliedDate) 
+          const dateField = currentBoardType === 'campaigns'
+            ? (app.lastContactedAt || app.appliedDate)
             : app.appliedDate;
           const appDate = new Date(dateField);
           return appDate >= filterDate;
@@ -1690,21 +1690,21 @@ export default function JobApplicationsPage() {
         }
       } else {
         // For jobs, use interviews
-      if (hasInterviews === 'with') {
-        filtered = filtered.filter(app => app.interviews && app.interviews.length > 0);
-      } else if (hasInterviews === 'without') {
-        filtered = filtered.filter(app => !app.interviews || app.interviews.length === 0);
-      } else if (hasInterviews === 'upcoming') {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        filtered = filtered.filter(app => {
-          if (!app.interviews || app.interviews.length === 0) return false;
-          return app.interviews.some(interview => {
-            const interviewDate = new Date(interview.date);
-            interviewDate.setHours(0, 0, 0, 0);
-            return interviewDate >= today && interview.status === 'scheduled';
+        if (hasInterviews === 'with') {
+          filtered = filtered.filter(app => app.interviews && app.interviews.length > 0);
+        } else if (hasInterviews === 'without') {
+          filtered = filtered.filter(app => !app.interviews || app.interviews.length === 0);
+        } else if (hasInterviews === 'upcoming') {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          filtered = filtered.filter(app => {
+            if (!app.interviews || app.interviews.length === 0) return false;
+            return app.interviews.some(interview => {
+              const interviewDate = new Date(interview.date);
+              interviewDate.setHours(0, 0, 0, 0);
+              return interviewDate >= today && interview.status === 'scheduled';
+            });
           });
-        });
         }
       }
     }
@@ -1717,10 +1717,10 @@ export default function JobApplicationsPage() {
           return app.meetings.some(meeting => interviewTypes.includes(meeting.type));
         });
       } else {
-      filtered = filtered.filter(app => {
-        if (!app.interviews || app.interviews.length === 0) return false;
-        return app.interviews.some(interview => interviewTypes.includes(interview.type));
-      });
+        filtered = filtered.filter(app => {
+          if (!app.interviews || app.interviews.length === 0) return false;
+          return app.interviews.some(interview => interviewTypes.includes(interview.type));
+        });
       }
     }
 
@@ -1732,10 +1732,10 @@ export default function JobApplicationsPage() {
           return app.meetings.some(meeting => interviewStatus.includes(meeting.status));
         });
       } else {
-      filtered = filtered.filter(app => {
-        if (!app.interviews || app.interviews.length === 0) return false;
-        return app.interviews.some(interview => interviewStatus.includes(interview.status));
-      });
+        filtered = filtered.filter(app => {
+          if (!app.interviews || app.interviews.length === 0) return false;
+          return app.interviews.some(interview => interviewStatus.includes(interview.status));
+        });
       }
     }
 
@@ -1756,14 +1756,14 @@ export default function JobApplicationsPage() {
           });
         });
       } else {
-      filtered = filtered.filter(app => {
-        if (!app.interviews || app.interviews.length === 0) return false;
-        return app.interviews.some(interview => {
-          const interviewDate = new Date(interview.date);
-          interviewDate.setHours(0, 0, 0, 0);
-          return interviewDate >= today && interviewDate <= futureDate && interview.status === 'scheduled';
+        filtered = filtered.filter(app => {
+          if (!app.interviews || app.interviews.length === 0) return false;
+          return app.interviews.some(interview => {
+            const interviewDate = new Date(interview.date);
+            interviewDate.setHours(0, 0, 0, 0);
+            return interviewDate >= today && interviewDate <= futureDate && interview.status === 'scheduled';
+          });
         });
-      });
       }
     }
 
@@ -1782,12 +1782,12 @@ export default function JobApplicationsPage() {
     groupedByStatus.forEach((statusApps, status) => {
       // Check if there's a manual order for this status
       const manualOrderForStatus = manualOrder.get(status);
-      
+
       if (manualOrderForStatus && manualOrderForStatus.length > 0) {
         // Use manual order: create a map for quick lookup
         const appMap = new Map(statusApps.map(app => [app.id, app]));
         const orderedApps: JobApplication[] = [];
-        
+
         // First, add apps in manual order
         manualOrderForStatus.forEach(id => {
           const app = appMap.get(id);
@@ -1796,7 +1796,7 @@ export default function JobApplicationsPage() {
             appMap.delete(id);
           }
         });
-        
+
         // Then add any remaining apps (new apps not in manual order) and sort them
         const remainingApps = Array.from(appMap.values());
         remainingApps.sort((a, b) => {
@@ -1838,7 +1838,7 @@ export default function JobApplicationsPage() {
           }
           return sortOrder === 'asc' ? comparison : -comparison;
         });
-        
+
         result.push(...orderedApps, ...remainingApps);
       } else {
         // No manual order: apply normal sorting
@@ -1895,24 +1895,24 @@ export default function JobApplicationsPage() {
     // Filter applications by current board if a board is selected
     // NOTE: Applications without boardId belong to the default board!
     const defaultBoard = boards.find(b => b.isDefault);
-    const relevantApplications = currentBoard 
+    const relevantApplications = currentBoard
       ? applications.filter(app => {
-          if (!app.boardId) {
-            // Applications without boardId belong to the default board
-            return currentBoard.isDefault || defaultBoard?.id === currentBoard.id;
-          }
-          return app.boardId === currentBoard.id;
-        })
+        if (!app.boardId) {
+          // Applications without boardId belong to the default board
+          return currentBoard.isDefault || defaultBoard?.id === currentBoard.id;
+        }
+        return app.boardId === currentBoard.id;
+      })
       : applications;
-    
+
     const byStatus: Record<string, number> = {};
     const byCompany: Record<string, number> = {};
     const now = new Date();
-    
+
     relevantApplications.forEach(app => {
       const status = app.status || 'unknown';
       byStatus[status] = (byStatus[status] || 0) + 1;
-      
+
       const company = app.companyName || 'Unknown';
       byCompany[company] = (byCompany[company] || 0) + 1;
     });
@@ -1987,7 +1987,7 @@ export default function JobApplicationsPage() {
         hotOpportunities: hotOpportunities,
         needsFollowUp: needsFollowUp,
         recentWins: recentWins,
-        responseRate: relevantApplications.length > 0 
+        responseRate: relevantApplications.length > 0
           ? Math.round((relevantApplications.filter(a => !['applied', 'pending', 'submitted', 'rejected'].includes(a.status || '')).length / relevantApplications.length) * 100)
           : 0,
       },
@@ -2003,7 +2003,7 @@ export default function JobApplicationsPage() {
           daysSinceApplied: getAppAge(app),
           hasInterviews: (app.interviews?.length || 0) > 0,
         })),
-      interviewsScheduled: relevantApplications.filter(app => 
+      interviewsScheduled: relevantApplications.filter(app =>
         app.interviews?.some(i => i.status === 'scheduled')
       ).length,
       // Include board context for clarity
@@ -2051,7 +2051,7 @@ export default function JobApplicationsPage() {
         boardsList: boards.map(b => ({ id: b.id, name: b.name, type: b.boardType || 'jobs', isDefault: b.isDefault })),
       };
     }
-    
+
     // Get applications for this specific board
     // NOTE: Applications without boardId belong to the default board!
     const defaultBoard = boards.find(b => b.isDefault);
@@ -2094,7 +2094,7 @@ export default function JobApplicationsPage() {
   // Auto-scroll handler for drag and drop
   const handleDragUpdate = (update: any) => {
     const { destination } = update;
-    
+
     if (!destination) {
       // Clear any ongoing scroll when not over a droppable
       if (autoScrollIntervalRef.current) {
@@ -2106,15 +2106,15 @@ export default function JobApplicationsPage() {
 
     const droppableId = destination.droppableId;
     const scrollContainer = columnScrollRefs.current.get(droppableId);
-    
+
     if (!scrollContainer || !mousePositionRef.current) return;
 
     const containerRect = scrollContainer.getBoundingClientRect();
     const mouseY = mousePositionRef.current.y;
-    
+
     const distanceFromTop = mouseY - containerRect.top;
     const distanceFromBottom = containerRect.bottom - mouseY;
-    
+
     // Auto-scroll threshold (in pixels)
     const scrollThreshold = 80;
     const scrollSpeed = 10;
@@ -2195,20 +2195,20 @@ export default function JobApplicationsPage() {
 
       try {
         const status = source.droppableId as 'wishlist' | 'applied' | 'interview' | 'offer' | 'rejected' | 'pending_decision' | 'archived';
-        
+
         // Get filtered applications with the same status (these are what's displayed in the column)
         const statusApplications = filteredApplications.filter(app => app.status === status);
-        
+
         // Reorder the status applications array based on drag indices
         const reorderedStatusApps = Array.from(statusApplications);
         const [removed] = reorderedStatusApps.splice(source.index, 1);
         reorderedStatusApps.splice(destination.index, 0, removed);
-        
+
         // Store the manual order for this status (array of IDs in order)
         const newManualOrder = new Map(manualOrder);
         newManualOrder.set(status, reorderedStatusApps.map(app => app.id));
         setManualOrder(newManualOrder);
-        
+
         // Note: Order persistence to Firestore can be added later if needed
         // For now, the order is maintained in memory during the session
       } catch (error) {
@@ -2230,16 +2230,16 @@ export default function JobApplicationsPage() {
       // Get filtered applications for the destination column (before status change)
       // The card we're moving isn't in this list yet since it still has the old status
       const destinationStatusApps = filteredApplications.filter(app => app.status === newStatus);
-      
+
       // Create a new array with the moved card ID inserted at the destination position
       const reorderedDestinationIds = destinationStatusApps.map(app => app.id);
       // Insert the card ID at the destination index
       reorderedDestinationIds.splice(destination.index, 0, draggableId);
-      
+
       // Store the manual order for the destination column
       const newManualOrder = new Map(manualOrder);
       newManualOrder.set(newStatus, reorderedDestinationIds);
-      
+
       // Also update the source column order if it had manual order
       if (oldStatus !== newStatus) {
         const sourceStatusApps = filteredApplications.filter(app => app.status === oldStatus);
@@ -2251,7 +2251,7 @@ export default function JobApplicationsPage() {
           newManualOrder.delete(oldStatus);
         }
       }
-      
+
       setManualOrder(newManualOrder);
 
       // Create a new status history entry
@@ -2348,7 +2348,7 @@ export default function JobApplicationsPage() {
     setSortBy(currentBoardType === 'campaigns' ? 'lastContactedAt' : 'appliedDate');
     setSortOrder('desc');
   }, [currentBoardType]);
-  
+
   // Get column order based on board type
   const columnOrder = [...BOARD_TYPE_COLUMNS[currentBoardType]];
 
@@ -2365,7 +2365,7 @@ export default function JobApplicationsPage() {
       return app.boardId === currentBoardId;
     });
   }, [applications, currentBoardId, boards, view]);
-  
+
   // Get column labels based on board type
   const columnLabels = currentBoardType === 'jobs' ? JOB_COLUMN_LABELS : CAMPAIGN_COLUMN_LABELS;
 
@@ -2417,7 +2417,7 @@ export default function JobApplicationsPage() {
 
       if (!monthData[monthKey]) {
         if (currentBoardType === 'jobs') {
-        monthData[monthKey] = { applied: 0, interviews: 0, pending: 0, offers: 0, rejected: 0 };
+          monthData[monthKey] = { applied: 0, interviews: 0, pending: 0, offers: 0, rejected: 0 };
         } else {
           monthData[monthKey] = { targets: 0, contacted: 0, follow_up: 0, replied: 0, meeting: 0, opportunity: 0 };
         }
@@ -2425,11 +2425,11 @@ export default function JobApplicationsPage() {
 
       // Count applications by current status
       if (currentBoardType === 'jobs') {
-      if (app.status === 'applied') monthData[monthKey].applied++;
-      else if (app.status === 'interview') monthData[monthKey].interviews++;
-      else if (app.status === 'pending_decision') monthData[monthKey].pending++;
-      else if (app.status === 'offer') monthData[monthKey].offers++;
-      else if (app.status === 'rejected') monthData[monthKey].rejected++;
+        if (app.status === 'applied') monthData[monthKey].applied++;
+        else if (app.status === 'interview') monthData[monthKey].interviews++;
+        else if (app.status === 'pending_decision') monthData[monthKey].pending++;
+        else if (app.status === 'offer') monthData[monthKey].offers++;
+        else if (app.status === 'rejected') monthData[monthKey].rejected++;
       } else {
         if (app.status === 'targets') monthData[monthKey].targets++;
         else if (app.status === 'contacted') monthData[monthKey].contacted++;
@@ -2461,55 +2461,55 @@ export default function JobApplicationsPage() {
   const getResponseRateData = () => {
     const now = new Date();
     const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-    
+
     const total = boardApplications.length;
-    
+
     // For jobs: responses = not applied, interviews, offers
     // For campaigns: responses = replied, meetings, opportunities
     if (currentBoardType === 'jobs') {
       const responses = boardApplications.filter(app => app.status !== 'applied' && app.status !== 'wishlist').length;
       const interviews = boardApplications.filter(app => app.status === 'interview' || app.status === 'offer' ||
-      (app.interviews && app.interviews.length > 0)).length;
+        (app.interviews && app.interviews.length > 0)).length;
       const offers = boardApplications.filter(app => app.status === 'offer').length;
 
-    // Calculate rates for current month
+      // Calculate rates for current month
       const currentMonthApps = boardApplications.filter(app => {
-      const appDate = new Date(app.appliedDate);
-      return appDate >= oneMonthAgo;
-    });
-    const currentMonthTotal = currentMonthApps.length;
+        const appDate = new Date(app.appliedDate);
+        return appDate >= oneMonthAgo;
+      });
+      const currentMonthTotal = currentMonthApps.length;
       const currentMonthResponses = currentMonthApps.filter(app => app.status !== 'applied' && app.status !== 'wishlist').length;
-    const currentMonthInterviews = currentMonthApps.filter(app => app.status === 'interview' || app.status === 'offer' ||
-      (app.interviews && app.interviews.length > 0)).length;
-    const currentMonthOffers = currentMonthApps.filter(app => app.status === 'offer').length;
+      const currentMonthInterviews = currentMonthApps.filter(app => app.status === 'interview' || app.status === 'offer' ||
+        (app.interviews && app.interviews.length > 0)).length;
+      const currentMonthOffers = currentMonthApps.filter(app => app.status === 'offer').length;
 
-    // Calculate rates for previous month
-    const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
+      // Calculate rates for previous month
+      const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
       const previousMonthApps = boardApplications.filter(app => {
-      const appDate = new Date(app.appliedDate);
-      return appDate >= twoMonthsAgo && appDate < oneMonthAgo;
-    });
-    const previousMonthTotal = previousMonthApps.length;
+        const appDate = new Date(app.appliedDate);
+        return appDate >= twoMonthsAgo && appDate < oneMonthAgo;
+      });
+      const previousMonthTotal = previousMonthApps.length;
       const previousMonthResponses = previousMonthApps.filter(app => app.status !== 'applied' && app.status !== 'wishlist').length;
-    const previousMonthInterviews = previousMonthApps.filter(app => app.status === 'interview' || app.status === 'offer' ||
-      (app.interviews && app.interviews.length > 0)).length;
-    const previousMonthOffers = previousMonthApps.filter(app => app.status === 'offer').length;
+      const previousMonthInterviews = previousMonthApps.filter(app => app.status === 'interview' || app.status === 'offer' ||
+        (app.interviews && app.interviews.length > 0)).length;
+      const previousMonthOffers = previousMonthApps.filter(app => app.status === 'offer').length;
 
-    const currentResponseRate = currentMonthTotal > 0 ? (currentMonthResponses / currentMonthTotal) * 100 : 0;
-    const previousResponseRate = previousMonthTotal > 0 ? (previousMonthResponses / previousMonthTotal) * 100 : 0;
-    const currentInterviewRate = currentMonthTotal > 0 ? (currentMonthInterviews / currentMonthTotal) * 100 : 0;
-    const previousInterviewRate = previousMonthTotal > 0 ? (previousMonthInterviews / previousMonthTotal) * 100 : 0;
-    const currentOfferRate = currentMonthTotal > 0 ? (currentMonthOffers / currentMonthTotal) * 100 : 0;
-    const previousOfferRate = previousMonthTotal > 0 ? (previousMonthOffers / previousMonthTotal) * 100 : 0;
+      const currentResponseRate = currentMonthTotal > 0 ? (currentMonthResponses / currentMonthTotal) * 100 : 0;
+      const previousResponseRate = previousMonthTotal > 0 ? (previousMonthResponses / previousMonthTotal) * 100 : 0;
+      const currentInterviewRate = currentMonthTotal > 0 ? (currentMonthInterviews / currentMonthTotal) * 100 : 0;
+      const previousInterviewRate = previousMonthTotal > 0 ? (previousMonthInterviews / previousMonthTotal) * 100 : 0;
+      const currentOfferRate = currentMonthTotal > 0 ? (currentMonthOffers / currentMonthTotal) * 100 : 0;
+      const previousOfferRate = previousMonthTotal > 0 ? (previousMonthOffers / previousMonthTotal) * 100 : 0;
 
-    return {
-      responseRate: total ? (responses / total) * 100 : 0,
-      interviewRate: total ? (interviews / total) * 100 : 0,
-      offerRate: total ? (offers / total) * 100 : 0,
-      responseRateTrend: currentResponseRate - previousResponseRate,
-      interviewRateTrend: currentInterviewRate - previousInterviewRate,
-      offerRateTrend: currentOfferRate - previousOfferRate,
-    };
+      return {
+        responseRate: total ? (responses / total) * 100 : 0,
+        interviewRate: total ? (interviews / total) * 100 : 0,
+        offerRate: total ? (offers / total) * 100 : 0,
+        responseRateTrend: currentResponseRate - previousResponseRate,
+        interviewRateTrend: currentInterviewRate - previousInterviewRate,
+        offerRateTrend: currentOfferRate - previousOfferRate,
+      };
     } else {
       // Campaign metrics
       const contacted = boardApplications.filter(app => app.status !== 'targets').length;
@@ -2559,45 +2559,45 @@ export default function JobApplicationsPage() {
 
   const getAverageTimeData = () => {
     if (currentBoardType === 'jobs') {
-    let totalApplicationToInterview = 0;
-    let totalInterviewToOffer = 0;
-    let applicationsWithInterviews = 0;
-    let interviewsWithOffers = 0;
+      let totalApplicationToInterview = 0;
+      let totalInterviewToOffer = 0;
+      let applicationsWithInterviews = 0;
+      let interviewsWithOffers = 0;
 
       boardApplications.forEach(app => {
-      if (app.statusHistory && app.statusHistory.length > 1) {
-        const appliedEntry = app.statusHistory.find(h => h.status === 'applied');
-        const interviewEntry = app.statusHistory.find(h => h.status === 'interview');
-        const offerEntry = app.statusHistory.find(h => h.status === 'offer');
+        if (app.statusHistory && app.statusHistory.length > 1) {
+          const appliedEntry = app.statusHistory.find(h => h.status === 'applied');
+          const interviewEntry = app.statusHistory.find(h => h.status === 'interview');
+          const offerEntry = app.statusHistory.find(h => h.status === 'offer');
 
-        if (appliedEntry && interviewEntry) {
-          const appliedDate = new Date(appliedEntry.date);
-          const interviewDate = new Date(interviewEntry.date);
-          const daysDiff = Math.round((interviewDate.getTime() - appliedDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (appliedEntry && interviewEntry) {
+            const appliedDate = new Date(appliedEntry.date);
+            const interviewDate = new Date(interviewEntry.date);
+            const daysDiff = Math.round((interviewDate.getTime() - appliedDate.getTime()) / (1000 * 60 * 60 * 24));
 
-          if (daysDiff >= 0) {
-            totalApplicationToInterview += daysDiff;
-            applicationsWithInterviews++;
+            if (daysDiff >= 0) {
+              totalApplicationToInterview += daysDiff;
+              applicationsWithInterviews++;
+            }
+          }
+
+          if (interviewEntry && offerEntry) {
+            const interviewDate = new Date(interviewEntry.date);
+            const offerDate = new Date(offerEntry.date);
+            const daysDiff = Math.round((offerDate.getTime() - interviewDate.getTime()) / (1000 * 60 * 60 * 24));
+
+            if (daysDiff >= 0) {
+              totalInterviewToOffer += daysDiff;
+              interviewsWithOffers++;
+            }
           }
         }
+      });
 
-        if (interviewEntry && offerEntry) {
-          const interviewDate = new Date(interviewEntry.date);
-          const offerDate = new Date(offerEntry.date);
-          const daysDiff = Math.round((offerDate.getTime() - interviewDate.getTime()) / (1000 * 60 * 60 * 24));
-
-          if (daysDiff >= 0) {
-            totalInterviewToOffer += daysDiff;
-            interviewsWithOffers++;
-          }
-        }
-      }
-    });
-
-    return {
-      avgDaysToInterview: applicationsWithInterviews ? Math.round(totalApplicationToInterview / applicationsWithInterviews) : 0,
-      avgDaysToOffer: interviewsWithOffers ? Math.round(totalInterviewToOffer / interviewsWithOffers) : 0
-    };
+      return {
+        avgDaysToInterview: applicationsWithInterviews ? Math.round(totalApplicationToInterview / applicationsWithInterviews) : 0,
+        avgDaysToOffer: interviewsWithOffers ? Math.round(totalInterviewToOffer / interviewsWithOffers) : 0
+      };
     } else {
       // Campaign: time to reply, time to meeting
       let totalContactedToReply = 0;
@@ -2647,7 +2647,7 @@ export default function JobApplicationsPage() {
   // Distribution by industry
   const getIndustryDistribution = () => {
     const industryCounts: { [key: string]: { count: number; positive: number; success: number } } = {};
-    
+
     // For jobs: positive = interviews, success = offers
     // For campaigns: positive = replied, success = opportunities
     boardApplications.forEach(app => {
@@ -2657,12 +2657,12 @@ export default function JobApplicationsPage() {
             industryCounts[industry] = { count: 0, positive: 0, success: 0 };
           }
           industryCounts[industry].count++;
-          
+
           if (currentBoardType === 'jobs') {
-          if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
+            if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
               industryCounts[industry].positive++;
-          }
-          if (app.status === 'offer') {
+            }
+            if (app.status === 'offer') {
               industryCounts[industry].success++;
             }
           } else {
@@ -2691,7 +2691,7 @@ export default function JobApplicationsPage() {
   // Distribution by technologies
   const getTechnologyDistribution = () => {
     const techCounts: { [key: string]: { count: number; positive: number; success: number } } = {};
-    
+
     boardApplications.forEach(app => {
       if (app.jobTags?.technologies && app.jobTags.technologies.length > 0) {
         app.jobTags.technologies.forEach(tech => {
@@ -2699,12 +2699,12 @@ export default function JobApplicationsPage() {
             techCounts[tech] = { count: 0, positive: 0, success: 0 };
           }
           techCounts[tech].count++;
-          
+
           if (currentBoardType === 'jobs') {
-          if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
+            if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
               techCounts[tech].positive++;
-          }
-          if (app.status === 'offer') {
+            }
+            if (app.status === 'offer') {
               techCounts[tech].success++;
             }
           } else {
@@ -2733,19 +2733,19 @@ export default function JobApplicationsPage() {
   // Distribution by seniority
   const getSeniorityDistribution = () => {
     const seniorityCounts: { [key: string]: { count: number; positive: number; success: number } } = {};
-    
+
     boardApplications.forEach(app => {
       const seniority = app.jobTags?.seniority || 'Not specified';
       if (!seniorityCounts[seniority]) {
         seniorityCounts[seniority] = { count: 0, positive: 0, success: 0 };
       }
       seniorityCounts[seniority].count++;
-      
+
       if (currentBoardType === 'jobs') {
-      if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
+        if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
           seniorityCounts[seniority].positive++;
-      }
-      if (app.status === 'offer') {
+        }
+        if (app.status === 'offer') {
           seniorityCounts[seniority].success++;
         }
       } else {
@@ -2772,11 +2772,11 @@ export default function JobApplicationsPage() {
   // Location insights
   const getLocationInsights = () => {
     const locationCounts: { [key: string]: { count: number; positive: number; success: number; type: string } } = {};
-    
+
     boardApplications.forEach(app => {
       let locationKey = 'Not specified';
       let locationType = 'Not specified';
-      
+
       if (app.jobTags?.location) {
         const loc = app.jobTags.location;
         if (loc.remote && loc.hybrid) {
@@ -2807,12 +2807,12 @@ export default function JobApplicationsPage() {
         locationCounts[locationKey] = { count: 0, positive: 0, success: 0, type: locationType };
       }
       locationCounts[locationKey].count++;
-      
+
       if (currentBoardType === 'jobs') {
-      if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
+        if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
           locationCounts[locationKey].positive++;
-      }
-      if (app.status === 'offer') {
+        }
+        if (app.status === 'offer') {
           locationCounts[locationKey].success++;
         }
       } else {
@@ -2862,7 +2862,7 @@ export default function JobApplicationsPage() {
   // Employment type distribution
   const getEmploymentTypeDistribution = () => {
     const typeCounts: { [key: string]: { count: number; positive: number; success: number } } = {};
-    
+
     boardApplications.forEach(app => {
       const types = app.jobTags?.employmentType || [];
       if (types.length === 0) {
@@ -2871,12 +2871,12 @@ export default function JobApplicationsPage() {
           typeCounts[defaultType] = { count: 0, positive: 0, success: 0 };
         }
         typeCounts[defaultType].count++;
-        
+
         if (currentBoardType === 'jobs') {
-        if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
+          if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
             typeCounts[defaultType].positive++;
-        }
-        if (app.status === 'offer') {
+          }
+          if (app.status === 'offer') {
             typeCounts[defaultType].success++;
           }
         } else {
@@ -2893,12 +2893,12 @@ export default function JobApplicationsPage() {
             typeCounts[type] = { count: 0, positive: 0, success: 0 };
           }
           typeCounts[type].count++;
-          
+
           if (currentBoardType === 'jobs') {
-          if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
+            if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
               typeCounts[type].positive++;
-          }
-          if (app.status === 'offer') {
+            }
+            if (app.status === 'offer') {
               typeCounts[type].success++;
             }
           } else {
@@ -2926,14 +2926,14 @@ export default function JobApplicationsPage() {
   // Company size distribution
   const getCompanySizeDistribution = () => {
     const sizeCounts: { [key: string]: { count: number; positive: number; success: number } } = {};
-    
+
     boardApplications.forEach(app => {
       const size = app.jobTags?.companySize || 'Not specified';
       if (!sizeCounts[size]) {
         sizeCounts[size] = { count: 0, positive: 0, success: 0 };
       }
       sizeCounts[size].count++;
-      
+
       if (currentBoardType === 'jobs') {
         if (app.status === 'interview' || app.status === 'offer' || (app.interviews && app.interviews.length > 0)) {
           sizeCounts[size].positive++;
@@ -3112,28 +3112,28 @@ END:VCALENDAR`;
 
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
         {/* Cover Photo Section with all header elements */}
-        <div 
+        <div
           className="relative group/cover flex-shrink-0"
           onMouseEnter={() => setIsHoveringCover(true)}
           onMouseLeave={() => setIsHoveringCover(false)}
         >
           {/* Cover Photo Area - Height adjusted to contain all header elements */}
-          <div className={`relative w-full transition-all duration-300 ease-in-out ${effectiveCoverPhoto ? 'h-auto min-h-[200px] sm:min-h-[220px]' : 'h-auto min-h-[150px] sm:min-h-[170px]'}`}>
+          <div className={`relative w-full transition-all duration-300 ease-in-out ${effectiveCoverPhoto ? 'h-[200px] sm:h-auto sm:min-h-[220px]' : 'h-[160px] sm:h-auto sm:min-h-[170px]'}`}>
             {/* Cover Background */}
             {effectiveCoverPhoto ? (
               <div className="absolute inset-0 w-full h-full overflow-hidden">
-                <img 
+                <img
                   key={effectiveCoverPhoto}
-                  src={effectiveCoverPhoto} 
-                  alt="Applications cover" 
+                  src={effectiveCoverPhoto}
+                  alt="Applications cover"
                   className="w-full h-full object-cover animate-in fade-in duration-500"
                 />
                 <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
               </div>
             ) : (
               <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-[#3d3c3e]/20">
-                <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
-                   style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
+                <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]"
+                  style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }}
                 />
                 {/* Subtle animated gradient orbs */}
                 <div className="absolute top-10 right-20 w-64 h-64 bg-purple-200/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-blob" />
@@ -3141,11 +3141,25 @@ END:VCALENDAR`;
               </div>
             )}
 
+            {/* Mobile Header Stats Overlay - Mobile Only */}
+            <div className="absolute bottom-4 left-4 right-4 z-20 md:hidden flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <div className="px-3 py-1.5 bg-black/20 dark:bg-black/40 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-2 text-white">
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span className="text-xs font-semibold">{boards.length} Boards</span>
+                </div>
+                <div className="px-3 py-1.5 bg-black/20 dark:bg-black/40 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-2 text-white">
+                  <Briefcase className="w-3.5 h-3.5" />
+                  <span className="text-xs font-semibold">{applications.length} Apps</span>
+                </div>
+              </div>
+            </div>
+
             {/* Cover Controls - Visible on hover - Context-aware (modifies board cover when in a board, or global cover when in boards view) */}
             <div className="absolute top-4 left-0 right-0 flex justify-center z-30 pointer-events-none">
               <AnimatePresence>
                 {(isHoveringCover || !effectiveCoverPhoto) && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
@@ -3179,9 +3193,9 @@ END:VCALENDAR`;
                           <Image className="w-3.5 h-3.5" />
                           Change
                         </button>
-                        
+
                         <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
-                        
+
                         <button
                           onClick={() => coverFileInputRef.current?.click()}
                           disabled={isUpdatingCover}
@@ -3195,9 +3209,9 @@ END:VCALENDAR`;
                           )}
                           Upload
                         </button>
-                        
+
                         <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
-                        
+
                         <button
                           onClick={handleRemoveCover}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 
@@ -3216,11 +3230,11 @@ END:VCALENDAR`;
             {/* All Header Content - Premium Restructured Layout */}
             <div className="relative z-10 px-4 sm:px-6 pt-4 pb-4">
               {/* Main Header Row */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-                className="flex items-center justify-between"
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="hidden md:flex items-center justify-between"
               >
                 {/* Left Section: Title & Board Info */}
                 <div className="flex items-center gap-4">
@@ -3228,7 +3242,7 @@ END:VCALENDAR`;
                   {view !== 'boards' && currentBoardId && (() => {
                     const currentBoard = boards.find(b => b.id === currentBoardId);
                     return (
-                      <div 
+                      <div
                         className="w-12 h-12 rounded-xl flex items-center justify-center text-xl shadow-lg"
                         style={{ backgroundColor: currentBoard?.color || '#635BFF' }}
                       >
@@ -3236,22 +3250,22 @@ END:VCALENDAR`;
                       </div>
                     );
                   })()}
-                  
-            <div>
+
+                  <div>
                     <div className="flex items-center gap-3">
-                  <h1 className={`text-2xl font-bold ${effectiveCoverPhoto 
-                    ? 'text-white drop-shadow-2xl'
-                    : 'text-gray-900 dark:text-white'
-                      }`}>
-                        {view === 'boards' 
-                          ? 'My Boards' 
+                      <h1 className={`text-2xl font-bold ${effectiveCoverPhoto
+                        ? 'text-white drop-shadow-2xl'
+                        : 'text-gray-900 dark:text-white'
+                        }`}>
+                        {view === 'boards'
+                          ? 'My Boards'
                           : (() => {
-                              const currentBoard = boards.find(b => b.id === currentBoardId);
-                              return currentBoard?.name || 'Applications';
-                            })()
+                            const currentBoard = boards.find(b => b.id === currentBoardId);
+                            return currentBoard?.name || 'Applications';
+                          })()
                         }
                       </h1>
-                      
+
                       {/* Board Navigation Badge - only when inside a board */}
                       {view !== 'boards' && currentBoardId && (
                         <button
@@ -3260,7 +3274,7 @@ END:VCALENDAR`;
                             setCurrentBoardId(null);
                           }}
                           className={`group inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full transition-all duration-200
-                            ${effectiveCoverPhoto 
+                            ${effectiveCoverPhoto
                               ? 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
                               : 'bg-gray-100 dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-300 hover:bg-[#635BFF]/10 hover:text-[#635BFF]'
                             }`}
@@ -3270,18 +3284,18 @@ END:VCALENDAR`;
                         </button>
                       )}
                     </div>
-                    
-                  <p className={`text-sm mt-0.5 ${effectiveCoverPhoto 
+
+                    <p className={`text-sm mt-0.5 ${effectiveCoverPhoto
                       ? 'text-white/80 drop-shadow-lg'
-                    : 'text-gray-500 dark:text-gray-400'
-                  }`}>
-                      {view === 'boards' 
+                      : 'text-gray-500 dark:text-gray-400'
+                      }`}>
+                      {view === 'boards'
                         ? `${boards.length} board${boards.length !== 1 ? 's' : ''} • ${applications.length} total applications`
                         : `${filteredApplications.length} applications in this board`
                       }
-              </p>
+                    </p>
                   </div>
-            </div>
+                </div>
 
                 {/* Right Section: Actions */}
                 <div className="flex items-center gap-3">
@@ -3308,10 +3322,10 @@ END:VCALENDAR`;
                           onClick={() => setView('kanban')}
                           className={`px-3.5 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${view === 'kanban'
                             ? 'bg-white dark:bg-[#3d3c3e] text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
-                            : effectiveCoverPhoto 
+                            : effectiveCoverPhoto
                               ? 'text-white/80 hover:text-white'
                               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                          }`}
+                            }`}
                         >
                           <FolderKanban className="w-4 h-4" />
                           <span>Kanban</span>
@@ -3320,10 +3334,10 @@ END:VCALENDAR`;
                           onClick={() => setView('analytics')}
                           className={`px-3.5 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${view === 'analytics'
                             ? 'bg-white dark:bg-[#3d3c3e] text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
-                            : effectiveCoverPhoto 
+                            : effectiveCoverPhoto
                               ? 'text-white/80 hover:text-white'
                               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                          }`}
+                            }`}
                         >
                           <LineChart className="w-4 h-4" />
                           <span>Analytics</span>
@@ -3331,286 +3345,281 @@ END:VCALENDAR`;
                       </div>
 
                       {/* Add Application Button */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  // Always go directly to application form
-                  setEventType('application');
-                  setWizardStep(1);
-                  setLookupSelectedApplication(null);
-                  setLinkedApplicationId(null);
-                  setLookupSearchQuery('');
-                  setShowLookupDropdown(false);
-                  setNewApplicationModal(true);
-                }}
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          // Always go directly to application form
+                          setEventType('application');
+                          setWizardStep(1);
+                          setLookupSelectedApplication(null);
+                          setLinkedApplicationId(null);
+                          setLookupSearchQuery('');
+                          setShowLookupDropdown(false);
+                          setNewApplicationModal(true);
+                        }}
                         className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-md border border-[#9fc015] transition-all duration-200"
-              >
-                <Plus className="w-4 h-4" />
-                <span>{currentBoardType === 'campaigns' ? 'Add Contact' : 'Add Application'}</span>
-              </motion.button>
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>{currentBoardType === 'campaigns' ? 'Add Contact' : 'Add Application'}</span>
+                      </motion.button>
 
-              {/* Settings Button - Only show for jobs board */}
-              {currentBoardType !== 'campaigns' && (
-              <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                onClick={() => setShowAutomationSettingsModal(true)}
-                        className={`relative p-2.5 rounded-xl transition-all duration-200
-                  ${effectiveCoverPhoto 
-                            ? 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
-                            : 'bg-gray-100 dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#3d3c3e]'
-                  }`}
-                title="Automation Settings"
-              >
-                        <Settings className="w-5 h-5" />
-                {Object.values(automationSettings).some((s: any) => (s as { enabled?: boolean }).enabled) && (
-                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#635BFF] rounded-full border-2 border-white dark:border-[#242325]" />
-                )}
-              </motion.button>
-              )}
+                      {/* Settings Button - Only show for jobs board */}
+                      {currentBoardType !== 'campaigns' && (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setShowAutomationSettingsModal(true)}
+                          className={`relative p-2.5 rounded-xl transition-all duration-200
+                  ${effectiveCoverPhoto
+                              ? 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
+                              : 'bg-gray-100 dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#3d3c3e]'
+                            }`}
+                          title="Automation Settings"
+                        >
+                          <Settings className="w-5 h-5" />
+                          {Object.values(automationSettings).some((s: any) => (s as { enabled?: boolean }).enabled) && (
+                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#635BFF] rounded-full border-2 border-white dark:border-[#242325]" />
+                          )}
+                        </motion.button>
+                      )}
                     </>
                   )}
-            </div>
+                </div>
               </motion.div>
 
               {/* Stats Row - Only show when inside a board (Kanban view) */}
               {view === 'kanban' && currentBoardId && (
-            <motion.div
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.2 }}
                   className="flex items-center gap-2 mt-4"
                 >
-              {(() => {
-                    const stats = currentBoardType === 'campaigns' 
+                  {(() => {
+                    const stats = currentBoardType === 'campaigns'
                       ? [
-                          { label: 'Targets', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'targets').length, color: '#6B7280', bg: 'bg-gray-500/10' },
-                          { label: 'Contacted', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'contacted').length, color: '#3B82F6', bg: 'bg-blue-500/10' },
-                          { label: 'Replied', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'replied').length, color: '#8B5CF6', bg: 'bg-purple-500/10' },
-                          { label: 'Meeting', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'meeting').length, color: '#F59E0B', bg: 'bg-amber-500/10' },
-                          { label: 'Opportunity', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'opportunity').length, color: '#10B981', bg: 'bg-emerald-500/10' }
-                        ]
+                        { label: 'Targets', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'targets').length, color: '#6B7280', bg: 'bg-gray-500/10' },
+                        { label: 'Contacted', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'contacted').length, color: '#3B82F6', bg: 'bg-blue-500/10' },
+                        { label: 'Replied', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'replied').length, color: '#8B5CF6', bg: 'bg-purple-500/10' },
+                        { label: 'Meeting', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'meeting').length, color: '#F59E0B', bg: 'bg-amber-500/10' },
+                        { label: 'Opportunity', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'opportunity').length, color: '#10B981', bg: 'bg-emerald-500/10' }
+                      ]
                       : [
-                          { label: 'Applied', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'applied').length, color: '#3B82F6', bg: 'bg-blue-500/10' },
-                          { label: 'Interview', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'interview').length, color: '#8B5CF6', bg: 'bg-purple-500/10' },
-                          { label: 'Pending', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'pending_decision').length, color: '#F59E0B', bg: 'bg-amber-500/10' },
-                          { label: 'Offer', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'offer').length, color: '#10B981', bg: 'bg-emerald-500/10' },
-                          { label: 'Rejected', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'rejected').length, color: '#EF4444', bg: 'bg-red-500/10' }
-                        ];
+                        { label: 'Applied', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'applied').length, color: '#3B82F6', bg: 'bg-blue-500/10' },
+                        { label: 'Interview', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'interview').length, color: '#8B5CF6', bg: 'bg-purple-500/10' },
+                        { label: 'Pending', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'pending_decision').length, color: '#F59E0B', bg: 'bg-amber-500/10' },
+                        { label: 'Offer', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'offer').length, color: '#10B981', bg: 'bg-emerald-500/10' },
+                        { label: 'Rejected', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'rejected').length, color: '#EF4444', bg: 'bg-red-500/10' }
+                      ];
                     return stats.map((stat, index) => (
-                <motion.div
-                  key={stat.label}
+                      <motion.div
+                        key={stat.label}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3, delay: 0.05 * index }}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${effectiveCoverPhoto ? 'bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-sm shadow-lg' : 'bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e]'}`}
                       >
-                        <span 
+                        <span
                           className="w-2 h-2 rounded-full"
                           style={{ backgroundColor: stat.color }}
                         />
                         <span className="text-sm font-bold text-gray-900 dark:text-white">{stat.count}</span>
                         <span className="text-xs text-gray-500 dark:text-gray-400">{stat.label}</span>
+                      </motion.div>
+                    ));
+                  })()}
                 </motion.div>
-              ));
-              })()}
-        </motion.div>
               )}
 
               {/* Search and Filters Row - Only show for kanban view */}
-        {view === 'kanban' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
+              {view === 'kanban' && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
                   className="mt-6"
                 >
-            {/* Search bar + Filters en une ligne */}
-            <div className="flex items-center gap-3">
-              {/* Search bar plus compact */}
-              <div className="relative flex-1 max-w-md">
-                <input
-                  type="text"
-                  placeholder="Search by company or position..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-                />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-              </div>
+                  {/* Search bar + Filters en une ligne */}
+                  <div className="flex items-center gap-3">
+                    {/* Search bar plus compact */}
+                    <div className="relative flex-1 max-w-md">
+                      <input
+                        type="text"
+                        placeholder="Search by company or position..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                      />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                    </div>
 
-              {/* Filters en ligne */}
-              <div className="flex items-center gap-2">
-                {/* Date Filter */}
-                <button
-                  onClick={() => setOpenFilterModal(openFilterModal === 'date' ? null : 'date')}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          dateFilter !== 'all' || customDateRange
-                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
-                      : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
-                    }`}
-                >
-                  <Calendar className="w-4 h-4" />
-                  <span>Date</span>
-                  {dateFilter !== 'all' || customDateRange ? (
+                    {/* Filters en ligne */}
+                    <div className="flex items-center gap-2">
+                      {/* Date Filter */}
+                      <button
+                        onClick={() => setOpenFilterModal(openFilterModal === 'date' ? null : 'date')}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${dateFilter !== 'all' || customDateRange
+                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
+                          : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
+                          }`}
+                      >
+                        <Calendar className="w-4 h-4" />
+                        <span>Date</span>
+                        {dateFilter !== 'all' || customDateRange ? (
                           <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-semibold bg-purple-600 dark:bg-purple-500 text-white">
-                      1
-                    </span>
-                  ) : null}
-                </button>
+                            1
+                          </span>
+                        ) : null}
+                      </button>
 
-                {/* Interview Filter */}
-                <button
-                  onClick={() => setOpenFilterModal(openFilterModal === 'interview' ? null : 'interview')}
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    hasInterviews !== 'all' || interviewTypes.length > 0 || interviewStatus.length > 0 || upcomingInterviewsDays !== null
-                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
-                      : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
-                    }`}
-                >
-                  <Users className="w-4 h-4" />
-                  <span>{currentBoardType === 'campaigns' ? 'Meetings' : 'Interviews'}</span>
-                  {hasInterviews !== 'all' || interviewTypes.length > 0 || interviewStatus.length > 0 || upcomingInterviewsDays !== null ? (
-                    <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-semibold bg-purple-600 dark:bg-purple-500 text-white">
-                      {[hasInterviews !== 'all' ? 1 : 0, interviewTypes.length, interviewStatus.length, upcomingInterviewsDays !== null ? 1 : 0].reduce((a, b) => a + b, 0)}
-                    </span>
-                  ) : null}
-                </button>
-
-                {/* Company Filter */}
-                <button
-                  onClick={() => setOpenFilterModal(openFilterModal === 'company' ? null : 'company')}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          selectedCompanies.length > 0
-                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
-                      : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
-                    }`}
-                >
-                  <Building className="w-4 h-4" />
-                  <span>Company</span>
-                  {selectedCompanies.length > 0 ? (
+                      {/* Interview Filter */}
+                      <button
+                        onClick={() => setOpenFilterModal(openFilterModal === 'interview' ? null : 'interview')}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasInterviews !== 'all' || interviewTypes.length > 0 || interviewStatus.length > 0 || upcomingInterviewsDays !== null
+                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
+                          : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
+                          }`}
+                      >
+                        <Users className="w-4 h-4" />
+                        <span>{currentBoardType === 'campaigns' ? 'Meetings' : 'Interviews'}</span>
+                        {hasInterviews !== 'all' || interviewTypes.length > 0 || interviewStatus.length > 0 || upcomingInterviewsDays !== null ? (
                           <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-semibold bg-purple-600 dark:bg-purple-500 text-white">
-                      {selectedCompanies.length}
-                    </span>
-                  ) : null}
-                </button>
+                            {[hasInterviews !== 'all' ? 1 : 0, interviewTypes.length, interviewStatus.length, upcomingInterviewsDays !== null ? 1 : 0].reduce((a, b) => a + b, 0)}
+                          </span>
+                        ) : null}
+                      </button>
 
-                {/* Sort Filter */}
-                <button
-                  onClick={() => setOpenFilterModal(openFilterModal === 'sort' ? null : 'sort')}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          (currentBoardType === 'campaigns' ? sortBy !== 'lastContactedAt' : sortBy !== 'appliedDate') || sortOrder !== 'desc'
-                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
-                      : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
-                    }`}
-                >
-                  <Filter className="w-4 h-4" />
-                  <span>Sort</span>
-                  {(currentBoardType === 'campaigns' ? sortBy !== 'lastContactedAt' : sortBy !== 'appliedDate') || sortOrder !== 'desc' ? (
+                      {/* Company Filter */}
+                      <button
+                        onClick={() => setOpenFilterModal(openFilterModal === 'company' ? null : 'company')}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${selectedCompanies.length > 0
+                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
+                          : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
+                          }`}
+                      >
+                        <Building className="w-4 h-4" />
+                        <span>Company</span>
+                        {selectedCompanies.length > 0 ? (
                           <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-semibold bg-purple-600 dark:bg-purple-500 text-white">
-                      1
-                    </span>
-                  ) : null}
-                </button>
-              </div>
+                            {selectedCompanies.length}
+                          </span>
+                        ) : null}
+                      </button>
 
-              {/* Clear filters button */}
-              {getActiveFilterCount() > 0 && (
-                <button
-                  onClick={clearAllFilters}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
-                >
-                  <XCircle className="w-4 h-4" />
-                  <span>Clear all</span>
-                </button>
+                      {/* Sort Filter */}
+                      <button
+                        onClick={() => setOpenFilterModal(openFilterModal === 'sort' ? null : 'sort')}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${(currentBoardType === 'campaigns' ? sortBy !== 'lastContactedAt' : sortBy !== 'appliedDate') || sortOrder !== 'desc'
+                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
+                          : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
+                          }`}
+                      >
+                        <Filter className="w-4 h-4" />
+                        <span>Sort</span>
+                        {(currentBoardType === 'campaigns' ? sortBy !== 'lastContactedAt' : sortBy !== 'appliedDate') || sortOrder !== 'desc' ? (
+                          <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-semibold bg-purple-600 dark:bg-purple-500 text-white">
+                            1
+                          </span>
+                        ) : null}
+                      </button>
+                    </div>
+
+                    {/* Clear filters button */}
+                    {getActiveFilterCount() > 0 && (
+                      <button
+                        onClick={clearAllFilters}
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        <span>Clear all</span>
+                      </button>
+                    )}
+
+                    {/* Results count */}
+                    <div className={`text-sm whitespace-nowrap ${coverPhoto
+                      ? (isCoverDark ? 'text-white/90' : 'text-gray-700 dark:text-white/90')
+                      : 'text-gray-600 dark:text-gray-400'
+                      }`}>
+                      {filteredApplications.length} {filteredApplications.length === 1 ? 'result' : 'results'}
+                      {getActiveFilterCount() > 0 && (
+                        <span className="ml-1 text-purple-600 dark:text-purple-400">
+                          ({getActiveFilterCount()} {getActiveFilterCount() === 1 ? 'filter' : 'filters'})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Active filter badges */}
+                  {getActiveFilterCount() > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {dateFilter !== 'all' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                          Date: {dateFilter === 'custom' && customDateRange
+                            ? `${new Date(customDateRange.start).toLocaleDateString()} - ${new Date(customDateRange.end).toLocaleDateString()}`
+                            : dateFilter === '7d' ? 'Last 7 days'
+                              : dateFilter === '30d' ? 'Last 30 days'
+                                : dateFilter === '3m' ? 'Last 3 months'
+                                  : dateFilter === '6m' ? 'Last 6 months'
+                                    : 'All'}
+                          <button
+                            onClick={() => {
+                              setDateFilter('all');
+                              setCustomDateRange(null);
+                            }}
+                            className="ml-1 hover:opacity-70"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+                      {selectedCompanies.length > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                          Companies: {selectedCompanies.length}
+                          <button
+                            onClick={() => setSelectedCompanies([])}
+                            className="ml-1 hover:opacity-70"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+                      {hasInterviews !== 'all' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                          {currentBoardType === 'campaigns' ? 'Meetings' : 'Interviews'}: {hasInterviews === 'with' ? 'With' : hasInterviews === 'without' ? 'Without' : 'Upcoming'}
+                          <button
+                            onClick={() => setHasInterviews('all')}
+                            className="ml-1 hover:opacity-70"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+                      {((currentBoardType === 'campaigns' ? sortBy !== 'lastContactedAt' : sortBy !== 'appliedDate') || sortOrder !== 'desc') && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                          Sort: {sortBy === 'appliedDate' ? 'Applied Date' :
+                            sortBy === 'lastContactedAt' ? 'Last Contacted' :
+                              sortBy === 'updatedAt' ? 'Updated' :
+                                sortBy === 'companyName' ? 'Company' :
+                                  sortBy === 'position' ? 'Position' :
+                                    sortBy === 'contactName' ? 'Contact Name' :
+                                      sortBy === 'interviewCount' ? 'Interviews' :
+                                        sortBy === 'meetingCount' ? 'Meetings' : 'Other'} ({sortOrder === 'asc' ? 'Asc' : 'Desc'})
+                          <button
+                            onClick={() => {
+                              setSortBy(currentBoardType === 'campaigns' ? 'lastContactedAt' : 'appliedDate');
+                              setSortOrder('desc');
+                            }}
+                            className="ml-1 hover:opacity-70"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </motion.div>
               )}
-
-              {/* Results count */}
-                    <div className={`text-sm whitespace-nowrap ${
-                      coverPhoto 
-                        ? (isCoverDark ? 'text-white/90' : 'text-gray-700 dark:text-white/90')
-                        : 'text-gray-600 dark:text-gray-400'
-                    }`}>
-                {filteredApplications.length} {filteredApplications.length === 1 ? 'result' : 'results'}
-                {getActiveFilterCount() > 0 && (
-                  <span className="ml-1 text-purple-600 dark:text-purple-400">
-                    ({getActiveFilterCount()} {getActiveFilterCount() === 1 ? 'filter' : 'filters'})
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Active filter badges */}
-            {getActiveFilterCount() > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {dateFilter !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                    Date: {dateFilter === 'custom' && customDateRange
-                      ? `${new Date(customDateRange.start).toLocaleDateString()} - ${new Date(customDateRange.end).toLocaleDateString()}`
-                      : dateFilter === '7d' ? 'Last 7 days'
-                        : dateFilter === '30d' ? 'Last 30 days'
-                          : dateFilter === '3m' ? 'Last 3 months'
-                            : dateFilter === '6m' ? 'Last 6 months'
-                              : 'All'}
-                    <button
-                      onClick={() => {
-                        setDateFilter('all');
-                        setCustomDateRange(null);
-                      }}
-                      className="ml-1 hover:opacity-70"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {selectedCompanies.length > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                    Companies: {selectedCompanies.length}
-                    <button
-                      onClick={() => setSelectedCompanies([])}
-                      className="ml-1 hover:opacity-70"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {hasInterviews !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                    {currentBoardType === 'campaigns' ? 'Meetings' : 'Interviews'}: {hasInterviews === 'with' ? 'With' : hasInterviews === 'without' ? 'Without' : 'Upcoming'}
-                    <button
-                      onClick={() => setHasInterviews('all')}
-                      className="ml-1 hover:opacity-70"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {((currentBoardType === 'campaigns' ? sortBy !== 'lastContactedAt' : sortBy !== 'appliedDate') || sortOrder !== 'desc') && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                    Sort: {sortBy === 'appliedDate' ? 'Applied Date' : 
-                      sortBy === 'lastContactedAt' ? 'Last Contacted' :
-                      sortBy === 'updatedAt' ? 'Updated' : 
-                      sortBy === 'companyName' ? 'Company' : 
-                      sortBy === 'position' ? 'Position' : 
-                      sortBy === 'contactName' ? 'Contact Name' :
-                      sortBy === 'interviewCount' ? 'Interviews' :
-                      sortBy === 'meetingCount' ? 'Meetings' : 'Other'} ({sortOrder === 'asc' ? 'Asc' : 'Desc'})
-                    <button
-                      onClick={() => {
-                        setSortBy(currentBoardType === 'campaigns' ? 'lastContactedAt' : 'appliedDate');
-                        setSortOrder('desc');
-                      }}
-                      className="ml-1 hover:opacity-70"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-              </div>
-            )}
-          </motion.div>
-        )}
             </div>
 
             {/* Hidden File Input */}
@@ -3626,837 +3635,908 @@ END:VCALENDAR`;
 
         {/* Main Content Area */}
         <div className="px-4 pt-6 pb-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
-        {/* Main content area - switch between kanban, boards, and analytics */}
-        <AnimatePresence mode="wait">
-          {view === 'boards' ? (
-            <motion.div
-              key="boards"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="flex-1"
-            >
-              <BoardsOverview
-                boards={boards}
-                applications={applications}
-                onSelectBoard={(boardId) => {
-                  setCurrentBoardId(boardId);
-                  setView('kanban');
-                }}
-                onCreateBoard={() => {
-                  setEditingBoard(null);
-                  setShowBoardSettingsModal(true);
-                }}
-                onEditBoard={(board) => {
-                  setEditingBoard(board);
-                  setShowBoardSettingsModal(true);
-                }}
-                onDeleteBoard={(board) => {
-                  setBoardToDelete(board);
-                  setShowDeleteBoardModal(true);
-                }}
-                onDuplicateBoard={handleDuplicateBoard}
-              />
-            </motion.div>
-          ) : view === 'kanban' ? (
-            <motion.div
-              key="kanban"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-              className="flex-1 flex flex-col min-h-0"
-            >
-              {/* Kanban Board - Optimisé pleine hauteur */}
-              <DragDropContext 
-                onDragStart={handleDragStart}
-                onDragUpdate={handleDragUpdate}
-                onDragEnd={handleDragEnd}
+          {/* Main content area - switch between kanban, boards, and analytics */}
+          <AnimatePresence mode="wait">
+            {view === 'boards' ? (
+              <motion.div
+                key="boards"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="flex-1"
               >
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.4 }}
-                  className="flex-1 overflow-x-auto min-h-0"
+                <BoardsOverview
+                  boards={boards}
+                  applications={applications}
+                  onSelectBoard={(boardId) => {
+                    setCurrentBoardId(boardId);
+                    setView('kanban');
+                  }}
+                  onCreateBoard={() => {
+                    setEditingBoard(null);
+                    setShowBoardSettingsModal(true);
+                  }}
+                  onEditBoard={(board) => {
+                    setEditingBoard(board);
+                    setShowBoardSettingsModal(true);
+                  }}
+                  onDeleteBoard={(board) => {
+                    setBoardToDelete(board);
+                    setShowDeleteBoardModal(true);
+                  }}
+                  onDuplicateBoard={handleDuplicateBoard}
+                />
+              </motion.div>
+            ) : view === 'kanban' ? (
+              <motion.div
+                key="kanban"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="flex-1 flex flex-col min-h-0"
+              >
+                {/* Kanban Board - Optimisé pleine hauteur */}
+                <DragDropContext
+                  onDragStart={handleDragStart}
+                  onDragUpdate={handleDragUpdate}
+                  onDragEnd={handleDragEnd}
                 >
-                  <div className="flex gap-0 h-full min-w-min">
-                    {/* Exclude 'archived' from visible columns - only show main workflow columns */}
-                    {columnOrder.filter(col => col !== 'archived').map((status, columnIndex) => {
-                      const visibleColumns = columnOrder.filter(col => col !== 'archived');
-                      const statusCount = filteredApplications.filter(a => getEffectiveStatus(a.status) === status).length;
-                      const isLastColumn = columnIndex === visibleColumns.length - 1;
-                      // Use same color for all columns (like job applications board)
-                      const columnColor = undefined;
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 0.4 }}
+                    className="flex-1 overflow-x-auto min-h-0"
+                  >
+                    <div className="flex gap-0 h-full min-w-min">
+                      {/* Exclude 'archived' from visible columns - only show main workflow columns */}
+                      {columnOrder.filter(col => col !== 'archived').map((status, columnIndex) => {
+                        const visibleColumns = columnOrder.filter(col => col !== 'archived');
+                        const statusCount = filteredApplications.filter(a => getEffectiveStatus(a.status) === status).length;
+                        const isLastColumn = columnIndex === visibleColumns.length - 1;
+                        // Use same color for all columns (like job applications board)
+                        const columnColor = undefined;
 
-                      return (
-                        <div key={status} className="flex items-stretch h-full">
-                          <Droppable droppableId={status}>
-                            {(provided, snapshot) => (
-                              <motion.div
-                                initial={{ opacity: 0, y: 30 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.4, delay: 0.1 * columnIndex }}
-                                ref={provided.innerRef}
-                                {...provided.droppableProps}
-                                className={`flex-1 min-w-[280px] max-w-[340px] h-full flex flex-col bg-transparent p-3 transition-colors duration-200 ${snapshot.isDraggingOver ? 'bg-gray-100/50 dark:bg-[#3d3c3e]/30 rounded-xl' : ''}`}
-                              >
-                              <div className="mb-2 sm:mb-3 text-center">
-                                <div className="mb-2">
-                                  <h3 
-                                    className="font-semibold text-gray-900 dark:text-white uppercase text-xs sm:text-sm mb-1"
-                                    style={columnColor ? { color: columnColor } : undefined}
+                        return (
+                          <div key={status} className="flex items-stretch h-full">
+                            <Droppable droppableId={status}>
+                              {(provided, snapshot) => (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 30 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ duration: 0.4, delay: 0.1 * columnIndex }}
+                                  ref={provided.innerRef}
+                                  {...provided.droppableProps}
+                                  className={`flex-1 min-w-[280px] max-w-[340px] h-full flex flex-col bg-transparent p-3 transition-colors duration-200 ${snapshot.isDraggingOver ? 'bg-gray-100/50 dark:bg-[#3d3c3e]/30 rounded-xl' : ''}`}
+                                >
+                                  <div className="mb-2 sm:mb-3 text-center">
+                                    <div className="mb-2">
+                                      <h3
+                                        className="font-semibold text-gray-900 dark:text-white uppercase text-xs sm:text-sm mb-1"
+                                        style={columnColor ? { color: columnColor } : undefined}
+                                      >
+                                        {columnLabels[status] || status.replace('_', ' ').toUpperCase()}
+                                      </h3>
+                                      <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                        {statusCount} {statusCount === 1 ? (currentBoardType === 'jobs' ? 'job' : 'contact') : (currentBoardType === 'jobs' ? 'jobs' : 'contacts')}
+                                      </span>
+                                    </div>
+                                    <motion.button
+                                      whileHover={{ scale: 1.02 }}
+                                      whileTap={{ scale: 0.98 }}
+                                      onClick={() => {
+                                        setEventType('application');
+                                        setWizardStep(1);
+                                        setLookupSelectedApplication(null);
+                                        setLinkedApplicationId(null);
+                                        setLookupSearchQuery('');
+                                        setShowLookupDropdown(false);
+                                        setFormData({
+                                          companyName: '',
+                                          position: '',
+                                          location: '',
+                                          status: status as JobApplication['status'],
+                                          appliedDate: new Date().toISOString().split('T')[0],
+                                          url: '',
+                                          description: '',
+                                          fullJobDescription: '',
+                                          notes: '',
+                                          interviewType: 'technical',
+                                          interviewTime: '09:00',
+                                          interviewDate: new Date().toISOString().split('T')[0],
+                                        });
+                                        setNewApplicationModal(true);
+                                      }}
+                                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#2b2a2c] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] text-gray-900 dark:text-white transition-all duration-200 border border-gray-200 dark:border-[#3d3c3e] shadow-sm"
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                      <span className="text-xs font-semibold">Add</span>
+                                    </motion.button>
+                                  </div>
+
+                                  <div
+                                    ref={(el) => {
+                                      if (el) {
+                                        columnScrollRefs.current.set(status, el);
+                                      } else {
+                                        columnScrollRefs.current.delete(status);
+                                      }
+                                    }}
+                                    className="flex-1 overflow-y-auto space-y-2 sm:space-y-3"
                                   >
-                                    {columnLabels[status] || status.replace('_', ' ').toUpperCase()}
-                                  </h3>
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                    {statusCount} {statusCount === 1 ? (currentBoardType === 'jobs' ? 'job' : 'contact') : (currentBoardType === 'jobs' ? 'jobs' : 'contacts')}
+                                    <ApplicationList
+                                      applications={filteredApplications.filter(a => getEffectiveStatus(a.status) === status)}
+                                      onCardClick={(app) => {
+                                        setSelectedApplication(app);
+                                        setTimelineModal(true);
+                                      }}
+                                      getIsInactive={(app) => {
+                                        try {
+                                          return isApplicationInactive(app, automationSettings.inactiveReminder);
+                                        } catch (error) {
+                                          console.error('Error checking inactive status:', error);
+                                          return false;
+                                        }
+                                      }}
+                                      getInactiveDays={(app) => {
+                                        try {
+                                          return getInactiveDays(app);
+                                        } catch (error) {
+                                          console.error('Error getting inactive days:', error);
+                                          return 0;
+                                        }
+                                      }}
+                                      onCardDelete={(app) => {
+                                        setDeleteModal({ show: true, application: app });
+                                      }}
+                                      showMoveToBoard={boards.length > 1}
+                                      onMoveToBoard={(app) => {
+                                        setApplicationToMove(app);
+                                        setShowMoveToBoardModal(true);
+                                      }}
+                                      boardType={currentBoardType}
+                                    />
+                                    {provided.placeholder}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </Droppable>
+
+                            {/* Séparateur vertical droit entre les colonnes */}
+                            {!isLastColumn && (
+                              <div className="w-[2px] bg-gray-300 dark:bg-[#4a494b] mx-4 flex-shrink-0 rounded-full" />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                </DragDropContext>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="analytics"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6"
+              >
+                {/* Analytics Dashboard */}
+                {applications.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+                    className="relative overflow-hidden bg-gradient-to-br from-white via-white to-violet-50/50 dark:from-[#2b2a2c] dark:via-[#2b2a2c] dark:to-violet-950/20 rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-12"
+                  >
+                    {/* Decorative background elements */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                      {/* Grid pattern */}
+                      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '32px 32px' }} />
+
+                      {/* Gradient orbs */}
+                      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-violet-500/10 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                      <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-blue-500/10 to-transparent rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+
+                      {/* Floating shapes */}
+                      <motion.div
+                        animate={{ y: [0, -10, 0] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute top-20 right-20 w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 border border-violet-200/30 dark:border-violet-800/30 rotate-12"
+                      />
+                      <motion.div
+                        animate={{ y: [0, 10, 0] }}
+                        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute bottom-20 left-20 w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-200/30 dark:border-blue-800/30 -rotate-6"
+                      />
+                    </div>
+
+                    <div className="relative max-w-md mx-auto text-center">
+                      {/* Premium icon */}
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ duration: 0.5, delay: 0.2, type: "spring" }}
+                        className="relative inline-flex mb-6"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-purple-600 rounded-3xl blur-xl opacity-30" />
+                        <div className="relative p-5 bg-gradient-to-br from-violet-500 to-purple-600 rounded-3xl shadow-xl shadow-violet-500/25">
+                          <LineChart className="w-10 h-10 text-white" />
+                        </div>
+                      </motion.div>
+
+                      <motion.h3
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.3 }}
+                        className="text-2xl font-bold text-gray-900 dark:text-white mb-3"
+                      >
+                        Your analytics await
+                      </motion.h3>
+
+                      <motion.p
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.4 }}
+                        className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed"
+                      >
+                        Start tracking your {currentBoardType === 'campaigns' ? 'networking contacts' : 'job applications'} to unlock powerful insights, track your progress, and optimize your strategy.
+                      </motion.p>
+
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.5 }}
+                        className="flex flex-col sm:flex-row items-center justify-center gap-3"
+                      >
+                        <button
+                          onClick={() => {
+                            setEventType('application');
+                            setWizardStep(1);
+                            setLookupSelectedApplication(null);
+                            setLinkedApplicationId(null);
+                            setLookupSearchQuery('');
+                            setShowLookupDropdown(false);
+                            setNewApplicationModal(true);
+                          }}
+                          className="group relative inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300 hover:-translate-y-0.5"
+                        >
+                          <PlusCircle className="h-4 w-4" />
+                          <span>{currentBoardType === 'campaigns' ? 'Add Your First Contact' : 'Add Your First Application'}</span>
+                          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
+                      </motion.div>
+
+                      {/* Feature hints */}
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.7 }}
+                        className="mt-10 flex items-center justify-center gap-6 text-xs text-gray-400 dark:text-gray-500"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <TrendingUp className="w-3.5 h-3.5" />
+                          <span>Track trends</span>
+                        </div>
+                        <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-[#4a494b]" />
+                        <div className="flex items-center gap-1.5">
+                          <PieChart className="w-3.5 h-3.5" />
+                          <span>Visual insights</span>
+                        </div>
+                        <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-[#4a494b]" />
+                        <div className="flex items-center gap-1.5">
+                          <Target className="w-3.5 h-3.5" />
+                          <span>Find patterns</span>
+                        </div>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <>
+                    {/* Section 1: Hero Metrics */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {(() => {
+                        const rateData = getResponseRateData();
+
+                        // Different metrics for jobs vs campaigns
+                        const metrics = currentBoardType === 'jobs' ? [
+                          {
+                            label: 'Response Rate',
+                            value: rateData.responseRate,
+                            desc: 'Applications with responses',
+                            trend: rateData.responseRateTrend,
+                            icon: MessageSquare
+                          },
+                          {
+                            label: 'Interview Rate',
+                            value: rateData.interviewRate,
+                            desc: 'Led to interviews',
+                            trend: rateData.interviewRateTrend,
+                            icon: Users
+                          },
+                          {
+                            label: 'Offer Rate',
+                            value: rateData.offerRate,
+                            desc: 'Resulted in offers',
+                            trend: rateData.offerRateTrend,
+                            icon: Check
+                          }
+                        ] : [
+                          {
+                            label: 'Reply Rate',
+                            value: rateData.responseRate,
+                            desc: 'Contacts that replied',
+                            trend: rateData.responseRateTrend,
+                            icon: MessageSquare
+                          },
+                          {
+                            label: 'Meeting Rate',
+                            value: rateData.interviewRate,
+                            desc: 'Led to meetings',
+                            trend: rateData.interviewRateTrend,
+                            icon: Users
+                          },
+                          {
+                            label: 'Opportunity Rate',
+                            value: rateData.offerRate,
+                            desc: 'Became opportunities',
+                            trend: rateData.offerRateTrend,
+                            icon: Check
+                          }
+                        ];
+
+                        return metrics.map((metric, i) => {
+                          const IconComponent = metric.icon;
+                          const isPositiveTrend = metric.trend > 0;
+                          const isNegativeTrend = metric.trend < 0;
+
+                          return (
+                            <motion.div
+                              key={metric.label}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.4, delay: 0.1 * i }}
+                              className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-5 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
+                            >
+                              {/* Header */}
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <IconComponent className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                                  <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                    {metric.label}
                                   </span>
                                 </div>
-                                <motion.button
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                  onClick={() => {
-                                    setEventType('application');
-                                    setWizardStep(1);
-                                    setLookupSelectedApplication(null);
-                                    setLinkedApplicationId(null);
-                                    setLookupSearchQuery('');
-                                    setShowLookupDropdown(false);
-                                    setFormData({
-                                      companyName: '',
-                                      position: '',
-                                      location: '',
-                                      status: status as JobApplication['status'],
-                                      appliedDate: new Date().toISOString().split('T')[0],
-                                      url: '',
-                                      description: '',
-                                      fullJobDescription: '',
-                                      notes: '',
-                                      interviewType: 'technical',
-                                      interviewTime: '09:00',
-                                      interviewDate: new Date().toISOString().split('T')[0],
-                                    });
-                                    setNewApplicationModal(true);
-                                  }}
-                                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#2b2a2c] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] text-gray-900 dark:text-white transition-all duration-200 border border-gray-200 dark:border-[#3d3c3e] shadow-sm"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                  <span className="text-xs font-semibold">Add</span>
-                                </motion.button>
+
+                                {/* Trend */}
+                                {metric.trend !== 0 && (
+                                  <div className={`flex items-center gap-0.5 text-[11px] font-medium ${isPositiveTrend
+                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                    : 'text-rose-500 dark:text-rose-400'
+                                    }`}>
+                                    <ArrowUpRight className={`w-3.5 h-3.5 ${isNegativeTrend ? 'rotate-180' : ''}`} />
+                                    <span>{isPositiveTrend ? '+' : ''}{metric.trend.toFixed(1)}%</span>
+                                  </div>
+                                )}
                               </div>
 
-                              <div 
-                                ref={(el) => {
-                                  if (el) {
-                                    columnScrollRefs.current.set(status, el);
-                                  } else {
-                                    columnScrollRefs.current.delete(status);
-                                  }
-                                }}
-                                className="flex-1 overflow-y-auto space-y-2 sm:space-y-3"
-                              >
-                                <ApplicationList
-                                  applications={filteredApplications.filter(a => getEffectiveStatus(a.status) === status)}
-                                  onCardClick={(app) => {
-                                    setSelectedApplication(app);
-                                    setTimelineModal(true);
-                                  }}
-                                  getIsInactive={(app) => {
-                                    try {
-                                      return isApplicationInactive(app, automationSettings.inactiveReminder);
-                                    } catch (error) {
-                                      console.error('Error checking inactive status:', error);
-                                      return false;
-                                    }
-                                  }}
-                                  getInactiveDays={(app) => {
-                                    try {
-                                      return getInactiveDays(app);
-                                    } catch (error) {
-                                      console.error('Error getting inactive days:', error);
-                                      return 0;
-                                    }
-                                  }}
-                                  onCardDelete={(app) => {
-                                    setDeleteModal({ show: true, application: app });
-                                  }}
-                                  showMoveToBoard={boards.length > 1}
-                                  onMoveToBoard={(app) => {
-                                    setApplicationToMove(app);
-                                    setShowMoveToBoardModal(true);
-                                  }}
-                                  boardType={currentBoardType}
-                                />
-                                {provided.placeholder}
+                              {/* Value */}
+                              <div className="space-y-1">
+                                <p className="text-[26px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums leading-none tracking-tight">
+                                  {metric.value.toFixed(1)}%
+                                </p>
+                                <p className="text-[12px] text-gray-500 dark:text-gray-400">
+                                  {metric.desc}
+                                </p>
                               </div>
                             </motion.div>
-                          )}
-                        </Droppable>
-                        
-                        {/* Séparateur vertical droit entre les colonnes */}
-                        {!isLastColumn && (
-                          <div className="w-[2px] bg-gray-300 dark:bg-[#4a494b] mx-4 flex-shrink-0 rounded-full" />
-                        )}
-                      </div>
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              </DragDropContext>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="analytics"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-6"
-            >
-              {/* Analytics Dashboard */}
-              {applications.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
-                  className="relative overflow-hidden bg-gradient-to-br from-white via-white to-violet-50/50 dark:from-[#2b2a2c] dark:via-[#2b2a2c] dark:to-violet-950/20 rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-12"
-                >
-                  {/* Decorative background elements */}
-                  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    {/* Grid pattern */}
-                    <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '32px 32px' }} />
-                    
-                    {/* Gradient orbs */}
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-violet-500/10 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-blue-500/10 to-transparent rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-                    
-                    {/* Floating shapes */}
-                    <motion.div
-                      animate={{ y: [0, -10, 0] }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute top-20 right-20 w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 border border-violet-200/30 dark:border-violet-800/30 rotate-12"
-                    />
-                    <motion.div
-                      animate={{ y: [0, 10, 0] }}
-                      transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute bottom-20 left-20 w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-200/30 dark:border-blue-800/30 -rotate-6"
-                    />
-                  </div>
-                  
-                  <div className="relative max-w-md mx-auto text-center">
-                    {/* Premium icon */}
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.2, type: "spring" }}
-                      className="relative inline-flex mb-6"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-purple-600 rounded-3xl blur-xl opacity-30" />
-                      <div className="relative p-5 bg-gradient-to-br from-violet-500 to-purple-600 rounded-3xl shadow-xl shadow-violet-500/25">
-                        <LineChart className="w-10 h-10 text-white" />
-                      </div>
-                    </motion.div>
-                    
-                    <motion.h3
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: 0.3 }}
-                      className="text-2xl font-bold text-gray-900 dark:text-white mb-3"
-                    >
-                      Your analytics await
-                    </motion.h3>
-                    
-                    <motion.p
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: 0.4 }}
-                      className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed"
-                    >
-                      Start tracking your {currentBoardType === 'campaigns' ? 'networking contacts' : 'job applications'} to unlock powerful insights, track your progress, and optimize your strategy.
-                    </motion.p>
-                    
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: 0.5 }}
-                      className="flex flex-col sm:flex-row items-center justify-center gap-3"
-                    >
-                  <button
-                    onClick={() => {
-                      setEventType('application');
-                      setWizardStep(1);
-                      setLookupSelectedApplication(null);
-                      setLinkedApplicationId(null);
-                      setLookupSearchQuery('');
-                      setShowLookupDropdown(false);
-                      setNewApplicationModal(true);
-                    }}
-                        className="group relative inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300 hover:-translate-y-0.5"
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                    <span>{currentBoardType === 'campaigns' ? 'Add Your First Contact' : 'Add Your First Application'}</span>
-                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </button>
-                    </motion.div>
-                    
-                    {/* Feature hints */}
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5, delay: 0.7 }}
-                      className="mt-10 flex items-center justify-center gap-6 text-xs text-gray-400 dark:text-gray-500"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <TrendingUp className="w-3.5 h-3.5" />
-                        <span>Track trends</span>
-                </div>
-                      <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-[#4a494b]" />
-                      <div className="flex items-center gap-1.5">
-                        <PieChart className="w-3.5 h-3.5" />
-                        <span>Visual insights</span>
-                      </div>
-                      <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-[#4a494b]" />
-                      <div className="flex items-center gap-1.5">
-                        <Target className="w-3.5 h-3.5" />
-                        <span>Find patterns</span>
-                      </div>
-                    </motion.div>
-                  </div>
-                </motion.div>
-              ) : (
-                <>
-                  {/* Section 1: Hero Metrics */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {(() => {
-                      const rateData = getResponseRateData();
-                      
-                      // Different metrics for jobs vs campaigns
-                      const metrics = currentBoardType === 'jobs' ? [
-                        {
-                          label: 'Response Rate',
-                          value: rateData.responseRate,
-                          desc: 'Applications with responses',
-                          trend: rateData.responseRateTrend,
-                          icon: MessageSquare
-                        },
-                        {
-                          label: 'Interview Rate',
-                          value: rateData.interviewRate,
-                          desc: 'Led to interviews',
-                          trend: rateData.interviewRateTrend,
-                          icon: Users
-                        },
-                        {
-                          label: 'Offer Rate',
-                          value: rateData.offerRate,
-                          desc: 'Resulted in offers',
-                          trend: rateData.offerRateTrend,
-                          icon: Check
-                        }
-                      ] : [
-                        {
-                          label: 'Reply Rate',
-                          value: rateData.responseRate,
-                          desc: 'Contacts that replied',
-                          trend: rateData.responseRateTrend,
-                          icon: MessageSquare
-                        },
-                        {
-                          label: 'Meeting Rate',
-                          value: rateData.interviewRate,
-                          desc: 'Led to meetings',
-                          trend: rateData.interviewRateTrend,
-                          icon: Users
-                        },
-                        {
-                          label: 'Opportunity Rate',
-                          value: rateData.offerRate,
-                          desc: 'Became opportunities',
-                          trend: rateData.offerRateTrend,
-                          icon: Check
-                        }
-                      ];
-                      
-                      return metrics.map((metric, i) => {
-                        const IconComponent = metric.icon;
-                        const isPositiveTrend = metric.trend > 0;
-                        const isNegativeTrend = metric.trend < 0;
-                        
-                        return (
-                          <motion.div
-                            key={metric.label}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.4, delay: 0.1 * i }}
-                            className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-5 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
-                          >
-                            {/* Header */}
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <IconComponent className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
-                                <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                                  {metric.label}
-                                </span>
-                              </div>
-                              
-                              {/* Trend */}
-                              {metric.trend !== 0 && (
-                                <div className={`flex items-center gap-0.5 text-[11px] font-medium ${
-                                  isPositiveTrend 
-                                    ? 'text-emerald-600 dark:text-emerald-400' 
-                                    : 'text-rose-500 dark:text-rose-400'
-                                }`}>
-                                  <ArrowUpRight className={`w-3.5 h-3.5 ${isNegativeTrend ? 'rotate-180' : ''}`} />
-                                  <span>{isPositiveTrend ? '+' : ''}{metric.trend.toFixed(1)}%</span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Value */}
-                            <div className="space-y-1">
-                              <p className="text-[26px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums leading-none tracking-tight">
-                                {metric.value.toFixed(1)}%
-                              </p>
-                              <p className="text-[12px] text-gray-500 dark:text-gray-400">
-                                {metric.desc}
-                              </p>
-                            </div>
-                          </motion.div>
-                        );
-                      });
-                    })()}
-                  </div>
+                          );
+                        });
+                      })()}
+                    </div>
 
-                  {/* Section 2: Distribution Grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                    {/* Top Industries - Span 7 columns */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: 0.2 }}
-                      className="lg:col-span-7 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
-                    >
-                      <div className="flex items-center gap-2 mb-5">
-                        <Briefcase className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
-                        <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Top Industries</h3>
-                      </div>
-                        
-                      {getIndustryDistribution().length > 0 ? (
-                        <div className="space-y-4">
-                          {getIndustryDistribution().slice(0, 5).map((item, i) => {
-                            const maxCount = getIndustryDistribution()[0]?.count || 1;
-                            const widthPercentage = (item.count / maxCount) * 100;
-                            return (
-                              <motion.div 
-                                key={item.industry}
-                                initial={{ opacity: 0, x: -8 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.25, delay: 0.3 + 0.04 * i }}
-                                className="group"
-                              >
-                                <div className="flex items-center justify-between mb-1.5">
-                                  <span className="text-[13px] text-gray-700 dark:text-gray-200 font-medium truncate max-w-[55%]">
-                                    {item.industry}
-                                  </span>
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-[12px] text-gray-500 dark:text-gray-400 tabular-nums">
-                                      {item.count}
-                                    </span>
-                                    <span className={`text-[11px] font-medium tabular-nums px-1.5 py-0.5 rounded ${
-                                      item.interviewRate > 30 
-                                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10' 
-                                        : item.interviewRate > 15 
-                                          ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10' 
-                                          : 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-500/10'
-                                    }`}>
-                                      {item.interviewRate.toFixed(0)}%
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="h-1.5 bg-gray-100 dark:bg-[#3d3c3e]/50 rounded-full overflow-hidden">
-                                  <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${widthPercentage}%` }}
-                                    transition={{ duration: 0.6, delay: 0.35 + 0.08 * i, ease: [0.25, 0.1, 0.25, 1] }}
-                                    className="h-full bg-gray-400 dark:bg-gray-500 rounded-full group-hover:bg-gray-500 dark:group-hover:bg-gray-400 transition-colors duration-200"
-                                  />
-                                </div>
-                              </motion.div>
-                            );
-                          })}
+                    {/* Section 2: Distribution Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                      {/* Top Industries - Span 7 columns */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.2 }}
+                        className="lg:col-span-7 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
+                      >
+                        <div className="flex items-center gap-2 mb-5">
+                          <Briefcase className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                          <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Top Industries</h3>
                         </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-[120px]">
-                          <p className="text-[13px] text-gray-400 dark:text-gray-500">No industry data yet</p>
-                        </div>
-                      )}
-                    </motion.div>
 
-                    {/* Top Technologies - Span 5 columns */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: 0.25 }}
-                      className="lg:col-span-5 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
-                    >
-                      <div className="flex items-center gap-2 mb-5">
-                        <Code className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
-                        <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Technologies</h3>
-                      </div>
-                        
-                      {getTechnologyDistribution().length > 0 ? (
-                        <div className="space-y-4">
-                          {/* Tag Cloud */}
-                          <div className="flex flex-wrap gap-2">
-                            {getTechnologyDistribution().slice(0, 8).map((item, i) => (
-                              <motion.span
-                                key={item.tech}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.2, delay: 0.3 + 0.03 * i }}
-                                className="px-2.5 py-1 rounded-md text-[12px] font-medium bg-gray-100 dark:bg-[#3d3c3e]/50 text-gray-600 dark:text-gray-300 border border-gray-200/60 dark:border-[#3d3c3e]/60"
-                              >
-                                {item.tech}
-                                <span className="ml-1.5 text-gray-400 dark:text-gray-500 tabular-nums">{item.count}</span>
-                              </motion.span>
-                            ))}
-                          </div>
-                            
-                          {/* Mini bar chart */}
-                          <div className="space-y-2 pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50">
-                            {getTechnologyDistribution().slice(0, 3).map((item, i) => {
-                              const maxCount = getTechnologyDistribution()[0]?.count || 1;
+                        {getIndustryDistribution().length > 0 ? (
+                          <div className="space-y-4">
+                            {getIndustryDistribution().slice(0, 5).map((item, i) => {
+                              const maxCount = getIndustryDistribution()[0]?.count || 1;
                               const widthPercentage = (item.count / maxCount) * 100;
                               return (
-                                <div key={item.tech} className="flex items-center gap-3 group">
-                                  <span className="text-[12px] text-gray-600 dark:text-gray-400 w-20 truncate">{item.tech}</span>
-                                  <div className="flex-1 h-1.5 bg-gray-100 dark:bg-[#3d3c3e]/50 rounded-full overflow-hidden">
+                                <motion.div
+                                  key={item.industry}
+                                  initial={{ opacity: 0, x: -8 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ duration: 0.25, delay: 0.3 + 0.04 * i }}
+                                  className="group"
+                                >
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <span className="text-[13px] text-gray-700 dark:text-gray-200 font-medium truncate max-w-[55%]">
+                                      {item.industry}
+                                    </span>
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-[12px] text-gray-500 dark:text-gray-400 tabular-nums">
+                                        {item.count}
+                                      </span>
+                                      <span className={`text-[11px] font-medium tabular-nums px-1.5 py-0.5 rounded ${item.interviewRate > 30
+                                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10'
+                                        : item.interviewRate > 15
+                                          ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10'
+                                          : 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-500/10'
+                                        }`}>
+                                        {item.interviewRate.toFixed(0)}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="h-1.5 bg-gray-100 dark:bg-[#3d3c3e]/50 rounded-full overflow-hidden">
                                     <motion.div
                                       initial={{ width: 0 }}
                                       animate={{ width: `${widthPercentage}%` }}
-                                      transition={{ duration: 0.5, delay: 0.4 + 0.1 * i }}
+                                      transition={{ duration: 0.6, delay: 0.35 + 0.08 * i, ease: [0.25, 0.1, 0.25, 1] }}
                                       className="h-full bg-gray-400 dark:bg-gray-500 rounded-full group-hover:bg-gray-500 dark:group-hover:bg-gray-400 transition-colors duration-200"
                                     />
                                   </div>
-                                  <span className="text-[11px] text-gray-400 dark:text-gray-500 tabular-nums w-6 text-right">{item.count}</span>
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center h-[120px]">
+                            <p className="text-[13px] text-gray-400 dark:text-gray-500">No industry data yet</p>
+                          </div>
+                        )}
+                      </motion.div>
+
+                      {/* Top Technologies - Span 5 columns */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.25 }}
+                        className="lg:col-span-5 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
+                      >
+                        <div className="flex items-center gap-2 mb-5">
+                          <Code className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                          <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Technologies</h3>
+                        </div>
+
+                        {getTechnologyDistribution().length > 0 ? (
+                          <div className="space-y-4">
+                            {/* Tag Cloud */}
+                            <div className="flex flex-wrap gap-2">
+                              {getTechnologyDistribution().slice(0, 8).map((item, i) => (
+                                <motion.span
+                                  key={item.tech}
+                                  initial={{ opacity: 0, scale: 0.9 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  transition={{ duration: 0.2, delay: 0.3 + 0.03 * i }}
+                                  className="px-2.5 py-1 rounded-md text-[12px] font-medium bg-gray-100 dark:bg-[#3d3c3e]/50 text-gray-600 dark:text-gray-300 border border-gray-200/60 dark:border-[#3d3c3e]/60"
+                                >
+                                  {item.tech}
+                                  <span className="ml-1.5 text-gray-400 dark:text-gray-500 tabular-nums">{item.count}</span>
+                                </motion.span>
+                              ))}
+                            </div>
+
+                            {/* Mini bar chart */}
+                            <div className="space-y-2 pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50">
+                              {getTechnologyDistribution().slice(0, 3).map((item, i) => {
+                                const maxCount = getTechnologyDistribution()[0]?.count || 1;
+                                const widthPercentage = (item.count / maxCount) * 100;
+                                return (
+                                  <div key={item.tech} className="flex items-center gap-3 group">
+                                    <span className="text-[12px] text-gray-600 dark:text-gray-400 w-20 truncate">{item.tech}</span>
+                                    <div className="flex-1 h-1.5 bg-gray-100 dark:bg-[#3d3c3e]/50 rounded-full overflow-hidden">
+                                      <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${widthPercentage}%` }}
+                                        transition={{ duration: 0.5, delay: 0.4 + 0.1 * i }}
+                                        className="h-full bg-gray-400 dark:bg-gray-500 rounded-full group-hover:bg-gray-500 dark:group-hover:bg-gray-400 transition-colors duration-200"
+                                      />
+                                    </div>
+                                    <span className="text-[11px] text-gray-400 dark:text-gray-500 tabular-nums w-6 text-right">{item.count}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center h-[120px]">
+                            <p className="text-[13px] text-gray-400 dark:text-gray-500">No technology data yet</p>
+                          </div>
+                        )}
+                      </motion.div>
+
+                      {/* Seniority Distribution - Span 6 columns */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.3 }}
+                        className="lg:col-span-6 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
+                      >
+                        <div className="flex items-center gap-2 mb-5">
+                          <Users className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                          <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Seniority Levels</h3>
+                        </div>
+
+                        {getSeniorityDistribution().length > 0 ? (
+                          <div className="grid grid-cols-2 gap-3">
+                            {getSeniorityDistribution().map((item, i) => {
+                              const total = getSeniorityDistribution().reduce((sum, s) => sum + s.count, 0);
+                              const percentage = total > 0 ? (item.count / total) * 100 : 0;
+                              return (
+                                <motion.div
+                                  key={item.seniority}
+                                  initial={{ opacity: 0, scale: 0.98 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  transition={{ duration: 0.3, delay: 0.35 + 0.06 * i }}
+                                  className="p-4 rounded-xl bg-gray-50/50 dark:bg-[#333234]/30 border border-gray-100 dark:border-[#3d3c3e]/50 hover:border-gray-200 dark:hover:border-[#4a494b] transition-all duration-300 group"
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-[13px] font-medium text-gray-700 dark:text-gray-200">{item.seniority}</span>
+                                    <span className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums">{percentage.toFixed(0)}%</span>
+                                  </div>
+                                  <div className="h-1.5 bg-gray-100 dark:bg-[#3d3c3e]/50 rounded-full overflow-hidden">
+                                    <motion.div
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${percentage}%` }}
+                                      transition={{ duration: 0.5, delay: 0.4 + 0.08 * i }}
+                                      className="h-full bg-gray-400 dark:bg-gray-500 rounded-full group-hover:bg-gray-500 dark:group-hover:bg-gray-400 transition-colors duration-200"
+                                    />
+                                  </div>
+                                  <div className="flex items-center justify-between mt-2">
+                                    <span className="text-[11px] text-gray-500 dark:text-gray-400">{item.count} total</span>
+                                    <span className={`text-[11px] font-medium tabular-nums ${item.interviewRate > 30
+                                      ? 'text-emerald-600 dark:text-emerald-400'
+                                      : item.interviewRate > 15
+                                        ? 'text-amber-600 dark:text-amber-400'
+                                        : 'text-gray-500 dark:text-gray-400'
+                                      }`}>{item.interviewRate.toFixed(0)}% success</span>
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center h-[120px]">
+                            <p className="text-[13px] text-gray-400 dark:text-gray-500">No seniority data available</p>
+                          </div>
+                        )}
+                      </motion.div>
+
+                      {/* Employment Type - Span 6 columns */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.35 }}
+                        className="lg:col-span-6 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
+                      >
+                        <div className="flex items-center gap-2 mb-5">
+                          <Briefcase className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                          <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Employment Types</h3>
+                        </div>
+
+                        {getEmploymentTypeDistribution().length > 0 ? (
+                          <div className="space-y-4">
+                            {getEmploymentTypeDistribution().map((item, i) => {
+                              const maxCount = getEmploymentTypeDistribution()[0]?.count || 1;
+                              const widthPercentage = (item.count / maxCount) * 100;
+                              return (
+                                <motion.div
+                                  key={item.type}
+                                  initial={{ opacity: 0, x: -8 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ duration: 0.25, delay: 0.4 + 0.04 * i }}
+                                  className="group"
+                                >
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <span className="text-[13px] text-gray-700 dark:text-gray-200 font-medium">{item.type}</span>
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-[12px] text-gray-500 dark:text-gray-400 tabular-nums">{item.count}</span>
+                                      <span className={`text-[11px] font-medium tabular-nums px-1.5 py-0.5 rounded ${item.interviewRate > 30
+                                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10'
+                                        : item.interviewRate > 15
+                                          ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10'
+                                          : 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-500/10'
+                                        }`}>
+                                        {item.interviewRate.toFixed(0)}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="h-1.5 bg-gray-100 dark:bg-[#3d3c3e]/50 rounded-full overflow-hidden">
+                                    <motion.div
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${widthPercentage}%` }}
+                                      transition={{ duration: 0.5, delay: 0.45 + 0.08 * i }}
+                                      className="h-full bg-gray-400 dark:bg-gray-500 rounded-full group-hover:bg-gray-500 dark:group-hover:bg-gray-400 transition-colors duration-200"
+                                    />
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center h-[120px]">
+                            <p className="text-[13px] text-gray-400 dark:text-gray-500">No employment type data available</p>
+                          </div>
+                        )}
+                      </motion.div>
+                    </div>
+
+                    {/* Section 3: Location & Success Insights */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                      {/* Location Insights - Span 8 columns */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.4 }}
+                        className="lg:col-span-8 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
+                      >
+                        <div className="flex items-center gap-2 mb-5">
+                          <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                          <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Location Insights</h3>
+                        </div>
+
+                        {(() => {
+                          const locationData = getLocationInsights();
+                          return (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Work Arrangement */}
+                              <div>
+                                <h4 className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Work Arrangement</h4>
+                                <div className="space-y-2">
+                                  {locationData.byType.map((item, i) => (
+                                    <motion.div
+                                      key={item.type}
+                                      initial={{ opacity: 0, x: -8 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ duration: 0.25, delay: 0.45 + 0.04 * i }}
+                                      className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-[#3d3c3e]/50 last:border-0"
+                                    >
+                                      <span className="text-[13px] font-medium text-gray-700 dark:text-gray-200">{item.type}</span>
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-[12px] text-gray-500 dark:text-gray-400 tabular-nums">{item.count}</span>
+                                        <span className={`text-[11px] font-medium tabular-nums px-1.5 py-0.5 rounded ${item.interviewRate > 30
+                                          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10'
+                                          : item.interviewRate > 15
+                                            ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10'
+                                            : 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-500/10'
+                                          }`}>
+                                          {item.interviewRate.toFixed(0)}%
+                                        </span>
+                                      </div>
+                                    </motion.div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Top Locations */}
+                              <div>
+                                <h4 className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Top Locations</h4>
+                                <div className="space-y-2">
+                                  {locationData.byLocation.slice(0, 5).map((item, i) => (
+                                    <motion.div
+                                      key={item.location}
+                                      initial={{ opacity: 0, x: 8 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ duration: 0.25, delay: 0.45 + 0.04 * i }}
+                                      className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-[#3d3c3e]/50 last:border-0"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[11px] font-medium text-gray-300 dark:text-gray-600 tabular-nums w-4">{i + 1}</span>
+                                        <span className="text-[13px] text-gray-700 dark:text-gray-200">{item.location}</span>
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-[12px] text-gray-500 dark:text-gray-400 tabular-nums">{item.count}</span>
+                                        <span className={`text-[11px] font-medium tabular-nums ${item.interviewRate > 30
+                                          ? 'text-emerald-600 dark:text-emerald-400'
+                                          : item.interviewRate > 15
+                                            ? 'text-amber-600 dark:text-amber-400'
+                                            : 'text-gray-500 dark:text-gray-400'
+                                          }`}>
+                                          {item.interviewRate.toFixed(0)}%
+                                        </span>
+                                      </div>
+                                    </motion.div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </motion.div>
+
+                      {/* Success Patterns - Span 4 columns */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.45 }}
+                        className="lg:col-span-4 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
+                      >
+                        <div className="flex items-center gap-2 mb-5">
+                          <Sparkles className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                          <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Your Sweet Spots</h3>
+                        </div>
+
+                        {(() => {
+                          const patterns = getSuccessPatterns();
+
+                          const insights = [
+                            patterns.bestSeniority && {
+                              label: 'Best Level',
+                              value: patterns.bestSeniority.seniority,
+                              rate: patterns.bestSeniority.interviewRate,
+                            },
+                            patterns.bestLocationType && {
+                              label: 'Best Arrangement',
+                              value: patterns.bestLocationType.type,
+                              rate: patterns.bestLocationType.interviewRate,
+                            },
+                            patterns.topIndustries[0] && {
+                              label: 'Top Industry',
+                              value: patterns.topIndustries[0].industry,
+                              rate: patterns.topIndustries[0].interviewRate,
+                            }
+                          ].filter(Boolean);
+
+                          return (
+                            <div className="space-y-3">
+                              {insights.map((insight: any, i) => (
+                                <motion.div
+                                  key={insight.label}
+                                  initial={{ opacity: 0, y: 8 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ duration: 0.25, delay: 0.5 + 0.06 * i }}
+                                  className="p-3 rounded-xl bg-gray-50/50 dark:bg-[#333234]/30 border border-gray-100 dark:border-[#3d3c3e]/50"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-0.5">{insight.label}</p>
+                                      <p className="text-[14px] font-semibold text-gray-900 dark:text-gray-100">{insight.value}</p>
+                                    </div>
+                                    <span className={`text-[12px] font-medium tabular-nums px-2 py-1 rounded ${insight.rate > 30
+                                      ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10'
+                                      : insight.rate > 15
+                                        ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10'
+                                        : 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-500/10'
+                                      }`}>
+                                      {insight.rate.toFixed(0)}%
+                                    </span>
+                                  </div>
+                                </motion.div>
+                              ))}
+
+                              {/* Top Technologies */}
+                              {patterns.topTechnologies.length > 0 && (
+                                <div className="pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50">
+                                  <p className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Top Technologies</p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {patterns.topTechnologies.slice(0, 5).map((tech) => (
+                                      <span
+                                        key={tech.tech}
+                                        className="px-2 py-1 text-[11px] font-medium rounded-md bg-gray-100 dark:bg-[#3d3c3e]/50 text-gray-600 dark:text-gray-300"
+                                      >
+                                        {tech.tech}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </motion.div>
+                    </div>
+
+                    {/* Section 5: Timeline & Time Metrics */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                      {/* Timeline Chart - Span 8 columns */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.5 }}
+                        className="lg:col-span-8 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
+                      >
+                        <div className="flex items-center justify-between mb-6">
+                          <div className="flex items-center gap-2">
+                            <Activity className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                            <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">
+                              {currentBoardType === 'jobs' ? 'Applications' : 'Outreach'} Over Time
+                            </h3>
+                          </div>
+
+                          {/* Legend */}
+                          <div className="hidden md:flex items-center gap-3">
+                            {(currentBoardType === 'jobs' ? [
+                              { label: 'Applied', color: 'bg-gray-400' },
+                              { label: 'Interview', color: 'bg-gray-500' },
+                              { label: 'Offer', color: 'bg-gray-600' }
+                            ] : [
+                              { label: 'Contacted', color: 'bg-gray-400' },
+                              { label: 'Replied', color: 'bg-gray-500' },
+                              { label: 'Meeting', color: 'bg-gray-600' }
+                            ]).map(item => (
+                              <div key={item.label} className="flex items-center gap-1.5">
+                                <div className={`w-2 h-2 rounded-full ${item.color}`} />
+                                <span className="text-[11px] text-gray-500 dark:text-gray-400">{item.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Chart Area */}
+                        <div className="relative h-44">
+                          {/* Y-axis labels */}
+                          <div className="absolute left-0 top-0 bottom-8 w-6 flex flex-col justify-between text-right pr-1">
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">max</span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">0</span>
+                          </div>
+
+                          {/* Chart grid and bars */}
+                          <div className="ml-8 h-full flex items-end justify-between gap-2 relative">
+                            {/* Horizontal grid lines */}
+                            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                              {[0, 1, 2, 3].map(i => (
+                                <div key={i} className="border-b border-gray-100 dark:border-[#3d3c3e]/50 border-dashed" />
+                              ))}
+                            </div>
+
+                            {getMonthlyApplicationData().map(([month, data], i) => {
+                              const total = currentBoardType === 'jobs'
+                                ? (data.applied || 0) + (data.interviews || 0) + (data.pending || 0) + (data.offers || 0) + (data.rejected || 0)
+                                : (data.targets || 0) + (data.contacted || 0) + (data.follow_up || 0) + (data.replied || 0) + (data.meeting || 0) + (data.opportunity || 0);
+
+                              const allTotals = getMonthlyApplicationData().map(([_, d]) =>
+                                currentBoardType === 'jobs'
+                                  ? (d.applied || 0) + (d.interviews || 0) + (d.pending || 0) + (d.offers || 0) + (d.rejected || 0)
+                                  : (d.targets || 0) + (d.contacted || 0) + (d.follow_up || 0) + (d.replied || 0) + (d.meeting || 0) + (d.opportunity || 0)
+                              );
+                              const maxTotal = Math.max(...allTotals, 1);
+                              const heightPercent = (total / maxTotal) * 100;
+
+                              return (
+                                <div key={month} className="flex-1 flex flex-col items-center gap-2 group/bar relative">
+                                  {/* Tooltip on hover */}
+                                  <div className="absolute bottom-full mb-2 opacity-0 group-hover/bar:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                                    <div className="bg-gray-900 dark:bg-[#3d3c3e] text-white text-[11px] px-2 py-1 rounded-md shadow-lg whitespace-nowrap">
+                                      <span className="font-semibold tabular-nums">{total}</span> total
+                                    </div>
+                                  </div>
+
+                                  {/* Bar */}
+                                  <div className="w-full max-w-10 h-32 flex flex-col-reverse items-center relative rounded-t-md overflow-hidden bg-gray-100 dark:bg-[#3d3c3e]/50">
+                                    <motion.div
+                                      initial={{ height: 0 }}
+                                      animate={{ height: `${heightPercent}%` }}
+                                      transition={{ duration: 0.5, delay: 0.55 + 0.06 * i, ease: [0.25, 0.1, 0.25, 1] }}
+                                      className="w-full bg-gray-400 dark:bg-gray-500 group-hover/bar:bg-gray-500 dark:group-hover/bar:bg-gray-400 transition-colors duration-200"
+                                    />
+                                  </div>
+
+                                  {/* Month label */}
+                                  <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                    {new Date(month).toLocaleDateString(undefined, { month: 'short' })}
+                                  </span>
                                 </div>
                               );
                             })}
                           </div>
                         </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-[120px]">
-                          <p className="text-[13px] text-gray-400 dark:text-gray-500">No technology data yet</p>
-                        </div>
-                      )}
-                    </motion.div>
 
-                    {/* Seniority Distribution - Span 6 columns */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: 0.3 }}
-                      className="lg:col-span-6 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
-                    >
-                      <div className="flex items-center gap-2 mb-5">
-                        <Users className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
-                        <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Seniority Levels</h3>
-                      </div>
-                        
-                      {getSeniorityDistribution().length > 0 ? (
-                        <div className="grid grid-cols-2 gap-3">
-                          {getSeniorityDistribution().map((item, i) => {
-                            const total = getSeniorityDistribution().reduce((sum, s) => sum + s.count, 0);
-                            const percentage = total > 0 ? (item.count / total) * 100 : 0;
-                            return (
-                              <motion.div 
-                                key={item.seniority}
-                                initial={{ opacity: 0, scale: 0.98 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.3, delay: 0.35 + 0.06 * i }}
-                                className="p-4 rounded-xl bg-gray-50/50 dark:bg-[#333234]/30 border border-gray-100 dark:border-[#3d3c3e]/50 hover:border-gray-200 dark:hover:border-[#4a494b] transition-all duration-300 group"
-                              >
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-[13px] font-medium text-gray-700 dark:text-gray-200">{item.seniority}</span>
-                                  <span className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums">{percentage.toFixed(0)}%</span>
-                                </div>
-                                <div className="h-1.5 bg-gray-100 dark:bg-[#3d3c3e]/50 rounded-full overflow-hidden">
-                                  <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${percentage}%` }}
-                                    transition={{ duration: 0.5, delay: 0.4 + 0.08 * i }}
-                                    className="h-full bg-gray-400 dark:bg-gray-500 rounded-full group-hover:bg-gray-500 dark:group-hover:bg-gray-400 transition-colors duration-200"
-                                  />
-                                </div>
-                                <div className="flex items-center justify-between mt-2">
-                                  <span className="text-[11px] text-gray-500 dark:text-gray-400">{item.count} total</span>
-                                  <span className={`text-[11px] font-medium tabular-nums ${
-                                    item.interviewRate > 30 
-                                      ? 'text-emerald-600 dark:text-emerald-400' 
-                                      : item.interviewRate > 15 
-                                        ? 'text-amber-600 dark:text-amber-400' 
-                                        : 'text-gray-500 dark:text-gray-400'
-                                  }`}>{item.interviewRate.toFixed(0)}% success</span>
-                                </div>
-                              </motion.div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-[120px]">
-                          <p className="text-[13px] text-gray-400 dark:text-gray-500">No seniority data available</p>
-                        </div>
-                      )}
-                    </motion.div>
-
-                    {/* Employment Type - Span 6 columns */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: 0.35 }}
-                      className="lg:col-span-6 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
-                    >
-                      <div className="flex items-center gap-2 mb-5">
-                        <Briefcase className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
-                        <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Employment Types</h3>
-                      </div>
-                        
-                      {getEmploymentTypeDistribution().length > 0 ? (
-                        <div className="space-y-4">
-                          {getEmploymentTypeDistribution().map((item, i) => {
-                            const maxCount = getEmploymentTypeDistribution()[0]?.count || 1;
-                            const widthPercentage = (item.count / maxCount) * 100;
-                            return (
-                              <motion.div 
-                                key={item.type}
-                                initial={{ opacity: 0, x: -8 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.25, delay: 0.4 + 0.04 * i }}
-                                className="group"
-                              >
-                                <div className="flex items-center justify-between mb-1.5">
-                                  <span className="text-[13px] text-gray-700 dark:text-gray-200 font-medium">{item.type}</span>
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-[12px] text-gray-500 dark:text-gray-400 tabular-nums">{item.count}</span>
-                                    <span className={`text-[11px] font-medium tabular-nums px-1.5 py-0.5 rounded ${
-                                      item.interviewRate > 30 
-                                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10' 
-                                        : item.interviewRate > 15 
-                                          ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10' 
-                                          : 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-500/10'
-                                    }`}>
-                                      {item.interviewRate.toFixed(0)}%
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="h-1.5 bg-gray-100 dark:bg-[#3d3c3e]/50 rounded-full overflow-hidden">
-                                  <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${widthPercentage}%` }}
-                                    transition={{ duration: 0.5, delay: 0.45 + 0.08 * i }}
-                                    className="h-full bg-gray-400 dark:bg-gray-500 rounded-full group-hover:bg-gray-500 dark:group-hover:bg-gray-400 transition-colors duration-200"
-                                  />
-                                </div>
-                              </motion.div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-[120px]">
-                          <p className="text-[13px] text-gray-400 dark:text-gray-500">No employment type data available</p>
-                        </div>
-                      )}
-                    </motion.div>
-                  </div>
-
-                  {/* Section 3: Location & Success Insights */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                    {/* Location Insights - Span 8 columns */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: 0.4 }}
-                      className="lg:col-span-8 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
-                    >
-                      <div className="flex items-center gap-2 mb-5">
-                        <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
-                        <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Location Insights</h3>
-                      </div>
-                        
-                      {(() => {
-                        const locationData = getLocationInsights();
-                        return (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Work Arrangement */}
-                            <div>
-                              <h4 className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Work Arrangement</h4>
-                              <div className="space-y-2">
-                                {locationData.byType.map((item, i) => (
-                                  <motion.div 
-                                    key={item.type}
-                                    initial={{ opacity: 0, x: -8 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ duration: 0.25, delay: 0.45 + 0.04 * i }}
-                                    className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-[#3d3c3e]/50 last:border-0"
-                                  >
-                                    <span className="text-[13px] font-medium text-gray-700 dark:text-gray-200">{item.type}</span>
-                                    <div className="flex items-center gap-3">
-                                      <span className="text-[12px] text-gray-500 dark:text-gray-400 tabular-nums">{item.count}</span>
-                                      <span className={`text-[11px] font-medium tabular-nums px-1.5 py-0.5 rounded ${
-                                        item.interviewRate > 30 
-                                          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10' 
-                                          : item.interviewRate > 15 
-                                            ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10' 
-                                            : 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-500/10'
-                                      }`}>
-                                        {item.interviewRate.toFixed(0)}%
-                                      </span>
-                                    </div>
-                                  </motion.div>
-                                ))}
-                              </div>
-                            </div>
-                              
-                            {/* Top Locations */}
-                            <div>
-                              <h4 className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Top Locations</h4>
-                              <div className="space-y-2">
-                                {locationData.byLocation.slice(0, 5).map((item, i) => (
-                                  <motion.div 
-                                    key={item.location}
-                                    initial={{ opacity: 0, x: 8 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ duration: 0.25, delay: 0.45 + 0.04 * i }}
-                                    className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-[#3d3c3e]/50 last:border-0"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[11px] font-medium text-gray-300 dark:text-gray-600 tabular-nums w-4">{i + 1}</span>
-                                      <span className="text-[13px] text-gray-700 dark:text-gray-200">{item.location}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                      <span className="text-[12px] text-gray-500 dark:text-gray-400 tabular-nums">{item.count}</span>
-                                      <span className={`text-[11px] font-medium tabular-nums ${
-                                        item.interviewRate > 30 
-                                          ? 'text-emerald-600 dark:text-emerald-400' 
-                                          : item.interviewRate > 15 
-                                            ? 'text-amber-600 dark:text-amber-400' 
-                                            : 'text-gray-500 dark:text-gray-400'
-                                      }`}>
-                                        {item.interviewRate.toFixed(0)}%
-                                      </span>
-                                    </div>
-                                  </motion.div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </motion.div>
-
-                    {/* Success Patterns - Span 4 columns */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: 0.45 }}
-                      className="lg:col-span-4 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
-                    >
-                      <div className="flex items-center gap-2 mb-5">
-                        <Sparkles className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
-                        <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">Your Sweet Spots</h3>
-                      </div>
-                        
-                      {(() => {
-                        const patterns = getSuccessPatterns();
-                          
-                        const insights = [
-                          patterns.bestSeniority && {
-                            label: 'Best Level',
-                            value: patterns.bestSeniority.seniority,
-                            rate: patterns.bestSeniority.interviewRate,
-                          },
-                          patterns.bestLocationType && {
-                            label: 'Best Arrangement',
-                            value: patterns.bestLocationType.type,
-                            rate: patterns.bestLocationType.interviewRate,
-                          },
-                          patterns.topIndustries[0] && {
-                            label: 'Top Industry',
-                            value: patterns.topIndustries[0].industry,
-                            rate: patterns.topIndustries[0].interviewRate,
-                          }
-                        ].filter(Boolean);
-                          
-                        return (
-                          <div className="space-y-3">
-                            {insights.map((insight: any, i) => (
-                              <motion.div
-                                key={insight.label}
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.25, delay: 0.5 + 0.06 * i }}
-                                className="p-3 rounded-xl bg-gray-50/50 dark:bg-[#333234]/30 border border-gray-100 dark:border-[#3d3c3e]/50"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-0.5">{insight.label}</p>
-                                    <p className="text-[14px] font-semibold text-gray-900 dark:text-gray-100">{insight.value}</p>
-                                  </div>
-                                  <span className={`text-[12px] font-medium tabular-nums px-2 py-1 rounded ${
-                                    insight.rate > 30 
-                                      ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10' 
-                                      : insight.rate > 15 
-                                        ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10' 
-                                        : 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-500/10'
-                                  }`}>
-                                    {insight.rate.toFixed(0)}%
-                                  </span>
-                                </div>
-                              </motion.div>
-                            ))}
-                              
-                            {/* Top Technologies */}
-                            {patterns.topTechnologies.length > 0 && (
-                              <div className="pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50">
-                                <p className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Top Technologies</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {patterns.topTechnologies.slice(0, 5).map((tech) => (
-                                    <span
-                                      key={tech.tech}
-                                      className="px-2 py-1 text-[11px] font-medium rounded-md bg-gray-100 dark:bg-[#3d3c3e]/50 text-gray-600 dark:text-gray-300"
-                                    >
-                                      {tech.tech}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </motion.div>
-                  </div>
-
-                  {/* Section 5: Timeline & Time Metrics */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                    {/* Timeline Chart - Span 8 columns */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: 0.5 }}
-                      className="lg:col-span-8 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
-                    >
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-2">
-                          <Activity className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
-                          <h3 className="text-[13px] font-medium text-gray-500 dark:text-gray-400 tracking-wide">
-                            {currentBoardType === 'jobs' ? 'Applications' : 'Outreach'} Over Time
-                          </h3>
-                        </div>
-
-                        {/* Legend */}
-                        <div className="hidden md:flex items-center gap-3">
+                        {/* Mobile legend */}
+                        <div className="flex md:hidden justify-center mt-3 gap-3 flex-wrap">
                           {(currentBoardType === 'jobs' ? [
                             { label: 'Applied', color: 'bg-gray-400' },
                             { label: 'Interview', color: 'bg-gray-500' },
@@ -4472,156 +4552,78 @@ END:VCALENDAR`;
                             </div>
                           ))}
                         </div>
-                      </div>
+                      </motion.div>
 
-                      {/* Chart Area */}
-                      <div className="relative h-44">
-                        {/* Y-axis labels */}
-                        <div className="absolute left-0 top-0 bottom-8 w-6 flex flex-col justify-between text-right pr-1">
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">max</span>
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">0</span>
-                        </div>
-                        
-                        {/* Chart grid and bars */}
-                        <div className="ml-8 h-full flex items-end justify-between gap-2 relative">
-                          {/* Horizontal grid lines */}
-                          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                            {[0, 1, 2, 3].map(i => (
-                              <div key={i} className="border-b border-gray-100 dark:border-[#3d3c3e]/50 border-dashed" />
-                            ))}
-                          </div>
-                          
-                          {getMonthlyApplicationData().map(([month, data], i) => {
-                            const total = currentBoardType === 'jobs' 
-                              ? (data.applied || 0) + (data.interviews || 0) + (data.pending || 0) + (data.offers || 0) + (data.rejected || 0)
-                              : (data.targets || 0) + (data.contacted || 0) + (data.follow_up || 0) + (data.replied || 0) + (data.meeting || 0) + (data.opportunity || 0);
-                              
-                            const allTotals = getMonthlyApplicationData().map(([_, d]) => 
-                              currentBoardType === 'jobs' 
-                                ? (d.applied || 0) + (d.interviews || 0) + (d.pending || 0) + (d.offers || 0) + (d.rejected || 0)
-                                : (d.targets || 0) + (d.contacted || 0) + (d.follow_up || 0) + (d.replied || 0) + (d.meeting || 0) + (d.opportunity || 0)
-                            );
-                            const maxTotal = Math.max(...allTotals, 1);
-                            const heightPercent = (total / maxTotal) * 100;
-                              
-                            return (
-                              <div key={month} className="flex-1 flex flex-col items-center gap-2 group/bar relative">
-                                {/* Tooltip on hover */}
-                                <div className="absolute bottom-full mb-2 opacity-0 group-hover/bar:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                                  <div className="bg-gray-900 dark:bg-[#3d3c3e] text-white text-[11px] px-2 py-1 rounded-md shadow-lg whitespace-nowrap">
-                                    <span className="font-semibold tabular-nums">{total}</span> total
-                                  </div>
-                                </div>
-                                
-                                {/* Bar */}
-                                <div className="w-full max-w-10 h-32 flex flex-col-reverse items-center relative rounded-t-md overflow-hidden bg-gray-100 dark:bg-[#3d3c3e]/50">
-                                  <motion.div
-                                    initial={{ height: 0 }}
-                                    animate={{ height: `${heightPercent}%` }}
-                                    transition={{ duration: 0.5, delay: 0.55 + 0.06 * i, ease: [0.25, 0.1, 0.25, 1] }}
-                                    className="w-full bg-gray-400 dark:bg-gray-500 group-hover/bar:bg-gray-500 dark:group-hover/bar:bg-gray-400 transition-colors duration-200"
-                                  />
-                                </div>
-                                
-                                {/* Month label */}
-                                <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                                  {new Date(month).toLocaleDateString(undefined, { month: 'short' })}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Mobile legend */}
-                      <div className="flex md:hidden justify-center mt-3 gap-3 flex-wrap">
+                      {/* Time Metrics - Span 4 columns */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.55 }}
+                        className="lg:col-span-4 flex flex-col gap-4"
+                      >
                         {(currentBoardType === 'jobs' ? [
-                          { label: 'Applied', color: 'bg-gray-400' },
-                          { label: 'Interview', color: 'bg-gray-500' },
-                          { label: 'Offer', color: 'bg-gray-600' }
+                          {
+                            label: 'Days to Interview',
+                            sublabel: 'Average response time',
+                            value: getAverageTimeData().avgDaysToInterview,
+                            icon: Clock
+                          },
+                          {
+                            label: 'Days to Offer',
+                            sublabel: 'Full pipeline duration',
+                            value: getAverageTimeData().avgDaysToOffer,
+                            icon: CheckCircle
+                          }
                         ] : [
-                          { label: 'Contacted', color: 'bg-gray-400' },
-                          { label: 'Replied', color: 'bg-gray-500' },
-                          { label: 'Meeting', color: 'bg-gray-600' }
-                        ]).map(item => (
-                          <div key={item.label} className="flex items-center gap-1.5">
-                            <div className={`w-2 h-2 rounded-full ${item.color}`} />
-                            <span className="text-[11px] text-gray-500 dark:text-gray-400">{item.label}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-
-                    {/* Time Metrics - Span 4 columns */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: 0.55 }}
-                      className="lg:col-span-4 flex flex-col gap-4"
-                    >
-                      {(currentBoardType === 'jobs' ? [
-                        {
-                          label: 'Days to Interview',
-                          sublabel: 'Average response time',
-                          value: getAverageTimeData().avgDaysToInterview,
-                          icon: Clock
-                        },
-                        {
-                          label: 'Days to Offer',
-                          sublabel: 'Full pipeline duration',
-                          value: getAverageTimeData().avgDaysToOffer,
-                          icon: CheckCircle
-                        }
-                      ] : [
-                        {
-                          label: 'Days to Reply',
-                          sublabel: 'Average response time',
-                          value: getAverageTimeData().avgDaysToInterview,
-                          icon: Clock
-                        },
-                        {
-                          label: 'Days to Meeting',
-                          sublabel: 'Full pipeline duration',
-                          value: getAverageTimeData().avgDaysToOffer,
-                          icon: CheckCircle
-                        }
-                      ]).map((metric, i) => {
-                        const IconComp = metric.icon;
-                        return (
-                          <motion.div
-                            key={metric.label}
-                            initial={{ opacity: 0, x: 16 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.3, delay: 0.6 + 0.08 * i }}
-                            className="flex-1 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-5 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                  <IconComp className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
-                                  <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                                    {metric.label}
-                                  </span>
+                          {
+                            label: 'Days to Reply',
+                            sublabel: 'Average response time',
+                            value: getAverageTimeData().avgDaysToInterview,
+                            icon: Clock
+                          },
+                          {
+                            label: 'Days to Meeting',
+                            sublabel: 'Full pipeline duration',
+                            value: getAverageTimeData().avgDaysToOffer,
+                            icon: CheckCircle
+                          }
+                        ]).map((metric, i) => {
+                          const IconComp = metric.icon;
+                          return (
+                            <motion.div
+                              key={metric.label}
+                              initial={{ opacity: 0, x: 16 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.3, delay: 0.6 + 0.08 * i }}
+                              className="flex-1 bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-5 transition-all duration-300 hover:border-gray-300 dark:hover:border-[#4a494b]"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <IconComp className="w-4 h-4 text-gray-400 dark:text-gray-500 stroke-[1.5]" />
+                                    <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                      {metric.label}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-baseline gap-2">
+                                    <span className="text-[26px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums leading-none">
+                                      {metric.value}
+                                    </span>
+                                    <span className="text-[13px] text-gray-500 dark:text-gray-400">days</span>
+                                  </div>
+                                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">{metric.sublabel}</p>
                                 </div>
-                                <div className="flex items-baseline gap-2">
-                                  <span className="text-[26px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums leading-none">
-                                    {metric.value}
-                                  </span>
-                                  <span className="text-[13px] text-gray-500 dark:text-gray-400">days</span>
-                                </div>
-                                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">{metric.sublabel}</p>
                               </div>
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                    </motion.div>
-                  </div>
-                </>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+                            </motion.div>
+                          );
+                        })}
+                      </motion.div>
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Filter Modals */}
@@ -4802,8 +4804,8 @@ END:VCALENDAR`;
                           <span className="text-sm text-gray-700 dark:text-gray-300">
                             {option === 'all' ? `All ${currentBoardType === 'campaigns' ? 'contacts' : 'applications'}` :
                               option === 'with' ? `With ${currentBoardType === 'campaigns' ? 'meetings' : 'interviews'}` :
-                              option === 'without' ? `Without ${currentBoardType === 'campaigns' ? 'meetings' : 'interviews'}` :
-                                `Upcoming ${currentBoardType === 'campaigns' ? 'meetings' : 'interviews'} only`}
+                                option === 'without' ? `Without ${currentBoardType === 'campaigns' ? 'meetings' : 'interviews'}` :
+                                  `Upcoming ${currentBoardType === 'campaigns' ? 'meetings' : 'interviews'} only`}
                           </span>
                         </label>
                       ))}
@@ -4815,7 +4817,7 @@ END:VCALENDAR`;
                       {currentBoardType === 'campaigns' ? 'Meeting Types' : 'Interview Types'}
                     </label>
                     <div className="space-y-2">
-                      {(currentBoardType === 'campaigns' 
+                      {(currentBoardType === 'campaigns'
                         ? (['coffee_chat', 'call', 'video_call', 'in_person', 'other'] as MeetingType[])
                         : ['technical', 'hr', 'manager', 'final', 'other']
                       ).map((type) => (
@@ -4847,7 +4849,7 @@ END:VCALENDAR`;
                       {currentBoardType === 'campaigns' ? 'Meeting Status' : 'Interview Status'}
                     </label>
                     <div className="space-y-2">
-                      {(currentBoardType === 'campaigns' 
+                      {(currentBoardType === 'campaigns'
                         ? ['scheduled', 'completed', 'cancelled', 'rescheduled']
                         : ['scheduled', 'completed', 'cancelled']
                       ).map((status) => (
@@ -5227,33 +5229,33 @@ END:VCALENDAR`;
                               </span>
                             </div>
                             <div className="relative">
-                                <input
-                                  type="url"
-                                  value={formData.url || ''}
-                                  onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                              <input
+                                type="url"
+                                value={formData.url || ''}
+                                onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
                                 className="w-full pl-4 pr-24 py-2.5 bg-gray-50/50 dark:bg-white/[0.03] border border-gray-200/60 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/10 focus:border-purple-400 dark:focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all"
                                 placeholder="Paste job posting URL..."
-                                  autoFocus
-                                />
+                                autoFocus
+                              />
                               <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                                  <motion.button
-                                    type="button"
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={handleExtractJobInfo}
-                                    disabled={isAnalyzingJob || !formData.url || !formData.url.trim()}
+                                <motion.button
+                                  type="button"
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  onClick={handleExtractJobInfo}
+                                  disabled={isAnalyzingJob || !formData.url || !formData.url.trim()}
                                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-medium hover:bg-purple-100 dark:hover:bg-purple-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                                  >
-                                    {isAnalyzingJob ? (
-                                      <Loader2 className="w-3 h-3 animate-spin" />
-                                    ) : (
+                                >
+                                  {isAnalyzingJob ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
                                     <Sparkles className="w-3 h-3" />
-                                    )}
+                                  )}
                                   {isAnalyzingJob ? 'Filling...' : 'Fill'}
-                                  </motion.button>
+                                </motion.button>
                               </div>
                             </div>
-                            
+
                             {/* Warning message when auto-extraction fails */}
                             {showPasteMode && (
                               <motion.div
@@ -5286,35 +5288,31 @@ END:VCALENDAR`;
                               <button
                                 type="button"
                                 onClick={() => setWizardStep(1)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
-                                  wizardStep === 1
-                                    ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-lg shadow-[#8B5CF6]/25'
-                                    : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
-                                }`}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${wizardStep === 1
+                                  ? 'bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white shadow-lg shadow-[#8B5CF6]/25'
+                                  : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
+                                  }`}
                               >
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                                  wizardStep === 1 ? 'bg-white/20' : 'bg-gray-200 dark:bg-[#2b2a2c]'
-                                }`}>
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${wizardStep === 1 ? 'bg-white/20' : 'bg-gray-200 dark:bg-[#2b2a2c]'
+                                  }`}>
                                   1
                                 </div>
                                 <span className="font-medium text-sm">Contact</span>
                               </button>
-                              
+
                               <div className="w-8 h-0.5 bg-gray-200 dark:bg-[#3d3c3e]" />
-                              
+
                               <button
                                 type="button"
                                 onClick={() => formData.contactName && formData.companyName && setWizardStep(2)}
                                 disabled={!formData.contactName || !formData.companyName}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
-                                  wizardStep === 2
-                                    ? 'bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] text-white shadow-lg shadow-[#EC4899]/25'
-                                    : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#4a494b] disabled:opacity-50 disabled:cursor-not-allowed'
-                                }`}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${wizardStep === 2
+                                  ? 'bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] text-white shadow-lg shadow-[#EC4899]/25'
+                                  : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#4a494b] disabled:opacity-50 disabled:cursor-not-allowed'
+                                  }`}
                               >
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                                  wizardStep === 2 ? 'bg-white/20' : 'bg-gray-200 dark:bg-[#2b2a2c]'
-                                }`}>
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${wizardStep === 2 ? 'bg-white/20' : 'bg-gray-200 dark:bg-[#2b2a2c]'
+                                  }`}>
                                   2
                                 </div>
                                 <span className="font-medium text-sm">Strategy</span>
@@ -5323,7 +5321,7 @@ END:VCALENDAR`;
 
                             {/* Contact Preview Card */}
                             {(formData.contactName || formData.companyName) && (
-                              <motion.div 
+                              <motion.div
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="p-4 rounded-2xl bg-gradient-to-br from-[#8B5CF6]/5 to-[#EC4899]/5 border border-[#8B5CF6]/20 dark:border-[#8B5CF6]/10"
@@ -5361,35 +5359,35 @@ END:VCALENDAR`;
                                   className="space-y-4"
                                 >
                                   <div className="grid grid-cols-2 gap-4">
-                            <div>
+                                    <div>
                                       <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
                                         Contact Name <span className="text-red-500">*</span>
-                              </label>
-                              <input
-                                type="text"
-                                required
+                                      </label>
+                                      <input
+                                        type="text"
+                                        required
                                         value={formData.contactName || ''}
                                         onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
                                         className="w-full px-4 py-3 bg-white dark:bg-[#242325] border-2 border-gray-200 dark:border-[#3d3c3e] focus:border-[#8B5CF6] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all"
                                         placeholder="John Doe"
-                                autoFocus
-                              />
-                            </div>
-                            <div>
+                                        autoFocus
+                                      />
+                                    </div>
+                                    <div>
                                       <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
                                         Role/Title <span className="text-red-500">*</span>
-                              </label>
-                              <input
-                                type="text"
-                                required
+                                      </label>
+                                      <input
+                                        type="text"
+                                        required
                                         value={formData.contactRole || ''}
                                         onChange={(e) => setFormData(prev => ({ ...prev, contactRole: e.target.value }))}
                                         className="w-full px-4 py-3 bg-white dark:bg-[#242325] border-2 border-gray-200 dark:border-[#3d3c3e] focus:border-[#8B5CF6] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#8B5CF6]/20 transition-all"
                                         placeholder="Head of Engineering"
-                              />
-                            </div>
+                                      />
+                                    </div>
                                   </div>
-                                  
+
                                   <div>
                                     <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
                                       Company <span className="text-red-500">*</span>
@@ -5460,11 +5458,10 @@ END:VCALENDAR`;
                                           whileHover={{ scale: 1.02 }}
                                           whileTap={{ scale: 0.98 }}
                                           onClick={() => setFormData(prev => ({ ...prev, relationshipGoal: goal.value as RelationshipGoal }))}
-                                          className={`p-4 rounded-2xl border-2 transition-all text-center ${
-                                            formData.relationshipGoal === goal.value
-                                              ? `bg-gradient-to-br ${goal.color} border-transparent text-white shadow-lg`
-                                              : 'bg-white dark:bg-[#242325] border-gray-200 dark:border-[#3d3c3e] hover:border-[#8B5CF6]/50'
-                                          }`}
+                                          className={`p-4 rounded-2xl border-2 transition-all text-center ${formData.relationshipGoal === goal.value
+                                            ? `bg-gradient-to-br ${goal.color} border-transparent text-white shadow-lg`
+                                            : 'bg-white dark:bg-[#242325] border-gray-200 dark:border-[#3d3c3e] hover:border-[#8B5CF6]/50'
+                                            }`}
                                         >
                                           <span className="text-2xl block mb-1">{goal.icon}</span>
                                           <span className="text-xs font-bold">{goal.label}</span>
@@ -5490,11 +5487,10 @@ END:VCALENDAR`;
                                           whileHover={{ scale: 1.02 }}
                                           whileTap={{ scale: 0.98 }}
                                           onClick={() => setFormData(prev => ({ ...prev, warmthLevel: warmth.value as WarmthLevel }))}
-                                          className={`p-4 rounded-2xl border-2 transition-all text-center ${
-                                            formData.warmthLevel === warmth.value
-                                              ? `bg-gradient-to-br ${warmth.color} border-transparent text-white shadow-lg`
-                                              : 'bg-white dark:bg-[#242325] border-gray-200 dark:border-[#3d3c3e] hover:border-[#8B5CF6]/50'
-                                          }`}
+                                          className={`p-4 rounded-2xl border-2 transition-all text-center ${formData.warmthLevel === warmth.value
+                                            ? `bg-gradient-to-br ${warmth.color} border-transparent text-white shadow-lg`
+                                            : 'bg-white dark:bg-[#242325] border-gray-200 dark:border-[#3d3c3e] hover:border-[#8B5CF6]/50'
+                                            }`}
                                         >
                                           <span className="text-2xl block mb-1">{warmth.icon}</span>
                                           <span className="text-xs font-bold">{warmth.label}</span>
@@ -5521,11 +5517,10 @@ END:VCALENDAR`;
                                           key={channel.value}
                                           type="button"
                                           onClick={() => setFormData(prev => ({ ...prev, outreachChannel: channel.value as OutreachChannel }))}
-                                          className={`p-3 rounded-xl border-2 transition-all text-center ${
-                                            formData.outreachChannel === channel.value
-                                              ? 'bg-[#8B5CF6]/10 border-[#8B5CF6] shadow-sm'
-                                              : 'bg-white dark:bg-[#242325] border-gray-200 dark:border-[#3d3c3e] hover:border-[#8B5CF6]/50'
-                                          }`}
+                                          className={`p-3 rounded-xl border-2 transition-all text-center ${formData.outreachChannel === channel.value
+                                            ? 'bg-[#8B5CF6]/10 border-[#8B5CF6] shadow-sm'
+                                            : 'bg-white dark:bg-[#242325] border-gray-200 dark:border-[#3d3c3e] hover:border-[#8B5CF6]/50'
+                                            }`}
                                         >
                                           <span className="text-xl">{channel.icon}</span>
                                         </button>
@@ -5566,7 +5561,7 @@ END:VCALENDAR`;
                           </div>
                         )}
 
-                              <AnimatePresence>
+                        <AnimatePresence>
                           {(eventType === 'application' && showFullForm && currentBoardType !== 'campaigns') && (
                             <motion.div
                               initial={{ opacity: 0, height: 0 }}
@@ -5579,74 +5574,74 @@ END:VCALENDAR`;
                                 <div className="space-y-4">
                                   {/* Company & Position - 2 columns */}
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                  <div>
+                                    <div>
                                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                         Company
-                                    </label>
-                                    <input
-                                      type="text"
-                                      required
-                                      value={formData.companyName || ''}
-                                      onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                                      </label>
+                                      <input
+                                        type="text"
+                                        required
+                                        value={formData.companyName || ''}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
                                         className="w-full px-3.5 py-2.5 bg-gray-50/50 dark:bg-white/[0.03] border border-gray-200/60 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/10 focus:border-purple-400 dark:focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all"
                                         placeholder="Google, Spotify..."
-                                    />
-                                  </div>
-                                  <div>
+                                      />
+                                    </div>
+                                    <div>
                                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                         Position
-                                    </label>
-                                    <input
-                                      type="text"
-                                      required
-                                      value={formData.position || ''}
-                                      onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                                      </label>
+                                      <input
+                                        type="text"
+                                        required
+                                        value={formData.position || ''}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
                                         className="w-full px-3.5 py-2.5 bg-gray-50/50 dark:bg-white/[0.03] border border-gray-200/60 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/10 focus:border-purple-400 dark:focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all"
                                         placeholder="Senior Frontend Engineer"
-                                    />
+                                      />
                                     </div>
                                   </div>
 
                                   {/* Location & Date - 2 columns */}
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                  <div>
+                                    <div>
                                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                         Location
-                                    </label>
-                                    <input
-                                      type="text"
-                                      required
-                                      value={formData.location || ''}
-                                      onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                                      </label>
+                                      <input
+                                        type="text"
+                                        required
+                                        value={formData.location || ''}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                                         className="w-full px-3.5 py-2.5 bg-gray-50/50 dark:bg-white/[0.03] border border-gray-200/60 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/10 focus:border-purple-400 dark:focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all"
                                         placeholder="Remote, Paris..."
-                                    />
-                                  </div>
-                                  <div>
+                                      />
+                                    </div>
+                                    <div>
                                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                         Applied date
-                                    </label>
-                                    <DatePicker
-                                      value={formData.appliedDate || ''}
-                                      onChange={(value) => setFormData(prev => ({ ...prev, appliedDate: value }))}
-                                      placeholder="Select date"
-                                      required
-                                      className="w-full"
+                                      </label>
+                                      <DatePicker
+                                        value={formData.appliedDate || ''}
+                                        onChange={(value) => setFormData(prev => ({ ...prev, appliedDate: value }))}
+                                        placeholder="Select date"
+                                        required
+                                        className="w-full"
                                         buttonClassName="!bg-gray-50/50 dark:!bg-white/[0.03] !border !border-gray-200/60 dark:!border-white/[0.06] hover:!border-gray-300 dark:hover:!border-white/10 focus:!border-purple-400 dark:focus:!border-purple-500 focus:!ring-2 focus:!ring-purple-500/10 !rounded-xl !text-sm !text-gray-900 dark:!text-white !py-2.5 !shadow-none !transition-all"
-                                    />
+                                      />
+                                    </div>
                                   </div>
-                              </div>
 
                                   {/* Job Description - full width - maps to fullJobDescription for AI features */}
                                   <div>
                                     <div className="flex items-center justify-between mb-1.5">
                                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                         Job description
-                                    </label>
+                                      </label>
                                       <span className="text-[10px] text-gray-400 dark:text-gray-500">
                                         Used by AI for emails & interview prep
-                                              </span>
-                                            </div>
+                                      </span>
+                                    </div>
                                     <textarea
                                       value={formData.fullJobDescription || ''}
                                       onChange={(e) => setFormData(prev => ({ ...prev, fullJobDescription: e.target.value }))}
@@ -5663,11 +5658,11 @@ END:VCALENDAR`;
 
                         {/* Manual Entry Link for Application */}
                         {!showFullForm && eventType === 'application' && (
-                           <motion.div 
-                             initial={{ opacity: 0 }}
-                             animate={{ opacity: 1 }}
-                             className="flex justify-center"
-                           >
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="flex justify-center"
+                          >
                             <button
                               type="button"
                               onClick={() => setShowFullForm(true)}
@@ -5701,19 +5696,19 @@ END:VCALENDAR`;
 
                   {/* Right side */}
                   <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEventType(null);
-                      setNewApplicationModal(false);
-                      setShowFullForm(false);
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEventType(null);
+                        setNewApplicationModal(false);
+                        setShowFullForm(false);
                         setWizardStep(1);
-                    }}
-                    className="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                    
+                      }}
+                      className="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+
                     {/* Campaigns Wizard: Next button on step 1 */}
                     {eventType === 'application' && currentBoardType === 'campaigns' && wizardStep === 1 && (
                       <motion.button
@@ -5728,7 +5723,7 @@ END:VCALENDAR`;
                         <ChevronRight className="w-4 h-4" />
                       </motion.button>
                     )}
-                    
+
                     {/* Campaigns Wizard: Add Contact on step 2 */}
                     {eventType === 'application' && currentBoardType === 'campaigns' && wizardStep === 2 && (
                       <motion.button
@@ -5747,10 +5742,10 @@ END:VCALENDAR`;
                     {/* Jobs board */}
                     {eventType === 'application' && currentBoardType !== 'campaigns' && (
                       <motion.button
-                    type="button"
+                        type="button"
                         whileHover={{ scale: 1.01 }}
                         whileTap={{ scale: 0.99 }}
-                    onClick={handleCreateApplication}
+                        onClick={handleCreateApplication}
                         disabled={!formData.companyName || !formData.position || !formData.location || !formData.appliedDate}
                         className="px-5 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed font-medium text-sm shadow-sm flex items-center gap-1.5"
                       >
@@ -6060,10 +6055,10 @@ END:VCALENDAR`;
                         <div
                           key={interview.id}
                           className={`p-4 rounded-lg border ${interview.status === 'completed'
-                              ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-900/50'
-                              : interview.status === 'cancelled'
-                                ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/50'
-                                : 'bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-900/50'
+                            ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-900/50'
+                            : interview.status === 'cancelled'
+                              ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/50'
+                              : 'bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-900/50'
                             }`}
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3">
@@ -6097,10 +6092,10 @@ END:VCALENDAR`;
                                   setFormData(prev => ({ ...prev, interviews: newInterviews }));
                                 }}
                                 className={`text-xs px-2 py-1 rounded-full border ${interview.status === 'completed'
-                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-green-300 dark:border-green-800'
-                                    : interview.status === 'cancelled'
-                                      ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 border-red-300 dark:border-red-800'
-                                      : 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 border-purple-300 dark:border-purple-800'
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-green-300 dark:border-green-800'
+                                  : interview.status === 'cancelled'
+                                    ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 border-red-300 dark:border-red-800'
+                                    : 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 border-purple-300 dark:border-purple-800'
                                   }`}
                               >
                                 <option value="scheduled">Scheduled</option>
@@ -6294,7 +6289,7 @@ END:VCALENDAR`;
 
               // Check if interviews were added and status is wishlist, applied, or pending_decision
               const interviewsAdded = updates.interviews && updates.interviews.length > (selectedApplication.interviews?.length || 0);
-              const shouldPromptMove = interviewsAdded && 
+              const shouldPromptMove = interviewsAdded &&
                 (selectedApplication.status === 'wishlist' || selectedApplication.status === 'applied' || selectedApplication.status === 'pending_decision') &&
                 !updates.status; // Status wasn't changed in this update
 
@@ -6520,11 +6515,11 @@ END:VCALENDAR`;
                       >
                         {/* Status dot - Apple style - positioned on top of the card */}
                         <div className={`absolute -left-[17px] top-0 w-7 h-7 rounded-full flex items-center justify-center backdrop-blur-sm border-2 z-10 shadow-sm ${status.status === 'applied' ? 'bg-blue-50/60 text-blue-600 border-blue-200/50 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/30' :
-                            status.status === 'interview' ? 'bg-purple-50/60 text-purple-600 border-purple-200/50 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/30' :
-                              status.status === 'offer' ? 'bg-green-50/60 text-green-600 border-green-200/50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/30' :
-                                status.status === 'pending_decision' ? 'bg-amber-50/60 text-amber-600 border-amber-200/50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/30' :
-                                  status.status === 'archived' ? 'bg-gray-50/60 text-gray-600 border-gray-200/50 dark:bg-[#242325]/30 dark:text-gray-400 dark:border-[#3d3c3e]/30' :
-                                    'bg-red-50/60 text-red-600 border-red-200/50 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/30'
+                          status.status === 'interview' ? 'bg-purple-50/60 text-purple-600 border-purple-200/50 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/30' :
+                            status.status === 'offer' ? 'bg-green-50/60 text-green-600 border-green-200/50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/30' :
+                              status.status === 'pending_decision' ? 'bg-amber-50/60 text-amber-600 border-amber-200/50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/30' :
+                                status.status === 'archived' ? 'bg-gray-50/60 text-gray-600 border-gray-200/50 dark:bg-[#242325]/30 dark:text-gray-400 dark:border-[#3d3c3e]/30' :
+                                  'bg-red-50/60 text-red-600 border-red-200/50 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/30'
                           }`}>
                           <span className="text-xs font-semibold capitalize">{status.status.slice(0, 1)}</span>
                         </div>
@@ -6533,11 +6528,11 @@ END:VCALENDAR`;
                         <div className="bg-white/90 dark:bg-[#2b2a2c]/30 backdrop-blur-sm rounded-xl border border-gray-200/60 dark:border-[#3d3c3e]/50 pl-4 py-3 px-4 transition-all duration-200 hover:bg-white dark:hover:bg-[#3d3c3e]/50 relative z-0">
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <p className={`font-medium text-sm capitalize ${status.status === 'applied' ? 'text-blue-600 dark:text-blue-400' :
-                                status.status === 'interview' ? 'text-purple-600 dark:text-purple-400' :
-                                  status.status === 'offer' ? 'text-green-600 dark:text-green-400' :
-                                    status.status === 'pending_decision' ? 'text-amber-600 dark:text-amber-400' :
-                                      status.status === 'archived' ? 'text-gray-600 dark:text-gray-400' :
-                                        'text-red-600 dark:text-red-400'
+                              status.status === 'interview' ? 'text-purple-600 dark:text-purple-400' :
+                                status.status === 'offer' ? 'text-green-600 dark:text-green-400' :
+                                  status.status === 'pending_decision' ? 'text-amber-600 dark:text-amber-400' :
+                                    status.status === 'archived' ? 'text-gray-600 dark:text-gray-400' :
+                                      'text-red-600 dark:text-red-400'
                               }`}>
                               {status.status === 'pending_decision' ? 'Pending Decision' : status.status}
                             </p>
@@ -6760,20 +6755,20 @@ END:VCALENDAR`;
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.25 + index * 0.05, duration: 0.3 }}
                           className={`group relative p-4 rounded-xl border backdrop-blur-sm transition-all duration-200 hover:shadow-md ${interview.status === 'completed'
-                              ? 'bg-green-50/90 dark:bg-green-900/20 border-green-200/60 dark:border-green-900/50 hover:bg-green-50 dark:hover:bg-green-900/30'
-                              : interview.status === 'cancelled'
-                                ? 'bg-red-50/90 dark:bg-red-900/20 border-red-200/60 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/30'
-                                : 'bg-purple-50/90 dark:bg-purple-900/20 border-purple-200/60 dark:border-purple-900/50 hover:bg-purple-50 dark:hover:bg-purple-900/30'
+                            ? 'bg-green-50/90 dark:bg-green-900/20 border-green-200/60 dark:border-green-900/50 hover:bg-green-50 dark:hover:bg-green-900/30'
+                            : interview.status === 'cancelled'
+                              ? 'bg-red-50/90 dark:bg-red-900/20 border-red-200/60 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/30'
+                              : 'bg-purple-50/90 dark:bg-purple-900/20 border-purple-200/60 dark:border-purple-900/50 hover:bg-purple-50 dark:hover:bg-purple-900/30'
                             }`}
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
                             <div className="flex items-center gap-2">
                               <span className="capitalize font-medium text-sm text-gray-900 dark:text-white">{interview.type} Interview</span>
                               <span className={`px-2.5 py-1 text-[10px] font-medium rounded-full backdrop-blur-sm border ${interview.status === 'completed'
-                                  ? 'bg-green-100/60 text-green-700 border-green-200/50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/30'
-                                  : interview.status === 'cancelled'
-                                    ? 'bg-red-100/60 text-red-700 border-red-200/50 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/30'
-                                    : 'bg-purple-100/60 text-purple-700 border-purple-200/50 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/30'
+                                ? 'bg-green-100/60 text-green-700 border-green-200/50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/30'
+                                : interview.status === 'cancelled'
+                                  ? 'bg-red-100/60 text-red-700 border-red-200/50 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/30'
+                                  : 'bg-purple-100/60 text-purple-700 border-purple-200/50 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/30'
                                 }`}>
                                 {interview.status}
                               </span>
@@ -6882,90 +6877,90 @@ END:VCALENDAR`;
                 className="fixed inset-0 bg-black/70 backdrop-blur-xl z-[200] flex items-center justify-center p-4"
                 style={{ zIndex: 200 }}
               >
-              <motion.div
-                initial={{ scale: 0.96, y: 10, opacity: 0 }}
-                animate={{ scale: 1, y: 0, opacity: 1 }}
-                exit={{ scale: 0.96, y: 10, opacity: 0 }}
-                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                onClick={(e) => e.stopPropagation()}
-                className="relative bg-white dark:bg-[#242325] rounded-3xl w-full max-w-sm shadow-2xl border border-gray-100 dark:border-[#3d3c3e]/50 overflow-hidden pointer-events-auto"
-                style={{ zIndex: 201 }}
-              >
-                {/* Subtle gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-gray-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900/50 pointer-events-none" />
-                
-                {/* Content */}
-                <div className="relative px-8 py-8 z-10 pointer-events-auto">
-                  {/* Icon - Minimalist */}
-                  <div className="flex justify-center mb-6">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#635BFF]/10 to-[#7c75ff]/10 dark:from-[#635BFF]/20 dark:to-[#7c75ff]/20 rounded-2xl blur-xl" />
-                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-[#635BFF]/5 to-[#7c75ff]/5 dark:from-[#635BFF]/10 dark:to-[#7c75ff]/10 border border-[#635BFF]/10 dark:border-[#635BFF]/20">
-                        <Calendar className="w-5 h-5 text-[#635BFF] dark:text-[#a5a0ff]" strokeWidth={1.5} />
+                <motion.div
+                  initial={{ scale: 0.96, y: 10, opacity: 0 }}
+                  animate={{ scale: 1, y: 0, opacity: 1 }}
+                  exit={{ scale: 0.96, y: 10, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="relative bg-white dark:bg-[#242325] rounded-3xl w-full max-w-sm shadow-2xl border border-gray-100 dark:border-[#3d3c3e]/50 overflow-hidden pointer-events-auto"
+                  style={{ zIndex: 201 }}
+                >
+                  {/* Subtle gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-gray-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900/50 pointer-events-none" />
+
+                  {/* Content */}
+                  <div className="relative px-8 py-8 z-10 pointer-events-auto">
+                    {/* Icon - Minimalist */}
+                    <div className="flex justify-center mb-6">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#635BFF]/10 to-[#7c75ff]/10 dark:from-[#635BFF]/20 dark:to-[#7c75ff]/20 rounded-2xl blur-xl" />
+                        <div className="relative p-3 rounded-2xl bg-gradient-to-br from-[#635BFF]/5 to-[#7c75ff]/5 dark:from-[#635BFF]/10 dark:to-[#7c75ff]/10 border border-[#635BFF]/10 dark:border-[#635BFF]/20">
+                          <Calendar className="w-5 h-5 text-[#635BFF] dark:text-[#a5a0ff]" strokeWidth={1.5} />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Title - Refined typography */}
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center mb-2 tracking-tight">
-                    Move to Interview column?
-                  </h3>
+                    {/* Title - Refined typography */}
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center mb-2 tracking-tight">
+                      Move to Interview column?
+                    </h3>
 
-                  {/* Message - Minimalist */}
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-8 leading-relaxed">
-                    You've scheduled an interview. Would you like to move this application to the Interview column?
-                  </p>
+                    {/* Message - Minimalist */}
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-8 leading-relaxed">
+                      You've scheduled an interview. Would you like to move this application to the Interview column?
+                    </p>
 
-                  {/* Application Info - Ultra minimalist */}
-                  <div className="mb-8 pb-6 border-b border-gray-100 dark:border-[#3d3c3e]">
-                    <div className="text-center space-y-1">
-                      <div className="font-medium text-sm text-gray-900 dark:text-white">
-                        {pendingMoveApplication.companyName}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {pendingMoveApplication.position}
+                    {/* Application Info - Ultra minimalist */}
+                    <div className="mb-8 pb-6 border-b border-gray-100 dark:border-[#3d3c3e]">
+                      <div className="text-center space-y-1">
+                        <div className="font-medium text-sm text-gray-900 dark:text-white">
+                          {pendingMoveApplication.companyName}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {pendingMoveApplication.position}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Buttons - Premium design */}
-                  <div className="flex gap-3">
-                    <motion.button
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.99 }}
-                      onClick={() => {
-                        setShowMoveToInterviewPrompt(false);
-                        setPendingMoveApplication(null);
-                      }}
-                      className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-[#2b2a2c]/50 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-xl transition-all duration-200 border border-gray-200/50 dark:border-[#3d3c3e]/50"
-                    >
-                      {pendingMoveApplication.status === 'wishlist' ? 'Keep in Wishlist' : 
-                       pendingMoveApplication.status === 'pending_decision' ? 'Keep in Pending Decision' : 
-                       'Keep in Applied'}
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.01, y: -1 }}
-                      whileTap={{ scale: 0.99 }}
-                      onClick={handleMoveToInterview}
-                      className="relative flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#635BFF] to-[#7c75ff] hover:from-[#7c75ff] hover:to-[#8b85ff] rounded-xl transition-all duration-300 shadow-lg shadow-[#635BFF]/25 dark:shadow-[#635BFF]/20 overflow-hidden group"
-                    >
-                      {/* Shine effect */}
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                        initial={{ x: '-100%' }}
-                        whileHover={{ x: '200%' }}
-                        transition={{ duration: 0.6, ease: "easeInOut" }}
-                        style={{ transform: 'skewX(-20deg)' }}
-                      />
-                      <span className="relative z-10">Move</span>
-                    </motion.button>
+                    {/* Buttons - Premium design */}
+                    <div className="flex gap-3">
+                      <motion.button
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                        onClick={() => {
+                          setShowMoveToInterviewPrompt(false);
+                          setPendingMoveApplication(null);
+                        }}
+                        className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-[#2b2a2c]/50 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-xl transition-all duration-200 border border-gray-200/50 dark:border-[#3d3c3e]/50"
+                      >
+                        {pendingMoveApplication.status === 'wishlist' ? 'Keep in Wishlist' :
+                          pendingMoveApplication.status === 'pending_decision' ? 'Keep in Pending Decision' :
+                            'Keep in Applied'}
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.01, y: -1 }}
+                        whileTap={{ scale: 0.99 }}
+                        onClick={handleMoveToInterview}
+                        className="relative flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#635BFF] to-[#7c75ff] hover:from-[#7c75ff] hover:to-[#8b85ff] rounded-xl transition-all duration-300 shadow-lg shadow-[#635BFF]/25 dark:shadow-[#635BFF]/20 overflow-hidden group"
+                      >
+                        {/* Shine effect */}
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                          initial={{ x: '-100%' }}
+                          whileHover={{ x: '200%' }}
+                          transition={{ duration: 0.6, ease: "easeInOut" }}
+                          style={{ transform: 'skewX(-20deg)' }}
+                        />
+                        <span className="relative z-10">Move</span>
+                      </motion.button>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>,
-        document.body
+            )}
+          </AnimatePresence>,
+          document.body
         )}
 
         {/* Delete Confirmation Modal */}
@@ -7031,6 +7026,23 @@ END:VCALENDAR`;
           <span className="sr-only">View all scheduled interviews</span>
         </button>
 
+        {/* Mobile Floating Action Button */}
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => {
+            setEventType('application');
+            setWizardStep(1);
+            setLookupSelectedApplication(null);
+            setLinkedApplicationId(null);
+            setLookupSearchQuery('');
+            setShowLookupDropdown(false);
+            setNewApplicationModal(true);
+          }}
+          className="md:hidden fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#b7e219] text-gray-900 rounded-full shadow-xl flex items-center justify-center border border-[#9fc015]"
+        >
+          <Plus className="w-7 h-7" />
+        </motion.button>
+
         {/* Cover Photo Modals */}
         <CoverPhotoCropper
           isOpen={isCoverCropperOpen}
@@ -7043,7 +7055,7 @@ END:VCALENDAR`;
           exportWidth={1584}
           exportHeight={396}
         />
-        
+
         <CoverPhotoGallery
           isOpen={isCoverGalleryOpen}
           onClose={() => setIsCoverGalleryOpen(false)}
