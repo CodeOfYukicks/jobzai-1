@@ -432,12 +432,19 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const hasOwnBackground = location.pathname.startsWith('/ats-analysis/') && !location.pathname.endsWith('/cv-editor');
 
   // Pages that need no top padding on mobile (content flush with navbar)
-  const needsNoTopPadding = location.pathname === '/cv-analysis' ||
-    location.pathname.startsWith('/ats-analysis/');
+  // Pages that need no top padding on mobile (content flush with navbar)
+  const needsNoTopPadding = location.pathname.startsWith('/ats-analysis/') ||
+    location.pathname === '/campaigns-auto' ||
+    location.pathname === '/cv-analysis' ||
+    location.pathname === '/upcoming-interviews';
 
   // Pages where we should hide the mobile global elements (Top Bar & Bottom Nav)
   // This gives a true native "full screen" app feel for specific editors
   const isFullScreenMobile = (location.pathname.startsWith('/ats-analysis/') && location.pathname.endsWith('/cv-editor'));
+
+  // Pages where we should hide ONLY the mobile Top Bar (but keep Bottom Nav)
+  // Pages where we should hide ONLY the mobile Top Bar (but keep Bottom Nav)
+  const hideMobileTopBar = false;
 
   // Sidebar width values
   const sidebarExpandedWidth = 256; // 16rem = 256px
@@ -815,7 +822,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       </aside>
 
       {/* Mobile Top App Bar */}
-      {!isFullScreenMobile && (
+      {!isFullScreenMobile && !hideMobileTopBar && (
         <div
           className={`sticky top-0 z-30 md:hidden transition-shadow ${hasScrolled ? 'shadow-sm' : ''
             } bg-white/75 dark:bg-[#2b2a2c]/70 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md border-b border-gray-200/60 dark:border-[#3d3c3e]/60`}

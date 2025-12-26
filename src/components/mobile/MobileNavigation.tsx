@@ -62,13 +62,13 @@ export default function MobileNavigation() {
       <motion.div
         initial={{ y: 100 }}
         animate={{ y: 0 }}
-        className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-gray-200/60 dark:border-[#3d3c3e]/60"
+        className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-gray-200/60 dark:border-[#3d3c3e]/60 bg-white/95 dark:bg-[#2b2a2c]/95 backdrop-blur-xl"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom)',
           boxShadow: '0 -4px 20px rgba(0,0,0,0.08)',
         }}
       >
-        <div className="bg-white/95 dark:bg-[#2b2a2c]/95 backdrop-blur-xl">
+        <div>
           <nav className="h-[64px] max-w-[480px] mx-auto px-2 flex items-center justify-around">
             {PRIMARY_TABS.map((item) => {
               const isActive = isActivePath(item.path);
@@ -185,8 +185,8 @@ export default function MobileNavigation() {
                           navigate(item.path);
                         }}
                         className={`group flex flex-col items-center p-4 rounded-xl transition-all active:scale-95 ${isActive
-                            ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
-                            : 'bg-gray-50 dark:bg-[#3d3c3e]/40 hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60'
+                          ? 'bg-[#635BFF]/10 dark:bg-[#635BFF]/20'
+                          : 'bg-gray-50 dark:bg-[#3d3c3e]/40 hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60'
                           }`}
                       >
                         <item.icon

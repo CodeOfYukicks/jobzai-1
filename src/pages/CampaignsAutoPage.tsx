@@ -65,6 +65,7 @@ import { ProfileAvatar, generateGenderedAvatarConfig } from '../components/profi
 import { usePlanLimits } from '../hooks/usePlanLimits';
 import { CREDIT_COSTS } from '../lib/planLimits';
 import CreditConfirmModal from '../components/CreditConfirmModal';
+import { FilterBottomSheet } from '../components/common/BottomSheet';
 
 type RecipientStatus = 'pending' | 'email_generated' | 'email_ready' | 'sent' | 'opened' | 'replied';
 
@@ -210,6 +211,7 @@ export default function CampaignsAutoPage() {
 
   // Search/filter state
   const [searchQuery, setSearchQuery] = useState('');
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   // Edit campaign name state
   const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
@@ -1211,14 +1213,16 @@ export default function CampaignsAutoPage() {
     })
     : recipients;
 
-  // Stats for selected campaign (compute from recipients for real-time accuracy)
-  const stats = {
-    contactsFound: recipients.length,
-    emailsGenerated: recipients.filter(r => r.emailGenerated).length,
-    emailsSent: recipients.filter(r => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length,
-    opened: recipients.filter(r => r.status === 'opened' || r.status === 'replied').length,
-    replied: recipients.filter(r => r.status === 'replied').length
-  };
+  // Calculate stats
+  const stats = useMemo(() => {
+    if (!selectedCampaign) return { contacts: 0, sent: 0, opened: 0, replied: 0 };
+    return {
+      contacts: recipients.length,
+      sent: recipients.filter(r => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length,
+      opened: recipients.filter(r => r.status === 'opened' || r.status === 'replied').length,
+      replied: recipients.filter(r => r.status === 'replied').length
+    };
+  }, [selectedCampaign, recipients]);
 
   // Selection handlers
   const handleSelectAll = useCallback(() => {
@@ -1382,7 +1386,7 @@ export default function CampaignsAutoPage() {
 
   return (
     <AuthLayout>
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col scroll-smooth">
         {/* Cover Photo Section with all header elements */}
         <div
           className="relative group/cover flex-shrink-0"
@@ -1478,8 +1482,8 @@ export default function CampaignsAutoPage() {
               </AnimatePresence>
             </div>
 
-            {/* Header Content */}
-            <div className="relative z-10 px-4 sm:px-6 pt-6 pb-4 flex flex-col gap-4">
+            {/* Header Content - Hidden on Mobile */}
+            <div className="hidden md:flex relative z-10 px-4 sm:px-6 pt-6 pb-4 flex-col gap-4">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1792,13 +1796,162 @@ export default function CampaignsAutoPage() {
         </div>
 
         {/* Main Content */}
-        <div className="px-0 pt-4 pb-6 flex-1 min-h-0 flex flex-col overflow-hidden">
-          {/* Search + Targeting Tags + Dev Buttons */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-visible bg-white dark:bg-[#1a1a1a] px-0 pt-4 pb-6">
+          {/* Mobile Header Controls (Campaign Switcher & New Campaign) */}
+          <div className="md:hidden px-4 pb-4 flex items-center justify-between gap-3">
+            {/* Campaign Selector */}
+            <div className="relative flex-1 min-w-0 z-30">
+              <button
+                onClick={() => setIsCampaignDropdownOpen(!isCampaignDropdownOpen)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-xl shadow-sm active:scale-[0.98] transition-all"
+              >
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                  <Zap className="w-3 h-3 text-white" />
+                </div>
+                <div className="flex flex-col items-start flex-1 min-w-0">
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">Campaign</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white truncate w-full text-left">
+                    {selectedCampaign?.name || 'Select Campaign'}
+                  </span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isCampaignDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              <AnimatePresence>
+                {isCampaignDropdownOpen && (
+                  <>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => setIsCampaignDropdownOpen(false)}
+                      className="fixed inset-0 z-30 bg-black/20 backdrop-blur-[2px]"
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                      className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-[#1e1e20] rounded-xl shadow-xl border border-gray-200 dark:border-[#3d3c3e] z-40 overflow-hidden max-h-[60vh] overflow-y-auto"
+                    >
+                      {campaigns.map((campaign, index) => (
+                        <div
+                          key={campaign.id}
+                          className={`flex items-center justify-between p-3 border-b border-gray-100 dark:border-[#3d3c3e] last:border-0 ${selectedCampaign?.id === campaign.id ? 'bg-violet-50 dark:bg-violet-500/10' : ''
+                            }`}
+                          onClick={() => {
+                            setSelectedCampaignId(campaign.id);
+                            setIsCampaignDropdownOpen(false);
+                          }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <h4 className={`text-sm font-semibold ${selectedCampaign?.id === campaign.id ? 'text-violet-700 dark:text-violet-300' : 'text-gray-900 dark:text-white'
+                              }`}>
+                              {campaign.name || `Campaign ${index + 1}`}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[10px] text-gray-500">
+                                {campaign.stats?.contactsFound || 0} contacts
+                              </span>
+                              {campaign.emailGenerationMode && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                                  {campaign.emailGenerationMode}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {selectedCampaign?.id === campaign.id && (
+                            <Check className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                          )}
+                        </div>
+                      ))}
+                      <div className="p-2 bg-gray-50 dark:bg-[#252525]">
+                        <button
+                          onClick={() => {
+                            setIsCampaignDropdownOpen(false);
+                            handleNewCampaignClick();
+                          }}
+                          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-500/10 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-500/20 transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Create New Campaign
+                        </button>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* New Campaign Button */}
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleNewCampaignClick()}
+              className="flex-shrink-0 flex items-center justify-center w-11 h-11 bg-[#b7e219] rounded-xl shadow-sm text-gray-900 border border-[#9fc015]"
+            >
+              <Plus className="w-6 h-6" />
+            </motion.button>
+          </div>
+
+          {/* Mobile Stats & Search Section */}
+          <div className="md:hidden flex flex-col gap-4 p-4 pb-2">
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gray-50 dark:bg-white/[0.05] p-3 rounded-xl border border-gray-100 dark:border-white/[0.05]">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="w-3.5 h-3.5 text-gray-500" />
+                  <span className="text-xs font-medium text-gray-500">Contacts</span>
+                </div>
+                <span className="text-xl font-bold text-gray-900 dark:text-white">{stats.contacts}</span>
+              </div>
+              <div className="bg-amber-50 dark:bg-amber-500/10 p-3 rounded-xl border border-amber-100 dark:border-amber-500/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <Send className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Sent</span>
+                </div>
+                <span className="text-xl font-bold text-amber-700 dark:text-amber-300">{stats.sent}</span>
+              </div>
+              <div className="bg-blue-50 dark:bg-blue-500/10 p-3 rounded-xl border border-blue-100 dark:border-blue-500/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Opened</span>
+                </div>
+                <span className="text-xl font-bold text-blue-700 dark:text-blue-300">{stats.opened}</span>
+              </div>
+              <div className="bg-emerald-50 dark:bg-emerald-500/10 p-3 rounded-xl border border-emerald-100 dark:border-emerald-500/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <Reply className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Replied</span>
+                </div>
+                <span className="text-xl font-bold text-emerald-700 dark:text-emerald-300">{stats.replied}</span>
+              </div>
+            </div>
+
+            {/* Mobile Search & Filter */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-10 pl-9 pr-4 bg-gray-50 dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.1] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                />
+              </div>
+              <button
+                onClick={() => setIsFilterSheetOpen(true)} // We need to create this state
+                className="w-10 h-10 flex items-center justify-center bg-gray-50 dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.1] rounded-xl text-gray-600 dark:text-gray-300"
+              >
+                <Filter className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          {/* Search + Targeting Tags + Dev Buttons - Desktop Only */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="mb-4 px-6"
+            className="hidden md:block mb-4 px-6"
           >
             {/* Search + Targeting Tags + Dev Buttons */}
             {selectedCampaign && (
@@ -1947,11 +2100,60 @@ export default function CampaignsAutoPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.3 }}
-              className="flex-1 min-h-0 mx-6 border border-gray-200/60 dark:border-white/[0.06] rounded-2xl overflow-hidden flex flex-col 
-              bg-white dark:bg-[#2b2a2c] shadow-lg dark:shadow-2xl dark:shadow-black/40 backdrop-blur-sm"
+              className="flex-1 min-h-0 mx-0 md:mx-6 md:border md:border-gray-200/60 md:dark:border-white/[0.06] md:rounded-2xl overflow-hidden flex flex-col 
+              bg-transparent md:bg-white md:dark:bg-[#2b2a2c] md:shadow-lg md:dark:shadow-2xl md:dark:shadow-black/40 backdrop-blur-sm"
               style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" }}
             >
-              <div className="flex-1 min-h-0 overflow-auto scrollbar-thin scrollbar-thumb-gray-300/50 dark:scrollbar-thumb-white/[0.12] 
+              {/* Mobile Contact List */}
+              <div className="md:hidden flex-1 overflow-y-auto px-4 pb-24 safe-bottom divide-y divide-gray-100 dark:divide-white/[0.05]">
+                {/* Empty State Mobile */}
+                {sortedRecipients.length === 0 && (
+                  <div className="p-8 text-center text-gray-500 text-sm">No contacts found</div>
+                )}
+                {sortedRecipients.map((recipient) => (
+                  <div key={recipient.id} onClick={() => {
+                    if (recipient.emailGenerated) setEmailPreviewRecipient(recipient);
+                  }} className="py-4 bg-transparent active:opacity-70 transition-opacity">
+                    <div className="flex items-start gap-3">
+                      <div className="relative flex-shrink-0">
+                        <ProfileAvatar config={generateGenderedAvatarConfig(recipient.firstName, recipient.id)} size={40} className="rounded-full shadow-sm" />
+                        {recipient.status === 'replied' && (
+                          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#1a1a1a] flex items-center justify-center">
+                            <Check className="w-2 h-2 text-white" strokeWidth={3} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-0.5">
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate pr-2">{recipient.fullName}</h3>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wide ${getStatusStyles(recipient.status)}`}>
+                            {getStatusLabel(recipient.status)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 truncate mb-1">{recipient.title} {recipient.company && `@ ${recipient.company}`}</p>
+
+                        <div className="flex items-center justify-end gap-2 mt-2">
+                          {recipient.linkedinUrl && (
+                            <a href={recipient.linkedinUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-1.5 text-blue-600 bg-blue-50 dark:bg-blue-500/10 rounded-lg">
+                              <Linkedin className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                          {recipient.email && (
+                            <button onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyEmail(recipient.email!);
+                            }} className="p-1.5 text-gray-500 bg-gray-100 dark:bg-white/[0.05] rounded-lg">
+                              {copiedEmail === recipient.email ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden md:block flex-1 min-h-0 overflow-auto scrollbar-thin scrollbar-thumb-gray-300/50 dark:scrollbar-thumb-white/[0.12] 
               scrollbar-track-transparent hover:scrollbar-thumb-gray-400/70 dark:hover:scrollbar-thumb-white/[0.18] transition-colors">
                 <table ref={tableRef} className="w-full border-collapse table-fixed">
                   {/* Premium Header with Glassmorphism */}
@@ -2480,15 +2682,15 @@ export default function CampaignsAutoPage() {
                 </table>
               </div>
 
-              {/* Premium Table Footer */}
+              {/* Pagination/Footer - Hidden on Mobile */}
               {sortedRecipients.length > 0 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200/60 dark:border-white/[0.04] 
+                <div className="hidden md:flex items-center justify-between px-4 py-3 border-t border-gray-200/60 dark:border-white/[0.04]
                 bg-gradient-to-b from-gray-50/30 via-white to-white dark:from-[#2a2829] dark:via-[#2a2829] dark:to-[#2b2a2c]">
                   <div className="text-[12px] text-gray-500 dark:text-gray-400">
                     Showing <span className="font-semibold text-gray-700 dark:text-gray-200">{sortedRecipients.length}</span> of <span className="font-semibold text-gray-700 dark:text-gray-200">{recipients.length}</span> contacts
                   </div>
                   <div className="flex items-center gap-2">
-                    <button className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 
+                    <button className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200
                     hover:bg-gray-100/80 dark:hover:bg-white/[0.06] active:bg-gray-200/60 dark:active:bg-white/[0.08]
                     transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                       disabled
@@ -2959,6 +3161,58 @@ export default function CampaignsAutoPage() {
         creditCost={CREDIT_COSTS.campaignPer100}
         userCredits={userCredits}
       />
+
+      {/* Filter Bottom Sheet (Mobile) */}
+      <FilterBottomSheet
+        isOpen={isFilterSheetOpen}
+        onClose={() => setIsFilterSheetOpen(false)}
+        onApply={() => setIsFilterSheetOpen(false)}
+        onReset={() => {
+          setSortColumn(null);
+          setSortDirection('asc');
+          setIsFilterSheetOpen(false);
+        }}
+        hasActiveFilters={sortColumn !== null}
+      >
+        <div className="space-y-6">
+          <div>
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Sort By</h4>
+            <div className="space-y-2">
+              {[
+                { id: 'contact', label: 'Name' },
+                { id: 'email', label: 'Email' },
+                { id: 'status', label: 'Status' },
+                { id: 'company', label: 'Company' },
+                { id: 'title', label: 'Job Title' },
+              ].map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => {
+                    if (sortColumn === option.id) {
+                      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                    } else {
+                      setSortColumn(option.id);
+                      setSortDirection('asc');
+                    }
+                  }}
+                  className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${sortColumn === option.id
+                    ? 'bg-violet-50 dark:bg-violet-500/10 border-violet-200 dark:border-violet-500/20 text-violet-700 dark:text-violet-300'
+                    : 'bg-white dark:bg-white/[0.05] border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-gray-300'
+                    }`}
+                >
+                  <span className="text-sm font-medium">{option.label}</span>
+                  {sortColumn === option.id && (
+                    <div className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider">
+                      {sortDirection === 'asc' ? 'Asc' : 'Desc'}
+                      <ArrowUpDown className="w-3.5 h-3.5" />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </FilterBottomSheet>
     </AuthLayout>
   );
 }
