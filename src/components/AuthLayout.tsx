@@ -437,6 +437,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/campaigns-auto' ||
     location.pathname === '/cv-analysis' ||
     location.pathname === '/upcoming-interviews' ||
+    location.pathname === '/mock-interview' ||
     location.pathname === '/calendar' ||
     location.pathname === '/applications';
 

@@ -1,30 +1,22 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  ChevronRight,
-  ChevronDown,
-  Target,
-  MessageSquare,
-  Quote,
-  AlertCircle,
-  Zap,
-  TrendingUp,
-  User,
-  Award,
-  BarChart3,
-  Lightbulb,
   MessageCircle,
-  ThumbsUp,
-  ThumbsDown,
+  MessageSquare,
   Sparkles,
   X,
   Circle,
   Star,
   ArrowUpRight,
   RefreshCw,
+  CheckCircle2,
+  ThumbsUp,
+  ThumbsDown,
+  BarChart3,
+  Target,
+  ChevronDown,
+  AlertCircle,
+  User,
 } from 'lucide-react';
 import type { TranscriptEntry } from '../../types/openai-realtime';
 import type {
@@ -654,11 +646,12 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
   const { currentUser } = useAuth();
   const [activeHighlightId, setActiveHighlightId] = useState<string | null>(null);
   const [selectedHighlight, setSelectedHighlight] = useState<MockInterviewTranscriptHighlight | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'responses'>('overview');
+
   const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>(DEFAULT_AVATAR_CONFIG);
   const [userProfilePhoto, setUserProfilePhoto] = useState<string | null>(null);
   const [userAvatarType, setUserAvatarType] = useState<ProfileAvatarType>('photo');
   const [userAvatarConfig, setUserAvatarConfig] = useState<ProfileAvatarConfig>(DEFAULT_PROFILE_AVATAR_CONFIG);
+  const [showMobileTranscript, setShowMobileTranscript] = useState(false);
 
   // Load avatar config and user profile photo
   useEffect(() => {
@@ -736,8 +729,12 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
   const answeredCount = transcript.filter(e => e.role === 'user' && e.text && e.text.trim().length > 0).length;
   const isPassed = analysis?.verdict?.passed || (analysis?.overallScore ?? 0) >= 60;
 
-  return (
-    <div className="flex flex-col h-full w-full overflow-hidden bg-white dark:bg-[#1a1a1c]">
+
+  // ============================================
+  // RENDER - DESKTOP LAYOUT (Hidden on Mobile)
+  // ============================================
+  const renderDesktopLayout = () => (
+    <div className="hidden md:flex flex-col h-full w-full overflow-hidden bg-white dark:bg-[#1a1a1c]">
       {/* Top Header Bar */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#1a1a1c]">
         {/* Left: Close + Company Info */}
@@ -766,7 +763,7 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
           </div>
         </div>
 
-        {/* Right: Practice Again - Green button like JobApplicationsPage */}
+        {/* Right: Practice Again */}
         <button
           onClick={onBack}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-sm bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-md border border-[#9fc015] transition-all duration-200"
@@ -809,7 +806,7 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
               </div>
             </motion.div>
 
-            {/* Insights sections with dot indicators */}
+            {/* Insights sections */}
             <div className="space-y-4">
               {/* Strengths */}
               <motion.div
@@ -889,7 +886,7 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
               )}
             </div>
 
-            {/* Metrics - Compact Grid */}
+            {/* Metrics - Grid */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -928,7 +925,7 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
               </div>
             </motion.div>
 
-            {/* STAR Method - Only show if at least one element is used */}
+            {/* STAR Method */}
             {analysis?.contentAnalysis?.starMethodUsage && (
               analysis.contentAnalysis.starMethodUsage.situation ||
               analysis.contentAnalysis.starMethodUsage.task ||
@@ -1024,6 +1021,150 @@ export const MockInterviewResultsView: React.FC<MockInterviewResultsViewProps> =
       </div>
     </div>
   );
+
+  // ============================================
+  // RENDER - MOBILE LAYOUT (Duolingo Style)
+  // ============================================
+  const renderMobileLayout = () => (
+    <div className="flex md:hidden flex-col h-full w-full bg-[#f9f9f9] dark:bg-black overflow-hidden relative">
+      {/* 1. Header (Sticky) */}
+      <div className="flex-shrink-0 px-4 py-3 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-100 dark:border-white/5 sticky top-0 z-30 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="p-2 -ml-2 text-gray-400 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-sm font-bold text-gray-900 dark:text-white">{companyName}</h1>
+            <p className="text-[10px] text-gray-500 dark:text-gray-400">{formatTime(elapsedTime)} · {transcript.length} msgs</p>
+          </div>
+        </div>
+        <button
+          onClick={onBack}
+          className="flex-shrink-0 flex items-center justify-center w-[42px] h-[42px] bg-[#b7e219] rounded-xl shadow-lg border border-[#9fc015] active:bg-[#a5cb17] ring-1 ring-white/10"
+        >
+          <RefreshCw className="w-5 h-5 text-gray-900" />
+        </button>
+      </div>
+
+      {/* 2. Scrollable Content */}
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 pb-32">
+        {/* Score Hero Card */}
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-white/5 flex flex-col items-center text-center">
+          <ScoreRing score={analysis.overallScore ?? 0} size="lg" delay={0.1} />
+
+          <div className={`mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${isPassed
+            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
+            : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
+            }`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${isPassed ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+            {isPassed ? 'Passed' : 'Needs Practice'}
+          </div>
+
+          <p className="mt-3 text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-xs">
+            {analysis.executiveSummary || 'Analysis complete.'}
+          </p>
+        </div>
+
+        {/* Strengths Card */}
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl overflow-hidden border border-gray-100 dark:border-white/5 shadow-sm">
+          <div className="px-5 py-3 border-b border-gray-50 dark:border-white/5 bg-emerald-50/50 dark:bg-emerald-500/10 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <h3 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wide">Strengths</h3>
+          </div>
+          <div className="p-5 space-y-3">
+            {analysis?.strengths && analysis.strengths.length > 0 ? (
+              analysis.strengths.slice(0, 4).map((s, i) => (
+                <div key={i} className="flex gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />
+                  <p className="text-sm text-gray-700 dark:text-gray-200">{s}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-400 italic">No specific strengths identified yet.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Improvements Card */}
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl overflow-hidden border border-gray-100 dark:border-white/5 shadow-sm">
+          <div className="px-5 py-3 border-b border-gray-50 dark:border-white/5 bg-amber-50/50 dark:bg-amber-500/10 flex items-center gap-2">
+            <ArrowUpRight className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <h3 className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wide">Focus Areas</h3>
+          </div>
+          <div className="p-5 space-y-3">
+            {analysis?.criticalIssues && analysis.criticalIssues.length > 0 ? (
+              analysis.criticalIssues.slice(0, 4).map((s, i) => (
+                <div key={i} className="flex gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
+                  <p className="text-sm text-gray-700 dark:text-gray-200">{s}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-400 italic">No critical issues found!</p>
+            )}
+          </div>
+        </div>
+
+        {/* Transcript Toggle */}
+        <div className="pt-2 pb-6">
+          <button
+            onClick={() => setShowMobileTranscript(!showMobileTranscript)}
+            className="w-full py-4 px-4 bg-white dark:bg-[#1c1c1e] border border-gray-200 dark:border-white/10 rounded-xl text-sm font-semibold text-gray-800 dark:text-white flex items-center justify-between group active:scale-[0.99] transition-all"
+          >
+            <span className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-gray-500" />
+              {showMobileTranscript ? 'Hide Conversation' : 'View Full Conversation'}
+            </span>
+            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showMobileTranscript ? 'rotate-180' : ''}`} />
+          </button>
+
+          <AnimatePresence>
+            {showMobileTranscript && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-4 space-y-4 px-1">
+                  {transcript.map((entry, idx) => (
+                    <TranscriptMessage
+                      key={entry.id || idx}
+                      entry={entry}
+                      highlights={analysis?.transcriptHighlights || []}
+                      responseAnalysis={entry.role === 'user' ? getResponseAnalysis(entry.id || `entry-${idx}`) : undefined}
+                      onHighlightClick={handleHighlightClick}
+                      activeHighlightId={activeHighlightId}
+                      index={idx}
+                      avatarConfig={avatarConfig}
+                      userProfilePhoto={userProfilePhoto}
+                      userAvatarType={userAvatarType}
+                      userAvatarConfig={userAvatarConfig}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* 3. Sticky Bottom Action - Positioned absolute at bottom of container (above global nav) */}
+      {/* Bottom Spacer for scrolling */}
+      <div className="h-6" />
+    </div>
+  );
+
+  return (
+    <>
+      {renderDesktopLayout()}
+      {renderMobileLayout()}
+    </>
+  );
 };
+
 
 export default MockInterviewResultsView;
