@@ -72,6 +72,7 @@ import { RelationshipGoalSelector } from '../components/outreach';
 import { WarmthIndicator } from '../components/outreach';
 import { useAssistantPageData, summarizeApplications } from '../hooks/useAssistantPageData';
 import { ProfileAvatar, generateGenderedAvatarConfigByName } from '../components/profile/avatar';
+import BottomSheet from '../components/common/BottomSheet';
 
 export default function JobApplicationsPage() {
   const { currentUser } = useAuth();
@@ -150,6 +151,11 @@ export default function JobApplicationsPage() {
 
   // Filter UI state
   const [openFilterModal, setOpenFilterModal] = useState<string | null>(null);
+
+  // Mobile List View states
+  const [mobileStatusFilter, setMobileStatusFilter] = useState<string>('all');
+  const [showMobileStatusSheet, setShowMobileStatusSheet] = useState(false);
+  const [mobileStatusChangeApp, setMobileStatusChangeApp] = useState<JobApplication | null>(null);
 
   // New Application Form State
   const [showFullForm, setShowFullForm] = useState(false);
@@ -3141,16 +3147,51 @@ END:VCALENDAR`;
               </div>
             )}
 
-            {/* Mobile Header Stats Overlay - Mobile Only */}
-            <div className="absolute bottom-4 left-4 right-4 z-20 md:hidden flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <div className="px-3 py-1.5 bg-black/20 dark:bg-black/40 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-2 text-white">
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                  <span className="text-xs font-semibold">{boards.length} Boards</span>
-                </div>
-                <div className="px-3 py-1.5 bg-black/20 dark:bg-black/40 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-2 text-white">
-                  <Briefcase className="w-3.5 h-3.5" />
-                  <span className="text-xs font-semibold">{applications.length} Apps</span>
+            {/* Mobile Cover Overlay - Board-Specific Info + FAB */}
+            <div className="absolute bottom-0 left-0 right-0 z-20 md:hidden">
+              <div className="bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-12 pb-4 px-4">
+                <div className="flex items-center justify-between">
+                  {/* Board Info - Only when inside a board */}
+                  {view !== 'boards' && currentBoardId && currentBoard ? (
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center text-lg shadow-lg flex-shrink-0"
+                        style={{ backgroundColor: currentBoard.color || '#635BFF' }}
+                      >
+                        {currentBoard.icon || '📋'}
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className="text-sm font-bold text-white truncate">{currentBoard.name}</h2>
+                        <p className="text-xs text-white/70">{filteredApplications.length} applications</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-white/80">{boards.length} boards</span>
+                    </div>
+                  )}
+
+                  {/* Embedded FAB - Add Button */}
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      if (view === 'boards') {
+                        setEditingBoard(null);
+                        setShowBoardSettingsModal(true);
+                      } else {
+                        setEventType('application');
+                        setWizardStep(1);
+                        setLookupSelectedApplication(null);
+                        setLinkedApplicationId(null);
+                        setLookupSearchQuery('');
+                        setShowLookupDropdown(false);
+                        setNewApplicationModal(true);
+                      }
+                    }}
+                    className="flex-shrink-0 flex items-center justify-center w-[52px] h-[52px] bg-[#b7e219] rounded-xl shadow-lg border border-[#9fc015] active:bg-[#a5cb17] ring-1 ring-white/10"
+                  >
+                    <Plus className="w-6 h-6 text-gray-900" />
+                  </motion.button>
                 </div>
               </div>
             </div>
@@ -3394,7 +3435,7 @@ END:VCALENDAR`;
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.2 }}
-                  className="flex items-center gap-2 mt-4"
+                  className="hidden md:flex items-center gap-2 mt-4"
                 >
                   {(() => {
                     const stats = currentBoardType === 'campaigns'
@@ -3438,7 +3479,7 @@ END:VCALENDAR`;
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.3 }}
-                  className="mt-6"
+                  className="hidden md:block mt-6"
                 >
                   {/* Search bar + Filters en une ligne */}
                   <div className="flex items-center gap-3">
@@ -3677,142 +3718,256 @@ END:VCALENDAR`;
                 transition={{ duration: 0.3 }}
                 className="flex-1 flex flex-col min-h-0"
               >
-                {/* Kanban Board - Optimisé pleine hauteur */}
-                <DragDropContext
-                  onDragStart={handleDragStart}
-                  onDragUpdate={handleDragUpdate}
-                  onDragEnd={handleDragEnd}
-                >
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.4 }}
-                    className="flex-1 overflow-x-auto min-h-0"
-                  >
-                    <div className="flex gap-0 h-full min-w-min">
-                      {/* Exclude 'archived' from visible columns - only show main workflow columns */}
-                      {columnOrder.filter(col => col !== 'archived').map((status, columnIndex) => {
-                        const visibleColumns = columnOrder.filter(col => col !== 'archived');
-                        const statusCount = filteredApplications.filter(a => getEffectiveStatus(a.status) === status).length;
-                        const isLastColumn = columnIndex === visibleColumns.length - 1;
-                        // Use same color for all columns (like job applications board)
-                        const columnColor = undefined;
-
+                {/* Mobile List View - Replaces Kanban on mobile */}
+                <div className="md:hidden flex flex-col flex-1 min-h-0">
+                  {/* Segmented Status Control */}
+                  <div className="px-4 py-3 border-b border-gray-200 dark:border-[#3d3c3e]">
+                    <div className="flex gap-1.5 overflow-x-auto hide-scrollbar pb-1">
+                      {['all', ...columnOrder.filter(col => col !== 'archived')].map((status) => {
+                        const count = status === 'all'
+                          ? filteredApplications.length
+                          : filteredApplications.filter(a => getEffectiveStatus(a.status) === status).length;
+                        const label = status === 'all'
+                          ? 'All'
+                          : columnLabels[status] || status.replace('_', ' ');
                         return (
-                          <div key={status} className="flex items-stretch h-full">
-                            <Droppable droppableId={status}>
-                              {(provided, snapshot) => (
-                                <motion.div
-                                  initial={{ opacity: 0, y: 30 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  transition={{ duration: 0.4, delay: 0.1 * columnIndex }}
-                                  ref={provided.innerRef}
-                                  {...provided.droppableProps}
-                                  className={`flex-1 min-w-[280px] max-w-[340px] h-full flex flex-col bg-transparent p-3 transition-colors duration-200 ${snapshot.isDraggingOver ? 'bg-gray-100/50 dark:bg-[#3d3c3e]/30 rounded-xl' : ''}`}
-                                >
-                                  <div className="mb-2 sm:mb-3 text-center">
-                                    <div className="mb-2">
-                                      <h3
-                                        className="font-semibold text-gray-900 dark:text-white uppercase text-xs sm:text-sm mb-1"
-                                        style={columnColor ? { color: columnColor } : undefined}
-                                      >
-                                        {columnLabels[status] || status.replace('_', ' ').toUpperCase()}
-                                      </h3>
-                                      <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                        {statusCount} {statusCount === 1 ? (currentBoardType === 'jobs' ? 'job' : 'contact') : (currentBoardType === 'jobs' ? 'jobs' : 'contacts')}
-                                      </span>
-                                    </div>
-                                    <motion.button
-                                      whileHover={{ scale: 1.02 }}
-                                      whileTap={{ scale: 0.98 }}
-                                      onClick={() => {
-                                        setEventType('application');
-                                        setWizardStep(1);
-                                        setLookupSelectedApplication(null);
-                                        setLinkedApplicationId(null);
-                                        setLookupSearchQuery('');
-                                        setShowLookupDropdown(false);
-                                        setFormData({
-                                          companyName: '',
-                                          position: '',
-                                          location: '',
-                                          status: status as JobApplication['status'],
-                                          appliedDate: new Date().toISOString().split('T')[0],
-                                          url: '',
-                                          description: '',
-                                          fullJobDescription: '',
-                                          notes: '',
-                                          interviewType: 'technical',
-                                          interviewTime: '09:00',
-                                          interviewDate: new Date().toISOString().split('T')[0],
-                                        });
-                                        setNewApplicationModal(true);
-                                      }}
-                                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#2b2a2c] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] text-gray-900 dark:text-white transition-all duration-200 border border-gray-200 dark:border-[#3d3c3e] shadow-sm"
-                                    >
-                                      <Plus className="w-4 h-4" />
-                                      <span className="text-xs font-semibold">Add</span>
-                                    </motion.button>
-                                  </div>
-
-                                  <div
-                                    ref={(el) => {
-                                      if (el) {
-                                        columnScrollRefs.current.set(status, el);
-                                      } else {
-                                        columnScrollRefs.current.delete(status);
-                                      }
-                                    }}
-                                    className="flex-1 overflow-y-auto space-y-2 sm:space-y-3"
-                                  >
-                                    <ApplicationList
-                                      applications={filteredApplications.filter(a => getEffectiveStatus(a.status) === status)}
-                                      onCardClick={(app) => {
-                                        setSelectedApplication(app);
-                                        setTimelineModal(true);
-                                      }}
-                                      getIsInactive={(app) => {
-                                        try {
-                                          return isApplicationInactive(app, automationSettings.inactiveReminder);
-                                        } catch (error) {
-                                          console.error('Error checking inactive status:', error);
-                                          return false;
-                                        }
-                                      }}
-                                      getInactiveDays={(app) => {
-                                        try {
-                                          return getInactiveDays(app);
-                                        } catch (error) {
-                                          console.error('Error getting inactive days:', error);
-                                          return 0;
-                                        }
-                                      }}
-                                      onCardDelete={(app) => {
-                                        setDeleteModal({ show: true, application: app });
-                                      }}
-                                      showMoveToBoard={boards.length > 1}
-                                      onMoveToBoard={(app) => {
-                                        setApplicationToMove(app);
-                                        setShowMoveToBoardModal(true);
-                                      }}
-                                      boardType={currentBoardType}
-                                    />
-                                    {provided.placeholder}
-                                  </div>
-                                </motion.div>
-                              )}
-                            </Droppable>
-
-                            {/* Séparateur vertical droit entre les colonnes */}
-                            {!isLastColumn && (
-                              <div className="w-[2px] bg-gray-300 dark:bg-[#4a494b] mx-4 flex-shrink-0 rounded-full" />
-                            )}
-                          </div>
+                          <button
+                            key={status}
+                            onClick={() => setMobileStatusFilter(status)}
+                            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${mobileStatusFilter === status
+                              ? 'bg-[#635BFF] text-white shadow-sm'
+                              : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-300'
+                              }`}
+                          >
+                            {label} ({count})
+                          </button>
                         );
                       })}
                     </div>
-                  </motion.div>
-                </DragDropContext>
+                  </div>
+
+                  {/* Mobile Application Cards */}
+                  <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+                    {(mobileStatusFilter === 'all'
+                      ? filteredApplications
+                      : filteredApplications.filter(a => getEffectiveStatus(a.status) === mobileStatusFilter)
+                    ).map((app) => (
+                      <motion.div
+                        key={app.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-200 dark:border-[#3d3c3e] p-4 shadow-sm active:scale-[0.98] transition-transform"
+                        onClick={() => {
+                          setSelectedApplication(app);
+                          setTimelineModal(true);
+                        }}
+                      >
+                        <div className="flex items-start gap-3">
+                          {/* Company Logo/Initial */}
+                          <div
+                            className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                            style={{ backgroundColor: app.companyColor || '#635BFF' }}
+                          >
+                            {app.companyLogo ? (
+                              <img src={app.companyLogo} alt={app.companyName} className="w-full h-full object-cover rounded-lg" />
+                            ) : (
+                              app.companyName?.charAt(0)?.toUpperCase() || '?'
+                            )}
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900 dark:text-white text-sm truncate">
+                              {app.position || 'Untitled Position'}
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                              {app.companyName}{app.location ? ` • ${app.location}` : ''}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                                {app.appliedDate ? new Date(app.appliedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date'}
+                              </span>
+                              {/* Status Badge */}
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${getEffectiveStatus(app.status) === 'offer' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                                  getEffectiveStatus(app.status) === 'interview' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                                    getEffectiveStatus(app.status) === 'applied' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                      getEffectiveStatus(app.status) === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                        'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                                  }`}
+                              >
+                                {columnLabels[getEffectiveStatus(app.status)] || app.status}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Action Button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMobileStatusChangeApp(app);
+                              setShowMobileStatusSheet(true);
+                            }}
+                            className="p-2 -mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                          >
+                            <MoreHorizontal className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+
+                    {/* Empty State */}
+                    {(mobileStatusFilter === 'all'
+                      ? filteredApplications
+                      : filteredApplications.filter(a => getEffectiveStatus(a.status) === mobileStatusFilter)
+                    ).length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                          <Briefcase className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400">No applications found</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Tap + to add your first application</p>
+                        </div>
+                      )}
+                  </div>
+                </div>
+
+                {/* Desktop Kanban Board - Hidden on mobile */}
+                <div className="hidden md:flex md:flex-col md:flex-1 md:min-h-0">
+                  <DragDropContext
+                    onDragStart={handleDragStart}
+                    onDragUpdate={handleDragUpdate}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.5, delay: 0.4 }}
+                      className="flex-1 overflow-x-auto min-h-0"
+                    >
+                      <div className="flex gap-0 h-full min-w-min">
+                        {/* Exclude 'archived' from visible columns - only show main workflow columns */}
+                        {columnOrder.filter(col => col !== 'archived').map((status, columnIndex) => {
+                          const visibleColumns = columnOrder.filter(col => col !== 'archived');
+                          const statusCount = filteredApplications.filter(a => getEffectiveStatus(a.status) === status).length;
+                          const isLastColumn = columnIndex === visibleColumns.length - 1;
+                          // Use same color for all columns (like job applications board)
+                          const columnColor = undefined;
+
+                          return (
+                            <div key={status} className="flex items-stretch h-full">
+                              <Droppable droppableId={status}>
+                                {(provided, snapshot) => (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: 30 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.4, delay: 0.1 * columnIndex }}
+                                    ref={provided.innerRef}
+                                    {...provided.droppableProps}
+                                    className={`flex-1 min-w-[280px] max-w-[340px] h-full flex flex-col bg-transparent p-3 transition-colors duration-200 ${snapshot.isDraggingOver ? 'bg-gray-100/50 dark:bg-[#3d3c3e]/30 rounded-xl' : ''}`}
+                                  >
+                                    <div className="mb-2 sm:mb-3 text-center">
+                                      <div className="mb-2">
+                                        <h3
+                                          className="font-semibold text-gray-900 dark:text-white uppercase text-xs sm:text-sm mb-1"
+                                          style={columnColor ? { color: columnColor } : undefined}
+                                        >
+                                          {columnLabels[status] || status.replace('_', ' ').toUpperCase()}
+                                        </h3>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                          {statusCount} {statusCount === 1 ? (currentBoardType === 'jobs' ? 'job' : 'contact') : (currentBoardType === 'jobs' ? 'jobs' : 'contacts')}
+                                        </span>
+                                      </div>
+                                      <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => {
+                                          setEventType('application');
+                                          setWizardStep(1);
+                                          setLookupSelectedApplication(null);
+                                          setLinkedApplicationId(null);
+                                          setLookupSearchQuery('');
+                                          setShowLookupDropdown(false);
+                                          setFormData({
+                                            companyName: '',
+                                            position: '',
+                                            location: '',
+                                            status: status as JobApplication['status'],
+                                            appliedDate: new Date().toISOString().split('T')[0],
+                                            url: '',
+                                            description: '',
+                                            fullJobDescription: '',
+                                            notes: '',
+                                            interviewType: 'technical',
+                                            interviewTime: '09:00',
+                                            interviewDate: new Date().toISOString().split('T')[0],
+                                          });
+                                          setNewApplicationModal(true);
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#2b2a2c] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] text-gray-900 dark:text-white transition-all duration-200 border border-gray-200 dark:border-[#3d3c3e] shadow-sm"
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                        <span className="text-xs font-semibold">Add</span>
+                                      </motion.button>
+                                    </div>
+
+                                    <div
+                                      ref={(el) => {
+                                        if (el) {
+                                          columnScrollRefs.current.set(status, el);
+                                        } else {
+                                          columnScrollRefs.current.delete(status);
+                                        }
+                                      }}
+                                      className="flex-1 overflow-y-auto space-y-2 sm:space-y-3"
+                                    >
+                                      <ApplicationList
+                                        applications={filteredApplications.filter(a => getEffectiveStatus(a.status) === status)}
+                                        onCardClick={(app) => {
+                                          setSelectedApplication(app);
+                                          setTimelineModal(true);
+                                        }}
+                                        getIsInactive={(app) => {
+                                          try {
+                                            return isApplicationInactive(app, automationSettings.inactiveReminder);
+                                          } catch (error) {
+                                            console.error('Error checking inactive status:', error);
+                                            return false;
+                                          }
+                                        }}
+                                        getInactiveDays={(app) => {
+                                          try {
+                                            return getInactiveDays(app);
+                                          } catch (error) {
+                                            console.error('Error getting inactive days:', error);
+                                            return 0;
+                                          }
+                                        }}
+                                        onCardDelete={(app) => {
+                                          setDeleteModal({ show: true, application: app });
+                                        }}
+                                        showMoveToBoard={boards.length > 1}
+                                        onMoveToBoard={(app) => {
+                                          setApplicationToMove(app);
+                                          setShowMoveToBoardModal(true);
+                                        }}
+                                        boardType={currentBoardType}
+                                      />
+                                      {provided.placeholder}
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </Droppable>
+
+                              {/* Séparateur vertical droit entre les colonnes */}
+                              {!isLastColumn && (
+                                <div className="w-[2px] bg-gray-300 dark:bg-[#4a494b] mx-4 flex-shrink-0 rounded-full" />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  </DragDropContext>
+                </div>
               </motion.div>
             ) : (
               <motion.div
@@ -7015,22 +7170,58 @@ END:VCALENDAR`;
 
 
 
-        {/* Mobile Floating Action Button */}
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => {
-            setEventType('application');
-            setWizardStep(1);
-            setLookupSelectedApplication(null);
-            setLinkedApplicationId(null);
-            setLookupSearchQuery('');
-            setShowLookupDropdown(false);
-            setNewApplicationModal(true);
+
+
+        {/* Mobile Status Change Bottom Sheet */}
+        <BottomSheet
+          isOpen={showMobileStatusSheet}
+          onClose={() => {
+            setShowMobileStatusSheet(false);
+            setMobileStatusChangeApp(null);
           }}
-          className="md:hidden fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#b7e219] text-gray-900 rounded-full shadow-xl flex items-center justify-center border border-[#9fc015]"
+          title="Change Status"
+          subtitle={mobileStatusChangeApp?.position || 'Select a new status'}
+          height={45}
         >
-          <Plus className="w-7 h-7" />
-        </motion.button>
+          <div className="px-5 py-4 space-y-2">
+            {columnOrder.filter(col => col !== 'archived').map((status) => {
+              const isSelected = mobileStatusChangeApp && getEffectiveStatus(mobileStatusChangeApp.status) === status;
+              return (
+                <button
+                  key={status}
+                  onClick={async () => {
+                    if (mobileStatusChangeApp && currentUser) {
+                      try {
+                        await updateDoc(doc(db, 'users', currentUser.uid, 'applications', mobileStatusChangeApp.id), {
+                          status: status,
+                          updatedAt: new Date().toISOString()
+                        });
+                        notify.success(`Status updated to ${columnLabels[status] || status}`);
+                        setShowMobileStatusSheet(false);
+                        setMobileStatusChangeApp(null);
+                      } catch (error) {
+                        console.error('Error updating status:', error);
+                        notify.error('Failed to update status');
+                      }
+                    }
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isSelected
+                    ? 'bg-[#635BFF]/10 border-2 border-[#635BFF]'
+                    : 'bg-gray-50 dark:bg-[#3d3c3e]/50 border-2 border-transparent hover:border-gray-200 dark:hover:border-[#4a494b]'
+                    }`}
+                >
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-[#635BFF] bg-[#635BFF]' : 'border-gray-300 dark:border-gray-600'
+                    }`}>
+                    {isSelected && <Check className="w-3 h-3 text-white" />}
+                  </div>
+                  <span className={`text-sm font-medium ${isSelected ? 'text-[#635BFF]' : 'text-gray-700 dark:text-gray-300'}`}>
+                    {columnLabels[status] || status.replace('_', ' ')}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </BottomSheet>
 
         {/* Cover Photo Modals */}
         <CoverPhotoCropper
