@@ -49,7 +49,7 @@ export const GeneratedContentView = ({
   const handleEditorChange = useCallback((newContent: TiptapDocument) => {
     setTiptapContent(newContent);
     setHasChanges(true);
-    
+
     // Notify parent of content changes
     const plainText = convertTiptapToText(newContent);
     onContentUpdate?.(plainText);
@@ -126,9 +126,25 @@ export const GeneratedContentView = ({
   }
 
   return (
-    <div className="min-h-[500px] flex flex-col bg-white dark:bg-[#242325]">
-      {/* Header - Simplifié */}
-      <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100 dark:border-[#3d3c3e] bg-white dark:bg-[#242325]">
+    <div className="min-h-[500px] md:min-h-[500px] flex flex-col bg-white dark:bg-[#1a1a1a] md:dark:bg-[#242325]">
+      {/* Mobile Header - Minimal */}
+      <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-[#2b2a2c]">
+        <button
+          onClick={onBack}
+          className="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2b2a2c]"
+        >
+          <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+        </button>
+        <h2 className="flex-1 text-base font-semibold text-gray-900 dark:text-white">
+          {toolName}
+        </h2>
+        {hasChanges && (
+          <span className="w-2 h-2 rounded-full bg-amber-500" />
+        )}
+      </div>
+
+      {/* Desktop Header */}
+      <div className="hidden md:flex items-center justify-between px-8 py-5 border-b border-gray-100 dark:border-[#3d3c3e] bg-white dark:bg-[#242325]">
         <button
           onClick={onBack}
           className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
@@ -147,18 +163,33 @@ export const GeneratedContentView = ({
             </span>
           )}
         </div>
-        <div className="w-16" /> {/* Spacer for centering */}
+        <div className="w-16" />
       </div>
 
-      {/* Content Area - Premium Layout */}
+      {/* Content Area */}
       <div className="flex-1 overflow-y-auto">
+        {/* Mobile Content - Clean */}
+        <div className="md:hidden px-4 py-4 pb-32">
+          <div className="bg-white dark:bg-[#2b2a2c] rounded-xl p-4 border border-gray-100 dark:border-[#3d3c3e]">
+            <NotionEditor
+              content={tiptapContent}
+              onChange={handleEditorChange}
+              placeholder="Start editing your content..."
+              editable={true}
+              autofocus={false}
+              className="prose prose-sm dark:prose-invert max-w-none prose-p:text-gray-900 dark:prose-p:text-gray-100 prose-p:text-sm prose-p:leading-relaxed"
+            />
+          </div>
+        </div>
+
+        {/* Desktop Content - Premium Layout */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-          className="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 xl:px-20 py-12"
+          className="hidden md:block max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 xl:px-20 py-12"
         >
-          {/* Document Header - Épuré */}
+          {/* Document Header - Desktop only */}
           <div className="mb-6 pb-4 border-b border-gray-100 dark:border-[#3d3c3e]">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-100 dark:border-purple-800/30">
@@ -175,7 +206,7 @@ export const GeneratedContentView = ({
             </div>
           </div>
 
-          {/* Zone d'édition - Premium */}
+          {/* Desktop Editor */}
           <div className="bg-white dark:bg-[#242325] rounded-2xl p-6 border border-gray-100/50 dark:border-[#3d3c3e]/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <NotionEditor
               content={tiptapContent}
@@ -187,7 +218,7 @@ export const GeneratedContentView = ({
             />
           </div>
 
-          {/* Helpful tip - Discret */}
+          {/* Helpful tip - Desktop only */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -202,8 +233,47 @@ export const GeneratedContentView = ({
         </motion.div>
       </div>
 
-      {/* Action Bar - Premium Design */}
-      <div className="border-t border-gray-100/50 dark:border-[#3d3c3e]/50 px-8 sm:px-12 lg:px-16 xl:px-20 py-6 bg-white/90 dark:bg-[#242325]/90 backdrop-blur-xl">
+      {/* Mobile Action Bar - Sticky Bottom */}
+      <div className="md:hidden fixed bottom-16 left-0 right-0 z-[60] bg-white dark:bg-[#1a1a1a] border-t border-gray-100 dark:border-[#2b2a2c] px-4 py-3">
+        <div className="flex gap-2">
+          {onRegenerate && (
+            <button
+              onClick={onRegenerate}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-100 dark:bg-[#2b2a2c] text-sm font-medium text-gray-700 dark:text-gray-300 active:scale-95 transition-transform"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Redo</span>
+            </button>
+          )}
+          <button
+            onClick={handleCopy}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium active:scale-95 transition-transform ${isCopied
+              ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+              : 'bg-gray-100 dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300'
+              }`}
+          >
+            {isCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            <span>{isCopied ? 'Copied' : 'Copy'}</span>
+          </button>
+          {onSave && (
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#635BFF] text-sm font-medium text-white active:scale-95 transition-transform disabled:opacity-50"
+            >
+              {isSaving ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              <span>{isSaving ? 'Saving' : 'Save'}</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Desktop Action Bar */}
+      <div className="hidden md:block border-t border-gray-100/50 dark:border-[#3d3c3e]/50 px-8 sm:px-12 lg:px-16 xl:px-20 py-6 bg-white/90 dark:bg-[#242325]/90 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             {onRegenerate && (
@@ -239,11 +309,10 @@ export const GeneratedContentView = ({
               whileHover={{ scale: isCopied ? 1 : 1.02, y: isCopied ? 0 : -1 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleCopy}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-300 backdrop-blur-lg border ${
-                isCopied
-                  ? 'bg-green-50/80 dark:bg-green-900/20 border-green-200/50 dark:border-green-800/50 text-green-700 dark:text-green-400 shadow-lg shadow-green-200/50 dark:shadow-green-900/50'
-                  : 'bg-white/80 dark:bg-[#2b2a2c]/80 border-gray-200/50 dark:border-[#3d3c3e]/50 text-gray-700 dark:text-gray-300 hover:bg-white/90 dark:hover:bg-gray-800/90 hover:border-gray-300/50 dark:hover:border-gray-600/50 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50'
-              }`}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-300 backdrop-blur-lg border ${isCopied
+                ? 'bg-green-50/80 dark:bg-green-900/20 border-green-200/50 dark:border-green-800/50 text-green-700 dark:text-green-400 shadow-lg shadow-green-200/50 dark:shadow-green-900/50'
+                : 'bg-white/80 dark:bg-[#2b2a2c]/80 border-gray-200/50 dark:border-[#3d3c3e]/50 text-gray-700 dark:text-gray-300 hover:bg-white/90 dark:hover:bg-gray-800/90 hover:border-gray-300/50 dark:hover:border-gray-600/50 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50'
+                }`}
             >
               {isCopied ? (
                 <>

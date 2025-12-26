@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Send, HelpCircle, MessageSquare, FileText, ChevronUp } from 'lucide-react';
+import { Mail, Send, HelpCircle, MessageSquare, FileText, ChevronUp, ChevronRight } from 'lucide-react';
 import { JobApplication, GeneratedEmail } from '../../types/job';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { useAuth } from '../../contexts/AuthContext';
@@ -66,7 +66,7 @@ export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
       const { name: toolTypeName, emoji: noteEmoji } = getToolInfo(email.type);
       const noteTitle = `${toolTypeName} - ${job.companyName} (${job.position})`;
       const tiptapContent = convertTextToTiptapContent(email.content);
-      
+
       const newNote = await createNote({
         userId: currentUser.uid,
         title: noteTitle,
@@ -99,7 +99,7 @@ export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
 
   const handleDeleteEmail = async (emailId: string) => {
     if (!onUpdate) return;
-    
+
     const updatedEmails = (job.generatedEmails || []).filter(e => e.id !== emailId);
     await onUpdate({
       generatedEmails: updatedEmails,
@@ -195,13 +195,45 @@ export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
 
   return (
     <div className="space-y-4 relative min-h-[500px]">
-      {/* Loading Screen Overlay */}
+      {/* Mobile In-Tab Loading Overlay - Minimalist */}
       {showLoadingScreen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 z-50 bg-white dark:bg-[#2b2a2c] rounded-xl"
+          className="md:hidden absolute inset-0 z-50 bg-white dark:bg-[#1a1a1a] rounded-xl flex flex-col items-center justify-center"
+        >
+          {/* Minimal animated ring */}
+          <div className="relative mb-6">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="w-10 h-10 rounded-full border-2 border-gray-100 dark:border-[#3d3c3e] border-t-[#635BFF]"
+            />
+          </div>
+
+          {/* Loading Text */}
+          <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+            Generating {getToolName(activeGenerator)}
+          </p>
+
+          {/* Cancel */}
+          <button
+            onClick={handleCloseGenerator}
+            className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            Cancel
+          </button>
+        </motion.div>
+      )}
+
+      {/* Desktop Loading Screen Overlay */}
+      {showLoadingScreen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="hidden md:block absolute inset-0 z-50 bg-white dark:bg-[#2b2a2c] rounded-xl"
         >
           <GenerationLoadingScreen
             onBack={handleCloseGenerator}
@@ -243,7 +275,43 @@ export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
               transition={{ duration: 0.3, ease: 'easeOut' }}
               className="overflow-hidden"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Mobile List Items */}
+              <div className="md:hidden space-y-2">
+                {/* Cover Letter - Mobile */}
+                <button
+                  onClick={() => handleGenerate('cover_letter')}
+                  disabled={isDisabled}
+                  className="w-full flex items-center gap-3 p-3 bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] active:bg-gray-50 dark:active:bg-[#343335] transition-colors disabled:opacity-50"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                    <Mail className="w-4 h-4 text-purple-500" />
+                  </div>
+                  <span className="flex-1 text-left text-sm font-medium text-gray-900 dark:text-white">Cover Letter</span>
+                  {getHistoryForTool('cover_letter').length > 0 && (
+                    <span className="text-xs text-gray-400">{getHistoryForTool('cover_letter').length}</span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600" />
+                </button>
+
+                {/* Follow Up - Mobile */}
+                <button
+                  onClick={() => handleGenerate('follow_up')}
+                  disabled={isDisabled}
+                  className="w-full flex items-center gap-3 p-3 bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] active:bg-gray-50 dark:active:bg-[#343335] transition-colors disabled:opacity-50"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                    <Send className="w-4 h-4 text-green-500" />
+                  </div>
+                  <span className="flex-1 text-left text-sm font-medium text-gray-900 dark:text-white">Follow Up Email</span>
+                  {getHistoryForTool('follow_up').length > 0 && (
+                    <span className="text-xs text-gray-400">{getHistoryForTool('follow_up').length}</span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600" />
+                </button>
+              </div>
+
+              {/* Desktop Cards */}
+              <div className="hidden md:grid grid-cols-2 gap-3">
                 {/* Cover Letter Card */}
                 <ToolCard
                   title="Cover Letter"
@@ -268,7 +336,7 @@ export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
                   onViewHistory={() => setHistoryModal({ toolType: 'follow_up', isOpen: true })}
                 />
               </div>
-              
+
               {/* Hidden EmailGenerator for background generation */}
               {activeGenerator === 'cover_letter' && (
                 <div className="hidden">
@@ -329,7 +397,59 @@ export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
               transition={{ duration: 0.3, ease: 'easeOut' }}
               className="overflow-hidden"
             >
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {/* Mobile List Items */}
+              <div className="md:hidden space-y-2">
+                {/* Interview Prep - Mobile */}
+                <button
+                  onClick={() => handleGenerate('interview_prep')}
+                  disabled={isDisabled}
+                  className="w-full flex items-center gap-3 p-3 bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] active:bg-gray-50 dark:active:bg-[#343335] transition-colors disabled:opacity-50"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                    <HelpCircle className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <span className="flex-1 text-left text-sm font-medium text-gray-900 dark:text-white">Interview Prep</span>
+                  {getHistoryForTool('interview_prep').length > 0 && (
+                    <span className="text-xs text-gray-400">{getHistoryForTool('interview_prep').length}</span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600" />
+                </button>
+
+                {/* Questions to Ask - Mobile */}
+                <button
+                  onClick={() => handleGenerate('questions_to_ask')}
+                  disabled={isDisabled}
+                  className="w-full flex items-center gap-3 p-3 bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] active:bg-gray-50 dark:active:bg-[#343335] transition-colors disabled:opacity-50"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-rose-500/10 flex items-center justify-center flex-shrink-0">
+                    <MessageSquare className="w-4 h-4 text-rose-500" />
+                  </div>
+                  <span className="flex-1 text-left text-sm font-medium text-gray-900 dark:text-white">Questions to Ask</span>
+                  {getHistoryForTool('questions_to_ask').length > 0 && (
+                    <span className="text-xs text-gray-400">{getHistoryForTool('questions_to_ask').length}</span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600" />
+                </button>
+
+                {/* Thank You - Mobile */}
+                <button
+                  onClick={() => handleGenerate('thank_you')}
+                  disabled={isDisabled}
+                  className="w-full flex items-center gap-3 p-3 bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] active:bg-gray-50 dark:active:bg-[#343335] transition-colors disabled:opacity-50"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-4 h-4 text-orange-500" />
+                  </div>
+                  <span className="flex-1 text-left text-sm font-medium text-gray-900 dark:text-white">Thank You Email</span>
+                  {getHistoryForTool('thank_you').length > 0 && (
+                    <span className="text-xs text-gray-400">{getHistoryForTool('thank_you').length}</span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600" />
+                </button>
+              </div>
+
+              {/* Desktop Cards */}
+              <div className="hidden md:grid grid-cols-3 gap-3">
                 {/* Interview Prep Questions Card */}
                 <ToolCard
                   title="Interview Prep Questions"
@@ -422,8 +542,8 @@ export const AIToolsTab = ({ job, onUpdate }: AIToolsTabProps) => {
           loadEmailFromHistory(email);
           setHistoryModal({ toolType: null, isOpen: false });
         }}
-          onDelete={handleDeleteEmail}
-        />
+        onDelete={handleDeleteEmail}
+      />
     </div>
   );
 };

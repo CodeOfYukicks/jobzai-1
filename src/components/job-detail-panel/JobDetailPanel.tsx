@@ -644,7 +644,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
                   <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                 </button>
                 <h1 className="flex-1 text-center font-semibold text-gray-900 dark:text-white truncate px-2">
-                  {isCampaignMode ? (job.contactName || 'Contact') : job.position}
+                  {isCampaignMode ? (job.contactName || 'Contact') : job.companyName}
                 </h1>
                 <button
                   onClick={() => setShowMobileMenu(true)}
@@ -668,8 +668,12 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
                   <CompanyLogo companyName={job.companyName} size="md" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                    {isCampaignMode ? `${job.contactRole || 'Role'} @ ${job.companyName}` : `${job.companyName} • ${job.location || 'Location'}`}
+                  {/* Position/Role above company */}
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate mb-0.5">
+                    {isCampaignMode ? (job.contactRole || 'Role') : (job.position || 'Position')}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {isCampaignMode ? job.companyName : `${job.companyName} • ${job.location || 'Location'}`}
                   </p>
                 </div>
               </div>
