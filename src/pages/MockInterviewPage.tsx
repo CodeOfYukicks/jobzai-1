@@ -235,6 +235,8 @@ function normalizeAnalysis(rawAnalysis: Partial<MockInterviewAnalysis>): MockInt
 export default function MockInterviewPage() {
   const { currentUser } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const limits = usePlanLimits();
 
   // Navigation state from JobDetailPanel
   const navigationState = location.state as {
@@ -263,6 +265,7 @@ export default function MockInterviewPage() {
 
   // Phase state
   const [phase, setPhase] = useState<Phase>('setup');
+  const [showPastSessions, setShowPastSessions] = useState(false);
 
   // State
   const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -295,6 +298,10 @@ export default function MockInterviewPage() {
   // Confirmation modal state
   const [showEndConfirmation, setShowEndConfirmation] = useState(false);
   const [showBackConfirmation, setShowBackConfirmation] = useState(false);
+  const [showNavigationConfirmation, setShowNavigationConfirmation] = useState(false);
+
+  // Mobile UI state
+  const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
 
   // Refs
   const transcriptEndRef = useRef<HTMLDivElement>(null);
@@ -667,14 +674,12 @@ export default function MockInterviewPage() {
     disconnect();
   }, [disconnect]);
 
-  const navigate = useNavigate();
-
   // Block browser back/forward navigation when interview is active
   const isInterviewActive = phase === 'live' && (connectionStatus === 'connecting' || connectionStatus === 'ready' || connectionStatus === 'live');
   const isInterviewActiveRef = useRef(isInterviewActive);
   isInterviewActiveRef.current = isInterviewActive;
 
-  const [showNavigationConfirmation, setShowNavigationConfirmation] = useState(false);
+
   const pendingNavigationRef = useRef<string | null>(null);
 
   // Block browser back button
@@ -1179,6 +1184,7 @@ export default function MockInterviewPage() {
     setFinalTranscript(session.transcript);
     setIsLoadingAnalysis(!session.analysis); // If no analysis yet, show loading
     setPhase('results');
+    setShowPastSessions(false); // Close bottom sheet if open
   }, []);
 
   // Get score color based on value
@@ -1543,29 +1549,145 @@ export default function MockInterviewPage() {
         className="h-full flex relative"
       >
         {/* Decorative Grid Background */}
+        {/* Decorative Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
-        {hasPastSessions ? (
-          // Split layout when there are past sessions
-          <>
-            {/* Left Panel - Job Selection */}
-            <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
+        {/* Mobile Layout (md:hidden) */}
+        <div className="flex-1 flex items-center justify-center p-6 md:hidden">
+          {/* Mobile-Native Job Selection Panel */}
+          <div className="w-full max-w-md mx-auto flex flex-col h-full">
+            {/* Minimal Header */}
+            <div className="text-center pt-8 pb-6">
+              {userProfile?.firstName && (
+                <motion.p
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-lg font-medium text-gray-500 dark:text-gray-400 mb-1"
+                >
+                  {getGreeting()}, {userProfile.firstName}
+                </motion.p>
+              )}
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                Mock Interview
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Select a role to start practicing
+              </p>
+            </div>
+
+            {/* Search */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search roles..."
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-100/50 dark:bg-white/[0.03] border-none text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+              />
+            </div>
+
+            {/* Job List */}
+            <div className="flex-1 overflow-y-auto space-y-2.5 pb-24 -mx-4 px-4">
+              {isLoadingApplications ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
+                </div>
+              ) : applications.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-sm text-gray-500">No applications found</p>
+                </div>
+              ) : (
+                filteredApplications.map((app, index) => (
+                  <motion.button
+                    key={app.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    onClick={() => handleSelectApplication(app)}
+                    className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all text-left
+                        ${selectedApplication?.id === app.id
+                        ? 'bg-violet-500/10 border-violet-500/30'
+                        : 'bg-white dark:bg-[#2b2a2c] border-transparent shadow-sm'
+                      }`}
+                  >
+                    <CompanyLogo
+                      companyName={app.companyName}
+                      size="md"
+                      className="!rounded-lg"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-base font-semibold truncate ${selectedApplication?.id === app.id ? 'text-gray-900 dark:text-white' : 'text-gray-800 dark:text-gray-200'
+                        }`}>
+                        {app.position}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {app.companyName}
+                      </p>
+                    </div>
+                    {selectedApplication?.id === app.id && (
+                      <CheckCircle2 className="h-5 w-5 text-violet-500 flex-shrink-0" />
+                    )}
+                  </motion.button>
+                ))
+              )}
+            </div>
+
+            {/* Sticky Bottom Action - Mobile Only */}
+            <div className="fixed bottom-[64px] left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent dark:from-[#1a1a1a] dark:via-[#1a1a1a] pb-4 z-30 md:hidden">
+              <div className="max-w-md mx-auto space-y-3">
+                {/* Start Button */}
+                <button
+                  onClick={handleStartInterview}
+                  disabled={!selectedApplication}
+                  className={`w-full py-3.5 rounded-xl text-base font-semibold shadow-lg transition-all
+                      ${selectedApplication
+                      ? 'bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 translate-y-0 opacity-100'
+                      : 'bg-gray-200 dark:bg-zinc-800 text-gray-400 cursor-not-allowed'
+                    }`}
+                >
+                  Start practicing
+                </button>
+
+                {/* Past Sessions Trigger */}
+                {hasPastSessions && (
+                  <button
+                    onClick={() => setShowPastSessions(true)}
+                    className="w-full py-2 text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1.5"
+                  >
+                    <History className="w-3.5 h-3.5" />
+                    View past sessions ({pastSessions.length})
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Layout (hidden md:flex) */}
+        <div className="hidden md:flex flex-1 w-full relative z-10">
+          {hasPastSessions ? (
+            // Split layout when there are past sessions
+            <>
+              {/* Left Panel - Job Selection */}
+              <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
+                {renderJobSelectionPanel()}
+              </div>
+
+              {/* Divider */}
+              <div className="w-px bg-gray-200/60 dark:bg-[#3d3c3e]/40 my-6" />
+
+              {/* Right Panel - History */}
+              <div className="w-[340px] flex-shrink-0 p-6 overflow-hidden" id="past-sessions-desktop">
+                {renderHistoryPanel()}
+              </div>
+            </>
+          ) : (
+            // Centered layout when no past sessions
+            <div className="flex-1 flex items-center justify-center p-6">
               {renderJobSelectionPanel()}
             </div>
-
-            {/* Divider */}
-            <div className="w-px bg-gray-200/60 dark:bg-[#3d3c3e]/40 my-6" />
-
-            {/* Right Panel - History */}
-            <div className="w-[340px] flex-shrink-0 p-6 overflow-hidden">
-              {renderHistoryPanel()}
-            </div>
-          </>
-        ) : (
-          // Centered layout when no past sessions
-          <div className="flex-1 flex items-center justify-center p-6">
-            {renderJobSelectionPanel()}
-          </div>
-        )}
+          )}
+        </div>
       </motion.div>
     );
   };
@@ -1632,33 +1754,82 @@ export default function MockInterviewPage() {
             )}
           </motion.div>
 
-          {/* 4-Column Compact Grid */}
+          {/* Mobile-Native Settings Card (md:hidden) */}
+          <div className="w-full bg-white dark:bg-[#2b2a2c] rounded-2xl p-0 overflow-hidden border border-gray-100 dark:border-[#3d3c3e] mb-24 md:hidden">
+            {/* Setting: Environment */}
+            <button className="w-full flex items-center justify-between p-4 border-b border-gray-100 dark:border-[#3d3c3e/50] active:bg-gray-50 dark:active:bg-[#343335] transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-violet-50 dark:bg-violet-500/10 flex items-center justify-center">
+                  <Volume2 className="w-4 h-4 text-violet-500" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Environment</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Quiet space</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </button>
+
+            {/* Setting: Duration */}
+            <button className="w-full flex items-center justify-between p-4 border-b border-gray-100 dark:border-[#3d3c3e/50] active:bg-gray-50 dark:active:bg-[#343335] transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-blue-500" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Duration</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">10 minutes</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </button>
+
+            {/* Setting: Mode */}
+            <button className="w-full flex items-center justify-between p-4 border-b border-gray-100 dark:border-[#3d3c3e/50] active:bg-gray-50 dark:active:bg-[#343335] transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
+                  <Mic className="w-4 h-4 text-emerald-500" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Mode</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Speaking</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </button>
+
+            {/* Setting: Feedback */}
+            <button className="w-full flex items-center justify-between p-4 active:bg-gray-50 dark:active:bg-[#343335] transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
+                  <BarChart3 className="w-4 h-4 text-amber-500" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Feedback</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Structure & Content</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
+
+          {/* Desktop Grid (hidden md:grid) */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="grid grid-cols-4 gap-2 mb-10 w-full"
+            className="hidden md:grid grid-cols-4 gap-2 mb-10 w-full"
           >
             {/* Quiet Space */}
             <div className="group relative flex flex-col items-center p-3 rounded-xl bg-white/60 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/[0.06] hover:border-violet-300 dark:hover:border-violet-500/30 hover:bg-violet-50/50 dark:hover:bg-violet-500/[0.05] transition-all cursor-default">
               <Volume2 className="w-4 h-4 text-violet-500 dark:text-violet-400 mb-1.5 group-hover:scale-110 transition-transform" />
               <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400">Quiet</span>
-              {/* Tooltip */}
-              <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200 pointer-events-none shadow-lg z-10">
-                Find a quiet space
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-white rotate-45" />
-              </div>
             </div>
 
             {/* Duration */}
-            <div className="group relative flex flex-col items-center p-3 rounded-xl bg-white/60 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/[0.06] hover:border-cyan-300 dark:hover:border-cyan-500/30 hover:bg-cyan-50/50 dark:hover:bg-cyan-500/[0.05] transition-all cursor-default">
-              <Clock className="w-4 h-4 text-cyan-500 dark:text-cyan-400 mb-1.5 group-hover:scale-110 transition-transform" />
+            <div className="group relative flex flex-col items-center p-3 rounded-xl bg-white/60 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/[0.06] hover:border-blue-300 dark:hover:border-blue-500/30 hover:bg-blue-50/50 dark:hover:bg-blue-500/[0.05] transition-all cursor-default">
+              <Clock className="w-4 h-4 text-blue-500 dark:text-blue-400 mb-1.5 group-hover:scale-110 transition-transform" />
               <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400">10 min</span>
-              {/* Tooltip */}
-              <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200 pointer-events-none shadow-lg z-10">
-                Average duration
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-white rotate-45" />
-              </div>
             </div>
 
             {/* Speak Naturally */}
@@ -1672,36 +1843,49 @@ export default function MockInterviewPage() {
               <span className={`text-[10px] font-medium ${isMicReady ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-600 dark:text-gray-400'}`}>
                 {isMicSpeaking ? 'Speaking' : isMicReady ? 'Ready' : 'Natural'}
               </span>
-              {/* Tooltip */}
-              <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200 pointer-events-none shadow-lg z-10">
-                Speak naturally
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-white rotate-45" />
-              </div>
             </div>
 
             {/* AI Feedback */}
             <div className="group relative flex flex-col items-center p-3 rounded-xl bg-white/60 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/[0.06] hover:border-amber-300 dark:hover:border-amber-500/30 hover:bg-amber-50/50 dark:hover:bg-amber-500/[0.05] transition-all cursor-default">
               <BarChart3 className="w-4 h-4 text-amber-500 dark:text-amber-400 mb-1.5 group-hover:scale-110 transition-transform" />
               <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400">AI</span>
-              {/* Tooltip */}
-              <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200 pointer-events-none shadow-lg z-10">
-                Detailed AI feedback
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-white rotate-45" />
-              </div>
             </div>
           </motion.div>
 
-          {/* Premium CTA */}
+          {/* Sticky Bottom Action - Mobile Only (fixed bottom-16) */}
+          <div className="fixed bottom-[64px] left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent dark:from-[#1a1a1a] dark:via-[#1a1a1a] pb-4 z-30 md:hidden">
+            <div className="max-w-md mx-auto">
+              <p className="text-center text-xs text-gray-400 mb-3">
+                Ready? The AI interviewer will start speaking first.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setPhase('setup')}
+                  className="p-3.5 rounded-xl bg-gray-100 dark:bg-[#2b2a2c] text-gray-900 dark:text-white"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => handleBeginInterview(false)}
+                  className="flex-1 py-3.5 rounded-xl bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 text-base font-semibold shadow-lg active:scale-[0.98] transition-all"
+                >
+                  Start Interview
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Premium CTA (Desktop Only) */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="w-full space-y-4"
+            className="w-full space-y-4 hidden md:block"
           >
             <motion.button
               whileHover={{ scale: 1.02, boxShadow: '0 8px 30px rgba(183, 226, 25, 0.3)' }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => handleBeginInterview()}
+              onClick={() => handleBeginInterview(false)}
               disabled={!isMicReady}
               className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 ${isMicReady
                 ? 'bg-[#b7e219] hover:bg-[#c5eb2d] text-gray-900 shadow-lg shadow-[#b7e219]/20'
@@ -1721,18 +1905,19 @@ export default function MockInterviewPage() {
               Back
             </button>
           </motion.div>
+
         </div>
       </motion.div>
     );
   };
 
   // ============================================
-  // RENDER - LIVE PHASE
+  // RENDER - LIVE PHASE (DESKTOP)
   // ============================================
 
-  const renderLivePhase = () => (
+  const renderLivePhaseDesktop = () => (
     <motion.div
-      key="live"
+      key="live-desktop"
       initial={{ opacity: 0, scale: 1.02 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
@@ -1749,7 +1934,6 @@ export default function MockInterviewPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
-                  // Show confirmation if session is active (live, ready, or connecting)
                   if (connectionStatus === 'live' || connectionStatus === 'ready' || connectionStatus === 'connecting') {
                     setShowBackConfirmation(true);
                   } else {
@@ -2064,6 +2248,150 @@ export default function MockInterviewPage() {
           </AnimatePresence>
         </motion.div>
       </div>
+    </motion.div>
+  );
+
+  // ============================================
+  // RENDER - LIVE PHASE (MOBILE IMMERSIVE)
+  // ============================================
+  const renderLivePhaseMobile = () => (
+    <motion.div
+      key="live-mobile"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-[#1a1a1a] flex flex-col md:hidden"
+    >
+      {/* 1. Header: Timer & End Action */}
+      <div className="flex items-center justify-between px-6 pt-14 pb-4">
+        {/* Timer */}
+        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 ${isTimeWarning ? 'bg-orange-500/10 border-orange-500/20' : ''}`}>
+          <div className={`w-2 h-2 rounded-full ${isSessionActive ? 'bg-red-500 animate-pulse' : 'bg-gray-500'}`} />
+          <span className={`text-sm font-mono font-medium ${isTimeWarning ? 'text-orange-400' : 'text-gray-200'}`}>
+            {formatTime(elapsedTime)}
+          </span>
+        </div>
+
+        {/* End Button */}
+        <button
+          onClick={handleEndInterviewClick}
+          className="px-4 py-1.5 rounded-full border border-white/20 text-white/80 text-sm font-medium hover:bg-white/10 active:scale-95 transition-all"
+        >
+          End Interview
+        </button>
+      </div>
+
+      {/* 2. Main Content: The Orb (Centered) */}
+      <div className="flex-1 flex flex-col items-center justify-center relative">
+        {/* Orb */}
+        <div className="relative z-10 scale-110">
+          <AIOrb
+            state={getOrbState()}
+            audioLevel={Math.max(inputAudioLevel, outputAudioLevel)}
+            className="w-64 h-64"
+          />
+        </div>
+
+        {/* Status Text (Below Orb) */}
+        <div className="mt-12 text-center space-y-2">
+          <p className={`text-lg font-medium transition-colors duration-300 ${getOrbState() === 'speaking' ? 'text-violet-400' :
+            getOrbState() === 'listening' ? 'text-cyan-400' :
+              'text-gray-400'
+            }`}>
+            {getOrbState() === 'speaking' ? 'AI Speaking' :
+              getOrbState() === 'listening' ? 'Listening...' :
+                'Thinking...'}
+          </p>
+          {selectedApplication && (
+            <p className="text-sm text-gray-500 max-w-[240px] mx-auto truncate">
+              {selectedApplication.position}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* 3. Bottom Controls */}
+      <div className="pb-safe pt-8 px-8 flex flex-col items-center gap-8">
+        {/* Mic Toggle (Large) */}
+        <button
+          onClick={toggleMute}
+          className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 ${isMuted
+            ? 'bg-red-500/20 text-red-500 border-2 border-red-500/50'
+            : 'bg-white text-black hover:scale-105 active:scale-95'
+            }`}
+        >
+          {isMuted ? (
+            <MicOff className="w-8 h-8" />
+          ) : (
+            <Mic className="w-8 h-8" />
+          )}
+        </button>
+
+        {/* Transcript Handle */}
+        <button
+          onClick={() => setIsTranscriptOpen(true)}
+          className="flex flex-col items-center gap-2 text-gray-500 hover:text-white transition-colors py-4 w-full"
+        >
+          <div className="w-10 h-1 bg-gray-700/50 rounded-full" />
+          <span className="text-xs font-medium uppercase tracking-wider opacity-60">
+            Open Transcript
+          </span>
+        </button>
+      </div>
+
+      {/* 4. Transcript Bottom Sheet */}
+      <AnimatePresence>
+        {isTranscriptOpen && (
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed inset-0 z-50 bg-[#1a1a1a] flex flex-col pt-safe-top"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+              <h3 className="text-lg font-bold text-white">Live Transcript</h3>
+              <button
+                onClick={() => setIsTranscriptOpen(false)}
+                className="p-2 rounded-full bg-white/5 text-white/70 hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {transcript.map((entry) => (
+                <div
+                  key={entry.id}
+                  className={`flex flex-col ${entry.role === 'assistant' ? 'items-start' : 'items-end'}`}
+                >
+                  <div className={`max-w-[85%] rounded-2xl p-4 ${entry.role === 'assistant'
+                    ? 'bg-white/5 text-gray-200 rounded-tl-sm'
+                    : 'bg-violet-600 text-white rounded-tr-sm'
+                    }`}>
+                    <p className="text-base leading-relaxed">{entry.text}</p>
+                  </div>
+                  <span className="text-[10px] text-gray-500 mt-1.5 px-1 uppercase tracking-wider">
+                    {entry.role === 'assistant' ? 'AI Interviewer' : 'You'}
+                  </span>
+                </div>
+              ))}
+              <div ref={transcriptEndRef} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+
+  const renderLivePhase = () => (
+    <>
+      <div className="hidden md:block h-full">
+        {renderLivePhaseDesktop()}
+      </div>
+      {renderLivePhaseMobile()}
 
       {/* End Interview Confirmation Modal */}
       <AnimatePresence>
@@ -2072,7 +2400,7 @@ export default function MockInterviewPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
             onClick={() => setShowEndConfirmation(false)}
           >
             <motion.div
@@ -2083,7 +2411,6 @@ export default function MockInterviewPage() {
               className="bg-white dark:bg-[#2b2a2c] rounded-xl w-full max-w-sm mx-4 shadow-xl border border-gray-200/50 dark:border-[#3d3c3e]"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-[#3d3c3e]">
                 <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                   End Interview
@@ -2098,13 +2425,11 @@ export default function MockInterviewPage() {
                 </motion.button>
               </div>
 
-              {/* Body */}
               <div className="p-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                   Your session will end and you'll receive a detailed performance analysis.
                 </p>
 
-                {/* Session Info */}
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-[#242325] mb-4">
                   <div className="w-8 h-8 rounded-lg bg-[#1a1a1b] flex items-center justify-center">
                     <Clock className="w-4 h-4 text-gray-400" />
@@ -2118,7 +2443,6 @@ export default function MockInterviewPage() {
                 </div>
               </div>
 
-              {/* Footer */}
               <div className="flex gap-2 p-4 pt-0">
                 <button
                   onClick={() => setShowEndConfirmation(false)}
@@ -2145,7 +2469,7 @@ export default function MockInterviewPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
             onClick={() => setShowBackConfirmation(false)}
           >
             <motion.div
@@ -2156,7 +2480,6 @@ export default function MockInterviewPage() {
               className="bg-white dark:bg-[#2b2a2c] rounded-xl w-full max-w-sm mx-4 shadow-xl border border-gray-200/50 dark:border-[#3d3c3e]"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-[#3d3c3e]">
                 <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                   Leave Interview?
@@ -2171,13 +2494,11 @@ export default function MockInterviewPage() {
                 </motion.button>
               </div>
 
-              {/* Body */}
               <div className="p-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                   Your interview session is still active. If you leave now, your progress will be lost and no analysis will be generated.
                 </p>
 
-                {/* Session Info */}
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-[#242325] mb-4">
                   <div className="w-8 h-8 rounded-lg bg-[#1a1a1b] flex items-center justify-center">
                     <Clock className="w-4 h-4 text-gray-400" />
@@ -2191,7 +2512,6 @@ export default function MockInterviewPage() {
                 </div>
               </div>
 
-              {/* Footer */}
               <div className="flex gap-2 p-4 pt-0">
                 <button
                   onClick={() => setShowBackConfirmation(false)}
@@ -2213,7 +2533,7 @@ export default function MockInterviewPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </>
   );
 
   // ============================================
@@ -2263,6 +2583,61 @@ export default function MockInterviewPage() {
           {phase === 'results' && renderResultsPhase()}
         </AnimatePresence>
       </div>
+
+      {/* Mobile Past Sessions Bottom Sheet */}
+      <AnimatePresence>
+        {showPastSessions && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPastSessions(false)}
+              className="fixed inset-0 bg-black/40 z-[60] md:hidden backdrop-blur-sm"
+            />
+            {/* Sheet */}
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed inset-x-0 bottom-0 z-[70] bg-white dark:bg-[#1a1a1a] rounded-t-2xl shadow-2xl overflow-hidden md:hidden h-[80vh] flex flex-col border-t border-gray-200 dark:border-[#333]"
+            >
+              {/* Handle */}
+              <div
+                className="flex justify-center pt-3 pb-2 flex-shrink-0 cursor-pointer"
+                onClick={() => setShowPastSessions(false)}
+              >
+                <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full" />
+              </div>
+
+              {/* Header */}
+              <div className="px-5 py-3 border-b border-gray-100 dark:border-[#333] flex-shrink-0 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <History className="w-5 h-5 text-violet-500" />
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Past Sessions</h3>
+                </div>
+                <button
+                  onClick={() => setShowPastSessions(false)}
+                  className="p-2 bg-gray-100 dark:bg-[#333] rounded-full hover:bg-gray-200 dark:hover:bg-[#444] transition-colors"
+                >
+                  <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                </button>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-safe">
+                {pastSessions.length === 0 ? (
+                  <div className="text-center py-10 text-gray-500">No past sessions found.</div>
+                ) : (
+                  pastSessions.map((session, index) => renderSessionCard(session, index))
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Navigation Confirmation Modal (for page navigation during active interview) */}
       <AnimatePresence>

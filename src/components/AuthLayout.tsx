@@ -914,7 +914,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       </div>
 
       {/* Mobile Bottom Navigation - hidden on pages with full-screen modes */}
-      {!location.pathname.startsWith('/mock-interview') &&
+      {!location.pathname.startsWith('/notes/') &&
         !location.pathname.startsWith('/notes/') &&
         !location.pathname.startsWith('/whiteboard/') &&
         !isFullScreenMobile && (
