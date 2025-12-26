@@ -73,6 +73,7 @@ import { WarmthIndicator } from '../components/outreach';
 import { useAssistantPageData, summarizeApplications } from '../hooks/useAssistantPageData';
 import { ProfileAvatar, generateGenderedAvatarConfigByName } from '../components/profile/avatar';
 import BottomSheet from '../components/common/BottomSheet';
+import { CompanyLogo } from '../components/common/CompanyLogo';
 
 export default function JobApplicationsPage() {
   const { currentUser } = useAuth();
@@ -3763,17 +3764,8 @@ END:VCALENDAR`;
                         }}
                       >
                         <div className="flex items-start gap-3">
-                          {/* Company Logo/Initial */}
-                          <div
-                            className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                            style={{ backgroundColor: app.companyColor || '#635BFF' }}
-                          >
-                            {app.companyLogo ? (
-                              <img src={app.companyLogo} alt={app.companyName} className="w-full h-full object-cover rounded-lg" />
-                            ) : (
-                              app.companyName?.charAt(0)?.toUpperCase() || '?'
-                            )}
-                          </div>
+                          {/* Company Logo */}
+                          <CompanyLogo companyName={app.companyName || ''} size="md" />
 
                           {/* Content */}
                           <div className="flex-1 min-w-0">
@@ -7192,9 +7184,10 @@ END:VCALENDAR`;
                   onClick={async () => {
                     if (mobileStatusChangeApp && currentUser) {
                       try {
-                        await updateDoc(doc(db, 'users', currentUser.uid, 'applications', mobileStatusChangeApp.id), {
+                        const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', mobileStatusChangeApp.id);
+                        await updateDoc(applicationRef, {
                           status: status,
-                          updatedAt: new Date().toISOString()
+                          updatedAt: serverTimestamp()
                         });
                         notify.success(`Status updated to ${columnLabels[status] || status}`);
                         setShowMobileStatusSheet(false);

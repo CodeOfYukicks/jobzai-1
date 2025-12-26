@@ -28,6 +28,10 @@ import {
   Loader2,
   RefreshCw,
   Mic,
+  ChevronLeft,
+  MoreHorizontal,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, isValid } from 'date-fns';
@@ -53,6 +57,7 @@ import { PremiumChatComposer } from '../outreach/PremiumChatComposer';
 import { OutreachMessage } from '../../types/job';
 import { getAuth } from 'firebase/auth';
 import { ProfileAvatar, generateGenderedAvatarConfigByName } from '../profile/avatar';
+import BottomSheet from '../common/BottomSheet';
 
 // Helper function to safely parse dates from Firestore
 const parseDate = (dateValue: any): Date => {
@@ -208,10 +213,25 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [localMessages, setLocalMessages] = useState<OutreachMessage[]>([]);
   const [isCheckingReplies, setIsCheckingReplies] = useState(false);
-  
+
+  // Mobile-specific states
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showMobileStatusSheet, setShowMobileStatusSheet] = useState(false);
+  const [mobileAiSummaryExpanded, setMobileAiSummaryExpanded] = useState(false);
+  const [mobileDescriptionExpanded, setMobileDescriptionExpanded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Campaign mode detection
   const isCampaignMode = boardType === 'campaigns';
-  
+
   // Backend URL
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
@@ -232,7 +252,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
     try {
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
-      
+
       // Fetch the full thread to get all messages
       const response = await fetch(`${BACKEND_URL}/api/gmail/thread/${job.gmailThreadId}`, {
         method: 'GET',
@@ -252,7 +272,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
       }
 
       const data = await response.json();
-      
+
       if (!data.success || !data.reply) {
         if (isManual) {
           notify.info('No new replies found');
@@ -262,12 +282,12 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
 
       // Get existing messages to check for duplicates
       const existingMessages = job.conversationHistory || [];
-      
+
       // Create a signature for the new reply to check if it already exists
       // Use first 100 chars of content + date (without time) as unique identifier
       const replyDate = data.reply.date ? new Date(data.reply.date).toISOString().split('T')[0] : '';
       const replySignature = `${data.reply.body.substring(0, 100).trim()}-${replyDate}`;
-      
+
       // Check if this reply already exists
       const replyExists = existingMessages.some(msg => {
         if (msg.type !== 'received') return false;
@@ -275,7 +295,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
         const msgSignature = `${msg.content.substring(0, 100).trim()}-${msgDate}`;
         return msgSignature === replySignature;
       });
-      
+
       if (replyExists) {
         if (isManual) {
           notify.info('No new replies found');
@@ -392,7 +412,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
     if (!onUpdate || !job) return false;
 
     setIsSendingMessage(true);
-    
+
     // Helper to remove undefined fields (Firestore forbids undefined anywhere)
     const sanitizeMessage = (msg: OutreachMessage): OutreachMessage => {
       return Object.fromEntries(
@@ -412,7 +432,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
         try {
           const auth = getAuth();
           const token = await auth.currentUser?.getIdToken();
-          
+
           const response = await fetch(`${BACKEND_URL}/api/gmail/thread/${job.gmailThreadId}/reply`, {
             method: 'POST',
             headers: {
@@ -441,9 +461,9 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
             notify.error(errorMessage);
             return false;
           }
-          
+
           const data = await response.json();
-          
+
           if (data.success) {
             notify.success('Message sent successfully!');
             // Update gmailThreadId if we got a new one (shouldn't happen for replies, but just in case)
@@ -459,13 +479,13 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
           }
         } catch (error: any) {
           console.error('Error sending via Gmail API:', error);
-          
+
           // Check if it's a connection error
           if (error.message?.includes('Failed to fetch') || error.message?.includes('ERR_CONNECTION_REFUSED') || error.name === 'TypeError') {
             notify.error(`Cannot connect to backend server at ${BACKEND_URL}. Please make sure the server is running.`);
             return false;
           }
-          
+
           // Other errors
           notify.error(error.message || 'Failed to send email');
           return false;
@@ -584,7 +604,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
 
       await onUpdate(updates);
       setShowAddInterviewForm(false);
-      
+
       // Don't show toast here - parent component will show modal or toast as appropriate
     } catch (error) {
       console.error('Error adding interview:', error);
@@ -604,667 +624,1077 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
 
   return (
     <>
-    <Transition appear show={open} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={handleClose}>
-        {/* Backdrop */}
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-md" />
-        </Transition.Child>
+      {/* Mobile Full-Screen View */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            className="md:hidden fixed inset-0 z-[60] bg-white dark:bg-[#1a1a1a] flex flex-col"
+          >
+            {/* Mobile Sticky Header */}
+            <div className="sticky top-0 z-50 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-lg border-b border-gray-100 dark:border-[#2b2a2c]">
+              <div className="flex items-center justify-between px-4 py-3">
+                <button
+                  onClick={handleClose}
+                  className="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2b2a2c] transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                </button>
+                <h1 className="flex-1 text-center font-semibold text-gray-900 dark:text-white truncate px-2">
+                  {isCampaignMode ? (job.contactName || 'Contact') : job.position}
+                </h1>
+                <button
+                  onClick={() => setShowMobileMenu(true)}
+                  className="p-2 -mr-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2b2a2c] transition-colors"
+                >
+                  <MoreHorizontal className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                </button>
+              </div>
+            </div>
 
-        <div className="fixed inset-0 overflow-hidden">
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16">
-              <Transition.Child
-                as={Fragment}
-                enter="transform transition ease-out duration-500"
-                enterFrom="translate-x-full"
-                enterTo="translate-x-0"
-                leave="transform transition ease-in duration-400"
-                leaveFrom="translate-x-0"
-                leaveTo="translate-x-full"
+            {/* Job Header Section */}
+            <div className="px-4 py-4 border-b border-gray-100 dark:border-[#2b2a2c]">
+              <div className="flex items-center gap-3 mb-3">
+                {isCampaignMode ? (
+                  <ProfileAvatar
+                    config={generateGenderedAvatarConfigByName(job.contactName || 'Unknown')}
+                    size={44}
+                    className="rounded-xl"
+                  />
+                ) : (
+                  <CompanyLogo companyName={job.companyName} size="md" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                    {isCampaignMode ? `${job.contactRole || 'Role'} @ ${job.companyName}` : `${job.companyName} • ${job.location || 'Location'}`}
+                  </p>
+                </div>
+              </div>
+              {/* Tappable Status Badge */}
+              <button
+                onClick={() => setShowMobileStatusSheet(true)}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all active:scale-95 ${currentStatus.bg} ${currentStatus.border} border`}
               >
-                <Dialog.Panel className="pointer-events-auto w-screen max-w-6xl">
-                  <div className="flex h-full flex-col overflow-y-scroll bg-white dark:bg-[#242325] shadow-2xl rounded-l-3xl border-l border-gray-200 dark:border-[#3d3c3e]">
-                    {/* Sticky Header */}
-                    <div className="sticky top-0 z-50 bg-white/80 dark:bg-[#242325]/80 backdrop-blur-lg border-b border-gray-200 dark:border-[#3d3c3e]">
-                      <div className="px-8 py-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0 pr-8">
-                            <div className="flex items-center gap-3 mb-3">
-                              {/* Company Logo or Contact Avatar */}
-                              {isCampaignMode ? (
-                                <ProfileAvatar
-                                  config={generateGenderedAvatarConfigByName(job.contactName || 'Unknown')}
-                                  size={48}
-                                  className="rounded-xl shadow-lg"
-                                />
-                              ) : (
-                              <CompanyLogo
-                                companyName={job.companyName}
-                                size="lg"
-                                className={`rounded-xl ${currentStatus.bg} ${currentStatus.border} border`}
-                                showInitials={true}
-                              />
-                              )}
-                              <Dialog.Title className="text-2xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
-                                {isCampaignMode ? (job.contactName || 'Unknown Contact') : job.position}
-                              </Dialog.Title>
-                            </div>
-                            <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-                              {isCampaignMode ? (
-                                <>
-                                  <span className="text-lg font-medium">{job.contactRole || 'No role'}</span>
-                                  <span className="text-gray-400 dark:text-gray-600">@</span>
-                                  <span className="font-medium">{job.companyName}</span>
-                                </>
-                              ) : (
-                                <>
-                              <span className="text-lg font-medium">{job.companyName}</span>
-                              <span className="text-gray-400 dark:text-gray-600">•</span>
-                              <div className="flex items-center gap-1.5">
-                                <MapPin className="w-4 h-4" />
-                                <span>{job.location}</span>
-                              </div>
-                                </>
-                              )}
-                            </div>
-                          </div>
+                <StatusIcon className={`w-4 h-4 ${currentStatus.color}`} />
+                <span className={currentStatus.color}>
+                  {job.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </span>
+                <ChevronDown className={`w-3 h-3 ${currentStatus.color}`} />
+              </button>
+            </div>
 
-                          {/* Quick Actions */}
-                          <div className="flex items-center gap-2">
-                            {!isEditing ? (
-                              <>
-                                <button
-                                  onClick={() => setIsEditing(true)}
-                                  className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 group"
-                                >
-                                  <Edit3 className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100" />
-                                </button>
-                                {job.url && (
-                                  <a
-                                    href={job.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 group"
-                                  >
-                                    <ExternalLink className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
-                                  </a>
-                                )}
-                                {onDelete && (
-                                  <button
-                                    onClick={handleDelete}
-                                    className="p-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 group"
-                                  >
-                                    <Trash2 className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400" />
-                                  </button>
-                                )}
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  onClick={handleSave}
-                                  disabled={isSaving}
-                                  className="px-4 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 font-medium flex items-center gap-2 disabled:opacity-50"
-                                >
-                                  <Save className="w-4 h-4" />
-                                  {isSaving ? 'Saving...' : 'Save'}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setIsEditing(false);
-                                    setEditedJob({});
-                                  }}
-                                  className="px-4 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 font-medium text-gray-900 dark:text-gray-100"
-                                >
-                                  Cancel
-                                </button>
-                              </>
-                            )}
-                            <button
-                              onClick={handleClose}
-                              className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 group ml-2"
-                            >
-                              <X className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100" />
-                            </button>
-                          </div>
-                        </div>
+            {/* Mobile Sticky Tabs */}
+            <div className="sticky top-[53px] z-40 bg-white dark:bg-[#1a1a1a] border-b border-gray-100 dark:border-[#2b2a2c]">
+              <div className="flex overflow-x-auto hide-scrollbar">
+                {(isCampaignMode ? [
+                  { id: 'contact', label: 'Contact' },
+                  { id: 'messages', label: 'Messages' },
+                  { id: 'meetings', label: 'Meetings' },
+                  { id: 'activity', label: 'Activity' },
+                  { id: 'notes', label: 'Notes' },
+                ] : [
+                  { id: 'overview', label: 'Overview' },
+                  { id: 'interviews', label: 'Interviews' },
+                  { id: 'ai-tools', label: 'AI Tools' },
+                  { id: 'resume-lab', label: 'Resume' },
+                  { id: 'mock-interview', label: 'Practice' },
+                  { id: 'activity', label: 'Activity' },
+                  { id: 'notes', label: 'Notes' },
+                ]).map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id
+                      ? 'border-[#635BFF] text-[#635BFF]'
+                      : 'border-transparent text-gray-500 dark:text-gray-400'
+                      }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                        {/* Status Badge */}
-                        <div className="mt-4">
-                          <JobStatusBadge
-                            status={job.status}
-                            isEditing={isEditing}
-                            onChange={(newStatus) => setEditedJob({ ...editedJob, status: newStatus })}
-                            boardType={boardType}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Tabs */}
-                      <div className="px-8 flex gap-6 border-t border-gray-100 dark:border-[#3d3c3e] bg-white dark:bg-[#242325] overflow-x-auto">
-                        {(isCampaignMode ? [
-                          // Campaign-specific tabs
-                          { id: 'contact', label: 'Contact', icon: null, badge: null },
-                          { id: 'messages', label: 'Messages', icon: null, badge: job.conversationHistory?.length || 0 },
-                          { id: 'meetings', label: 'Meetings', icon: null, badge: (job.meetings?.length || job.interviews?.length) || 0 },
-                          { id: 'activity', label: 'Timeline', icon: null, badge: null },
-                          { id: 'notes', label: 'Notes', icon: StickyNote, badge: job.stickyNotes?.length || 0 },
-                        ] : [
-                          // Jobs-specific tabs
-                          { id: 'overview', label: 'Overview', icon: null, badge: null },
-                          { id: 'interviews', label: 'Interviews', icon: null, badge: job.interviews?.length || 0 },
-                          { id: 'activity', label: 'Activity', icon: null, badge: null },
-                          { id: 'notes', label: 'Notes', icon: StickyNote, badge: job.stickyNotes?.length || 0 },
-                          { id: 'ai-tools', label: 'Document Studio', icon: Sparkles, badge: null },
-                          { id: 'resume-lab', label: 'Resume Lab', icon: Target, badge: (job.cvAnalysisIds?.length || (job.cvAnalysisId ? 1 : 0)) || 'link' },
-                          { id: 'mock-interview', label: 'Mock Interview', icon: Mic, badge: null },
-                          { id: 'linked-documents', label: 'Linked Documents', icon: FileText, badge: ((job.linkedResumeIds?.length || 0) + (job.linkedNoteIds?.length || 0) + (job.linkedDocumentIds?.length || 0) + (job.linkedWhiteboardIds?.length || 0)) > 0 ? ((job.linkedResumeIds?.length || 0) + (job.linkedNoteIds?.length || 0) + (job.linkedDocumentIds?.length || 0) + (job.linkedWhiteboardIds?.length || 0)) : null },
-                        ]).map((tab) => (
-                          <button
-                            key={tab.id}
-                            onClick={() => {
-                              setActiveTab(tab.id);
-                              setShowAddInterviewForm(false);
-                            }}
-                            className={`py-3 px-1 text-sm font-medium border-b-2 transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id
-                              ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-                              : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                              }`}
-                          >
-                            {tab.icon && <tab.icon className="w-4 h-4" />}
-                            <span>{tab.label}</span>
-                            {tab.badge && (
-                              <motion.span
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                                className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-semibold ${tab.badge === 'New'
-                                  ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-sm'
-                                  : typeof tab.badge === 'number' && tab.badge > 0
-                                    ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800'
-                                    : 'bg-gray-200 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300'
-                                  }`}
-                              >
-                                {tab.badge}
-                              </motion.span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
+            {/* Mobile Scrollable Content */}
+            <div className="flex-1 overflow-y-auto pb-24">
+              {activeTab === 'overview' && !isCampaignMode && (
+                <div className="px-4 py-4 space-y-4">
+                  {/* Key-Value Rows */}
+                  <div className="space-y-0 divide-y divide-gray-100 dark:divide-[#2b2a2c]">
+                    <div className="flex justify-between py-3">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Applied</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {format(parseDate(job.appliedDate), 'MMM d, yyyy')}
+                      </span>
                     </div>
-
-                    {/* Two-Column Layout */}
-                    <div className="flex-1 px-8 py-6">
-                      <div className={`grid grid-cols-1 ${activeTab === 'ai-tools' || activeTab === 'notes' || activeTab === 'resume-lab' || activeTab === 'mock-interview' || activeTab === 'linked-documents' ? 'lg:grid-cols-1' : 'lg:grid-cols-3'} gap-6`}>
-                        {/* Left Column - Main Content */}
-                        <div className={`${activeTab === 'ai-tools' || activeTab === 'notes' || activeTab === 'resume-lab' || activeTab === 'mock-interview' || activeTab === 'linked-documents' ? 'lg:col-span-1' : 'lg:col-span-2'} space-y-6`}>
-                          {activeTab === 'overview' && (
-                            <div className="space-y-8">
-                              {/* Quick Stats / Highlights */}
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50">
-                                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Applied</div>
-                                  <div className="font-semibold text-gray-900 dark:text-white">
-                                    {format(parseDate(job.appliedDate), 'MMM d, yyyy')}
-                                  </div>
-                                </div>
-                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50">
-                                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Salary</div>
-                                  <div className="font-semibold text-gray-900 dark:text-white">
-                                    {job.salary || 'Not specified'}
-                                  </div>
-                                </div>
-                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50">
-                                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Work Type</div>
-                                  <div className="font-semibold text-gray-900 dark:text-white capitalize">
-                                    {job.workType || 'Not specified'}
-                                  </div>
-                                </div>
-                                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50">
-                                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Platform</div>
-                                  <div className="font-semibold text-gray-900 dark:text-white capitalize">
-                                    {job.platform || 'Direct'}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* AI Powered Summary Section */}
-                              <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                    <Sparkles className="w-4 h-4 text-purple-500" />
-                                    AI Summary
-                                  </h3>
-                                  {!isEditing && (
-                                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-800">
-                                      Auto-generated
-                                    </span>
-                                  )}
-                                </div>
-
-                                {isEditing ? (
-                                  <textarea
-                                    value={editedJob.description !== undefined ? editedJob.description : job.description || ''}
-                                    onChange={(e) => setEditedJob({ ...editedJob, description: e.target.value })}
-                                    className="w-full min-h-[150px] p-4 rounded-xl border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
-                                    placeholder="• Key responsibilities and main duties...&#10;• Required qualifications and experience...&#10;• Notable aspects and unique selling points..."
-                                  />
-                                ) : (
-                                  <div className="bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-100 dark:border-[#3d3c3e] p-6 shadow-sm">
-                                    <EnhancedJobSummary job={job} />
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Full Job Description Section */}
-                              {job.fullJobDescription && (
-                                <div className="space-y-4">
-                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                    <FileText className="w-4 h-4 text-gray-400" />
-                                    Full Description
-                                  </h3>
-                                  <div className="bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-100 dark:border-[#3d3c3e] p-6 shadow-sm">
-                                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                                        {job.fullJobDescription}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Contact Tab - Campaign Mode */}
-                          {activeTab === 'contact' && isCampaignMode && (
-                            <ContactTab
-                              job={job}
-                              isEditing={isEditing}
-                              editedJob={editedJob}
-                              onEdit={(updates) => setEditedJob({ ...editedJob, ...updates })}
-                            />
-                          )}
-
-                          {/* Messages Tab - Campaign Mode */}
-                          {activeTab === 'messages' && isCampaignMode && (
-                            <div className="flex flex-col h-full space-y-6">
-                              <div className="flex items-center justify-between px-1">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                  Conversation History
-                                  <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#2b2a2c] text-xs font-medium text-gray-600 dark:text-gray-400">
-                                    {localMessages.length > 0 ? localMessages.length : (job.conversationHistory?.length || 0)}
-                                  </span>
-                                </h3>
-                                {job.gmailThreadId && (
-                                  <button
-                                    onClick={() => handleCheckReplies(true)}
-                                    disabled={isCheckingReplies}
-                                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#3d3c3e] rounded-xl hover:bg-gray-200 dark:hover:bg-[#4a494b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {isCheckingReplies ? (
-                                      <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        Checking...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <RefreshCw className="w-4 h-4" />
-                                        Check Replies
-                                      </>
-                                    )}
-                                  </button>
-                                )}
-                              </div>
-
-                              <div className="flex-1 flex flex-col bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-100 dark:border-[#3d3c3e] shadow-sm overflow-hidden">
-                                <div className="flex-1 overflow-y-auto p-6">
-                                  <ConversationThread
-                                    messages={localMessages.length > 0 ? localMessages : (job.conversationHistory || [])}
-                                    contactName={job.contactName || job.companyName || 'Contact'}
-                                    contactInitials={(job.contactName || job.companyName || 'U')
-                                      .split(' ')
-                                      .map(n => n[0])
-                                      .join('')
-                                      .toUpperCase()
-                                      .slice(0, 2)}
-                                    onReply={(message) => handleOpenComposer(message)}
-                                  />
-                                </div>
-
-                                {/* Premium Message Composer with AI */}
-                                <div className="border-t border-gray-200 dark:border-[#3d3c3e] p-4 bg-gray-50/50 dark:bg-[#1e1e22]/50">
-                                  <PremiumChatComposer
-                                    conversationHistory={localMessages.length > 0 ? localMessages : (job.conversationHistory || [])}
-                                    contactContext={{
-                                      contactName: job.contactName || job.companyName || 'Contact',
-                                      contactRole: job.contactRole,
-                                      companyName: job.companyName || '',
-                                      relationshipGoal: job.relationshipGoal,
-                                      warmthLevel: job.warmthLevel,
-                                    }}
-                                    onSend={handleQuickSend}
-                                    isSending={isSendingMessage}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Meetings Tab - Campaign Mode */}
-                          {activeTab === 'meetings' && isCampaignMode && (
-                            <div className="space-y-6">
-                              <div className="flex items-center justify-between px-1">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                  Meetings
-                                  <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#2b2a2c] text-xs font-medium text-gray-600 dark:text-gray-400">
-                                    {(job.meetings?.length || job.interviews?.length) || 0}
-                                  </span>
-                                </h3>
-                                {!showAddInterviewForm && (
-                                  <button
-                                    onClick={() => setShowAddInterviewForm(true)}
-                                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-lg shadow-gray-900/20 dark:shadow-none"
-                                  >
-                                    <Plus className="w-4 h-4" />
-                                    Schedule Meeting
-                                  </button>
-                                )}
-                              </div>
-
-                              <AnimatePresence>
-                                {showAddInterviewForm && (
-                                  <AddInterviewForm
-                                    onAdd={handleAddInterview}
-                                    onCancel={() => setShowAddInterviewForm(false)}
-                                    isCampaignMode={true}
-                                  />
-                                )}
-                              </AnimatePresence>
-
-                              {(job.meetings || job.interviews) && (job.meetings?.length || job.interviews?.length) ? (
-                                <div className="grid gap-3">
-                                  {(job.interviews || []).map((interview) => (
-                                    <InterviewCard
-                                      key={interview.id}
-                                      interview={interview}
-                                      jobApplication={job}
-                                      onDelete={async (interviewId) => {
-                                        if (!onUpdate || !job) return;
-                                        const updatedInterviews = job.interviews?.filter(i => i.id !== interviewId) || [];
-                                        await onUpdate({ interviews: updatedInterviews });
-                                        notify.success('Meeting removed');
-                                      }}
-                                    />
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="flex flex-col items-center justify-center py-12 text-center">
-                                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 flex items-center justify-center mb-4">
-                                    <Calendar className="w-8 h-8 text-purple-500" />
-                                  </div>
-                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No meetings yet</h3>
-                                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
-                                    Schedule a coffee chat, call, or meeting to advance this relationship.
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {activeTab === 'interviews' && !isCampaignMode && (
-                            <div className="space-y-6">
-                              {/* Add Interview Form */}
-                              <AnimatePresence>
-                                {showAddInterviewForm && (
-                                  <AddInterviewForm
-                                    onAdd={handleAddInterview}
-                                    onCancel={() => setShowAddInterviewForm(false)}
-                                  />
-                                )}
-                              </AnimatePresence>
-
-                              {/* Interviews List */}
-                              <div className="space-y-4">
-                                <div className="flex items-center justify-between px-1">
-                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                    Interview Schedule
-                                    <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#2b2a2c] text-xs font-medium text-gray-600 dark:text-gray-400">
-                                      {job.interviews?.length || 0}
-                                    </span>
-                                  </h3>
-                                  {!showAddInterviewForm && (
-                                    <button
-                                      onClick={() => setShowAddInterviewForm(true)}
-                                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-lg shadow-gray-900/20 dark:shadow-none"
-                                    >
-                                      <Plus className="w-4 h-4" />
-                                      Add Interview
-                                    </button>
-                                  )}
-                                </div>
-
-                                {job.interviews && job.interviews.length > 0 ? (
-                                  <div className="grid gap-3">
-                                    {job.interviews.map((interview) => (
-                                      <InterviewCard
-                                        key={interview.id}
-                                        interview={interview}
-                                        jobApplication={job}
-                                        onDelete={async (interviewId) => {
-                                          if (!onUpdate || !job) return;
-                                          
-                                          try {
-                                            const updatedInterviews = job.interviews?.filter(
-                                              (i) => i.id !== interviewId
-                                            ) || [];
-                                            
-                                            await onUpdate({
-                                              interviews: updatedInterviews,
-                                            });
-                                            
-                                            notify.success('Interview deleted successfully');
-                                          } catch (error) {
-                                            console.error('Error deleting interview:', error);
-                                            notify.error('Failed to delete interview');
-                                          }
-                                        }}
-                                      />
-                                    ))}
-                                  </div>
-                                ) : (
-                                  !showAddInterviewForm && (
-                                    <div className="text-center py-16 bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-2xl border border-dashed border-gray-200 dark:border-[#3d3c3e]">
-                                      <div className="w-16 h-16 bg-white dark:bg-[#2b2a2c] rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-[#3d3c3e]">
-                                        <Calendar className="w-8 h-8 text-gray-400 dark:text-gray-500" />
-                                      </div>
-                                      <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
-                                        No interviews scheduled
-                                      </h4>
-                                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-xs mx-auto">
-                                        Keep track of your interview process by adding scheduled interviews here.
-                                      </p>
-                                      <button
-                                        onClick={() => setShowAddInterviewForm(true)}
-                                        className="px-5 py-2.5 bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white border border-gray-200 dark:border-[#3d3c3e] rounded-xl hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-all font-medium text-sm inline-flex items-center gap-2 shadow-sm"
-                                      >
-                                        <Plus className="w-4 h-4" />
-                                        Schedule First Interview
-                                      </button>
-                                    </div>
-                                  )
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {activeTab === 'activity' && (
-                            <div className="space-y-6">
-                              <div className="flex items-center justify-between px-1">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                  Activity History
-                                  <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#2b2a2c] text-xs font-medium text-gray-600 dark:text-gray-400">
-                                    {job.statusHistory?.length || 0}
-                                  </span>
-                                </h3>
-                              </div>
-
-                              {job.statusHistory && job.statusHistory.length > 0 ? (
-                                <div className="space-y-0 pl-2">
-                                  {[...job.statusHistory].reverse().map((change, index) => (
-                                    <TimelineItem
-                                      key={index}
-                                      change={change}
-                                      index={index}
-                                      isLast={index === job.statusHistory!.length - 1}
-                                    />
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="text-center py-16 bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-2xl border border-dashed border-gray-200 dark:border-[#3d3c3e]">
-                                  <div className="w-16 h-16 bg-white dark:bg-[#2b2a2c] rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-[#3d3c3e]">
-                                    <Clock className="w-8 h-8 text-gray-400 dark:text-gray-500" />
-                                  </div>
-                                  <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
-                                    No activity recorded
-                                  </h4>
-                                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
-                                    Status changes and updates will appear here.
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {activeTab === 'ai-tools' && (
-                            <AIToolsTab job={job} onUpdate={onUpdate} />
-                          )}
-
-                          {activeTab === 'notes' && (
-                            <NotesTab job={job} onUpdate={onUpdate} />
-                          )}
-
-                          {activeTab === 'resume-lab' && (
-                            <ResumeLab 
-                              cvAnalysisIds={job.cvAnalysisIds} 
-                              cvAnalysisId={job.cvAnalysisId}
-                              job={{
-                                id: job.id,
-                                position: job.position,
-                                companyName: job.companyName,
-                                fullJobDescription: job.fullJobDescription,
-                                description: job.description,
-                                url: job.url,
-                              }}
-                            />
-                          )}
-
-                          {activeTab === 'mock-interview' && (
-                            <MockInterviewLab 
-                              job={{
-                                id: job.id,
-                                position: job.position,
-                                companyName: job.companyName,
-                              }}
-                            />
-                          )}
-
-                          {activeTab === 'linked-documents' && (
-                            <LinkedDocumentsTab job={job} onUpdate={onUpdate} />
-                          )}
-                        </div>
-
-                        {/* Right Column - Sidebar (hidden for AI Tools, Notes, Resume Lab, and Linked Documents tabs) */}
-                        {activeTab !== 'ai-tools' && activeTab !== 'notes' && activeTab !== 'resume-lab' && activeTab !== 'mock-interview' && activeTab !== 'linked-documents' && (
-                          <div className="lg:col-span-1 space-y-4">
-                            {/* Status Card */}
-                            <SectionCard title="Application Status">
-                              <div className={`p-4 rounded-xl ${currentStatus.bg} ${currentStatus.border} border`}>
-                                <div className="flex items-center gap-3">
-                                  <StatusIcon className={`w-5 h-5 ${currentStatus.color}`} />
-                                  <div>
-                                    <div className="font-medium text-gray-900 dark:text-gray-100 capitalize">{job.status.replace('_', ' ')}</div>
-                                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Current stage</div>
-                                  </div>
-                                </div>
-                              </div>
-                            </SectionCard>
-
-                            {/* Key Details */}
-                            <SectionCard title="Key Details">
-                              <div className="space-y-3">
-                                <PropertyRow
-                                  icon={Calendar}
-                                  label="Applied"
-                                  value={formatDate(job.appliedDate, 'MMM d, yyyy')}
-                                />
-                                <PropertyRow icon={MapPin} label="Location" value={job.location} />
-                                {job.salary && (
-                                  <PropertyRow icon={DollarSign} label="Salary" value={job.salary} isEditing={isEditing} />
-                                )}
-                                {job.url && (
-                                  <PropertyRow
-                                    icon={ExternalLink}
-                                    label="Job Posting"
-                                    value="View Original"
-                                    link={job.url}
-                                  />
-                                )}
-                              </div>
-                            </SectionCard>
-
-                            {/* Quick Stats */}
-                            <SectionCard title="Quick Stats">
-                              <div className="space-y-3">
-                                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#2b2a2c] rounded-lg">
-                                  <span className="text-sm text-gray-600 dark:text-gray-400">Interviews</span>
-                                  <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                    {job.interviews?.length || 0}
-                                  </span>
-                                </div>
-                                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#2b2a2c] rounded-lg">
-                                  <span className="text-sm text-gray-600 dark:text-gray-400">Status Changes</span>
-                                  <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                    {job.statusHistory?.length || 0}
-                                  </span>
-                                </div>
-                                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#2b2a2c] rounded-lg">
-                                  <span className="text-sm text-gray-600 dark:text-gray-400">Days Since Applied</span>
-                                  <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                    {Math.floor(
-                                      (new Date().getTime() - parseDate(job.appliedDate).getTime()) /
-                                      (1000 * 60 * 60 * 24)
-                                    )}
-                                  </span>
-                                </div>
-                              </div>
-                            </SectionCard>
-
-                            {/* Metadata */}
-                            <div className="p-4 bg-gray-50 dark:bg-[#2b2a2c] rounded-xl text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                              <div>Created: {formatDate(job.createdAt, 'MMM d, yyyy HH:mm')}</div>
-                              <div>Updated: {formatDate(job.updatedAt, 'MMM d, yyyy HH:mm')}</div>
-                              <div className="pt-2 border-t border-gray-200 dark:border-[#3d3c3e] mt-2">ID: {job.id}</div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                    <div className="flex justify-between py-3">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Salary</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {job.salary || 'Not specified'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-3">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Work Type</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">
+                        {job.workType || 'Not specified'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-3">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Platform</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">
+                        {job.platform || 'Direct'}
+                      </span>
                     </div>
                   </div>
-                </Dialog.Panel>
-              </Transition.Child>
+
+                  {/* Collapsible AI Summary */}
+                  <div className="bg-gray-50 dark:bg-[#242325] rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => setMobileAiSummaryExpanded(!mobileAiSummaryExpanded)}
+                      className="w-full flex items-center justify-between p-4"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-purple-500" />
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">AI Summary</span>
+                      </div>
+                      <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${mobileAiSummaryExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+                    <AnimatePresence>
+                      {mobileAiSummaryExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="px-4 pb-4"
+                        >
+                          <EnhancedJobSummary job={job} />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Job Description Accordion */}
+                  {job.fullJobDescription && (
+                    <div className="bg-gray-50 dark:bg-[#242325] rounded-xl overflow-hidden">
+                      <button
+                        onClick={() => setMobileDescriptionExpanded(!mobileDescriptionExpanded)}
+                        className="w-full flex items-center justify-between p-4"
+                      >
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm font-semibold text-gray-900 dark:text-white">Full Description</span>
+                        </div>
+                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${mobileDescriptionExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+                      <AnimatePresence>
+                        {mobileDescriptionExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="px-4 pb-4"
+                          >
+                            <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                              {job.fullJobDescription}
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'interviews' && !isCampaignMode && (
+                <div className="px-4 py-4">
+                  {job.interviews && job.interviews.length > 0 ? (
+                    <div className="space-y-3">
+                      {job.interviews.map((interview) => (
+                        <InterviewCard key={interview.id} interview={interview} jobApplication={job} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No interviews scheduled</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'activity' && (
+                <div className="px-4 py-4">
+                  {job.statusHistory && job.statusHistory.length > 0 ? (
+                    <div className="space-y-0">
+                      {job.statusHistory.slice().reverse().map((change, index) => (
+                        <TimelineItem key={index} change={change} isLast={index === job.statusHistory!.length - 1} index={index} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No activity yet</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'notes' && (
+                <div className="px-4 py-4">
+                  <NotesTab job={job} onUpdate={onUpdate} />
+                </div>
+              )}
+
+              {activeTab === 'contact' && isCampaignMode && (
+                <div className="px-4 py-4">
+                  <ContactTab
+                    job={job}
+                    isEditing={isEditing}
+                    editedJob={editedJob}
+                    onEdit={(updates) => setEditedJob({ ...editedJob, ...updates })}
+                  />
+                </div>
+              )}
+
+              {activeTab === 'messages' && isCampaignMode && (
+                <div className="px-4 py-4">
+                  <ConversationThread messages={localMessages} contactName={job.contactName || job.companyName || 'Contact'} />
+                </div>
+              )}
+
+              {/* AI Tools Tab - Mobile */}
+              {activeTab === 'ai-tools' && !isCampaignMode && (
+                <div className="px-4 py-4">
+                  <AIToolsTab job={job} onUpdate={onUpdate} />
+                </div>
+              )}
+
+              {/* Resume Lab Tab - Mobile */}
+              {activeTab === 'resume-lab' && !isCampaignMode && (
+                <div className="px-4 py-4">
+                  <ResumeLab job={job} />
+                </div>
+              )}
+
+              {/* Mock Interview Tab - Mobile */}
+              {activeTab === 'mock-interview' && !isCampaignMode && (
+                <div className="px-4 py-4">
+                  <MockInterviewLab job={job} />
+                </div>
+              )}
+
+              {/* Meetings Tab - Campaign Mode Mobile */}
+              {activeTab === 'meetings' && isCampaignMode && (
+                <div className="px-4 py-4">
+                  {job.interviews && job.interviews.length > 0 ? (
+                    <div className="space-y-3">
+                      {job.interviews.map((interview) => (
+                        <InterviewCard key={interview.id} interview={interview} jobApplication={job} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No meetings scheduled</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Sticky Bottom Action Bar */}
+            <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#1a1a1a] border-t border-gray-100 dark:border-[#2b2a2c] px-4 py-3 pb-safe flex gap-3">
+              <button
+                onClick={() => setShowMobileStatusSheet(true)}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-gray-100 dark:bg-[#2b2a2c] text-sm font-medium text-gray-700 dark:text-gray-300 active:scale-95 transition-transform"
+              >
+                Change Status
+              </button>
+              <button
+                onClick={() => setShowAddInterviewForm(true)}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-[#635BFF] text-sm font-medium text-white active:scale-95 transition-transform"
+              >
+                {isCampaignMode ? 'Add Meeting' : 'Add Interview'}
+              </button>
+            </div>
+
+            {/* Mobile Status Change Bottom Sheet */}
+            <BottomSheet
+              isOpen={showMobileStatusSheet}
+              onClose={() => setShowMobileStatusSheet(false)}
+              title="Change Status"
+              height={50}
+            >
+              <div className="px-5 py-4 space-y-2">
+                {Object.keys(statusConfig).filter(s =>
+                  isCampaignMode
+                    ? ['targets', 'contacted', 'replied', 'meeting', 'opportunity', 'no_response'].includes(s)
+                    : ['wishlist', 'applied', 'interview', 'pending_decision', 'offer', 'rejected'].includes(s)
+                ).map((status) => {
+                  const isSelected = job.status === status;
+                  const config = statusConfig[status];
+                  return (
+                    <button
+                      key={status}
+                      onClick={async () => {
+                        if (onUpdate) {
+                          await onUpdate({ status: status as any });
+                          setShowMobileStatusSheet(false);
+                        }
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isSelected
+                        ? 'bg-[#635BFF]/10 border-2 border-[#635BFF]'
+                        : 'bg-gray-50 dark:bg-[#2b2a2c] border-2 border-transparent'
+                        }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-[#635BFF] bg-[#635BFF]' : 'border-gray-300 dark:border-gray-600'
+                        }`}>
+                        {isSelected && <Check className="w-3 h-3 text-white" />}
+                      </div>
+                      <span className={`text-sm font-medium ${isSelected ? 'text-[#635BFF]' : 'text-gray-700 dark:text-gray-300'}`}>
+                        {status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </BottomSheet>
+
+            {/* Mobile Menu Bottom Sheet */}
+            <BottomSheet
+              isOpen={showMobileMenu}
+              onClose={() => setShowMobileMenu(false)}
+              title="Actions"
+              height={30}
+            >
+              <div className="px-5 py-2 space-y-1">
+                <button
+                  onClick={() => {
+                    setIsEditing(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-[#2b2a2c] transition-colors"
+                >
+                  <Edit3 className="w-5 h-5 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Edit</span>
+                </button>
+                {job.url && (
+                  <a
+                    href={job.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowMobileMenu(false)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-[#2b2a2c] transition-colors"
+                  >
+                    <ExternalLink className="w-5 h-5 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">View Original</span>
+                  </a>
+                )}
+                {onDelete && (
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      handleDelete();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5 text-red-500" />
+                    <span className="text-sm font-medium text-red-600 dark:text-red-400">Delete</span>
+                  </button>
+                )}
+              </div>
+            </BottomSheet>
+
+            {/* Mobile Add Interview Bottom Sheet */}
+            <BottomSheet
+              isOpen={showAddInterviewForm}
+              onClose={() => setShowAddInterviewForm(false)}
+              title={isCampaignMode ? 'Schedule Meeting' : 'Schedule Interview'}
+              height={70}
+            >
+              <div className="px-4 py-2">
+                <AddInterviewForm
+                  onSubmit={async (interviewData) => {
+                    await handleAddInterview(interviewData);
+                    setShowAddInterviewForm(false);
+                  }}
+                  onCancel={() => setShowAddInterviewForm(false)}
+                  isCampaignMode={isCampaignMode}
+                  hideHeader={true}
+                />
+              </div>
+            </BottomSheet>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Slide-In Panel - Only render on desktop to avoid FocusTrap issues */}
+      {!isMobile && (
+        <Transition appear show={open} as={Fragment}>
+          <Dialog as="div" className="relative z-50" onClose={handleClose}>
+            {/* Backdrop */}
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-md" />
+            </Transition.Child>
+
+            <div className="fixed inset-0 overflow-hidden">
+              <div className="absolute inset-0 overflow-hidden">
+                <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16">
+                  <Transition.Child
+                    as={Fragment}
+                    enter="transform transition ease-out duration-500"
+                    enterFrom="translate-x-full"
+                    enterTo="translate-x-0"
+                    leave="transform transition ease-in duration-400"
+                    leaveFrom="translate-x-0"
+                    leaveTo="translate-x-full"
+                  >
+                    <Dialog.Panel className="pointer-events-auto w-screen max-w-6xl">
+                      <div className="flex h-full flex-col overflow-y-scroll bg-white dark:bg-[#242325] shadow-2xl rounded-l-3xl border-l border-gray-200 dark:border-[#3d3c3e]">
+                        {/* Sticky Header */}
+                        <div className="sticky top-0 z-50 bg-white/80 dark:bg-[#242325]/80 backdrop-blur-lg border-b border-gray-200 dark:border-[#3d3c3e]">
+                          <div className="px-8 py-6">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0 pr-8">
+                                <div className="flex items-center gap-3 mb-3">
+                                  {/* Company Logo or Contact Avatar */}
+                                  {isCampaignMode ? (
+                                    <ProfileAvatar
+                                      config={generateGenderedAvatarConfigByName(job.contactName || 'Unknown')}
+                                      size={48}
+                                      className="rounded-xl shadow-lg"
+                                    />
+                                  ) : (
+                                    <CompanyLogo
+                                      companyName={job.companyName}
+                                      size="lg"
+                                      className={`rounded-xl ${currentStatus.bg} ${currentStatus.border} border`}
+                                      showInitials={true}
+                                    />
+                                  )}
+                                  <Dialog.Title className="text-2xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
+                                    {isCampaignMode ? (job.contactName || 'Unknown Contact') : job.position}
+                                  </Dialog.Title>
+                                </div>
+                                <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
+                                  {isCampaignMode ? (
+                                    <>
+                                      <span className="text-lg font-medium">{job.contactRole || 'No role'}</span>
+                                      <span className="text-gray-400 dark:text-gray-600">@</span>
+                                      <span className="font-medium">{job.companyName}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="text-lg font-medium">{job.companyName}</span>
+                                      <span className="text-gray-400 dark:text-gray-600">•</span>
+                                      <div className="flex items-center gap-1.5">
+                                        <MapPin className="w-4 h-4" />
+                                        <span>{job.location}</span>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Quick Actions */}
+                              <div className="flex items-center gap-2">
+                                {!isEditing ? (
+                                  <>
+                                    <button
+                                      onClick={() => setIsEditing(true)}
+                                      className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 group"
+                                    >
+                                      <Edit3 className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100" />
+                                    </button>
+                                    {job.url && (
+                                      <a
+                                        href={job.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 group"
+                                      >
+                                        <ExternalLink className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                                      </a>
+                                    )}
+                                    {onDelete && (
+                                      <button
+                                        onClick={handleDelete}
+                                        className="p-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 group"
+                                      >
+                                        <Trash2 className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400" />
+                                      </button>
+                                    )}
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={handleSave}
+                                      disabled={isSaving}
+                                      className="px-4 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 font-medium flex items-center gap-2 disabled:opacity-50"
+                                    >
+                                      <Save className="w-4 h-4" />
+                                      {isSaving ? 'Saving...' : 'Save'}
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setIsEditing(false);
+                                        setEditedJob({});
+                                      }}
+                                      className="px-4 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 font-medium text-gray-900 dark:text-gray-100"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </>
+                                )}
+                                <button
+                                  onClick={handleClose}
+                                  className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 group ml-2"
+                                >
+                                  <X className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Status Badge */}
+                            <div className="mt-4">
+                              <JobStatusBadge
+                                status={job.status}
+                                isEditing={isEditing}
+                                onChange={(newStatus) => setEditedJob({ ...editedJob, status: newStatus })}
+                                boardType={boardType}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Tabs */}
+                          <div className="px-8 flex gap-6 border-t border-gray-100 dark:border-[#3d3c3e] bg-white dark:bg-[#242325] overflow-x-auto">
+                            {(isCampaignMode ? [
+                              // Campaign-specific tabs
+                              { id: 'contact', label: 'Contact', icon: null, badge: null },
+                              { id: 'messages', label: 'Messages', icon: null, badge: job.conversationHistory?.length || 0 },
+                              { id: 'meetings', label: 'Meetings', icon: null, badge: (job.meetings?.length || job.interviews?.length) || 0 },
+                              { id: 'activity', label: 'Timeline', icon: null, badge: null },
+                              { id: 'notes', label: 'Notes', icon: StickyNote, badge: job.stickyNotes?.length || 0 },
+                            ] : [
+                              // Jobs-specific tabs
+                              { id: 'overview', label: 'Overview', icon: null, badge: null },
+                              { id: 'interviews', label: 'Interviews', icon: null, badge: job.interviews?.length || 0 },
+                              { id: 'activity', label: 'Activity', icon: null, badge: null },
+                              { id: 'notes', label: 'Notes', icon: StickyNote, badge: job.stickyNotes?.length || 0 },
+                              { id: 'ai-tools', label: 'Document Studio', icon: Sparkles, badge: null },
+                              { id: 'resume-lab', label: 'Resume Lab', icon: Target, badge: (job.cvAnalysisIds?.length || (job.cvAnalysisId ? 1 : 0)) || 'link' },
+                              { id: 'mock-interview', label: 'Mock Interview', icon: Mic, badge: null },
+                              { id: 'linked-documents', label: 'Linked Documents', icon: FileText, badge: ((job.linkedResumeIds?.length || 0) + (job.linkedNoteIds?.length || 0) + (job.linkedDocumentIds?.length || 0) + (job.linkedWhiteboardIds?.length || 0)) > 0 ? ((job.linkedResumeIds?.length || 0) + (job.linkedNoteIds?.length || 0) + (job.linkedDocumentIds?.length || 0) + (job.linkedWhiteboardIds?.length || 0)) : null },
+                            ]).map((tab) => (
+                              <button
+                                key={tab.id}
+                                onClick={() => {
+                                  setActiveTab(tab.id);
+                                  setShowAddInterviewForm(false);
+                                }}
+                                className={`py-3 px-1 text-sm font-medium border-b-2 transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id
+                                  ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                                  }`}
+                              >
+                                {tab.icon && <tab.icon className="w-4 h-4" />}
+                                <span>{tab.label}</span>
+                                {tab.badge && (
+                                  <motion.span
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                                    className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-semibold ${tab.badge === 'New'
+                                      ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-sm'
+                                      : typeof tab.badge === 'number' && tab.badge > 0
+                                        ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800'
+                                        : 'bg-gray-200 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300'
+                                      }`}
+                                  >
+                                    {tab.badge}
+                                  </motion.span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Two-Column Layout */}
+                        <div className="flex-1 px-8 py-6">
+                          <div className={`grid grid-cols-1 ${activeTab === 'ai-tools' || activeTab === 'notes' || activeTab === 'resume-lab' || activeTab === 'mock-interview' || activeTab === 'linked-documents' ? 'lg:grid-cols-1' : 'lg:grid-cols-3'} gap-6`}>
+                            {/* Left Column - Main Content */}
+                            <div className={`${activeTab === 'ai-tools' || activeTab === 'notes' || activeTab === 'resume-lab' || activeTab === 'mock-interview' || activeTab === 'linked-documents' ? 'lg:col-span-1' : 'lg:col-span-2'} space-y-6`}>
+                              {activeTab === 'overview' && (
+                                <div className="space-y-8">
+                                  {/* Quick Stats / Highlights */}
+                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    <div className="p-4 rounded-2xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50">
+                                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Applied</div>
+                                      <div className="font-semibold text-gray-900 dark:text-white">
+                                        {format(parseDate(job.appliedDate), 'MMM d, yyyy')}
+                                      </div>
+                                    </div>
+                                    <div className="p-4 rounded-2xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50">
+                                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Salary</div>
+                                      <div className="font-semibold text-gray-900 dark:text-white">
+                                        {job.salary || 'Not specified'}
+                                      </div>
+                                    </div>
+                                    <div className="p-4 rounded-2xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50">
+                                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Work Type</div>
+                                      <div className="font-semibold text-gray-900 dark:text-white capitalize">
+                                        {job.workType || 'Not specified'}
+                                      </div>
+                                    </div>
+                                    <div className="p-4 rounded-2xl bg-gray-50 dark:bg-[#2b2a2c]/50 border border-gray-100 dark:border-[#3d3c3e]/50">
+                                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Platform</div>
+                                      <div className="font-semibold text-gray-900 dark:text-white capitalize">
+                                        {job.platform || 'Direct'}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* AI Powered Summary Section */}
+                                  <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <Sparkles className="w-4 h-4 text-purple-500" />
+                                        AI Summary
+                                      </h3>
+                                      {!isEditing && (
+                                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-800">
+                                          Auto-generated
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {isEditing ? (
+                                      <textarea
+                                        value={editedJob.description !== undefined ? editedJob.description : job.description || ''}
+                                        onChange={(e) => setEditedJob({ ...editedJob, description: e.target.value })}
+                                        className="w-full min-h-[150px] p-4 rounded-xl border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
+                                        placeholder="• Key responsibilities and main duties...&#10;• Required qualifications and experience...&#10;• Notable aspects and unique selling points..."
+                                      />
+                                    ) : (
+                                      <div className="bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-100 dark:border-[#3d3c3e] p-6 shadow-sm">
+                                        <EnhancedJobSummary job={job} />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Full Job Description Section */}
+                                  {job.fullJobDescription && (
+                                    <div className="space-y-4">
+                                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <FileText className="w-4 h-4 text-gray-400" />
+                                        Full Description
+                                      </h3>
+                                      <div className="bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-100 dark:border-[#3d3c3e] p-6 shadow-sm">
+                                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                                          <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                                            {job.fullJobDescription}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Contact Tab - Campaign Mode */}
+                              {activeTab === 'contact' && isCampaignMode && (
+                                <ContactTab
+                                  job={job}
+                                  isEditing={isEditing}
+                                  editedJob={editedJob}
+                                  onEdit={(updates) => setEditedJob({ ...editedJob, ...updates })}
+                                />
+                              )}
+
+                              {/* Messages Tab - Campaign Mode */}
+                              {activeTab === 'messages' && isCampaignMode && (
+                                <div className="flex flex-col h-full space-y-6">
+                                  <div className="flex items-center justify-between px-1">
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                      Conversation History
+                                      <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#2b2a2c] text-xs font-medium text-gray-600 dark:text-gray-400">
+                                        {localMessages.length > 0 ? localMessages.length : (job.conversationHistory?.length || 0)}
+                                      </span>
+                                    </h3>
+                                    {job.gmailThreadId && (
+                                      <button
+                                        onClick={() => handleCheckReplies(true)}
+                                        disabled={isCheckingReplies}
+                                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#3d3c3e] rounded-xl hover:bg-gray-200 dark:hover:bg-[#4a494b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        {isCheckingReplies ? (
+                                          <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Checking...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <RefreshCw className="w-4 h-4" />
+                                            Check Replies
+                                          </>
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <div className="flex-1 flex flex-col bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-100 dark:border-[#3d3c3e] shadow-sm overflow-hidden">
+                                    <div className="flex-1 overflow-y-auto p-6">
+                                      <ConversationThread
+                                        messages={localMessages.length > 0 ? localMessages : (job.conversationHistory || [])}
+                                        contactName={job.contactName || job.companyName || 'Contact'}
+                                        contactInitials={(job.contactName || job.companyName || 'U')
+                                          .split(' ')
+                                          .map(n => n[0])
+                                          .join('')
+                                          .toUpperCase()
+                                          .slice(0, 2)}
+                                        onReply={(message) => handleOpenComposer(message)}
+                                      />
+                                    </div>
+
+                                    {/* Premium Message Composer with AI */}
+                                    <div className="border-t border-gray-200 dark:border-[#3d3c3e] p-4 bg-gray-50/50 dark:bg-[#1e1e22]/50">
+                                      <PremiumChatComposer
+                                        conversationHistory={localMessages.length > 0 ? localMessages : (job.conversationHistory || [])}
+                                        contactContext={{
+                                          contactName: job.contactName || job.companyName || 'Contact',
+                                          contactRole: job.contactRole,
+                                          companyName: job.companyName || '',
+                                          relationshipGoal: job.relationshipGoal,
+                                          warmthLevel: job.warmthLevel,
+                                        }}
+                                        onSend={handleQuickSend}
+                                        isSending={isSendingMessage}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Meetings Tab - Campaign Mode */}
+                              {activeTab === 'meetings' && isCampaignMode && (
+                                <div className="space-y-6">
+                                  <div className="flex items-center justify-between px-1">
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                      Meetings
+                                      <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#2b2a2c] text-xs font-medium text-gray-600 dark:text-gray-400">
+                                        {(job.meetings?.length || job.interviews?.length) || 0}
+                                      </span>
+                                    </h3>
+                                    {!showAddInterviewForm && (
+                                      <button
+                                        onClick={() => setShowAddInterviewForm(true)}
+                                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-lg shadow-gray-900/20 dark:shadow-none"
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                        Schedule Meeting
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <AnimatePresence>
+                                    {showAddInterviewForm && (
+                                      <AddInterviewForm
+                                        onAdd={handleAddInterview}
+                                        onCancel={() => setShowAddInterviewForm(false)}
+                                        isCampaignMode={true}
+                                      />
+                                    )}
+                                  </AnimatePresence>
+
+                                  {(job.meetings || job.interviews) && (job.meetings?.length || job.interviews?.length) ? (
+                                    <div className="grid gap-3">
+                                      {(job.interviews || []).map((interview) => (
+                                        <InterviewCard
+                                          key={interview.id}
+                                          interview={interview}
+                                          jobApplication={job}
+                                          onDelete={async (interviewId) => {
+                                            if (!onUpdate || !job) return;
+                                            const updatedInterviews = job.interviews?.filter(i => i.id !== interviewId) || [];
+                                            await onUpdate({ interviews: updatedInterviews });
+                                            notify.success('Meeting removed');
+                                          }}
+                                        />
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 flex items-center justify-center mb-4">
+                                        <Calendar className="w-8 h-8 text-purple-500" />
+                                      </div>
+                                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No meetings yet</h3>
+                                      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+                                        Schedule a coffee chat, call, or meeting to advance this relationship.
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {activeTab === 'interviews' && !isCampaignMode && (
+                                <div className="space-y-6">
+                                  {/* Add Interview Form */}
+                                  <AnimatePresence>
+                                    {showAddInterviewForm && (
+                                      <AddInterviewForm
+                                        onAdd={handleAddInterview}
+                                        onCancel={() => setShowAddInterviewForm(false)}
+                                      />
+                                    )}
+                                  </AnimatePresence>
+
+                                  {/* Interviews List */}
+                                  <div className="space-y-4">
+                                    <div className="flex items-center justify-between px-1">
+                                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                        Interview Schedule
+                                        <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#2b2a2c] text-xs font-medium text-gray-600 dark:text-gray-400">
+                                          {job.interviews?.length || 0}
+                                        </span>
+                                      </h3>
+                                      {!showAddInterviewForm && (
+                                        <button
+                                          onClick={() => setShowAddInterviewForm(true)}
+                                          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-lg shadow-gray-900/20 dark:shadow-none"
+                                        >
+                                          <Plus className="w-4 h-4" />
+                                          Add Interview
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    {job.interviews && job.interviews.length > 0 ? (
+                                      <div className="grid gap-3">
+                                        {job.interviews.map((interview) => (
+                                          <InterviewCard
+                                            key={interview.id}
+                                            interview={interview}
+                                            jobApplication={job}
+                                            onDelete={async (interviewId) => {
+                                              if (!onUpdate || !job) return;
+
+                                              try {
+                                                const updatedInterviews = job.interviews?.filter(
+                                                  (i) => i.id !== interviewId
+                                                ) || [];
+
+                                                await onUpdate({
+                                                  interviews: updatedInterviews,
+                                                });
+
+                                                notify.success('Interview deleted successfully');
+                                              } catch (error) {
+                                                console.error('Error deleting interview:', error);
+                                                notify.error('Failed to delete interview');
+                                              }
+                                            }}
+                                          />
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      !showAddInterviewForm && (
+                                        <div className="text-center py-16 bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-2xl border border-dashed border-gray-200 dark:border-[#3d3c3e]">
+                                          <div className="w-16 h-16 bg-white dark:bg-[#2b2a2c] rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-[#3d3c3e]">
+                                            <Calendar className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                                          </div>
+                                          <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                                            No interviews scheduled
+                                          </h4>
+                                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-xs mx-auto">
+                                            Keep track of your interview process by adding scheduled interviews here.
+                                          </p>
+                                          <button
+                                            onClick={() => setShowAddInterviewForm(true)}
+                                            className="px-5 py-2.5 bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white border border-gray-200 dark:border-[#3d3c3e] rounded-xl hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-all font-medium text-sm inline-flex items-center gap-2 shadow-sm"
+                                          >
+                                            <Plus className="w-4 h-4" />
+                                            Schedule First Interview
+                                          </button>
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {activeTab === 'activity' && (
+                                <div className="space-y-6">
+                                  <div className="flex items-center justify-between px-1">
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                      Activity History
+                                      <span className="px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#2b2a2c] text-xs font-medium text-gray-600 dark:text-gray-400">
+                                        {job.statusHistory?.length || 0}
+                                      </span>
+                                    </h3>
+                                  </div>
+
+                                  {job.statusHistory && job.statusHistory.length > 0 ? (
+                                    <div className="space-y-0 pl-2">
+                                      {[...job.statusHistory].reverse().map((change, index) => (
+                                        <TimelineItem
+                                          key={index}
+                                          change={change}
+                                          index={index}
+                                          isLast={index === job.statusHistory!.length - 1}
+                                        />
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="text-center py-16 bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-2xl border border-dashed border-gray-200 dark:border-[#3d3c3e]">
+                                      <div className="w-16 h-16 bg-white dark:bg-[#2b2a2c] rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-[#3d3c3e]">
+                                        <Clock className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                                      </div>
+                                      <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                                        No activity recorded
+                                      </h4>
+                                      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+                                        Status changes and updates will appear here.
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {activeTab === 'ai-tools' && (
+                                <AIToolsTab job={job} onUpdate={onUpdate} />
+                              )}
+
+                              {activeTab === 'notes' && (
+                                <NotesTab job={job} onUpdate={onUpdate} />
+                              )}
+
+                              {activeTab === 'resume-lab' && (
+                                <ResumeLab
+                                  cvAnalysisIds={job.cvAnalysisIds}
+                                  cvAnalysisId={job.cvAnalysisId}
+                                  job={{
+                                    id: job.id,
+                                    position: job.position,
+                                    companyName: job.companyName,
+                                    fullJobDescription: job.fullJobDescription,
+                                    description: job.description,
+                                    url: job.url,
+                                  }}
+                                />
+                              )}
+
+                              {activeTab === 'mock-interview' && (
+                                <MockInterviewLab
+                                  job={{
+                                    id: job.id,
+                                    position: job.position,
+                                    companyName: job.companyName,
+                                  }}
+                                />
+                              )}
+
+                              {activeTab === 'linked-documents' && (
+                                <LinkedDocumentsTab job={job} onUpdate={onUpdate} />
+                              )}
+                            </div>
+
+                            {/* Right Column - Sidebar (hidden for AI Tools, Notes, Resume Lab, and Linked Documents tabs) */}
+                            {activeTab !== 'ai-tools' && activeTab !== 'notes' && activeTab !== 'resume-lab' && activeTab !== 'mock-interview' && activeTab !== 'linked-documents' && (
+                              <div className="lg:col-span-1 space-y-4">
+                                {/* Status Card */}
+                                <SectionCard title="Application Status">
+                                  <div className={`p-4 rounded-xl ${currentStatus.bg} ${currentStatus.border} border`}>
+                                    <div className="flex items-center gap-3">
+                                      <StatusIcon className={`w-5 h-5 ${currentStatus.color}`} />
+                                      <div>
+                                        <div className="font-medium text-gray-900 dark:text-gray-100 capitalize">{job.status.replace('_', ' ')}</div>
+                                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Current stage</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </SectionCard>
+
+                                {/* Key Details */}
+                                <SectionCard title="Key Details">
+                                  <div className="space-y-3">
+                                    <PropertyRow
+                                      icon={Calendar}
+                                      label="Applied"
+                                      value={formatDate(job.appliedDate, 'MMM d, yyyy')}
+                                    />
+                                    <PropertyRow icon={MapPin} label="Location" value={job.location} />
+                                    {job.salary && (
+                                      <PropertyRow icon={DollarSign} label="Salary" value={job.salary} isEditing={isEditing} />
+                                    )}
+                                    {job.url && (
+                                      <PropertyRow
+                                        icon={ExternalLink}
+                                        label="Job Posting"
+                                        value="View Original"
+                                        link={job.url}
+                                      />
+                                    )}
+                                  </div>
+                                </SectionCard>
+
+                                {/* Quick Stats */}
+                                <SectionCard title="Quick Stats">
+                                  <div className="space-y-3">
+                                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#2b2a2c] rounded-lg">
+                                      <span className="text-sm text-gray-600 dark:text-gray-400">Interviews</span>
+                                      <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                        {job.interviews?.length || 0}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#2b2a2c] rounded-lg">
+                                      <span className="text-sm text-gray-600 dark:text-gray-400">Status Changes</span>
+                                      <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                        {job.statusHistory?.length || 0}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#2b2a2c] rounded-lg">
+                                      <span className="text-sm text-gray-600 dark:text-gray-400">Days Since Applied</span>
+                                      <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                        {Math.floor(
+                                          (new Date().getTime() - parseDate(job.appliedDate).getTime()) /
+                                          (1000 * 60 * 60 * 24)
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </SectionCard>
+
+                                {/* Metadata */}
+                                <div className="p-4 bg-gray-50 dark:bg-[#2b2a2c] rounded-xl text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                                  <div>Created: {formatDate(job.createdAt, 'MMM d, yyyy HH:mm')}</div>
+                                  <div>Updated: {formatDate(job.updatedAt, 'MMM d, yyyy HH:mm')}</div>
+                                  <div className="pt-2 border-t border-gray-200 dark:border-[#3d3c3e] mt-2">ID: {job.id}</div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Dialog.Panel>
+                  </Transition.Child>
+                </div >
+              </div >
             </div >
-          </div >
-        </div >
-      </Dialog >
-    </Transition >
+          </Dialog >
+        </Transition>
+      )}
 
       {/* Premium Delete Confirmation Modal */}
       {typeof document !== 'undefined' && createPortal(
@@ -1290,7 +1720,7 @@ export const JobDetailPanel = ({ job, open, onClose, onUpdate, onDelete, boardTy
               >
                 {/* Subtle gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-gray-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900/50 pointer-events-none" />
-                
+
                 {/* Content */}
                 <div className="relative px-8 py-8 z-10 pointer-events-auto">
                   {/* Icon - Premium */}
