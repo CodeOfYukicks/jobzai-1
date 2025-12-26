@@ -3764,16 +3764,27 @@ END:VCALENDAR`;
                         }}
                       >
                         <div className="flex items-start gap-3">
-                          {/* Company Logo */}
-                          <CompanyLogo companyName={app.companyName || ''} size="md" />
+                          {/* Avatar/Logo - Use ProfileAvatar for campaigns, CompanyLogo for jobs */}
+                          {app.contactName ? (
+                            <ProfileAvatar
+                              config={generateGenderedAvatarConfigByName(app.contactName)}
+                              size={40}
+                              className="rounded-full shadow-sm flex-shrink-0"
+                            />
+                          ) : (
+                            <CompanyLogo companyName={app.companyName || ''} size="md" />
+                          )}
 
                           {/* Content */}
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-gray-900 dark:text-white text-sm truncate">
-                              {app.position || 'Untitled Position'}
+                              {app.contactName || app.position || 'Untitled'}
                             </h3>
                             <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                              {app.companyName}{app.location ? ` • ${app.location}` : ''}
+                              {app.contactName
+                                ? `${app.position || ''} ${app.companyName ? `@ ${app.companyName}` : ''}`.trim() || app.companyName
+                                : `${app.companyName}${app.location ? ` • ${app.location}` : ''}`
+                              }
                             </p>
                             <div className="flex items-center gap-2 mt-2">
                               <span className="text-[10px] text-gray-400 dark:text-gray-500">
