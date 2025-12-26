@@ -7013,18 +7013,7 @@ END:VCALENDAR`;
           }
         `}</style>
 
-        {/* Floating action button to view all scheduled interviews */}
-        <button
-          onClick={() => {
-            // Redirect to upcoming interviews page
-            window.location.href = '/upcoming-interviews';
-          }}
-          className="fixed bottom-20 right-6 z-10 bg-[#635BFF] hover:bg-[#7c75ff] dark:bg-[#a5a0ff] text-white p-4 rounded-full shadow-lg flex items-center justify-center transition-colors"
-          aria-label="View all scheduled interviews"
-        >
-          <Calendar className="w-6 h-6" />
-          <span className="sr-only">View all scheduled interviews</span>
-        </button>
+
 
         {/* Mobile Floating Action Button */}
         <motion.button
