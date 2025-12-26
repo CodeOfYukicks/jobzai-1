@@ -436,7 +436,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const needsNoTopPadding = location.pathname.startsWith('/ats-analysis/') ||
     location.pathname === '/campaigns-auto' ||
     location.pathname === '/cv-analysis' ||
-    location.pathname === '/upcoming-interviews';
+    location.pathname === '/upcoming-interviews' ||
+    location.pathname === '/calendar';
 
   // Pages where we should hide the mobile global elements (Top Bar & Bottom Nav)
   // This gives a true native "full screen" app feel for specific editors

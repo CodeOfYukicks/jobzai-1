@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import moment from 'moment';
+import { ChevronLeft, ChevronRight, Plus as PlusIcon } from 'lucide-react';
 import { collection, query, getDocs, getDoc, addDoc, doc, updateDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -103,7 +104,7 @@ export default function CalendarView() {
   // Fetch boards from Firestore
   useEffect(() => {
     if (!currentUser) return;
-    
+
     const fetchBoards = async () => {
       try {
         const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
@@ -113,7 +114,7 @@ export default function CalendarView() {
           boardsData.push({ id: doc.id, ...doc.data() } as KanbanBoard);
         });
         setBoards(boardsData);
-        
+
         // Set default board as current
         const defaultBoard = boardsData.find(b => b.isDefault);
         if (defaultBoard) {
@@ -127,7 +128,7 @@ export default function CalendarView() {
         console.error('Error fetching boards:', error);
       }
     };
-    
+
     fetchBoards();
   }, [currentUser]);
 
@@ -137,17 +138,17 @@ export default function CalendarView() {
       setIsLoading(false);
       return;
     }
-    
+
     const fetchApplicationsAndInterviews = async () => {
       try {
         setIsLoading(true);
-        
+
         // Fetch boards first to map board info
         const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
         const boardsSnapshot = await getDocs(query(boardsRef, orderBy('createdAt', 'asc')));
         const boardsMap = new Map<string, KanbanBoard>();
         let defaultBoard: KanbanBoard | null = null;
-        
+
         boardsSnapshot.forEach((doc) => {
           const board = { id: doc.id, ...doc.data() } as KanbanBoard;
           boardsMap.set(board.id, board);
@@ -155,16 +156,16 @@ export default function CalendarView() {
             defaultBoard = board;
           }
         });
-        
+
         // Fetch applications
         const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
         const applicationsSnapshot = await getDocs(query(applicationsRef));
-        
+
         const newEvents: CalendarEvent[] = [];
-        
+
         applicationsSnapshot.forEach((doc) => {
           const application = { id: doc.id, ...doc.data() } as JobApplication & { boardId?: string };
-          
+
           // Get board info for this application
           const boardId = application.boardId;
           const board = boardId ? boardsMap.get(boardId) : defaultBoard;
@@ -175,14 +176,14 @@ export default function CalendarView() {
             boardColor: board.color,
             boardType: board.boardType || 'jobs',
           } : null;
-          
+
           // Add application/wishlist date as event
           if (application.appliedDate) {
             const appliedDate = new Date(application.appliedDate);
             const isWishlist = application.status === 'wishlist';
             newEvents.push({
               id: `app-${application.id}`,
-              title: isWishlist 
+              title: isWishlist
                 ? `Wishlist: ${application.companyName} - ${application.position}`
                 : `Applied: ${application.companyName} - ${application.position}`,
               start: appliedDate,
@@ -193,7 +194,7 @@ export default function CalendarView() {
               resource: { ...application, ...boardInfo },
             });
           }
-          
+
           // Add interviews as events
           if (application.interviews && application.interviews.length > 0) {
             application.interviews.forEach((interview, index) => {
@@ -201,17 +202,17 @@ export default function CalendarView() {
                 const interviewDate = new Date(interview.date);
                 const [hours, minutes] = (interview.time || '09:00').split(':').map(Number);
                 interviewDate.setHours(hours, minutes);
-                
+
                 const endDate = new Date(interviewDate);
                 endDate.setHours(endDate.getHours() + 1);
-                
+
                 let color = '#6366f1';
                 if (interview.type === 'hr') color = '#ec4899';
                 if (interview.type === 'technical') color = '#14b8a6';
                 if (interview.type === 'manager') color = '#f59e0b';
                 if (interview.type === 'final') color = '#22c55e';
                 if (interview.status === 'cancelled') color = '#ef4444';
-                
+
                 newEvents.push({
                   id: `int-${application.id}-${index}`,
                   title: `${interview.type.charAt(0).toUpperCase() + interview.type.slice(1)} Interview: ${application.companyName}`,
@@ -226,7 +227,7 @@ export default function CalendarView() {
             });
           }
         });
-        
+
         setEvents(newEvents);
       } catch (error) {
         console.error('Error fetching calendar data:', error);
@@ -235,7 +236,7 @@ export default function CalendarView() {
         setIsLoading(false);
       }
     };
-    
+
     fetchApplicationsAndInterviews();
   }, [currentUser]);
 
@@ -263,7 +264,7 @@ export default function CalendarView() {
       }
 
       const gEvents = await fetchGoogleEvents(startDate, endDate);
-      
+
       // Convert Google events to CalendarEvent format
       const convertedEvents: CalendarEvent[] = gEvents.map((gEvent: GoogleCalendarEvent) => ({
         id: `google-${gEvent.id}`,
@@ -295,26 +296,26 @@ export default function CalendarView() {
   // Handle drag and drop
   const handleEventDrop = async ({ event, start, end }: any) => {
     if (!currentUser) return;
-    
+
     // Clear timeout and reset dragging state
     if (dragTimeoutRef.current) {
       clearTimeout(dragTimeoutRef.current);
       dragTimeoutRef.current = null;
     }
     setIsDragging(false);
-    
+
     const eventEnd = end || new Date(start.getTime() + (event.end.getTime() - event.start.getTime()));
-    
+
     try {
       const eventId = event.id;
       const isApplicationOrWishlist = event.type === 'application' || event.type === 'wishlist';
-      
+
       if (isApplicationOrWishlist) {
         const applicationId = eventId.replace('app-', '');
         const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
-        
+
         const newDate = moment(start).format('YYYY-MM-DD');
-        
+
         await updateDoc(applicationRef, {
           appliedDate: newDate,
           updatedAt: serverTimestamp(),
@@ -330,65 +331,65 @@ export default function CalendarView() {
 
         setEvents((prev) =>
           prev.map((e) =>
-          e.id === eventId 
-            ? { ...e, start, end: start, resource: { ...e.resource, appliedDate: newDate } }
-            : e
+            e.id === eventId
+              ? { ...e, start, end: start, resource: { ...e.resource, appliedDate: newDate } }
+              : e
           )
         );
-        
+
         notify.success('Application date updated');
       } else {
         const [applicationId, interviewIndex] = eventId.replace('int-', '').split('-');
         const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
-        
+
         const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
         const applicationsSnapshot = await getDocs(query(applicationsRef));
         let currentApplication: any = null;
-        
+
         applicationsSnapshot.forEach((doc) => {
           if (doc.id === applicationId) {
             currentApplication = { id: doc.id, ...doc.data() };
           }
         });
-        
+
         if (!currentApplication || !currentApplication.interviews) {
           notify.error('Interview not found');
           return;
         }
-        
+
         const interviewIndexNum = parseInt(interviewIndex);
         const interview = currentApplication.interviews[interviewIndexNum];
-        
+
         if (!interview) {
           notify.error('Interview not found');
           return;
         }
-        
+
         const newDate = moment(start).format('YYYY-MM-DD');
         const newTime = moment(start).format('HH:mm');
-        
-        const updatedInterviews = currentApplication.interviews.map((int: Interview, idx: number) => 
+
+        const updatedInterviews = currentApplication.interviews.map((int: Interview, idx: number) =>
           idx === interviewIndexNum ? { ...int, date: newDate, time: newTime } : int
         );
-        
+
         await updateDoc(applicationRef, {
           interviews: updatedInterviews,
           updatedAt: serverTimestamp(),
         });
-        
+
         setEvents((prev) =>
           prev.map((e) =>
-          e.id === eventId 
+            e.id === eventId
               ? {
-                  ...e,
-                  start,
-                  end: eventEnd,
-                  resource: { ...e.resource, interview: { ...interview, date: newDate, time: newTime } },
-                }
+                ...e,
+                start,
+                end: eventEnd,
+                resource: { ...e.resource, interview: { ...interview, date: newDate, time: newTime } },
+              }
               : e
           )
         );
-        
+
         notify.success('Interview date updated');
       }
     } catch (error) {
@@ -396,63 +397,63 @@ export default function CalendarView() {
       notify.error('Failed to update event');
     }
   };
-  
+
   const handleEventResize = async ({ event, start, end }: any) => {
     if (!currentUser || event.type === 'application' || event.type === 'wishlist') return;
-    
+
     // Clear timeout and reset dragging state
     if (dragTimeoutRef.current) {
       clearTimeout(dragTimeoutRef.current);
       dragTimeoutRef.current = null;
     }
     setIsDragging(false);
-    
+
     try {
       const eventId = event.id;
       const [applicationId, interviewIndex] = eventId.replace('int-', '').split('-');
       const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
-      
+
       const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
       const applicationsSnapshot = await getDocs(query(applicationsRef));
       let currentApplication: any = null;
-      
+
       applicationsSnapshot.forEach((doc) => {
         if (doc.id === applicationId) {
           currentApplication = { id: doc.id, ...doc.data() };
         }
       });
-      
+
       if (!currentApplication || !currentApplication.interviews) {
         return;
       }
-      
+
       const interviewIndexNum = parseInt(interviewIndex);
       const interview = currentApplication.interviews[interviewIndexNum];
-      
+
       if (!interview) {
         return;
       }
-      
+
       const newTime = moment(start).format('HH:mm');
       const newDate = moment(start).format('YYYY-MM-DD');
-      
-      const updatedInterviews = currentApplication.interviews.map((int: Interview, idx: number) => 
+
+      const updatedInterviews = currentApplication.interviews.map((int: Interview, idx: number) =>
         idx === interviewIndexNum ? { ...int, date: newDate, time: newTime } : int
       );
-      
+
       await updateDoc(applicationRef, {
         interviews: updatedInterviews,
         updatedAt: serverTimestamp(),
       });
-      
+
       setEvents((prev) =>
         prev.map((e) =>
-        e.id === eventId 
-          ? { ...e, start, end, resource: { ...e.resource, interview: { ...interview, date: newDate, time: newTime } } }
-          : e
+          e.id === eventId
+            ? { ...e, start, end, resource: { ...e.resource, interview: { ...interview, date: newDate, time: newTime } } }
+            : e
         )
       );
-      
+
       notify.success('Interview duration updated');
     } catch (error) {
       console.error('Error resizing event:', error);
@@ -463,10 +464,10 @@ export default function CalendarView() {
   // Filter events
   // Merge local events with Google events
   const allEvents = [...events, ...googleEvents];
-  
+
   const filteredEvents = allEvents.filter(
     (event) =>
-      (showApplications && event.type === 'application') || 
+      (showApplications && event.type === 'application') ||
       (showInterviews && event.type === 'interview') ||
       (showWishlists && event.type === 'wishlist') ||
       (showGoogleEvents && event.type === 'google')
@@ -524,18 +525,18 @@ export default function CalendarView() {
   // Add event handler
   const handleAddEvent = async (eventData: any) => {
     if (!currentUser) return;
-    
+
     try {
       if (eventData.eventType === 'application') {
         // Determine if this is a campaigns board
         const isCampaign = eventData.boardType === 'campaigns' || currentBoardType === 'campaigns';
         const defaultStatus = isCampaign ? 'targets' : 'applied';
-        
+
         // For campaigns, use contactRole as position if position is empty
-        const effectivePosition = isCampaign 
+        const effectivePosition = isCampaign
           ? (eventData.position || eventData.contactRole || 'Outreach')
           : eventData.position;
-        
+
         const applicationData: any = {
           companyName: eventData.companyName,
           position: effectivePosition,
@@ -580,18 +581,18 @@ export default function CalendarView() {
             },
           ],
         };
-        
+
         const docRef = await addDoc(
-          collection(db, 'users', currentUser.uid, 'jobApplications'), 
+          collection(db, 'users', currentUser.uid, 'jobApplications'),
           applicationData
         );
-        
+
         const isWishlist = applicationData.status === 'wishlist';
         const newEvent: CalendarEvent = {
           id: `app-${docRef.id}`,
-          title: isWishlist 
+          title: isWishlist
             ? `Wishlist: ${eventData.companyName} - ${effectivePosition}`
-            : isCampaign 
+            : isCampaign
               ? `Outreach: ${eventData.contactName || eventData.companyName}`
               : `Applied: ${eventData.companyName} - ${effectivePosition}`,
           start: new Date(eventData.date || eventData.appliedDate),
@@ -601,17 +602,17 @@ export default function CalendarView() {
           color: isWishlist ? '#ec4899' : isCampaign ? '#8B5CF6' : '#8b5cf6',
           resource: { id: docRef.id, ...applicationData },
         };
-        
+
         setEvents((prev) => [...prev, newEvent]);
         notify.success(isCampaign ? 'Outreach added successfully' : 'Job application added successfully');
-        
+
         // Generate AI summary in background if job description was entered manually (for jobs only)
-        const needsAiAnalysis = !isCampaign && 
-                                applicationData.fullJobDescription && 
-                                applicationData.fullJobDescription.length >= 50 && 
-                                !applicationData.description &&
-                                !eventData.jobInsights;
-        
+        const needsAiAnalysis = !isCampaign &&
+          applicationData.fullJobDescription &&
+          applicationData.fullJobDescription.length >= 50 &&
+          !applicationData.description &&
+          !eventData.jobInsights;
+
         if (needsAiAnalysis && currentUser) {
           // Don't await - run in background
           (async () => {
@@ -620,7 +621,7 @@ export default function CalendarView() {
                 applicationData.fullJobDescription,
                 applicationData.url || ''
               );
-              
+
               // Format the summary with bullet points
               let formattedDescription = extractedData.summary || '';
               if (formattedDescription) {
@@ -629,7 +630,7 @@ export default function CalendarView() {
                   .replace(/\\"/g, '"')
                   .replace(/\\'/g, "'")
                   .trim();
-                  
+
                 if (!formattedDescription.includes('•') && !formattedDescription.includes('-')) {
                   const lines = formattedDescription.split('\n').filter((line: string) => line.trim().length > 0);
                   if (lines.length > 0) {
@@ -643,7 +644,7 @@ export default function CalendarView() {
                   }
                 }
               }
-              
+
               // Update the document with AI-generated data
               await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
                 description: formattedDescription,
@@ -651,7 +652,7 @@ export default function CalendarView() {
                 ...(extractedData.jobTags && { jobTags: extractedData.jobTags }),
                 updatedAt: serverTimestamp(),
               });
-              
+
               notify.success('✨ AI insights generated for your application!', { duration: 3000 });
             } catch (error) {
               console.error('Background AI analysis failed:', error);
@@ -662,7 +663,7 @@ export default function CalendarView() {
       } else {
         let existingApplication: any = null;
         let applicationId: string;
-        
+
         if (eventData.linkedApplicationId) {
           applicationId = eventData.linkedApplicationId;
           const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
@@ -671,67 +672,67 @@ export default function CalendarView() {
             existingApplication = { id: applicationDoc.id, ...applicationDoc.data() };
           }
         } else {
-        const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
-        const applicationsSnapshot = await getDocs(query(applicationsRef));
-        
+          const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
+          const applicationsSnapshot = await getDocs(query(applicationsRef));
+
           applicationsSnapshot.forEach((doc) => {
-          const app = doc.data() as any;
-          if (
-            app.companyName?.toLowerCase() === eventData.companyName.toLowerCase() &&
-            app.position?.toLowerCase() === eventData.position.toLowerCase()
-          ) {
-            existingApplication = { id: doc.id, ...app };
-          }
-        });
-        
-        if (existingApplication) {
-          applicationId = existingApplication.id;
-        } else {
-          const applicationData = {
-            companyName: eventData.companyName,
-            position: eventData.position,
-            location: eventData.location || '',
-            status: 'interview',
+            const app = doc.data() as any;
+            if (
+              app.companyName?.toLowerCase() === eventData.companyName.toLowerCase() &&
+              app.position?.toLowerCase() === eventData.position.toLowerCase()
+            ) {
+              existingApplication = { id: doc.id, ...app };
+            }
+          });
+
+          if (existingApplication) {
+            applicationId = existingApplication.id;
+          } else {
+            const applicationData = {
+              companyName: eventData.companyName,
+              position: eventData.position,
+              location: eventData.location || '',
+              status: 'interview',
               appliedDate: eventData.date,
-            notes: eventData.notes || '',
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
+              notes: eventData.notes || '',
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
               statusHistory: [
                 {
-              status: 'applied',
-              date: eventData.date,
+                  status: 'applied',
+                  date: eventData.date,
                   notes: 'Application created from calendar',
                 },
                 {
-              status: 'interview',
-              date: eventData.date,
+                  status: 'interview',
+                  date: eventData.date,
                   notes: 'Interview scheduled from calendar',
                 },
               ],
-          };
-          
-          const docRef = await addDoc(
-            collection(db, 'users', currentUser.uid, 'jobApplications'), 
-            applicationData
-          );
-          
-          applicationId = docRef.id;
-          
-          const newApplicationEvent: CalendarEvent = {
-            id: `app-${docRef.id}`,
-            title: `Applied: ${eventData.companyName} - ${eventData.position}`,
-            start: new Date(eventData.date),
-            end: new Date(eventData.date),
-            allDay: true,
-            type: 'application',
+            };
+
+            const docRef = await addDoc(
+              collection(db, 'users', currentUser.uid, 'jobApplications'),
+              applicationData
+            );
+
+            applicationId = docRef.id;
+
+            const newApplicationEvent: CalendarEvent = {
+              id: `app-${docRef.id}`,
+              title: `Applied: ${eventData.companyName} - ${eventData.position}`,
+              start: new Date(eventData.date),
+              end: new Date(eventData.date),
+              allDay: true,
+              type: 'application',
               color: '#8b5cf6',
               resource: { id: docRef.id, ...applicationData },
-          };
-          
+            };
+
             setEvents((prev) => [...prev, newApplicationEvent]);
           }
         }
-        
+
         const interviewData = {
           id: crypto.randomUUID(),
           date: eventData.date,
@@ -743,7 +744,7 @@ export default function CalendarView() {
           contactName: eventData.contactName || '',
           contactEmail: eventData.contactEmail || '',
         };
-        
+
         const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', applicationId);
         await updateDoc(applicationRef, {
           interviews: existingApplication?.interviews
@@ -753,25 +754,25 @@ export default function CalendarView() {
           updatedAt: serverTimestamp(),
           statusHistory: existingApplication?.statusHistory
             ? [
-                ...existingApplication.statusHistory,
-                {
-              status: 'interview',
-              date: eventData.date,
-                  notes: 'Interview added from calendar',
-                },
-              ]
+              ...existingApplication.statusHistory,
+              {
+                status: 'interview',
+                date: eventData.date,
+                notes: 'Interview added from calendar',
+              },
+            ]
             : [
-                {
-              status: 'applied',
-              date: eventData.date,
-                  notes: 'Application created from calendar',
-                },
-                {
-              status: 'interview',
-              date: eventData.date,
-                  notes: 'Interview scheduled from calendar',
-                },
-              ],
+              {
+                status: 'applied',
+                date: eventData.date,
+                notes: 'Application created from calendar',
+              },
+              {
+                status: 'interview',
+                date: eventData.date,
+                notes: 'Interview scheduled from calendar',
+              },
+            ],
         });
 
         let color = '#6366f1';
@@ -783,10 +784,10 @@ export default function CalendarView() {
         const interviewDate = new Date(eventData.date);
         const [hours, minutes] = eventData.interviewTime.split(':').map(Number);
         interviewDate.setHours(hours, minutes);
-        
+
         const endDate = new Date(interviewDate);
         endDate.setHours(endDate.getHours() + 1);
-        
+
         const newInterviewEvent: CalendarEvent = {
           id: `int-${applicationId}-${interviewData.id}`,
           title: `${eventData.interviewType.charAt(0).toUpperCase() + eventData.interviewType.slice(1)} Interview: ${eventData.companyName}`,
@@ -795,22 +796,22 @@ export default function CalendarView() {
           allDay: false,
           type: 'interview',
           color,
-          resource: { 
-            id: applicationId, 
+          resource: {
+            id: applicationId,
             companyName: eventData.companyName,
             position: eventData.position,
             interview: interviewData,
           },
         };
-        
+
         setEvents((prev) => [...prev, newInterviewEvent]);
-        
+
         // Sync interview to Google Calendar if connected
         if (isGoogleConnected) {
           try {
             const interviewTitle = `${eventData.interviewType.charAt(0).toUpperCase() + eventData.interviewType.slice(1)} Interview - ${eventData.companyName}`;
             const description = `Position: ${eventData.position}\n${eventData.notes ? `Notes: ${eventData.notes}` : ''}`;
-            
+
             await createGoogleEvent({
               summary: interviewTitle,
               description,
@@ -818,7 +819,7 @@ export default function CalendarView() {
               end: endDate,
               location: eventData.location,
             });
-            
+
             notify.success('Interview added and synced to Google Calendar');
           } catch (googleError) {
             console.error('Failed to sync to Google Calendar:', googleError);
@@ -839,24 +840,24 @@ export default function CalendarView() {
     if (isDragging) {
       return;
     }
-    
+
     const clickedEvent = filteredEvents.find((event) => {
       const slotStart = moment(slotInfo.start);
       const slotEnd = moment(slotInfo.end || slotInfo.start);
       const eventStart = moment(event.start);
       const eventEnd = moment(event.end);
-      
+
       return slotStart.isSameOrBefore(eventEnd) && slotEnd.isSameOrAfter(eventStart);
     });
-    
+
     if (clickedEvent) {
       return;
     }
-    
+
     if (justSelectedEvent) {
       return;
     }
-    
+
     setSelectedSlot(slotInfo.start);
     setShowAddEventModal(true);
   };
@@ -870,40 +871,169 @@ export default function CalendarView() {
     setSelectedEvent(event);
   };
 
+  // Helper for mobile date display
+  const getMobileDateDisplay = () => {
+    return moment(currentDate).format('MMMM YYYY');
+  };
+
   return (
     <AuthLayout small>
-      <div className="flex w-full min-h-0 flex-1 overflow-hidden">
+      <div className="flex w-full min-h-0 flex-1 overflow-hidden flex-col md:flex-row">
+
+        {/* Mobile Header (Visible only on mobile) */}
+        <div className="md:hidden flex flex-col bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-[#333]">
+          {/* Top Row: Month, Nav, View Switcher */}
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={navigateToPrevious}
+                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-[#252525] text-gray-600 dark:text-gray-300 transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div className="flex flex-col items-center">
+                <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                  {moment(currentDate).format('MMMM YYYY')}
+                </h2>
+              </div>
+              <button
+                onClick={navigateToNext}
+                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-[#252525] text-gray-600 dark:text-gray-300 transition-colors"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex items-center">
+              <div className="flex bg-gray-100 dark:bg-[#252525] rounded-lg p-0.5">
+                <button
+                  onClick={() => setSelectedView('month')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${selectedView === 'month'
+                    ? 'bg-white dark:bg-[#3d3c3e] text-black dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400'
+                    }`}
+                >
+                  M
+                </button>
+                <button
+                  onClick={() => setSelectedView('week')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${selectedView === 'week'
+                    ? 'bg-white dark:bg-[#3d3c3e] text-black dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400'
+                    }`}
+                >
+                  W
+                </button>
+                <button
+                  onClick={() => setSelectedView('day')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${selectedView === 'day'
+                    ? 'bg-white dark:bg-[#3d3c3e] text-black dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400'
+                    }`}
+                >
+                  D
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Filter Chips Row (Scrollable) */}
+          <div className="px-4 pb-3 overflow-x-auto scrollbar-hide">
+            <div className="flex items-center gap-2 min-w-max">
+              <button
+                onClick={navigateToToday}
+                className="px-3 py-1.5 rounded-full border border-gray-200 dark:border-[#333] bg-white dark:bg-[#252525] text-xs font-medium text-gray-700 dark:text-gray-300"
+              >
+                Today
+              </button>
+              <div className="w-px h-4 bg-gray-200 dark:bg-[#333] mx-1" />
+
+              {/* Applications Toggle */}
+              <button
+                onClick={() => setShowApplications(!showApplications)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${showApplications
+                  ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border-[#8B5CF6]/20'
+                  : 'bg-white dark:bg-[#252525] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-[#333]'
+                  }`}
+              >
+                <div className={`w-2 h-2 rounded-full ${showApplications ? 'bg-[#8B5CF6]' : 'bg-gray-400'}`} />
+                Apps
+              </button>
+
+              {/* Interviews Toggle */}
+              <button
+                onClick={() => setShowInterviews(!showInterviews)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${showInterviews
+                  ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                  : 'bg-white dark:bg-[#252525] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-[#333]'
+                  }`}
+              >
+                <div className={`w-2 h-2 rounded-full ${showInterviews ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                Interviews
+              </button>
+
+              {/* Wishlist Toggle */}
+              <button
+                onClick={() => setShowWishlists(!showWishlists)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${showWishlists
+                  ? 'bg-pink-500/10 text-pink-600 border-pink-500/20'
+                  : 'bg-white dark:bg-[#252525] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-[#333]'
+                  }`}
+              >
+                <div className={`w-2 h-2 rounded-full ${showWishlists ? 'bg-pink-500' : 'bg-gray-400'}`} />
+                Wishlist
+              </button>
+
+              {/* Google Toggle */}
+              {isGoogleConnected && (
+                <button
+                  onClick={() => setShowGoogleEvents(!showGoogleEvents)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${showGoogleEvents
+                    ? 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+                    : 'bg-white dark:bg-[#252525] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-[#333]'
+                    }`}
+                >
+                  <div className={`w-2 h-2 rounded-full ${showGoogleEvents ? 'bg-blue-500' : 'bg-gray-400'}`} />
+                  Google
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Main Content - Calendar */}
-        <div className="flex-1 min-h-0 overflow-y-auto py-6 px-6 lg:px-8">
-          <div className="w-full max-w-5xl mx-auto">
-            {/* Topbar */}
-            <CalendarTopbar
-              currentDate={currentDate}
-              selectedView={selectedView}
-              onPrevious={navigateToPrevious}
-              onNext={navigateToNext}
-              onToday={navigateToToday}
-              onViewChange={setSelectedView}
-              onAddEvent={handleOpenAddEvent}
-              showApplications={showApplications}
-              showInterviews={showInterviews}
-              showWishlists={showWishlists}
-              onToggleApplications={() => setShowApplications(!showApplications)}
-              onToggleInterviews={() => setShowInterviews(!showInterviews)}
-              onToggleWishlists={() => setShowWishlists(!showWishlists)}
-              googleCalendar={{
-                isConnected: isGoogleConnected,
-                isLoading: isGoogleLoading,
-                email: googleEmail,
-                onConnect: connectGoogle,
-                onDisconnect: disconnectGoogle,
-                showGoogleEvents,
-                onToggleGoogleEvents: () => setShowGoogleEvents(!showGoogleEvents),
-              }}
-            />
+        <div className="flex-1 min-h-0 overflow-y-auto py-0 px-0 md:py-6 md:px-6 lg:px-8">
+          <div className="w-full max-w-5xl mx-auto h-full flex flex-col">
+            {/* Topbar (Hidden on Mobile) */}
+            <div className="hidden md:block">
+              <CalendarTopbar
+                currentDate={currentDate}
+                selectedView={selectedView}
+                onPrevious={navigateToPrevious}
+                onNext={navigateToNext}
+                onToday={navigateToToday}
+                onViewChange={setSelectedView}
+                onAddEvent={handleOpenAddEvent}
+                showApplications={showApplications}
+                showInterviews={showInterviews}
+                showWishlists={showWishlists}
+                onToggleApplications={() => setShowApplications(!showApplications)}
+                onToggleInterviews={() => setShowInterviews(!showInterviews)}
+                onToggleWishlists={() => setShowWishlists(!showWishlists)}
+                googleCalendar={{
+                  isConnected: isGoogleConnected,
+                  isLoading: isGoogleLoading,
+                  email: googleEmail,
+                  onConnect: connectGoogle,
+                  onDisconnect: disconnectGoogle,
+                  showGoogleEvents,
+                  onToggleGoogleEvents: () => setShowGoogleEvents(!showGoogleEvents),
+                }}
+              />
+            </div>
 
             {/* Calendar */}
-            <div className="mt-6">
+            <div className="md:mt-6 flex-1 min-h-0">
               {isLoading ? (
                 <div className="h-[calc(100vh-280px)] flex items-center justify-center bg-white dark:bg-[#242325] rounded-xl border border-gray-200 dark:border-[#3d3c3e]">
                   <div className="flex flex-col items-center gap-3">
@@ -987,6 +1117,15 @@ export default function CalendarView() {
             currentBoardType={currentBoardType}
           />
         )}
+      </div>
+      {/* Mobile Floating Action Button */}
+      <div className="md:hidden fixed bottom-24 right-4 z-50">
+        <button
+          onClick={handleOpenAddEvent}
+          className="w-14 h-14 bg-black dark:bg-white text-white dark:text-black rounded-full shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+        >
+          <PlusIcon className="w-6 h-6" />
+        </button>
       </div>
     </AuthLayout>
   );
