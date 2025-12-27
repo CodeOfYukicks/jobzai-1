@@ -18,6 +18,7 @@ import {
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
 import NotionEditor, { NotionEditorRef } from '../components/notion-editor/NotionEditor';
+import NoteEditorMobile from '../components/mobile/NoteEditorMobile';
 import FolderSidebar, { SelectedFolderType } from '../components/resume-builder/FolderSidebar';
 import { Folder } from '../components/resume-builder/FolderCard';
 import { ImportedDocument } from '../components/resume-builder/PDFPreviewCard';
@@ -51,9 +52,9 @@ export default function NotionEditorPage() {
   const { noteId: urlNoteId } = useParams<{ noteId: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { 
-    registerNoteEditor, 
-    unregisterNoteEditor, 
+  const {
+    registerNoteEditor,
+    unregisterNoteEditor,
     isOpen: isAssistantOpen,
     inlineEdit,
     confirmInlineEdit,
@@ -61,10 +62,10 @@ export default function NotionEditorPage() {
     setEditorSelection,
     editorSelection,
   } = useAssistant();
-  
+
   // Avatar config for AI writing indicator
   const { avatarConfig } = useAvatarConfig();
-  
+
   // Ref for NotionEditor imperative methods
   const editorRef = useRef<NotionEditorRef>(null);
 
@@ -110,7 +111,7 @@ export default function NotionEditorPage() {
   const menuRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const editorScrollContainerRef = useRef<HTMLDivElement>(null);
-  
+
   // Auto-resize title textarea on mount and when title changes
   useEffect(() => {
     if (titleRef.current) {
@@ -272,9 +273,9 @@ export default function NotionEditorPage() {
 
     const total = resumes.length + documents.length + notes.length;
 
-    return { 
-      folderCounts: counts, 
-      uncategorizedCount: uncategorized, 
+    return {
+      folderCounts: counts,
+      uncategorizedCount: uncategorized,
       totalCount: total,
       groupedResumes: resumesByFolder,
       groupedDocuments: documentsByFolder,
@@ -295,9 +296,9 @@ export default function NotionEditorPage() {
   // Soft navigation to another note - keeps sidebar fixed, only reloads content
   const loadNote = useCallback(async (noteIdToLoad: string) => {
     if (!currentUser) return;
-    
+
     setIsLoadingNote(true);
-    
+
     // Scroll to top immediately when switching notes
     const scrollToTop = () => {
       window.scrollTo({ top: 0, behavior: 'instant' });
@@ -308,11 +309,11 @@ export default function NotionEditorPage() {
       }
     };
     scrollToTop();
-    
+
     try {
       // Cancel any pending auto-save from previous note
       autoSaverRef.current?.cancel();
-      
+
       const fetchedNote = await getNote(currentUser.uid, noteIdToLoad);
       if (fetchedNote) {
         setNote(fetchedNote);
@@ -325,7 +326,7 @@ export default function NotionEditorPage() {
         }
         // Create new auto-saver for this note
         autoSaverRef.current = createAutoSaver(currentUser.uid, noteIdToLoad, 2000);
-        
+
         // Scroll to top again after content is set (wait for cards to render)
         setTimeout(() => {
           scrollToTop();
@@ -379,16 +380,16 @@ export default function NotionEditorPage() {
       window.scrollTo({ top: 0, behavior: 'instant' });
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
-      
+
       // Scroll the main editor container to top
       if (editorScrollContainerRef.current) {
         editorScrollContainerRef.current.scrollTop = 0;
       }
     };
-    
+
     // Immediate scroll
     scrollToTop();
-    
+
     // Also scroll after a delay to ensure cards are rendered
     setTimeout(() => {
       scrollToTop();
@@ -428,7 +429,7 @@ export default function NotionEditorPage() {
           fetchDocuments(),
           fetchAllNotes(),
         ]);
-        
+
         const fetchedNote = await getNote(currentUser.uid, activeNoteId);
         if (fetchedNote) {
           setNote(fetchedNote);
@@ -464,7 +465,7 @@ export default function NotionEditorPage() {
   // Helper to check if content contains mention embeds
   const hasMentionEmbeds = (content: any): boolean => {
     if (!content || !content.content) return false;
-    
+
     const checkNode = (node: any): boolean => {
       if (node.type === 'mentionEmbed') return true;
       if (node.content && Array.isArray(node.content)) {
@@ -472,7 +473,7 @@ export default function NotionEditorPage() {
       }
       return false;
     };
-    
+
     return content.content.some(checkNode);
   };
 
@@ -480,12 +481,12 @@ export default function NotionEditorPage() {
   const handleContentChange = useCallback(
     async (content: any) => {
       setHasUnsavedChanges(true);
-      
+
       // Debug: Log content with mention embeds
       if (hasMentionEmbeds(content)) {
         console.log('Content with mention embeds detected:', JSON.stringify(content, null, 2));
       }
-      
+
       // If content contains mention embeds, save immediately
       // Otherwise use debounced save
       if (hasMentionEmbeds(content)) {
@@ -604,16 +605,16 @@ export default function NotionEditorPage() {
       const timestamp = Date.now();
       const fileName = `note_${activeNoteId}_cover_${timestamp}.jpg`;
       const coverRef = ref(storage, `note-covers/${currentUser.uid}/${fileName}`);
-      
+
       await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
       const coverUrl = await getDownloadURL(coverRef);
-      
+
       await updateNote({
         userId: currentUser.uid,
         noteId: activeNoteId,
         updates: { coverImage: coverUrl },
       });
-      
+
       setNote((prev) => prev ? { ...prev, coverImage: coverUrl } : null);
     } catch (error) {
       console.error('Error updating cover:', error);
@@ -632,16 +633,16 @@ export default function NotionEditorPage() {
       const timestamp = Date.now();
       const fileName = `note_${activeNoteId}_cover_${timestamp}.jpg`;
       const coverRef = ref(storage, `note-covers/${currentUser.uid}/${fileName}`);
-      
+
       await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
       const coverUrl = await getDownloadURL(coverRef);
-      
+
       await updateNote({
         userId: currentUser.uid,
         noteId: activeNoteId,
         updates: { coverImage: coverUrl },
       });
-      
+
       setNote((prev) => prev ? { ...prev, coverImage: coverUrl } : null);
       notify.success('Cover image updated');
     } catch (error) {
@@ -666,7 +667,7 @@ export default function NotionEditorPage() {
         noteId: activeNoteId,
         updates: { coverImage: '' },
       });
-      
+
       // Try to delete from storage
       try {
         const coverRef = ref(storage, note.coverImage);
@@ -674,7 +675,7 @@ export default function NotionEditorPage() {
       } catch (e) {
         console.warn('Could not delete old cover from storage', e);
       }
-      
+
       setNote((prev) => prev ? { ...prev, coverImage: undefined } : null);
       notify.success('Cover image removed');
     } catch (error) {
@@ -698,7 +699,7 @@ export default function NotionEditorPage() {
 
       // Load the image from the local blob URL (no CORS issues)
       const img = new window.Image();
-      
+
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve();
         img.onerror = () => reject(new Error('Failed to load image'));
@@ -712,10 +713,10 @@ export default function NotionEditorPage() {
       // Calculate the actual position based on relative position
       const imgAspectRatio = img.naturalWidth / img.naturalHeight;
       const containerAspectRatio = containerWidth / containerHeight;
-      
+
       let displayWidth: number;
       let displayHeight: number;
-      
+
       if (imgAspectRatio > containerAspectRatio) {
         displayHeight = containerHeight;
         displayWidth = containerHeight * imgAspectRatio;
@@ -739,7 +740,7 @@ export default function NotionEditorPage() {
       canvas.width = containerWidth;
       canvas.height = containerHeight;
       const ctx = canvas.getContext('2d');
-      
+
       if (!ctx) throw new Error('Could not get canvas context');
 
       ctx.drawImage(
@@ -762,16 +763,16 @@ export default function NotionEditorPage() {
       const timestamp = Date.now();
       const fileName = `note_${activeNoteId}_cover_${timestamp}.jpg`;
       const coverRef = ref(storage, `note-covers/${currentUser.uid}/${fileName}`);
-      
+
       await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
       const coverUrl = await getDownloadURL(coverRef);
-      
+
       await updateNote({
         userId: currentUser.uid,
         noteId: activeNoteId,
         updates: { coverImage: coverUrl },
       });
-      
+
       setNote((prev) => prev ? { ...prev, coverImage: coverUrl } : null);
       notify.success('Cover position updated');
     } catch (error) {
@@ -933,7 +934,7 @@ export default function NotionEditorPage() {
       // Extract noteId from current URL
       const match = window.location.pathname.match(/^\/notes\/([^/]+)/);
       const newNoteId = match?.[1];
-      
+
       if (newNoteId && newNoteId !== activeNoteId) {
         loadNote(newNoteId);
       }
@@ -951,7 +952,7 @@ export default function NotionEditorPage() {
   // Register note data with AI Assistant
   const noteSummary = useMemo(() => {
     if (!note) return null;
-    
+
     // Extract plain text from content structure
     const extractText = (content: any): string => {
       if (!content) return '';
@@ -961,9 +962,9 @@ export default function NotionEditorPage() {
       if (content.content) return extractText(content.content);
       return '';
     };
-    
+
     const plainText = extractText(note.content);
-    
+
     return {
       title: note.title || 'Untitled',
       content: plainText.substring(0, 3000), // First 3000 chars for context
@@ -1004,18 +1005,33 @@ export default function NotionEditorPage() {
 
   return (
     <AuthLayout>
-      <div className={`flex h-full transition-all duration-300 ${isAssistantOpen ? 'mr-[440px]' : 'mr-0'}`}>
+      {/* Mobile Editor */}
+      <div className="md:hidden h-full">
+        <NoteEditorMobile
+          note={note}
+          onSave={handleManualSave}
+          onClose={() => navigate('/resume-builder')}
+          onTitleChange={handleTitleChange}
+          onContentChange={handleContentChange}
+          isSaving={isSaving}
+          lastSaved={lastSaved}
+          hasUnsavedChanges={hasUnsavedChanges}
+        />
+      </div>
+
+      {/* Desktop Editor */}
+      <div className={`hidden md:flex h-full transition-all duration-300 ${isAssistantOpen ? 'mr-[440px]' : 'mr-0'}`}>
         {/* Sidebar */}
         <FolderSidebar
           folders={folders}
           selectedFolderId={selectedFolderId}
           onSelectFolder={handleSelectFolder}
-          onEditFolder={() => {}}
-          onDeleteFolder={() => {}}
+          onEditFolder={() => { }}
+          onDeleteFolder={() => { }}
           onNewFolder={() => navigate('/resume-builder')}
-          onDropResume={() => {}}
-          onDropDocument={() => {}}
-          onDropNote={() => {}}
+          onDropResume={() => { }}
+          onDropDocument={() => { }}
+          onDropNote={() => { }}
           folderCounts={folderCounts}
           uncategorizedCount={uncategorizedCount}
           totalCount={totalCount}
@@ -1128,28 +1144,28 @@ export default function NotionEditorPage() {
             </AnimatePresence>
 
             {/* Cover Image Section - FolderHeader style */}
-            <div 
+            <div
               className="relative w-full group/cover"
               onMouseEnter={() => setIsCoverHovering(true)}
               onMouseLeave={() => setIsCoverHovering(false)}
             >
-              <div 
+              <div
                 ref={coverContainerRef}
                 className={`relative w-full transition-all duration-300 ease-in-out ${note.coverImage ? 'h-48 sm:h-64' : 'h-24 sm:h-32'}`}
               >
                 {note.coverImage ? (
                   <div className="absolute inset-0 w-full h-full overflow-hidden">
-                    <img 
-                      src={note.coverImage} 
-                      alt="Note cover" 
+                    <img
+                      src={note.coverImage}
+                      alt="Note cover"
                       className="w-full h-full object-cover animate-in fade-in duration-500"
                     />
                     <div className="absolute inset-0 bg-black/5 dark:bg-black/20 transition-colors duration-300 group-hover/cover:bg-black/10 dark:group-hover/cover:bg-black/30" />
                   </div>
                 ) : (
                   <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-gray-700/20">
-                    <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
-                       style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }} 
+                    <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]"
+                      style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }}
                     />
                     {/* Subtle animated gradient orbs */}
                     <div className="absolute top-10 right-20 w-64 h-64 bg-purple-200/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-blob" />
@@ -1160,7 +1176,7 @@ export default function NotionEditorPage() {
                 {/* Cover Controls - Visible on hover */}
                 <AnimatePresence>
                   {(isCoverHovering || !note.coverImage) && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
@@ -1191,7 +1207,7 @@ export default function NotionEditorPage() {
                           >
                             Change cover
                           </button>
-                          
+
                           <button
                             onClick={() => setIsRepositioning(true)}
                             disabled={isUpdatingCover}
@@ -1207,7 +1223,7 @@ export default function NotionEditorPage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-                
+
                 {/* Hidden File Input */}
                 <input
                   type="file"
@@ -1244,9 +1260,8 @@ export default function NotionEditorPage() {
                           <button
                             key={emoji}
                             onClick={() => handleEmojiChange(emoji)}
-                            className={`p-2 text-2xl rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
-                              note.emoji === emoji ? 'bg-purple-100 dark:bg-purple-900/30' : ''
-                            }`}
+                            className={`p-2 text-2xl rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${note.emoji === emoji ? 'bg-purple-100 dark:bg-purple-900/30' : ''
+                              }`}
                           >
                             {emoji}
                           </button>
@@ -1362,7 +1377,7 @@ export default function NotionEditorPage() {
           exportWidth={1584}
           exportHeight={396}
         />
-        
+
         <CoverPhotoGallery
           isOpen={isCoverGalleryOpen}
           onClose={() => setIsCoverGalleryOpen(false)}
@@ -1370,7 +1385,7 @@ export default function NotionEditorPage() {
           onRemove={handleRemoveCover}
           currentCover={note?.coverImage}
         />
-        
+
         {note?.coverImage && (
           <CoverRepositioner
             isOpen={isRepositioning}

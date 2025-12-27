@@ -31,7 +31,10 @@ import {
   Laptop,
   Filter,
   ChevronDown,
-  ExternalLink
+  ExternalLink,
+  LogOut,
+  ArrowLeft,
+  Palette
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import MobileTopBar from '../components/mobile/MobileTopBar';
@@ -413,10 +416,14 @@ const SecurityScore = ({ score }: { score: number }) => {
 // ============================================================================
 
 export default function SettingsPage() {
-  const { currentUser, userData } = useAuth();
+  const { currentUser, userData, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionId>('account');
+
+  // Mobile screen navigation (iOS-native style)
+  type MobileScreen = 'main' | 'account' | 'security' | 'notifications' | 'appearance';
+  const [mobileScreen, setMobileScreen] = useState<MobileScreen>('main');
 
   // Account Settings
   const [email, setEmail] = useState('');
@@ -883,12 +890,12 @@ export default function SettingsPage() {
         title="Settings"
       />
 
-      <div className="min-h-screen bg-white dark:bg-[#333234]">
+      <div className="min-h-screen bg-gray-100 md:bg-white dark:bg-[#1a1a1a] md:dark:bg-[#333234]">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10"
+          className="max-w-6xl mx-auto md:px-4 sm:px-6 lg:px-8 md:py-6 sm:py-10"
         >
           {/* Header - Notion style (Desktop only) */}
           <div className="mb-10 hidden md:block">
@@ -902,30 +909,562 @@ export default function SettingsPage() {
             </h1>
           </div>
 
-          {/* Mobile Navigation - Horizontal scrollable tabs */}
-          <div className="md:hidden -mx-4 px-4 mb-6 overflow-x-auto scrollbar-hide">
-            <div className="flex gap-2 min-w-max pb-2">
-              {navigationGroups.flatMap((group) => group.items).map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveSection(item.id)}
-                  className={`
-                    flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap min-h-[44px]
-                    transition-all duration-150
-                    ${activeSection === item.id
-                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                      : 'bg-gray-100 dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#3d3c3e]'
-                    }
-                  `}
+
+          {/* ============================================ */}
+          {/* MOBILE iOS-NATIVE SETTINGS LAYOUT */}
+          {/* ============================================ */}
+          <div className="md:hidden">
+            <AnimatePresence mode="wait">
+              {/* Main Settings List */}
+              {mobileScreen === 'main' && (
+                <motion.div
+                  key="main"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="pb-24"
                 >
-                  <item.icon className="w-4 h-4" strokeWidth={1.5} />
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </div>
+                  {/* Account Card */}
+                  <div className="px-4 pt-4 pb-6">
+                    <button
+                      onClick={() => setMobileScreen('account')}
+                      className="w-full flex items-center gap-4 p-4 bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] active:bg-gray-50 dark:active:bg-[#3d3c3e] transition-colors"
+                    >
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center text-xl font-semibold text-gray-600 dark:text-gray-300">
+                        {userData?.firstName?.[0] || currentUser?.email?.[0]?.toUpperCase() || 'U'}
+                      </div>
+                      <div className="flex-1 text-left min-w-0">
+                        <p className="text-[17px] font-semibold text-gray-900 dark:text-white truncate">
+                          {userData?.firstName && userData?.lastName
+                            ? `${userData.firstName} ${userData.lastName}`
+                            : 'Your Account'
+                          }
+                        </p>
+                        <p className="text-[15px] text-gray-500 dark:text-gray-400 truncate">
+                          {currentUser?.email}
+                        </p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" strokeWidth={1.5} />
+                    </button>
+                  </div>
+
+                  {/* Connected Accounts Section */}
+                  {isGoogleUser && (
+                    <div className="px-4 mb-6">
+                      <p className="text-[13px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 px-3">
+                        Connected Accounts
+                      </p>
+                      <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] overflow-hidden">
+                        <div className="flex items-center justify-between px-4 py-3 min-h-[52px]">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#3d3c3e] border border-gray-200 dark:border-[#4a494b] flex items-center justify-center">
+                              <svg className="w-4 h-4" viewBox="0 0 24 24">
+                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                              </svg>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[15px] font-medium text-gray-900 dark:text-white">Google</p>
+                              <p className="text-[13px] text-gray-500 dark:text-gray-400 truncate">{currentUser?.email}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle2 className="w-4 h-4 text-green-500" />
+                            <span className="text-[13px] text-green-600 dark:text-green-400 font-medium">Connected</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Preferences Section */}
+                  <div className="px-4 mb-6">
+                    <p className="text-[13px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 px-3">
+                      Preferences
+                    </p>
+                    <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] overflow-hidden divide-y divide-gray-100 dark:divide-[#3d3c3e]">
+                      {/* Security */}
+                      <button
+                        onClick={() => setMobileScreen('security')}
+                        className="w-full flex items-center justify-between px-4 py-3 min-h-[52px] active:bg-gray-50 dark:active:bg-[#3d3c3e] transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                            <Shield className="w-4 h-4 text-blue-500" strokeWidth={1.5} />
+                          </div>
+                          <span className="text-[17px] text-gray-900 dark:text-white">Security</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-gray-400" strokeWidth={1.5} />
+                      </button>
+
+                      {/* Notifications */}
+                      <button
+                        onClick={() => setMobileScreen('notifications')}
+                        className="w-full flex items-center justify-between px-4 py-3 min-h-[52px] active:bg-gray-50 dark:active:bg-[#3d3c3e] transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                            <Bell className="w-4 h-4 text-orange-500" strokeWidth={1.5} />
+                          </div>
+                          <span className="text-[17px] text-gray-900 dark:text-white">Notifications</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-gray-400" strokeWidth={1.5} />
+                      </button>
+
+                      {/* Appearance */}
+                      <button
+                        onClick={() => setMobileScreen('appearance')}
+                        className="w-full flex items-center justify-between px-4 py-3 min-h-[52px] active:bg-gray-50 dark:active:bg-[#3d3c3e] transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                            <Palette className="w-4 h-4 text-purple-500" strokeWidth={1.5} />
+                          </div>
+                          <span className="text-[17px] text-gray-900 dark:text-white">Appearance</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-gray-400" strokeWidth={1.5} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Danger Zone */}
+                  <div className="px-4 mt-8">
+                    <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] overflow-hidden divide-y divide-gray-100 dark:divide-[#3d3c3e]">
+                      {/* Sign Out */}
+                      <button
+                        onClick={logout}
+                        className="w-full flex items-center gap-3 px-4 py-3 min-h-[52px] active:bg-gray-50 dark:active:bg-[#3d3c3e] transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-gray-500/10 flex items-center justify-center">
+                          <LogOut className="w-4 h-4 text-gray-500" strokeWidth={1.5} />
+                        </div>
+                        <span className="text-[17px] text-gray-900 dark:text-white">Sign Out</span>
+                      </button>
+
+                      {/* Delete Account */}
+                      <button
+                        onClick={() => setShowDeleteModal(true)}
+                        className="w-full flex items-center gap-3 px-4 py-3 min-h-[52px] active:bg-red-50 dark:active:bg-red-500/10 transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                          <Trash2 className="w-4 h-4 text-red-500" strokeWidth={1.5} />
+                        </div>
+                        <span className="text-[17px] text-red-500">Delete Account</span>
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Account Details Screen */}
+              {mobileScreen === 'account' && (
+                <motion.div
+                  key="account"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.2 }}
+                  className="pb-24"
+                >
+                  {/* Back Header */}
+                  <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-[#3d3c3e]">
+                    <button
+                      onClick={() => setMobileScreen('main')}
+                      className="flex items-center gap-1 text-[17px] text-blue-500 active:opacity-70"
+                    >
+                      <ArrowLeft className="w-5 h-5" strokeWidth={1.5} />
+                      <span>Settings</span>
+                    </button>
+                  </div>
+
+                  <div className="px-4 pt-6 space-y-6">
+                    {/* Profile Info Card */}
+                    <div className="flex flex-col items-center py-6">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center text-3xl font-semibold text-gray-600 dark:text-gray-300 mb-4">
+                        {userData?.firstName?.[0] || currentUser?.email?.[0]?.toUpperCase() || 'U'}
+                      </div>
+                      <p className="text-[22px] font-bold text-gray-900 dark:text-white">
+                        {userData?.firstName && userData?.lastName
+                          ? `${userData.firstName} ${userData.lastName}`
+                          : 'Your Account'
+                        }
+                      </p>
+                      <p className="text-[15px] text-gray-500 dark:text-gray-400 mt-1">
+                        {currentUser?.email}
+                      </p>
+                    </div>
+
+                    {/* Account Details List */}
+                    <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] overflow-hidden divide-y divide-gray-100 dark:divide-[#3d3c3e]">
+                      <div className="flex items-center justify-between px-4 py-3 min-h-[52px]">
+                        <span className="text-[15px] text-gray-500 dark:text-gray-400">Email</span>
+                        <span className="text-[15px] text-gray-900 dark:text-white">{currentUser?.email}</span>
+                      </div>
+                      <div className="flex items-center justify-between px-4 py-3 min-h-[52px]">
+                        <span className="text-[15px] text-gray-500 dark:text-gray-400">Email Verified</span>
+                        <span className="text-[15px] text-gray-900 dark:text-white">
+                          {currentUser?.emailVerified ? (
+                            <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                              <CheckCircle2 className="w-4 h-4" />
+                              Yes
+                            </span>
+                          ) : 'No'}
+                        </span>
+                      </div>
+                      {isGoogleUser && (
+                        <div className="flex items-center justify-between px-4 py-3 min-h-[52px]">
+                          <span className="text-[15px] text-gray-500 dark:text-gray-400">Sign-in Method</span>
+                          <span className="text-[15px] text-gray-900 dark:text-white">Google</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Non-Google users can change email */}
+                    {!isGoogleUser && (
+                      <div className="space-y-4">
+                        <p className="text-[13px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider px-3">
+                          Update Email
+                        </p>
+                        <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] p-4 space-y-4">
+                          <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="New email address"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white text-[17px] focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                          />
+                          <button
+                            onClick={handleEmailUpdate}
+                            disabled={isSaving || email === currentUser?.email}
+                            className="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold text-[17px] disabled:opacity-50 disabled:cursor-not-allowed active:bg-blue-600 transition-colors"
+                          >
+                            {isSaving ? 'Updating...' : 'Update Email'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Security Screen */}
+              {mobileScreen === 'security' && (
+                <motion.div
+                  key="security"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.2 }}
+                  className="pb-24"
+                >
+                  {/* Back Header */}
+                  <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-[#3d3c3e]">
+                    <button
+                      onClick={() => setMobileScreen('main')}
+                      className="flex items-center gap-1 text-[17px] text-blue-500 active:opacity-70"
+                    >
+                      <ArrowLeft className="w-5 h-5" strokeWidth={1.5} />
+                      <span>Settings</span>
+                    </button>
+                  </div>
+
+                  <div className="px-4 pt-6 space-y-6">
+                    <h2 className="text-[22px] font-bold text-gray-900 dark:text-white">Security</h2>
+
+                    {/* Security Score */}
+                    <SecurityScore score={securityScore} />
+
+                    {/* Password Change - Non-Google users only */}
+                    {!isGoogleUser && (
+                      <div className="space-y-4">
+                        <p className="text-[13px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider px-3">
+                          Change Password
+                        </p>
+                        <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] p-4 space-y-4">
+                          {/* Current Password */}
+                          <div className="relative">
+                            <input
+                              type={showPasswords.current ? 'text' : 'password'}
+                              value={currentPassword}
+                              onChange={(e) => setCurrentPassword(e.target.value)}
+                              placeholder="Current password"
+                              className="w-full px-4 py-3 pr-12 rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white text-[17px] focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPasswords(p => ({ ...p, current: !p.current }))}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            >
+                              {showPasswords.current ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
+                          </div>
+
+                          {/* New Password */}
+                          <div className="relative">
+                            <input
+                              type={showPasswords.new ? 'text' : 'password'}
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                              placeholder="New password"
+                              className="w-full px-4 py-3 pr-12 rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white text-[17px] focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPasswords(p => ({ ...p, new: !p.new }))}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            >
+                              {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
+                          </div>
+                          {newPassword && (
+                            <div className="flex gap-1">
+                              {[1, 2, 3, 4, 5].map((level) => (
+                                <div
+                                  key={level}
+                                  className={`h-1 flex-1 rounded-full transition-colors ${passwordStrength >= level
+                                    ? passwordStrength <= 2 ? 'bg-red-500' : passwordStrength <= 3 ? 'bg-amber-500' : 'bg-green-500'
+                                    : 'bg-gray-200 dark:bg-[#3d3c3e]'
+                                    }`}
+                                />
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Confirm Password */}
+                          <div className="relative">
+                            <input
+                              type={showPasswords.confirm ? 'text' : 'password'}
+                              value={confirmPassword}
+                              onChange={(e) => setConfirmPassword(e.target.value)}
+                              placeholder="Confirm new password"
+                              className="w-full px-4 py-3 pr-12 rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white text-[17px] focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPasswords(p => ({ ...p, confirm: !p.confirm }))}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            >
+                              {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
+                          </div>
+
+                          <button
+                            onClick={handlePasswordUpdate}
+                            disabled={isSaving || !currentPassword || !newPassword || !confirmPassword || !!passwordErrors.new || !!passwordErrors.confirm}
+                            className="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold text-[17px] disabled:opacity-50 disabled:cursor-not-allowed active:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+                          >
+                            {isSaving ? (
+                              <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <span>Updating...</span>
+                              </>
+                            ) : (
+                              'Update Password'
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2FA */}
+                    <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] overflow-hidden">
+                      <div className="flex items-center justify-between px-4 py-4 min-h-[52px]">
+                        <div>
+                          <p className="text-[17px] text-gray-900 dark:text-white">Two-Factor Authentication</p>
+                          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">Add extra security</p>
+                        </div>
+                        <button className="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium text-[15px] active:bg-blue-600">
+                          Enable
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Notifications Screen */}
+              {mobileScreen === 'notifications' && (
+                <motion.div
+                  key="notifications"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.2 }}
+                  className="pb-24"
+                >
+                  {/* Back Header */}
+                  <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-[#3d3c3e]">
+                    <button
+                      onClick={() => setMobileScreen('main')}
+                      className="flex items-center gap-1 text-[17px] text-blue-500 active:opacity-70"
+                    >
+                      <ArrowLeft className="w-5 h-5" strokeWidth={1.5} />
+                      <span>Settings</span>
+                    </button>
+                  </div>
+
+                  <div className="px-4 pt-6 space-y-6">
+                    <h2 className="text-[22px] font-bold text-gray-900 dark:text-white">Notifications</h2>
+
+                    <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] overflow-hidden divide-y divide-gray-100 dark:divide-[#3d3c3e]">
+                      {/* Email Notifications */}
+                      <div className="flex items-center justify-between px-4 py-4 min-h-[52px]">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                            <Mail className="w-4 h-4 text-blue-500" strokeWidth={1.5} />
+                          </div>
+                          <div>
+                            <p className="text-[17px] text-gray-900 dark:text-white">Email Notifications</p>
+                            <p className="text-[13px] text-gray-500 dark:text-gray-400">Application updates</p>
+                          </div>
+                        </div>
+                        <Toggle
+                          enabled={notifications.emailNotifications}
+                          onChange={(value) => handleNotificationChange('emailNotifications', value)}
+                        />
+                      </div>
+
+                      {/* Push Notifications */}
+                      <div className="flex items-center justify-between px-4 py-4 min-h-[52px]">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                            <Smartphone className="w-4 h-4 text-green-500" strokeWidth={1.5} />
+                          </div>
+                          <div>
+                            <p className="text-[17px] text-gray-900 dark:text-white">Push Notifications</p>
+                            <p className="text-[13px] text-gray-500 dark:text-gray-400">Browser alerts</p>
+                          </div>
+                        </div>
+                        <Toggle
+                          enabled={notifications.pushNotifications}
+                          onChange={(value) => handleNotificationChange('pushNotifications', value)}
+                        />
+                      </div>
+
+                      {/* Marketing Emails */}
+                      <div className="flex items-center justify-between px-4 py-4 min-h-[52px]">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                            <Bell className="w-4 h-4 text-purple-500" strokeWidth={1.5} />
+                          </div>
+                          <div>
+                            <p className="text-[17px] text-gray-900 dark:text-white">Marketing Emails</p>
+                            <p className="text-[13px] text-gray-500 dark:text-gray-400">Tips and updates</p>
+                          </div>
+                        </div>
+                        <Toggle
+                          enabled={notifications.marketingEmails}
+                          onChange={(value) => handleNotificationChange('marketingEmails', value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Appearance Screen */}
+              {mobileScreen === 'appearance' && (
+                <motion.div
+                  key="appearance"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.2 }}
+                  className="pb-24"
+                >
+                  {/* Back Header */}
+                  <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-[#3d3c3e]">
+                    <button
+                      onClick={() => setMobileScreen('main')}
+                      className="flex items-center gap-1 text-[17px] text-blue-500 active:opacity-70"
+                    >
+                      <ArrowLeft className="w-5 h-5" strokeWidth={1.5} />
+                      <span>Settings</span>
+                    </button>
+                  </div>
+
+                  <div className="px-4 pt-6 space-y-6">
+                    <h2 className="text-[22px] font-bold text-gray-900 dark:text-white">Appearance</h2>
+
+                    {/* Theme Selection */}
+                    <div className="space-y-3">
+                      <p className="text-[13px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider px-3">
+                        Theme
+                      </p>
+                      <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] overflow-hidden divide-y divide-gray-100 dark:divide-[#3d3c3e]">
+                        {[
+                          { value: 'light' as Theme, label: 'Light', icon: Sun },
+                          { value: 'dark' as Theme, label: 'Dark', icon: Moon },
+                          { value: 'system' as Theme, label: 'System', icon: Monitor },
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={() => handleThemeChange(option.value)}
+                            className="w-full flex items-center justify-between px-4 py-4 min-h-[52px] active:bg-gray-50 dark:active:bg-[#3d3c3e] transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${theme === option.value ? 'bg-blue-500/10' : 'bg-gray-100 dark:bg-[#3d3c3e]'
+                                }`}>
+                                <option.icon className={`w-4 h-4 ${theme === option.value ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'
+                                  }`} strokeWidth={1.5} />
+                              </div>
+                              <span className="text-[17px] text-gray-900 dark:text-white">{option.label}</span>
+                            </div>
+                            {theme === option.value && (
+                              <CheckCircle2 className="w-5 h-5 text-blue-500" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Language Selection */}
+                    <div className="space-y-3">
+                      <p className="text-[13px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider px-3">
+                        Language
+                      </p>
+                      <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] overflow-hidden">
+                        <PremiumSelect
+                          value={language}
+                          onChange={(value) => {
+                            setLanguage(value);
+                            saveSettings({ language: value });
+                          }}
+                          options={languages.map(l => ({ value: l.code, label: l.name, flag: l.flag }))}
+                          className="border-0"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Timezone */}
+                    <div className="space-y-3">
+                      <p className="text-[13px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider px-3">
+                        Timezone
+                      </p>
+                      <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] overflow-hidden">
+                        <PremiumSelect
+                          value={timezone}
+                          onChange={(value) => {
+                            setTimezone(value);
+                            saveSettings({ timezone: value });
+                          }}
+                          options={timezones}
+                          className="border-0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          <div className="flex gap-12">
+
+          {/* Desktop Layout - Hidden on Mobile */}
+          <div className="hidden md:flex gap-12">
             {/* Sidebar Navigation - Desktop only */}
             <div className="w-56 flex-shrink-0 hidden md:block">
               <nav className="sticky top-6 space-y-6">

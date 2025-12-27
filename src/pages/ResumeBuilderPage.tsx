@@ -2,10 +2,13 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FileText, Search, Loader2, Sparkles, ChevronDown, X, Check, Info, Upload, StickyNote, Palette
+  FileText, Search, Loader2, Sparkles, ChevronDown, X, Check, Info, Upload, StickyNote, Palette, Plus, FolderOpen
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import MobileTopBar from '../components/mobile/MobileTopBar';
+import MobileDocumentRow, { MobileDocumentContextMenu } from '../components/mobile/MobileDocumentRow';
+import MobileCreateSheet from '../components/mobile/MobileCreateSheet';
+import MobileLibrarySheet from '../components/mobile/MobileLibrarySheet';
 import { useAuth } from '../contexts/AuthContext';
 import { useAssistant } from '../contexts/AssistantContext';
 import { collection, query, getDocs, deleteDoc, doc, orderBy, addDoc, serverTimestamp, setDoc, updateDoc, getDoc } from 'firebase/firestore';
@@ -143,6 +146,15 @@ export default function ResumeBuilderPage() {
     all: {},
     uncategorized: {}
   });
+
+  // Mobile-specific state
+  const [isMobileCreateSheetOpen, setIsMobileCreateSheetOpen] = useState(false);
+  const [isMobileLibrarySheetOpen, setIsMobileLibrarySheetOpen] = useState(false);
+  const [mobileContextMenuDoc, setMobileContextMenuDoc] = useState<{
+    id: string;
+    title: string;
+    type: 'note' | 'resume' | 'whiteboard' | 'pdf';
+  } | null>(null);
 
   // Fetch folders from Firestore
   const fetchFolders = useCallback(async () => {
@@ -1362,71 +1374,291 @@ export default function ResumeBuilderPage() {
 
   return (
     <AuthLayout>
-      {/* Mobile Top Bar */}
-      <MobileTopBar
-        title="Document Manager"
-        subtitle={`${totalItems} items`}
-      />
+      {/* ========================================= */}
+      {/* MOBILE LAYOUT (md:hidden) */}
+      {/* ========================================= */}
+      <div className="md:hidden flex flex-col h-full bg-gray-50 dark:bg-[#1a1a1b]">
+        {/* Mobile Top Bar */}
+        <MobileTopBar
+          title="Documents"
+          subtitle={`${totalDisplayedItems} items`}
+          rightAction={{
+            icon: Plus,
+            onClick: () => setIsMobileCreateSheetOpen(true),
+            ariaLabel: 'Create new document'
+          }}
+        />
 
-      {/* Animated Gradient Background */}
-      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-300/20 dark:bg-purple-600/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl animate-blob" />
-        <div className="absolute top-0 -right-4 w-96 h-96 bg-indigo-300/20 dark:bg-indigo-600/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl animate-blob animation-delay-2000" />
-        <div className="absolute -bottom-8 left-20 w-96 h-96 bg-pink-300/20 dark:bg-pink-600/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl animate-blob animation-delay-4000" />
-      </div>
+        {/* Mobile Search & Library Button */}
+        <div className="px-4 py-3 space-y-3 border-b border-gray-100 dark:border-[#2d2c2e] bg-white dark:bg-[#242325]">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search documents..."
+              className="w-full pl-10 pr-4 py-2.5 
+                bg-gray-100 dark:bg-[#2d2c2e]
+                border-0 rounded-xl
+                text-[15px] text-gray-900 dark:text-white 
+                placeholder-gray-400 dark:placeholder-gray-500
+                focus:ring-2 focus:ring-[#635BFF]/30 focus:outline-none
+                transition-all"
+            />
+          </div>
 
-      <div className={`flex h-full transition-all duration-300 ${isAssistantOpen ? 'mr-[440px]' : 'mr-0'}`}>
-        {/* Sidebar */}
-        <FolderSidebar
+          {/* Library Button */}
+          <button
+            onClick={() => setIsMobileLibrarySheetOpen(true)}
+            className="flex items-center gap-2 text-[13px] text-[#635BFF] dark:text-[#a5a0ff]"
+          >
+            <FolderOpen className="w-4 h-4" />
+            <span>
+              {selectedFolderId === 'all'
+                ? 'All Documents'
+                : selectedFolderId === null
+                  ? 'Uncategorized'
+                  : folders.find(f => f.id === selectedFolderId)?.name || 'Library'}
+            </span>
+            <ChevronDown className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Mobile Document List */}
+        <div className="flex-1 overflow-y-auto bg-white dark:bg-[#242325]">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-6 h-6 text-[#635BFF] animate-spin" />
+            </div>
+          ) : totalDisplayedItems === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-[#2d2c2e] flex items-center justify-center mb-4">
+                <FileText className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+              </div>
+              <h3 className="text-[15px] font-medium text-gray-900 dark:text-white mb-1">
+                {searchQuery ? 'No results found' : 'No documents yet'}
+              </h3>
+              <p className="text-[13px] text-gray-500 dark:text-gray-400">
+                {searchQuery ? 'Try adjusting your search' : 'Tap + to create your first document'}
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Notes */}
+              {displayedNotes.map(note => (
+                <MobileDocumentRow
+                  key={`note-${note.id}`}
+                  id={note.id}
+                  title={note.title}
+                  type="note"
+                  date={note.updatedAt?.toDate ? note.updatedAt.toDate() : note.updatedAt ? new Date(note.updatedAt) : null}
+                  onClick={() => handleEditNote(note.id)}
+                  onDelete={() => handleDeleteNote(note.id)}
+                  onLongPress={() => setMobileContextMenuDoc({
+                    id: note.id,
+                    title: note.title,
+                    type: 'note'
+                  })}
+                />
+              ))}
+
+              {/* Whiteboards */}
+              {displayedWhiteboards.map(whiteboard => (
+                <MobileDocumentRow
+                  key={`whiteboard-${whiteboard.id}`}
+                  id={whiteboard.id}
+                  title={whiteboard.title}
+                  type="whiteboard"
+                  date={whiteboard.updatedAt?.toDate ? whiteboard.updatedAt.toDate() : whiteboard.updatedAt ? new Date(whiteboard.updatedAt) : null}
+                  onClick={() => handleEditWhiteboard(whiteboard.id)}
+                  onDelete={() => handleDeleteWhiteboard(whiteboard.id)}
+                  onLongPress={() => setMobileContextMenuDoc({
+                    id: whiteboard.id,
+                    title: whiteboard.title,
+                    type: 'whiteboard'
+                  })}
+                />
+              ))}
+
+              {/* Resumes */}
+              {displayedResumes.map(resume => (
+                <MobileDocumentRow
+                  key={`resume-${resume.id}`}
+                  id={resume.id}
+                  title={resume.name}
+                  type="resume"
+                  date={resume.updatedAt?.toDate ? resume.updatedAt.toDate() : resume.updatedAt ? new Date(resume.updatedAt) : null}
+                  onClick={() => handleEditResume(resume.id)}
+                  onDelete={() => deleteResume(resume.id)}
+                  onLongPress={() => setMobileContextMenuDoc({
+                    id: resume.id,
+                    title: resume.name,
+                    type: 'resume'
+                  })}
+                />
+              ))}
+
+              {/* PDFs */}
+              {displayedDocuments.map(document => (
+                <MobileDocumentRow
+                  key={`doc-${document.id}`}
+                  id={document.id}
+                  title={document.name}
+                  type="pdf"
+                  date={document.updatedAt?.toDate ? document.updatedAt.toDate() : document.updatedAt ? new Date(document.updatedAt) : null}
+                  onClick={() => handleViewDocument(document)}
+                  onDelete={() => deleteDocument(document.id)}
+                  onLongPress={() => setMobileContextMenuDoc({
+                    id: document.id,
+                    title: document.name,
+                    type: 'pdf'
+                  })}
+                />
+              ))}
+            </>
+          )}
+        </div>
+
+        {/* Mobile Bottom Sheets */}
+        <MobileCreateSheet
+          isOpen={isMobileCreateSheetOpen}
+          onClose={() => setIsMobileCreateSheetOpen(false)}
+          onCreateNote={handleCreateNote}
+          onCreateResume={() => {
+            setIsMobileCreateSheetOpen(false);
+            openCreateModal();
+          }}
+          onCreateBoard={handleCreateWhiteboard}
+          isCreatingNote={isCreatingNote}
+          isCreatingBoard={isCreatingWhiteboard}
+        />
+
+        <MobileLibrarySheet
+          isOpen={isMobileLibrarySheetOpen}
+          onClose={() => setIsMobileLibrarySheetOpen(false)}
           folders={folders}
           selectedFolderId={selectedFolderId}
           onSelectFolder={handleSelectFolder}
-          onEditFolder={openFolderModal}
-          onDeleteFolder={deleteFolder}
-          onNewFolder={() => openFolderModal()}
-          onDropResume={handleDropResume}
-          onDropDocument={handleDropDocument}
-          onDropNote={handleDropNote}
-          onDropWhiteboard={handleDropWhiteboard}
-          folderCounts={folderCounts}
-          uncategorizedCount={totalUncategorized}
+          onCreateFolder={() => openFolderModal()}
           totalCount={totalItems}
-          isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          groupedResumes={grouped}
-          groupedDocuments={groupedDocs}
-          groupedNotes={groupedNotes}
-          onEditResume={handleEditResume}
-          onViewDocument={handleViewDocument}
-          onEditNote={handleEditNote}
+          uncategorizedCount={totalUncategorized}
+          folderCounts={folderCounts}
         />
 
-        {/* Main Content */}
-        <DropZone
-          onFileDrop={handleFileDrop}
-          acceptedTypes={['application/pdf']}
-          maxFileSize={10 * 1024 * 1024}
-          className="flex-1 min-h-0 overflow-y-auto bg-white/30 dark:bg-black/20 backdrop-blur-sm"
-        >
-          {/* Replaced Header with FolderHeader */}
-          <FolderHeader
-            folder={currentFolder}
-            title={headerProps.title}
-            subtitle={headerProps.subtitle}
-            icon={headerProps.isSpecialView ? headerProps.icon : headerProps.icon}
-            coverPhoto={headerProps.isSpecialView ? headerProps.coverPhoto : undefined}
-            isSpecialView={headerProps.isSpecialView}
-            viewType={headerProps.isSpecialView ? headerProps.viewType : undefined}
-            onUpdateCover={handleUpdateCover}
-            onRemoveCover={handleRemoveCover}
-            onUpdateEmoji={headerProps.isSpecialView ? handleUpdateEmoji : undefined}
-            isUpdating={isUpdatingCover}
+        <MobileDocumentContextMenu
+          isOpen={mobileContextMenuDoc !== null}
+          onClose={() => setMobileContextMenuDoc(null)}
+          documentTitle={mobileContextMenuDoc?.title || ''}
+          onRename={() => {
+            if (mobileContextMenuDoc) {
+              const newName = prompt('Rename document:', mobileContextMenuDoc.title);
+              if (newName && newName.trim()) {
+                switch (mobileContextMenuDoc.type) {
+                  case 'note':
+                    handleRenameNote(mobileContextMenuDoc.id, newName.trim());
+                    break;
+                  case 'resume':
+                    renameResume(mobileContextMenuDoc.id, newName.trim());
+                    break;
+                  case 'whiteboard':
+                    handleRenameWhiteboard(mobileContextMenuDoc.id, newName.trim());
+                    break;
+                }
+              }
+            }
+          }}
+          onMove={() => {
+            notify.info('Move to folder coming soon');
+          }}
+          onTag={() => {
+            notify.info('Tag management coming soon');
+          }}
+          onDelete={() => {
+            if (mobileContextMenuDoc) {
+              switch (mobileContextMenuDoc.type) {
+                case 'note':
+                  handleDeleteNote(mobileContextMenuDoc.id);
+                  break;
+                case 'resume':
+                  deleteResume(mobileContextMenuDoc.id);
+                  break;
+                case 'whiteboard':
+                  handleDeleteWhiteboard(mobileContextMenuDoc.id);
+                  break;
+                case 'pdf':
+                  deleteDocument(mobileContextMenuDoc.id);
+                  break;
+              }
+            }
+          }}
+        />
+      </div>
+
+      {/* ========================================= */}
+      {/* DESKTOP LAYOUT (hidden md:block) */}
+      {/* ========================================= */}
+      <div className="hidden md:block h-full">
+        {/* Animated Gradient Background */}
+        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-300/20 dark:bg-purple-600/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl animate-blob" />
+          <div className="absolute top-0 -right-4 w-96 h-96 bg-indigo-300/20 dark:bg-indigo-600/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl animate-blob animation-delay-2000" />
+          <div className="absolute -bottom-8 left-20 w-96 h-96 bg-pink-300/20 dark:bg-pink-600/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl animate-blob animation-delay-4000" />
+        </div>
+
+        <div className={`flex h-full transition-all duration-300 ${isAssistantOpen ? 'mr-[440px]' : 'mr-0'}`}>
+          {/* Sidebar */}
+          <FolderSidebar
+            folders={folders}
+            selectedFolderId={selectedFolderId}
+            onSelectFolder={handleSelectFolder}
+            onEditFolder={openFolderModal}
+            onDeleteFolder={deleteFolder}
+            onNewFolder={() => openFolderModal()}
+            onDropResume={handleDropResume}
+            onDropDocument={handleDropDocument}
+            onDropNote={handleDropNote}
+            onDropWhiteboard={handleDropWhiteboard}
+            folderCounts={folderCounts}
+            uncategorizedCount={totalUncategorized}
+            totalCount={totalItems}
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            groupedResumes={grouped}
+            groupedDocuments={groupedDocs}
+            groupedNotes={groupedNotes}
+            onEditResume={handleEditResume}
+            onViewDocument={handleViewDocument}
+            onEditNote={handleEditNote}
+          />
+
+          {/* Main Content */}
+          <DropZone
+            onFileDrop={handleFileDrop}
+            acceptedTypes={['application/pdf']}
+            maxFileSize={10 * 1024 * 1024}
+            className="flex-1 min-h-0 overflow-y-auto bg-white/30 dark:bg-black/20 backdrop-blur-sm"
           >
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleCreateNote}
-                disabled={isCreatingNote}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+            {/* Replaced Header with FolderHeader */}
+            <FolderHeader
+              folder={currentFolder}
+              title={headerProps.title}
+              subtitle={headerProps.subtitle}
+              icon={headerProps.isSpecialView ? headerProps.icon : headerProps.icon}
+              coverPhoto={headerProps.isSpecialView ? headerProps.coverPhoto : undefined}
+              isSpecialView={headerProps.isSpecialView}
+              viewType={headerProps.isSpecialView ? headerProps.viewType : undefined}
+              onUpdateCover={handleUpdateCover}
+              onRemoveCover={handleRemoveCover}
+              onUpdateEmoji={headerProps.isSpecialView ? handleUpdateEmoji : undefined}
+              isUpdating={isUpdatingCover}
+            >
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCreateNote}
+                  disabled={isCreatingNote}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
                   text-gray-700 dark:text-gray-200 
                   bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm
                   border border-gray-200 dark:border-[#3d3c3e] rounded-lg
@@ -1434,18 +1666,18 @@ export default function ResumeBuilderPage() {
                   hover:border-gray-300 dark:hover:border-gray-600
                   shadow-sm hover:shadow transition-all duration-200
                   disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isCreatingNote ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <StickyNote className="w-4 h-4" />
-                )}
-                <span>New Note</span>
-              </button>
-              <button
-                onClick={handleCreateWhiteboard}
-                disabled={isCreatingWhiteboard}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                >
+                  {isCreatingNote ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <StickyNote className="w-4 h-4" />
+                  )}
+                  <span>New Note</span>
+                </button>
+                <button
+                  onClick={handleCreateWhiteboard}
+                  disabled={isCreatingWhiteboard}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
                   text-gray-700 dark:text-gray-200 
                   bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm
                   border border-gray-200 dark:border-[#3d3c3e] rounded-lg
@@ -1453,19 +1685,19 @@ export default function ResumeBuilderPage() {
                   hover:border-gray-300 dark:hover:border-gray-600
                   shadow-sm hover:shadow transition-all duration-200
                   disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isCreatingWhiteboard ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Palette className="w-4 h-4" />
-                )}
-                <span>New Board</span>
-              </button>
-              <button
-                data-tour="new-resume-button"
-                onClick={openCreateModal}
-                disabled={isCreating}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                >
+                  {isCreatingWhiteboard ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Palette className="w-4 h-4" />
+                  )}
+                  <span>New Board</span>
+                </button>
+                <button
+                  data-tour="new-resume-button"
+                  onClick={openCreateModal}
+                  disabled={isCreating}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
                     text-gray-700 dark:text-gray-200 
                     bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm
                     border border-gray-200 dark:border-[#3d3c3e] rounded-lg
@@ -1473,431 +1705,431 @@ export default function ResumeBuilderPage() {
                     hover:border-gray-300 dark:hover:border-gray-600
                     shadow-sm hover:shadow transition-all duration-200
                     disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>New Resume</span>
-              </button>
-            </div>
-          </FolderHeader>
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>New Resume</span>
+                </button>
+              </div>
+            </FolderHeader>
 
-          <div className="p-6 pt-4">
-            {/* Search and Filters */}
-            {(resumes.length > 0 || notes.length > 0 || whiteboards.length > 0) && (
-              <div className="flex flex-col gap-3 mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search documents..."
-                      className="w-full pl-9 pr-4 py-2 
+            <div className="p-6 pt-4">
+              {/* Search and Filters */}
+              {(resumes.length > 0 || notes.length > 0 || whiteboards.length > 0) && (
+                <div className="flex flex-col gap-3 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search documents..."
+                        className="w-full pl-9 pr-4 py-2 
                         bg-transparent
                         border border-gray-200 dark:border-[#3d3c3e] rounded-lg
                         focus:border-gray-300 dark:focus:border-gray-600
                         focus:ring-0 focus:outline-none
                         text-sm text-gray-900 dark:text-white placeholder-gray-400
                         transition-colors duration-200"
-                    />
-                  </div>
-                  <div className="relative">
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as 'date' | 'name')}
-                      className="appearance-none bg-transparent border border-gray-200 dark:border-[#3d3c3e] rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
-                    >
-                      <option value="date">Date</option>
-                      <option value="name">Name</option>
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
-                  </div>
-                </div>
-
-                {/* Tag Filters */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Filter by tag:</span>
-                  <div className="flex items-center gap-1.5">
-                    {TAG_COLORS.map((tag) => (
-                      <button
-                        key={tag.id}
-                        onClick={() => {
-                          setSelectedTagFilters(prev =>
-                            prev.includes(tag.id)
-                              ? prev.filter(t => t !== tag.id)
-                              : [...prev, tag.id]
-                          );
-                        }}
-                        className={`w-5 h-5 rounded-full transition-all hover:scale-110 flex items-center justify-center
-                          ${selectedTagFilters.includes(tag.id)
-                            ? 'ring-2 ring-offset-2 ring-gray-400 dark:ring-gray-500 dark:ring-offset-gray-900'
-                            : 'opacity-50 hover:opacity-100'}`}
-                        style={{ backgroundColor: tag.color }}
-                        title={tag.label}
-                      >
-                        {selectedTagFilters.includes(tag.id) && (
-                          <Check className="w-3 h-3 text-white" />
-                        )}
-                      </button>
-                    ))}
-                    {selectedTagFilters.length > 0 && (
-                      <button
-                        onClick={() => setSelectedTagFilters([])}
-                        className="ml-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Loading State */}
-            {isLoading && (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
-              </div>
-            )}
-
-            {/* Uploading indicator */}
-            {isUploadingPDF && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800 flex items-center gap-3"
-              >
-                <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
-                <span className="text-sm text-purple-700 dark:text-purple-300">Uploading PDF files...</span>
-              </motion.div>
-            )}
-
-            {/* Empty State - No items at all */}
-            {!isLoading && resumes.length === 0 && documents.length === 0 && notes.length === 0 && whiteboards.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="py-20 text-center"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 
-                  flex items-center justify-center mx-auto mb-4">
-                  <Upload className="w-7 h-7 text-purple-500 dark:text-purple-400" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1.5">
-                  No documents yet
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">
-                  Create notes, whiteboards, resumes, or drag and drop PDF files to get started.
-                </p>
-                <div className="flex items-center justify-center gap-3">
-                  <button
-                    onClick={handleCreateNote}
-                    disabled={isCreatingNote}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
-                      text-gray-700 dark:text-gray-200 
-                      bg-white dark:bg-[#2b2a2c] 
-                      border border-gray-200 dark:border-[#3d3c3e] rounded-lg
-                      hover:bg-gray-50 dark:hover:bg-[#3d3c3e] 
-                      hover:border-gray-300 dark:hover:border-gray-600
-                      shadow-sm transition-all duration-200
-                      disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isCreatingNote ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <StickyNote className="w-4 h-4" />
-                    )}
-                    <span>New Note</span>
-                  </button>
-                  <button
-                    onClick={handleCreateWhiteboard}
-                    disabled={isCreatingWhiteboard}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
-                      text-gray-700 dark:text-gray-200 
-                      bg-white dark:bg-[#2b2a2c] 
-                      border border-gray-200 dark:border-[#3d3c3e] rounded-lg
-                      hover:bg-gray-50 dark:hover:bg-[#3d3c3e] 
-                      hover:border-gray-300 dark:hover:border-gray-600
-                      shadow-sm transition-all duration-200
-                      disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isCreatingWhiteboard ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Palette className="w-4 h-4" />
-                    )}
-                    <span>New Board</span>
-                  </button>
-                  <button
-                    onClick={openCreateModal}
-                    disabled={isCreating}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
-                      text-gray-700 dark:text-gray-200 
-                      bg-white dark:bg-[#2b2a2c] 
-                      border border-gray-200 dark:border-[#3d3c3e] rounded-lg
-                      hover:bg-gray-50 dark:hover:bg-[#3d3c3e] 
-                      hover:border-gray-300 dark:hover:border-gray-600
-                      shadow-sm transition-all duration-200
-                      disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span>New Resume</span>
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Items Grid */}
-            {!isLoading && (resumes.length > 0 || documents.length > 0 || notes.length > 0 || whiteboards.length > 0) && (
-              <>
-                {totalDisplayedItems > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                    {/* Notes */}
-                    {displayedNotes.map((note) => (
-                      <NotionPreviewCard
-                        key={`note-${note.id}`}
-                        note={note}
-                        onDelete={handleDeleteNote}
-                        onEdit={handleEditNote}
-                        onRename={handleRenameNote}
-                        onUpdateTags={handleUpdateNoteTags}
-                        compact
-                        draggable
                       />
-                    ))}
-                    {/* Whiteboards */}
-                    {displayedWhiteboards.map((whiteboard) => (
-                      <WhiteboardPreviewCard
-                        key={`whiteboard-${whiteboard.id}`}
-                        whiteboard={whiteboard}
-                        onDelete={handleDeleteWhiteboard}
-                        onEdit={handleEditWhiteboard}
-                        onRename={handleRenameWhiteboard}
-                        onUpdateTags={handleUpdateWhiteboardTags}
-                        compact
-                        draggable
-                      />
-                    ))}
-                    {/* Resumes */}
-                    {displayedResumes.map((resume) => (
-                      <CVPreviewCard
-                        key={`resume-${resume.id}`}
-                        resume={resume}
-                        onDelete={deleteResume}
-                        onRename={renameResume}
-                        onEdit={handleEditResume}
-                        onUpdateTags={updateResumeTags}
-                        compact
-                        draggable
-                      />
-                    ))}
-                    {/* PDFs */}
-                    {displayedDocuments.map((document) => (
-                      <PDFPreviewCard
-                        key={`doc-${document.id}`}
-                        document={document}
-                        onDelete={deleteDocument}
-                        onView={handleViewDocument}
-                        compact
-                        draggable
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-16 text-center">
-                    <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-[#2b2a2c] 
-                      flex items-center justify-center mx-auto mb-3">
-                      <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                     </div>
-                    <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
-                      {searchQuery ? 'No results found' : 'This folder is empty'}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {searchQuery
-                        ? 'Try adjusting your search'
-                        : 'Drag documents here or create notes, boards, or resumes'}
+                    <div className="relative">
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as 'date' | 'name')}
+                        className="appearance-none bg-transparent border border-gray-200 dark:border-[#3d3c3e] rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
+                      >
+                        <option value="date">Date</option>
+                        <option value="name">Name</option>
+                      </select>
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* Tag Filters */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Filter by tag:</span>
+                    <div className="flex items-center gap-1.5">
+                      {TAG_COLORS.map((tag) => (
+                        <button
+                          key={tag.id}
+                          onClick={() => {
+                            setSelectedTagFilters(prev =>
+                              prev.includes(tag.id)
+                                ? prev.filter(t => t !== tag.id)
+                                : [...prev, tag.id]
+                            );
+                          }}
+                          className={`w-5 h-5 rounded-full transition-all hover:scale-110 flex items-center justify-center
+                          ${selectedTagFilters.includes(tag.id)
+                              ? 'ring-2 ring-offset-2 ring-gray-400 dark:ring-gray-500 dark:ring-offset-gray-900'
+                              : 'opacity-50 hover:opacity-100'}`}
+                          style={{ backgroundColor: tag.color }}
+                          title={tag.label}
+                        >
+                          {selectedTagFilters.includes(tag.id) && (
+                            <Check className="w-3 h-3 text-white" />
+                          )}
+                        </button>
+                      ))}
+                      {selectedTagFilters.length > 0 && (
+                        <button
+                          onClick={() => setSelectedTagFilters([])}
+                          className="ml-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Loading State */}
+              {isLoading && (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
+                </div>
+              )}
+
+              {/* Uploading indicator */}
+              {isUploadingPDF && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800 flex items-center gap-3"
+                >
+                  <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
+                  <span className="text-sm text-purple-700 dark:text-purple-300">Uploading PDF files...</span>
+                </motion.div>
+              )}
+
+              {/* Empty State - No items at all */}
+              {!isLoading && resumes.length === 0 && documents.length === 0 && notes.length === 0 && whiteboards.length === 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="py-20 text-center"
+                >
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 
+                  flex items-center justify-center mx-auto mb-4">
+                    <Upload className="w-7 h-7 text-purple-500 dark:text-purple-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1.5">
+                    No documents yet
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">
+                    Create notes, whiteboards, resumes, or drag and drop PDF files to get started.
+                  </p>
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      onClick={handleCreateNote}
+                      disabled={isCreatingNote}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                      text-gray-700 dark:text-gray-200 
+                      bg-white dark:bg-[#2b2a2c] 
+                      border border-gray-200 dark:border-[#3d3c3e] rounded-lg
+                      hover:bg-gray-50 dark:hover:bg-[#3d3c3e] 
+                      hover:border-gray-300 dark:hover:border-gray-600
+                      shadow-sm transition-all duration-200
+                      disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isCreatingNote ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <StickyNote className="w-4 h-4" />
+                      )}
+                      <span>New Note</span>
+                    </button>
+                    <button
+                      onClick={handleCreateWhiteboard}
+                      disabled={isCreatingWhiteboard}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                      text-gray-700 dark:text-gray-200 
+                      bg-white dark:bg-[#2b2a2c] 
+                      border border-gray-200 dark:border-[#3d3c3e] rounded-lg
+                      hover:bg-gray-50 dark:hover:bg-[#3d3c3e] 
+                      hover:border-gray-300 dark:hover:border-gray-600
+                      shadow-sm transition-all duration-200
+                      disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isCreatingWhiteboard ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Palette className="w-4 h-4" />
+                      )}
+                      <span>New Board</span>
+                    </button>
+                    <button
+                      onClick={openCreateModal}
+                      disabled={isCreating}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                      text-gray-700 dark:text-gray-200 
+                      bg-white dark:bg-[#2b2a2c] 
+                      border border-gray-200 dark:border-[#3d3c3e] rounded-lg
+                      hover:bg-gray-50 dark:hover:bg-[#3d3c3e] 
+                      hover:border-gray-300 dark:hover:border-gray-600
+                      shadow-sm transition-all duration-200
+                      disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>New Resume</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Items Grid */}
+              {!isLoading && (resumes.length > 0 || documents.length > 0 || notes.length > 0 || whiteboards.length > 0) && (
+                <>
+                  {totalDisplayedItems > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                      {/* Notes */}
+                      {displayedNotes.map((note) => (
+                        <NotionPreviewCard
+                          key={`note-${note.id}`}
+                          note={note}
+                          onDelete={handleDeleteNote}
+                          onEdit={handleEditNote}
+                          onRename={handleRenameNote}
+                          onUpdateTags={handleUpdateNoteTags}
+                          compact
+                          draggable
+                        />
+                      ))}
+                      {/* Whiteboards */}
+                      {displayedWhiteboards.map((whiteboard) => (
+                        <WhiteboardPreviewCard
+                          key={`whiteboard-${whiteboard.id}`}
+                          whiteboard={whiteboard}
+                          onDelete={handleDeleteWhiteboard}
+                          onEdit={handleEditWhiteboard}
+                          onRename={handleRenameWhiteboard}
+                          onUpdateTags={handleUpdateWhiteboardTags}
+                          compact
+                          draggable
+                        />
+                      ))}
+                      {/* Resumes */}
+                      {displayedResumes.map((resume) => (
+                        <CVPreviewCard
+                          key={`resume-${resume.id}`}
+                          resume={resume}
+                          onDelete={deleteResume}
+                          onRename={renameResume}
+                          onEdit={handleEditResume}
+                          onUpdateTags={updateResumeTags}
+                          compact
+                          draggable
+                        />
+                      ))}
+                      {/* PDFs */}
+                      {displayedDocuments.map((document) => (
+                        <PDFPreviewCard
+                          key={`doc-${document.id}`}
+                          document={document}
+                          onDelete={deleteDocument}
+                          onView={handleViewDocument}
+                          compact
+                          draggable
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-16 text-center">
+                      <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-[#2b2a2c] 
+                      flex items-center justify-center mx-auto mb-3">
+                        <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                      </div>
+                      <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
+                        {searchQuery ? 'No results found' : 'This folder is empty'}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {searchQuery
+                          ? 'Try adjusting your search'
+                          : 'Drag documents here or create notes, boards, or resumes'}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </DropZone>
+        </div>
+
+        {/* Premium PDF Viewer Modal */}
+        <PremiumPDFViewer
+          pdfDocument={selectedDocument}
+          isOpen={pdfViewerOpen}
+          onClose={handleCloseViewer}
+        />
+
+        {/* Create Resume Modal */}
+        <AnimatePresence>
+          {isCreateModalOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isCreating && setIsCreateModalOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white dark:bg-[#2b2a2c] w-full sm:rounded-2xl rounded-t-2xl max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
+              >
+                {/* Header */}
+                <div className="px-6 py-5 border-b border-gray-100 dark:border-[#3d3c3e] flex items-center justify-between bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl z-10 sticky top-0">
+                  <div>
+                    <h2 className="font-semibold text-xl text-gray-900 dark:text-white tracking-tight">
+                      Create New Resume
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                      Choose a name and template for your resume
                     </p>
                   </div>
-                )}
-              </>
-            )}
-          </div>
-        </DropZone>
-      </div>
-
-      {/* Premium PDF Viewer Modal */}
-      <PremiumPDFViewer
-        pdfDocument={selectedDocument}
-        isOpen={pdfViewerOpen}
-        onClose={handleCloseViewer}
-      />
-
-      {/* Create Resume Modal */}
-      <AnimatePresence>
-        {isCreateModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => !isCreating && setIsCreateModalOpen(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-[#2b2a2c] w-full sm:rounded-2xl rounded-t-2xl max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
-            >
-              {/* Header */}
-              <div className="px-6 py-5 border-b border-gray-100 dark:border-[#3d3c3e] flex items-center justify-between bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl z-10 sticky top-0">
-                <div>
-                  <h2 className="font-semibold text-xl text-gray-900 dark:text-white tracking-tight">
-                    Create New Resume
-                  </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                    Choose a name and template for your resume
-                  </p>
+                  <button
+                    onClick={() => setIsCreateModalOpen(false)}
+                    disabled={isCreating}
+                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setIsCreateModalOpen(false)}
-                  disabled={isCreating}
-                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
 
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6">
-                <div className="space-y-6">
-                  {/* Resume Name Input */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Resume Name
-                    </label>
-                    <input
-                      data-tour="resume-name-input"
-                      type="text"
-                      value={newResumeName}
-                      onChange={(e) => setNewResumeName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && newResumeName.trim() && !isCreating) {
-                          handleCreate();
-                        }
-                      }}
-                      placeholder="e.g., Software Engineer Resume"
-                      className="w-full px-4 py-2.5 bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e] 
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6">
+                  <div className="space-y-6">
+                    {/* Resume Name Input */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Resume Name
+                      </label>
+                      <input
+                        data-tour="resume-name-input"
+                        type="text"
+                        value={newResumeName}
+                        onChange={(e) => setNewResumeName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newResumeName.trim() && !isCreating) {
+                            handleCreate();
+                          }
+                        }}
+                        placeholder="e.g., Software Engineer Resume"
+                        className="w-full px-4 py-2.5 bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e] 
                         rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50
                         text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
                         transition-all shadow-sm"
-                      autoFocus
-                    />
-                  </div>
+                        autoFocus
+                      />
+                    </div>
 
-                  {/* Template Selection */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Choose Template
-                      </label>
-                      <div className="group relative">
-                        <Info className="w-4 h-4 text-gray-400 dark:text-gray-500 cursor-help" />
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block z-20">
-                          <div className="bg-gray-900 dark:bg-[#2b2a2c] text-white text-xs rounded-lg py-2 px-3 shadow-xl whitespace-nowrap">
-                            You can change the template anytime during editing
-                            <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                    {/* Template Selection */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Choose Template
+                        </label>
+                        <div className="group relative">
+                          <Info className="w-4 h-4 text-gray-400 dark:text-gray-500 cursor-help" />
+                          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block z-20">
+                            <div className="bg-gray-900 dark:bg-[#2b2a2c] text-white text-xs rounded-lg py-2 px-3 shadow-xl whitespace-nowrap">
+                              You can change the template anytime during editing
+                              <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                    <div data-tour="template-selection" className="grid grid-cols-2 gap-3">
-                      {templates.map((template) => (
-                        <motion.button
-                          key={template.value}
-                          onClick={() => setSelectedTemplate(template.value)}
-                          whileHover={{ scale: 1.02, y: -2 }}
-                          whileTap={{ scale: 0.98 }}
-                          className={`group relative p-4 rounded-2xl border transition-all text-left
+                      <div data-tour="template-selection" className="grid grid-cols-2 gap-3">
+                        {templates.map((template) => (
+                          <motion.button
+                            key={template.value}
+                            onClick={() => setSelectedTemplate(template.value)}
+                            whileHover={{ scale: 1.02, y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                            className={`group relative p-4 rounded-2xl border transition-all text-left
                             ${selectedTemplate === template.value
-                              ? 'border-purple-500/50 dark:border-purple-400/50 bg-purple-50/50 dark:bg-purple-900/10 shadow-lg shadow-purple-200/30 dark:shadow-purple-900/20'
-                              : 'border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] hover:bg-white dark:hover:bg-[#3d3c3e] hover:shadow-lg hover:border-transparent'
-                            }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
-                                {template.label}
-                              </h3>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {template.description}
-                              </p>
+                                ? 'border-purple-500/50 dark:border-purple-400/50 bg-purple-50/50 dark:bg-purple-900/10 shadow-lg shadow-purple-200/30 dark:shadow-purple-900/20'
+                                : 'border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] hover:bg-white dark:hover:bg-[#3d3c3e] hover:shadow-lg hover:border-transparent'
+                              }`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
+                                  {template.label}
+                                </h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {template.description}
+                                </p>
+                              </div>
+                              {selectedTemplate === template.value && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  className="w-5 h-5 rounded-full bg-purple-500 dark:bg-purple-600 flex items-center justify-center flex-shrink-0 ml-2"
+                                >
+                                  <Check className="w-3 h-3 text-white" />
+                                </motion.div>
+                              )}
                             </div>
-                            {selectedTemplate === template.value && (
-                              <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className="w-5 h-5 rounded-full bg-purple-500 dark:bg-purple-600 flex items-center justify-center flex-shrink-0 ml-2"
-                              >
-                                <Check className="w-3 h-3 text-white" />
-                              </motion.div>
-                            )}
-                          </div>
-                        </motion.button>
-                      ))}
+                          </motion.button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Footer */}
-              <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100 dark:border-[#3d3c3e] bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl">
-                <button
-                  onClick={() => setIsCreateModalOpen(false)}
-                  disabled={isCreating}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300
+                {/* Footer */}
+                <div className="flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100 dark:border-[#3d3c3e] bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl">
+                  <button
+                    onClick={() => setIsCreateModalOpen(false)}
+                    disabled={isCreating}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300
                     hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors
                     disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreate}
-                  disabled={!newResumeName.trim() || isCreating}
-                  className="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreate}
+                    disabled={!newResumeName.trim() || isCreating}
+                    className="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700
                     rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed
                     flex items-center gap-2 shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30"
-                >
-                  {isCreating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      Create Resume
-                    </>
-                  )}
-                </button>
-              </div>
+                  >
+                    {isCreating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        Create Resume
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      {/* Folder Management Modal */}
-      <FolderManagementModal
-        isOpen={isFolderModalOpen}
-        onClose={() => {
-          setIsFolderModalOpen(false);
-          setEditingFolder(null);
-        }}
-        onSave={handleFolderSave}
-        editingFolder={editingFolder}
-        isSaving={isSavingFolder}
-      />
-
+        {/* Folder Management Modal */}
+        <FolderManagementModal
+          isOpen={isFolderModalOpen}
+          onClose={() => {
+            setIsFolderModalOpen(false);
+            setEditingFolder(null);
+          }}
+          onSave={handleFolderSave}
+          editingFolder={editingFolder}
+          isSaving={isSavingFolder}
+        />
+      </div>
     </AuthLayout>
   );
 }

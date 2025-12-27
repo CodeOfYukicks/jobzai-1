@@ -11,6 +11,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
+import BoardEditorMobile from '../components/mobile/BoardEditorMobile';
 import { useAuth } from '../contexts/AuthContext';
 import { useAssistant, WhiteboardEditorCallbacks, MindMapStructure, FlowDiagramNode, FlowDiagramConnection, WhiteboardPosition } from '../contexts/AssistantContext';
 import { useAssistantPageData } from '../hooks/useAssistantPageData';
@@ -165,7 +166,7 @@ export default function WhiteboardEditorPage() {
 
     // Auto-save on changes
     let saveTimeout: NodeJS.Timeout | null = null;
-    
+
     const unsubscribe = editorInstance.store.listen(() => {
       if (!currentUser || !whiteboardId) return;
 
@@ -213,35 +214,35 @@ export default function WhiteboardEditorPage() {
 
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      
+
       await new Promise<void>((resolve, reject) => {
         img.onload = () => {
           const canvas = document.createElement('canvas');
           const scale = 0.5;
           canvas.width = Math.min(img.width * scale, 400);
           canvas.height = Math.min(img.height * scale, 300);
-          
+
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           }
-          
+
           canvas.toBlob(async (blob) => {
             if (blob) {
               const timestamp = Date.now();
               const fileName = `whiteboard_${whiteboardId}_thumb_${timestamp}.png`;
               const thumbRef = ref(storage, `whiteboard-thumbnails/${currentUser.uid}/${fileName}`);
-              
+
               await uploadBytes(thumbRef, blob, { contentType: 'image/png' });
               const thumbnailUrl = await getDownloadURL(thumbRef);
-              
+
               await saveWhiteboardThumbnail(currentUser.uid, whiteboardId, thumbnailUrl);
             }
             resolve();
           }, 'image/png', 0.8);
-          
+
           URL.revokeObjectURL(svgUrl);
         };
         img.onerror = () => {
@@ -283,16 +284,17 @@ export default function WhiteboardEditorPage() {
   }, [currentUser, whiteboardId]);
 
   // Handle title change
-  const handleTitleSave = useCallback(async () => {
-    if (!currentUser || !whiteboardId || !editedTitle.trim()) return;
+  const handleTitleSave = useCallback(async (titleToSave?: string) => {
+    const title = titleToSave !== undefined ? titleToSave : editedTitle;
+    if (!currentUser || !whiteboardId || !title.trim()) return;
 
     try {
       await updateWhiteboard({
         userId: currentUser.uid,
         whiteboardId,
-        updates: { title: editedTitle.trim() },
+        updates: { title: title.trim() },
       });
-      setWhiteboard((prev) => prev ? { ...prev, title: editedTitle.trim() } : null);
+      setWhiteboard((prev) => prev ? { ...prev, title: title.trim() } : null);
       setIsEditingTitle(false);
     } catch (error) {
       console.error('Error updating title:', error);
@@ -389,7 +391,7 @@ export default function WhiteboardEditorPage() {
   // Register page data for AI assistant context
   const whiteboardSummary = useMemo(() => {
     if (!whiteboard) return null;
-    
+
     return {
       title: whiteboard.title || 'Untitled Whiteboard',
       id: whiteboardId,
@@ -447,12 +449,32 @@ export default function WhiteboardEditorPage() {
 
   return (
     <AuthLayout>
-      <div className={`flex flex-col h-full min-h-0 transition-all duration-300 ${isAssistantOpen ? 'mr-[440px]' : 'mr-0'}`}>
+      {/* Mobile Editor */}
+      <div className="md:hidden h-full">
+        {whiteboard && (
+          <BoardEditorMobile
+            whiteboard={whiteboard}
+            onSave={async () => {
+              if (editorRef.current && currentUser && whiteboardId) {
+                const snapshot = getSnapshot(editorRef.current.store);
+                await saveWhiteboardSnapshot(currentUser.uid, whiteboardId, snapshot);
+              }
+              navigate('/resume-builder');
+            }}
+            onClose={() => navigate('/resume-builder')}
+            onTitleChange={handleTitleSave}
+            isSaving={false}
+          />
+        )}
+      </div>
+
+      {/* Desktop Editor */}
+      <div className={`hidden md:flex flex-col h-full min-h-0 transition-all duration-300 ${isAssistantOpen ? 'mr-[440px]' : 'mr-0'}`}>
         {/* Header */}
         <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-white/90 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 z-40">
           <div className="flex items-center gap-3">
             {/* Close button */}
-            <button 
+            <button
               onClick={() => navigate('/resume-builder')}
               className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg text-gray-500 transition-colors"
             >
@@ -481,9 +503,8 @@ export default function WhiteboardEditorPage() {
                         <button
                           key={emoji}
                           onClick={() => handleEmojiChange(emoji)}
-                          className={`p-2 text-xl rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
-                            whiteboard.emoji === emoji ? 'bg-amber-100 dark:bg-amber-900/30' : ''
-                          }`}
+                          className={`p-2 text-xl rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${whiteboard.emoji === emoji ? 'bg-amber-100 dark:bg-amber-900/30' : ''
+                            }`}
                         >
                           {emoji}
                         </button>
@@ -513,7 +534,7 @@ export default function WhiteboardEditorPage() {
                   className="px-3 py-1.5 text-lg font-semibold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 rounded-lg border-none outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
                 <button
-                  onClick={handleTitleSave}
+                  onClick={() => handleTitleSave()}
                   className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                 >
                   <Check className="w-4 h-4" />
