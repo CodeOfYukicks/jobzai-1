@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { notify } from '@/lib/notify';
 import { motion } from 'framer-motion';
 import AuthLayout from '../components/AuthLayout';
+import MobileTopBar from '../components/mobile/MobileTopBar';
 import {
   MapPin,
   Briefcase,
@@ -35,17 +36,33 @@ import { extractFullProfileFromText } from '../lib/cvExperienceExtractor';
 import { pdfToImages } from '../lib/pdfToImages';
 import { extractCVTextAndTags } from '../lib/cvTextExtraction';
 
+// Mobile components
+import {
+  MobileProfileHeader,
+  MobileProfileCompletionCard,
+  MobileSectionCard,
+  MobileProfileSectionModal,
+  MobileCVImportCard,
+} from '../components/profile/mobile';
+import { useIsMobile } from '../hooks/useIsMobile';
+
 const ProfessionalProfilePage = () => {
   const { currentUser, userData, loading: authLoading } = useAuth();
   const [completionPercentage, setCompletionPercentage] = useState(0);
-  
+
   // CV Import state
   const [cvText, setCvText] = useState<string>('');
   const [isImportingCV, setIsImportingCV] = useState(false);
   const [hasAutoImported, setHasAutoImported] = useState(false);
-  
+
   // Command palette hook
   const commandPalette = useCommandPalette();
+
+  // Mobile detection
+  const isMobile = useIsMobile();
+
+  // Mobile section modal state
+  const [activeMobileSection, setActiveMobileSection] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     // Personal Information
@@ -279,7 +296,7 @@ const ProfessionalProfilePage = () => {
     if (firestoreData.cvText) {
       setCvText(firestoreData.cvText);
     }
-    
+
     let extractedFirstName = '';
     let extractedLastName = '';
     const fullName = currentUser?.displayName || firestoreData.name || userData?.name || '';
@@ -434,7 +451,7 @@ const ProfessionalProfilePage = () => {
   // Handle CV Import - Extract full profile from CV text
   const handleImportFromCV = useCallback(async () => {
     if (!currentUser?.uid || isImportingCV) return;
-    
+
     try {
       // Get fresh cvText from Firestore
       const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
@@ -442,43 +459,43 @@ const ProfessionalProfilePage = () => {
         notify.error('User data not found');
         return;
       }
-      
+
       const firestoreUserData = userDoc.data();
       let storedCvText = firestoreUserData.cvText;
       const storedCvUrl = firestoreUserData.cvUrl;
-      
+
       // Check if CV exists
       if (!storedCvUrl) {
         notify.error('No CV found. Please upload your CV first in the Documents section.');
         return;
       }
-      
+
       setIsImportingCV(true);
-      
+
       // If CV text is missing or too short, re-extract from the CV file
       if (!storedCvText || storedCvText.length < 100) {
         notify.info('Re-analyzing your CV...');
-        
+
         try {
           // Fetch the CV file from storage
           const response = await fetch(storedCvUrl);
           if (!response.ok) {
             throw new Error('Failed to download CV file');
           }
-          
+
           const blob = await response.blob();
           const file = new File([blob], 'cv.pdf', { type: 'application/pdf' });
-          
+
           // Convert to images and extract text
           const images = await pdfToImages(file, 2, 1.5);
           const { text, technologies, skills, experiences } = await extractCVTextAndTags(images);
-          
+
           if (!text || text.length < 50) {
             notify.error('Could not extract text from CV. Please try uploading a different format.');
             setIsImportingCV(false);
             return;
           }
-          
+
           // Save the extracted cvText to Firebase for future use
           await updateDoc(doc(db, 'users', currentUser.uid), {
             cvText: text,
@@ -486,7 +503,7 @@ const ProfessionalProfilePage = () => {
             cvSkills: skills || [],
             ...(experiences && experiences.length > 0 ? { professionalHistory: experiences } : {})
           });
-          
+
           storedCvText = text;
           notify.success('CV re-analyzed successfully!');
         } catch (extractError) {
@@ -496,15 +513,15 @@ const ProfessionalProfilePage = () => {
           return;
         }
       }
-      
+
       notify.info('Extracting profile data from your CV...');
-      
+
       // Extract full profile data
       const extractedProfile = await extractFullProfileFromText(storedCvText);
-      
+
       // Prepare update object
       const updateData: Record<string, any> = {};
-      
+
       // Personal info
       if (extractedProfile.personalInfo.firstName) {
         updateData.firstName = extractedProfile.personalInfo.firstName;
@@ -528,7 +545,7 @@ const ProfessionalProfilePage = () => {
         updateData.targetPosition = extractedProfile.personalInfo.headline;
         updateData.headline = extractedProfile.personalInfo.headline;
       }
-      
+
       // Experiences
       if (extractedProfile.experiences && extractedProfile.experiences.length > 0) {
         // Convert experiences to the format expected by professionalHistory
@@ -547,11 +564,11 @@ const ProfessionalProfilePage = () => {
         }));
         updateData.professionalHistory = formattedExperiences;
       }
-      
+
       // Educations (new format)
       if (extractedProfile.educations && extractedProfile.educations.length > 0) {
         updateData.educations = extractedProfile.educations;
-        
+
         // Also set legacy fields for backwards compatibility
         const firstEdu = extractedProfile.educations[0];
         if (firstEdu) {
@@ -563,44 +580,44 @@ const ProfessionalProfilePage = () => {
           }
         }
       }
-      
+
       // Skills (soft skills, methodologies)
       if (extractedProfile.skills && extractedProfile.skills.length > 0) {
         updateData.skills = extractedProfile.skills;
       }
-      
+
       // Tools & Technologies
       if (extractedProfile.tools && extractedProfile.tools.length > 0) {
         updateData.tools = extractedProfile.tools;
       }
-      
+
       // Languages
       if (extractedProfile.languages && extractedProfile.languages.length > 0) {
         updateData.languages = extractedProfile.languages;
       }
-      
+
       // Professional Summary
       if (extractedProfile.summary) {
         updateData.professionalSummary = extractedProfile.summary;
       }
-      
+
       // Profile tags (15-20 AI-generated tags summarizing the user for job matching)
       if (extractedProfile.profileTags && extractedProfile.profileTags.length > 0) {
         updateData.profileTags = extractedProfile.profileTags;
       }
-      
+
       // Save to Firestore
       await updateDoc(doc(db, 'users', currentUser.uid), {
         ...updateData,
         lastUpdated: new Date().toISOString()
       });
-      
+
       // Update local state
       setFormData(prev => ({
         ...prev,
         ...updateData
       }));
-      
+
       // Build success message
       const counts = [];
       if (extractedProfile.experiences?.length) counts.push(`${extractedProfile.experiences.length} experiences`);
@@ -610,9 +627,9 @@ const ProfessionalProfilePage = () => {
       if (extractedProfile.languages?.length) counts.push(`${extractedProfile.languages.length} languages`);
       if (extractedProfile.profileTags?.length) counts.push(`${extractedProfile.profileTags.length} profile tags`);
       if (extractedProfile.summary) counts.push('summary');
-      
+
       notify.success(`Profile imported! Found ${counts.join(', ')}`);
-      
+
     } catch (error) {
       console.error('CV import failed:', error);
       notify.error('Failed to import profile from CV');
@@ -628,28 +645,28 @@ const ProfessionalProfilePage = () => {
     const autoImportFromCV = async () => {
       // Skip if already imported, currently importing, no user, or still loading
       if (hasAutoImported || isImportingCV || !currentUser?.uid || authLoading) return;
-      
+
       try {
         // Get user data from Firestore
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (!userDoc.exists()) return;
-        
+
         const firestoreUserData = userDoc.data();
-        
+
         // Check if profile was already populated (by signup CV extraction or manually)
         // If profileTags exist, it means the full extraction already ran during signup
-        const profileWasExtracted = firestoreUserData.profileTags && 
-                                    firestoreUserData.profileTags.length > 0;
-        
+        const profileWasExtracted = firestoreUserData.profileTags &&
+          firestoreUserData.profileTags.length > 0;
+
         // Check if profile has basic data (professional history or skills)
-        const hasBasicData = (firestoreUserData.professionalHistory && 
-                              firestoreUserData.professionalHistory.length > 0) ||
-                             (firestoreUserData.skills && 
-                              firestoreUserData.skills.length > 0);
-        
+        const hasBasicData = (firestoreUserData.professionalHistory &&
+          firestoreUserData.professionalHistory.length > 0) ||
+          (firestoreUserData.skills &&
+            firestoreUserData.skills.length > 0);
+
         // Check if CV exists
         const cvExists = firestoreUserData.cvUrl && firestoreUserData.cvUrl.length > 0;
-        
+
         // Only auto-import if:
         // 1. Profile was NOT already extracted during signup (no profileTags)
         // 2. Profile has no basic data
@@ -673,13 +690,19 @@ const ProfessionalProfilePage = () => {
         setHasAutoImported(true);
       }
     };
-    
+
     autoImportFromCV();
   }, [currentUser, authLoading, hasAutoImported, isImportingCV, handleImportFromCV]);
 
   return (
     <ProfileProvider>
       <AuthLayout>
+        {/* Mobile Top Bar */}
+        <MobileTopBar
+          title="Professional Profile"
+          subtitle={`${completionPercentage}% complete`}
+        />
+
         {/* Command Palette */}
         <CommandPalette
           isOpen={commandPalette.isOpen}
@@ -688,141 +711,297 @@ const ProfessionalProfilePage = () => {
         />
 
         <div className="min-h-0 flex-1 overflow-y-auto relative">
-          {/* Keyboard shortcut hint */}
-          <div className="fixed bottom-4 right-4 z-40">
-            <motion.button
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1 }}
-              onClick={commandPalette.open}
-              className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-400 text-sm rounded-xl shadow-lg border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
-            >
-              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-[#3d3c3e] rounded text-xs font-mono">⌘K</kbd>
-              <span>Quick actions</span>
-            </motion.button>
-          </div>
-
-          {/* Main Content - Premium Layout */}
-          <div className="relative w-full max-w-[1400px] mx-auto space-y-5 pt-6 px-4 sm:px-8 lg:px-12 xl:px-16 pb-24">
-            {/* Profile Header - Pass completion percentage and CV import */}
-            <ProfileHeader 
-              onUpdate={updateFormData} 
-              completionPercentage={completionPercentage}
-              onImportCV={handleImportFromCV}
-              isImportingCV={isImportingCV}
-            />
-
-            {/* About Section */}
-            <div id="section-personal">
-              <AboutSection onUpdate={updateFormData} />
+          {/* Keyboard shortcut hint - Desktop only */}
+          {!isMobile && (
+            <div className="fixed bottom-4 right-4 z-40">
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1 }}
+                onClick={commandPalette.open}
+                className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-400 text-sm rounded-xl shadow-lg border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
+              >
+                <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-[#3d3c3e] rounded text-xs font-mono">⌘K</kbd>
+                <span>Quick actions</span>
+              </motion.button>
             </div>
+          )}
 
-            {/* Experience Section */}
-            <div id="section-experience">
-              <ProfileSectionCard
+          {/* MOBILE LAYOUT */}
+          {isMobile ? (
+            <div className="pb-24 pt-2">
+              {/* Mobile Profile Header */}
+              <MobileProfileHeader onUpdate={updateFormData} />
+
+              {/* Profile Completion Card */}
+              <div className="mb-6">
+                <MobileProfileCompletionCard
+                  percentage={completionPercentage}
+                  steps={[
+                    { id: '1', label: 'Add your experience', completed: formData.professionalHistory?.length > 0, sectionId: 'experience' },
+                    { id: '2', label: 'Add your skills', completed: formData.skills?.length > 0, sectionId: 'skills' },
+                    { id: '3', label: 'Set your target role', completed: !!formData.targetPosition, sectionId: 'objectives' },
+                    { id: '4', label: 'Add your education', completed: !!formData.educationLevel, sectionId: 'education' },
+                  ]}
+                  onStepTap={(sectionId) => setActiveMobileSection(sectionId)}
+                />
+              </div>
+
+              {/* Section Cards */}
+              <div className="space-y-3 px-4 mb-6">
+                <MobileSectionCard
+                  title="Experience"
+                  icon={Briefcase}
+                  summary={formData.professionalHistory?.length > 0
+                    ? `${formData.professionalHistory.length} position${formData.professionalHistory.length > 1 ? 's' : ''} • ${formData.yearsOfExperience || '—'} years`
+                    : 'Add your work history'}
+                  onTap={() => setActiveMobileSection('experience')}
+                  delay={0.05}
+                />
+
+                <MobileSectionCard
+                  title="Education & Languages"
+                  icon={GraduationCap}
+                  summary={formData.educationLevel || 'Add your education'}
+                  onTap={() => setActiveMobileSection('education')}
+                  delay={0.1}
+                />
+
+                <MobileSectionCard
+                  title="Skills & Expertise"
+                  icon={Wrench}
+                  summary={formData.skills?.length > 0
+                    ? `${formData.skills.length} skill${formData.skills.length > 1 ? 's' : ''}`
+                    : 'Add your skills'}
+                  onTap={() => setActiveMobileSection('skills')}
+                  delay={0.15}
+                />
+
+                <MobileSectionCard
+                  title="Career Objectives"
+                  icon={Target}
+                  summary={formData.targetPosition || 'Set your target role'}
+                  onTap={() => setActiveMobileSection('objectives')}
+                  delay={0.2}
+                />
+
+                <MobileSectionCard
+                  title="Location & Mobility"
+                  icon={MapPin}
+                  summary={formData.city && formData.country
+                    ? `${formData.city}, ${formData.country}`
+                    : 'Add your location'}
+                  onTap={() => setActiveMobileSection('location')}
+                  delay={0.25}
+                />
+
+                <MobileSectionCard
+                  title="Role Preferences"
+                  icon={Building2}
+                  summary={formData.roleType || 'Set your preferences'}
+                  onTap={() => setActiveMobileSection('role-preferences')}
+                  delay={0.3}
+                />
+
+                <MobileSectionCard
+                  title="Documents & Links"
+                  icon={FileText}
+                  summary={formData.cvUrl ? 'CV uploaded' : 'Upload your CV'}
+                  badge={formData.cvUrl ? undefined : 'Required'}
+                  onTap={() => setActiveMobileSection('documents')}
+                  delay={0.35}
+                />
+              </div>
+
+              {/* CV Import Card */}
+              <MobileCVImportCard
+                onImport={handleImportFromCV}
+                isImporting={isImportingCV}
+                hasCv={!!formData.cvUrl}
+              />
+
+              {/* Section Modals */}
+              <MobileProfileSectionModal
+                isOpen={activeMobileSection === 'experience'}
+                onClose={() => setActiveMobileSection(null)}
                 title="Experience"
-                icon={<Briefcase className="w-5 h-5" />}
-                isCollapsible={true}
               >
                 <ProfessionalHistorySection onUpdate={updateFormData} />
-              </ProfileSectionCard>
-            </div>
+              </MobileProfileSectionModal>
 
-            {/* Education & Languages */}
-            <div id="section-education">
-              <ProfileSectionCard
+              <MobileProfileSectionModal
+                isOpen={activeMobileSection === 'education'}
+                onClose={() => setActiveMobileSection(null)}
                 title="Education & Languages"
-                icon={<GraduationCap className="w-5 h-5" />}
-                completion={formData.educationLevel ? 100 : 0}
-                isCollapsible={true}
               >
                 <EducationLanguagesSection onUpdate={updateFormData} />
-              </ProfileSectionCard>
-            </div>
+              </MobileProfileSectionModal>
 
-            {/* Skills & Expertise */}
-            <div id="section-skills">
-              <ProfileSectionCard
+              <MobileProfileSectionModal
+                isOpen={activeMobileSection === 'skills'}
+                onClose={() => setActiveMobileSection(null)}
                 title="Skills & Expertise"
-                icon={<Wrench className="w-5 h-5" />}
-                isCollapsible={true}
               >
                 <ExperienceExpertiseSection onUpdate={updateFormData} />
-              </ProfileSectionCard>
-            </div>
+              </MobileProfileSectionModal>
 
-            {/* Career Objectives */}
-            <div id="section-objectives">
-              <ProfileSectionCard
+              <MobileProfileSectionModal
+                isOpen={activeMobileSection === 'objectives'}
+                onClose={() => setActiveMobileSection(null)}
                 title="Career Objectives"
-                icon={<Target className="w-5 h-5" />}
-                completion={formData.targetPosition ? 100 : 0}
-                isCollapsible={true}
               >
                 <ProfessionalObjectivesSection onUpdate={updateFormData} />
-              </ProfileSectionCard>
-            </div>
+              </MobileProfileSectionModal>
 
-            {/* Location & Mobility */}
-            <div id="section-location">
-              <ProfileSectionCard
+              <MobileProfileSectionModal
+                isOpen={activeMobileSection === 'location'}
+                onClose={() => setActiveMobileSection(null)}
                 title="Location & Mobility"
-                icon={<MapPin className="w-5 h-5" />}
-                completion={formData.city && formData.country ? 100 : 0}
-                isCollapsible={true}
               >
                 <LocationMobilitySection onUpdate={updateFormData} />
-              </ProfileSectionCard>
-            </div>
+              </MobileProfileSectionModal>
 
-            {/* Career Drivers */}
-            <div id="section-career-drivers">
-              <ProfileSectionCard
-                title="Career Drivers"
-                icon={<TrendingUp className="w-5 h-5" />}
-                completion={formData.careerPriorities?.length > 0 ? 100 : 0}
-                isCollapsible={true}
-              >
-                <CareerDriversSection onUpdate={updateFormData} />
-              </ProfileSectionCard>
-            </div>
-
-            {/* Role Preferences */}
-            <div id="section-role-preferences">
-              <ProfileSectionCard
+              <MobileProfileSectionModal
+                isOpen={activeMobileSection === 'role-preferences'}
+                onClose={() => setActiveMobileSection(null)}
                 title="Role Preferences"
-                icon={<Building2 className="w-5 h-5" />}
-                completion={formData.roleType ? 100 : 0}
-                isCollapsible={true}
               >
                 <RolePreferencesSection onUpdate={updateFormData} />
-              </ProfileSectionCard>
-            </div>
+              </MobileProfileSectionModal>
 
-            {/* Documents & Links */}
-            <div id="section-documents">
-              <ProfileSectionCard
+              <MobileProfileSectionModal
+                isOpen={activeMobileSection === 'documents'}
+                onClose={() => setActiveMobileSection(null)}
                 title="Documents & Links"
-                icon={<FileText className="w-5 h-5" />}
-                completion={formData.cvUrl || formData.linkedinUrl ? 100 : 0}
-                isCollapsible={true}
               >
                 <DocumentsLinksSection onUpdate={updateFormData} />
-              </ProfileSectionCard>
+              </MobileProfileSectionModal>
             </div>
+          ) : (
+            <>
+              {/* Main Content - Premium Layout */}
+              <div className="relative w-full max-w-[1400px] mx-auto space-y-5 pt-6 px-4 sm:px-8 lg:px-12 xl:px-16 pb-24">
+                {/* Profile Header - Pass completion percentage and CV import */}
+                <ProfileHeader
+                  onUpdate={updateFormData}
+                  completionPercentage={completionPercentage}
+                  onImportCV={handleImportFromCV}
+                  isImportingCV={isImportingCV}
+                />
 
-            {/* Work Authorization & Auto-Apply Info */}
-            <div id="section-work-auth">
-              <ProfileSectionCard
-                title="Work Authorization & Contact"
-                icon={<Settings className="w-5 h-5" />}
-                isCollapsible={true}
-                defaultCollapsed={true}
-              >
-                <WorkAuthorizationSection onUpdate={updateFormData} />
-              </ProfileSectionCard>
-            </div>
-          </div>
+                {/* About Section */}
+                <div id="section-personal">
+                  <AboutSection onUpdate={updateFormData} />
+                </div>
+
+                {/* Experience Section */}
+                <div id="section-experience">
+                  <ProfileSectionCard
+                    title="Experience"
+                    icon={<Briefcase className="w-5 h-5" />}
+                    isCollapsible={true}
+                  >
+                    <ProfessionalHistorySection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
+
+                {/* Education & Languages */}
+                <div id="section-education">
+                  <ProfileSectionCard
+                    title="Education & Languages"
+                    icon={<GraduationCap className="w-5 h-5" />}
+                    completion={formData.educationLevel ? 100 : 0}
+                    isCollapsible={true}
+                  >
+                    <EducationLanguagesSection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
+
+                {/* Skills & Expertise */}
+                <div id="section-skills">
+                  <ProfileSectionCard
+                    title="Skills & Expertise"
+                    icon={<Wrench className="w-5 h-5" />}
+                    isCollapsible={true}
+                  >
+                    <ExperienceExpertiseSection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
+
+                {/* Career Objectives */}
+                <div id="section-objectives">
+                  <ProfileSectionCard
+                    title="Career Objectives"
+                    icon={<Target className="w-5 h-5" />}
+                    completion={formData.targetPosition ? 100 : 0}
+                    isCollapsible={true}
+                  >
+                    <ProfessionalObjectivesSection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
+
+                {/* Location & Mobility */}
+                <div id="section-location">
+                  <ProfileSectionCard
+                    title="Location & Mobility"
+                    icon={<MapPin className="w-5 h-5" />}
+                    completion={formData.city && formData.country ? 100 : 0}
+                    isCollapsible={true}
+                  >
+                    <LocationMobilitySection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
+
+                {/* Career Drivers */}
+                <div id="section-career-drivers">
+                  <ProfileSectionCard
+                    title="Career Drivers"
+                    icon={<TrendingUp className="w-5 h-5" />}
+                    completion={formData.careerPriorities?.length > 0 ? 100 : 0}
+                    isCollapsible={true}
+                  >
+                    <CareerDriversSection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
+
+                {/* Role Preferences */}
+                <div id="section-role-preferences">
+                  <ProfileSectionCard
+                    title="Role Preferences"
+                    icon={<Building2 className="w-5 h-5" />}
+                    completion={formData.roleType ? 100 : 0}
+                    isCollapsible={true}
+                  >
+                    <RolePreferencesSection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
+
+                {/* Documents & Links */}
+                <div id="section-documents">
+                  <ProfileSectionCard
+                    title="Documents & Links"
+                    icon={<FileText className="w-5 h-5" />}
+                    completion={formData.cvUrl || formData.linkedinUrl ? 100 : 0}
+                    isCollapsible={true}
+                  >
+                    <DocumentsLinksSection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
+
+                {/* Work Authorization & Auto-Apply Info */}
+                <div id="section-work-auth">
+                  <ProfileSectionCard
+                    title="Work Authorization & Contact"
+                    icon={<Settings className="w-5 h-5" />}
+                    isCollapsible={true}
+                    defaultCollapsed={true}
+                  >
+                    <WorkAuthorizationSection onUpdate={updateFormData} />
+                  </ProfileSectionCard>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </AuthLayout>
     </ProfileProvider>

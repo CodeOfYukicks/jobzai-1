@@ -66,6 +66,7 @@ import { usePlanLimits } from '../hooks/usePlanLimits';
 import { CREDIT_COSTS } from '../lib/planLimits';
 import CreditConfirmModal from '../components/CreditConfirmModal';
 import { FilterBottomSheet } from '../components/common/BottomSheet';
+import MobileTopBar from '../components/mobile/MobileTopBar';
 
 type RecipientStatus = 'pending' | 'email_generated' | 'email_ready' | 'sent' | 'opened' | 'replied';
 
@@ -1388,9 +1389,20 @@ export default function CampaignsAutoPage() {
   return (
     <AuthLayout>
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col scroll-smooth">
-        {/* Cover Photo Section with all header elements */}
+        {/* Mobile Top Bar */}
+        <MobileTopBar
+          title="Campaigns"
+          subtitle={selectedCampaign ? `${recipients.length} contacts` : `${campaigns.length} campaigns`}
+          rightAction={{
+            icon: Plus,
+            onClick: () => handleNewCampaignClick(),
+            ariaLabel: 'New campaign'
+          }}
+        />
+
+        {/* Cover Photo Section with all header elements (Desktop only) */}
         <div
-          className="relative group/cover flex-shrink-0"
+          className="relative group/cover flex-shrink-0 hidden md:block"
           onMouseEnter={() => setIsHoveringCover(true)}
           onMouseLeave={() => setIsHoveringCover(false)}
         >

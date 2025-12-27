@@ -17,7 +17,11 @@ import {
   Image,
   Camera,
   Loader2,
-  X
+  X,
+  ChevronRight,
+  Mic,
+  ArrowUpRight,
+  ArrowDownRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -44,6 +48,7 @@ import {
   CampaignsList,
   RecentReplies,
 } from '../components/dashboard';
+import MobileTopBar from '../components/mobile/MobileTopBar';
 
 type TabType = 'overview' | 'applications' | 'campaigns';
 
@@ -91,6 +96,7 @@ export default function DashboardPage() {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('30d');
   const [boardFilter, setBoardFilter] = useState<string | null>(null);
   const [campaignFilter, setCampaignFilter] = useState<string | null>(null);
+  const [showMobileAnalytics, setShowMobileAnalytics] = useState(false);
 
   // Cover photo states
   const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
@@ -385,9 +391,15 @@ export default function DashboardPage() {
   return (
     <AuthLayout>
       <div className="flex flex-col h-full overflow-y-auto">
-        {/* Cover Photo Section with all header elements */}
+        {/* Mobile Top Bar */}
+        <MobileTopBar
+          title="Dashboard"
+          subtitle={`${stats.totalApplications} applications`}
+        />
+
+        {/* Cover Photo Section with all header elements (Desktop only) */}
         <div
-          className="relative group/cover flex-shrink-0"
+          className="relative group/cover flex-shrink-0 hidden md:block"
           onMouseEnter={() => setIsHoveringCover(true)}
           onMouseLeave={() => setIsHoveringCover(false)}
         >
@@ -515,8 +527,250 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="w-full px-3 sm:px-6 lg:px-8">
+        {/* ============================================ */}
+        {/* MOBILE-FIRST DASHBOARD LAYOUT */}
+        {/* ============================================ */}
+        <div className="md:hidden px-4 pt-6 pb-8 space-y-6">
+          {/* Hero KPI Card - Most Important Metric */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-2xl p-6"
+          >
+            <span className="text-[12px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Active Applications
+            </span>
+            <div className="flex items-end justify-between mt-2">
+              <p className="text-[48px] font-bold text-gray-900 dark:text-white leading-none tabular-nums">
+                {stats.activeApplications}
+              </p>
+              {stats.applicationsTrend !== undefined && stats.applicationsTrend !== 0 && (
+                <div className={`flex items-center gap-1 text-[13px] font-medium pb-2 ${stats.applicationsTrend > 0
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-rose-500 dark:text-rose-400'
+                  }`}>
+                  {stats.applicationsTrend > 0 ? (
+                    <ArrowUpRight className="w-4 h-4" />
+                  ) : (
+                    <ArrowDownRight className="w-4 h-4" />
+                  )}
+                  <span>{stats.applicationsTrend > 0 ? '+' : ''}{stats.applicationsTrend.toFixed(0)}% vs last period</span>
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Quick Actions - Critical Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="space-y-3"
+          >
+            <Link
+              to="/applications"
+              className="flex items-center justify-between w-full px-5 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl active:scale-[0.98] transition-transform"
+            >
+              <div className="flex items-center gap-3">
+                <Briefcase className="w-5 h-5" strokeWidth={2} />
+                <span className="text-[15px] font-semibold">Apply to jobs</span>
+              </div>
+              <ChevronRight className="w-5 h-5 opacity-60" />
+            </Link>
+
+            <Link
+              to="/campaigns-auto"
+              className="flex items-center justify-between w-full px-5 py-4 bg-gray-100 dark:bg-[#3d3c3e]/60 text-gray-900 dark:text-white rounded-xl active:scale-[0.98] transition-transform"
+            >
+              <div className="flex items-center gap-3">
+                <Zap className="w-5 h-5" strokeWidth={2} />
+                <span className="text-[15px] font-semibold">Launch campaign</span>
+              </div>
+              <ChevronRight className="w-5 h-5 opacity-40" />
+            </Link>
+
+            <Link
+              to="/mock-interview"
+              className="flex items-center justify-between w-full px-5 py-4 bg-gray-100 dark:bg-[#3d3c3e]/60 text-gray-900 dark:text-white rounded-xl active:scale-[0.98] transition-transform"
+            >
+              <div className="flex items-center gap-3">
+                <Mic className="w-5 h-5" strokeWidth={2} />
+                <span className="text-[15px] font-semibold">Practice interview</span>
+              </div>
+              <ChevronRight className="w-5 h-5 opacity-40" />
+            </Link>
+          </motion.div>
+
+          {/* Secondary Stats - 2×2 Grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            className="grid grid-cols-2 gap-3"
+          >
+            {/* Credits */}
+            <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-xl p-4">
+              <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Credits
+              </span>
+              <p className="text-[24px] font-bold text-gray-900 dark:text-white mt-1 tabular-nums">
+                {stats.credits.toLocaleString()}
+              </p>
+            </div>
+
+            {/* Outreach Contacts */}
+            <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-xl p-4">
+              <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Outreach
+              </span>
+              <p className="text-[24px] font-bold text-gray-900 dark:text-white mt-1 tabular-nums">
+                {stats.totalContacts.toLocaleString()}
+              </p>
+            </div>
+
+            {/* Interviews */}
+            <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-xl p-4">
+              <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Interviews
+              </span>
+              <p className="text-[24px] font-bold text-gray-900 dark:text-white mt-1 tabular-nums">
+                {stats.upcomingInterviews.length}
+              </p>
+            </div>
+
+            {/* Campaigns */}
+            <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-xl p-4">
+              <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Campaigns
+              </span>
+              <p className="text-[24px] font-bold text-gray-900 dark:text-white mt-1 tabular-nums">
+                {stats.totalCampaigns}
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Mobile Analytics Section - Expandable */}
+          <AnimatePresence>
+            {showMobileAnalytics && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-4 overflow-hidden"
+              >
+                {/* Applications Pipeline - Compact */}
+                <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-xl p-4">
+                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Applications Pipeline
+                  </span>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] text-gray-600 dark:text-gray-300">Applied</span>
+                      <span className="text-[13px] font-semibold text-gray-900 dark:text-white tabular-nums">
+                        {stats.applicationsByStatus.applied}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] text-gray-600 dark:text-gray-300">Interview</span>
+                      <span className="text-[13px] font-semibold text-gray-900 dark:text-white tabular-nums">
+                        {stats.applicationsByStatus.interview}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] text-gray-600 dark:text-gray-300">Offer</span>
+                      <span className="text-[13px] font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                        {stats.applicationsByStatus.offer}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Key Rates - Horizontal */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-xl p-3 text-center">
+                    <p className="text-[20px] font-bold text-gray-900 dark:text-white tabular-nums">
+                      {stats.responseRate.toFixed(0)}%
+                    </p>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Response</span>
+                  </div>
+                  <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-xl p-3 text-center">
+                    <p className="text-[20px] font-bold text-gray-900 dark:text-white tabular-nums">
+                      {stats.interviewRate.toFixed(0)}%
+                    </p>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Interview</span>
+                  </div>
+                  <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-xl p-3 text-center">
+                    <p className="text-[20px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                      {stats.offerRate.toFixed(0)}%
+                    </p>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Offer</span>
+                  </div>
+                </div>
+
+                {/* Campaign Stats - Compact */}
+                <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-xl p-4">
+                  <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Campaign Performance
+                  </span>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[18px] font-bold text-gray-900 dark:text-white tabular-nums">
+                        {stats.emailsSent.toLocaleString()}
+                      </p>
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400">Emails Sent</span>
+                    </div>
+                    <div>
+                      <p className="text-[18px] font-bold text-gray-900 dark:text-white tabular-nums">
+                        {stats.openRate.toFixed(1)}%
+                      </p>
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400">Open Rate</span>
+                    </div>
+                    <div>
+                      <p className="text-[18px] font-bold text-gray-900 dark:text-white tabular-nums">
+                        {stats.emailsReplied}
+                      </p>
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400">Replies</span>
+                    </div>
+                    <div>
+                      <p className="text-[18px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                        {stats.replyRate.toFixed(1)}%
+                      </p>
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400">Reply Rate</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Analytics Toggle Button */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.3 }}
+            className="pt-2"
+          >
+            <button
+              onClick={() => setShowMobileAnalytics(!showMobileAnalytics)}
+              className="flex items-center justify-center gap-2 w-full py-3 text-[14px] font-medium text-gray-500 dark:text-gray-400 active:text-gray-700 dark:active:text-gray-200 transition-colors"
+            >
+              <span>{showMobileAnalytics ? 'Hide analytics' : 'View detailed analytics'}</span>
+              <motion.div
+                animate={{ rotate: showMobileAnalytics ? 90 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </motion.div>
+            </button>
+          </motion.div>
+        </div>
+
+        {/* ============================================ */}
+        {/* DESKTOP LAYOUT (Hidden on Mobile) */}
+        {/* ============================================ */}
+        <div className="hidden md:block w-full px-3 sm:px-6 lg:px-8">
           {/* Filters and Tabs Container */}
           <div className="pt-6 pb-4">
             {/* Filters Bar */}
@@ -968,7 +1222,7 @@ export default function DashboardPage() {
               </motion.div>
             </AnimatePresence>
           </div>
-        </div>
+        </div>{/* End Desktop Layout */}
 
         {/* Cover Photo Modals */}
         <CoverPhotoCropper

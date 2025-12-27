@@ -65,6 +65,7 @@ import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
 import { usePlanLimits } from '../hooks/usePlanLimits';
 import { CREDIT_COSTS } from '../lib/planLimits';
 import { CreditConfirmModal } from '../components/CreditConfirmModal';
+import MobileTopBar from '../components/mobile/MobileTopBar';
 
 // Configurer le worker correctement pour utiliser le fichier local depuis public
 // Cela évite les problèmes CORS et 404 depuis les CDN externes
@@ -8062,9 +8063,20 @@ URL to visit: ${jobUrl}
   return (
     <AuthLayout>
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
-        {/* Cover Photo Section with all header elements */}
+        {/* Mobile Top Bar */}
+        <MobileTopBar
+          title="Resume Lab"
+          subtitle={`${analyses.length} analyses`}
+          rightAction={{
+            icon: Plus,
+            onClick: () => setIsNewAnalysisOpen(true),
+            ariaLabel: 'New analysis'
+          }}
+        />
+
+        {/* Cover Photo Section with all header elements (Desktop only) */}
         <div
-          className="relative group/cover flex-shrink-0"
+          className="relative group/cover flex-shrink-0 hidden md:block"
           onMouseEnter={() => setIsHoveringCover(true)}
           onMouseLeave={() => setIsHoveringCover(false)}
         >

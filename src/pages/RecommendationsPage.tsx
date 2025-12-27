@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
+import MobileTopBar from '../components/mobile/MobileTopBar';
 import { getClaudeRecommendation, generateEnhancedPrompt, RecommendationType } from '../services/claude';
 import { useNavigate } from 'react-router-dom';
 import { useRecommendations, getStateKey } from '../contexts/RecommendationsContext';
@@ -49,17 +50,17 @@ export default function RecommendationsPage() {
       console.error('No user data available');
       return;
     }
-    
+
     setRecommendationLoading(type, true);
-    
+
     try {
       const prompt = generateEnhancedPrompt(type, completeUserData);
       const response = await getClaudeRecommendation(
-        prompt, 
-        type, 
+        prompt,
+        type,
         completeUserData.cvContent || null
       );
-      
+
       if (response.error) {
         setRecommendationError(type, response.error);
         // Error toast only for critical failures
@@ -68,7 +69,7 @@ export default function RecommendationsPage() {
         }
       } else {
         setRecommendationData(type, response.data);
-        
+
         // Add to completed list in widget instead of showing toast
         if (showNotification && !completedRecommendationsRef.current.has(type)) {
           completedRecommendationsRef.current.add(type);
@@ -89,7 +90,7 @@ export default function RecommendationsPage() {
   // Refresh all recommendations
   const refreshAllRecommendations = async () => {
     if (!completeUserData) return;
-    
+
     const allTypes: RecommendationType[] = [
       'alignment-analysis',
       'target-companies',
@@ -100,14 +101,14 @@ export default function RecommendationsPage() {
       'salary-insights',
       'job-strategy'
     ];
-    
+
     // Reset state
     completedRecommendationsRef.current.clear();
     startLoading(allTypes.length, "Refreshing your AI recommendations");
-    
+
     const total = allTypes.length;
     let completed = 0;
-    
+
     // Load recommendations sequentially to show progress
     for (const type of allTypes) {
       await generateRecommendation(type, true);
@@ -115,15 +116,15 @@ export default function RecommendationsPage() {
       const progress = Math.round((completed / total) * 100);
       updateProgress(completed, progress);
     }
-    
+
     // Small delay to show 100% before closing
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     // Close modal first, then stop loading
     closeStartModal();
     await new Promise(resolve => setTimeout(resolve, 300));
     stopLoading();
-    
+
     // Show completion toast
     notify.success('All recommendations are ready! 🎉', {
       duration: 5000,
@@ -142,15 +143,15 @@ export default function RecommendationsPage() {
         setIsLoading(true);
         const data = await fetchCompleteUserData(currentUser.uid);
         setCompleteUserData(data);
-        
+
         // Calculate profile completeness
         const completeness = calculateProfileCompleteness(data);
         console.log('Profile completeness calculated:', completeness);
         setProfileCompleteness(completeness);
-        
+
         // Only auto-load recommendations if profile is at least 70% complete
         const MIN_PROFILE_COMPLETENESS = 70;
-        
+
         if (completeness >= MIN_PROFILE_COMPLETENESS) {
           // Auto-load key recommendations in parallel
           const keyRecommendations: RecommendationType[] = [
@@ -160,37 +161,37 @@ export default function RecommendationsPage() {
             'skills-gap',
             'job-strategy'
           ];
-          
+
           // Filter to only load recommendations that don't already have data
           const recommendationsToLoad = keyRecommendations.filter(type => {
             const key = getStateKey(type);
             return !recommendations[key]?.data;
           });
-          
+
           // Load recommendations sequentially to show progress
           if (recommendationsToLoad.length > 0) {
             // Reset state
             completedRecommendationsRef.current.clear();
             startLoading(recommendationsToLoad.length, "Generating your AI recommendations");
-            
+
             const total = recommendationsToLoad.length;
             let completed = 0;
-            
+
             for (const type of recommendationsToLoad) {
               await generateRecommendation(type, true);
               completed++;
               const progress = Math.round((completed / total) * 100);
               updateProgress(completed, progress);
             }
-            
+
             // Small delay to show 100% before closing
             await new Promise(resolve => setTimeout(resolve, 500));
-            
+
             // Close modal first, then stop loading
             closeStartModal();
             await new Promise(resolve => setTimeout(resolve, 300));
             stopLoading();
-            
+
             // Show completion toast
             notify.success('All recommendations are ready! 🎉', {
               duration: 5000,
@@ -213,7 +214,7 @@ export default function RecommendationsPage() {
   // Calculate profile completeness
   const calculateProfileCompleteness = (data: CompleteUserData | null) => {
     if (!data) return 0;
-    
+
     const requiredFields = [
       { key: 'firstName', value: data.firstName },
       { key: 'lastName', value: data.lastName },
@@ -284,6 +285,10 @@ export default function RecommendationsPage() {
   if (isLoading || !completeUserData) {
     return (
       <AuthLayout>
+        <MobileTopBar
+          title="Recommendations"
+          subtitle="Loading..."
+        />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
@@ -300,6 +305,10 @@ export default function RecommendationsPage() {
   if (profileCompleteness < 70) {
     return (
       <AuthLayout>
+        <MobileTopBar
+          title="Recommendations"
+          subtitle="Complete your profile"
+        />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <ProfileCompletenessGate profileCompleteness={profileCompleteness} />
         </div>
@@ -311,13 +320,18 @@ export default function RecommendationsPage() {
 
   return (
     <AuthLayout>
+      <MobileTopBar
+        title="Recommendations"
+        subtitle="AI-powered insights"
+      />
+
       {/* Loading Modal - only on Recommendations page, stays visible during loading */}
       <LoadingStartModal
         isOpen={isGenerating && loadingState.showStartModal}
         onClose={closeStartModal}
         message="Your AI recommendations are being generated in the background. You can continue browsing using the menu on the left, we'll notify you when they're ready!"
       />
-      
+
       {/* Blur overlay ONLY for page content - sidebar remains accessible */}
       <div className="relative">
         {isGenerating && (
@@ -325,84 +339,84 @@ export default function RecommendationsPage() {
             <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-xl" />
           </div>
         )}
-        
+
         <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative ${isGenerating ? 'pointer-events-none select-none' : ''}`}>
-        {/* Hero Section */}
-        <HeroSection
-          completeUserData={completeUserData}
-          profileCompleteness={profileCompleteness}
-          quickStats={quickStats}
-          onRefresh={refreshAllRecommendations}
-          isLoading={isLoading}
-        />
-
-        {/* Main Recommendations Sections */}
-        <div className="space-y-16">
-          {/* Job Search Alignment Analysis - FIRST & MOST CRITICAL */}
-          <AlignmentAnalysisSection
-            data={recommendations.alignmentAnalysis?.data}
-            isLoading={recommendations.alignmentAnalysis?.isLoading || false}
-            error={recommendations.alignmentAnalysis?.error || null}
-            onRefresh={() => generateRecommendation('alignment-analysis')}
+          {/* Hero Section */}
+          <HeroSection
+            completeUserData={completeUserData}
+            profileCompleteness={profileCompleteness}
+            quickStats={quickStats}
+            onRefresh={refreshAllRecommendations}
+            isLoading={isLoading}
           />
 
-          {/* Target Companies Section - Full Width */}
-          <TargetCompaniesSection
-            data={recommendations.targetCompanies?.data}
-            isLoading={recommendations.targetCompanies?.isLoading || false}
-            error={recommendations.targetCompanies?.error || null}
-            onRefresh={() => generateRecommendation('target-companies')}
-          />
-
-          {/* Career Path Section - Full Width */}
-          <CareerPathSection
-            data={recommendations.careerPath?.data}
-            isLoading={recommendations.careerPath?.isLoading || false}
-            error={recommendations.careerPath?.error || null}
-            onRefresh={() => generateRecommendation('career-path')}
-          />
-
-          {/* Skills Gap Analysis Section - Full Width */}
-          <SkillsGapSection
-            data={recommendations.skillsGap?.data}
-            isLoading={recommendations.skillsGap?.isLoading || false}
-            error={recommendations.skillsGap?.error || null}
-            onRefresh={() => generateRecommendation('skills-gap')}
-          />
-
-          {/* Job Search Strategy Section - Full Width */}
-          <JobStrategySection
-            data={recommendations.jobStrategy?.data}
-            isLoading={recommendations.jobStrategy?.isLoading || false}
-            error={recommendations.jobStrategy?.error || null}
-            onRefresh={() => generateRecommendation('job-strategy')}
-          />
-          
-          {/* Market Insights Section - Full Width */}
-          <MarketInsightsSection
-            data={recommendations.marketInsights?.data}
-            isLoading={recommendations.marketInsights?.isLoading || false}
-            error={recommendations.marketInsights?.error || null}
-            onRefresh={() => generateRecommendation('market-insights')}
-          />
-
-          {/* Application Timing & Salary Insights - Two Columns (Sidebar Style) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ApplicationTimingSection
-              data={recommendations.applicationTiming?.data}
-              isLoading={recommendations.applicationTiming?.isLoading || false}
-              error={recommendations.applicationTiming?.error || null}
-              onRefresh={() => generateRecommendation('application-timing')}
+          {/* Main Recommendations Sections */}
+          <div className="space-y-16">
+            {/* Job Search Alignment Analysis - FIRST & MOST CRITICAL */}
+            <AlignmentAnalysisSection
+              data={recommendations.alignmentAnalysis?.data}
+              isLoading={recommendations.alignmentAnalysis?.isLoading || false}
+              error={recommendations.alignmentAnalysis?.error || null}
+              onRefresh={() => generateRecommendation('alignment-analysis')}
             />
 
-            <SalaryInsightsSection
-              data={recommendations.salaryInsights?.data}
-              isLoading={recommendations.salaryInsights?.isLoading || false}
-              error={recommendations.salaryInsights?.error || null}
-              onRefresh={() => generateRecommendation('salary-insights')}
+            {/* Target Companies Section - Full Width */}
+            <TargetCompaniesSection
+              data={recommendations.targetCompanies?.data}
+              isLoading={recommendations.targetCompanies?.isLoading || false}
+              error={recommendations.targetCompanies?.error || null}
+              onRefresh={() => generateRecommendation('target-companies')}
             />
+
+            {/* Career Path Section - Full Width */}
+            <CareerPathSection
+              data={recommendations.careerPath?.data}
+              isLoading={recommendations.careerPath?.isLoading || false}
+              error={recommendations.careerPath?.error || null}
+              onRefresh={() => generateRecommendation('career-path')}
+            />
+
+            {/* Skills Gap Analysis Section - Full Width */}
+            <SkillsGapSection
+              data={recommendations.skillsGap?.data}
+              isLoading={recommendations.skillsGap?.isLoading || false}
+              error={recommendations.skillsGap?.error || null}
+              onRefresh={() => generateRecommendation('skills-gap')}
+            />
+
+            {/* Job Search Strategy Section - Full Width */}
+            <JobStrategySection
+              data={recommendations.jobStrategy?.data}
+              isLoading={recommendations.jobStrategy?.isLoading || false}
+              error={recommendations.jobStrategy?.error || null}
+              onRefresh={() => generateRecommendation('job-strategy')}
+            />
+
+            {/* Market Insights Section - Full Width */}
+            <MarketInsightsSection
+              data={recommendations.marketInsights?.data}
+              isLoading={recommendations.marketInsights?.isLoading || false}
+              error={recommendations.marketInsights?.error || null}
+              onRefresh={() => generateRecommendation('market-insights')}
+            />
+
+            {/* Application Timing & Salary Insights - Two Columns (Sidebar Style) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ApplicationTimingSection
+                data={recommendations.applicationTiming?.data}
+                isLoading={recommendations.applicationTiming?.isLoading || false}
+                error={recommendations.applicationTiming?.error || null}
+                onRefresh={() => generateRecommendation('application-timing')}
+              />
+
+              <SalaryInsightsSection
+                data={recommendations.salaryInsights?.data}
+                isLoading={recommendations.salaryInsights?.isLoading || false}
+                error={recommendations.salaryInsights?.error || null}
+                onRefresh={() => generateRecommendation('salary-insights')}
+              />
+            </div>
           </div>
-        </div>
         </div>
       </div>
     </AuthLayout>

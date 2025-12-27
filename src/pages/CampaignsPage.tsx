@@ -5,6 +5,7 @@ import { collection, query, onSnapshot, doc, deleteDoc, where, orderBy, updateDo
 import { db, functions } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
+import MobileTopBar from '../components/mobile/MobileTopBar';
 import DeleteCampaignModal from '../components/DeleteCampaignModal';
 import { CampaignFilters, type CampaignFilters as FiltersType } from '../components/CampaignFilters';
 import CampaignPreview from './CampaignPreview';
@@ -46,7 +47,7 @@ export default function CampaignsPage() {
   const { currentUser } = useAuth();
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [deleteModal, setDeleteModal] = useState<{show: boolean; campaign?: any}>({ show: false });
+  const [deleteModal, setDeleteModal] = useState<{ show: boolean; campaign?: any }>({ show: false });
   const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
   const [filters, setFilters] = useState<FiltersType>({});
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +78,7 @@ export default function CampaignsPage() {
         : filters.dateRange.start;
       q = query(q, where('createdAt', '>=', startDate));
     }
-    
+
     if (filters.dateRange?.end) {
       let endDate = filters.dateRange.end;
       if (endDate instanceof Date) {
@@ -182,25 +183,25 @@ export default function CampaignsPage() {
 
   const handleStartCampaign = async (campaignId: string) => {
     setStartModal({ show: false });
-    
+
     if (!currentUser) {
       notify.error("Please login first");
       return;
     }
 
     const toastId = toast.loading("Starting campaign...");
-    
+
     try {
       // Récupérer les données de l'utilisateur
       const userRef = doc(db, 'users', currentUser.uid);
       const userSnap = await getDoc(userRef);
-      
+
       if (!userSnap.exists()) {
         notify.error("User data not found");
         toast.dismiss(toastId);
         return;
       }
-      
+
       const userData = userSnap.data();
 
       // Vérifier si l'utilisateur a assez de crédits
@@ -209,13 +210,13 @@ export default function CampaignsPage() {
       // Récupérer la campagne
       const campaignRef = doc(db, 'users', currentUser.uid, 'campaigns', campaignId);
       const campaignSnap = await getDoc(campaignRef);
-      
+
       if (!campaignSnap.exists()) {
         notify.error("Campaign not found");
         toast.dismiss(toastId);
         return;
       }
-      
+
       const campaignData = campaignSnap.data();
 
       // Vérifier si la campagne existe et a des crédits assignés
@@ -242,13 +243,13 @@ export default function CampaignsPage() {
       // Récupérer le template
       const templateRef = doc(db, 'users', currentUser.uid, 'emailTemplates', campaignData.templateId);
       const templateSnap = await getDoc(templateRef);
-      
+
       if (!templateSnap.exists()) {
         notify.error("Email template not found");
         toast.dismiss(toastId);
         return;
       }
-      
+
       const emailTemplate = templateSnap.data();
 
       // Déduire les crédits du solde de l'utilisateur
@@ -327,7 +328,7 @@ export default function CampaignsPage() {
     (campaign.title?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
     (campaign.description?.toLowerCase() || '').includes(searchQuery.toLowerCase())
   );
-  
+
   if (showNewCampaign) {
     return (
       <AuthLayout>
@@ -368,8 +369,8 @@ export default function CampaignsPage() {
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {filteredCampaigns.length > 0 ? (
               filteredCampaigns.map((campaign) => (
-                <tr 
-                  key={campaign.id} 
+                <tr
+                  key={campaign.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -422,7 +423,7 @@ export default function CampaignsPage() {
                     <div className="flex items-center justify-end space-x-2">
                       {campaign.status === 'pending' && (
                         <button
-                          onClick={(e) => { 
+                          onClick={(e) => {
                             e.stopPropagation();
                             handleStartClick(e, campaign);
                           }}
@@ -457,8 +458,8 @@ export default function CampaignsPage() {
             ) : (
               <tr>
                 <td colSpan={6} className="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
-                  {searchQuery || Object.keys(filters).length > 0 
-                    ? "No campaigns match your filters or search criteria" 
+                  {searchQuery || Object.keys(filters).length > 0
+                    ? "No campaigns match your filters or search criteria"
                     : "No campaigns found. Create your first campaign to get started."}
                 </td>
               </tr>
@@ -560,9 +561,20 @@ export default function CampaignsPage() {
 
   return (
     <AuthLayout>
+      {/* Mobile Top Bar */}
+      <MobileTopBar
+        title="AutoPilot"
+        subtitle={`${campaigns.length} campaigns`}
+        rightAction={{
+          icon: Plus,
+          onClick: () => setShowNewCampaign(true),
+          ariaLabel: 'New Campaign',
+        }}
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section */}
-        <div className="mb-8">
+        {/* Hero Section (Desktop only) */}
+        <div className="mb-8 hidden md:block">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-3xl font-bold text-purple-600 dark:text-white">
@@ -646,27 +658,25 @@ export default function CampaignsPage() {
           </div>
           <div className="flex items-center gap-3">
             <CampaignFilters filters={filters} onFilterChange={handleFilterChange} />
-            
+
             {/* View Toggle Buttons */}
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-1 flex">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg flex items-center justify-center ${
-                  viewMode === 'grid' 
-                    ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' 
-                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+                className={`p-2 rounded-lg flex items-center justify-center ${viewMode === 'grid'
+                  ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
                 aria-label="Grid View"
               >
                 <LayoutGrid className="h-5 w-5" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg flex items-center justify-center ${
-                  viewMode === 'list' 
-                    ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' 
-                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+                className={`p-2 rounded-lg flex items-center justify-center ${viewMode === 'list'
+                  ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
                 aria-label="List View"
               >
                 <List className="h-5 w-5" />

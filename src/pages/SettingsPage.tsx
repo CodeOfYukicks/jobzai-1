@@ -34,6 +34,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
+import MobileTopBar from '../components/mobile/MobileTopBar';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, updateDoc, collection, query, orderBy, limit, getDocs, addDoc, where, Timestamp } from 'firebase/firestore';
 import { updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
@@ -302,9 +303,9 @@ const ActivityItem = ({
         `}>
           <Icon
             className={`w-4 h-4 ${event.type === 'login' ? 'text-green-600 dark:text-green-400' :
-                event.type === 'logout' ? 'text-gray-500 dark:text-gray-400' :
-                  event.type === 'password_change' || event.type === 'security_change' ? 'text-amber-600 dark:text-amber-400' :
-                    'text-blue-600 dark:text-blue-400'
+              event.type === 'logout' ? 'text-gray-500 dark:text-gray-400' :
+                event.type === 'password_change' || event.type === 'security_change' ? 'text-amber-600 dark:text-amber-400' :
+                  'text-blue-600 dark:text-blue-400'
               }`}
             strokeWidth={1.5}
           />
@@ -866,6 +867,9 @@ export default function SettingsPage() {
   if (isLoading) {
     return (
       <AuthLayout>
+        <MobileTopBar
+          title="Settings"
+        />
         <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
         </div>
@@ -875,6 +879,10 @@ export default function SettingsPage() {
 
   return (
     <AuthLayout>
+      <MobileTopBar
+        title="Settings"
+      />
+
       <div className="min-h-screen bg-white dark:bg-[#333234]">
         <motion.div
           initial={{ opacity: 0 }}
@@ -882,8 +890,8 @@ export default function SettingsPage() {
           transition={{ duration: 0.3 }}
           className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10"
         >
-          {/* Header - Notion style */}
-          <div className="mb-10">
+          {/* Header - Notion style (Desktop only) */}
+          <div className="mb-10 hidden md:block">
             <nav className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               <span className="hover:text-gray-900 dark:hover:text-white cursor-pointer">Home</span>
               <span className="mx-2">/</span>
@@ -1129,8 +1137,8 @@ export default function SettingsPage() {
                                     <div
                                       key={level}
                                       className={`h-1 flex-1 rounded-full transition-colors ${passwordStrength >= level
-                                          ? passwordStrength <= 2 ? 'bg-red-500' : passwordStrength <= 3 ? 'bg-amber-500' : 'bg-green-500'
-                                          : 'bg-gray-200 dark:bg-[#3d3c3e]'
+                                        ? passwordStrength <= 2 ? 'bg-red-500' : passwordStrength <= 3 ? 'bg-amber-500' : 'bg-green-500'
+                                        : 'bg-gray-200 dark:bg-[#3d3c3e]'
                                         }`}
                                     />
                                   ))}

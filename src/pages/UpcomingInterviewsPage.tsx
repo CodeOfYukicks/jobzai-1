@@ -30,6 +30,7 @@ import InterviewCard from '../components/interview/InterviewCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
 import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
+import MobileTopBar from '../components/mobile/MobileTopBar';
 
 // Interface for the job application data
 interface Interview {
@@ -615,9 +616,15 @@ END:VCALENDAR`;
   return (
     <AuthLayout>
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
-        {/* Cover Photo Section with all header elements */}
+        {/* Mobile Top Bar */}
+        <MobileTopBar
+          title="Interviews"
+          subtitle={`${getUpcomingInterviews().length} upcoming`}
+        />
+
+        {/* Cover Photo Section with all header elements (Desktop only) */}
         <div
-          className="relative group/cover flex-shrink-0"
+          className="relative group/cover flex-shrink-0 hidden md:block"
           onMouseEnter={() => setIsHoveringCover(true)}
           onMouseLeave={() => setIsHoveringCover(false)}
         >

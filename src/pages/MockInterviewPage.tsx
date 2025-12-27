@@ -5,6 +5,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { notify } from '@/lib/notify';
 import AuthLayout from '../components/AuthLayout';
+import MobileTopBar from '../components/mobile/MobileTopBar';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { KanbanBoard } from '../types/job';
 import {
@@ -2564,6 +2565,12 @@ export default function MockInterviewPage() {
 
   return (
     <AuthLayout>
+      {/* Mobile Top Bar */}
+      <MobileTopBar
+        title="Mock Interview"
+        subtitle={phase === 'setup' ? 'Select an interview' : phase === 'live' ? 'Live Session' : 'Results'}
+      />
+
       <div className="h-full overflow-hidden">
         <AnimatePresence mode="wait">
           {phase === 'setup' && renderSetupPhase()}

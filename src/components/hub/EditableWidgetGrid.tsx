@@ -44,81 +44,81 @@ interface Widget {
 }
 
 // Available widgets catalog
-const widgetCatalog: { 
-  type: WidgetType; 
-  name: string; 
+const widgetCatalog: {
+  type: WidgetType;
+  name: string;
   description: string;
   icon: React.ElementType;
   color: string;
   size: 'small' | 'large';
   resizable?: boolean;
 }[] = [
-  { 
-    type: 'missions', 
-    name: 'Daily Missions', 
-    description: 'Track your daily goals',
-    icon: Target,
-    color: '#635BFF',
-    size: 'large',
-    resizable: true
-  },
-  { 
-    type: 'quote', 
-    name: 'Quote of the Day', 
-    description: 'Get daily inspiration',
-    icon: Quote,
-    color: '#B7E219',
-    size: 'small'
-  },
-  { 
-    type: 'weather', 
-    name: 'Weather', 
-    description: 'Local conditions',
-    icon: Cloud,
-    color: '#22272B',
-    size: 'small'
-  },
-  { 
-    type: 'time', 
-    name: 'Clock', 
-    description: 'Retro digital watch',
-    icon: Clock,
-    color: '#dddf8f',
-    size: 'small'
-  },
-  { 
-    type: 'note', 
-    name: 'Quick Note', 
-    description: 'Write quick notes',
-    icon: StickyNote,
-    color: '#D97706',
-    size: 'small'
-  },
-  { 
-    type: 'hamster', 
-    name: 'Hamster', 
-    description: 'Cute motivational pet',
-    icon: Heart,
-    color: '#F97316',
-    size: 'small'
-  },
-  { 
-    type: 'pressButton', 
-    name: 'Press Button', 
-    description: 'Satisfying press animation',
-    icon: CircleDot,
-    color: '#FF5A78',
-    size: 'small'
-  },
-  { 
-    type: 'eyeButton', 
-    name: 'Eye Button', 
-    description: 'Eyes that follow your cursor',
-    icon: Eye,
-    color: '#3B82F6',
-    size: 'small'
-  },
-];
+    {
+      type: 'missions',
+      name: 'Daily Missions',
+      description: 'Track your daily goals',
+      icon: Target,
+      color: '#635BFF',
+      size: 'large',
+      resizable: true
+    },
+    {
+      type: 'quote',
+      name: 'Quote of the Day',
+      description: 'Get daily inspiration',
+      icon: Quote,
+      color: '#B7E219',
+      size: 'small'
+    },
+    {
+      type: 'weather',
+      name: 'Weather',
+      description: 'Local conditions',
+      icon: Cloud,
+      color: '#22272B',
+      size: 'small'
+    },
+    {
+      type: 'time',
+      name: 'Clock',
+      description: 'Retro digital watch',
+      icon: Clock,
+      color: '#dddf8f',
+      size: 'small'
+    },
+    {
+      type: 'note',
+      name: 'Quick Note',
+      description: 'Write quick notes',
+      icon: StickyNote,
+      color: '#D97706',
+      size: 'small'
+    },
+    {
+      type: 'hamster',
+      name: 'Hamster',
+      description: 'Cute motivational pet',
+      icon: Heart,
+      color: '#F97316',
+      size: 'small'
+    },
+    {
+      type: 'pressButton',
+      name: 'Press Button',
+      description: 'Satisfying press animation',
+      icon: CircleDot,
+      color: '#FF5A78',
+      size: 'small'
+    },
+    {
+      type: 'eyeButton',
+      name: 'Eye Button',
+      description: 'Eyes that follow your cursor',
+      icon: Eye,
+      color: '#3B82F6',
+      size: 'small'
+    },
+  ];
 
 // Default widget configuration
 const defaultWidgets: Widget[] = [
@@ -161,14 +161,14 @@ const isWidgetResizable = (type: WidgetType): boolean => {
 };
 
 // Sortable widget item
-function SortableWidget({ 
-  widget, 
-  isEditMode, 
+function SortableWidget({
+  widget,
+  isEditMode,
   onRemove,
   onResize
-}: { 
-  widget: Widget; 
-  isEditMode: boolean; 
+}: {
+  widget: Widget;
+  isEditMode: boolean;
   onRemove: (id: string) => void;
   onResize: (id: string) => void;
 }) {
@@ -195,7 +195,7 @@ function SortableWidget({
       style={style}
       className={`
         relative h-full
-        ${widget.size === 'large' ? 'md:col-span-2' : ''}
+        ${widget.size === 'large' ? 'col-span-2' : ''}
         ${isDragging ? 'opacity-50' : ''}
       `}
     >
@@ -296,11 +296,11 @@ function WidgetPreview({ widget }: { widget: Widget }) {
 }
 
 // Widget Gallery Panel - always shown in edit mode
-function WidgetGallery({ 
-  existingTypes, 
-  onAddWidget 
-}: { 
-  existingTypes: WidgetType[]; 
+function WidgetGallery({
+  existingTypes,
+  onAddWidget
+}: {
+  existingTypes: WidgetType[];
   onAddWidget: (type: WidgetType) => void;
 }) {
   const availableWidgets = widgetCatalog.filter(w => !existingTypes.includes(w.type));
@@ -321,7 +321,7 @@ function WidgetGallery({
       <p className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 pl-1">
         Add widget
       </p>
-      
+
       {/* Compact widget cards */}
       <div className="flex flex-wrap gap-2">
         {availableWidgets.map((widget) => {
@@ -338,7 +338,7 @@ function WidgetGallery({
                 hover:border-[#635BFF]/50 hover:bg-white dark:hover:bg-gray-800
                 transition-all group"
             >
-              <div 
+              <div
                 className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: `${widget.color}15` }}
               >
@@ -458,44 +458,44 @@ export default function EditableWidgetGrid() {
 
   return (
     <div className="relative">
-      {/* Edit button - Premium minimal design */}
-      <div className="absolute -top-10 right-0 z-30">
+      {/* Edit button - iOS Widget style */}
+      <div className="absolute -top-8 md:-top-10 right-0 z-30">
         <motion.button
           onClick={() => setIsEditMode(!isEditMode)}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="relative group"
+          whileTap={{ scale: 0.92 }}
+          className="relative"
         >
           <AnimatePresence mode="wait">
             {isEditMode ? (
               <motion.div
                 key="done"
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
                 transition={{ duration: 0.15 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-                  bg-[#635BFF] text-white text-xs font-medium tracking-wide
-                  shadow-sm shadow-[#635BFF]/25"
+                className="flex items-center justify-center w-8 h-8 md:w-auto md:h-auto md:gap-1.5 md:px-3 md:py-1.5 rounded-full md:rounded-lg
+                  bg-[#635BFF] text-white text-xs font-medium
+                  shadow-lg shadow-[#635BFF]/30"
               >
-                <Check className="w-3 h-3" strokeWidth={2.5} />
-                <span>Done</span>
+                <Check className="w-4 h-4 md:w-3 md:h-3" strokeWidth={2.5} />
+                <span className="hidden md:inline">Done</span>
               </motion.div>
             ) : (
               <motion.div
                 key="edit"
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
                 transition={{ duration: 0.15 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-                  text-gray-400 dark:text-gray-500 text-xs font-medium tracking-wide
-                  hover:text-gray-600 dark:hover:text-gray-300
-                  hover:bg-gray-100 dark:hover:bg-gray-800/50
+                className="flex items-center justify-center w-8 h-8 md:w-auto md:h-auto md:gap-1.5 md:px-3 md:py-1.5 rounded-full md:rounded-lg
+                  bg-gray-100/80 dark:bg-white/10 backdrop-blur-sm
+                  text-gray-500 dark:text-gray-400 text-xs font-medium
+                  md:bg-transparent md:dark:bg-transparent md:backdrop-blur-none
+                  md:hover:bg-gray-100 md:dark:hover:bg-gray-800/50
                   transition-colors duration-200"
               >
-                <Pencil className="w-3 h-3" strokeWidth={2} />
-                <span>Edit</span>
+                <Pencil className="w-4 h-4 md:w-3 md:h-3" strokeWidth={2} />
+                <span className="hidden md:inline">Edit</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -510,9 +510,9 @@ export default function EditableWidgetGrid() {
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={widgets.map((w) => w.id)} strategy={rectSortingStrategy}>
-          <motion.div 
+          <motion.div
             layout
-            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 ${widgets.length > 0 ? 'min-h-[220px]' : ''}`}
+            className={`grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 ${widgets.length > 0 ? 'min-h-[160px] md:min-h-[220px]' : ''}`}
           >
             {widgets.map((widget) => (
               <SortableWidget
@@ -526,7 +526,7 @@ export default function EditableWidgetGrid() {
 
             {/* Empty state - Apple-like minimal */}
             {widgets.length === 0 && !isEditMode && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="col-span-full flex items-center justify-center gap-3 py-6"

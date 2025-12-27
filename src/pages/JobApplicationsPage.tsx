@@ -74,6 +74,12 @@ import { useAssistantPageData, summarizeApplications } from '../hooks/useAssista
 import { ProfileAvatar, generateGenderedAvatarConfigByName } from '../components/profile/avatar';
 import BottomSheet from '../components/common/BottomSheet';
 import { CompanyLogo } from '../components/common/CompanyLogo';
+import MobileApplicationCard from '../components/mobile/MobileApplicationCard';
+import JobDetailsBottomSheet from '../components/mobile/JobDetailsBottomSheet';
+import MobileCardContextMenu from '../components/mobile/MobileCardContextMenu';
+import MobileDeleteConfirm from '../components/mobile/MobileDeleteConfirm';
+import MobileStatusSelect from '../components/mobile/MobileStatusSelect';
+import MobileTopBar from '../components/mobile/MobileTopBar';
 
 export default function JobApplicationsPage() {
   const { currentUser } = useAuth();
@@ -157,6 +163,21 @@ export default function JobApplicationsPage() {
   const [mobileStatusFilter, setMobileStatusFilter] = useState<string>('all');
   const [showMobileStatusSheet, setShowMobileStatusSheet] = useState(false);
   const [mobileStatusChangeApp, setMobileStatusChangeApp] = useState<JobApplication | null>(null);
+
+  // Mobile gesture-based card states
+  const [mobileGestureLocked, setMobileGestureLocked] = useState(false);
+  const [showJobDetailsSheet, setShowJobDetailsSheet] = useState(false);
+  const [jobDetailsApp, setJobDetailsApp] = useState<JobApplication | null>(null);
+  const [showMobileContextMenu, setShowMobileContextMenu] = useState(false);
+  const [contextMenuApp, setContextMenuApp] = useState<JobApplication | null>(null);
+
+  // Mobile confirmation modal states
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmApp, setDeleteConfirmApp] = useState<JobApplication | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showStatusSelect, setShowStatusSelect] = useState(false);
+  const [statusSelectApp, setStatusSelectApp] = useState<JobApplication | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   // New Application Form State
   const [showFullForm, setShowFullForm] = useState(false);
@@ -3118,9 +3139,27 @@ END:VCALENDAR`;
       <style>{cssVariables}</style>
 
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
-        {/* Cover Photo Section with all header elements */}
+        {/* Mobile Top Bar */}
+        <MobileTopBar
+          title={view !== 'boards' && currentBoard ? currentBoard.name : 'Applications'}
+          subtitle={`${filteredApplications.length} applications`}
+          rightAction={{
+            icon: Plus,
+            onClick: () => {
+              if (view === 'boards') {
+                setEditingBoard(null);
+                setShowBoardSettingsModal(true);
+              } else {
+                setNewApplicationModal(true);
+              }
+            },
+            ariaLabel: 'Add new'
+          }}
+        />
+
+        {/* Cover Photo Section with all header elements (Desktop only) */}
         <div
-          className="relative group/cover flex-shrink-0"
+          className="relative group/cover flex-shrink-0 hidden md:block"
           onMouseEnter={() => setIsHoveringCover(true)}
           onMouseLeave={() => setIsHoveringCover(false)}
         >
@@ -3747,76 +3786,51 @@ END:VCALENDAR`;
                     </div>
                   </div>
 
-                  {/* Mobile Application Cards */}
+                  {/* Mobile Application Cards - iOS-style gesture-based */}
                   <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
                     {(mobileStatusFilter === 'all'
                       ? filteredApplications
                       : filteredApplications.filter(a => getEffectiveStatus(a.status) === mobileStatusFilter)
                     ).map((app) => (
-                      <motion.div
+                      <MobileApplicationCard
                         key={app.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-200 dark:border-[#3d3c3e] p-4 shadow-sm active:scale-[0.98] transition-transform"
-                        onClick={() => {
-                          setSelectedApplication(app);
-                          setTimelineModal(true);
+                        app={app}
+                        isCampaign={currentBoardType === 'campaigns'}
+                        isGestureLocked={mobileGestureLocked}
+                        onGestureLockChange={setMobileGestureLocked}
+                        onTap={() => {
+                          setJobDetailsApp(app);
+                          setShowJobDetailsSheet(true);
                         }}
-                      >
-                        <div className="flex items-start gap-3">
-                          {/* Avatar/Logo - Use ProfileAvatar for campaigns, CompanyLogo for jobs */}
-                          {app.contactName ? (
-                            <ProfileAvatar
-                              config={generateGenderedAvatarConfigByName(app.contactName)}
-                              size={40}
-                              className="rounded-full shadow-sm flex-shrink-0"
-                            />
-                          ) : (
-                            <CompanyLogo companyName={app.companyName || ''} size="md" />
-                          )}
-
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900 dark:text-white text-sm truncate">
-                              {app.contactName || app.position || 'Untitled'}
-                            </h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                              {app.contactName
-                                ? `${app.position || ''} ${app.companyName ? `@ ${app.companyName}` : ''}`.trim() || app.companyName
-                                : `${app.companyName}${app.location ? ` • ${app.location}` : ''}`
-                              }
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className="text-[10px] text-gray-400 dark:text-gray-500">
-                                {app.appliedDate ? new Date(app.appliedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date'}
-                              </span>
-                              {/* Status Badge */}
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${getEffectiveStatus(app.status) === 'offer' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                                  getEffectiveStatus(app.status) === 'interview' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
-                                    getEffectiveStatus(app.status) === 'applied' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                      getEffectiveStatus(app.status) === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                        'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
-                                  }`}
-                              >
-                                {columnLabels[getEffectiveStatus(app.status)] || app.status}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Action Button */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setMobileStatusChangeApp(app);
-                              setShowMobileStatusSheet(true);
-                            }}
-                            className="p-2 -mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                          >
-                            <MoreHorizontal className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </motion.div>
+                        onStatusChange={() => {
+                          // Show status selection modal instead of auto-moving
+                          setStatusSelectApp(app);
+                          setShowStatusSelect(true);
+                        }}
+                        onArchive={async () => {
+                          if (!currentUser) return;
+                          try {
+                            const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', app.id);
+                            await updateDoc(applicationRef, {
+                              status: 'archived',
+                              updatedAt: serverTimestamp()
+                            });
+                            notify.success('Application archived');
+                          } catch (error) {
+                            console.error('Error archiving:', error);
+                            notify.error('Failed to archive');
+                          }
+                        }}
+                        onDelete={() => {
+                          // Show delete confirmation modal
+                          setDeleteConfirmApp(app);
+                          setShowDeleteConfirm(true);
+                        }}
+                        onLongPress={() => {
+                          setContextMenuApp(app);
+                          setShowMobileContextMenu(true);
+                        }}
+                      />
                     ))}
 
                     {/* Empty State */}
@@ -7226,6 +7240,134 @@ END:VCALENDAR`;
             })}
           </div>
         </BottomSheet>
+
+        {/* Job Details Bottom Sheet - iOS style */}
+        <JobDetailsBottomSheet
+          isOpen={showJobDetailsSheet}
+          onClose={() => {
+            setShowJobDetailsSheet(false);
+            setJobDetailsApp(null);
+          }}
+          application={jobDetailsApp}
+          isCampaign={currentBoardType === 'campaigns'}
+          onEdit={() => {
+            if (jobDetailsApp) {
+              setShowJobDetailsSheet(false);
+              setSelectedApplication(jobDetailsApp);
+              setTimelineModal(true);
+            }
+          }}
+        />
+
+        {/* Mobile Context Menu - Long press actions */}
+        <MobileCardContextMenu
+          isOpen={showMobileContextMenu}
+          onClose={() => {
+            setShowMobileContextMenu(false);
+            setContextMenuApp(null);
+          }}
+          application={contextMenuApp}
+          onEdit={() => {
+            if (contextMenuApp) {
+              setSelectedApplication(contextMenuApp);
+              setTimelineModal(true);
+            }
+          }}
+          onAddNote={() => {
+            if (contextMenuApp) {
+              setSelectedApplication(contextMenuApp);
+              setTimelineModal(true);
+            }
+          }}
+          onSetReminder={() => {
+            if (contextMenuApp) {
+              setEditModal({ show: true, application: contextMenuApp });
+            }
+          }}
+          onArchive={async () => {
+            if (contextMenuApp && currentUser) {
+              try {
+                const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', contextMenuApp.id);
+                await updateDoc(applicationRef, {
+                  status: 'archived',
+                  updatedAt: serverTimestamp()
+                });
+                notify.success('Application archived');
+              } catch (error) {
+                console.error('Error archiving:', error);
+                notify.error('Failed to archive');
+              }
+            }
+          }}
+          onDelete={() => {
+            // Show delete confirmation modal
+            if (contextMenuApp) {
+              setShowMobileContextMenu(false);
+              setDeleteConfirmApp(contextMenuApp);
+              setShowDeleteConfirm(true);
+            }
+          }}
+        />
+
+        {/* Mobile Delete Confirmation Modal */}
+        <MobileDeleteConfirm
+          isOpen={showDeleteConfirm}
+          onClose={() => {
+            setShowDeleteConfirm(false);
+            setDeleteConfirmApp(null);
+          }}
+          application={deleteConfirmApp}
+          isDeleting={isDeleting}
+          onConfirm={async () => {
+            if (deleteConfirmApp && currentUser) {
+              setIsDeleting(true);
+              try {
+                const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', deleteConfirmApp.id);
+                await deleteDoc(applicationRef);
+                notify.success('Application deleted');
+                setShowDeleteConfirm(false);
+                setDeleteConfirmApp(null);
+              } catch (error) {
+                console.error('Error deleting:', error);
+                notify.error('Failed to delete');
+              } finally {
+                setIsDeleting(false);
+              }
+            }
+          }}
+        />
+
+        {/* Mobile Status Selection Modal */}
+        <MobileStatusSelect
+          isOpen={showStatusSelect}
+          onClose={() => {
+            setShowStatusSelect(false);
+            setStatusSelectApp(null);
+          }}
+          application={statusSelectApp}
+          isCampaign={currentBoardType === 'campaigns'}
+          isUpdating={isUpdatingStatus}
+          onSelect={async (newStatus) => {
+            if (statusSelectApp && currentUser) {
+              setIsUpdatingStatus(true);
+              try {
+                const applicationRef = doc(db, 'users', currentUser.uid, 'jobApplications', statusSelectApp.id);
+                await updateDoc(applicationRef, {
+                  status: newStatus,
+                  updatedAt: serverTimestamp()
+                });
+                notify.success(`Moved to ${columnLabels[newStatus] || newStatus}`);
+                setShowStatusSelect(false);
+                setStatusSelectApp(null);
+              } catch (error) {
+                console.error('Error updating status:', error);
+                notify.error('Failed to update status');
+              } finally {
+                setIsUpdatingStatus(false);
+              }
+            }
+          }}
+        />
 
         {/* Cover Photo Modals */}
         <CoverPhotoCropper

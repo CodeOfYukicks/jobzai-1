@@ -5,6 +5,7 @@ import { collection, query, getDocs, getDoc, addDoc, doc, updateDoc, serverTimes
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLayout from '../components/AuthLayout';
+import MobileTopBar from '../components/mobile/MobileTopBar';
 import { notify } from '@/lib/notify';
 import {
   CalendarTopbar,
@@ -880,7 +881,13 @@ export default function CalendarView() {
     <AuthLayout small>
       <div className="flex w-full min-h-0 flex-1 overflow-hidden flex-col md:flex-row">
 
-        {/* Mobile Header (Visible only on mobile) */}
+        {/* Mobile Top Bar (replaces custom mobile header) */}
+        <MobileTopBar
+          title="Calendar"
+          subtitle={moment(currentDate).format('MMMM YYYY')}
+        />
+
+        {/* Mobile Navigation Row (Visible only on mobile) */}
         <div className="md:hidden flex flex-col bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-[#333]">
           {/* Top Row: Month, Nav, View Switcher */}
           <div className="flex items-center justify-between px-4 py-3">

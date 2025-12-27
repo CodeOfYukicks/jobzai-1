@@ -5,6 +5,7 @@ import {
   FileText, Search, Loader2, Sparkles, ChevronDown, X, Check, Info, Upload, StickyNote, Palette
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
+import MobileTopBar from '../components/mobile/MobileTopBar';
 import { useAuth } from '../contexts/AuthContext';
 import { useAssistant } from '../contexts/AssistantContext';
 import { collection, query, getDocs, deleteDoc, doc, orderBy, addDoc, serverTimestamp, setDoc, updateDoc, getDoc } from 'firebase/firestore';
@@ -22,10 +23,10 @@ import PDFPreviewCard, { ImportedDocument } from '../components/resume-builder/P
 import PremiumPDFViewer from '../components/resume-builder/PremiumPDFViewer';
 import DropZone from '../components/resume-builder/DropZone';
 import NotionPreviewCard from '../components/notion-editor/NotionPreviewCard';
-import { 
-  NotionDocument, 
-  getNotes, 
-  createNote, 
+import {
+  NotionDocument,
+  getNotes,
+  createNote,
   deleteNote as deleteNoteService,
   updateNote,
   moveNoteToFolder
@@ -115,7 +116,7 @@ export default function ResumeBuilderPage() {
   const [selectedFolderId, setSelectedFolderId] = useState<SelectedFolderType>('all');
   const [isUpdatingCover, setIsUpdatingCover] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  
+
   // PDF Documents state
   const [documents, setDocuments] = useState<ImportedDocument[]>([]);
   const [isUploadingPDF, setIsUploadingPDF] = useState(false);
@@ -402,8 +403,8 @@ export default function ResumeBuilderPage() {
   // Handle create button click in modal
   const handleCreate = () => {
     // Pass folderId only if a specific folder is selected (not 'all' or null)
-    const folderId = typeof selectedFolderId === 'string' && selectedFolderId !== 'all' 
-      ? selectedFolderId 
+    const folderId = typeof selectedFolderId === 'string' && selectedFolderId !== 'all'
+      ? selectedFolderId
       : undefined;
     createNewResume(newResumeName, selectedTemplate, folderId);
   };
@@ -437,8 +438,8 @@ export default function ResumeBuilderPage() {
         name: newName,
         updatedAt: serverTimestamp()
       });
-      
-      setResumes(prev => prev.map(r => 
+
+      setResumes(prev => prev.map(r =>
         r.id === resumeId ? { ...r, name: newName } : r
       ));
       notify.success('Resume renamed');
@@ -458,8 +459,8 @@ export default function ResumeBuilderPage() {
         tags,
         updatedAt: serverTimestamp()
       });
-      
-      setResumes(prev => prev.map(r => 
+
+      setResumes(prev => prev.map(r =>
         r.id === resumeId ? { ...r, tags } : r
       ));
     } catch (error) {
@@ -481,9 +482,9 @@ export default function ResumeBuilderPage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
-      
+
       const docRef = await addDoc(foldersRef, newFolder);
-      
+
       const createdFolder: Folder = {
         id: docRef.id,
         ...folderData,
@@ -491,7 +492,7 @@ export default function ResumeBuilderPage() {
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      
+
       setFolders(prev => [...prev, createdFolder]);
       setIsFolderModalOpen(false);
       setEditingFolder(null);
@@ -514,8 +515,8 @@ export default function ResumeBuilderPage() {
         ...updates,
         updatedAt: serverTimestamp()
       });
-      
-      setFolders(prev => prev.map(f => 
+
+      setFolders(prev => prev.map(f =>
         f.id === folderId ? { ...f, ...updates } : f
       ));
       setIsFolderModalOpen(false);
@@ -544,7 +545,7 @@ export default function ResumeBuilderPage() {
       }
 
       // Update local state
-      setResumes(prev => prev.map(r => 
+      setResumes(prev => prev.map(r =>
         r.folderId === folderId ? { ...r, folderId: undefined } : r
       ));
 
@@ -576,12 +577,12 @@ export default function ResumeBuilderPage() {
         folderId: folderId || null,
         updatedAt: serverTimestamp()
       });
-      
-      setResumes(prev => prev.map(r => 
+
+      setResumes(prev => prev.map(r =>
         r.id === resumeId ? { ...r, folderId: folderId || undefined } : r
       ));
 
-      const folderName = folderId 
+      const folderName = folderId
         ? folders.find(f => f.id === folderId)?.name || 'folder'
         : 'Uncategorized';
       notify.success(`Moved "${resume.name}" to ${folderName}`);
@@ -618,7 +619,7 @@ export default function ResumeBuilderPage() {
         const documentId = generateId();
         const fileName = `${documentId}_${file.name}`;
         const fileRef = ref(storage, `cvs/${currentUser.uid}/${fileName}`);
-        
+
         await uploadBytes(fileRef, file, { contentType: 'application/pdf' });
         const downloadUrl = await getDownloadURL(fileRef);
 
@@ -649,7 +650,7 @@ export default function ResumeBuilderPage() {
 
     const results = await Promise.all(uploadPromises);
     const successfulUploads = results.filter((r): r is ImportedDocument => r !== null);
-    
+
     if (successfulUploads.length > 0) {
       setDocuments(prev => [...successfulUploads, ...prev]);
       notify.success(`${successfulUploads.length} PDF${successfulUploads.length > 1 ? 's' : ''} uploaded successfully`);
@@ -659,8 +660,8 @@ export default function ResumeBuilderPage() {
   };
 
   const handleFileDrop = useCallback((files: File[]) => {
-    const folderId = typeof selectedFolderId === 'string' && selectedFolderId !== 'all' 
-      ? selectedFolderId 
+    const folderId = typeof selectedFolderId === 'string' && selectedFolderId !== 'all'
+      ? selectedFolderId
       : null;
     uploadPDFFiles(files, folderId);
   }, [selectedFolderId, currentUser]);
@@ -674,7 +675,7 @@ export default function ResumeBuilderPage() {
     try {
       // Delete from Firestore
       await deleteDoc(doc(db, 'users', currentUser.uid, 'documents', documentId));
-      
+
       // Try to delete from Storage (might fail if URL format changed)
       try {
         const fileRef = ref(storage, document.fileUrl);
@@ -710,8 +711,8 @@ export default function ResumeBuilderPage() {
 
     setIsCreatingNote(true);
     try {
-      const folderId = typeof selectedFolderId === 'string' && selectedFolderId !== 'all' 
-        ? selectedFolderId 
+      const folderId = typeof selectedFolderId === 'string' && selectedFolderId !== 'all'
+        ? selectedFolderId
         : undefined;
 
       const newNote = await createNote({
@@ -761,8 +762,8 @@ export default function ResumeBuilderPage() {
         noteId,
         updates: { title: newTitle },
       });
-      
-      setNotes(prev => prev.map(n => 
+
+      setNotes(prev => prev.map(n =>
         n.id === noteId ? { ...n, title: newTitle } : n
       ));
       notify.success('Note renamed');
@@ -782,8 +783,8 @@ export default function ResumeBuilderPage() {
         noteId,
         updates: { tags },
       });
-      
-      setNotes(prev => prev.map(n => 
+
+      setNotes(prev => prev.map(n =>
         n.id === noteId ? { ...n, tags } : n
       ));
     } catch (error) {
@@ -804,12 +805,12 @@ export default function ResumeBuilderPage() {
 
     try {
       await moveNoteToFolder(currentUser.uid, noteId, folderId);
-      
-      setNotes(prev => prev.map(n => 
+
+      setNotes(prev => prev.map(n =>
         n.id === noteId ? { ...n, folderId: folderId || undefined } : n
       ));
 
-      const folderName = folderId 
+      const folderName = folderId
         ? folders.find(f => f.id === folderId)?.name || 'folder'
         : 'Uncategorized';
       notify.success(`Moved "${note.title}" to ${folderName}`);
@@ -827,20 +828,20 @@ export default function ResumeBuilderPage() {
       const timestamp = Date.now();
       const fileName = `note_${noteId}_cover_${timestamp}.jpg`;
       const noteCoverRef = ref(storage, `note-covers/${currentUser.uid}/${fileName}`);
-      
+
       await uploadBytes(noteCoverRef, blob, { contentType: 'image/jpeg' });
       const coverUrl = await getDownloadURL(noteCoverRef);
-      
+
       await updateNote({
         userId: currentUser.uid,
         noteId,
         updates: { coverImage: coverUrl },
       });
-      
-      setNotes(prev => prev.map(n => 
+
+      setNotes(prev => prev.map(n =>
         n.id === noteId ? { ...n, coverImage: coverUrl } : n
       ));
-      
+
       notify.success('Note cover updated');
     } catch (error) {
       console.error('Error updating note cover:', error);
@@ -861,7 +862,7 @@ export default function ResumeBuilderPage() {
         noteId,
         updates: { coverImage: null },
       });
-      
+
       // Try to delete from Storage
       try {
         const coverRef = ref(storage, note.coverImage);
@@ -869,11 +870,11 @@ export default function ResumeBuilderPage() {
       } catch (e) {
         console.warn('Could not delete old cover photo from storage', e);
       }
-      
-      setNotes(prev => prev.map(n => 
+
+      setNotes(prev => prev.map(n =>
         n.id === noteId ? { ...n, coverImage: undefined } : n
       ));
-      
+
       notify.success('Note cover removed');
     } catch (error) {
       console.error('Error removing note cover:', error);
@@ -890,8 +891,8 @@ export default function ResumeBuilderPage() {
 
     setIsCreatingWhiteboard(true);
     try {
-      const folderId = typeof selectedFolderId === 'string' && selectedFolderId !== 'all' 
-        ? selectedFolderId 
+      const folderId = typeof selectedFolderId === 'string' && selectedFolderId !== 'all'
+        ? selectedFolderId
         : undefined;
 
       const newWhiteboard = await createWhiteboard({
@@ -939,8 +940,8 @@ export default function ResumeBuilderPage() {
         whiteboardId,
         updates: { title: newTitle },
       });
-      
-      setWhiteboards(prev => prev.map(w => 
+
+      setWhiteboards(prev => prev.map(w =>
         w.id === whiteboardId ? { ...w, title: newTitle } : w
       ));
       notify.success('Whiteboard renamed');
@@ -960,8 +961,8 @@ export default function ResumeBuilderPage() {
         whiteboardId,
         updates: { tags },
       });
-      
-      setWhiteboards(prev => prev.map(w => 
+
+      setWhiteboards(prev => prev.map(w =>
         w.id === whiteboardId ? { ...w, tags } : w
       ));
     } catch (error) {
@@ -982,12 +983,12 @@ export default function ResumeBuilderPage() {
 
     try {
       await moveWhiteboardToFolder(currentUser.uid, whiteboardId, folderId);
-      
-      setWhiteboards(prev => prev.map(w => 
+
+      setWhiteboards(prev => prev.map(w =>
         w.id === whiteboardId ? { ...w, folderId: folderId || undefined } : w
       ));
 
-      const folderName = folderId 
+      const folderName = folderId
         ? folders.find(f => f.id === folderId)?.name || 'folder'
         : 'Uncategorized';
       notify.success(`Moved "${whiteboard.title}" to ${folderName}`);
@@ -1013,12 +1014,12 @@ export default function ResumeBuilderPage() {
         folderId: folderId || null,
         updatedAt: serverTimestamp()
       });
-      
-      setDocuments(prev => prev.map(d => 
+
+      setDocuments(prev => prev.map(d =>
         d.id === documentId ? { ...d, folderId: folderId || undefined } : d
       ));
 
-      const folderName = folderId 
+      const folderName = folderId
         ? folders.find(f => f.id === folderId)?.name || 'folder'
         : 'Uncategorized';
       notify.success(`Moved "${document.name}" to ${folderName}`);
@@ -1030,21 +1031,21 @@ export default function ResumeBuilderPage() {
 
   const handleUpdateCover = async (blob: Blob) => {
     if (!currentUser) return;
-    
+
     setIsUpdatingCover(true);
     try {
       const timestamp = Date.now();
-      
+
       // Handle special views (all, uncategorized)
       if (selectedFolderId === 'all' || selectedFolderId === null) {
         const viewType = selectedFolderId === 'all' ? 'all' : 'uncategorized';
         const fileName = `view_${viewType}_cover_${timestamp}.jpg`;
         const viewCoverRef = ref(storage, `cover-photos/${currentUser.uid}/${fileName}`);
-        
+
         await uploadBytes(viewCoverRef, blob, { contentType: 'image/jpeg' });
         const coverUrl = await getDownloadURL(viewCoverRef);
         console.log('Cover URL generated:', coverUrl);
-        
+
         // Delete old cover if exists
         const currentPrefs = viewPreferences[viewType] || {};
         if (currentPrefs?.coverPhoto) {
@@ -1055,7 +1056,7 @@ export default function ResumeBuilderPage() {
             console.warn('Could not delete old cover photo from storage', e);
           }
         }
-        
+
         const newPrefs = { ...currentPrefs, coverPhoto: coverUrl };
         console.log('Saving preferences for', viewType, ':', newPrefs);
         await saveViewPreferences(viewType, newPrefs);
@@ -1065,10 +1066,10 @@ export default function ResumeBuilderPage() {
         // Handle regular folder
         const fileName = `folder_${selectedFolderId}_cover_${timestamp}.jpg`;
         const folderCoverRef = ref(storage, `cover-photos/${currentUser.uid}/${fileName}`);
-        
+
         await uploadBytes(folderCoverRef, blob, { contentType: 'image/jpeg' });
         const coverUrl = await getDownloadURL(folderCoverRef);
-        
+
         await updateFolder(selectedFolderId, { coverPhoto: coverUrl });
         notify.success('Folder cover updated');
       }
@@ -1082,14 +1083,14 @@ export default function ResumeBuilderPage() {
 
   const handleRemoveCover = async () => {
     if (!currentUser) return;
-    
+
     setIsUpdatingCover(true);
     try {
       // Handle special views (all, uncategorized)
       if (selectedFolderId === 'all' || selectedFolderId === null) {
         const viewType = selectedFolderId === 'all' ? 'all' : 'uncategorized';
         const currentPrefs = viewPreferences[viewType];
-        
+
         if (currentPrefs?.coverPhoto) {
           try {
             const coverRef = ref(storage, currentPrefs.coverPhoto);
@@ -1098,7 +1099,7 @@ export default function ResumeBuilderPage() {
             console.warn('Could not delete old cover photo from storage', e);
           }
         }
-        
+
         await saveViewPreferences(viewType, { ...currentPrefs, coverPhoto: undefined });
         notify.success('Cover removed');
       } else if (typeof selectedFolderId === 'string') {
@@ -1107,14 +1108,14 @@ export default function ResumeBuilderPage() {
         if (!folder || !folder.coverPhoto) return;
 
         await updateFolder(selectedFolderId, { coverPhoto: undefined });
-        
+
         try {
           const coverRef = ref(storage, folder.coverPhoto);
           await deleteObject(coverRef);
         } catch (e) {
           console.warn('Could not delete old cover photo from storage', e);
         }
-        
+
         notify.success('Folder cover removed');
       }
     } catch (error) {
@@ -1128,10 +1129,10 @@ export default function ResumeBuilderPage() {
   // Handle emoji update for special views
   const handleUpdateEmoji = async (emoji: string) => {
     if (!currentUser || (selectedFolderId !== 'all' && selectedFolderId !== null)) return;
-    
+
     const viewType = selectedFolderId === 'all' ? 'all' : 'uncategorized';
     const currentPrefs = viewPreferences[viewType];
-    
+
     await saveViewPreferences(viewType, { ...currentPrefs, icon: emoji });
     notify.success('Emoji updated');
   };
@@ -1150,7 +1151,7 @@ export default function ResumeBuilderPage() {
 
     // Tag filter
     if (selectedTagFilters.length > 0) {
-      filtered = filtered.filter((r) => 
+      filtered = filtered.filter((r) =>
         selectedTagFilters.some(tag => r.tags?.includes(tag))
       );
     }
@@ -1174,7 +1175,7 @@ export default function ResumeBuilderPage() {
   const filteredResumes = filteredAndSortedResumes();
 
   // Filter documents by search
-  const filteredDocuments = searchQuery 
+  const filteredDocuments = searchQuery
     ? documents.filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : documents;
 
@@ -1185,7 +1186,7 @@ export default function ResumeBuilderPage() {
       filtered = filtered.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase()));
     }
     if (selectedTagFilters.length > 0) {
-      filtered = filtered.filter(n => 
+      filtered = filtered.filter(n =>
         selectedTagFilters.some(tag => n.tags?.includes(tag))
       );
     }
@@ -1199,7 +1200,7 @@ export default function ResumeBuilderPage() {
       filtered = filtered.filter(w => w.title.toLowerCase().includes(searchQuery.toLowerCase()));
     }
     if (selectedTagFilters.length > 0) {
-      filtered = filtered.filter(w => 
+      filtered = filtered.filter(w =>
         selectedTagFilters.some(tag => w.tags?.includes(tag))
       );
     }
@@ -1267,29 +1268,29 @@ export default function ResumeBuilderPage() {
       }
     });
 
-    return { 
-      groupedResumes, 
-      groupedDocs, 
+    return {
+      groupedResumes,
+      groupedDocs,
       groupedNotes,
       groupedWhiteboards,
-      uncategorizedResumes, 
+      uncategorizedResumes,
       uncategorizedDocs,
       uncategorizedNotes,
-      uncategorizedWhiteboards, 
-      folderCounts 
+      uncategorizedWhiteboards,
+      folderCounts
     };
   };
 
-  const { 
-    groupedResumes: grouped, 
+  const {
+    groupedResumes: grouped,
     groupedDocs,
     groupedNotes,
-    groupedWhiteboards, 
-    uncategorizedResumes: uncategorized, 
+    groupedWhiteboards,
+    uncategorizedResumes: uncategorized,
     uncategorizedDocs,
     uncategorizedNotes,
     uncategorizedWhiteboards,
-    folderCounts 
+    folderCounts
   } = groupedItems();
 
   // Get items to display based on selected folder
@@ -1299,8 +1300,8 @@ export default function ResumeBuilderPage() {
     } else if (selectedFolderId === null) {
       return { resumes: uncategorized, documents: uncategorizedDocs, notes: uncategorizedNotes, whiteboards: uncategorizedWhiteboards };
     } else {
-      return { 
-        resumes: grouped[selectedFolderId] || [], 
+      return {
+        resumes: grouped[selectedFolderId] || [],
         documents: groupedDocs[selectedFolderId] || [],
         notes: groupedNotes[selectedFolderId] || [],
         whiteboards: groupedWhiteboards[selectedFolderId] || []
@@ -1312,13 +1313,13 @@ export default function ResumeBuilderPage() {
   const totalDisplayedItems = displayedResumes.length + displayedDocuments.length + displayedNotes.length + displayedWhiteboards.length;
 
   // Determine current folder object for header
-  const currentFolder = typeof selectedFolderId === 'string' && selectedFolderId !== 'all' 
-    ? folders.find(f => f.id === selectedFolderId) 
+  const currentFolder = typeof selectedFolderId === 'string' && selectedFolderId !== 'all'
+    ? folders.find(f => f.id === selectedFolderId)
     : null;
 
   const getHeaderProps = () => {
     const itemLabel = totalDisplayedItems === 1 ? 'item' : 'items';
-    
+
     if (selectedFolderId === 'all') {
       const prefs = viewPreferences.all;
       return {
@@ -1354,13 +1355,19 @@ export default function ResumeBuilderPage() {
   };
 
   const headerProps = useMemo(() => getHeaderProps(), [selectedFolderId, viewPreferences, totalDisplayedItems, folders]);
-  
+
   // Total counts for sidebar
   const totalUncategorized = uncategorized.length + uncategorizedDocs.length + uncategorizedNotes.length + uncategorizedWhiteboards.length;
   const totalItems = filteredResumes.length + filteredDocuments.length + filteredNotes.length + filteredWhiteboards.length;
 
   return (
     <AuthLayout>
+      {/* Mobile Top Bar */}
+      <MobileTopBar
+        title="Document Manager"
+        subtitle={`${totalItems} items`}
+      />
+
       {/* Animated Gradient Background */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-300/20 dark:bg-purple-600/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl animate-blob" />
@@ -1455,10 +1462,10 @@ export default function ResumeBuilderPage() {
                 <span>New Board</span>
               </button>
               <button
-                  data-tour="new-resume-button"
-                  onClick={openCreateModal}
-                  disabled={isCreating}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                data-tour="new-resume-button"
+                onClick={openCreateModal}
+                disabled={isCreating}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
                     text-gray-700 dark:text-gray-200 
                     bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm
                     border border-gray-200 dark:border-[#3d3c3e] rounded-lg
@@ -1466,9 +1473,9 @@ export default function ResumeBuilderPage() {
                     hover:border-gray-300 dark:hover:border-gray-600
                     shadow-sm hover:shadow transition-all duration-200
                     disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>New Resume</span>
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>New Resume</span>
               </button>
             </div>
           </FolderHeader>
@@ -1515,15 +1522,15 @@ export default function ResumeBuilderPage() {
                       <button
                         key={tag.id}
                         onClick={() => {
-                          setSelectedTagFilters(prev => 
-                            prev.includes(tag.id) 
+                          setSelectedTagFilters(prev =>
+                            prev.includes(tag.id)
                               ? prev.filter(t => t !== tag.id)
                               : [...prev, tag.id]
                           );
                         }}
                         className={`w-5 h-5 rounded-full transition-all hover:scale-110 flex items-center justify-center
-                          ${selectedTagFilters.includes(tag.id) 
-                            ? 'ring-2 ring-offset-2 ring-gray-400 dark:ring-gray-500 dark:ring-offset-gray-900' 
+                          ${selectedTagFilters.includes(tag.id)
+                            ? 'ring-2 ring-offset-2 ring-gray-400 dark:ring-gray-500 dark:ring-offset-gray-900'
                             : 'opacity-50 hover:opacity-100'}`}
                         style={{ backgroundColor: tag.color }}
                         title={tag.label}
@@ -1567,7 +1574,7 @@ export default function ResumeBuilderPage() {
 
             {/* Empty State - No items at all */}
             {!isLoading && resumes.length === 0 && documents.length === 0 && notes.length === 0 && whiteboards.length === 0 && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="py-20 text-center"
@@ -1645,32 +1652,32 @@ export default function ResumeBuilderPage() {
               <>
                 {totalDisplayedItems > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-{/* Notes */}
-                                    {displayedNotes.map((note) => (
-                                      <NotionPreviewCard
-                                        key={`note-${note.id}`}
-                                        note={note}
-                                        onDelete={handleDeleteNote}
-                                        onEdit={handleEditNote}
-                                        onRename={handleRenameNote}
-                                        onUpdateTags={handleUpdateNoteTags}
-                                        compact
-                                        draggable
-                                      />
-                                    ))}
-{/* Whiteboards */}
-                                    {displayedWhiteboards.map((whiteboard) => (
-                                      <WhiteboardPreviewCard
-                                        key={`whiteboard-${whiteboard.id}`}
-                                        whiteboard={whiteboard}
-                                        onDelete={handleDeleteWhiteboard}
-                                        onEdit={handleEditWhiteboard}
-                                        onRename={handleRenameWhiteboard}
-                                        onUpdateTags={handleUpdateWhiteboardTags}
-                                        compact
-                                        draggable
-                                      />
-                                    ))}
+                    {/* Notes */}
+                    {displayedNotes.map((note) => (
+                      <NotionPreviewCard
+                        key={`note-${note.id}`}
+                        note={note}
+                        onDelete={handleDeleteNote}
+                        onEdit={handleEditNote}
+                        onRename={handleRenameNote}
+                        onUpdateTags={handleUpdateNoteTags}
+                        compact
+                        draggable
+                      />
+                    ))}
+                    {/* Whiteboards */}
+                    {displayedWhiteboards.map((whiteboard) => (
+                      <WhiteboardPreviewCard
+                        key={`whiteboard-${whiteboard.id}`}
+                        whiteboard={whiteboard}
+                        onDelete={handleDeleteWhiteboard}
+                        onEdit={handleEditWhiteboard}
+                        onRename={handleRenameWhiteboard}
+                        onUpdateTags={handleUpdateWhiteboardTags}
+                        compact
+                        draggable
+                      />
+                    ))}
                     {/* Resumes */}
                     {displayedResumes.map((resume) => (
                       <CVPreviewCard
@@ -1706,8 +1713,8 @@ export default function ResumeBuilderPage() {
                       {searchQuery ? 'No results found' : 'This folder is empty'}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {searchQuery 
-                        ? 'Try adjusting your search' 
+                      {searchQuery
+                        ? 'Try adjusting your search'
                         : 'Drag documents here or create notes, boards, or resumes'}
                     </p>
                   </div>
@@ -1812,10 +1819,9 @@ export default function ResumeBuilderPage() {
                           whileHover={{ scale: 1.02, y: -2 }}
                           whileTap={{ scale: 0.98 }}
                           className={`group relative p-4 rounded-2xl border transition-all text-left
-                            ${
-                              selectedTemplate === template.value
-                                ? 'border-purple-500/50 dark:border-purple-400/50 bg-purple-50/50 dark:bg-purple-900/10 shadow-lg shadow-purple-200/30 dark:shadow-purple-900/20'
-                                : 'border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] hover:bg-white dark:hover:bg-[#3d3c3e] hover:shadow-lg hover:border-transparent'
+                            ${selectedTemplate === template.value
+                              ? 'border-purple-500/50 dark:border-purple-400/50 bg-purple-50/50 dark:bg-purple-900/10 shadow-lg shadow-purple-200/30 dark:shadow-purple-900/20'
+                              : 'border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325] hover:bg-white dark:hover:bg-[#3d3c3e] hover:shadow-lg hover:border-transparent'
                             }`}
                         >
                           <div className="flex items-start justify-between">

@@ -17,6 +17,7 @@ import { notify } from '@/lib/notify';
 import { parseSearchQuery, toSearchAPIParams } from '../lib/searchParser';
 import '../components/job-board/premium-search.css';
 import { useAssistantPageData } from '../hooks/useAssistantPageData';
+import MobileTopBar from '../components/mobile/MobileTopBar';
 
 function timeAgo(date: Date): string {
 	const diffMs = Date.now() - date.getTime();
@@ -72,14 +73,14 @@ export default function JobBoardPage() {
 	const PAGE_SIZE = 20;
 
 	// Job Interactions Hook (V5.0 - Feedback Loop)
-	const { 
-		savedJobs, 
-		dismissedJobs, 
-		toggleSave, 
-		dismissJob, 
-		isJobSaved, 
+	const {
+		savedJobs,
+		dismissedJobs,
+		toggleSave,
+		dismissJob,
+		isJobSaved,
 		isJobDismissed,
-		trackClick 
+		trackClick
 	} = useJobInteractions();
 
 	// State
@@ -212,11 +213,11 @@ export default function JobBoardPage() {
 		try {
 			if (hasFilters && mode === 'explore') {
 				const params = new URLSearchParams();
-				
+
 				// Use the smart parser to extract structured data from search input
 				const parsed = parseSearchQuery(debouncedSearch);
 				const apiParams = toSearchAPIParams(parsed);
-				
+
 				// Add parsed parameters to URL
 				if (apiParams.keyword) params.append('keyword', apiParams.keyword);
 				if (apiParams.locations) params.append('locations', apiParams.locations);
@@ -260,11 +261,11 @@ export default function JobBoardPage() {
 
 				// Log parsed query for debugging
 				if (process.env.NODE_ENV === 'development') {
-					console.log('🔍 Smart Search:', { 
-						query: debouncedSearch, 
-						parsed, 
+					console.log('🔍 Smart Search:', {
+						query: debouncedSearch,
+						parsed,
 						apiParams,
-						finalParams: params.toString() 
+						finalParams: params.toString()
 					});
 				}
 
@@ -379,7 +380,7 @@ export default function JobBoardPage() {
 
 	// Observer for Infinite Scroll
 	const observerTarget = useRef(null);
-	
+
 	// Scroll collapse detection
 	const jobListScrollRef = useRef<HTMLDivElement>(null);
 	const isHeaderCollapsed = useScrollCollapse(jobListScrollRef, { threshold: 80 });
@@ -442,7 +443,7 @@ export default function JobBoardPage() {
 		const remoteJobs = displayedJobs.filter(j => j.remote?.toLowerCase().includes('remote')).length;
 		const highMatchJobs = displayedJobs.filter(j => (j.matchScore || 0) >= 80).length;
 		const companiesSet = new Set(displayedJobs.map(j => j.company));
-		
+
 		return {
 			totalJobs: jobs.length,
 			mode: mode,
@@ -482,12 +483,12 @@ export default function JobBoardPage() {
 	// Register selected job details with analysis insights
 	const selectedJobSummary = useMemo(() => {
 		if (!selectedJob) return null;
-		
+
 		// Extract key requirements from description
 		const description = selectedJob.description || '';
 		const yearsMatch = description.match(/(\d+)\+?\s*years?/i);
 		const extractedYears = yearsMatch ? parseInt(yearsMatch[1]) : null;
-		
+
 		return {
 			title: selectedJob.title,
 			company: selectedJob.company,
@@ -514,6 +515,12 @@ export default function JobBoardPage() {
 
 	return (
 		<AuthLayout>
+			{/* Mobile Top Bar */}
+			<MobileTopBar
+				title="Job Board"
+				subtitle={`${jobs.length} jobs`}
+			/>
+
 			<div className="h-[calc(100vh-64px)] flex flex-col bg-gray-50 dark:bg-[#333234] overflow-hidden overflow-x-hidden">
 
 				<JobFilterBar
@@ -542,10 +549,10 @@ export default function JobBoardPage() {
 
 						<div className="p-4 border-b border-gray-200 dark:border-[#3d3c3e] flex justify-between items-center bg-white dark:bg-[#242325] sticky top-0 z-10">
 							<span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-								{loading && initialLoading 
-									? (mode === 'matches' ? 'Finding your matches...' : 'Searching...') 
-									: mode === 'matches' 
-										? `${jobs.length} personalized matches` 
+								{loading && initialLoading
+									? (mode === 'matches' ? 'Finding your matches...' : 'Searching...')
+									: mode === 'matches'
+										? `${jobs.length} personalized matches`
 										: `${jobs.length} jobs found`}
 							</span>
 							<div className="flex items-center gap-2">
@@ -600,7 +607,7 @@ export default function JobBoardPage() {
 											</div>
 											<h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No jobs found</h3>
 											<p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
-												{mode === 'matches' 
+												{mode === 'matches'
 													? 'No matches found based on your profile. Try exploring all jobs instead.'
 													: 'Try adjusting your search or filters to find what you\'re looking for.'}
 											</p>
@@ -618,35 +625,35 @@ export default function JobBoardPage() {
 									{displayedJobs
 										.filter(job => !isJobDismissed(job.id))
 										.map((job, index) => (
-										<JobCard
-											key={job.id}
-											job={job}
-											isSelected={selectedJob?.id === job.id}
-											onClick={() => {
-												setSelectedJob(job);
-												trackClick(job.id, { 
-													source: mode === 'matches' ? 'for_you' : 'explore',
-													matchScore: job.matchScore,
-													position: index
-												});
-											}}
-											showMatchScore={mode === 'matches'}
-											isSaved={isJobSaved(job.id)}
-											onSave={(jobId) => {
-												toggleSave(jobId, {
-													source: mode === 'matches' ? 'for_you' : 'explore',
-													matchScore: job.matchScore
-												});
-											}}
-											onDismiss={(jobId) => {
-												dismissJob(jobId, {
-													source: mode === 'matches' ? 'for_you' : 'explore',
-													matchScore: job.matchScore
-												});
-												notify.success('Job hidden from your feed');
-											}}
-										/>
-									))}
+											<JobCard
+												key={job.id}
+												job={job}
+												isSelected={selectedJob?.id === job.id}
+												onClick={() => {
+													setSelectedJob(job);
+													trackClick(job.id, {
+														source: mode === 'matches' ? 'for_you' : 'explore',
+														matchScore: job.matchScore,
+														position: index
+													});
+												}}
+												showMatchScore={mode === 'matches'}
+												isSaved={isJobSaved(job.id)}
+												onSave={(jobId) => {
+													toggleSave(jobId, {
+														source: mode === 'matches' ? 'for_you' : 'explore',
+														matchScore: job.matchScore
+													});
+												}}
+												onDismiss={(jobId) => {
+													dismissJob(jobId, {
+														source: mode === 'matches' ? 'for_you' : 'explore',
+														matchScore: job.matchScore
+													});
+													notify.success('Job hidden from your feed');
+												}}
+											/>
+										))}
 
 									{/* Infinite Scroll Trigger */}
 									<div ref={observerTarget} className="h-4 w-full flex items-center justify-center py-4">
@@ -661,8 +668,8 @@ export default function JobBoardPage() {
 
 					{/* Job Detail View (Right Panel) */}
 					<div className="hidden lg:flex flex-1 overflow-hidden">
-						<JobDetailView 
-							job={selectedJob} 
+						<JobDetailView
+							job={selectedJob}
 							onDismiss={(jobId) => {
 								dismissJob(jobId, {
 									source: mode === 'matches' ? 'for_you' : 'explore',

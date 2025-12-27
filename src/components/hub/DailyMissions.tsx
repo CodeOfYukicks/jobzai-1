@@ -6,9 +6,9 @@
 
 import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Target, 
-  Loader2, 
+import {
+  Target,
+  Loader2,
   RefreshCw,
   CheckCircle2,
   Circle,
@@ -21,12 +21,12 @@ interface DailyMissionsProps {
 }
 
 export default function DailyMissions({ size = 'large' }: DailyMissionsProps) {
-  const { 
-    missions, 
-    stats, 
-    loading, 
+  const {
+    missions,
+    stats,
+    loading,
     error,
-    refreshMissions 
+    refreshMissions
   } = useMissions();
 
   // Calculate overall progress
@@ -215,13 +215,13 @@ export default function DailyMissions({ size = 'large' }: DailyMissionsProps) {
       className="relative h-full"
     >
       {/* Main card */}
-      <div className="group relative bg-[#635BFF] rounded-2xl h-full min-h-[220px] overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-[#635BFF]/30 flex flex-col">
-        
+      <div className="group relative bg-[#635BFF] rounded-2xl h-full min-h-[180px] md:min-h-[220px] overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-[#635BFF]/30 flex flex-col">
+
         {/* Header Section */}
-        <div className="px-6 pt-5 pb-3">
+        <div className="px-4 md:px-6 pt-4 md:pt-5 pb-2 md:pb-3">
           {/* Top row: Title + Streak */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="uppercase font-bold text-white/60 text-xs tracking-wide">
+          <div className="flex items-center justify-between mb-2 md:mb-3">
+            <div className="uppercase font-bold text-white/60 text-[10px] md:text-xs tracking-wide">
               Daily Missions
             </div>
             {stats && stats.currentStreak > 0 && (
@@ -236,16 +236,16 @@ export default function DailyMissions({ size = 'large' }: DailyMissionsProps) {
           <div className="flex items-center justify-between">
             {/* Target Icon */}
             <div className="text-[#8B85FF]">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
-                <circle cx="12" cy="12" r="10"/>
-                <circle cx="12" cy="12" r="6"/>
-                <circle cx="12" cy="12" r="2"/>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 md:w-10 h-8 md:h-10">
+                <circle cx="12" cy="12" r="10" />
+                <circle cx="12" cy="12" r="6" />
+                <circle cx="12" cy="12" r="2" />
               </svg>
             </div>
 
             {/* Progress Summary */}
             <div className="text-right">
-              <div className="text-3xl font-black text-white leading-none">
+              <div className="text-2xl md:text-3xl font-black text-white leading-none">
                 {completedCount}/{missions.length}
               </div>
               <div className="text-[10px] text-white/50 font-medium">completed</div>
@@ -254,7 +254,7 @@ export default function DailyMissions({ size = 'large' }: DailyMissionsProps) {
         </div>
 
         {/* Missions List */}
-        <div className="px-6 pb-4 space-y-2 flex-1 overflow-y-auto">
+        <div className="px-4 md:px-6 pb-3 md:pb-4 space-y-1.5 md:space-y-2 flex-1 overflow-y-auto">
           <AnimatePresence mode="wait">
             {missions.length === 0 ? (
               <motion.div
@@ -270,8 +270,8 @@ export default function DailyMissions({ size = 'large' }: DailyMissionsProps) {
               missions.slice(0, 3).map((mission, index) => {
                 const isComplete = mission.status === 'completed';
                 const progress = Math.min((mission.current / mission.target) * 100, 100);
-                
-                  return (
+
+                return (
                   <motion.div
                     key={mission.id}
                     initial={{ opacity: 0, x: -10 }}
@@ -279,8 +279,8 @@ export default function DailyMissions({ size = 'large' }: DailyMissionsProps) {
                     transition={{ delay: index * 0.1 }}
                     className={`
                       flex items-start gap-3 p-3 rounded-xl transition-all duration-200
-                      ${isComplete 
-                        ? 'bg-white/20' 
+                      ${isComplete
+                        ? 'bg-white/20'
                         : 'bg-white/10 hover:bg-white/15'
                       }
                     `}
@@ -347,12 +347,12 @@ export default function DailyMissions({ size = 'large' }: DailyMissionsProps) {
             className="absolute top-4 right-4"
           >
             <motion.div
-              animate={{ 
+              animate={{
                 rotate: [0, 10, -10, 0],
                 scale: [1, 1.1, 1],
               }}
-              transition={{ 
-                duration: 2, 
+              transition={{
+                duration: 2,
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
