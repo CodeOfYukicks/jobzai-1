@@ -1,15 +1,21 @@
+
 import { ReactNode, useState, useEffect, useMemo } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plus, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { Plus, ChevronLeft, ChevronRight, Search, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { useRecommendationsLoading } from '../contexts/RecommendationsLoadingContext';
+import { useToast } from '../contexts/ToastContext';
 import { navigationGroups, hubLink, getAllNavItems } from '../config/navigationConfig';
-import { doc, onSnapshot, collection, query, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { notify } from '@/lib/notify';
+import { notify } from '../lib/notify';
 import '../styles/navigation.css';
+import { Interview, UpcomingInterview } from '../types/interview';
+import { JobApplication } from '../types/application';
 import MobileNavigation from './mobile/MobileNavigation';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import SidebarLink from './SidebarLink';
 import TopBar from './TopBar';
 import { loadThemeFromStorage, applyTheme, type Theme } from '../lib/theme';
@@ -412,7 +418,13 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/upcoming-interviews' ||
     location.pathname === '/mock-interview' ||
     location.pathname === '/calendar' ||
-    location.pathname === '/applications';
+    location.pathname === '/applications' ||
+    location.pathname === '/recommendations' ||
+    location.pathname === '/dashboard' ||
+    location.pathname === '/professional-profile' ||
+    location.pathname === '/resume-builder' ||
+    location.pathname === '/jobs' ||
+    location.pathname === '/settings';
 
   // Pages where we should hide the mobile global elements (Top Bar & Bottom Nav)
   // This gives a true native "full screen" app feel for specific editors
@@ -485,11 +497,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className={`group flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200
-                  text-gray-400 dark:text-gray-500 
-                  hover:text-gray-600 dark:hover:text-gray-300
-                  hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50
-                  active:scale-95`}
-              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                text-gray-400 dark:text-gray-500
+                hover:text-gray-600 dark:hover:text-gray-300
+                hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50
+                ${!isEffectivelyExpanded ? 'scale-0 w-0 p-0' : 'scale-100'}
+              `} aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {isCollapsed ? (
                 <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -504,10 +516,10 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             <button
               onClick={() => setIsCollapsed(true)}
               className={`group flex items-center justify-center w-7 h-7 rounded-md transition-all duration-200
-                  text-gray-400 dark:text-gray-500 
-                  hover:text-gray-600 dark:hover:text-gray-300
-                  hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50
-                  active:scale-95`}
+                text-gray-400 dark:text-gray-500
+                hover:text-gray-600 dark:hover:text-gray-300
+                hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50
+                active:scale-95`}
               aria-label="Collapse sidebar"
             >
               <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
@@ -523,19 +535,20 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               to="/hub"
               onMouseEnter={() => setIsHovered('Hub')}
               onMouseLeave={() => setIsHovered(null)}
-              className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg 
-                  transition-all duration-200 relative overflow-hidden
+              className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg
+transition-all duration-200 relative overflow-hidden
                   ${location.pathname === '/hub'
                   ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
                   : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
-                }`}
+                } `}
               title={!isEffectivelyExpanded ? 'Hub' : undefined}
             >
-              <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
+              <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'} `}>
                 <hubLink.icon className={`h-4 w-4 transition-colors
                     ${location.pathname === '/hub'
                     ? 'text-[#635BFF] dark:text-[#a5a0ff]'
-                    : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`}
+                    : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'
+                  } `}
                 />
                 {isEffectivelyExpanded && (
                   <span className="flex-1">Hub</span>
@@ -594,8 +607,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   to={item.href}
                   onMouseEnter={() => setIsHovered(item.name)}
                   onMouseLeave={() => setIsHovered(null)}
-                  className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg 
-                      transition-all duration-200 relative overflow-hidden
+                  className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg
+transition-all duration-200 relative overflow-hidden
                       ${location.pathname === item.href
                       ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
                       : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
@@ -606,7 +619,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     <item.icon className={`h-4 w-4 transition-colors
                         ${location.pathname === item.href
                         ? 'text-[#635BFF] dark:text-[#a5a0ff]'
-                        : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`}
+                        : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'
+                      }`}
                     />
                     {isEffectivelyExpanded && (
                       <span className="flex-1">{item.name}</span>
@@ -641,8 +655,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   to={item.href}
                   onMouseEnter={() => setIsHovered(item.name)}
                   onMouseLeave={() => setIsHovered(null)}
-                  className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg 
-                      transition-all duration-200 relative overflow-hidden
+                  className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg
+transition-all duration-200 relative overflow-hidden
                       ${location.pathname === item.href
                       ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
                       : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
@@ -653,7 +667,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     <item.icon className={`h-4 w-4 transition-colors
                         ${location.pathname === item.href
                         ? 'text-[#635BFF] dark:text-[#a5a0ff]'
-                        : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`}
+                        : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'
+                      }`}
                     />
                     {isEffectivelyExpanded && (
                       <span className="flex-1">{item.name}</span>
@@ -688,8 +703,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   to={item.href}
                   onMouseEnter={() => setIsHovered(item.name)}
                   onMouseLeave={() => setIsHovered(null)}
-                  className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg 
-                      transition-all duration-200 relative overflow-hidden
+                  className={`group flex items-center ${!isEffectivelyExpanded ? 'justify-center px-2' : 'px-3'} py-2 text-[13px] font-medium rounded-lg
+transition-all duration-200 relative overflow-hidden
                       ${location.pathname === item.href
                       ? 'bg-[#635BFF]/8 text-[#635BFF] dark:text-[#a5a0ff]'
                       : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
@@ -700,7 +715,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                     <item.icon className={`h-4 w-4 transition-colors
                         ${location.pathname === item.href
                         ? 'text-[#635BFF] dark:text-[#a5a0ff]'
-                        : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`}
+                        : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'
+                      }`}
                     />
                     {isEffectivelyExpanded && (
                       <span className="flex-1">{item.name}</span>
@@ -854,7 +870,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
       {/* Main content */}
       <div
-        className={`flex flex-col flex-1 min-h-0 overflow-x-hidden ${isBuilderMode ? 'bg-white dark:bg-[#2b2a2c]' : ''} ${hasOwnBackground ? 'bg-gray-50 dark:bg-[#333234]' : ''}`}
+        className={`flex flex-col flex-1 min-h-0 overflow-x-hidden ${isBuilderMode ? 'bg-white dark:bg-[#2b2a2c]' : ''} ${hasOwnBackground ? 'bg-gray-50 dark:bg-[#333234]' : ''} `}
       >
         {/* Desktop: spacer for fixed top bar */}
         <div
@@ -864,9 +880,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
         <main
           className={`flex-1 min-h-0 flex flex-col ${isCollapsed ? 'md:ml-[64px]' : 'md:ml-[256px]'
-            }`}
+            } `}
         >
-          <div className={`${needsFullHeight ? `h-full flex flex-col flex-1 min-h-0 ${needsNoTopPadding ? '' : 'pt-2'} md:pt-0 pb-0 md:pb-0` : 'pt-4 md:pt-6 pb-0 md:pb-6'}`}>
+          <div className={`${needsFullHeight ? `h-full flex flex-col flex-1 min-h-0 ${needsNoTopPadding ? '' : 'pt-2'} md:pt-0 pb-0 md:pb-0` : 'pt-4 md:pt-6 pb-0 md:pb-6'} `}>
             {needsFullWidth ? (
               // Full width mode for Applications, Jobs, Professional Profile, etc.
               // Mobile: overflow-y-auto for scroll, Desktop: overflow-hidden
