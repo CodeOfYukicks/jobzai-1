@@ -46,7 +46,8 @@ import {
   Minus,
   Square,
   BadgeCheck,
-  FolderKanban
+  FolderKanban,
+  Info
 } from 'lucide-react';
 import { notify } from '@/lib/notify';
 import { getDoc, doc, updateDoc, deleteDoc, collection, query, where, orderBy, onSnapshot, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -1680,301 +1681,197 @@ export default function CampaignsAutoPage() {
             </div>
 
             {/* Header Content - Hidden on Mobile */}
-            <div className="hidden md:flex relative z-10 px-4 sm:px-6 pt-6 pb-4 flex-col gap-4">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="flex items-start justify-between gap-4"
-              >
-                <div className="flex-1">
-                  <h1 className={`text-2xl font-bold ${coverPhoto
-                    ? 'text-white drop-shadow-2xl'
-                    : 'text-gray-900 dark:text-white'
-                    }`}>Campaigns</h1>
-                  <p className={`text-sm mt-0.5 ${coverPhoto
-                    ? 'text-white/90 drop-shadow-lg'
-                    : 'text-gray-500 dark:text-gray-400'
-                    }`}>
-                    Send autonomous applications to find interviews quickly
-                  </p>
+            <div className="hidden md:flex relative z-10 flex-col w-full">
+              {/* Top Row: Zone A & Zone B */}
+              <div className="flex items-center justify-between px-6 py-6">
+                {/* Zone A: Identity */}
+                <div className="flex items-center gap-4 min-w-0">
+                  <h1 className={`text-xl font-semibold tracking-tight ${coverPhoto ? 'text-white drop-shadow-md' : 'text-gray-900 dark:text-white'}`}>
+                    Campaigns
+                  </h1>
 
-                  {/* Usage Quota Indicator */}
-                  {!planLoading && (() => {
-                    const stats = getUsageStats('campaignsCreated');
-                    if (!stats) return null;
-                    const isExhausted = stats.used >= stats.limit;
-                    return (
-                      <div className="inline-flex items-center gap-3 px-4 py-2 mt-3 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                            Campaigns used:
-                          </span>
-                          <span className="text-sm font-bold text-gray-900 dark:text-white">
-                            {stats.used}/{stats.limit}
-                          </span>
-                        </div>
-                        <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${stats.percentage >= 100
-                              ? 'bg-red-500'
-                              : stats.percentage >= 80
-                                ? 'bg-amber-500'
-                                : 'bg-[#635bff]'
-                              }`}
-                            style={{ width: `${Math.min(100, stats.percentage)}%` }}
-                          />
-                        </div>
-                        {isExhausted && (
-                          <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                            {CREDIT_COSTS.campaign} credits/campaign
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
+                  <span className={`text-lg font-light ${coverPhoto ? 'text-white/40' : 'text-gray-300 dark:text-gray-700'}`}>/</span>
 
-                <motion.button
-                  onClick={() => handleNewCampaignClick()}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200
-                    ${coverPhoto
-                      ? (isCoverDark
-                        ? 'text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015]'
-                        : 'text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015]')
-                      : 'text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] dark:bg-[#b7e219] dark:hover:bg-[#a5cb17]'
-                    }`}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>New Campaign</span>
-                </motion.button>
-              </motion.div>
-
-              {/* Campaign Selector + Stats in Header */}
-              {campaigns.length > 0 && (
-                <div className="flex items-center justify-between gap-4 flex-wrap">
-                  {/* Campaign Dropdown */}
-                  <div className="relative flex-shrink-0">
+                  {/* Campaign Selector */}
+                  <div className="relative">
                     <button
                       onClick={() => setIsCampaignDropdownOpen(!isCampaignDropdownOpen)}
-                      className={`flex items-center gap-3 px-4 py-2.5 ${coverPhoto
-                        ? 'bg-white/95 dark:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 hover:bg-white dark:hover:bg-black/60'
-                        : 'bg-white dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] hover:bg-gray-50 dark:hover:bg-white/[0.05] hover:border-gray-300 dark:hover:border-white/[0.12]'
-                        } rounded-xl transition-all duration-200 min-w-[200px]`}
+                      className={`group flex items-center gap-2 px-2 py-1.5 -ml-2 rounded-lg transition-colors
+                        ${coverPhoto
+                          ? 'hover:bg-white/10 text-white'
+                          : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-900 dark:text-white'
+                        }`}
                     >
-                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                        <Zap className="w-3.5 h-3.5 text-white" />
-                      </div>
-                      <div className="flex flex-col items-start flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[10px] uppercase tracking-wider ${coverPhoto ? 'text-gray-700 dark:text-gray-400' : 'text-gray-500 dark:text-gray-500'
-                            }`}>Campaign</span>
-                          {/* Email Generation Mode Pill - Main Button */}
-                          {selectedCampaign?.emailGenerationMode && (
-                            <span className={`
-                              inline-flex items-center px-1.5 py-0.5 rounded-md text-[8px] font-semibold uppercase tracking-wider
-                              backdrop-blur-sm border
-                              ${selectedCampaign.emailGenerationMode === 'abtest'
-                                ? 'bg-violet-500/10 dark:bg-violet-400/15 text-violet-600 dark:text-violet-300 border-violet-300/40 dark:border-violet-400/30'
-                                : selectedCampaign.emailGenerationMode === 'template'
-                                  ? 'bg-emerald-500/10 dark:bg-emerald-400/15 text-emerald-600 dark:text-emerald-300 border-emerald-300/40 dark:border-emerald-400/30'
-                                  : 'bg-amber-500/10 dark:bg-amber-400/15 text-amber-600 dark:text-amber-300 border-amber-300/40 dark:border-amber-400/30'
-                              }
-                            `}>
-                              {selectedCampaign.emailGenerationMode === 'abtest' ? 'A/B' :
-                                selectedCampaign.emailGenerationMode === 'template' ? 'Template' : 'Auto'}
-                            </span>
-                          )}
-                        </div>
-                        <span className={`text-[13px] font-semibold truncate max-w-[160px] ${coverPhoto ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-gray-100'
-                          }`}>
-                          {selectedCampaign
-                            ? (selectedCampaign.name || `Campaign ${campaigns.indexOf(selectedCampaign) + 1}`)
-                            : 'Select Campaign'}
-                        </span>
-                      </div>
-                      <ChevronDown className={`w-4 h-4 ${coverPhoto ? 'text-gray-600 dark:text-gray-400' : 'text-gray-400 dark:text-gray-500'
-                        } transition-transform duration-200 flex-shrink-0 ${isCampaignDropdownOpen ? 'rotate-180' : ''}`} />
+                      <span className="font-medium truncate max-w-[200px]">
+                        {selectedCampaign?.name || 'Select Campaign'}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 opacity-50 transition-transform ${isCampaignDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
 
+                    {/* Dropdown Menu */}
                     <AnimatePresence>
                       {isCampaignDropdownOpen && (
                         <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className="absolute z-50 mt-2 w-80 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/[0.08] rounded-xl shadow-xl dark:shadow-2xl overflow-hidden backdrop-blur-xl"
+                          initial={{ opacity: 0, y: 4, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute top-full left-0 mt-1 w-72 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden z-50"
                         >
-                          {campaigns.map((campaign, index) => (
-                            <div
-                              key={campaign.id}
-                              className={`group flex items-center gap-2 px-4 py-3 transition-all duration-150
-                                ${selectedCampaignId === campaign.id
-                                  ? 'bg-gray-50 dark:bg-white/[0.06]'
-                                  : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'
-                                }`}
+                          <div className="max-h-[300px] overflow-y-auto py-1">
+                            {campaigns.map((campaign) => (
+                              <button
+                                key={campaign.id}
+                                onClick={() => {
+                                  setSelectedCampaignId(campaign.id);
+                                  setIsCampaignDropdownOpen(false);
+                                }}
+                                className={`w-full flex items-center justify-between px-4 py-2.5 text-sm text-left hover:bg-gray-50 dark:hover:bg-white/5 transition-colors
+                                  ${selectedCampaignId === campaign.id ? 'bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white font-medium' : 'text-gray-600 dark:text-gray-400'}`}
+                              >
+                                <span className="truncate">{campaign.name}</span>
+                                {selectedCampaignId === campaign.id && <Check className="w-4 h-4 text-gray-900 dark:text-white" />}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="p-2 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/[0.02]">
+                            <button
+                              onClick={() => {
+                                setIsCampaignDropdownOpen(false);
+                                handleNewCampaignClick();
+                              }}
+                              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors"
                             >
-                              {editingCampaignId === campaign.id ? (
-                                <div className="flex-1 flex items-center gap-2">
-                                  <input
-                                    type="text"
-                                    value={editingCampaignName}
-                                    onChange={(e) => setEditingCampaignName(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
-                                        handleUpdateCampaignName(campaign.id, editingCampaignName);
-                                      } else if (e.key === 'Escape') {
-                                        setEditingCampaignId(null);
-                                      }
-                                    }}
-                                    autoFocus
-                                    className="flex-1 px-2.5 py-1.5 text-sm bg-white dark:bg-white/[0.05] border border-gray-300 dark:border-white/[0.1] rounded-lg 
-                                      focus:outline-none focus:border-gray-400 dark:focus:border-white/[0.2] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                                    placeholder="Campaign name..."
-                                  />
-                                  <button
-                                    onClick={() => handleUpdateCampaignName(campaign.id, editingCampaignName)}
-                                    className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
-                                  >
-                                    <Check className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingCampaignId(null)}
-                                    className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.05]"
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedCampaignId(campaign.id);
-                                      setIsCampaignDropdownOpen(false);
-                                    }}
-                                    className="flex-1 flex items-center gap-3 text-left min-w-0"
-                                  >
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2">
-                                        <p className="text-[13px] font-medium text-gray-900 dark:text-gray-100 truncate">
-                                          {campaign.name || `Campaign ${index + 1}`}
-                                        </p>
-                                        {/* Email Generation Mode Pill */}
-                                        {campaign.emailGenerationMode && (
-                                          <span className={`
-                                            inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wider
-                                            backdrop-blur-sm border transition-all duration-200
-                                            ${campaign.emailGenerationMode === 'abtest'
-                                              ? 'bg-violet-500/10 dark:bg-violet-400/15 text-violet-600 dark:text-violet-300 border-violet-300/40 dark:border-violet-400/30'
-                                              : campaign.emailGenerationMode === 'template'
-                                                ? 'bg-emerald-500/10 dark:bg-emerald-400/15 text-emerald-600 dark:text-emerald-300 border-emerald-300/40 dark:border-emerald-400/30'
-                                                : 'bg-amber-500/10 dark:bg-amber-400/15 text-amber-600 dark:text-amber-300 border-amber-300/40 dark:border-amber-400/30'
-                                            }
-                                          `}>
-                                            {campaign.emailGenerationMode === 'abtest' ? 'A/B' :
-                                              campaign.emailGenerationMode === 'template' ? 'Template' : 'Auto'}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <p className="text-[11px] text-gray-500 truncate mt-0.5">
-                                        {campaign.targeting?.personTitles?.slice(0, 2).join(', ') || 'No targeting'}
-                                        {(campaign.targeting?.personTitles?.length || 0) > 2 && ` +${campaign.targeting.personTitles.length - 2}`}
-                                      </p>
-                                    </div>
-                                    <div className="text-right flex-shrink-0">
-                                      <p className="text-[12px] font-medium text-gray-700 dark:text-gray-300 tabular-nums">
-                                        {campaign.stats?.contactsFound || 0}
-                                      </p>
-                                      <p className="text-[10px] text-gray-500 uppercase tracking-wide">
-                                        contacts
-                                      </p>
-                                    </div>
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setEditingCampaignId(campaign.id);
-                                      setEditingCampaignName(campaign.name || `Campaign ${index + 1}`);
-                                    }}
-                                    className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]
-                                      opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                                    title="Rename campaign"
-                                  >
-                                    <Pencil className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setDeleteCampaignModal({ show: true, campaign });
-                                      setIsCampaignDropdownOpen(false);
-                                    }}
-                                    className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10
-                                      opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                                    title="Delete campaign"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          ))}
+                              <Plus className="w-3.5 h-3.5" />
+                              Create New Campaign
+                            </button>
+                          </div>
                         </motion.div>
                       )}
                     </AnimatePresence>
                   </div>
 
-                  {/* Compact Stats Cards - Aligned Right */}
-                  <div className="flex items-center gap-2 flex-wrap ml-auto">
-                    {/* Contacts */}
-                    <div className={`flex items-center gap-2 px-3 py-2 ${coverPhoto
-                      ? 'bg-white/95 dark:bg-white/[0.12] backdrop-blur-md border border-white/30 dark:border-white/20'
-                      : 'bg-white dark:bg-white/[0.08] border border-gray-200/60 dark:border-white/[0.12]'
-                      } rounded-lg shadow-sm dark:shadow-none`}>
-                      <Users className={`w-3.5 h-3.5 ${coverPhoto ? 'text-gray-600 dark:text-gray-300' : 'text-gray-600 dark:text-gray-300'}`} />
-                      <span className={`text-base font-bold tabular-nums ${coverPhoto ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}>{stats.contacts}</span>
-                      <span className={`text-[10px] uppercase tracking-wider ${coverPhoto ? 'text-gray-600 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>Contacts</span>
-                    </div>
+                  {/* Optional Subtitle/Badge */}
+                  {selectedCampaign?.emailGenerationMode && (
+                    <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-medium rounded-full border
+                      ${coverPhoto
+                        ? 'bg-white/10 border-white/20 text-white/80'
+                        : 'bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400'
+                      }`}
+                    >
+                      {selectedCampaign.emailGenerationMode === 'abtest' ? 'A/B Test' :
+                        selectedCampaign.emailGenerationMode === 'template' ? 'Template' : 'Auto'}
+                    </span>
+                  )}
+                </div>
 
-                    {/* Generated */}
-                    <div className={`flex items-center gap-2 px-3 py-2 ${coverPhoto
-                      ? 'bg-purple-100/95 dark:bg-purple-500/25 backdrop-blur-md border border-purple-300/50 dark:border-purple-400/40'
-                      : 'bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-500/[0.15] dark:to-indigo-500/[0.12] border border-purple-200/60 dark:border-purple-400/30'
-                      } rounded-lg shadow-sm dark:shadow-none`}>
-                      <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-300" />
-                      <span className="text-base font-bold text-purple-700 dark:text-purple-200 tabular-nums">{stats.generated}</span>
-                      <span className="text-[10px] text-purple-600/70 dark:text-purple-300/80 uppercase tracking-wider">Generated</span>
+                {/* Zone B: Primary Action */}
+                <div className="flex items-center gap-3">
+                  {/* Info Icon for Credits */}
+                  {!planLoading && (
+                    <div className="group relative flex items-center justify-center w-9 h-9 rounded-full bg-gray-100/50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 cursor-help transition-all border border-transparent hover:border-gray-200 dark:hover:border-white/10">
+                      <Info className={`w-5 h-5 ${coverPhoto ? 'text-white/90' : 'text-gray-500 dark:text-gray-400'}`} />
+                      {/* Tooltip */}
+                      <div className="absolute top-full right-0 mt-2 w-64 p-3 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Campaign Credits</div>
+                        {(() => {
+                          const stats = getUsageStats('campaignsCreated');
+                          if (!stats) return null;
+                          return (
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-900 dark:text-white">{stats.used} / {stats.limit}</span>
+                                <span className="text-gray-500">{Math.round(stats.percentage)}%</span>
+                              </div>
+                              <div className="h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-gray-900 dark:bg-white rounded-full" style={{ width: `${Math.min(100, stats.percentage)}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
+                  )}
 
-                    {/* Sent */}
-                    <div className={`flex items-center gap-2 px-3 py-2 ${coverPhoto
-                      ? 'bg-amber-100/95 dark:bg-amber-500/25 backdrop-blur-md border border-amber-300/50 dark:border-amber-400/40'
-                      : 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-500/[0.15] dark:to-orange-500/[0.12] border border-amber-200/60 dark:border-amber-400/30'
-                      } rounded-lg shadow-sm dark:shadow-none`}>
-                      <Send className="w-3.5 h-3.5 text-amber-600 dark:text-amber-300" />
-                      <span className="text-base font-bold text-amber-700 dark:text-amber-200 tabular-nums">{stats.sent}</span>
-                      <span className="text-[10px] text-amber-600/70 dark:text-amber-300/80 uppercase tracking-wider">Sent</span>
-                    </div>
+                  <button
+                    onClick={() => handleNewCampaignClick()}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#b7e219] hover:bg-[#a5cb17] text-black text-sm font-medium rounded-lg transition-colors shadow-sm"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>New Campaign</span>
+                  </button>
+                </div>
+              </div>
 
-                    {/* Opened */}
-                    <div className={`flex items-center gap-2 px-3 py-2 ${coverPhoto
-                      ? 'bg-blue-100/95 dark:bg-blue-500/25 backdrop-blur-md border border-blue-300/50 dark:border-blue-400/40'
-                      : 'bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-500/[0.15] dark:to-cyan-500/[0.12] border border-blue-200/60 dark:border-blue-400/30'
-                      } rounded-lg shadow-sm dark:shadow-none`}>
-                      <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-blue-300" />
-                      <span className="text-base font-bold text-blue-700 dark:text-blue-200 tabular-nums">{stats.opened}</span>
-                      <span className="text-[10px] text-blue-600/70 dark:text-blue-300/80 uppercase tracking-wider">Opened</span>
-                    </div>
+              {/* Zone C: Metrics */}
+              {selectedCampaign && (
+                <div className="px-6 pb-6">
+                  <div className={`inline-flex items-center px-6 py-2.5 rounded-full backdrop-blur-md shadow-sm border
+                    ${coverPhoto
+                      ? 'border-white/10 bg-black/40'
+                      : 'border-gray-200 dark:border-white/10 bg-white/80 dark:bg-white/[0.03]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-6 text-sm">
+                      {/* Contacts */}
+                      <div className="flex items-center gap-2">
+                        <span className={`font-semibold tabular-nums ${coverPhoto ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+                          {stats.contacts}
+                        </span>
+                        <span className={`${coverPhoto ? 'text-white/60' : 'text-gray-500 dark:text-gray-400'}`}>Contacts</span>
+                      </div>
 
-                    {/* Replied */}
-                    <div className={`flex items-center gap-2 px-3 py-2 ${coverPhoto
-                      ? 'bg-emerald-100/95 dark:bg-emerald-500/25 backdrop-blur-md border border-emerald-300/50 dark:border-emerald-400/40'
-                      : 'bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/[0.15] dark:to-teal-500/[0.12] border border-emerald-200/60 dark:border-emerald-400/30'
-                      } rounded-lg shadow-sm dark:shadow-none`}>
-                      <Reply className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" />
-                      <span className="text-base font-bold text-emerald-700 dark:text-emerald-200 tabular-nums">{stats.replied}</span>
-                      <span className="text-[10px] text-emerald-600/70 dark:text-emerald-300/80 uppercase tracking-wider">Replied</span>
+                      <span className={`text-[10px] ${coverPhoto ? 'text-white/20' : 'text-gray-300 dark:text-gray-700'}`}>•</span>
+
+                      {/* Generated */}
+                      <div className="flex items-center gap-2">
+                        <span className={`font-semibold tabular-nums ${coverPhoto ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+                          {stats.generated}
+                        </span>
+                        <span className={`${coverPhoto ? 'text-white/60' : 'text-gray-500 dark:text-gray-400'}`}>Generated</span>
+                      </div>
+
+                      <span className={`text-[10px] ${coverPhoto ? 'text-white/20' : 'text-gray-300 dark:text-gray-700'}`}>•</span>
+
+                      {/* Sent */}
+                      <div className="flex items-center gap-2">
+                        <span className={`font-semibold tabular-nums ${coverPhoto ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+                          {stats.sent}
+                        </span>
+                        <span className={`${coverPhoto ? 'text-white/60' : 'text-gray-500 dark:text-gray-400'}`}>Sent</span>
+                      </div>
+
+                      <span className={`text-[10px] ${coverPhoto ? 'text-white/20' : 'text-gray-300 dark:text-gray-700'}`}>•</span>
+
+                      {/* Opened (Blue if > 0) */}
+                      <div className="flex items-center gap-2">
+                        <span className={`font-semibold tabular-nums ${stats.opened > 0
+                          ? 'text-blue-500 dark:text-blue-400'
+                          : (coverPhoto ? 'text-white' : 'text-gray-900 dark:text-white')
+                          }`}>
+                          {stats.opened}
+                        </span>
+                        <span className={`${stats.opened > 0
+                          ? 'text-blue-500/80 dark:text-blue-400/80'
+                          : (coverPhoto ? 'text-white/60' : 'text-gray-500 dark:text-gray-400')
+                          }`}>Opened</span>
+                      </div>
+
+                      <span className={`text-[10px] ${coverPhoto ? 'text-white/20' : 'text-gray-300 dark:text-gray-700'}`}>•</span>
+
+                      {/* Replied (Green if > 0) */}
+                      <div className="flex items-center gap-2">
+                        <span className={`font-semibold tabular-nums ${stats.replied > 0
+                          ? 'text-emerald-500 dark:text-emerald-400'
+                          : (coverPhoto ? 'text-white' : 'text-gray-900 dark:text-white')
+                          }`}>
+                          {stats.replied}
+                        </span>
+                        <span className={`${stats.replied > 0
+                          ? 'text-emerald-500/80 dark:text-emerald-400/80'
+                          : (coverPhoto ? 'text-white/60' : 'text-gray-500 dark:text-gray-400')
+                          }`}>Replied</span>
+                      </div>
                     </div>
                   </div>
                 </div>
