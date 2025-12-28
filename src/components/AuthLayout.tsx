@@ -1,8 +1,9 @@
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, Lightbulb, User, Plus, FileSearch, LayoutGrid, Briefcase, Calendar, Clock, ChevronLeft, ChevronRight, Search, FileEdit, Mic, Target, Home } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { navigationGroups, hubLink, getAllNavItems } from '../config/navigationConfig';
 import { doc, onSnapshot, collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { notify } from '@/lib/notify';
@@ -47,31 +48,8 @@ interface UpcomingInterview {
   position: string;
 }
 
-// Définir les groupes de navigation
-const navigationGroups = {
-  apply: {
-    main: [
-      { name: 'Job Board', href: '/jobs', icon: LayoutGrid },
-      { name: 'AutoPilot', href: '/campaigns', icon: ScrollText },
-      { name: 'Campaigns', href: '/campaigns-auto', icon: Target },
-      { name: 'Resume Lab', href: '/cv-analysis', icon: FileSearch },
-    ],
-  },
-  track: [
-    { name: 'Application Tracking', href: '/applications', icon: Briefcase },
-    { name: 'Calendar', href: '/calendar', icon: Calendar },
-  ],
-  prepare: [
-    { name: 'Interview Hub', href: '/upcoming-interviews', icon: Clock },
-    { name: 'Mock Interview', href: '/mock-interview', icon: Mic },
-    { name: 'Document Manager', href: '/resume-builder', icon: FileEdit },
-  ],
-  improve: [
-    { name: 'Professional Profile', href: '/professional-profile', icon: User },
-    { name: 'Recommendations', href: '/recommendations', icon: Lightbulb },
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  ],
-};
+
+
 
 // Ajouter cette fonction pour calculer le pourcentage
 const calculateProfileCompletion = (data: any) => {
@@ -272,13 +250,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     // Check for Hub first
     if (pathname === '/hub') return 'Hub';
 
-    // Flatten all navigation items including the nested apply structure
-    const allItems = [
-      ...navigationGroups.apply.main,
-      ...navigationGroups.track,
-      ...navigationGroups.prepare,
-      ...navigationGroups.improve,
-    ];
+    // Use shared navigation config helper
+    const allItems = getAllNavItems();
     const exact = allItems.find(item => item.href === pathname);
     if (exact) return exact.name;
     const starts = allItems.find(item => pathname.startsWith(item.href) && item.href !== '/');
@@ -559,7 +532,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               title={!isEffectivelyExpanded ? 'Hub' : undefined}
             >
               <div className={`relative flex items-center ${!isEffectivelyExpanded ? 'justify-center' : 'gap-2.5 flex-1'}`}>
-                <Home className={`h-4 w-4 transition-colors
+                <hubLink.icon className={`h-4 w-4 transition-colors
                     ${location.pathname === '/hub'
                     ? 'text-[#635BFF] dark:text-[#a5a0ff]'
                     : 'text-gray-400 group-hover:text-[#635BFF] dark:group-hover:text-[#a5a0ff]'}`}
@@ -590,7 +563,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                 </div>
               )}
 
-              {navigationGroups.apply.main.map((item) => (
+              {navigationGroups.apply.map((item) => (
                 <SidebarLink
                   key={item.name}
                   name={item.name}

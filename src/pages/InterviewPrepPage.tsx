@@ -57,6 +57,15 @@ import { ImportedDocument } from '../components/resume-builder/PDFPreviewCard';
 import { usePlanLimits } from '../hooks/usePlanLimits';
 import { CREDIT_COSTS } from '../lib/planLimits';
 import CreditConfirmModal from '../components/CreditConfirmModal';
+import { useIsMobile } from '../hooks/useIsMobile';
+import {
+  InterviewPrepMobileHeader,
+  InterviewPrepMobileTabs,
+  OverviewTabMobile,
+  QuestionsTabMobile,
+  SkillsTabMobile,
+  ResourcesTabMobile,
+} from '../components/interview/mobile';
 
 // Interface for the job application data
 interface Note {
@@ -475,6 +484,11 @@ export default function InterviewPrepPage() {
   const { canUseForFree, getUsageStats, checkAndUseFeature, userCredits, isLoading: isLoadingLimits } = usePlanLimits();
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [pendingLiveSession, setPendingLiveSession] = useState(false);
+
+  // Mobile detection and scroll tracking
+  const isMobile = useIsMobile();
+  const [mobileScrollY, setMobileScrollY] = useState(0);
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
 
   // Play sound from Firebase Storage when user clicks "Prepare Live"
   const playFuturisticSound = async () => {
@@ -4134,212 +4148,348 @@ Return ONLY the pitch text, no explanations or formatting.`;
 
   return (
     <AuthLayout>
-      {/* Right Sidebar Panel */}
-      <RightSidebarPanel
-        preparationProgress={preparationProgress}
-        milestones={getProgressMilestones()}
-        sidebarTab={sidebarTab}
-        setSidebarTab={setSidebarTab}
-        noteDocuments={noteDocuments}
-        activeNoteDocumentId={activeNoteDocumentId}
-        onDocumentsChange={handleDocumentsChange}
-        liveSessionHistory={liveSessionHistory}
-        onViewHistorySession={(session) => {
-          // Prepare history session data for full-page view
-          const historyData: HistorySessionData = {
-            questions: questionEntries.slice(0, session.questionsCount),
-            answers: session.answers,
-            analysis: session.analysis,
-            date: session.date,
-          };
-          setHistorySessionData(historyData);
-          setIsLiveSessionOpen(true);
-        }}
-        highlightedDocumentId={highlightedDocumentId}
-        // Chat props
-        chatMessages={chatMessages}
-        message={message}
-        setMessage={setMessage}
-        sendMessage={sendMessage}
-        isSending={isSending}
-        typingMessages={typingMessages}
-        isUserNearBottom={isUserNearBottom}
-        setIsUserNearBottom={setIsUserNearBottom}
-        chatEndRef={chatEndRef}
-        chatContainerRef={chatContainerRef}
-        onClearChat={async () => {
-          if (currentUser && application && interview && applicationId) {
-            try {
-              await saveChatHistory([]);
-              setChatMessages([]);
-              setMessage('');
-              notify.success('Chat cleared');
-            } catch (error) {
-              notify.error('Failed to clear chat');
-            }
-          } else {
-            setChatMessages([]);
-            setMessage('');
-          }
-        }}
-        position={application?.position}
-        userPhotoURL={currentUser?.photoURL}
-        contextDocuments={contextDocuments}
-        onContextDocumentsChange={handleContextDocumentsChange}
-        userId={currentUser?.uid}
-      />
+      {/* Mobile Layout */}
+      {isMobile ? (
+        <div
+          ref={mobileScrollRef}
+          className="min-h-0 flex-1 overflow-y-auto bg-gray-50 dark:bg-[#1a191b]"
+          onScroll={(e) => setMobileScrollY((e.target as HTMLDivElement).scrollTop)}
+        >
+          {/* Collapsing Mobile Header */}
+          <InterviewPrepMobileHeader
+            companyName={application?.companyName || ''}
+            position={application?.position || ''}
+            status={interview?.status}
+            scrollY={mobileScrollY}
+          />
 
-      <MotionConfig transition={{ duration: 0.2 }}>
-        <div className="min-h-0 flex-1 overflow-y-auto lg:pr-[400px]">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-            {/* Premium Hero Section */}
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="mb-10"
-            >
-              <PremiumHeroSection
-                companyName={application?.companyName || ''}
-                position={application?.position || 'Interview Preparation'}
-                location={application?.location}
-                interviewType={interview?.type as any}
-                status={interview?.status as any}
-                date={interview?.date || null}
-                time={interview?.time || null}
-              />
-            </motion.div>
-            {/* AI Analysis Card - Hidden once analysis is generated */}
-            {(!interview?.preparation || isAnalyzing) && (
-              <div className="mb-10">
-                <AICard
-                  jobUrl={jobUrl}
-                  onJobUrlChange={setJobUrl}
-                  isAnalyzing={isAnalyzing}
-                  onAnalyze={handleAnalyzeJobPost}
-                  className="w-full"
+          {/* Mobile Tabs */}
+          <InterviewPrepMobileTabs
+            activeTab={tab as 'overview' | 'questions' | 'skills' | 'resources'}
+            onTabChange={(newTab) => setTab(newTab)}
+          />
+
+          {/* Mobile Tab Content */}
+          <div className="pt-4">
+            <AnimatePresence mode="wait">
+              {tab === 'overview' && (
+                <OverviewTabMobile
+                  key="overview-mobile"
+                  companyName={application?.companyName || ''}
+                  position={application?.position || ''}
+                  location={application?.location}
+                  companyInfo={interview?.preparation?.companyInfo}
+                  roleOverview={interview?.preparation?.roleOverview}
+                  keyPoints={interview?.preparation?.keyPoints || []}
+                  positionDetails={interview?.preparation?.positionDetails}
+                  preparationProgress={preparationProgress}
+                  interviewDate={interview?.date}
+                  companyUrl={application?.url}
+                  onStartPractice={handleStartLiveSession}
                 />
-              </div>
-            )}
+              )}
 
-            {/* Tab navigation */}
-            <nav className="mb-6 sm:mb-8 border-b border-gray-200 dark:border-[#3d3c3e] overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
-              <div className="flex gap-4 sm:gap-8 min-w-max">
-                {[
-                  { id: 'overview' as const, label: 'Overview', icon: LayoutDashboard },
-                  { id: 'questions' as const, label: 'Questions', icon: HelpCircle },
-                  { id: 'skills' as const, label: 'Skills', icon: Briefcase },
-                  { id: 'resources' as const, label: 'Resources', icon: BookOpen },
-                ].map((tabItem) => {
-                  const Icon = tabItem.icon;
-                  return (
-                    <button
-                      key={tabItem.id}
-                      onClick={() => setTab(tabItem.id)}
-                      className={`relative pb-3 text-sm font-medium transition-colors whitespace-nowrap min-h-[44px] flex items-center ${tab === tabItem.id
-                        ? 'text-gray-900 dark:text-white'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                        }`}
-                    >
-                      {tabItem.label}
-                      {tab === tabItem.id && (
-                        <motion.div
-                          layoutId="mainTab"
-                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 dark:bg-white"
-                          transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
-                        />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </nav>
+              {tab === 'questions' && (
+                <QuestionsTabMobile
+                  key="questions-mobile"
+                  questions={questionEntries}
+                  savedQuestions={savedQuestionsState}
+                  onToggleSave={handleToggleSaveQuestion}
+                  onPractice={handleStartLiveSession}
+                  activeFilter={activeQuestionFilter}
+                  onFilterChange={(filter) => setActiveQuestionFilter(filter as any)}
+                />
+              )}
 
-            {/* Tab content */}
-            <div className="mb-8 relative">
-              {isAnalyzing && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex flex-col items-center text-center px-6"
-                  >
-                    <div className="cvopt-walker mb-8" aria-label="Loading">
-                      <div className="loader">
-                        <svg className="legl" version="1.1" xmlns="http://www.w3.org/2000/svg" width="20.69332" height="68.19944" viewBox="0,0,20.69332,68.19944">
-                          <g transform="translate(-201.44063,-235.75466)">
-                            <g strokeMiterlimit={10}>
-                              <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" />
-                              <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} />
-                              <path d="M218.11971,301.20087c-2.20708,1.73229 -4.41416,0 -4.41416,0l-1.43017,-1.1437c-1.42954,-1.40829 -3.04351,-2.54728 -4.56954,-3.87927c-0.95183,-0.8308 -2.29837,-1.49883 -2.7652,-2.55433c-0.42378,-0.95815 0.14432,-2.02654 0.29355,-3.03399c0.41251,-2.78499 1.82164,-5.43386 2.41472,-8.22683c1.25895,-4.44509 2.73863,-8.98683 3.15318,-13.54796c0.22615,-2.4883 -0.21672,-5.0155 -0.00278,-7.50605c0.30636,-3.56649 1.24602,-7.10406 1.59992,-10.6738c0.29105,-2.93579 -0.00785,-5.9806 -0.00785,-8.93046c0,0 0,-2.44982 3.12129,-2.44982c3.12129,0 3.12129,2.44982 3.12129,2.44982c0,3.06839 0.28868,6.22201 -0.00786,9.27779c-0.34637,3.56935 -1.30115,7.10906 -1.59992,10.6738c-0.2103,2.50918 0.22586,5.05326 -0.00278,7.56284c-0.43159,4.7371 -1.94029,9.46317 -3.24651,14.07835c-0.47439,2.23403 -1.29927,4.31705 -2.05805,6.47156c-0.18628,0.52896 -0.1402,1.0974 -0.327,1.62624c-0.09463,0.26791 -0.64731,0.47816 -0.50641,0.73323c0.19122,0.34617 0.86423,0.3445 1.2346,0.58502c1.88637,1.22503 3.50777,2.79494 5.03,4.28305l0.96971,0.73991c0,0 2.20708,1.73229 0,3.46457z" fill="none" stroke="#191e2e" strokeWidth={7} />
-                            </g>
-                          </g>
-                        </svg>
-                        <svg className="legr" version="1.1" xmlns="http://www.w3.org/2000/svg" width="41.02537" height="64.85502" viewBox="0,0,41.02537,64.85502">
-                          <g transform="translate(-241.54137,-218.44347)">
-                            <g strokeMiterlimit={10}>
-                              <path d="M279.06674,279.42662c-2.27967,1.98991 -6.08116,0.58804 -6.08116,0.58804l-2.47264,-0.92915c-2.58799,-1.18826 -5.31176,-2.08831 -7.99917,-3.18902c-1.67622,-0.68654 -3.82471,-1.16116 -4.93147,-2.13229c-1.00468,-0.88156 -0.69132,-2.00318 -0.92827,-3.00935c-0.65501,-2.78142 0.12275,-5.56236 -0.287,-8.37565c-0.2181,-4.51941 -0.17458,-9.16283 -1.60696,-13.68334c-0.78143,-2.46614 -2.50162,-4.88125 -3.30086,-7.34796c-1.14452,-3.53236 -1.40387,-7.12078 -2.48433,-10.66266c-0.88858,-2.91287 -2.63779,-5.85389 -3.93351,-8.74177c0,0 -1.07608,-2.39835 3.22395,-2.81415c4.30003,-0.41581 2.41605,1.98254 2.41605,1.98254c1.34779,3.00392 3.13072,6.05282 4.06444,9.0839c1.09065,3.54049 1.33011,7.13302 2.48433,10.66266c0.81245,2.48448 2.5308,4.917 3.31813,7.40431c1.48619,4.69506 1.48366,9.52281 1.71137,14.21503c0.32776,2.25028 0.10631,4.39942 0.00736,6.60975c-0.02429,0.54266 0.28888,1.09302 0.26382,1.63563c-0.01269,0.27488 -0.68173,0.55435 -0.37558,0.78529c0.41549,0.31342 1.34191,0.22213 1.95781,0.40826c3.13684,0.94799 6.06014,2.26892 8.81088,3.52298l1.66093,0.59519c0,0 6.76155,1.40187 4.48187,3.39177z" fill="none" stroke="#000000" strokeWidth={7} />
-                              <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" />
-                              <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} />
-                            </g>
-                          </g>
-                        </svg>
-                        <div className="bod">
-                          <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="144.10576" height="144.91623" viewBox="0,0,144.10576,144.91623">
-                            <g transform="translate(-164.41679,-112.94712)">
-                              <g strokeMiterlimit={10}>
-                                <path d="M166.9168,184.02633c0,-36.49454 35.0206,-66.07921 72.05288,-66.07921c37.03228,0 67.05288,29.58467 67.05288,66.07921c0,6.94489 -1.08716,13.63956 -3.10292,19.92772c-2.71464,8.46831 -7.1134,16.19939 -12.809,22.81158c-2.31017,2.68194 -7.54471,12.91599 -7.54471,12.91599c0,0 -5.46714,-1.18309 -8.44434,0.6266c-3.86867,2.35159 -10.95356,10.86714 -10.95356,10.86714c0,0 -6.96906,-3.20396 -9.87477,-2.58085c-2.64748,0.56773 -6.72538,5.77072 -6.72538,5.77072c0,0 -5.5023,-4.25969 -7.5982,-4.25969c-3.08622,0 -9.09924,3.48259 -9.09924,3.48259c0,0 -6.0782,-5.11244 -9.00348,-5.91884c-4.26461,-1.17561 -12.23343,0.75049 -12.23343,0.75049c0,0 -5.18164,-8.26065 -7.60688,-9.90388c-3.50443,-2.37445 -8.8271,-3.95414 -8.8271,-3.95414c0,0 -5.33472,-8.81718 -7.27019,-11.40895c-4.81099,-6.44239 -13.46422,-9.83437 -15.65729,-17.76175c-1.53558,-5.55073 -2.35527,-21.36472 -2.35527,-21.36472z" fill="#191e2e" stroke="#000000" strokeWidth={5} strokeLinecap="butt" />
-                                <path d="M167.94713,180c0,-37.03228 35.0206,-67.05288 72.05288,-67.05288c37.03228,0 67.05288,30.0206 67.05288,67.05288c0,7.04722 -1.08716,13.84053 -3.10292,20.22135c-2.71464,8.59309 -7.1134,16.43809 -12.809,23.14771c-2.31017,2.72146 -7.54471,13.1063 -7.54471,13.1063c0,0 -5.46714,-1.20052 -8.44434,0.63584c-3.86867,2.38624 -10.95356,11.02726 -10.95356,11.02726c0,0 -6.96906,-3.25117 -9.87477,-2.61888c-2.64748,0.5761 -6.72538,5.85575 -6.72538,5.85575c0,0 -5.5023,-4.32246 -7.5982,-4.32246c-3.08622,0 -9.09924,3.5339 -9.09924,3.5339c0,0 -6.0782,-5.18777 -9.00348,-6.00605c-4.26461,-1.19293 -12.23343,0.76155 -12.23343,0.76155c0,0 -5.18164,-8.38236 -7.60688,-10.04981c-3.50443,-2.40943 -8.8271,-4.0124 -8.8271,-4.0124c0,0 -5.33472,-8.9471 -7.27019,-11.57706c-4.81099,-6.53732 -13.46422,-9.97928 -15.65729,-18.02347c-1.53558,-5.63252 -2.35527,-21.67953 -2.35527,-21.67953z" fill="#191e2e" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
-                                <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
-                                <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
-                                <path d="M216.22445,188.06994c0,0 1.02834,11.73245 -3.62335,21.11235c-4.65169,9.3799 -13.06183,10.03776 -13.06183,10.03776c0,0 7.0703,-3.03121 10.89231,-10.7381c4.34839,-8.76831 5.79288,-20.41201 5.79288,-20.41201z" fill="none" stroke="#2f3a50" strokeWidth={3} strokeLinecap="round" />
+              {tab === 'skills' && (
+                <SkillsTabMobile
+                  key="skills-mobile"
+                  skills={interview?.preparation?.requiredSkills || []}
+                  skillRatings={skillRatings}
+                  skillGaps={skillGaps}
+                  onRateSkill={handleRateSkill}
+                  onImproveSkills={() => {
+                    // Scroll to first skill gap or open coach
+                    const firstGap = skillGaps[0];
+                    if (firstGap) {
+                      notify.info(`Focus on: ${firstGap.skill}`);
+                    }
+                  }}
+                />
+              )}
+
+              {tab === 'resources' && (
+                <ResourcesTabMobile
+                  key="resources-mobile"
+                  companyName={application?.companyName || ''}
+                  reviewedTips={resourcesData?.reviewedTips || []}
+                  savedLinks={resourcesData?.savedLinks || []}
+                  onToggleTip={async (tipId) => {
+                    const list = new Set(resourcesData?.reviewedTips || []);
+                    if (list.has(tipId)) {
+                      list.delete(tipId);
+                    } else {
+                      list.add(tipId);
+                    }
+                    const next = { ...(resourcesData || {}), reviewedTips: Array.from(list) } as typeof resourcesData;
+                    setResourcesData(next);
+                    await saveResourcesData(next);
+                  }}
+                />
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Live Interview Session - Mobile shares this with desktop */}
+          <LiveInterviewSession
+            isOpen={isLiveSessionOpen}
+            onClose={() => {
+              setIsLiveSessionOpen(false);
+              setHistorySessionData(null);
+            }}
+            questions={filteredQuestions}
+            jobContext={{
+              companyName: application?.companyName || '',
+              position: application?.position || '',
+              jobDescription: interview?.jobPostContent || '',
+              requiredSkills: interview?.preparation?.requiredSkills || []
+            }}
+            onSessionComplete={handleSessionComplete}
+            onGenerateQuestions={generateLiveSessionQuestions}
+            companyName={application?.companyName}
+            position={application?.position}
+            previousSessions={liveSessionHistory}
+            historySession={historySessionData || undefined}
+          />
+
+          {/* Credit Confirmation Modal - Mobile shares this with desktop */}
+          <CreditConfirmModal
+            isOpen={showCreditModal}
+            onClose={() => {
+              setShowCreditModal(false);
+              setPendingLiveSession(false);
+            }}
+            onConfirm={() => {
+              setShowCreditModal(false);
+              if (pendingLiveSession) {
+                handleStartLiveSession(true);
+                setPendingLiveSession(false);
+              }
+            }}
+            featureName="Practice Live Session"
+            creditCost={CREDIT_COSTS.liveSession}
+            userCredits={userCredits}
+          />
+        </div>
+      ) : (
+        /* Desktop Layout - unchanged */
+        <>
+          {/* Right Sidebar Panel */}
+          <RightSidebarPanel
+            preparationProgress={preparationProgress}
+            milestones={getProgressMilestones()}
+            sidebarTab={sidebarTab}
+            setSidebarTab={setSidebarTab}
+            noteDocuments={noteDocuments}
+            activeNoteDocumentId={activeNoteDocumentId}
+            onDocumentsChange={handleDocumentsChange}
+            liveSessionHistory={liveSessionHistory}
+            onViewHistorySession={(session) => {
+              // Prepare history session data for full-page view
+              const historyData: HistorySessionData = {
+                questions: questionEntries.slice(0, session.questionsCount),
+                answers: session.answers,
+                analysis: session.analysis,
+                date: session.date,
+              };
+              setHistorySessionData(historyData);
+              setIsLiveSessionOpen(true);
+            }}
+            highlightedDocumentId={highlightedDocumentId}
+            // Chat props
+            chatMessages={chatMessages}
+            message={message}
+            setMessage={setMessage}
+            sendMessage={sendMessage}
+            isSending={isSending}
+            typingMessages={typingMessages}
+            isUserNearBottom={isUserNearBottom}
+            setIsUserNearBottom={setIsUserNearBottom}
+            chatEndRef={chatEndRef}
+            chatContainerRef={chatContainerRef}
+            onClearChat={async () => {
+              if (currentUser && application && interview && applicationId) {
+                try {
+                  await saveChatHistory([]);
+                  setChatMessages([]);
+                  setMessage('');
+                  notify.success('Chat cleared');
+                } catch (error) {
+                  notify.error('Failed to clear chat');
+                }
+              } else {
+                setChatMessages([]);
+                setMessage('');
+              }
+            }}
+            position={application?.position}
+            userPhotoURL={currentUser?.photoURL}
+            contextDocuments={contextDocuments}
+            onContextDocumentsChange={handleContextDocumentsChange}
+            userId={currentUser?.uid}
+          />
+
+          <MotionConfig transition={{ duration: 0.2 }}>
+            <div className="min-h-0 flex-1 overflow-y-auto lg:pr-[400px]">
+              <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+                {/* Premium Hero Section */}
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="mb-10"
+                >
+                  <PremiumHeroSection
+                    companyName={application?.companyName || ''}
+                    position={application?.position || 'Interview Preparation'}
+                    location={application?.location}
+                    interviewType={interview?.type as any}
+                    status={interview?.status as any}
+                    date={interview?.date || null}
+                    time={interview?.time || null}
+                  />
+                </motion.div>
+                {/* AI Analysis Card - Hidden once analysis is generated */}
+                {(!interview?.preparation || isAnalyzing) && (
+                  <div className="mb-10">
+                    <AICard
+                      jobUrl={jobUrl}
+                      onJobUrlChange={setJobUrl}
+                      isAnalyzing={isAnalyzing}
+                      onAnalyze={handleAnalyzeJobPost}
+                      className="w-full"
+                    />
+                  </div>
+                )}
+
+                {/* Tab navigation */}
+                <nav className="mb-6 sm:mb-8 border-b border-gray-200 dark:border-[#3d3c3e] overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
+                  <div className="flex gap-4 sm:gap-8 min-w-max">
+                    {[
+                      { id: 'overview' as const, label: 'Overview', icon: LayoutDashboard },
+                      { id: 'questions' as const, label: 'Questions', icon: HelpCircle },
+                      { id: 'skills' as const, label: 'Skills', icon: Briefcase },
+                      { id: 'resources' as const, label: 'Resources', icon: BookOpen },
+                    ].map((tabItem) => {
+                      const Icon = tabItem.icon;
+                      return (
+                        <button
+                          key={tabItem.id}
+                          onClick={() => setTab(tabItem.id)}
+                          className={`relative pb-3 text-sm font-medium transition-colors whitespace-nowrap min-h-[44px] flex items-center ${tab === tabItem.id
+                            ? 'text-gray-900 dark:text-white'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                            }`}
+                        >
+                          {tabItem.label}
+                          {tab === tabItem.id && (
+                            <motion.div
+                              layoutId="mainTab"
+                              className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 dark:bg-white"
+                              transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </nav>
+
+                {/* Tab content */}
+                <div className="mb-8 relative">
+                  {isAnalyzing && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex flex-col items-center text-center px-6"
+                      >
+                        <div className="cvopt-walker mb-8" aria-label="Loading">
+                          <div className="loader">
+                            <svg className="legl" version="1.1" xmlns="http://www.w3.org/2000/svg" width="20.69332" height="68.19944" viewBox="0,0,20.69332,68.19944">
+                              <g transform="translate(-201.44063,-235.75466)">
+                                <g strokeMiterlimit={10}>
+                                  <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" />
+                                  <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} />
+                                  <path d="M218.11971,301.20087c-2.20708,1.73229 -4.41416,0 -4.41416,0l-1.43017,-1.1437c-1.42954,-1.40829 -3.04351,-2.54728 -4.56954,-3.87927c-0.95183,-0.8308 -2.29837,-1.49883 -2.7652,-2.55433c-0.42378,-0.95815 0.14432,-2.02654 0.29355,-3.03399c0.41251,-2.78499 1.82164,-5.43386 2.41472,-8.22683c1.25895,-4.44509 2.73863,-8.98683 3.15318,-13.54796c0.22615,-2.4883 -0.21672,-5.0155 -0.00278,-7.50605c0.30636,-3.56649 1.24602,-7.10406 1.59992,-10.6738c0.29105,-2.93579 -0.00785,-5.9806 -0.00785,-8.93046c0,0 0,-2.44982 3.12129,-2.44982c3.12129,0 3.12129,2.44982 3.12129,2.44982c0,3.06839 0.28868,6.22201 -0.00786,9.27779c-0.34637,3.56935 -1.30115,7.10906 -1.59992,10.6738c-0.2103,2.50918 0.22586,5.05326 -0.00278,7.56284c-0.43159,4.7371 -1.94029,9.46317 -3.24651,14.07835c-0.47439,2.23403 -1.29927,4.31705 -2.05805,6.47156c-0.18628,0.52896 -0.1402,1.0974 -0.327,1.62624c-0.09463,0.26791 -0.64731,0.47816 -0.50641,0.73323c0.19122,0.34617 0.86423,0.3445 1.2346,0.58502c1.88637,1.22503 3.50777,2.79494 5.03,4.28305l0.96971,0.73991c0,0 2.20708,1.73229 0,3.46457z" fill="none" stroke="#191e2e" strokeWidth={7} />
+                                </g>
                               </g>
-                            </g>
-                          </svg>
-                          <svg className="head" version="1.1" xmlns="http://www.w3.org/2000/svg" width="115.68559" height="88.29441" viewBox="0,0,115.68559,88.29441">
-                            <g transform="translate(-191.87889,-75.62023)">
-                              <g strokeMiterlimit={10}>
-                                <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
-                                <path d="M195.12889,128.77752c0,-26.96048 21.33334,-48.81626 47.64934,-48.81626c26.316,0 47.64935,21.85578 47.64935,48.81626c0,0.60102 -9.22352,20.49284 -9.22352,20.49284l-7.75885,0.35623l-7.59417,6.15039l-8.64295,-1.74822l-11.70703,6.06119l-6.38599,-4.79382l-6.45999,2.36133l-7.01451,-7.38888l-8.11916,1.29382l-6.19237,-6.07265l-7.6263,-1.37795l-4.19835,-7.87062l-4.24236,-4.16907c0,0 -0.13314,-2.0999 -0.13314,-3.29458z" fill="none" stroke="#2f3a50" strokeWidth={6} strokeLinecap="butt" />
-                                <path d="M195.31785,124.43649c0,-26.96048 21.33334,-48.81626 47.64934,-48.81626c26.316,0 47.64935,21.85578 47.64935,48.81626c0,1.03481 -0.08666,2.8866 -0.08666,2.8866c0,0 16.8538,15.99287 16.21847,17.23929c-0.66726,1.30905 -23.05667,-4.14265 -23.05667,-4.14265l-2.29866,4.5096l-7.75885,0.35623l-7.59417,6.15039l-8.64295,-1.74822l-11.70703,6.06119l-6.38599,-4.79382l-6.45999,2.36133l-7.01451,-7.38888l-8.11916,1.29382l-6.19237,-6.07265l-7.6263,-1.37795l-4.19835,-7.87062l-4.24236,-4.16907c0,0 -0.13314,-2.0999 -0.13314,-3.29458z" fill="#191e2e" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
-                                <path d="M271.10348,122.46768l10.06374,-3.28166l24.06547,24.28424" fill="none" stroke="#2f3a50" strokeWidth={6} strokeLinecap="round" />
-                                <path d="M306.56448,144.85764l-41.62024,-8.16845l2.44004,-7.87698" fill="none" stroke="#000000" strokeWidth="3.5" strokeLinecap="round" />
-                                <path d="M276.02738,115.72434c-0.66448,-4.64715 2.56411,-8.95308 7.21127,-9.61756c4.64715,-0.66448 8.95309,2.56411 9.61757,7.21126c0.46467,3.24972 -1.94776,8.02206 -5.96624,9.09336c-2.11289,-1.73012 -5.08673,-5.03426 -5.08673,-5.03426c0,0 -4.12095,1.16329 -4.60481,1.54229c-0.16433,-0.04891 -0.62732,-0.38126 -0.72803,-0.61269c-0.30602,-0.70328 -0.36302,-2.02286 -0.44303,-2.58239z" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
-                                <path d="M242.49281,125.6424c0,-4.69442 3.80558,-8.5 8.5,-8.5c4.69442,0 8.5,3.80558 8.5,8.5c0,4.69442 -3.80558,8.5 -8.5,8.5c-4.69442,0 -8.5,-3.80558 -8.5,-8.5z" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
-                                <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
+                            </svg>
+                            <svg className="legr" version="1.1" xmlns="http://www.w3.org/2000/svg" width="41.02537" height="64.85502" viewBox="0,0,41.02537,64.85502">
+                              <g transform="translate(-241.54137,-218.44347)">
+                                <g strokeMiterlimit={10}>
+                                  <path d="M279.06674,279.42662c-2.27967,1.98991 -6.08116,0.58804 -6.08116,0.58804l-2.47264,-0.92915c-2.58799,-1.18826 -5.31176,-2.08831 -7.99917,-3.18902c-1.67622,-0.68654 -3.82471,-1.16116 -4.93147,-2.13229c-1.00468,-0.88156 -0.69132,-2.00318 -0.92827,-3.00935c-0.65501,-2.78142 0.12275,-5.56236 -0.287,-8.37565c-0.2181,-4.51941 -0.17458,-9.16283 -1.60696,-13.68334c-0.78143,-2.46614 -2.50162,-4.88125 -3.30086,-7.34796c-1.14452,-3.53236 -1.40387,-7.12078 -2.48433,-10.66266c-0.88858,-2.91287 -2.63779,-5.85389 -3.93351,-8.74177c0,0 -1.07608,-2.39835 3.22395,-2.81415c4.30003,-0.41581 2.41605,1.98254 2.41605,1.98254c1.34779,3.00392 3.13072,6.05282 4.06444,9.0839c1.09065,3.54049 1.33011,7.13302 2.48433,10.66266c0.81245,2.48448 2.5308,4.917 3.31813,7.40431c1.48619,4.69506 1.48366,9.52281 1.71137,14.21503c0.32776,2.25028 0.10631,4.39942 0.00736,6.60975c-0.02429,0.54266 0.28888,1.09302 0.26382,1.63563c-0.01269,0.27488 -0.68173,0.55435 -0.37558,0.78529c0.41549,0.31342 1.34191,0.22213 1.95781,0.40826c3.13684,0.94799 6.06014,2.26892 8.81088,3.52298l1.66093,0.59519c0,0 6.76155,1.40187 4.48187,3.39177z" fill="none" stroke="#000000" strokeWidth={7} />
+                                  <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" />
+                                  <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} />
+                                </g>
                               </g>
-                            </g>
-                          </svg>
+                            </svg>
+                            <div className="bod">
+                              <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="144.10576" height="144.91623" viewBox="0,0,144.10576,144.91623">
+                                <g transform="translate(-164.41679,-112.94712)">
+                                  <g strokeMiterlimit={10}>
+                                    <path d="M166.9168,184.02633c0,-36.49454 35.0206,-66.07921 72.05288,-66.07921c37.03228,0 67.05288,29.58467 67.05288,66.07921c0,6.94489 -1.08716,13.63956 -3.10292,19.92772c-2.71464,8.46831 -7.1134,16.19939 -12.809,22.81158c-2.31017,2.68194 -7.54471,12.91599 -7.54471,12.91599c0,0 -5.46714,-1.18309 -8.44434,0.6266c-3.86867,2.35159 -10.95356,10.86714 -10.95356,10.86714c0,0 -6.96906,-3.20396 -9.87477,-2.58085c-2.64748,0.56773 -6.72538,5.77072 -6.72538,5.77072c0,0 -5.5023,-4.25969 -7.5982,-4.25969c-3.08622,0 -9.09924,3.48259 -9.09924,3.48259c0,0 -6.0782,-5.11244 -9.00348,-5.91884c-4.26461,-1.17561 -12.23343,0.75049 -12.23343,0.75049c0,0 -5.18164,-8.26065 -7.60688,-9.90388c-3.50443,-2.37445 -8.8271,-3.95414 -8.8271,-3.95414c0,0 -5.33472,-8.81718 -7.27019,-11.40895c-4.81099,-6.44239 -13.46422,-9.83437 -15.65729,-17.76175c-1.53558,-5.55073 -2.35527,-21.36472 -2.35527,-21.36472z" fill="#191e2e" stroke="#000000" strokeWidth={5} strokeLinecap="butt" />
+                                    <path d="M167.94713,180c0,-37.03228 35.0206,-67.05288 72.05288,-67.05288c37.03228,0 67.05288,30.0206 67.05288,67.05288c0,7.04722 -1.08716,13.84053 -3.10292,20.22135c-2.71464,8.59309 -7.1134,16.43809 -12.809,23.14771c-2.31017,2.72146 -7.54471,13.1063 -7.54471,13.1063c0,0 -5.46714,-1.20052 -8.44434,0.63584c-3.86867,2.38624 -10.95356,11.02726 -10.95356,11.02726c0,0 -6.96906,-3.25117 -9.87477,-2.61888c-2.64748,0.5761 -6.72538,5.85575 -6.72538,5.85575c0,0 -5.5023,-4.32246 -7.5982,-4.32246c-3.08622,0 -9.09924,3.5339 -9.09924,3.5339c0,0 -6.0782,-5.18777 -9.00348,-6.00605c-4.26461,-1.19293 -12.23343,0.76155 -12.23343,0.76155c0,0 -5.18164,-8.38236 -7.60688,-10.04981c-3.50443,-2.40943 -8.8271,-4.0124 -8.8271,-4.0124c0,0 -5.33472,-8.9471 -7.27019,-11.57706c-4.81099,-6.53732 -13.46422,-9.97928 -15.65729,-18.02347c-1.53558,-5.63252 -2.35527,-21.67953 -2.35527,-21.67953z" fill="#191e2e" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
+                                    <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
+                                    <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
+                                    <path d="M216.22445,188.06994c0,0 1.02834,11.73245 -3.62335,21.11235c-4.65169,9.3799 -13.06183,10.03776 -13.06183,10.03776c0,0 7.0703,-3.03121 10.89231,-10.7381c4.34839,-8.76831 5.79288,-20.41201 5.79288,-20.41201z" fill="none" stroke="#2f3a50" strokeWidth={3} strokeLinecap="round" />
+                                  </g>
+                                </g>
+                              </svg>
+                              <svg className="head" version="1.1" xmlns="http://www.w3.org/2000/svg" width="115.68559" height="88.29441" viewBox="0,0,115.68559,88.29441">
+                                <g transform="translate(-191.87889,-75.62023)">
+                                  <g strokeMiterlimit={10}>
+                                    <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
+                                    <path d="M195.12889,128.77752c0,-26.96048 21.33334,-48.81626 47.64934,-48.81626c26.316,0 47.64935,21.85578 47.64935,48.81626c0,0.60102 -9.22352,20.49284 -9.22352,20.49284l-7.75885,0.35623l-7.59417,6.15039l-8.64295,-1.74822l-11.70703,6.06119l-6.38599,-4.79382l-6.45999,2.36133l-7.01451,-7.38888l-8.11916,1.29382l-6.19237,-6.07265l-7.6263,-1.37795l-4.19835,-7.87062l-4.24236,-4.16907c0,0 -0.13314,-2.0999 -0.13314,-3.29458z" fill="none" stroke="#2f3a50" strokeWidth={6} strokeLinecap="butt" />
+                                    <path d="M195.31785,124.43649c0,-26.96048 21.33334,-48.81626 47.64934,-48.81626c26.316,0 47.64935,21.85578 47.64935,48.81626c0,1.03481 -0.08666,2.8866 -0.08666,2.8866c0,0 16.8538,15.99287 16.21847,17.23929c-0.66726,1.30905 -23.05667,-4.14265 -23.05667,-4.14265l-2.29866,4.5096l-7.75885,0.35623l-7.59417,6.15039l-8.64295,-1.74822l-11.70703,6.06119l-6.38599,-4.79382l-6.45999,2.36133l-7.01451,-7.38888l-8.11916,1.29382l-6.19237,-6.07265l-7.6263,-1.37795l-4.19835,-7.87062l-4.24236,-4.16907c0,0 -0.13314,-2.0999 -0.13314,-3.29458z" fill="#191e2e" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
+                                    <path d="M271.10348,122.46768l10.06374,-3.28166l24.06547,24.28424" fill="none" stroke="#2f3a50" strokeWidth={6} strokeLinecap="round" />
+                                    <path d="M306.56448,144.85764l-41.62024,-8.16845l2.44004,-7.87698" fill="none" stroke="#000000" strokeWidth="3.5" strokeLinecap="round" />
+                                    <path d="M276.02738,115.72434c-0.66448,-4.64715 2.56411,-8.95308 7.21127,-9.61756c4.64715,-0.66448 8.95309,2.56411 9.61757,7.21126c0.46467,3.24972 -1.94776,8.02206 -5.96624,9.09336c-2.11289,-1.73012 -5.08673,-5.03426 -5.08673,-5.03426c0,0 -4.12095,1.16329 -4.60481,1.54229c-0.16433,-0.04891 -0.62732,-0.38126 -0.72803,-0.61269c-0.30602,-0.70328 -0.36302,-2.02286 -0.44303,-2.58239z" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
+                                    <path d="M242.49281,125.6424c0,-4.69442 3.80558,-8.5 8.5,-8.5c4.69442,0 8.5,3.80558 8.5,8.5c0,4.69442 -3.80558,8.5 -8.5,8.5c-4.69442,0 -8.5,-3.80558 -8.5,-8.5z" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
+                                    <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
+                                  </g>
+                                </g>
+                              </svg>
+                            </div>
+                            <svg id="gnd" version="1.1" xmlns="http://www.w3.org/2000/svg" width={475} height={530} viewBox="0,0,163.40011,85.20095">
+                              <g transform="translate(-176.25,-207.64957)">
+                                <g stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeMiterlimit={10}>
+                                  <path d="M295.5,273.1829c0,0 -57.38915,6.69521 -76.94095,-9.01465c-13.65063,-10.50609 15.70098,-20.69467 -2.5451,-19.94465c-30.31027,2.05753 -38.51396,-26.84135 -38.51396,-26.84135c0,0 6.50084,13.30023 18.93224,19.17888c9.53286,4.50796 26.23632,-1.02541 32.09529,4.95137c3.62417,3.69704 2.8012,6.33005 0.66517,8.49452c-3.79415,3.84467 -11.7312,6.21103 -6.24682,10.43645c22.01082,16.95812 72.55412,12.73944 72.55412,12.73944z" fill="#000000" />
+                                  <path d="M338.92138,217.76285c0,0 -17.49626,12.55408 -45.36424,10.00353c-8.39872,-0.76867 -17.29557,-6.23066 -17.29557,-6.23066c0,0 3.06461,-2.23972 15.41857,0.72484c26.30467,6.31228 47.24124,-4.49771 47.24124,-4.49771z" fill="#000000" />
+                                  <path d="M209.14443,223.00182l1.34223,15.4356l-10.0667,-15.4356" fill="none" />
+                                  <path d="M198.20391,230.41806l12.95386,7.34824l6.71113,-12.08004" fill="none" />
+                                  <path d="M211.19621,238.53825l8.5262,-6.09014" fill="none" />
+                                  <path d="M317.57068,215.80173l5.27812,6.49615l0.40601,-13.39831" fill="none" />
+                                  <path d="M323.66082,222.70389l6.09014,-9.33822" fill="none" />
+                                </g>
+                              </g>
+                            </svg>
+                          </div>
                         </div>
-                        <svg id="gnd" version="1.1" xmlns="http://www.w3.org/2000/svg" width={475} height={530} viewBox="0,0,163.40011,85.20095">
-                          <g transform="translate(-176.25,-207.64957)">
-                            <g stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeMiterlimit={10}>
-                              <path d="M295.5,273.1829c0,0 -57.38915,6.69521 -76.94095,-9.01465c-13.65063,-10.50609 15.70098,-20.69467 -2.5451,-19.94465c-30.31027,2.05753 -38.51396,-26.84135 -38.51396,-26.84135c0,0 6.50084,13.30023 18.93224,19.17888c9.53286,4.50796 26.23632,-1.02541 32.09529,4.95137c3.62417,3.69704 2.8012,6.33005 0.66517,8.49452c-3.79415,3.84467 -11.7312,6.21103 -6.24682,10.43645c22.01082,16.95812 72.55412,12.73944 72.55412,12.73944z" fill="#000000" />
-                              <path d="M338.92138,217.76285c0,0 -17.49626,12.55408 -45.36424,10.00353c-8.39872,-0.76867 -17.29557,-6.23066 -17.29557,-6.23066c0,0 3.06461,-2.23972 15.41857,0.72484c26.30467,6.31228 47.24124,-4.49771 47.24124,-4.49771z" fill="#000000" />
-                              <path d="M209.14443,223.00182l1.34223,15.4356l-10.0667,-15.4356" fill="none" />
-                              <path d="M198.20391,230.41806l12.95386,7.34824l6.71113,-12.08004" fill="none" />
-                              <path d="M211.19621,238.53825l8.5262,-6.09014" fill="none" />
-                              <path d="M317.57068,215.80173l5.27812,6.49615l0.40601,-13.39831" fill="none" />
-                              <path d="M323.66082,222.70389l6.09014,-9.33822" fill="none" />
-                            </g>
-                          </g>
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="w-[min(60vw,520px)] h-2 rounded-full bg-white/20 dark:bg-white/15 overflow-hidden mb-4">
-                      <div
-                        className="h-full bg-gradient-to-r from-jobzai-500 via-jobzai-400 to-jobzai-600 transition-all duration-300"
-                        style={{ width: `${Math.min(100, Math.max(0, analyzingProgress))}%` }}
-                      />
-                    </div>
-                    <p className="text-base font-semibold text-white">
-                      {analyzingMessage}
-                    </p>
-                    <p className="mt-2 text-sm text-white/80">
-                      This may take up to 2 minutes.
-                    </p>
-                    <style>
-                      {`
+                        <div className="w-[min(60vw,520px)] h-2 rounded-full bg-white/20 dark:bg-white/15 overflow-hidden mb-4">
+                          <div
+                            className="h-full bg-gradient-to-r from-jobzai-500 via-jobzai-400 to-jobzai-600 transition-all duration-300"
+                            style={{ width: `${Math.min(100, Math.max(0, analyzingProgress))}%` }}
+                          />
+                        </div>
+                        <p className="text-base font-semibold text-white">
+                          {analyzingMessage}
+                        </p>
+                        <p className="mt-2 text-sm text-white/80">
+                          This may take up to 2 minutes.
+                        </p>
+                        <style>
+                          {`
                   .cvopt-walker .loader {
                     position: relative;
                     width: 200px;
@@ -4416,841 +4566,841 @@ Return ONLY the pitch text, no explanations or formatting.`;
                     100% { transform: translate(-100px, -50px); opacity: 0; }
                   }
                 `}
-                    </style>
-                  </motion.div>
-                </div>
-              )}
-
-              {!interview?.preparation ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white dark:bg-[#2b2a2c] rounded-xl p-8 border border-gray-200 dark:border-[#3d3c3e] text-center shadow-sm"
-                >
-                  <div className="max-w-md mx-auto">
-                    <div className="mx-auto w-16 h-16 bg-jobzai-100 dark:bg-jobzai-900/30 
-                    rounded-full flex items-center justify-center mb-5">
-                      <Search className="w-8 h-8 text-jobzai-600 dark:text-jobzai-400" />
+                        </style>
+                      </motion.div>
                     </div>
-                    <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">Get started with your preparation</h3>
-                    <p className="text-gray-600 dark:text-gray-400 mb-6">
-                      Enter a job posting URL above and click "Analyze" to get personalized interview preparation guidance.
-                    </p>
-
-                    <div className="bg-gray-50 dark:bg-[#3d3c3e]/30 p-4 rounded-lg text-left mb-2">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                        What you'll get:
-                      </h4>
-                      <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-2 pl-6">
-                        <li className="list-disc">Company and position insights</li>
-                        <li className="list-disc">Tailored interview questions with answer guidance</li>
-                        <li className="list-disc">Key skills assessment</li>
-                        <li className="list-disc">Practice with an AI interview trainer</li>
-                      </ul>
-                    </div>
-
-                    <button
-                      onClick={() => (document.querySelector('input[type="url"]') as HTMLInputElement | null)?.focus()}
-                      className="mt-2 inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-jobzai-500 to-jobzai-600 text-white rounded-lg hover:from-jobzai-600 hover:to-jobzai-700 transition-colors text-sm font-medium"
-                    >
-                      <ArrowUp className="w-4 h-4 mr-1.5" />
-                      Analyze a Job Posting
-                    </button>
-                  </div>
-                </motion.div>
-              ) : (
-                <AnimatePresence mode="wait">
-                  {tab === 'overview' && (
-                    <motion.div
-                      key="overview"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.15 }}
-                      className="space-y-5"
-                    >
-                      <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-jobzai-600" /></div>}>
-                        <OverviewTab
-                          application={application!}
-                          interview={interview!}
-                          checklist={checklist}
-                          newsItems={newsItems}
-                          isNewsLoading={isNewsLoading}
-                          newsError={newsError}
-                          showAllChecklistItems={showAllChecklistItems}
-                          showAllNewsItems={showAllNewsItems}
-                          newTaskText={newTaskText}
-                          setTab={setTab}
-                          setShowAllChecklistItems={setShowAllChecklistItems}
-                          setShowAllNewsItems={setShowAllNewsItems}
-                          setNewTaskText={setNewTaskText}
-                          toggleChecklistItem={toggleChecklistItem}
-                          addChecklistItem={addChecklistItem}
-                          deleteChecklistItem={deleteChecklistItem}
-                          updateChecklistItemText={updateChecklistItemText}
-                          fetchCompanyNews={fetchCompanyNews}
-                          createNoteFromNews={createNoteFromNews}
-                        />
-                      </Suspense>
-                    </motion.div>
                   )}
-                  {false && tab === 'overview_old' && (
+
+                  {!interview?.preparation ? (
                     <motion.div
-                      key="overview_old"
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-5"
+                      className="bg-white dark:bg-[#2b2a2c] rounded-xl p-8 border border-gray-200 dark:border-[#3d3c3e] text-center shadow-sm"
                     >
-                      {/* SECTION 1: Preparation Progress */}
-                      <motion.article
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                        className="group relative overflow-hidden rounded-xl bg-white px-6 py-7 shadow-sm ring-1 ring-black/[0.03] transition-all duration-300 hover:shadow-md dark:bg-neutral-900/50 dark:ring-white/[0.05]"
-                      >
-                        {/* Header with circular progress */}
-                        <header className="mb-6 flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <h2 className="mb-1.5 text-lg font-semibold tracking-tight text-neutral-900 dark:text-white">
-                              Preparation Progress
-                            </h2>
-                            <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
-                              {getProgressMilestones().filter((m) => m.completed).length === 5
-                                ? "You're fully prepared! 🎉"
-                                : "Complete key milestones to feel interview-ready"}
-                            </p>
-                          </div>
+                      <div className="max-w-md mx-auto">
+                        <div className="mx-auto w-16 h-16 bg-jobzai-100 dark:bg-jobzai-900/30 
+                    rounded-full flex items-center justify-center mb-5">
+                          <Search className="w-8 h-8 text-jobzai-600 dark:text-jobzai-400" />
+                        </div>
+                        <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">Get started with your preparation</h3>
+                        <p className="text-gray-600 dark:text-gray-400 mb-6">
+                          Enter a job posting URL above and click "Analyze" to get personalized interview preparation guidance.
+                        </p>
 
-                          {/* Circular progress indicator */}
-                          <div className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center">
-                            {/* Background circle */}
-                            <svg className="absolute inset-0 h-16 w-16 -rotate-90 transform">
-                              <circle
-                                cx="32"
-                                cy="32"
-                                r="28"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                                fill="none"
-                                className="text-neutral-100 dark:text-neutral-800"
-                              />
-                              {/* Progress circle */}
-                              <motion.circle
-                                cx="32"
-                                cy="32"
-                                r="28"
-                                stroke="url(#progressGradient)"
-                                strokeWidth="4"
-                                fill="none"
-                                strokeLinecap="round"
-                                initial={{ strokeDashoffset: 176 }}
-                                animate={{
-                                  strokeDashoffset: 176 - (176 * preparationProgress) / 100
-                                }}
-                                transition={{ duration: 1, ease: [0.25, 0.1, 0.25, 1] }}
-                                style={{
-                                  strokeDasharray: 176,
-                                }}
-                              />
-                              <defs>
-                                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                  <stop offset="0%" stopColor="#8b5cf6" />
-                                  <stop offset="100%" stopColor="#6366f1" />
-                                </linearGradient>
-                              </defs>
-                            </svg>
-                            {/* Percentage text */}
-                            <div className="relative flex flex-col items-center">
-                              <span className="text-lg font-semibold text-neutral-900 dark:text-white">
-                                {preparationProgress}
-                              </span>
-                              <span className="text-[10px] font-medium text-neutral-500 dark:text-neutral-400">
-                                %
-                              </span>
-                            </div>
-                          </div>
-                        </header>
-
-                        {/* Linear progress bar */}
-                        <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${preparationProgress}%` }}
-                            transition={{ duration: 1, ease: [0.25, 0.1, 0.25, 1] }}
-                            className="h-full rounded-full bg-gradient-to-r from-jobzai-500 to-jobzai-600"
-                          />
+                        <div className="bg-gray-50 dark:bg-[#3d3c3e]/30 p-4 rounded-lg text-left mb-2">
+                          <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                            <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                            What you'll get:
+                          </h4>
+                          <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-2 pl-6">
+                            <li className="list-disc">Company and position insights</li>
+                            <li className="list-disc">Tailored interview questions with answer guidance</li>
+                            <li className="list-disc">Key skills assessment</li>
+                            <li className="list-disc">Practice with an AI interview trainer</li>
+                          </ul>
                         </div>
 
-                        {/* Milestones */}
-                        <div className="space-y-2">
-                          <div className="mb-3 flex items-center justify-between">
-                            <span className="text-xs font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
-                              Milestones
-                            </span>
-                            <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                              {getProgressMilestones().filter((m) => m.completed).length} of {getProgressMilestones().length}
-                            </span>
-                          </div>
+                        <button
+                          onClick={() => (document.querySelector('input[type="url"]') as HTMLInputElement | null)?.focus()}
+                          className="mt-2 inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-jobzai-500 to-jobzai-600 text-white rounded-lg hover:from-jobzai-600 hover:to-jobzai-700 transition-colors text-sm font-medium"
+                        >
+                          <ArrowUp className="w-4 h-4 mr-1.5" />
+                          Analyze a Job Posting
+                        </button>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <AnimatePresence mode="wait">
+                      {tab === 'overview' && (
+                        <motion.div
+                          key="overview"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ duration: 0.15 }}
+                          className="space-y-5"
+                        >
+                          <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-jobzai-600" /></div>}>
+                            <OverviewTab
+                              application={application!}
+                              interview={interview!}
+                              checklist={checklist}
+                              newsItems={newsItems}
+                              isNewsLoading={isNewsLoading}
+                              newsError={newsError}
+                              showAllChecklistItems={showAllChecklistItems}
+                              showAllNewsItems={showAllNewsItems}
+                              newTaskText={newTaskText}
+                              setTab={setTab}
+                              setShowAllChecklistItems={setShowAllChecklistItems}
+                              setShowAllNewsItems={setShowAllNewsItems}
+                              setNewTaskText={setNewTaskText}
+                              toggleChecklistItem={toggleChecklistItem}
+                              addChecklistItem={addChecklistItem}
+                              deleteChecklistItem={deleteChecklistItem}
+                              updateChecklistItemText={updateChecklistItemText}
+                              fetchCompanyNews={fetchCompanyNews}
+                              createNoteFromNews={createNoteFromNews}
+                            />
+                          </Suspense>
+                        </motion.div>
+                      )}
+                      {false && tab === 'overview_old' && (
+                        <motion.div
+                          key="overview_old"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          className="space-y-5"
+                        >
+                          {/* SECTION 1: Preparation Progress */}
+                          <motion.article
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                            className="group relative overflow-hidden rounded-xl bg-white px-6 py-7 shadow-sm ring-1 ring-black/[0.03] transition-all duration-300 hover:shadow-md dark:bg-neutral-900/50 dark:ring-white/[0.05]"
+                          >
+                            {/* Header with circular progress */}
+                            <header className="mb-6 flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <h2 className="mb-1.5 text-lg font-semibold tracking-tight text-neutral-900 dark:text-white">
+                                  Preparation Progress
+                                </h2>
+                                <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
+                                  {getProgressMilestones().filter((m) => m.completed).length === 5
+                                    ? "You're fully prepared! 🎉"
+                                    : "Complete key milestones to feel interview-ready"}
+                                </p>
+                              </div>
 
-                          {getProgressMilestones().map((milestone, index) => (
-                            <motion.button
-                              key={milestone.id}
-                              type="button"
-                              initial={{ opacity: 0, x: -8 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.05, duration: 0.3 }}
-                              onClick={milestone.action}
-                              className={[
-                                'group/milestone relative w-full overflow-hidden rounded-lg transition-all duration-200',
-                                milestone.completed
-                                  ? 'bg-emerald-50/80 ring-1 ring-emerald-200/60 dark:bg-emerald-950/30 dark:ring-emerald-800/40'
-                                  : 'bg-neutral-50/50 ring-1 ring-black/[0.04] hover:bg-neutral-50 hover:ring-jobzai-200/50 dark:bg-white/[0.02] dark:ring-white/[0.05] dark:hover:bg-white/[0.04] dark:hover:ring-jobzai-500/30',
-                              ].join(' ')}
-                            >
-                              {/* Hover gradient effect */}
-                              {!milestone.completed && (
-                                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/milestone:opacity-100">
-                                  <div className="absolute inset-0 bg-gradient-to-r from-jobzai-500/5 to-jobzai-600/5" />
+                              {/* Circular progress indicator */}
+                              <div className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center">
+                                {/* Background circle */}
+                                <svg className="absolute inset-0 h-16 w-16 -rotate-90 transform">
+                                  <circle
+                                    cx="32"
+                                    cy="32"
+                                    r="28"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                    fill="none"
+                                    className="text-neutral-100 dark:text-neutral-800"
+                                  />
+                                  {/* Progress circle */}
+                                  <motion.circle
+                                    cx="32"
+                                    cy="32"
+                                    r="28"
+                                    stroke="url(#progressGradient)"
+                                    strokeWidth="4"
+                                    fill="none"
+                                    strokeLinecap="round"
+                                    initial={{ strokeDashoffset: 176 }}
+                                    animate={{
+                                      strokeDashoffset: 176 - (176 * preparationProgress) / 100
+                                    }}
+                                    transition={{ duration: 1, ease: [0.25, 0.1, 0.25, 1] }}
+                                    style={{
+                                      strokeDasharray: 176,
+                                    }}
+                                  />
+                                  <defs>
+                                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                      <stop offset="0%" stopColor="#8b5cf6" />
+                                      <stop offset="100%" stopColor="#6366f1" />
+                                    </linearGradient>
+                                  </defs>
+                                </svg>
+                                {/* Percentage text */}
+                                <div className="relative flex flex-col items-center">
+                                  <span className="text-lg font-semibold text-neutral-900 dark:text-white">
+                                    {preparationProgress}
+                                  </span>
+                                  <span className="text-[10px] font-medium text-neutral-500 dark:text-neutral-400">
+                                    %
+                                  </span>
                                 </div>
-                              )}
+                              </div>
+                            </header>
 
-                              <div className="relative flex items-center gap-3 px-3.5 py-3">
-                                {/* Icon */}
-                                <div
+                            {/* Linear progress bar */}
+                            <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${preparationProgress}%` }}
+                                transition={{ duration: 1, ease: [0.25, 0.1, 0.25, 1] }}
+                                className="h-full rounded-full bg-gradient-to-r from-jobzai-500 to-jobzai-600"
+                              />
+                            </div>
+
+                            {/* Milestones */}
+                            <div className="space-y-2">
+                              <div className="mb-3 flex items-center justify-between">
+                                <span className="text-xs font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                                  Milestones
+                                </span>
+                                <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                  {getProgressMilestones().filter((m) => m.completed).length} of {getProgressMilestones().length}
+                                </span>
+                              </div>
+
+                              {getProgressMilestones().map((milestone, index) => (
+                                <motion.button
+                                  key={milestone.id}
+                                  type="button"
+                                  initial={{ opacity: 0, x: -8 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: index * 0.05, duration: 0.3 }}
+                                  onClick={milestone.action}
                                   className={[
-                                    'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-all duration-200',
+                                    'group/milestone relative w-full overflow-hidden rounded-lg transition-all duration-200',
                                     milestone.completed
-                                      ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400'
-                                      : 'bg-white text-jobzai-600 ring-1 ring-black/[0.04] group-hover/milestone:bg-jobzai-50 group-hover/milestone:ring-jobzai-200/50 dark:bg-neutral-800 dark:text-jobzai-400 dark:ring-white/[0.08] dark:group-hover/milestone:bg-jobzai-950/50',
+                                      ? 'bg-emerald-50/80 ring-1 ring-emerald-200/60 dark:bg-emerald-950/30 dark:ring-emerald-800/40'
+                                      : 'bg-neutral-50/50 ring-1 ring-black/[0.04] hover:bg-neutral-50 hover:ring-jobzai-200/50 dark:bg-white/[0.02] dark:ring-white/[0.05] dark:hover:bg-white/[0.04] dark:hover:ring-jobzai-500/30',
                                   ].join(' ')}
                                 >
-                                  {milestone.icon}
-                                </div>
+                                  {/* Hover gradient effect */}
+                                  {!milestone.completed && (
+                                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/milestone:opacity-100">
+                                      <div className="absolute inset-0 bg-gradient-to-r from-jobzai-500/5 to-jobzai-600/5" />
+                                    </div>
+                                  )}
 
-                                {/* Content */}
-                                <div className="min-w-0 flex-1 text-left">
-                                  <div
+                                  <div className="relative flex items-center gap-3 px-3.5 py-3">
+                                    {/* Icon */}
+                                    <div
+                                      className={[
+                                        'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-all duration-200',
+                                        milestone.completed
+                                          ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400'
+                                          : 'bg-white text-jobzai-600 ring-1 ring-black/[0.04] group-hover/milestone:bg-jobzai-50 group-hover/milestone:ring-jobzai-200/50 dark:bg-neutral-800 dark:text-jobzai-400 dark:ring-white/[0.08] dark:group-hover/milestone:bg-jobzai-950/50',
+                                      ].join(' ')}
+                                    >
+                                      {milestone.icon}
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="min-w-0 flex-1 text-left">
+                                      <div
+                                        className={[
+                                          'truncate text-sm font-medium leading-tight',
+                                          milestone.completed
+                                            ? 'text-emerald-900 dark:text-emerald-200'
+                                            : 'text-neutral-900 dark:text-neutral-100',
+                                        ].join(' ')}
+                                      >
+                                        {milestone.label}
+                                      </div>
+                                      <div className="mt-0.5 truncate text-xs leading-tight text-neutral-600 dark:text-neutral-400">
+                                        {milestone.description}
+                                      </div>
+                                    </div>
+
+                                    {/* Status indicator */}
+                                    <div className="flex-shrink-0">
+                                      {milestone.completed ? (
+                                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 dark:bg-emerald-600">
+                                          <Check className="h-3 w-3 text-white" />
+                                        </div>
+                                      ) : (
+                                        <ArrowRight className="h-4 w-4 text-neutral-400 transition-all duration-200 group-hover/milestone:translate-x-0.5 group-hover/milestone:text-jobzai-500 dark:text-neutral-500 dark:group-hover/milestone:text-jobzai-400" />
+                                      )}
+                                    </div>
+                                  </div>
+                                </motion.button>
+                              ))}
+                            </div>
+                          </motion.article>
+
+                          {/* SECTION 2: QUICK ACTIONS - Checklist */}
+                          <motion.article
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                            whileHover={{ y: -2 }}
+                            className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
+                          >
+                            <header className="mb-5">
+                              <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Preparation Checklist</h2>
+                              <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                                {checklist.filter((c) => c.completed).length}/{checklist.length} tasks completed
+                              </p>
+                            </header>
+
+                            {/* Add Task Input */}
+                            <div className="mb-5 flex items-center gap-2.5">
+                              <div className="relative flex-1">
+                                <input
+                                  type="text"
+                                  value={newTaskText}
+                                  onChange={(e) => setNewTaskText(e.target.value)}
+                                  placeholder="Add a new task..."
+                                  className="w-full rounded-[10px] border border-black/[0.06] bg-white/80 px-4 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-jobzai-500/50 focus:outline-none focus:ring-2 focus:ring-jobzai-500/20 dark:border-white/10 dark:bg-white/5 dark:text-neutral-50 dark:placeholder:text-neutral-500"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') addChecklistItem();
+                                  }}
+                                />
+                              </div>
+                              <motion.button
+                                type="button"
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={addChecklistItem}
+                                className="inline-flex items-center justify-center rounded-[10px] bg-jobzai-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-jobzai-700 transition-colors"
+                              >
+                                Add
+                              </motion.button>
+                            </div>
+
+                            {/* Checklist Items */}
+                            <div className="space-y-2">
+                              <AnimatePresence>
+                                {(showAllChecklistItems ? checklist : checklist.slice(0, 5)).map((item, index) => (
+                                  <motion.div
+                                    key={item.id}
+                                    initial={{ opacity: 0, y: 5 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ delay: index * 0.03 }}
                                     className={[
-                                      'truncate text-sm font-medium leading-tight',
-                                      milestone.completed
-                                        ? 'text-emerald-900 dark:text-emerald-200'
-                                        : 'text-neutral-900 dark:text-neutral-100',
+                                      'flex items-center rounded-[10px] px-3 py-2.5 text-sm transition-all border',
+                                      item.priority
+                                        ? 'border-jobzai-200/50 bg-jobzai-50/60 dark:border-jobzai-800/50 dark:bg-jobzai-900/20'
+                                        : item.completed
+                                          ? 'border-black/[0.04] bg-neutral-50/60 dark:border-white/5 dark:bg-neutral-900/40'
+                                          : 'border-black/[0.04] bg-white/60 dark:border-white/5 dark:bg-white/5 hover:bg-white/90 dark:hover:bg-white/10',
                                     ].join(' ')}
                                   >
-                                    {milestone.label}
-                                  </div>
-                                  <div className="mt-0.5 truncate text-xs leading-tight text-neutral-600 dark:text-neutral-400">
-                                    {milestone.description}
-                                  </div>
-                                </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleChecklistItem(item.id)}
+                                      className={[
+                                        'mr-3 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[6px] border-2 transition-all',
+                                        item.completed
+                                          ? 'border-emerald-500 bg-emerald-500 text-white'
+                                          : 'border-neutral-300 dark:border-neutral-600 hover:border-jobzai-500 dark:hover:border-jobzai-500',
+                                      ].join(' ')}
+                                    >
+                                      {item.completed && <Check className="h-3 w-3" />}
+                                    </button>
+                                    <input
+                                      value={item.task}
+                                      onChange={(e) => updateChecklistItemText(item.id, e.target.value)}
+                                      className={[
+                                        'flex-1 bg-transparent text-sm outline-none',
+                                        item.completed
+                                          ? 'text-neutral-500 line-through dark:text-neutral-400'
+                                          : 'text-neutral-800 dark:text-neutral-100',
+                                      ].join(' ')}
+                                    />
+                                    <div className="ml-2 flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => setTab(item.section)}
+                                        className="rounded-full bg-black/[0.04] px-2.5 py-1 text-[11px] font-medium text-neutral-700 hover:bg-black/[0.08] dark:bg-white/10 dark:text-neutral-200 dark:hover:bg-white/20 transition-colors"
+                                      >
+                                        Go
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => deleteChecklistItem(item.id)}
+                                        className="rounded-full bg-red-50/80 px-2.5 py-1 text-[11px] font-medium text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50 transition-colors"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </motion.div>
+                                ))}
+                              </AnimatePresence>
 
-                                {/* Status indicator */}
-                                <div className="flex-shrink-0">
-                                  {milestone.completed ? (
-                                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 dark:bg-emerald-600">
-                                      <Check className="h-3 w-3 text-white" />
+                              {checklist.length > 5 && (
+                                <motion.div
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  className="pt-2 text-center"
+                                >
+                                  <motion.button
+                                    type="button"
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={() => setShowAllChecklistItems(!showAllChecklistItems)}
+                                    className="inline-flex items-center justify-center gap-1 text-xs font-medium text-jobzai-600 hover:text-jobzai-700 dark:text-jobzai-300 dark:hover:text-jobzai-200 transition-colors"
+                                  >
+                                    {showAllChecklistItems ? (
+                                      <>
+                                        <ChevronDown className="h-3 w-3 rotate-180" />
+                                        Show less
+                                      </>
+                                    ) : (
+                                      <>
+                                        View all {checklist.length} tasks
+                                        <ArrowRight className="h-3 w-3" />
+                                      </>
+                                    )}
+                                  </motion.button>
+                                </motion.div>
+                              )}
+                            </div>
+                          </motion.article>
+
+                          {/* SECTION 3: KEY POINTS TO EMPHASIZE */}
+                          <motion.article
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                            whileHover={{ y: -2 }}
+                            className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
+                          >
+                            <header className="mb-5">
+                              <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Key Points to Emphasize</h2>
+                              <p className="text-sm text-neutral-500 dark:text-neutral-400">Core messages to highlight during the interview</p>
+                            </header>
+
+                            {interview?.preparation?.keyPoints && interview.preparation.keyPoints.length > 0 ? (
+                              <div className="space-y-3">
+                                <ul className="space-y-3">
+                                  {interview.preparation.keyPoints.slice(0, 5).map((point, index) => (
+                                    <motion.li
+                                      key={index}
+                                      initial={{ opacity: 0, x: -8 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: index * 0.05 }}
+                                      className="flex items-start gap-3"
+                                    >
+                                      <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                        <Check className="h-3 w-3" />
+                                      </div>
+                                      <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
+                                        {point}
+                                      </p>
+                                    </motion.li>
+                                  ))}
+                                </ul>
+                                {interview.preparation.keyPoints.length > 5 && (
+                                  <div className="pt-2 text-center">
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center justify-center gap-1 text-xs font-medium text-jobzai-600 hover:text-jobzai-700 dark:text-jobzai-300 dark:hover:text-jobzai-200 transition-colors"
+                                    >
+                                      View all {interview.preparation.keyPoints.length} points
+                                      <ArrowRight className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center rounded-[12px] border border-dashed border-black/[0.08] bg-[#FAFAFA] dark:border-white/10 dark:bg-white/5 px-4 py-8 text-center">
+                                <Flag className="mb-3 h-8 w-8 text-neutral-300 dark:text-neutral-600" />
+                                <p className="mb-4 text-sm text-neutral-500 dark:text-neutral-400">
+                                  No key points available yet. Run the job post analysis to generate tailored talking points.
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    (document.querySelector('input[type="url"]') as HTMLInputElement | null)?.focus()
+                                  }
+                                  className="inline-flex items-center justify-center gap-1 rounded-full bg-jobzai-50 px-3 py-1.5 text-xs font-medium text-jobzai-700 hover:bg-jobzai-100 dark:bg-jobzai-900/30 dark:text-jobzai-200 dark:hover:bg-jobzai-800/60 transition-colors"
+                                >
+                                  <ArrowUp className="h-3 w-3" />
+                                  Analyze a job posting
+                                </button>
+                              </div>
+                            )}
+                          </motion.article>
+
+                          {/* SECTION 4: DEEP DIVE - Company & Role */}
+                          <div className="space-y-4">
+                            {/* Company Profile */}
+                            <motion.article
+                              initial={{ opacity: 0, y: 12 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.3, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                              whileHover={{ y: -2 }}
+                              className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
+                            >
+                              <header className="mb-5">
+                                <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Company Profile</h2>
+                                <p className="text-sm text-neutral-500 dark:text-neutral-400">How to describe the company and its context</p>
+                              </header>
+
+                              <div className="space-y-4">
+                                <p className="text-sm leading-relaxed text-neutral-900 dark:text-white">
+                                  <span className="mr-2 inline-flex items-center rounded-full bg-jobzai-100 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-jobzai-700 dark:bg-jobzai-900/40 dark:text-jobzai-200">
+                                    KEY
+                                  </span>
+                                  {interview?.preparation?.companyInfo?.split('.')[0] ||
+                                    `${application.companyName} is a leading company in its industry.`}
+                                </p>
+
+                                {interview?.preparation?.companyInfo ? (
+                                  <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
+                                    {interview.preparation.companyInfo.split('.').slice(1, 3).join('.')}
+                                  </p>
+                                ) : (
+                                  <p className="text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
+                                    No additional company information available yet. Run the job post analysis to generate richer company context.
+                                  </p>
+                                )}
+
+                                <div className="rounded-[12px] border border-jobzai-200/50 bg-jobzai-50/60 p-4 dark:border-jobzai-900/60 dark:bg-jobzai-900/10">
+                                  <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-900 dark:text-neutral-50">
+                                    Focus points
+                                  </div>
+                                  <ul className="space-y-2.5 text-xs leading-relaxed text-neutral-700 dark:text-neutral-300">
+                                    <li className="flex gap-2.5">
+                                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-jobzai-500" />
+                                      <span>Research their mission, values, and long-term vision.</span>
+                                    </li>
+                                    <li className="flex gap-2.5">
+                                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-jobzai-500" />
+                                      <span>Review recent company achievements, projects, or announcements.</span>
+                                    </li>
+                                    <li className="flex gap-2.5">
+                                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-jobzai-500" />
+                                      <span>Understand their market position, competitors, and key challenges.</span>
+                                    </li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </motion.article>
+
+                            {/* Position Details & Required Skills */}
+                            <motion.article
+                              initial={{ opacity: 0, y: 12 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.35, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                              whileHover={{ y: -2 }}
+                              className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
+                            >
+                              <header className="mb-5">
+                                <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Position Details</h2>
+                                <p className="text-sm text-neutral-500 dark:text-neutral-400">What this role expects and how to position yourself</p>
+                              </header>
+
+                              <div className="space-y-4">
+                                <p className="text-sm leading-relaxed text-neutral-900 dark:text-white">
+                                  <span className="mr-2 inline-flex items-center rounded-full bg-jobzai-100 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-jobzai-700 dark:bg-jobzai-900/40 dark:text-jobzai-200">
+                                    KEY
+                                  </span>
+                                  {interview?.preparation?.positionDetails?.split('.')[0] ||
+                                    `The ${application.position} role involves key responsibilities in the organization.`}
+                                </p>
+
+                                {interview?.preparation?.positionDetails ? (
+                                  <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
+                                    {interview.preparation.positionDetails.split('.').slice(1, 3).join('.')}
+                                  </p>
+                                ) : (
+                                  <p className="text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
+                                    No detailed position information available yet. Run the job post analysis to get a more precise breakdown of responsibilities and expectations.
+                                  </p>
+                                )}
+
+                                <div className="space-y-3">
+                                  <div className="text-xs font-semibold uppercase tracking-wide text-neutral-900 dark:text-neutral-50">
+                                    Required skills
+                                  </div>
+                                  {interview?.preparation?.requiredSkills &&
+                                    interview.preparation.requiredSkills.length > 0 ? (
+                                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                      {interview.preparation.requiredSkills.map((skill, index) => (
+                                        <div
+                                          key={index}
+                                          className="inline-flex items-center rounded-[8px] border border-black/[0.04] bg-white/80 px-3 py-1.5 text-xs text-neutral-800 dark:border-white/5 dark:bg-white/5 dark:text-neutral-100"
+                                        >
+                                          <span className="mr-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-jobzai-500" />
+                                          <span className="truncate">{skill}</span>
+                                        </div>
+                                      ))}
                                     </div>
                                   ) : (
-                                    <ArrowRight className="h-4 w-4 text-neutral-400 transition-all duration-200 group-hover/milestone:translate-x-0.5 group-hover/milestone:text-jobzai-500 dark:text-neutral-500 dark:group-hover/milestone:text-jobzai-400" />
+                                    <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                                      No skills information available yet. Once you run the analysis, key skills will appear here in a structured list.
+                                    </p>
                                   )}
                                 </div>
                               </div>
-                            </motion.button>
-                          ))}
-                        </div>
-                      </motion.article>
-
-                      {/* SECTION 2: QUICK ACTIONS - Checklist */}
-                      <motion.article
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                        whileHover={{ y: -2 }}
-                        className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
-                      >
-                        <header className="mb-5">
-                          <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Preparation Checklist</h2>
-                          <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                            {checklist.filter((c) => c.completed).length}/{checklist.length} tasks completed
-                          </p>
-                        </header>
-
-                        {/* Add Task Input */}
-                        <div className="mb-5 flex items-center gap-2.5">
-                          <div className="relative flex-1">
-                            <input
-                              type="text"
-                              value={newTaskText}
-                              onChange={(e) => setNewTaskText(e.target.value)}
-                              placeholder="Add a new task..."
-                              className="w-full rounded-[10px] border border-black/[0.06] bg-white/80 px-4 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-jobzai-500/50 focus:outline-none focus:ring-2 focus:ring-jobzai-500/20 dark:border-white/10 dark:bg-white/5 dark:text-neutral-50 dark:placeholder:text-neutral-500"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') addChecklistItem();
-                              }}
-                            />
+                            </motion.article>
                           </div>
-                          <motion.button
-                            type="button"
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
-                            onClick={addChecklistItem}
-                            className="inline-flex items-center justify-center rounded-[10px] bg-jobzai-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-jobzai-700 transition-colors"
-                          >
-                            Add
-                          </motion.button>
-                        </div>
 
-                        {/* Checklist Items */}
-                        <div className="space-y-2">
-                          <AnimatePresence>
-                            {(showAllChecklistItems ? checklist : checklist.slice(0, 5)).map((item, index) => (
-                              <motion.div
-                                key={item.id}
-                                initial={{ opacity: 0, y: 5 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, height: 0 }}
-                                transition={{ delay: index * 0.03 }}
-                                className={[
-                                  'flex items-center rounded-[10px] px-3 py-2.5 text-sm transition-all border',
-                                  item.priority
-                                    ? 'border-jobzai-200/50 bg-jobzai-50/60 dark:border-jobzai-800/50 dark:bg-jobzai-900/20'
-                                    : item.completed
-                                      ? 'border-black/[0.04] bg-neutral-50/60 dark:border-white/5 dark:bg-neutral-900/40'
-                                      : 'border-black/[0.04] bg-white/60 dark:border-white/5 dark:bg-white/5 hover:bg-white/90 dark:hover:bg-white/10',
-                                ].join(' ')}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => toggleChecklistItem(item.id)}
-                                  className={[
-                                    'mr-3 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[6px] border-2 transition-all',
-                                    item.completed
-                                      ? 'border-emerald-500 bg-emerald-500 text-white'
-                                      : 'border-neutral-300 dark:border-neutral-600 hover:border-jobzai-500 dark:hover:border-jobzai-500',
-                                  ].join(' ')}
-                                >
-                                  {item.completed && <Check className="h-3 w-3" />}
-                                </button>
-                                <input
-                                  value={item.task}
-                                  onChange={(e) => updateChecklistItemText(item.id, e.target.value)}
-                                  className={[
-                                    'flex-1 bg-transparent text-sm outline-none',
-                                    item.completed
-                                      ? 'text-neutral-500 line-through dark:text-neutral-400'
-                                      : 'text-neutral-800 dark:text-neutral-100',
-                                  ].join(' ')}
-                                />
-                                <div className="ml-2 flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => setTab(item.section)}
-                                    className="rounded-full bg-black/[0.04] px-2.5 py-1 text-[11px] font-medium text-neutral-700 hover:bg-black/[0.08] dark:bg-white/10 dark:text-neutral-200 dark:hover:bg-white/20 transition-colors"
-                                  >
-                                    Go
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => deleteChecklistItem(item.id)}
-                                    className="rounded-full bg-red-50/80 px-2.5 py-1 text-[11px] font-medium text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50 transition-colors"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </motion.div>
-                            ))}
-                          </AnimatePresence>
-
-                          {checklist.length > 5 && (
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              className="pt-2 text-center"
+                          {/* SECTION 5: NEWS & UPDATES */}
+                          {interview?.preparation && (
+                            <motion.article
+                              initial={{ opacity: 0, y: 12 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.4, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                              whileHover={{ y: -2 }}
+                              className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
                             >
-                              <motion.button
-                                type="button"
-                                whileHover={{ scale: 1.03 }}
-                                whileTap={{ scale: 0.97 }}
-                                onClick={() => setShowAllChecklistItems(!showAllChecklistItems)}
-                                className="inline-flex items-center justify-center gap-1 text-xs font-medium text-jobzai-600 hover:text-jobzai-700 dark:text-jobzai-300 dark:hover:text-jobzai-200 transition-colors"
-                              >
-                                {showAllChecklistItems ? (
-                                  <>
-                                    <ChevronDown className="h-3 w-3 rotate-180" />
-                                    Show less
-                                  </>
-                                ) : (
-                                  <>
-                                    View all {checklist.length} tasks
-                                    <ArrowRight className="h-3 w-3" />
-                                  </>
+                              <header className="mb-5 flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Company Updates</h2>
+                                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Recent news and announcements about the company</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {isNewsLoading && (
+                                    <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                      <span>Loading…</span>
+                                    </div>
+                                  )}
+                                  {newsError && (
+                                    <div className="text-xs text-red-600 dark:text-red-400">{newsError}</div>
+                                  )}
+                                  <motion.button
+                                    type="button"
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={() => {
+                                      fetchCompanyNews();
+                                    }}
+                                    className="inline-flex items-center gap-1.5 rounded-full border border-black/[0.06] bg-white/80 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:border-black/[0.12] hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-neutral-200 dark:hover:border-white/20 transition-colors"
+                                  >
+                                    <RefreshCw className="h-3 w-3" />
+                                    Refresh
+                                  </motion.button>
+                                </div>
+                              </header>
+
+                              <div className="space-y-3">
+                                {newsItems.length === 0 && !isNewsLoading && !newsError && (
+                                  <div className="flex flex-col items-center justify-center py-8 text-sm text-neutral-500 dark:text-neutral-400">
+                                    <Newspaper className="mb-2 h-8 w-8 text-neutral-300 dark:text-neutral-600" />
+                                    <p>No company updates yet. Try refreshing or running the analysis again.</p>
+                                  </div>
                                 )}
-                              </motion.button>
-                            </motion.div>
-                          )}
-                        </div>
-                      </motion.article>
 
-                      {/* SECTION 3: KEY POINTS TO EMPHASIZE */}
-                      <motion.article
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                        whileHover={{ y: -2 }}
-                        className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
-                      >
-                        <header className="mb-5">
-                          <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Key Points to Emphasize</h2>
-                          <p className="text-sm text-neutral-500 dark:text-neutral-400">Core messages to highlight during the interview</p>
-                        </header>
-
-                        {interview?.preparation?.keyPoints && interview.preparation.keyPoints.length > 0 ? (
-                          <div className="space-y-3">
-                            <ul className="space-y-3">
-                              {interview.preparation.keyPoints.slice(0, 5).map((point, index) => (
-                                <motion.li
-                                  key={index}
-                                  initial={{ opacity: 0, x: -8 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: index * 0.05 }}
-                                  className="flex items-start gap-3"
-                                >
-                                  <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
-                                    <Check className="h-3 w-3" />
-                                  </div>
-                                  <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
-                                    {point}
-                                  </p>
-                                </motion.li>
-                              ))}
-                            </ul>
-                            {interview.preparation.keyPoints.length > 5 && (
-                              <div className="pt-2 text-center">
-                                <button
-                                  type="button"
-                                  className="inline-flex items-center justify-center gap-1 text-xs font-medium text-jobzai-600 hover:text-jobzai-700 dark:text-jobzai-300 dark:hover:text-jobzai-200 transition-colors"
-                                >
-                                  View all {interview.preparation.keyPoints.length} points
-                                  <ArrowRight className="h-3 w-3" />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center rounded-[12px] border border-dashed border-black/[0.08] bg-[#FAFAFA] dark:border-white/10 dark:bg-white/5 px-4 py-8 text-center">
-                            <Flag className="mb-3 h-8 w-8 text-neutral-300 dark:text-neutral-600" />
-                            <p className="mb-4 text-sm text-neutral-500 dark:text-neutral-400">
-                              No key points available yet. Run the job post analysis to generate tailored talking points.
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                (document.querySelector('input[type="url"]') as HTMLInputElement | null)?.focus()
-                              }
-                              className="inline-flex items-center justify-center gap-1 rounded-full bg-jobzai-50 px-3 py-1.5 text-xs font-medium text-jobzai-700 hover:bg-jobzai-100 dark:bg-jobzai-900/30 dark:text-jobzai-200 dark:hover:bg-jobzai-800/60 transition-colors"
-                            >
-                              <ArrowUp className="h-3 w-3" />
-                              Analyze a job posting
-                            </button>
-                          </div>
-                        )}
-                      </motion.article>
-
-                      {/* SECTION 4: DEEP DIVE - Company & Role */}
-                      <div className="space-y-4">
-                        {/* Company Profile */}
-                        <motion.article
-                          initial={{ opacity: 0, y: 12 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.3, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                          whileHover={{ y: -2 }}
-                          className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
-                        >
-                          <header className="mb-5">
-                            <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Company Profile</h2>
-                            <p className="text-sm text-neutral-500 dark:text-neutral-400">How to describe the company and its context</p>
-                          </header>
-
-                          <div className="space-y-4">
-                            <p className="text-sm leading-relaxed text-neutral-900 dark:text-white">
-                              <span className="mr-2 inline-flex items-center rounded-full bg-jobzai-100 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-jobzai-700 dark:bg-jobzai-900/40 dark:text-jobzai-200">
-                                KEY
-                              </span>
-                              {interview?.preparation?.companyInfo?.split('.')[0] ||
-                                `${application.companyName} is a leading company in its industry.`}
-                            </p>
-
-                            {interview?.preparation?.companyInfo ? (
-                              <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
-                                {interview.preparation.companyInfo.split('.').slice(1, 3).join('.')}
-                              </p>
-                            ) : (
-                              <p className="text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
-                                No additional company information available yet. Run the job post analysis to generate richer company context.
-                              </p>
-                            )}
-
-                            <div className="rounded-[12px] border border-jobzai-200/50 bg-jobzai-50/60 p-4 dark:border-jobzai-900/60 dark:bg-jobzai-900/10">
-                              <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-900 dark:text-neutral-50">
-                                Focus points
-                              </div>
-                              <ul className="space-y-2.5 text-xs leading-relaxed text-neutral-700 dark:text-neutral-300">
-                                <li className="flex gap-2.5">
-                                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-jobzai-500" />
-                                  <span>Research their mission, values, and long-term vision.</span>
-                                </li>
-                                <li className="flex gap-2.5">
-                                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-jobzai-500" />
-                                  <span>Review recent company achievements, projects, or announcements.</span>
-                                </li>
-                                <li className="flex gap-2.5">
-                                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-jobzai-500" />
-                                  <span>Understand their market position, competitors, and key challenges.</span>
-                                </li>
-                              </ul>
-                            </div>
-                          </div>
-                        </motion.article>
-
-                        {/* Position Details & Required Skills */}
-                        <motion.article
-                          initial={{ opacity: 0, y: 12 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.35, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                          whileHover={{ y: -2 }}
-                          className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
-                        >
-                          <header className="mb-5">
-                            <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Position Details</h2>
-                            <p className="text-sm text-neutral-500 dark:text-neutral-400">What this role expects and how to position yourself</p>
-                          </header>
-
-                          <div className="space-y-4">
-                            <p className="text-sm leading-relaxed text-neutral-900 dark:text-white">
-                              <span className="mr-2 inline-flex items-center rounded-full bg-jobzai-100 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-jobzai-700 dark:bg-jobzai-900/40 dark:text-jobzai-200">
-                                KEY
-                              </span>
-                              {interview?.preparation?.positionDetails?.split('.')[0] ||
-                                `The ${application.position} role involves key responsibilities in the organization.`}
-                            </p>
-
-                            {interview?.preparation?.positionDetails ? (
-                              <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
-                                {interview.preparation.positionDetails.split('.').slice(1, 3).join('.')}
-                              </p>
-                            ) : (
-                              <p className="text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
-                                No detailed position information available yet. Run the job post analysis to get a more precise breakdown of responsibilities and expectations.
-                              </p>
-                            )}
-
-                            <div className="space-y-3">
-                              <div className="text-xs font-semibold uppercase tracking-wide text-neutral-900 dark:text-neutral-50">
-                                Required skills
-                              </div>
-                              {interview?.preparation?.requiredSkills &&
-                                interview.preparation.requiredSkills.length > 0 ? (
-                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                  {interview.preparation.requiredSkills.map((skill, index) => (
-                                    <div
-                                      key={index}
-                                      className="inline-flex items-center rounded-[8px] border border-black/[0.04] bg-white/80 px-3 py-1.5 text-xs text-neutral-800 dark:border-white/5 dark:bg-white/5 dark:text-neutral-100"
+                                <AnimatePresence>
+                                  {(showAllNewsItems ? newsItems : newsItems.slice(0, 3)).map((news, i) => (
+                                    <motion.div
+                                      key={i}
+                                      initial={{ opacity: 0, y: 5 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0, height: 0 }}
+                                      transition={{ delay: i * 0.05 }}
+                                      className="rounded-[12px] border border-black/[0.04] bg-white/80 px-4 py-3.5 text-sm leading-relaxed hover:border-jobzai-200/50 hover:bg-white dark:border-white/5 dark:bg-white/5 dark:hover:border-jobzai-800/50 dark:hover:bg-white/10 transition-all"
                                     >
-                                      <span className="mr-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-jobzai-500" />
-                                      <span className="truncate">{skill}</span>
-                                    </div>
+                                      <div className="flex items-start gap-3">
+                                        <span
+                                          className={[
+                                            'mt-1.5 h-2 w-2 flex-shrink-0 rounded-full',
+                                            news.sentiment === 'positive'
+                                              ? 'bg-emerald-500'
+                                              : news.sentiment === 'negative'
+                                                ? 'bg-red-500'
+                                                : 'bg-neutral-500',
+                                          ].join(' ')}
+                                        />
+                                        <div className="flex-1 min-w-0 space-y-2">
+                                          <div className="flex items-center justify-between gap-2">
+                                            <h4 className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-50">
+                                              {news.title}
+                                            </h4>
+                                          </div>
+                                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                            <span>{news.date}</span>
+                                            {news.source && (
+                                              <>
+                                                <span>•</span>
+                                                <span className="inline-flex items-center gap-1">
+                                                  <Newspaper className="h-3 w-3" />
+                                                  {news.source}
+                                                </span>
+                                              </>
+                                            )}
+                                          </div>
+                                          {news.summary && (
+                                            <p className="line-clamp-2 text-xs leading-relaxed text-neutral-700 dark:text-neutral-300">
+                                              {news.summary}
+                                            </p>
+                                          )}
+                                          <div className="mt-2 flex items-center justify-between gap-3">
+                                            <motion.button
+                                              type="button"
+                                              whileHover={{ scale: 1.03 }}
+                                              whileTap={{ scale: 0.97 }}
+                                              onClick={() => createNoteFromNews(news)}
+                                              className="inline-flex items-center gap-1 rounded-full bg-jobzai-50 px-3 py-1.5 text-xs font-medium text-jobzai-700 hover:bg-jobzai-100 dark:bg-jobzai-900/30 dark:text-jobzai-200 dark:hover:bg-jobzai-800/60 transition-colors"
+                                            >
+                                              <MessageSquare className="h-3 w-3" />
+                                              Talking points
+                                            </motion.button>
+                                            {news.url && (
+                                              <a
+                                                href={news.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium text-neutral-500 hover:text-neutral-800 hover:bg-black/[0.04] dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-white/10 transition-colors"
+                                              >
+                                                <ExternalLink className="h-3 w-3" />
+                                                Read more
+                                              </a>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </motion.div>
                                   ))}
-                                </div>
-                              ) : (
-                                <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                  No skills information available yet. Once you run the analysis, key skills will appear here in a structured list.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </motion.article>
-                      </div>
+                                </AnimatePresence>
 
-                      {/* SECTION 5: NEWS & UPDATES */}
-                      {interview?.preparation && (
-                        <motion.article
-                          initial={{ opacity: 0, y: 12 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.4, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                          whileHover={{ y: -2 }}
-                          className="group relative overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.92)] px-6 py-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ring-1 ring-black/5 backdrop-blur-sm transition-all duration-200 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-neutral-900/70 dark:ring-white/5"
-                        >
-                          <header className="mb-5 flex items-start justify-between gap-4">
-                            <div className="flex-1">
-                              <h2 className="mb-1 text-xl font-semibold text-neutral-900 dark:text-white">Company Updates</h2>
-                              <p className="text-sm text-neutral-500 dark:text-neutral-400">Recent news and announcements about the company</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {isNewsLoading && (
-                                <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                  <span>Loading…</span>
-                                </div>
-                              )}
-                              {newsError && (
-                                <div className="text-xs text-red-600 dark:text-red-400">{newsError}</div>
-                              )}
-                              <motion.button
-                                type="button"
-                                whileHover={{ scale: 1.03 }}
-                                whileTap={{ scale: 0.97 }}
-                                onClick={() => {
-                                  fetchCompanyNews();
-                                }}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-black/[0.06] bg-white/80 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:border-black/[0.12] hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-neutral-200 dark:hover:border-white/20 transition-colors"
-                              >
-                                <RefreshCw className="h-3 w-3" />
-                                Refresh
-                              </motion.button>
-                            </div>
-                          </header>
-
-                          <div className="space-y-3">
-                            {newsItems.length === 0 && !isNewsLoading && !newsError && (
-                              <div className="flex flex-col items-center justify-center py-8 text-sm text-neutral-500 dark:text-neutral-400">
-                                <Newspaper className="mb-2 h-8 w-8 text-neutral-300 dark:text-neutral-600" />
-                                <p>No company updates yet. Try refreshing or running the analysis again.</p>
-                              </div>
-                            )}
-
-                            <AnimatePresence>
-                              {(showAllNewsItems ? newsItems : newsItems.slice(0, 3)).map((news, i) => (
-                                <motion.div
-                                  key={i}
-                                  initial={{ opacity: 0, y: 5 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, height: 0 }}
-                                  transition={{ delay: i * 0.05 }}
-                                  className="rounded-[12px] border border-black/[0.04] bg-white/80 px-4 py-3.5 text-sm leading-relaxed hover:border-jobzai-200/50 hover:bg-white dark:border-white/5 dark:bg-white/5 dark:hover:border-jobzai-800/50 dark:hover:bg-white/10 transition-all"
-                                >
-                                  <div className="flex items-start gap-3">
-                                    <span
-                                      className={[
-                                        'mt-1.5 h-2 w-2 flex-shrink-0 rounded-full',
-                                        news.sentiment === 'positive'
-                                          ? 'bg-emerald-500'
-                                          : news.sentiment === 'negative'
-                                            ? 'bg-red-500'
-                                            : 'bg-neutral-500',
-                                      ].join(' ')}
-                                    />
-                                    <div className="flex-1 min-w-0 space-y-2">
-                                      <div className="flex items-center justify-between gap-2">
-                                        <h4 className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-50">
-                                          {news.title}
-                                        </h4>
-                                      </div>
-                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400">
-                                        <span>{news.date}</span>
-                                        {news.source && (
-                                          <>
-                                            <span>•</span>
-                                            <span className="inline-flex items-center gap-1">
-                                              <Newspaper className="h-3 w-3" />
-                                              {news.source}
-                                            </span>
-                                          </>
-                                        )}
-                                      </div>
-                                      {news.summary && (
-                                        <p className="line-clamp-2 text-xs leading-relaxed text-neutral-700 dark:text-neutral-300">
-                                          {news.summary}
-                                        </p>
+                                {newsItems.length > 3 && (
+                                  <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="pt-2 text-center"
+                                  >
+                                    <motion.button
+                                      type="button"
+                                      whileHover={{ scale: 1.03 }}
+                                      whileTap={{ scale: 0.97 }}
+                                      onClick={() => setShowAllNewsItems(!showAllNewsItems)}
+                                      className="inline-flex items-center justify-center gap-1 text-xs font-medium text-jobzai-600 hover:text-jobzai-700 dark:text-jobzai-300 dark:hover:text-jobzai-200 transition-colors"
+                                    >
+                                      {showAllNewsItems ? (
+                                        <>
+                                          <ChevronDown className="h-3 w-3 rotate-180" />
+                                          Show less
+                                        </>
+                                      ) : (
+                                        <>
+                                          View all {newsItems.length} updates
+                                          <ArrowRight className="h-3 w-3" />
+                                        </>
                                       )}
-                                      <div className="mt-2 flex items-center justify-between gap-3">
-                                        <motion.button
-                                          type="button"
-                                          whileHover={{ scale: 1.03 }}
-                                          whileTap={{ scale: 0.97 }}
-                                          onClick={() => createNoteFromNews(news)}
-                                          className="inline-flex items-center gap-1 rounded-full bg-jobzai-50 px-3 py-1.5 text-xs font-medium text-jobzai-700 hover:bg-jobzai-100 dark:bg-jobzai-900/30 dark:text-jobzai-200 dark:hover:bg-jobzai-800/60 transition-colors"
-                                        >
-                                          <MessageSquare className="h-3 w-3" />
-                                          Talking points
-                                        </motion.button>
-                                        {news.url && (
-                                          <a
-                                            href={news.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium text-neutral-500 hover:text-neutral-800 hover:bg-black/[0.04] dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-white/10 transition-colors"
-                                          >
-                                            <ExternalLink className="h-3 w-3" />
-                                            Read more
-                                          </a>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              ))}
-                            </AnimatePresence>
+                                    </motion.button>
+                                  </motion.div>
+                                )}
+                              </div>
+                            </motion.article>
+                          )}
+                        </motion.div>
+                      )}
 
-                            {newsItems.length > 3 && (
+                      {tab === 'questions' && (
+                        <motion.div
+                          key="questions"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ duration: 0.15 }}
+                          className="space-y-6 relative"
+                        >
+                          <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-jobzai-600" /></div>}>
+                            <QuestionsTab
+                              questionEntries={questionEntries}
+                              filteredQuestions={filteredQuestions}
+                              activeQuestionFilter={activeQuestionFilter}
+                              isRegeneratingQuestions={isRegeneratingQuestions}
+                              regeneratingProgress={regeneratingProgress}
+                              regeneratingMessage={regeneratingMessage}
+                              savedQuestionsState={savedQuestionsState}
+                              collapsedQuestions={collapsedQuestions}
+                              focusedQuestion={focusedQuestion}
+                              application={application!}
+                              setActiveQuestionFilter={setActiveQuestionFilter}
+                              regenerateQuestions={regenerateQuestions}
+                              handleToggleSuggestionVisibility={handleToggleSuggestionVisibility}
+                              handleToggleSaveQuestion={handleToggleSaveQuestion}
+                              handleCreateNoteFromQuestion={handleCreateNoteFromQuestion}
+                              setFocusedQuestion={setFocusedQuestion}
+                              onStartLiveSession={handleStartLiveSession}
+                            />
+                          </Suspense>
+                        </motion.div>
+                      )}
+                      {false && tab === 'questions_old' && (
+                        <motion.div
+                          key="questions_old"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          className="space-y-6 relative"
+                        >
+                          {/* Loading Overlay - Bird animation for question regeneration */}
+                          {isRegeneratingQuestions && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                               <motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                className="pt-2 text-center"
+                                className="flex flex-col items-center text-center px-6"
                               >
-                                <motion.button
-                                  type="button"
-                                  whileHover={{ scale: 1.03 }}
-                                  whileTap={{ scale: 0.97 }}
-                                  onClick={() => setShowAllNewsItems(!showAllNewsItems)}
-                                  className="inline-flex items-center justify-center gap-1 text-xs font-medium text-jobzai-600 hover:text-jobzai-700 dark:text-jobzai-300 dark:hover:text-jobzai-200 transition-colors"
-                                >
-                                  {showAllNewsItems ? (
-                                    <>
-                                      <ChevronDown className="h-3 w-3 rotate-180" />
-                                      Show less
-                                    </>
-                                  ) : (
-                                    <>
-                                      View all {newsItems.length} updates
-                                      <ArrowRight className="h-3 w-3" />
-                                    </>
-                                  )}
-                                </motion.button>
-                              </motion.div>
-                            )}
-                          </div>
-                        </motion.article>
-                      )}
-                    </motion.div>
-                  )}
-
-                  {tab === 'questions' && (
-                    <motion.div
-                      key="questions"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.15 }}
-                      className="space-y-6 relative"
-                    >
-                      <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-jobzai-600" /></div>}>
-                        <QuestionsTab
-                          questionEntries={questionEntries}
-                          filteredQuestions={filteredQuestions}
-                          activeQuestionFilter={activeQuestionFilter}
-                          isRegeneratingQuestions={isRegeneratingQuestions}
-                          regeneratingProgress={regeneratingProgress}
-                          regeneratingMessage={regeneratingMessage}
-                          savedQuestionsState={savedQuestionsState}
-                          collapsedQuestions={collapsedQuestions}
-                          focusedQuestion={focusedQuestion}
-                          application={application!}
-                          setActiveQuestionFilter={setActiveQuestionFilter}
-                          regenerateQuestions={regenerateQuestions}
-                          handleToggleSuggestionVisibility={handleToggleSuggestionVisibility}
-                          handleToggleSaveQuestion={handleToggleSaveQuestion}
-                          handleCreateNoteFromQuestion={handleCreateNoteFromQuestion}
-                          setFocusedQuestion={setFocusedQuestion}
-                          onStartLiveSession={handleStartLiveSession}
-                        />
-                      </Suspense>
-                    </motion.div>
-                  )}
-                  {false && tab === 'questions_old' && (
-                    <motion.div
-                      key="questions_old"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-6 relative"
-                    >
-                      {/* Loading Overlay - Bird animation for question regeneration */}
-                      {isRegeneratingQuestions && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="flex flex-col items-center text-center px-6"
-                          >
-                            <div className="cvopt-walker mb-8" aria-label="Loading">
-                              <div className="loader">
-                                <svg className="legl" version="1.1" xmlns="http://www.w3.org/2000/svg" width="20.69332" height="68.19944" viewBox="0,0,20.69332,68.19944">
-                                  <g transform="translate(-201.44063,-235.75466)">
-                                    <g strokeMiterlimit={10}>
-                                      <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" />
-                                      <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} />
-                                      <path d="M218.11971,301.20087c-2.20708,1.73229 -4.41416,0 -4.41416,0l-1.43017,-1.1437c-1.42954,-1.40829 -3.04351,-2.54728 -4.56954,-3.87927c-0.95183,-0.8308 -2.29837,-1.49883 -2.7652,-2.55433c-0.42378,-0.95815 0.14432,-2.02654 0.29355,-3.03399c0.41251,-2.78499 1.82164,-5.43386 2.41472,-8.22683c1.25895,-4.44509 2.73863,-8.98683 3.15318,-13.54796c0.22615,-2.4883 -0.21672,-5.0155 -0.00278,-7.50605c0.30636,-3.56649 1.24602,-7.10406 1.59992,-10.6738c0.29105,-2.93579 -0.00785,-5.9806 -0.00785,-8.93046c0,0 0,-2.44982 3.12129,-2.44982c3.12129,0 3.12129,2.44982 3.12129,2.44982c0,3.06839 0.28868,6.22201 -0.00786,9.27779c-0.34637,3.56935 -1.30115,7.10906 -1.59992,10.6738c-0.2103,2.50918 0.22586,5.05326 -0.00278,7.56284c-0.43159,4.7371 -1.94029,9.46317 -3.24651,14.07835c-0.47439,2.23403 -1.29927,4.31705 -2.05805,6.47156c-0.18628,0.52896 -0.1402,1.0974 -0.327,1.62624c-0.09463,0.26791 -0.64731,0.47816 -0.50641,0.73323c0.19122,0.34617 0.86423,0.3445 1.2346,0.58502c1.88637,1.22503 3.50777,2.79494 5.03,4.28305l0.96971,0.73991c0,0 2.20708,1.73229 0,3.46457z" fill="none" stroke="#191e2e" strokeWidth={7} />
-                                    </g>
-                                  </g>
-                                </svg>
-                                <svg className="legr" version="1.1" xmlns="http://www.w3.org/2000/svg" width="41.02537" height="64.85502" viewBox="0,0,41.02537,64.85502">
-                                  <g transform="translate(-241.54137,-218.44347)">
-                                    <g strokeMiterlimit={10}>
-                                      <path d="M279.06674,279.42662c-2.27967,1.98991 -6.08116,0.58804 -6.08116,0.58804l-2.47264,-0.92915c-2.58799,-1.18826 -5.31176,-2.08831 -7.99917,-3.18902c-1.67622,-0.68654 -3.82471,-1.16116 -4.93147,-2.13229c-1.00468,-0.88156 -0.69132,-2.00318 -0.92827,-3.00935c-0.65501,-2.78142 0.12275,-5.56236 -0.287,-8.37565c-0.2181,-4.51941 -0.17458,-9.16283 -1.60696,-13.68334c-0.78143,-2.46614 -2.50162,-4.88125 -3.30086,-7.34796c-1.14452,-3.53236 -1.40387,-7.12078 -2.48433,-10.66266c-0.88858,-2.91287 -2.63779,-5.85389 -3.93351,-8.74177c0,0 -1.07608,-2.39835 3.22395,-2.81415c4.30003,-0.41581 2.41605,1.98254 2.41605,1.98254c1.34779,3.00392 3.13072,6.05282 4.06444,9.0839c1.09065,3.54049 1.33011,7.13302 2.48433,10.66266c0.81245,2.48448 2.5308,4.917 3.31813,7.40431c1.48619,4.69506 1.48366,9.52281 1.71137,14.21503c0.32776,2.25028 0.10631,4.39942 0.00736,6.60975c-0.02429,0.54266 0.28888,1.09302 0.26382,1.63563c-0.01269,0.27488 -0.68173,0.55435 -0.37558,0.78529c0.41549,0.31342 1.34191,0.22213 1.95781,0.40826c3.13684,0.94799 6.06014,2.26892 8.81088,3.52298l1.66093,0.59519c0,0 6.76155,1.40187 4.48187,3.39177z" fill="none" stroke="#000000" strokeWidth={7} />
-                                      <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" />
-                                      <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} />
-                                    </g>
-                                  </g>
-                                </svg>
-                                <div className="bod">
-                                  <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="144.10576" height="144.91623" viewBox="0,0,144.10576,144.91623">
-                                    <g transform="translate(-164.41679,-112.94712)">
-                                      <g strokeMiterlimit={10}>
-                                        <path d="M166.9168,184.02633c0,-36.49454 35.0206,-66.07921 72.05288,-66.07921c37.03228,0 67.05288,29.58467 67.05288,66.07921c0,6.94489 -1.08716,13.63956 -3.10292,19.92772c-2.71464,8.46831 -7.1134,16.19939 -12.809,22.81158c-2.31017,2.68194 -7.54471,12.91599 -7.54471,12.91599c0,0 -5.46714,-1.18309 -8.44434,0.6266c-3.86867,2.35159 -10.95356,10.86714 -10.95356,10.86714c0,0 -6.96906,-3.20396 -9.87477,-2.58085c-2.64748,0.56773 -6.72538,5.77072 -6.72538,5.77072c0,0 -5.5023,-4.25969 -7.5982,-4.25969c-3.08622,0 -9.09924,3.48259 -9.09924,3.48259c0,0 -6.0782,-5.11244 -9.00348,-5.91884c-4.26461,-1.17561 -12.23343,0.75049 -12.23343,0.75049c0,0 -5.18164,-8.26065 -7.60688,-9.90388c-3.50443,-2.37445 -8.8271,-3.95414 -8.8271,-3.95414c0,0 -5.33472,-8.81718 -7.27019,-11.40895c-4.81099,-6.44239 -13.46422,-9.83437 -15.65729,-17.76175c-1.53558,-5.55073 -2.35527,-21.36472 -2.35527,-21.36472z" fill="#191e2e" stroke="#000000" strokeWidth={5} strokeLinecap="butt" />
-                                        <path d="M167.94713,180c0,-37.03228 35.0206,-67.05288 72.05288,-67.05288c37.03228,0 67.05288,30.0206 67.05288,67.05288c0,7.04722 -1.08716,13.84053 -3.10292,20.22135c-2.71464,8.59309 -7.1134,16.43809 -12.809,23.14771c-2.31017,2.72146 -7.54471,13.1063 -7.54471,13.1063c0,0 -5.46714,-1.20052 -8.44434,0.63584c-3.86867,2.38624 -10.95356,11.02726 -10.95356,11.02726c0,0 -6.96906,-3.25117 -9.87477,-2.61888c-2.64748,0.5761 -6.72538,5.85575 -6.72538,5.85575c0,0 -5.5023,-4.32246 -7.5982,-4.32246c-3.08622,0 -9.09924,3.5339 -9.09924,3.5339c0,0 -6.0782,-5.18777 -9.00348,-6.00605c-4.26461,-1.19293 -12.23343,0.76155 -12.23343,0.76155c0,0 -5.18164,-8.38236 -7.60688,-10.04981c-3.50443,-2.40943 -8.8271,-4.0124 -8.8271,-4.0124c0,0 -5.33472,-8.9471 -7.27019,-11.57706c-4.81099,-6.53732 -13.46422,-9.97928 -15.65729,-18.02347c-1.53558,-5.63252 -2.35527,-21.67953 -2.35527,-21.67953z" fill="#191e2e" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
-                                        <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
-                                        <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
-                                        <path d="M216.22445,188.06994c0,0 1.02834,11.73245 -3.62335,21.11235c-4.65169,9.3799 -13.06183,10.03776 -13.06183,10.03776c0,0 7.0703,-3.03121 10.89231,-10.7381c4.34839,-8.76831 5.79288,-20.41201 5.79288,-20.41201z" fill="none" stroke="#2f3a50" strokeWidth={3} strokeLinecap="round" />
+                                <div className="cvopt-walker mb-8" aria-label="Loading">
+                                  <div className="loader">
+                                    <svg className="legl" version="1.1" xmlns="http://www.w3.org/2000/svg" width="20.69332" height="68.19944" viewBox="0,0,20.69332,68.19944">
+                                      <g transform="translate(-201.44063,-235.75466)">
+                                        <g strokeMiterlimit={10}>
+                                          <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" />
+                                          <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} />
+                                          <path d="M218.11971,301.20087c-2.20708,1.73229 -4.41416,0 -4.41416,0l-1.43017,-1.1437c-1.42954,-1.40829 -3.04351,-2.54728 -4.56954,-3.87927c-0.95183,-0.8308 -2.29837,-1.49883 -2.7652,-2.55433c-0.42378,-0.95815 0.14432,-2.02654 0.29355,-3.03399c0.41251,-2.78499 1.82164,-5.43386 2.41472,-8.22683c1.25895,-4.44509 2.73863,-8.98683 3.15318,-13.54796c0.22615,-2.4883 -0.21672,-5.0155 -0.00278,-7.50605c0.30636,-3.56649 1.24602,-7.10406 1.59992,-10.6738c0.29105,-2.93579 -0.00785,-5.9806 -0.00785,-8.93046c0,0 0,-2.44982 3.12129,-2.44982c3.12129,0 3.12129,2.44982 3.12129,2.44982c0,3.06839 0.28868,6.22201 -0.00786,9.27779c-0.34637,3.56935 -1.30115,7.10906 -1.59992,10.6738c-0.2103,2.50918 0.22586,5.05326 -0.00278,7.56284c-0.43159,4.7371 -1.94029,9.46317 -3.24651,14.07835c-0.47439,2.23403 -1.29927,4.31705 -2.05805,6.47156c-0.18628,0.52896 -0.1402,1.0974 -0.327,1.62624c-0.09463,0.26791 -0.64731,0.47816 -0.50641,0.73323c0.19122,0.34617 0.86423,0.3445 1.2346,0.58502c1.88637,1.22503 3.50777,2.79494 5.03,4.28305l0.96971,0.73991c0,0 2.20708,1.73229 0,3.46457z" fill="none" stroke="#191e2e" strokeWidth={7} />
+                                        </g>
                                       </g>
-                                    </g>
-                                  </svg>
-                                  <svg className="head" version="1.1" xmlns="http://www.w3.org/2000/svg" width="115.68559" height="88.29441" viewBox="0,0,115.68559,88.29441">
-                                    <g transform="translate(-191.87889,-75.62023)">
-                                      <g strokeMiterlimit={10}>
-                                        <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
-                                        <path d="M195.12889,128.77752c0,-26.96048 21.33334,-48.81626 47.64934,-48.81626c26.316,0 47.64935,21.85578 47.64935,48.81626c0,0.60102 -9.22352,20.49284 -9.22352,20.49284l-7.75885,0.35623l-7.59417,6.15039l-8.64295,-1.74822l-11.70703,6.06119l-6.38599,-4.79382l-6.45999,2.36133l-7.01451,-7.38888l-8.11916,1.29382l-6.19237,-6.07265l-7.6263,-1.37795l-4.19835,-7.87062l-4.24236,-4.16907c0,0 -0.13314,-2.0999 -0.13314,-3.29458z" fill="none" stroke="#2f3a50" strokeWidth={6} strokeLinecap="butt" />
-                                        <path d="M195.31785,124.43649c0,-26.96048 21.33334,-48.81626 47.64934,-48.81626c26.316,0 47.64935,21.85578 47.64935,48.81626c0,1.03481 -0.08666,2.8866 -0.08666,2.8866c0,0 16.8538,15.99287 16.21847,17.23929c-0.66726,1.30905 -23.05667,-4.14265 -23.05667,-4.14265l-2.29866,4.5096l-7.75885,0.35623l-7.59417,6.15039l-8.64295,-1.74822l-11.70703,6.06119l-6.38599,-4.79382l-6.45999,2.36133l-7.01451,-7.38888l-8.11916,1.29382l-6.19237,-6.07265l-7.6263,-1.37795l-4.19835,-7.87062l-4.24236,-4.16907c0,0 -0.13314,-2.0999 -0.13314,-3.29458z" fill="#191e2e" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
-                                        <path d="M271.10348,122.46768l10.06374,-3.28166l24.06547,24.28424" fill="none" stroke="#2f3a50" strokeWidth={6} strokeLinecap="round" />
-                                        <path d="M306.56448,144.85764l-41.62024,-8.16845l2.44004,-7.87698" fill="none" stroke="#000000" strokeWidth="3.5" strokeLinecap="round" />
-                                        <path d="M276.02738,115.72434c-0.66448,-4.64715 2.56411,-8.95308 7.21127,-9.61756c4.64715,-0.66448 8.95309,2.56411 9.61757,7.21126c0.46467,3.24972 -1.94776,8.02206 -5.96624,9.09336c-2.11289,-1.73012 -5.08673,-5.03426 -5.08673,-5.03426c0,0 -4.12095,1.16329 -4.60481,1.54229c-0.16433,-0.04891 -0.62732,-0.38126 -0.72803,-0.61269c-0.30602,-0.70328 -0.36302,-2.02286 -0.44303,-2.58239z" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
-                                        <path d="M242.49281,125.6424c0,-4.69442 3.80558,-8.5 8.5,-8.5c4.69442,0 8.5,3.80558 8.5,8.5c0,4.69442 -3.80558,8.5 -8.5,8.5c-4.69442,0 -8.5,-3.80558 -8.5,-8.5z" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
-                                        <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
+                                    </svg>
+                                    <svg className="legr" version="1.1" xmlns="http://www.w3.org/2000/svg" width="41.02537" height="64.85502" viewBox="0,0,41.02537,64.85502">
+                                      <g transform="translate(-241.54137,-218.44347)">
+                                        <g strokeMiterlimit={10}>
+                                          <path d="M279.06674,279.42662c-2.27967,1.98991 -6.08116,0.58804 -6.08116,0.58804l-2.47264,-0.92915c-2.58799,-1.18826 -5.31176,-2.08831 -7.99917,-3.18902c-1.67622,-0.68654 -3.82471,-1.16116 -4.93147,-2.13229c-1.00468,-0.88156 -0.69132,-2.00318 -0.92827,-3.00935c-0.65501,-2.78142 0.12275,-5.56236 -0.287,-8.37565c-0.2181,-4.51941 -0.17458,-9.16283 -1.60696,-13.68334c-0.78143,-2.46614 -2.50162,-4.88125 -3.30086,-7.34796c-1.14452,-3.53236 -1.40387,-7.12078 -2.48433,-10.66266c-0.88858,-2.91287 -2.63779,-5.85389 -3.93351,-8.74177c0,0 -1.07608,-2.39835 3.22395,-2.81415c4.30003,-0.41581 2.41605,1.98254 2.41605,1.98254c1.34779,3.00392 3.13072,6.05282 4.06444,9.0839c1.09065,3.54049 1.33011,7.13302 2.48433,10.66266c0.81245,2.48448 2.5308,4.917 3.31813,7.40431c1.48619,4.69506 1.48366,9.52281 1.71137,14.21503c0.32776,2.25028 0.10631,4.39942 0.00736,6.60975c-0.02429,0.54266 0.28888,1.09302 0.26382,1.63563c-0.01269,0.27488 -0.68173,0.55435 -0.37558,0.78529c0.41549,0.31342 1.34191,0.22213 1.95781,0.40826c3.13684,0.94799 6.06014,2.26892 8.81088,3.52298l1.66093,0.59519c0,0 6.76155,1.40187 4.48187,3.39177z" fill="none" stroke="#000000" strokeWidth={7} />
+                                          <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" />
+                                          <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} />
+                                        </g>
                                       </g>
-                                    </g>
-                                  </svg>
+                                    </svg>
+                                    <div className="bod">
+                                      <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="144.10576" height="144.91623" viewBox="0,0,144.10576,144.91623">
+                                        <g transform="translate(-164.41679,-112.94712)">
+                                          <g strokeMiterlimit={10}>
+                                            <path d="M166.9168,184.02633c0,-36.49454 35.0206,-66.07921 72.05288,-66.07921c37.03228,0 67.05288,29.58467 67.05288,66.07921c0,6.94489 -1.08716,13.63956 -3.10292,19.92772c-2.71464,8.46831 -7.1134,16.19939 -12.809,22.81158c-2.31017,2.68194 -7.54471,12.91599 -7.54471,12.91599c0,0 -5.46714,-1.18309 -8.44434,0.6266c-3.86867,2.35159 -10.95356,10.86714 -10.95356,10.86714c0,0 -6.96906,-3.20396 -9.87477,-2.58085c-2.64748,0.56773 -6.72538,5.77072 -6.72538,5.77072c0,0 -5.5023,-4.25969 -7.5982,-4.25969c-3.08622,0 -9.09924,3.48259 -9.09924,3.48259c0,0 -6.0782,-5.11244 -9.00348,-5.91884c-4.26461,-1.17561 -12.23343,0.75049 -12.23343,0.75049c0,0 -5.18164,-8.26065 -7.60688,-9.90388c-3.50443,-2.37445 -8.8271,-3.95414 -8.8271,-3.95414c0,0 -5.33472,-8.81718 -7.27019,-11.40895c-4.81099,-6.44239 -13.46422,-9.83437 -15.65729,-17.76175c-1.53558,-5.55073 -2.35527,-21.36472 -2.35527,-21.36472z" fill="#191e2e" stroke="#000000" strokeWidth={5} strokeLinecap="butt" />
+                                            <path d="M167.94713,180c0,-37.03228 35.0206,-67.05288 72.05288,-67.05288c37.03228,0 67.05288,30.0206 67.05288,67.05288c0,7.04722 -1.08716,13.84053 -3.10292,20.22135c-2.71464,8.59309 -7.1134,16.43809 -12.809,23.14771c-2.31017,2.72146 -7.54471,13.1063 -7.54471,13.1063c0,0 -5.46714,-1.20052 -8.44434,0.63584c-3.86867,2.38624 -10.95356,11.02726 -10.95356,11.02726c0,0 -6.96906,-3.25117 -9.87477,-2.61888c-2.64748,0.5761 -6.72538,5.85575 -6.72538,5.85575c0,0 -5.5023,-4.32246 -7.5982,-4.32246c-3.08622,0 -9.09924,3.5339 -9.09924,3.5339c0,0 -6.0782,-5.18777 -9.00348,-6.00605c-4.26461,-1.19293 -12.23343,0.76155 -12.23343,0.76155c0,0 -5.18164,-8.38236 -7.60688,-10.04981c-3.50443,-2.40943 -8.8271,-4.0124 -8.8271,-4.0124c0,0 -5.33472,-8.9471 -7.27019,-11.57706c-4.81099,-6.53732 -13.46422,-9.97928 -15.65729,-18.02347c-1.53558,-5.63252 -2.35527,-21.67953 -2.35527,-21.67953z" fill="#191e2e" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
+                                            <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
+                                            <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
+                                            <path d="M216.22445,188.06994c0,0 1.02834,11.73245 -3.62335,21.11235c-4.65169,9.3799 -13.06183,10.03776 -13.06183,10.03776c0,0 7.0703,-3.03121 10.89231,-10.7381c4.34839,-8.76831 5.79288,-20.41201 5.79288,-20.41201z" fill="none" stroke="#2f3a50" strokeWidth={3} strokeLinecap="round" />
+                                          </g>
+                                        </g>
+                                      </svg>
+                                      <svg className="head" version="1.1" xmlns="http://www.w3.org/2000/svg" width="115.68559" height="88.29441" viewBox="0,0,115.68559,88.29441">
+                                        <g transform="translate(-191.87889,-75.62023)">
+                                          <g strokeMiterlimit={10}>
+                                            <path d="" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
+                                            <path d="M195.12889,128.77752c0,-26.96048 21.33334,-48.81626 47.64934,-48.81626c26.316,0 47.64935,21.85578 47.64935,48.81626c0,0.60102 -9.22352,20.49284 -9.22352,20.49284l-7.75885,0.35623l-7.59417,6.15039l-8.64295,-1.74822l-11.70703,6.06119l-6.38599,-4.79382l-6.45999,2.36133l-7.01451,-7.38888l-8.11916,1.29382l-6.19237,-6.07265l-7.6263,-1.37795l-4.19835,-7.87062l-4.24236,-4.16907c0,0 -0.13314,-2.0999 -0.13314,-3.29458z" fill="none" stroke="#2f3a50" strokeWidth={6} strokeLinecap="butt" />
+                                            <path d="M195.31785,124.43649c0,-26.96048 21.33334,-48.81626 47.64934,-48.81626c26.316,0 47.64935,21.85578 47.64935,48.81626c0,1.03481 -0.08666,2.8866 -0.08666,2.8866c0,0 16.8538,15.99287 16.21847,17.23929c-0.66726,1.30905 -23.05667,-4.14265 -23.05667,-4.14265l-2.29866,4.5096l-7.75885,0.35623l-7.59417,6.15039l-8.64295,-1.74822l-11.70703,6.06119l-6.38599,-4.79382l-6.45999,2.36133l-7.01451,-7.38888l-8.11916,1.29382l-6.19237,-6.07265l-7.6263,-1.37795l-4.19835,-7.87062l-4.24236,-4.16907c0,0 -0.13314,-2.0999 -0.13314,-3.29458z" fill="#191e2e" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
+                                            <path d="M271.10348,122.46768l10.06374,-3.28166l24.06547,24.28424" fill="none" stroke="#2f3a50" strokeWidth={6} strokeLinecap="round" />
+                                            <path d="M306.56448,144.85764l-41.62024,-8.16845l2.44004,-7.87698" fill="none" stroke="#000000" strokeWidth="3.5" strokeLinecap="round" />
+                                            <path d="M276.02738,115.72434c-0.66448,-4.64715 2.56411,-8.95308 7.21127,-9.61756c4.64715,-0.66448 8.95309,2.56411 9.61757,7.21126c0.46467,3.24972 -1.94776,8.02206 -5.96624,9.09336c-2.11289,-1.73012 -5.08673,-5.03426 -5.08673,-5.03426c0,0 -4.12095,1.16329 -4.60481,1.54229c-0.16433,-0.04891 -0.62732,-0.38126 -0.72803,-0.61269c-0.30602,-0.70328 -0.36302,-2.02286 -0.44303,-2.58239z" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
+                                            <path d="M242.49281,125.6424c0,-4.69442 3.80558,-8.5 8.5,-8.5c4.69442,0 8.5,3.80558 8.5,8.5c0,4.69442 -3.80558,8.5 -8.5,8.5c-4.69442,0 -8.5,-3.80558 -8.5,-8.5z" fill="#ffffff" stroke="none" strokeWidth="0.5" strokeLinecap="butt" />
+                                            <path d="" fillOpacity="0.26667" fill="#97affd" strokeOpacity="0.48627" stroke="#ffffff" strokeWidth={0} strokeLinecap="butt" />
+                                          </g>
+                                        </g>
+                                      </svg>
+                                    </div>
+                                    <svg id="gnd" version="1.1" xmlns="http://www.w3.org/2000/svg" width={475} height={530} viewBox="0,0,163.40011,85.20095">
+                                      <g transform="translate(-176.25,-207.64957)">
+                                        <g stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeMiterlimit={10}>
+                                          <path d="M295.5,273.1829c0,0 -57.38915,6.69521 -76.94095,-9.01465c-13.65063,-10.50609 15.70098,-20.69467 -2.5451,-19.94465c-30.31027,2.05753 -38.51396,-26.84135 -38.51396,-26.84135c0,0 6.50084,13.30023 18.93224,19.17888c9.53286,4.50796 26.23632,-1.02541 32.09529,4.95137c3.62417,3.69704 2.8012,6.33005 0.66517,8.49452c-3.79415,3.84467 -11.7312,6.21103 -6.24682,10.43645c22.01082,16.95812 72.55412,12.73944 72.55412,12.73944z" fill="#000000" />
+                                          <path d="M338.92138,217.76285c0,0 -17.49626,12.55408 -45.36424,10.00353c-8.39872,-0.76867 -17.29557,-6.23066 -17.29557,-6.23066c0,0 3.06461,-2.23972 15.41857,0.72484c26.30467,6.31228 47.24124,-4.49771 47.24124,-4.49771z" fill="#000000" />
+                                          <path d="M209.14443,223.00182l1.34223,15.4356l-10.0667,-15.4356" fill="none" />
+                                          <path d="M198.20391,230.41806l12.95386,7.34824l6.71113,-12.08004" fill="none" />
+                                          <path d="M211.19621,238.53825l8.5262,-6.09014" fill="none" />
+                                          <path d="M317.57068,215.80173l5.27812,6.49615l0.40601,-13.39831" fill="none" />
+                                          <path d="M323.66082,222.70389l6.09014,-9.33822" fill="none" />
+                                        </g>
+                                      </g>
+                                    </svg>
+                                  </div>
                                 </div>
-                                <svg id="gnd" version="1.1" xmlns="http://www.w3.org/2000/svg" width={475} height={530} viewBox="0,0,163.40011,85.20095">
-                                  <g transform="translate(-176.25,-207.64957)">
-                                    <g stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeMiterlimit={10}>
-                                      <path d="M295.5,273.1829c0,0 -57.38915,6.69521 -76.94095,-9.01465c-13.65063,-10.50609 15.70098,-20.69467 -2.5451,-19.94465c-30.31027,2.05753 -38.51396,-26.84135 -38.51396,-26.84135c0,0 6.50084,13.30023 18.93224,19.17888c9.53286,4.50796 26.23632,-1.02541 32.09529,4.95137c3.62417,3.69704 2.8012,6.33005 0.66517,8.49452c-3.79415,3.84467 -11.7312,6.21103 -6.24682,10.43645c22.01082,16.95812 72.55412,12.73944 72.55412,12.73944z" fill="#000000" />
-                                      <path d="M338.92138,217.76285c0,0 -17.49626,12.55408 -45.36424,10.00353c-8.39872,-0.76867 -17.29557,-6.23066 -17.29557,-6.23066c0,0 3.06461,-2.23972 15.41857,0.72484c26.30467,6.31228 47.24124,-4.49771 47.24124,-4.49771z" fill="#000000" />
-                                      <path d="M209.14443,223.00182l1.34223,15.4356l-10.0667,-15.4356" fill="none" />
-                                      <path d="M198.20391,230.41806l12.95386,7.34824l6.71113,-12.08004" fill="none" />
-                                      <path d="M211.19621,238.53825l8.5262,-6.09014" fill="none" />
-                                      <path d="M317.57068,215.80173l5.27812,6.49615l0.40601,-13.39831" fill="none" />
-                                      <path d="M323.66082,222.70389l6.09014,-9.33822" fill="none" />
-                                    </g>
-                                  </g>
-                                </svg>
-                              </div>
-                            </div>
-                            <div className="w-[min(60vw,520px)] h-2 rounded-full bg-white/20 dark:bg-white/15 overflow-hidden mb-4">
-                              <div
-                                className="h-full bg-gradient-to-r from-jobzai-500 via-jobzai-400 to-jobzai-600 transition-all duration-300"
-                                style={{ width: `${Math.min(100, Math.max(0, regeneratingProgress))}%` }}
-                              />
-                            </div>
-                            <p className="text-base font-semibold text-white">
-                              {regeneratingMessage}
-                            </p>
-                            <p className="mt-2 text-sm text-white/80">
-                              This may take up to 2 minutes.
-                            </p>
-                          </motion.div>
-                          <style>
-                            {`
+                                <div className="w-[min(60vw,520px)] h-2 rounded-full bg-white/20 dark:bg-white/15 overflow-hidden mb-4">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-jobzai-500 via-jobzai-400 to-jobzai-600 transition-all duration-300"
+                                    style={{ width: `${Math.min(100, Math.max(0, regeneratingProgress))}%` }}
+                                  />
+                                </div>
+                                <p className="text-base font-semibold text-white">
+                                  {regeneratingMessage}
+                                </p>
+                                <p className="mt-2 text-sm text-white/80">
+                                  This may take up to 2 minutes.
+                                </p>
+                              </motion.div>
+                              <style>
+                                {`
                             .cvopt-walker .loader {
                               position: relative;
                               width: 200px;
@@ -5327,554 +5477,554 @@ Return ONLY the pitch text, no explanations or formatting.`;
                               100% { transform: translate(-100px, -50px); opacity: 0; }
                             }
                           `}
-                          </style>
-                        </div>
-                      )}
-
-                      <InterviewQuestionsHeader
-                        totalCount={questionEntries.length}
-                        filteredCount={filteredQuestions.length}
-                        filters={QUESTION_FILTERS}
-                        activeFilter={activeQuestionFilter}
-                        onFilterChange={setActiveQuestionFilter}
-                        onRegenerate={regenerateQuestions}
-                        isRegenerating={isRegeneratingQuestions}
-                        subtitle={application ? `Tailored questions for your ${application.position} interview` : undefined}
-                      />
-
-                      {!isRegeneratingQuestions && (
-                        <div className="mt-8 space-y-5">
-                          {questionEntries.length === 0 && (
-                            <div className="rounded-[20px] border border-dashed border-black/10 bg-white/70 px-6 py-12 text-center shadow-[0_20px_40px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/5">
-                              <MessageSquare className="mx-auto h-12 w-12 text-neutral-300 dark:text-neutral-600" />
-                              <h3 className="mt-4 text-lg font-semibold text-neutral-900 dark:text-white">No suggested questions yet</h3>
-                              <p className="mt-2 text-sm text-neutral-500">
-                                Analyze a job posting to let the AI craft premium interview questions for you.
-                              </p>
+                              </style>
                             </div>
                           )}
 
-                          {questionEntries.length > 0 && filteredQuestions.length === 0 && (
-                            <div className="rounded-[20px] border border-black/5 bg-white/80 px-6 py-10 text-center shadow-[0_16px_30px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-white/5">
-                              <MessageSquare className="mx-auto h-12 w-12 text-neutral-200 dark:text-neutral-600" />
-                              <h3 className="mt-4 text-lg font-semibold text-neutral-900 dark:text-white">
-                                No {QUESTION_FILTERS.find(filter => filter.id === activeQuestionFilter)?.label?.toLowerCase() || 'selected'} questions found
-                              </h3>
-                              <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-300">
-                                Try another filter or show all questions to continue practicing.
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => setActiveQuestionFilter('all')}
-                                className="mt-4 inline-flex items-center justify-center rounded-full border border-black/10 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
-                              >
-                                Show all questions
-                              </button>
-                            </div>
-                          )}
+                          <InterviewQuestionsHeader
+                            totalCount={questionEntries.length}
+                            filteredCount={filteredQuestions.length}
+                            filters={QUESTION_FILTERS}
+                            activeFilter={activeQuestionFilter}
+                            onFilterChange={setActiveQuestionFilter}
+                            onRegenerate={regenerateQuestions}
+                            isRegenerating={isRegeneratingQuestions}
+                            subtitle={application ? `Tailored questions for your ${application.position} interview` : undefined}
+                          />
 
-                          {filteredQuestions.length > 0 && (
-                            <div className="space-y-5">
-                              {filteredQuestions.map((entry, displayIndex) => (
-                                <QuestionCard
-                                  key={entry.id}
-                                  index={displayIndex}
-                                  question={entry.text}
-                                  tags={entry.tags}
-                                  suggestedApproach={entry.suggestedApproach}
-                                  isSuggestionOpen={collapsedQuestions[entry.id] === false}
-                                  isSaved={savedQuestionsState.includes(entry.rawValue)}
-                                  onToggleSuggestion={() => handleToggleSuggestionVisibility(entry.id)}
-                                  onToggleSave={() => handleToggleSaveQuestion(entry.rawValue)}
-                                  onCreateNote={() => handleCreateNoteFromQuestion(entry.text, displayIndex + 1)}
-                                  onFocus={() => setFocusedQuestion(entry)}
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-
-                  {tab === 'skills' && (
-                    <motion.div
-                      key="skills"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-jobzai-600" /></div>}>
-                        <SkillsTab
-                          interview={interview!}
-                          skillRatings={skillRatings}
-                          skillCoach={skillCoach}
-                          skillGaps={skillGaps}
-                          application={application!}
-                          handleRateSkill={handleRateSkill}
-                          addStarStory={addStarStory}
-                          updateStarField={updateStarField}
-                          deleteStarStory={deleteStarStory}
-                          exportStoryToNotes={handleStarExportClick}
-                        />
-                      </Suspense>
-                    </motion.div>
-                  )}
-                  {false && tab === 'skills_old' && (
-                    <motion.div
-                      key="skills_old"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="grid grid-cols-1 md:grid-cols-2 gap-6"
-                    >
-                      <div className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 border border-gray-200 dark:border-[#3d3c3e] shadow-sm">
-                        <div className="mb-6">
-                          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                            Skills Assessment
-                          </h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Rate your confidence with each required skill to identify areas for preparation.
-                          </p>
-                        </div>
-
-                        <div className="space-y-4">
-                          {interview.preparation.requiredSkills?.map((skill, index) => {
-                            const currentRating = skillRatings[skill] || 0;
-                            const confidenceLabels = ['Novice', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
-
-                            return (
-                              <motion.div
-                                key={index}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05 }}
-                                className="group relative bg-gradient-to-br from-gray-50 to-white dark:from-[#242325]/50 dark:to-[#2b2a2c] rounded-xl p-5 border border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-300 dark:hover:border-jobzai-700 transition-all duration-200 hover:shadow-md"
-                              >
-                                {/* Skill Text */}
-                                <div className="mb-4">
-                                  <p className="text-base font-medium text-gray-900 dark:text-white leading-relaxed pr-2">
-                                    {skill}
+                          {!isRegeneratingQuestions && (
+                            <div className="mt-8 space-y-5">
+                              {questionEntries.length === 0 && (
+                                <div className="rounded-[20px] border border-dashed border-black/10 bg-white/70 px-6 py-12 text-center shadow-[0_20px_40px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/5">
+                                  <MessageSquare className="mx-auto h-12 w-12 text-neutral-300 dark:text-neutral-600" />
+                                  <h3 className="mt-4 text-lg font-semibold text-neutral-900 dark:text-white">No suggested questions yet</h3>
+                                  <p className="mt-2 text-sm text-neutral-500">
+                                    Analyze a job posting to let the AI craft premium interview questions for you.
                                   </p>
                                 </div>
+                              )}
 
-                                {/* Rating Section */}
-                                <div className="flex items-center justify-between gap-4">
-                                  {/* Rating Stars */}
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <div className="flex gap-1.5">
-                                      {[1, 2, 3, 4, 5].map((rating) => (
-                                        <button
-                                          key={rating}
-                                          onClick={() => handleRateSkill(skill, rating)}
-                                          className={`
+                              {questionEntries.length > 0 && filteredQuestions.length === 0 && (
+                                <div className="rounded-[20px] border border-black/5 bg-white/80 px-6 py-10 text-center shadow-[0_16px_30px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-white/5">
+                                  <MessageSquare className="mx-auto h-12 w-12 text-neutral-200 dark:text-neutral-600" />
+                                  <h3 className="mt-4 text-lg font-semibold text-neutral-900 dark:text-white">
+                                    No {QUESTION_FILTERS.find(filter => filter.id === activeQuestionFilter)?.label?.toLowerCase() || 'selected'} questions found
+                                  </h3>
+                                  <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-300">
+                                    Try another filter or show all questions to continue practicing.
+                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={() => setActiveQuestionFilter('all')}
+                                    className="mt-4 inline-flex items-center justify-center rounded-full border border-black/10 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+                                  >
+                                    Show all questions
+                                  </button>
+                                </div>
+                              )}
+
+                              {filteredQuestions.length > 0 && (
+                                <div className="space-y-5">
+                                  {filteredQuestions.map((entry, displayIndex) => (
+                                    <QuestionCard
+                                      key={entry.id}
+                                      index={displayIndex}
+                                      question={entry.text}
+                                      tags={entry.tags}
+                                      suggestedApproach={entry.suggestedApproach}
+                                      isSuggestionOpen={collapsedQuestions[entry.id] === false}
+                                      isSaved={savedQuestionsState.includes(entry.rawValue)}
+                                      onToggleSuggestion={() => handleToggleSuggestionVisibility(entry.id)}
+                                      onToggleSave={() => handleToggleSaveQuestion(entry.rawValue)}
+                                      onCreateNote={() => handleCreateNoteFromQuestion(entry.text, displayIndex + 1)}
+                                      onFocus={() => setFocusedQuestion(entry)}
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+
+                      {tab === 'skills' && (
+                        <motion.div
+                          key="skills"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-jobzai-600" /></div>}>
+                            <SkillsTab
+                              interview={interview!}
+                              skillRatings={skillRatings}
+                              skillCoach={skillCoach}
+                              skillGaps={skillGaps}
+                              application={application!}
+                              handleRateSkill={handleRateSkill}
+                              addStarStory={addStarStory}
+                              updateStarField={updateStarField}
+                              deleteStarStory={deleteStarStory}
+                              exportStoryToNotes={handleStarExportClick}
+                            />
+                          </Suspense>
+                        </motion.div>
+                      )}
+                      {false && tab === 'skills_old' && (
+                        <motion.div
+                          key="skills_old"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                        >
+                          <div className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 border border-gray-200 dark:border-[#3d3c3e] shadow-sm">
+                            <div className="mb-6">
+                              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                                Skills Assessment
+                              </h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Rate your confidence with each required skill to identify areas for preparation.
+                              </p>
+                            </div>
+
+                            <div className="space-y-4">
+                              {interview.preparation.requiredSkills?.map((skill, index) => {
+                                const currentRating = skillRatings[skill] || 0;
+                                const confidenceLabels = ['Novice', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
+
+                                return (
+                                  <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    className="group relative bg-gradient-to-br from-gray-50 to-white dark:from-[#242325]/50 dark:to-[#2b2a2c] rounded-xl p-5 border border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-300 dark:hover:border-jobzai-700 transition-all duration-200 hover:shadow-md"
+                                  >
+                                    {/* Skill Text */}
+                                    <div className="mb-4">
+                                      <p className="text-base font-medium text-gray-900 dark:text-white leading-relaxed pr-2">
+                                        {skill}
+                                      </p>
+                                    </div>
+
+                                    {/* Rating Section */}
+                                    <div className="flex items-center justify-between gap-4">
+                                      {/* Rating Stars */}
+                                      <div className="flex items-center gap-2 flex-1">
+                                        <div className="flex gap-1.5">
+                                          {[1, 2, 3, 4, 5].map((rating) => (
+                                            <button
+                                              key={rating}
+                                              onClick={() => handleRateSkill(skill, rating)}
+                                              className={`
                                           relative w-10 h-10 rounded-lg transition-all duration-200
                                           ${currentRating >= rating
-                                              ? currentRating === rating
-                                                ? 'bg-jobzai-600 dark:bg-jobzai-500 text-white shadow-md scale-105 ring-2 ring-jobzai-300 dark:ring-jobzai-700'
-                                                : 'bg-jobzai-400 dark:bg-jobzai-600 text-white'
-                                              : 'bg-gray-200 dark:bg-[#3d3c3e] text-gray-400 dark:text-gray-500 hover:bg-jobzai-100 dark:hover:bg-jobzai-900/30 hover:text-jobzai-600 dark:hover:text-jobzai-400'
-                                            }
+                                                  ? currentRating === rating
+                                                    ? 'bg-jobzai-600 dark:bg-jobzai-500 text-white shadow-md scale-105 ring-2 ring-jobzai-300 dark:ring-jobzai-700'
+                                                    : 'bg-jobzai-400 dark:bg-jobzai-600 text-white'
+                                                  : 'bg-gray-200 dark:bg-[#3d3c3e] text-gray-400 dark:text-gray-500 hover:bg-jobzai-100 dark:hover:bg-jobzai-900/30 hover:text-jobzai-600 dark:hover:text-jobzai-400'
+                                                }
                                         `}
-                                          aria-label={`Rate ${skill} ${rating} out of 5`}
-                                          title={`${rating}/5 - ${confidenceLabels[rating - 1]}`}
+                                              aria-label={`Rate ${skill} ${rating} out of 5`}
+                                              title={`${rating}/5 - ${confidenceLabels[rating - 1]}`}
+                                            >
+                                              <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold">
+                                                {rating}
+                                              </span>
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+
+                                      {/* Confidence Label */}
+                                      {currentRating > 0 && (
+                                        <motion.div
+                                          initial={{ opacity: 0, scale: 0.9 }}
+                                          animate={{ opacity: 1, scale: 1 }}
+                                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-jobzai-50 dark:bg-jobzai-900/30 border border-jobzai-200 dark:border-jobzai-800"
                                         >
-                                          <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold">
-                                            {rating}
+                                          <span className="text-xs font-semibold text-jobzai-700 dark:text-jobzai-300">
+                                            {currentRating}/5
                                           </span>
-                                        </button>
+                                          <span className="text-xs text-jobzai-600 dark:text-jobzai-400 hidden sm:inline">
+                                            {confidenceLabels[currentRating - 1]}
+                                          </span>
+                                        </motion.div>
+                                      )}
+                                    </div>
+
+                                    {/* Progress Bar (subtle) */}
+                                    {currentRating > 0 && (
+                                      <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: '100%' }}
+                                        transition={{ delay: 0.2, duration: 0.5 }}
+                                        className="mt-3 h-1 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden"
+                                      >
+                                        <div
+                                          className="h-full bg-gradient-to-r from-jobzai-500 to-jobzai-600 rounded-full transition-all duration-300"
+                                          style={{ width: `${(currentRating / 5) * 100}%` }}
+                                        />
+                                      </motion.div>
+                                    )}
+                                  </motion.div>
+                                );
+                              })}
+
+                              {(!interview.preparation?.requiredSkills || interview.preparation.requiredSkills.length === 0) && (
+                                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                                  <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                                  <p className="text-sm">No skills to assess yet.</p>
+                                  <p className="text-xs mt-1">Analyze a job posting to see required skills.</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 border border-gray-200 dark:border-[#3d3c3e] shadow-sm">
+                            <div className="mb-6">
+                              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Skill Coach</h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Focus on skills with the biggest gaps. Complete tasks and prepare STAR stories.
+                              </p>
+                            </div>
+                            <div className="space-y-4">
+                              {skillGaps.map(({ skill, rating, gap }, idx) => (
+                                <motion.div
+                                  key={skill}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: idx * 0.05 }}
+                                  className="group relative bg-gradient-to-br from-gray-50 to-white dark:from-[#242325]/50 dark:to-[#2b2a2c] rounded-xl p-5 border border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-300 dark:hover:border-jobzai-700 transition-all duration-200 hover:shadow-md"
+                                >
+                                  {/* Header Section */}
+                                  <div className="mb-4">
+                                    <div className="flex items-start justify-between gap-4 mb-2">
+                                      <h4 className="text-base font-semibold text-gray-900 dark:text-white leading-relaxed flex-1">
+                                        {skill}
+                                      </h4>
+                                    </div>
+
+                                    {/* Rating Row */}
+                                    <div className="flex items-center gap-3 mt-3">
+                                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-jobzai-50 dark:bg-jobzai-900/30 border border-jobzai-200 dark:border-jobzai-800">
+                                        <span className="text-xs font-semibold text-jobzai-700 dark:text-jobzai-300">
+                                          {rating}/5
+                                        </span>
+                                        <span className="text-xs text-gray-400 dark:text-gray-500">•</span>
+                                        <span className="text-xs text-jobzai-600 dark:text-jobzai-400">
+                                          Gap {gap}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* 30-minute plan */}
+                                  <div className="mt-5 pt-4 border-t border-gray-200 dark:border-[#3d3c3e]">
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <Clock className="w-4 h-4 text-jobzai-600 dark:text-jobzai-400" />
+                                      <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-200">30‑minute plan</h5>
+                                    </div>
+                                    <div className="space-y-2.5">
+                                      {(ensureDefaultTasks(skill)).map(t => (
+                                        <label
+                                          key={t.id}
+                                          className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50 transition-colors cursor-pointer group/item"
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={t.done}
+                                            onChange={() => toggleMicroTask(skill, t.id)}
+                                            className="mt-0.5 w-4 h-4 rounded border-gray-300 dark:border-[#4a494b] text-jobzai-600 focus:ring-jobzai-500 focus:ring-2 cursor-pointer"
+                                          />
+                                          <span className={`text-sm text-gray-700 dark:text-gray-300 flex-1 ${t.done ? 'line-through text-gray-400 dark:text-gray-500' : ''
+                                            }`}>
+                                            {t.label}
+                                          </span>
+                                        </label>
                                       ))}
                                     </div>
                                   </div>
 
-                                  {/* Confidence Label */}
-                                  {currentRating > 0 && (
-                                    <motion.div
-                                      initial={{ opacity: 0, scale: 0.9 }}
-                                      animate={{ opacity: 1, scale: 1 }}
-                                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-jobzai-50 dark:bg-jobzai-900/30 border border-jobzai-200 dark:border-jobzai-800"
-                                    >
-                                      <span className="text-xs font-semibold text-jobzai-700 dark:text-jobzai-300">
-                                        {currentRating}/5
-                                      </span>
-                                      <span className="text-xs text-jobzai-600 dark:text-jobzai-400 hidden sm:inline">
-                                        {confidenceLabels[currentRating - 1]}
-                                      </span>
-                                    </motion.div>
-                                  )}
+                                  {/* STAR stories */}
+                                  <div className="mt-5 pt-4 border-t border-gray-200 dark:border-[#3d3c3e]">
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <Award className="w-4 h-4 text-jobzai-600 dark:text-jobzai-400" />
+                                      <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-200">STAR stories</h5>
+                                    </div>
+                                    <div className="space-y-3">
+                                      {(skillCoach?.starStories?.[skill] || []).map(story => (
+                                        <div key={story.id} className="space-y-2.5 p-3 rounded-lg bg-gray-50 dark:bg-[#242325]/40 border border-gray-200 dark:border-[#3d3c3e]">
+                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                                            <textarea
+                                              rows={3}
+                                              value={story.situation}
+                                              onChange={(e) => updateStarField(skill, story.id, 'situation', e.target.value)}
+                                              placeholder="Situation (context, stakes, constraints)"
+                                              className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-[#4a494b] dark:bg-[#2b2a2c] dark:text-white resize-y focus:ring-2 focus:ring-jobzai-500 focus:border-transparent"
+                                            />
+                                            <textarea
+                                              rows={3}
+                                              value={story.action}
+                                              onChange={(e) => updateStarField(skill, story.id, 'action', e.target.value)}
+                                              placeholder="Action (what you did, how, tools)"
+                                              className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-[#4a494b] dark:bg-[#2b2a2c] dark:text-white resize-y focus:ring-2 focus:ring-jobzai-500 focus:border-transparent"
+                                            />
+                                            <textarea
+                                              rows={3}
+                                              value={story.result}
+                                              onChange={(e) => updateStarField(skill, story.id, 'result', e.target.value)}
+                                              placeholder="Result (impact, metrics, lessons)"
+                                              className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-[#4a494b] dark:bg-[#2b2a2c] dark:text-white resize-y focus:ring-2 focus:ring-jobzai-500 focus:border-transparent"
+                                            />
+                                          </div>
+                                          <div className="flex gap-2">
+                                            <button
+                                              onClick={() => handleStarExportClick(skill, story.id)}
+                                              className="text-xs px-3 py-1.5 bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-[#4a494b] transition-colors font-medium"
+                                            >
+                                              Export to Notes
+                                            </button>
+                                            <button
+                                              onClick={() => deleteStarStory(skill, story.id)}
+                                              className="text-xs px-3 py-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors font-medium"
+                                            >
+                                              Delete
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                      <button
+                                        onClick={() => addStarStory(skill)}
+                                        className="w-full text-sm px-4 py-2.5 bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-[#4a494b] transition-colors font-medium border border-gray-200 dark:border-[#4a494b] border-dashed"
+                                      >
+                                        + Add story
+                                      </button>
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              ))}
+                              {skillGaps.length === 0 && (
+                                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                                  <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                                  <p className="text-sm">No priority gaps detected.</p>
+                                  <p className="text-xs mt-1">Rate your skills on the left to see improvement areas.</p>
                                 </div>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
 
-                                {/* Progress Bar (subtle) */}
-                                {currentRating > 0 && (
-                                  <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: '100%' }}
-                                    transition={{ delay: 0.2, duration: 0.5 }}
-                                    className="mt-3 h-1 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden"
+                      {tab === 'resources' && (
+                        <motion.div
+                          key="resources"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-jobzai-600" /></div>}>
+                            <ResourcesTab
+                              application={application!}
+                              interview={interview}
+                              resourcesData={resourcesData}
+                              setResourcesData={setResourcesData}
+                              saveResourcesData={saveResourcesData}
+                              onGenerateQuestions={generateQuestionsToAsk}
+                              onGeneratePitch={generateElevatorPitch}
+                              isGeneratingQuestions={isGeneratingQuestions}
+                              isGeneratingPitch={isGeneratingPitch}
+                            />
+                          </Suspense>
+                        </motion.div>
+                      )}
+                      {false && tab === 'resources_old' && (
+                        <motion.div
+                          key="resources_old"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                        >
+                          <div className="md:col-span-3 bg-white dark:bg-[#2b2a2c] rounded-xl p-6 border border-gray-200 dark:border-[#3d3c3e] shadow-sm">
+                            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-5">Preparation Tips</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {[
+                                { id: 'research', title: 'Research the Company', description: 'Look up their mission, values, recent news, and products/services.', icon: <Building className="w-5 h-5 text-jobzai-600 dark:text-jobzai-400" /> },
+                                { id: 'star', title: 'Prepare Your STAR Stories', description: 'Create specific examples using the Situation, Task, Action, Result format.', icon: <MessageSquare className="w-5 h-5 text-jobzai-600 dark:text-jobzai-400" /> },
+                                { id: 'practice', title: 'Practice Your Responses', description: 'Rehearse answers to common questions aloud or with a friend.', icon: <PlayCircle className="w-5 h-5 text-jobzai-600 dark:text-jobzai-400" /> },
+                                { id: 'ask', title: 'Prepare Questions to Ask', description: 'Have thoughtful questions ready about the role, team, and company.', icon: <BookmarkPlus className="w-5 h-5 text-jobzai-600 dark:text-jobzai-400" /> },
+                                { id: 'jd', title: 'Review Job Description', description: 'Align your talking points with the skills and qualifications listed.', icon: <FileText className="w-5 h-5 text-jobzai-600 dark:text-jobzai-400" /> },
+                                { id: 'presentation', title: 'Plan Your Presentation', description: 'Prepare what to wear, test your tech for virtual interviews, plan your route.', icon: <Share2 className="w-5 h-5 text-jobzai-600 dark:text-jobzai-400" /> }
+                              ].map((tip, index) => {
+                                const checked = resourcesData?.reviewedTips?.includes(tip.id);
+                                return (
+                                  <motion.div key={tip.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    className={`p-5 rounded-xl shadow-sm border ${checked ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-[#242325]/50 border-gray-100 dark:border-[#3d3c3e]'}`}
                                   >
-                                    <div
-                                      className="h-full bg-gradient-to-r from-jobzai-500 to-jobzai-600 rounded-full transition-all duration-300"
-                                      style={{ width: `${(currentRating / 5) * 100}%` }}
-                                    />
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex items-start">
+                                        <div className="mr-3 mt-0.5">{tip.icon}</div>
+                                        <div>
+                                          <h4 className="font-medium text-gray-800 dark:text-white text-base mb-1">{tip.title}</h4>
+                                          <p className="text-gray-600 dark:text-gray-400 text-sm">{tip.description}</p>
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <input type="checkbox" checked={!!checked} onChange={async () => {
+                                          const list = new Set(resourcesData?.reviewedTips || []);
+                                          if (checked) list.delete(tip.id); else list.add(tip.id);
+                                          const next = { ...(resourcesData || {}), reviewedTips: Array.from(list) } as Interview['resourcesData'];
+                                          setResourcesData(next);
+                                          await saveResourcesData(next);
+                                        }} />
+                                      </div>
+                                    </div>
                                   </motion.div>
-                                )}
-                              </motion.div>
-                            );
-                          })}
-
-                          {(!interview.preparation?.requiredSkills || interview.preparation.requiredSkills.length === 0) && (
-                            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                              <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                              <p className="text-sm">No skills to assess yet.</p>
-                              <p className="text-xs mt-1">Analyze a job posting to see required skills.</p>
+                                );
+                              })}
                             </div>
-                          )}
-                        </div>
-                      </div>
+                          </div>
 
-                      <div className="bg-white dark:bg-[#2b2a2c] rounded-xl p-6 border border-gray-200 dark:border-[#3d3c3e] shadow-sm">
-                        <div className="mb-6">
-                          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Skill Coach</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Focus on skills with the biggest gaps. Complete tasks and prepare STAR stories.
-                          </p>
-                        </div>
-                        <div className="space-y-4">
-                          {skillGaps.map(({ skill, rating, gap }, idx) => (
-                            <motion.div
-                              key={skill}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: idx * 0.05 }}
-                              className="group relative bg-gradient-to-br from-gray-50 to-white dark:from-[#242325]/50 dark:to-[#2b2a2c] rounded-xl p-5 border border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-300 dark:hover:border-jobzai-700 transition-all duration-200 hover:shadow-md"
-                            >
-                              {/* Header Section */}
-                              <div className="mb-4">
-                                <div className="flex items-start justify-between gap-4 mb-2">
-                                  <h4 className="text-base font-semibold text-gray-900 dark:text-white leading-relaxed flex-1">
-                                    {skill}
-                                  </h4>
-                                </div>
-
-                                {/* Rating Row */}
-                                <div className="flex items-center gap-3 mt-3">
-                                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-jobzai-50 dark:bg-jobzai-900/30 border border-jobzai-200 dark:border-jobzai-800">
-                                    <span className="text-xs font-semibold text-jobzai-700 dark:text-jobzai-300">
-                                      {rating}/5
-                                    </span>
-                                    <span className="text-xs text-gray-400 dark:text-gray-500">•</span>
-                                    <span className="text-xs text-jobzai-600 dark:text-jobzai-400">
-                                      Gap {gap}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* 30-minute plan */}
-                              <div className="mt-5 pt-4 border-t border-gray-200 dark:border-[#3d3c3e]">
-                                <div className="flex items-center gap-2 mb-3">
-                                  <Clock className="w-4 h-4 text-jobzai-600 dark:text-jobzai-400" />
-                                  <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-200">30‑minute plan</h5>
-                                </div>
-                                <div className="space-y-2.5">
-                                  {(ensureDefaultTasks(skill)).map(t => (
-                                    <label
-                                      key={t.id}
-                                      className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50 transition-colors cursor-pointer group/item"
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={t.done}
-                                        onChange={() => toggleMicroTask(skill, t.id)}
-                                        className="mt-0.5 w-4 h-4 rounded border-gray-300 dark:border-[#4a494b] text-jobzai-600 focus:ring-jobzai-500 focus:ring-2 cursor-pointer"
-                                      />
-                                      <span className={`text-sm text-gray-700 dark:text-gray-300 flex-1 ${t.done ? 'line-through text-gray-400 dark:text-gray-500' : ''
-                                        }`}>
-                                        {t.label}
-                                      </span>
-                                    </label>
-                                  ))}
-                                </div>
-                              </div>
-
-                              {/* STAR stories */}
-                              <div className="mt-5 pt-4 border-t border-gray-200 dark:border-[#3d3c3e]">
-                                <div className="flex items-center gap-2 mb-3">
-                                  <Award className="w-4 h-4 text-jobzai-600 dark:text-jobzai-400" />
-                                  <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-200">STAR stories</h5>
-                                </div>
-                                <div className="space-y-3">
-                                  {(skillCoach?.starStories?.[skill] || []).map(story => (
-                                    <div key={story.id} className="space-y-2.5 p-3 rounded-lg bg-gray-50 dark:bg-[#242325]/40 border border-gray-200 dark:border-[#3d3c3e]">
-                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                                        <textarea
-                                          rows={3}
-                                          value={story.situation}
-                                          onChange={(e) => updateStarField(skill, story.id, 'situation', e.target.value)}
-                                          placeholder="Situation (context, stakes, constraints)"
-                                          className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-[#4a494b] dark:bg-[#2b2a2c] dark:text-white resize-y focus:ring-2 focus:ring-jobzai-500 focus:border-transparent"
-                                        />
-                                        <textarea
-                                          rows={3}
-                                          value={story.action}
-                                          onChange={(e) => updateStarField(skill, story.id, 'action', e.target.value)}
-                                          placeholder="Action (what you did, how, tools)"
-                                          className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-[#4a494b] dark:bg-[#2b2a2c] dark:text-white resize-y focus:ring-2 focus:ring-jobzai-500 focus:border-transparent"
-                                        />
-                                        <textarea
-                                          rows={3}
-                                          value={story.result}
-                                          onChange={(e) => updateStarField(skill, story.id, 'result', e.target.value)}
-                                          placeholder="Result (impact, metrics, lessons)"
-                                          className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-[#4a494b] dark:bg-[#2b2a2c] dark:text-white resize-y focus:ring-2 focus:ring-jobzai-500 focus:border-transparent"
-                                        />
-                                      </div>
-                                      <div className="flex gap-2">
-                                        <button
-                                          onClick={() => handleStarExportClick(skill, story.id)}
-                                          className="text-xs px-3 py-1.5 bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-[#4a494b] transition-colors font-medium"
-                                        >
-                                          Export to Notes
-                                        </button>
-                                        <button
-                                          onClick={() => deleteStarStory(skill, story.id)}
-                                          className="text-xs px-3 py-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors font-medium"
-                                        >
-                                          Delete
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                  <button
-                                    onClick={() => addStarStory(skill)}
-                                    className="w-full text-sm px-4 py-2.5 bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-[#4a494b] transition-colors font-medium border border-gray-200 dark:border-[#4a494b] border-dashed"
-                                  >
-                                    + Add story
-                                  </button>
-                                </div>
-                              </div>
-                            </motion.div>
-                          ))}
-                          {skillGaps.length === 0 && (
-                            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                              <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                              <p className="text-sm">No priority gaps detected.</p>
-                              <p className="text-xs mt-1">Rate your skills on the left to see improvement areas.</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {tab === 'resources' && (
-                    <motion.div
-                      key="resources"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-jobzai-600" /></div>}>
-                        <ResourcesTab
-                          application={application!}
-                          interview={interview}
-                          resourcesData={resourcesData}
-                          setResourcesData={setResourcesData}
-                          saveResourcesData={saveResourcesData}
-                          onGenerateQuestions={generateQuestionsToAsk}
-                          onGeneratePitch={generateElevatorPitch}
-                          isGeneratingQuestions={isGeneratingQuestions}
-                          isGeneratingPitch={isGeneratingPitch}
-                        />
-                      </Suspense>
-                    </motion.div>
-                  )}
-                  {false && tab === 'resources_old' && (
-                    <motion.div
-                      key="resources_old"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="grid grid-cols-1 md:grid-cols-3 gap-6"
-                    >
-                      <div className="md:col-span-3 bg-white dark:bg-[#2b2a2c] rounded-xl p-6 border border-gray-200 dark:border-[#3d3c3e] shadow-sm">
-                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-5">Preparation Tips</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {[
-                            { id: 'research', title: 'Research the Company', description: 'Look up their mission, values, recent news, and products/services.', icon: <Building className="w-5 h-5 text-jobzai-600 dark:text-jobzai-400" /> },
-                            { id: 'star', title: 'Prepare Your STAR Stories', description: 'Create specific examples using the Situation, Task, Action, Result format.', icon: <MessageSquare className="w-5 h-5 text-jobzai-600 dark:text-jobzai-400" /> },
-                            { id: 'practice', title: 'Practice Your Responses', description: 'Rehearse answers to common questions aloud or with a friend.', icon: <PlayCircle className="w-5 h-5 text-jobzai-600 dark:text-jobzai-400" /> },
-                            { id: 'ask', title: 'Prepare Questions to Ask', description: 'Have thoughtful questions ready about the role, team, and company.', icon: <BookmarkPlus className="w-5 h-5 text-jobzai-600 dark:text-jobzai-400" /> },
-                            { id: 'jd', title: 'Review Job Description', description: 'Align your talking points with the skills and qualifications listed.', icon: <FileText className="w-5 h-5 text-jobzai-600 dark:text-jobzai-400" /> },
-                            { id: 'presentation', title: 'Plan Your Presentation', description: 'Prepare what to wear, test your tech for virtual interviews, plan your route.', icon: <Share2 className="w-5 h-5 text-jobzai-600 dark:text-jobzai-400" /> }
-                          ].map((tip, index) => {
-                            const checked = resourcesData?.reviewedTips?.includes(tip.id);
-                            return (
-                              <motion.div key={tip.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05 }}
-                                className={`p-5 rounded-xl shadow-sm border ${checked ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-[#242325]/50 border-gray-100 dark:border-[#3d3c3e]'}`}
-                              >
-                                <div className="flex items-start justify-between">
-                                  <div className="flex items-start">
-                                    <div className="mr-3 mt-0.5">{tip.icon}</div>
-                                    <div>
-                                      <h4 className="font-medium text-gray-800 dark:text-white text-base mb-1">{tip.title}</h4>
-                                      <p className="text-gray-600 dark:text-gray-400 text-sm">{tip.description}</p>
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <input type="checkbox" checked={!!checked} onChange={async () => {
-                                      const list = new Set(resourcesData?.reviewedTips || []);
-                                      if (checked) list.delete(tip.id); else list.add(tip.id);
-                                      const next = { ...(resourcesData || {}), reviewedTips: Array.from(list) } as Interview['resourcesData'];
-                                      setResourcesData(next);
-                                      await saveResourcesData(next);
-                                    }} />
-                                  </div>
-                                </div>
-                              </motion.div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div className="md:col-span-3 bg-white dark:bg-[#2b2a2c] rounded-xl p-6 border border-gray-200 dark:border-[#3d3c3e] shadow-sm">
-                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-5">Helpful Resources</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                          {[
-                            { id: 'glassdoor', title: 'Company Glassdoor Reviews', url: `https://www.glassdoor.com/Search/results.htm?keyword=${encodeURIComponent(application.companyName)}`, description: 'Check employee reviews and interview experiences' },
-                            { id: 'linkedin', title: 'LinkedIn Company Page', url: `https://www.linkedin.com/company/${encodeURIComponent(application.companyName)}`, description: 'Research employees and company updates' },
-                            { id: 'db', title: 'Interview Question Database', url: `https://www.glassdoor.com/Interview/index.htm`, description: 'Browse thousands of real interview questions' }
-                          ].map((resource, index) => (
-                            <motion.a key={resource.id}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: index * 0.05 }}
-                              className="flex items-start p-5 border border-gray-200 dark:border-[#3d3c3e] rounded-xl hover:bg-gray-50 dark:hover:bg-[#242325]/50 transition-colors hover:shadow-sm"
-                              href={resource.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <div className="mr-3 mt-0.5 text-jobzai-600 dark:text-jobzai-400">
-                                <LinkIcon className="w-5 h-5" />
-                              </div>
-                              <div className="flex-1">
-                                <div className="font-medium text-gray-800 dark:text-white text-base mb-1">{resource.title}</div>
-                                <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">{resource.description}</p>
-                              </div>
-                            </motion.a>
-                          ))}
-                        </div>
-                        <div className="mt-6 p-4 border-t border-gray-200 dark:border-[#3d3c3e]">
-                          <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3">Your resources</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
-                            {(resourcesData?.savedLinks || []).map(link => (
-                              <div key={link.id} className="relative p-4 border border-gray-200 dark:border-[#3d3c3e] rounded-xl hover:shadow-md transition-shadow bg-white dark:bg-[#2b2a2c] group">
-                                <button
-                                  onClick={async () => {
-                                    const updated = { ...(resourcesData || {}), savedLinks: (resourcesData?.savedLinks || []).filter(l => l.id !== link.id) } as Interview['resourcesData'];
-                                    setResourcesData(updated);
-                                    await saveResourcesData(updated);
-                                  }}
-                                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-opacity p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/30"
-                                  title="Remove"
+                          <div className="md:col-span-3 bg-white dark:bg-[#2b2a2c] rounded-xl p-6 border border-gray-200 dark:border-[#3d3c3e] shadow-sm">
+                            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-5">Helpful Resources</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                              {[
+                                { id: 'glassdoor', title: 'Company Glassdoor Reviews', url: `https://www.glassdoor.com/Search/results.htm?keyword=${encodeURIComponent(application.companyName)}`, description: 'Check employee reviews and interview experiences' },
+                                { id: 'linkedin', title: 'LinkedIn Company Page', url: `https://www.linkedin.com/company/${encodeURIComponent(application.companyName)}`, description: 'Research employees and company updates' },
+                                { id: 'db', title: 'Interview Question Database', url: `https://www.glassdoor.com/Interview/index.htm`, description: 'Browse thousands of real interview questions' }
+                              ].map((resource, index) => (
+                                <motion.a key={resource.id}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: index * 0.05 }}
+                                  className="flex items-start p-5 border border-gray-200 dark:border-[#3d3c3e] rounded-xl hover:bg-gray-50 dark:hover:bg-[#242325]/50 transition-colors hover:shadow-sm"
+                                  href={resource.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                 >
-                                  <X className="w-4 h-4" />
-                                </button>
-                                <div className="flex items-start gap-3 pr-8">
-                                  <div className="mt-0.5 text-jobzai-600 dark:text-jobzai-400 flex-shrink-0"><LinkIcon className="w-4 h-4" /></div>
-                                  <div className="flex-1 min-w-0">
-                                    <a href={link.url} target="_blank" rel="noopener noreferrer" className="font-medium text-gray-800 dark:text-white text-sm hover:text-jobzai-700 dark:hover:text-jobzai-300 block mb-1 truncate" title={link.title}>{link.title}</a>
-                                    <div className="text-xs text-gray-500 truncate" title={link.url}>{shortenText(link.url, 40)}</div>
+                                  <div className="mr-3 mt-0.5 text-jobzai-600 dark:text-jobzai-400">
+                                    <LinkIcon className="w-5 h-5" />
                                   </div>
-                                </div>
+                                  <div className="flex-1">
+                                    <div className="font-medium text-gray-800 dark:text-white text-base mb-1">{resource.title}</div>
+                                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">{resource.description}</p>
+                                  </div>
+                                </motion.a>
+                              ))}
+                            </div>
+                            <div className="mt-6 p-4 border-t border-gray-200 dark:border-[#3d3c3e]">
+                              <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3">Your resources</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                                {(resourcesData?.savedLinks || []).map(link => (
+                                  <div key={link.id} className="relative p-4 border border-gray-200 dark:border-[#3d3c3e] rounded-xl hover:shadow-md transition-shadow bg-white dark:bg-[#2b2a2c] group">
+                                    <button
+                                      onClick={async () => {
+                                        const updated = { ...(resourcesData || {}), savedLinks: (resourcesData?.savedLinks || []).filter(l => l.id !== link.id) } as Interview['resourcesData'];
+                                        setResourcesData(updated);
+                                        await saveResourcesData(updated);
+                                      }}
+                                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-opacity p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/30"
+                                      title="Remove"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                    <div className="flex items-start gap-3 pr-8">
+                                      <div className="mt-0.5 text-jobzai-600 dark:text-jobzai-400 flex-shrink-0"><LinkIcon className="w-4 h-4" /></div>
+                                      <div className="flex-1 min-w-0">
+                                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="font-medium text-gray-800 dark:text-white text-sm hover:text-jobzai-700 dark:hover:text-jobzai-300 block mb-1 truncate" title={link.title}>{link.title}</a>
+                                        <div className="text-xs text-gray-500 truncate" title={link.url}>{shortenText(link.url, 40)}</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                                {(!resourcesData?.savedLinks || resourcesData.savedLinks.length === 0) && (
+                                  <div className="text-sm text-gray-500 dark:text-gray-400 col-span-full text-center py-4">No custom resources yet. Add one below.</div>
+                                )}
                               </div>
-                            ))}
-                            {(!resourcesData?.savedLinks || resourcesData.savedLinks.length === 0) && (
-                              <div className="text-sm text-gray-500 dark:text-gray-400 col-span-full text-center py-4">No custom resources yet. Add one below.</div>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                <input value={newResourceTitle} onChange={(e) => setNewResourceTitle(e.target.value)} placeholder="Title" className="px-3 py-2 rounded-lg border dark:bg-[#2b2a2c] dark:border-[#3d3c3e]" />
+                                <input value={newResourceUrl} onChange={(e) => setNewResourceUrl(e.target.value)} placeholder="https://..." className="px-3 py-2 rounded-lg border dark:bg-[#2b2a2c] dark:border-[#3d3c3e]" />
+                                <button onClick={async () => {
+                                  const t = newResourceTitle.trim();
+                                  const u = newResourceUrl.trim();
+                                  if (!t || !u) return;
+                                  const newLink = { id: uuidv4(), title: t, url: u };
+                                  const updated = { ...(resourcesData || {}), savedLinks: [...(resourcesData?.savedLinks || []), newLink] } as Interview['resourcesData'];
+                                  setResourcesData(updated);
+                                  setNewResourceTitle(''); setNewResourceUrl('');
+                                  await saveResourcesData(updated);
+                                }} className="px-3 py-2 rounded-lg bg-jobzai-600 text-white hover:bg-jobzai-700">Add</button>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {false && tab === 'chat_old' && (
+                        <motion.div
+                          key="chat_old"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
+                          className="bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-200 dark:border-[#3d3c3e] flex flex-col h-[750px] sm:h-[800px] shadow-lg overflow-hidden backdrop-blur-sm"
+                        >
+                          {/* Compact Header - Apple style */}
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="px-5 py-3.5 border-b border-gray-200/60 dark:border-[#3d3c3e]/50 bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl flex items-center justify-between sticky top-0 z-10"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-jobzai-500 to-jobzai-600 flex items-center justify-center shadow-sm">
+                                <MessageSquare className="w-4 h-4 text-white" />
+                              </div>
+                              <h3 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+                                Interview Trainer
+                              </h3>
+                            </div>
+                            {chatMessages.length > 0 && (
+                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                                <span>Online</span>
+                              </div>
                             )}
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                            <input value={newResourceTitle} onChange={(e) => setNewResourceTitle(e.target.value)} placeholder="Title" className="px-3 py-2 rounded-lg border dark:bg-[#2b2a2c] dark:border-[#3d3c3e]" />
-                            <input value={newResourceUrl} onChange={(e) => setNewResourceUrl(e.target.value)} placeholder="https://..." className="px-3 py-2 rounded-lg border dark:bg-[#2b2a2c] dark:border-[#3d3c3e]" />
-                            <button onClick={async () => {
-                              const t = newResourceTitle.trim();
-                              const u = newResourceUrl.trim();
-                              if (!t || !u) return;
-                              const newLink = { id: uuidv4(), title: t, url: u };
-                              const updated = { ...(resourcesData || {}), savedLinks: [...(resourcesData?.savedLinks || []), newLink] } as Interview['resourcesData'];
-                              setResourcesData(updated);
-                              setNewResourceTitle(''); setNewResourceUrl('');
-                              await saveResourcesData(updated);
-                            }} className="px-3 py-2 rounded-lg bg-jobzai-600 text-white hover:bg-jobzai-700">Add</button>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
+                          </motion.div>
 
-                  {false && tab === 'chat_old' && (
-                    <motion.div
-                      key="chat_old"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
-                      className="bg-white dark:bg-[#2b2a2c] rounded-2xl border border-gray-200 dark:border-[#3d3c3e] flex flex-col h-[750px] sm:h-[800px] shadow-lg overflow-hidden backdrop-blur-sm"
-                    >
-                      {/* Compact Header - Apple style */}
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="px-5 py-3.5 border-b border-gray-200/60 dark:border-[#3d3c3e]/50 bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl flex items-center justify-between sticky top-0 z-10"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-jobzai-500 to-jobzai-600 flex items-center justify-center shadow-sm">
-                            <MessageSquare className="w-4 h-4 text-white" />
-                          </div>
-                          <h3 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
-                            Interview Trainer
-                          </h3>
-                        </div>
-                        {chatMessages.length > 0 && (
-                          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                            <span>Online</span>
-                          </div>
-                        )}
-                      </motion.div>
-
-                      {/* Chat messages area avec scroll personnalisé */}
-                      <div
-                        ref={chatContainerRef}
-                        className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-4 bg-gradient-to-b from-gray-50/30 via-white to-white dark:from-[#242325]/20 dark:via-[#242325]/10 dark:to-[#242325]/20 scrollbar-thin scrollbar-thumb-jobzai-200 scrollbar-track-transparent relative"
-                      >
-                        {/* Scroll to bottom button - appears when user scrolls up */}
-                        <AnimatePresence>
-                          {!isUserNearBottom && chatMessages.length > 2 && (
-                            <motion.button
-                              initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                              onClick={() => {
-                                if (chatEndRef.current) {
-                                  chatEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
-                                  setIsUserNearBottom(true);
-                                }
-                              }}
-                              className="sticky bottom-4 left-1/2 -translate-x-1/2 z-20 mx-auto px-4 py-2 rounded-full bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-xl border border-gray-200/60 dark:border-[#3d3c3e]/50 shadow-lg hover:shadow-xl transition-all flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-jobzai-600 dark:hover:text-jobzai-400"
-                            >
-                              <ChevronDown className="w-4 h-4" />
-                              <span>New messages</span>
-                            </motion.button>
-                          )}
-                        </AnimatePresence>
-                        <style>{`
+                          {/* Chat messages area avec scroll personnalisé */}
+                          <div
+                            ref={chatContainerRef}
+                            className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-4 bg-gradient-to-b from-gray-50/30 via-white to-white dark:from-[#242325]/20 dark:via-[#242325]/10 dark:to-[#242325]/20 scrollbar-thin scrollbar-thumb-jobzai-200 scrollbar-track-transparent relative"
+                          >
+                            {/* Scroll to bottom button - appears when user scrolls up */}
+                            <AnimatePresence>
+                              {!isUserNearBottom && chatMessages.length > 2 && (
+                                <motion.button
+                                  initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                                  onClick={() => {
+                                    if (chatEndRef.current) {
+                                      chatEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                                      setIsUserNearBottom(true);
+                                    }
+                                  }}
+                                  className="sticky bottom-4 left-1/2 -translate-x-1/2 z-20 mx-auto px-4 py-2 rounded-full bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-xl border border-gray-200/60 dark:border-[#3d3c3e]/50 shadow-lg hover:shadow-xl transition-all flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-jobzai-600 dark:hover:text-jobzai-400"
+                                >
+                                  <ChevronDown className="w-4 h-4" />
+                                  <span>New messages</span>
+                                </motion.button>
+                              )}
+                            </AnimatePresence>
+                            <style>{`
                         .scrollbar-thin::-webkit-scrollbar {
                           width: 6px;
                         }
@@ -5890,1132 +6040,1283 @@ Return ONLY the pitch text, no explanations or formatting.`;
                         }
                       `}</style>
 
-                        {chatMessages.length === 0 ? (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.4 }}
-                            className="h-full flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4"
-                          >
-                            <motion.div
-                              initial={{ scale: 0.8, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                              className="w-20 h-20 rounded-2xl bg-gradient-to-br from-jobzai-100 to-jobzai-200 dark:from-jobzai-900/40 dark:to-jobzai-800/40 flex items-center justify-center mb-5 shadow-lg"
-                            >
-                              <MessageSquare className="w-10 h-10 text-jobzai-500 dark:text-jobzai-400" />
-                            </motion.div>
-                            <motion.p
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: 0.3 }}
-                              className="text-center max-w-md font-semibold mb-1.5 text-base text-gray-900 dark:text-white"
-                            >
-                              Start practicing with your AI trainer
-                            </motion.p>
-                            <motion.p
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: 0.4 }}
-                              className="text-center text-xs max-w-md mb-6 text-gray-500 dark:text-gray-400"
-                            >
-                              Get personalized feedback and practice answers
-                            </motion.p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-2xl">
-                              {(() => {
-                                const suggestions = interview?.preparation?.suggestedQuestions && interview.preparation.suggestedQuestions.length > 0
-                                  ? [
-                                    "How should I introduce myself for this role?",
-                                    `What are the most common questions for a ${application?.position || 'this role'}?`,
-                                    "How can I highlight my relevant experience?",
-                                    "Can you help me practice answering behavioral questions?"
-                                  ]
-                                  : [
-                                    "How should I introduce myself?",
-                                    "What are the most common questions for this role?",
-                                    "How can I highlight my relevant experience?",
-                                    "Can you help me practice answering questions?"
-                                  ];
-
-                                return suggestions.map((suggestion, i) => (
-                                  <motion.button
-                                    key={i}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.5 + i * 0.1 }}
-                                    whileHover={{
-                                      scale: 1.02,
-                                      y: -2,
-                                      transition: { duration: 0.2 }
-                                    }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => {
-                                      setMessage(suggestion);
-                                      // Auto-scroll to input after selecting
-                                      setTimeout(() => {
-                                        const input = document.querySelector('textarea[placeholder*="Ask a question"]') as HTMLTextAreaElement;
-                                        input?.focus();
-                                      }, 100);
-                                    }}
-                                    className="text-xs text-left p-3 border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-lg hover:border-jobzai-300/60 dark:hover:border-jobzai-700/50 hover:bg-jobzai-50/60 dark:hover:bg-jobzai-900/20 transition-all shadow-sm hover:shadow-md backdrop-blur-sm bg-white/50 dark:bg-[#2b2a2c]/50"
-                                  >
-                                    <div className="flex items-center gap-2.5">
-                                      <div className="w-7 h-7 rounded-lg bg-jobzai-100/80 dark:bg-jobzai-900/30 flex items-center justify-center flex-shrink-0">
-                                        <MessageSquare className="w-3.5 h-3.5 text-jobzai-600 dark:text-jobzai-400" />
-                                      </div>
-                                      <span className="text-gray-700 dark:text-gray-300 font-medium leading-snug">{suggestion}</span>
-                                    </div>
-                                  </motion.button>
-                                ));
-                              })()}
-                            </div>
-                          </motion.div>
-                        ) : (
-                          chatMessages.map((msg, index) => {
-                            // Handle the special thinking message - Elegant Apple-style indicator
-                            if (msg.role === 'assistant' && msg.content === '__thinking__') {
-                              return (
-                                <motion.div
-                                  key={index}
-                                  initial={{ opacity: 0, x: -20, scale: 0.95 }}
-                                  animate={{ opacity: 1, x: 0, scale: 1 }}
-                                  transition={{
-                                    type: "spring",
-                                    stiffness: 300,
-                                    damping: 25,
-                                    duration: 0.4
-                                  }}
-                                  className="flex justify-start"
-                                >
-                                  <div className="flex items-start gap-3 max-w-[70%] sm:max-w-[65%] flex-row">
-                                    <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                                      className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-jobzai-500 via-jobzai-500 to-jobzai-600 shadow-md ring-1 ring-jobzai-200/50 dark:ring-jobzai-900/50"
-                                    >
-                                      <Bot className="w-4 h-4 text-white" />
-                                    </motion.div>
-                                    <motion.div
-                                      initial={{ opacity: 0, scale: 0.9 }}
-                                      animate={{ opacity: 1, scale: 1 }}
-                                      transition={{ delay: 0.1 }}
-                                      className="px-4 py-3 rounded-2xl rounded-tl-sm bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-sm border border-gray-200/60 dark:border-[#3d3c3e]/50 shadow-sm"
-                                    >
-                                      <div className="flex items-center gap-3">
-                                        {/* Elegant thinking indicator - Apple style */}
-                                        <div className="flex items-center gap-1">
-                                          <motion.div
-                                            className="w-1.5 h-1.5 rounded-full bg-gradient-to-br from-jobzai-400 to-jobzai-500"
-                                            animate={{
-                                              scale: [1, 1.2, 1],
-                                              opacity: [0.5, 1, 0.5],
-                                            }}
-                                            transition={{
-                                              duration: 1.2,
-                                              repeat: Infinity,
-                                              ease: "easeInOut",
-                                              delay: 0,
-                                            }}
-                                          />
-                                          <motion.div
-                                            className="w-1.5 h-1.5 rounded-full bg-gradient-to-br from-jobzai-400 to-jobzai-500"
-                                            animate={{
-                                              scale: [1, 1.2, 1],
-                                              opacity: [0.5, 1, 0.5],
-                                            }}
-                                            transition={{
-                                              duration: 1.2,
-                                              repeat: Infinity,
-                                              ease: "easeInOut",
-                                              delay: 0.3,
-                                            }}
-                                          />
-                                          <motion.div
-                                            className="w-1.5 h-1.5 rounded-full bg-gradient-to-br from-jobzai-400 to-jobzai-500"
-                                            animate={{
-                                              scale: [1, 1.2, 1],
-                                              opacity: [0.5, 1, 0.5],
-                                            }}
-                                            transition={{
-                                              duration: 1.2,
-                                              repeat: Infinity,
-                                              ease: "easeInOut",
-                                              delay: 0.6,
-                                            }}
-                                          />
-                                        </div>
-                                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400 tracking-tight">
-                                          Processing...
-                                        </span>
-                                      </div>
-                                    </motion.div>
-                                  </div>
-                                </motion.div>
-                              );
-                            }
-
-                            // Get display content - use typing animation for assistant messages only
-                            let displayContent = msg.content;
-
-                            // Format displayContent to handle thinking indicators
-                            if (msg.role === 'assistant' && displayContent.includes('<think>')) {
-                              displayContent = displayContent.replace(/<think>[\s\S]*<\/think>/g, '');
-                            }
-
-                            // Use typing animation ONLY for assistant messages
-                            if (msg.role === 'assistant' && msg.content !== '__thinking__') {
-                              const fullText = displayContent.replace(/<think>[\s\S]*<\/think>/g, '').trim();
-                              // Use typed text if available and animation is in progress, otherwise show full text
-                              if (typingMessages[index] !== undefined && typingMessages[index].length < fullText.length) {
-                                displayContent = typingMessages[index];
-                              } else {
-                                displayContent = fullText;
-                              }
-                            }
-                            // For user messages, always show full content immediately
-
-                            return (
+                            {chatMessages.length === 0 ? (
                               <motion.div
-                                key={index}
-                                initial={{ opacity: 0, y: 15, scale: 0.96 }}
-                                animate={{
-                                  opacity: 1,
-                                  y: 0,
-                                  scale: 1,
-                                  transition: {
-                                    type: "spring",
-                                    stiffness: 400,
-                                    damping: 30,
-                                    duration: 0.5
-                                  }
-                                }}
-                                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.4 }}
+                                className="h-full flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4"
                               >
-                                <div className={`
-                                flex items-start gap-3 max-w-[75%] sm:max-w-[70%] 
-                                ${msg.role === 'user'
-                                    ? 'flex-row-reverse'
-                                    : 'flex-row'}
-                              `}>
-                                  <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ delay: 0.1, type: "spring", stiffness: 300 }}
-                                    className={`
-                                    w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ring-1
-                                    ${msg.role === 'user'
-                                        ? 'bg-gradient-to-br from-jobzai-500 via-jobzai-600 to-jobzai-700 ring-jobzai-200/50 dark:ring-jobzai-900/30'
-                                        : 'bg-gradient-to-br from-jobzai-500 via-jobzai-500 to-jobzai-600 ring-jobzai-200/50 dark:ring-jobzai-900/30'}
-                                  `}
-                                  >
-                                    {msg.role === 'user'
-                                      ? <User className="w-4 h-4 text-white" />
-                                      : <Bot className="w-4 h-4 text-white" />}
-                                  </motion.div>
-                                  <motion.div
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: 0.05 }}
-                                    className={`
-                                    px-4 py-3 rounded-xl shadow-sm backdrop-blur-sm
-                                    ${msg.role === 'user'
-                                        ? 'bg-gradient-to-br from-jobzai-600 to-jobzai-700 text-white rounded-tr-sm'
-                                        : 'bg-white/90 dark:bg-[#2b2a2c]/90 text-gray-800 dark:text-gray-200 rounded-tl-sm border border-gray-200/60 dark:border-[#3d3c3e]/50'}
-                                  `}
-                                  >
-                                    <p className="text-sm leading-6 whitespace-pre-wrap break-words">{displayContent}</p>
+                                <motion.div
+                                  initial={{ scale: 0.8, opacity: 0 }}
+                                  animate={{ scale: 1, opacity: 1 }}
+                                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                                  className="w-20 h-20 rounded-2xl bg-gradient-to-br from-jobzai-100 to-jobzai-200 dark:from-jobzai-900/40 dark:to-jobzai-800/40 flex items-center justify-center mb-5 shadow-lg"
+                                >
+                                  <MessageSquare className="w-10 h-10 text-jobzai-500 dark:text-jobzai-400" />
+                                </motion.div>
+                                <motion.p
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: 0.3 }}
+                                  className="text-center max-w-md font-semibold mb-1.5 text-base text-gray-900 dark:text-white"
+                                >
+                                  Start practicing with your AI trainer
+                                </motion.p>
+                                <motion.p
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: 0.4 }}
+                                  className="text-center text-xs max-w-md mb-6 text-gray-500 dark:text-gray-400"
+                                >
+                                  Get personalized feedback and practice answers
+                                </motion.p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-2xl">
+                                  {(() => {
+                                    const suggestions = interview?.preparation?.suggestedQuestions && interview.preparation.suggestedQuestions.length > 0
+                                      ? [
+                                        "How should I introduce myself for this role?",
+                                        `What are the most common questions for a ${application?.position || 'this role'}?`,
+                                        "How can I highlight my relevant experience?",
+                                        "Can you help me practice answering behavioral questions?"
+                                      ]
+                                      : [
+                                        "How should I introduce myself?",
+                                        "What are the most common questions for this role?",
+                                        "How can I highlight my relevant experience?",
+                                        "Can you help me practice answering questions?"
+                                      ];
 
-                                    {/* Typing cursor for assistant messages that are still typing */}
-                                    {msg.role === 'assistant' &&
-                                      msg.content !== '__thinking__' &&
-                                      typingMessages[index] !== undefined &&
-                                      (() => {
-                                        const fullText = msg.content.replace(/<think>[\s\S]*<\/think>/g, '').trim();
-                                        const typedText = typingMessages[index] || '';
-                                        return typedText.length > 0 && typedText.length < fullText.length;
-                                      })() && (
-                                        <span className="inline-block w-0.5 h-4 bg-jobzai-500 dark:bg-jobzai-400 ml-1 animate-pulse" />
-                                      )}
-
-                                    <div className={`text-[10px] mt-2 flex items-center justify-end gap-1
-                                    ${msg.role === 'user'
-                                        ? 'text-jobzai-200/70'
-                                        : 'text-gray-400 dark:text-gray-500'}
-                                  `}>
-                                      <ClockIcon className="w-3 h-3" />
-                                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </div>
-                                  </motion.div>
+                                    return suggestions.map((suggestion, i) => (
+                                      <motion.button
+                                        key={i}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.5 + i * 0.1 }}
+                                        whileHover={{
+                                          scale: 1.02,
+                                          y: -2,
+                                          transition: { duration: 0.2 }
+                                        }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => {
+                                          setMessage(suggestion);
+                                          // Auto-scroll to input after selecting
+                                          setTimeout(() => {
+                                            const input = document.querySelector('textarea[placeholder*="Ask a question"]') as HTMLTextAreaElement;
+                                            input?.focus();
+                                          }, 100);
+                                        }}
+                                        className="text-xs text-left p-3 border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-lg hover:border-jobzai-300/60 dark:hover:border-jobzai-700/50 hover:bg-jobzai-50/60 dark:hover:bg-jobzai-900/20 transition-all shadow-sm hover:shadow-md backdrop-blur-sm bg-white/50 dark:bg-[#2b2a2c]/50"
+                                      >
+                                        <div className="flex items-center gap-2.5">
+                                          <div className="w-7 h-7 rounded-lg bg-jobzai-100/80 dark:bg-jobzai-900/30 flex items-center justify-center flex-shrink-0">
+                                            <MessageSquare className="w-3.5 h-3.5 text-jobzai-600 dark:text-jobzai-400" />
+                                          </div>
+                                          <span className="text-gray-700 dark:text-gray-300 font-medium leading-snug">{suggestion}</span>
+                                        </div>
+                                      </motion.button>
+                                    ));
+                                  })()}
                                 </div>
                               </motion.div>
-                            );
-                          })
-                        )}
-                        <div ref={chatEndRef} />
-                      </div>
-
-                      {/* Input area améliorée - Apple style */}
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="px-5 sm:px-6 py-4 border-t border-gray-200/60 dark:border-[#3d3c3e]/50 bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl relative"
-                      >
-                        <div className="flex gap-3 items-end">
-                          <div className="relative flex-1">
-                            <motion.textarea
-                              value={message}
-                              onChange={(e) => setMessage(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                  e.preventDefault();
-                                  sendMessage();
-                                }
-                              }}
-                              placeholder="Ask a question or practice an answer..."
-                              rows={1}
-                              className="w-full p-4 pr-14 text-sm bg-gray-50/80 dark:bg-[#242325]/50 border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-xl focus:ring-2 focus:ring-jobzai-500/50 focus:border-jobzai-500/50 dark:text-white resize-none min-h-[52px] max-h-[140px] transition-all shadow-sm hover:shadow-md focus:shadow-lg leading-5"
-                              style={{
-                                height: 'auto',
-                                overflow: 'hidden'
-                              }}
-                              disabled={isSending}
-                              whileFocus={{ scale: 1.005 }}
-                            />
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={sendMessage}
-                              disabled={!message.trim() || isSending}
-                              className="absolute right-2.5 bottom-2.5 p-2.5 rounded-lg bg-gradient-to-br from-jobzai-600 to-jobzai-700 text-white hover:from-jobzai-700 hover:to-jobzai-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center shadow-md hover:shadow-lg"
-                            >
-                              {isSending ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Send className="w-4 h-4" />
-                              )}
-                            </motion.button>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between mt-2.5">
-                          <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.3 }}
-                            className="text-[10px] text-gray-400 dark:text-gray-500 flex items-center gap-1.5"
-                          >
-                            <HelpCircle className="w-3 h-3" />
-                            <span>Enter to send • Shift+Enter for new line</span>
-                          </motion.p>
-                          {chatMessages.length > 0 && (
-                            <button
-                              onClick={async () => {
-                                if (currentUser && application && interview && applicationId) {
-                                  try {
-                                    await saveChatHistory([]);
-                                    setChatMessages([]);
-                                    setMessage('');
-                                    notify.success('Chat cleared');
-                                  } catch (error) {
-                                    notify.error('Failed to clear chat');
-                                  }
-                                } else {
-                                  setChatMessages([]);
-                                  setMessage('');
-                                }
-                              }}
-                              className="text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex items-center gap-1"
-                            >
-                              <X className="w-3 h-3" />
-                              <span>Clear chat</span>
-                            </button>
-                          )}
-                        </div>
-                      </motion.div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              )}
-            </div>
-
-            {/* Interview Whiteboard - Miro-like board - Lazy loaded */}
-            <LazySection minHeight="600px" rootMargin="50px">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.03] transition-all duration-300 hover:shadow-md dark:bg-neutral-900/50 dark:ring-white/[0.05] mb-8"
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-neutral-800">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-900/20">
-                      <StickyNote className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
-                        Interview Notes
-                      </h3>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        Visual workspace for your ideas
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      const whiteboardElement = document.querySelector('[data-whiteboard-toggle]') as HTMLElement;
-                      if (whiteboardElement) {
-                        whiteboardElement.click();
-                      }
-                    }}
-                    className="group inline-flex items-center gap-2 rounded-lg bg-gray-50 px-3.5 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-200/50 transition-all duration-200 hover:bg-gray-100 hover:ring-gray-300/50 dark:bg-white/[0.03] dark:text-gray-300 dark:ring-white/[0.05] dark:hover:bg-white/[0.06] dark:hover:ring-white/10"
-                    title="Expand whiteboard"
-                  >
-                    <Maximize2 className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
-                    <span>Expand</span>
-                  </button>
-                </div>
-
-                {/* Whiteboard Content - Using tldraw */}
-                <div className="h-[600px] bg-gray-50/50 dark:bg-neutral-950/30">
-                  {applicationId && interviewId && (
-                    <TldrawWhiteboard
-                      ref={tldrawWhiteboardRef}
-                      applicationId={applicationId}
-                      interviewId={interviewId}
-                      height={600}
-                    />
-                  )}
-                </div>
-              </motion.div>
-            </LazySection>
-
-            {/* Old sticky notes section - commented out for reference */}
-            {false && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className={`${isNotesExpanded
-                  ? 'fixed inset-4 z-50 bg-white dark:bg-[#2b2a2c] overflow-hidden'
-                  : 'bg-white dark:bg-[#2b2a2c] rounded-xl p-6 border border-gray-200 dark:border-[#3d3c3e] shadow-sm mb-8'
-                  }`}
-              >
-                {/* Header with title and buttons */}
-                <div className={`flex items-center ${isNotesExpanded ? 'p-6 border-b border-gray-200 dark:border-[#3d3c3e] relative z-[60] bg-white dark:bg-[#2b2a2c]' : 'mb-6'}`}>
-                  {/* Left: Title */}
-                  <div className="flex-1 flex items-center gap-3">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                      <StickyNote className="w-5 h-5 text-amber-500" />
-                      Interview Notes
-                      {filteredNotes.length !== stickyNotes.length && (
-                        <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                          ({filteredNotes.length}/{stickyNotes.length})
-                        </span>
-                      )}
-                    </h3>
-                  </div>
-
-                  {/* Center: Collapse button (only when expanded) */}
-                  {isNotesExpanded && (
-                    <div className="absolute left-1/2 transform -translate-x-1/2">
-                      <button
-                        onClick={() => setIsNotesExpanded(false)}
-                        className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors bg-gray-50 dark:bg-[#3d3c3e]/50"
-                        title="Collapse"
-                      >
-                        <Minimize2 className="w-5 h-5" />
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Right: Other buttons */}
-                  <div className="flex-1 flex items-center justify-end gap-2">
-                    {!isNotesExpanded && (
-                      <>
-                        <select
-                          value={filterColor || ''}
-                          onChange={(e) => setFilterColor(e.target.value || null)}
-                          className="px-3 py-2 border border-gray-300 dark:border-[#4a494b] rounded-lg bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-jobzai-500"
-                        >
-                          <option value="">All Colors</option>
-                          <option value="#ffeb3b">Yellow</option>
-                          <option value="#4fc3f7">Blue</option>
-                          <option value="#81c784">Green</option>
-                          <option value="#ff8a65">Orange</option>
-                          <option value="#f48fb1">Pink</option>
-                          <option value="#ba68c8">Purple</option>
-                        </select>
-                        {filterColor && (
-                          <button
-                            onClick={() => setFilterColor(null)}
-                            className="px-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
-                            title="Clear filter"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
-                        <button
-                          onClick={createNewNote}
-                          className="px-3 py-2 bg-gradient-to-r from-jobzai-500 to-jobzai-600 text-white rounded-lg hover:from-jobzai-600 hover:to-jobzai-700 transition-colors text-sm flex items-center gap-1.5 shadow-sm"
-                        >
-                          <Plus className="w-4 h-4" />
-                          New Note
-                        </button>
-                        <button
-                          onClick={toggleNotesExpanded}
-                          className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors"
-                          title="Expand"
-                        >
-                          <Maximize2 className="w-5 h-5" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <AnimatePresence>
-                  {isNotesExpanded ? (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="relative h-[calc(100%-80px)] overflow-hidden bg-gray-50 dark:bg-[#242325]/50 flex"
-                    >
-                      {/* Tools Menu - Left Side */}
-                      <div className="relative z-20">
-                        <div
-                          className="tool-menu h-full bg-white dark:bg-[#2b2a2c] rounded-l-2xl shadow-lg border-r border-gray-200 dark:border-[#3d3c3e] flex flex-col items-center overflow-y-auto"
-                          style={{ padding: '8px', gap: '4px' }}
-                        >
-                          {/* Close button */}
-                          <button
-                            onClick={() => setIsNotesExpanded(false)}
-                            className="w-6 h-6 rounded-full bg-gray-100 dark:bg-[#3d3c3e] hover:bg-gray-200 dark:hover:bg-[#4a494b] flex items-center justify-center transition-colors mb-1"
-                          >
-                            <X className="w-3 h-3 text-gray-600 dark:text-gray-300" />
-                          </button>
-
-                          {/* Essential tools only - most used */}
-                          <button
-                            onClick={() => {
-                              setSelectedTool('select');
-                              setShowToolSubmenu(false);
-                            }}
-                            className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${selectedTool === 'select'
-                              ? 'bg-jobzai-100 dark:bg-jobzai-900/30 text-jobzai-600 dark:text-jobzai-400'
-                              : 'hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-600 dark:text-gray-400'
-                              }`}
-                            title="Select"
-                          >
-                            <MousePointer className="w-3.5 h-3.5" />
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setSelectedTool('sticky');
-                              setShowToolSubmenu(false);
-                              createNewNote();
-                            }}
-                            className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${selectedTool === 'sticky'
-                              ? 'bg-jobzai-100 dark:bg-jobzai-900/30 text-jobzai-600 dark:text-jobzai-400'
-                              : 'hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-600 dark:text-gray-400'
-                              }`}
-                            title="New Sticky Note"
-                          >
-                            <StickyNote className="w-3.5 h-3.5" />
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setSelectedTool('pen');
-                              setShowToolSubmenu(true);
-                            }}
-                            className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${selectedTool === 'pen'
-                              ? 'bg-jobzai-100 dark:bg-jobzai-900/30 text-jobzai-600 dark:text-jobzai-400'
-                              : 'hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-600 dark:text-gray-400'
-                              }`}
-                            title="Draw"
-                          >
-                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M12 19l7-7 3 3-7 7-3-3z" />
-                              <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
-                              <path d="M2 2l7.586 7.586" />
-                              <circle cx="11" cy="11" r="2" />
-                            </svg>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setSelectedTool('text');
-                              setShowToolSubmenu(false);
-                            }}
-                            className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${selectedTool === 'text'
-                              ? 'bg-jobzai-100 dark:bg-jobzai-900/30 text-jobzai-600 dark:text-jobzai-400'
-                              : 'hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-600 dark:text-gray-400'
-                              }`}
-                            title="Text"
-                          >
-                            <span className="text-sm font-bold">T</span>
-                          </button>
-                        </div>
-
-                        {/* Submenu for pen tool */}
-                        {showToolSubmenu && selectedTool === 'pen' && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="tool-submenu absolute left-0 top-full mt-2 bg-white dark:bg-[#2b2a2c] rounded-lg shadow-lg border border-gray-200 dark:border-[#3d3c3e] p-2 min-w-[100px] z-50"
-                          >
-                            <div className="space-y-1.5">
-                              {/* Color options */}
-                              <div className="space-y-1">
-                                <div className="text-[10px] font-medium text-gray-600 dark:text-gray-400 mb-1">Colors</div>
-                                {[
-                                  { color: '#3b82f6', name: 'Blue' },
-                                  { color: '#ef4444', name: 'Red' },
-                                  { color: '#fbbf24', name: 'Yellow' },
-                                  { color: '#ec4899', name: 'Pink' },
-                                ].map((colorOption, idx) => (
-                                  <button
-                                    key={idx}
-                                    onClick={() => setDrawingColor(colorOption.color)}
-                                    className={`w-full flex items-center gap-1.5 p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors ${drawingColor === colorOption.color ? 'bg-jobzai-50 dark:bg-jobzai-900/20' : ''
-                                      }`}
-                                  >
-                                    <div className="w-3 h-3 rounded" style={{ backgroundColor: colorOption.color }}></div>
-                                    <span className="text-[10px] text-gray-700 dark:text-gray-300">{colorOption.name}</span>
-                                  </button>
-                                ))}
-                              </div>
-
-                              {/* Stroke width */}
-                              <div className="pt-1.5 border-t border-gray-200 dark:border-[#3d3c3e]">
-                                <div className="text-[10px] font-medium text-gray-600 dark:text-gray-400 mb-1">Size</div>
-                                <div className="space-y-0.5">
-                                  {[1, 2, 3].map((width) => (
-                                    <button
-                                      key={width}
-                                      onClick={() => setDrawingStrokeWidth(width)}
-                                      className={`w-full flex items-center gap-1.5 p-1 rounded hover:bg-gray-100 dark:hover:bg-[#3d3c3e] ${drawingStrokeWidth === width ? 'bg-jobzai-50 dark:bg-jobzai-900/20' : ''
-                                        }`}
+                            ) : (
+                              chatMessages.map((msg, index) => {
+                                // Handle the special thinking message - Elegant Apple-style indicator
+                                if (msg.role === 'assistant' && msg.content === '__thinking__') {
+                                  return (
+                                    <motion.div
+                                      key={index}
+                                      initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                                      transition={{
+                                        type: "spring",
+                                        stiffness: 300,
+                                        damping: 25,
+                                        duration: 0.4
+                                      }}
+                                      className="flex justify-start"
                                     >
-                                      <div className="flex gap-0.5">
-                                        {Array(width).fill(0).map((_, i) => (
-                                          <div key={i} className="w-0.5 h-3 bg-gray-400 rounded"></div>
-                                        ))}
+                                      <div className="flex items-start gap-3 max-w-[70%] sm:max-w-[65%] flex-row">
+                                        <motion.div
+                                          initial={{ scale: 0 }}
+                                          animate={{ scale: 1 }}
+                                          transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                                          className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-jobzai-500 via-jobzai-500 to-jobzai-600 shadow-md ring-1 ring-jobzai-200/50 dark:ring-jobzai-900/50"
+                                        >
+                                          <Bot className="w-4 h-4 text-white" />
+                                        </motion.div>
+                                        <motion.div
+                                          initial={{ opacity: 0, scale: 0.9 }}
+                                          animate={{ opacity: 1, scale: 1 }}
+                                          transition={{ delay: 0.1 }}
+                                          className="px-4 py-3 rounded-2xl rounded-tl-sm bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-sm border border-gray-200/60 dark:border-[#3d3c3e]/50 shadow-sm"
+                                        >
+                                          <div className="flex items-center gap-3">
+                                            {/* Elegant thinking indicator - Apple style */}
+                                            <div className="flex items-center gap-1">
+                                              <motion.div
+                                                className="w-1.5 h-1.5 rounded-full bg-gradient-to-br from-jobzai-400 to-jobzai-500"
+                                                animate={{
+                                                  scale: [1, 1.2, 1],
+                                                  opacity: [0.5, 1, 0.5],
+                                                }}
+                                                transition={{
+                                                  duration: 1.2,
+                                                  repeat: Infinity,
+                                                  ease: "easeInOut",
+                                                  delay: 0,
+                                                }}
+                                              />
+                                              <motion.div
+                                                className="w-1.5 h-1.5 rounded-full bg-gradient-to-br from-jobzai-400 to-jobzai-500"
+                                                animate={{
+                                                  scale: [1, 1.2, 1],
+                                                  opacity: [0.5, 1, 0.5],
+                                                }}
+                                                transition={{
+                                                  duration: 1.2,
+                                                  repeat: Infinity,
+                                                  ease: "easeInOut",
+                                                  delay: 0.3,
+                                                }}
+                                              />
+                                              <motion.div
+                                                className="w-1.5 h-1.5 rounded-full bg-gradient-to-br from-jobzai-400 to-jobzai-500"
+                                                animate={{
+                                                  scale: [1, 1.2, 1],
+                                                  opacity: [0.5, 1, 0.5],
+                                                }}
+                                                transition={{
+                                                  duration: 1.2,
+                                                  repeat: Infinity,
+                                                  ease: "easeInOut",
+                                                  delay: 0.6,
+                                                }}
+                                              />
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400 tracking-tight">
+                                              Processing...
+                                            </span>
+                                          </div>
+                                        </motion.div>
                                       </div>
-                                    </button>
-                                  ))}
-                                </div>
+                                    </motion.div>
+                                  );
+                                }
+
+                                // Get display content - use typing animation for assistant messages only
+                                let displayContent = msg.content;
+
+                                // Format displayContent to handle thinking indicators
+                                if (msg.role === 'assistant' && displayContent.includes('<think>')) {
+                                  displayContent = displayContent.replace(/<think>[\s\S]*<\/think>/g, '');
+                                }
+
+                                // Use typing animation ONLY for assistant messages
+                                if (msg.role === 'assistant' && msg.content !== '__thinking__') {
+                                  const fullText = displayContent.replace(/<think>[\s\S]*<\/think>/g, '').trim();
+                                  // Use typed text if available and animation is in progress, otherwise show full text
+                                  if (typingMessages[index] !== undefined && typingMessages[index].length < fullText.length) {
+                                    displayContent = typingMessages[index];
+                                  } else {
+                                    displayContent = fullText;
+                                  }
+                                }
+                                // For user messages, always show full content immediately
+
+                                return (
+                                  <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, y: 15, scale: 0.96 }}
+                                    animate={{
+                                      opacity: 1,
+                                      y: 0,
+                                      scale: 1,
+                                      transition: {
+                                        type: "spring",
+                                        stiffness: 400,
+                                        damping: 30,
+                                        duration: 0.5
+                                      }
+                                    }}
+                                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                  >
+                                    <div className={`
+                                flex items-start gap-3 max-w-[75%] sm:max-w-[70%] 
+                                ${msg.role === 'user'
+                                        ? 'flex-row-reverse'
+                                        : 'flex-row'}
+                              `}>
+                                      <motion.div
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        transition={{ delay: 0.1, type: "spring", stiffness: 300 }}
+                                        className={`
+                                    w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ring-1
+                                    ${msg.role === 'user'
+                                            ? 'bg-gradient-to-br from-jobzai-500 via-jobzai-600 to-jobzai-700 ring-jobzai-200/50 dark:ring-jobzai-900/30'
+                                            : 'bg-gradient-to-br from-jobzai-500 via-jobzai-500 to-jobzai-600 ring-jobzai-200/50 dark:ring-jobzai-900/30'}
+                                  `}
+                                      >
+                                        {msg.role === 'user'
+                                          ? <User className="w-4 h-4 text-white" />
+                                          : <Bot className="w-4 h-4 text-white" />}
+                                      </motion.div>
+                                      <motion.div
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: 0.05 }}
+                                        className={`
+                                    px-4 py-3 rounded-xl shadow-sm backdrop-blur-sm
+                                    ${msg.role === 'user'
+                                            ? 'bg-gradient-to-br from-jobzai-600 to-jobzai-700 text-white rounded-tr-sm'
+                                            : 'bg-white/90 dark:bg-[#2b2a2c]/90 text-gray-800 dark:text-gray-200 rounded-tl-sm border border-gray-200/60 dark:border-[#3d3c3e]/50'}
+                                  `}
+                                      >
+                                        <p className="text-sm leading-6 whitespace-pre-wrap break-words">{displayContent}</p>
+
+                                        {/* Typing cursor for assistant messages that are still typing */}
+                                        {msg.role === 'assistant' &&
+                                          msg.content !== '__thinking__' &&
+                                          typingMessages[index] !== undefined &&
+                                          (() => {
+                                            const fullText = msg.content.replace(/<think>[\s\S]*<\/think>/g, '').trim();
+                                            const typedText = typingMessages[index] || '';
+                                            return typedText.length > 0 && typedText.length < fullText.length;
+                                          })() && (
+                                            <span className="inline-block w-0.5 h-4 bg-jobzai-500 dark:bg-jobzai-400 ml-1 animate-pulse" />
+                                          )}
+
+                                        <div className={`text-[10px] mt-2 flex items-center justify-end gap-1
+                                    ${msg.role === 'user'
+                                            ? 'text-jobzai-200/70'
+                                            : 'text-gray-400 dark:text-gray-500'}
+                                  `}>
+                                          <ClockIcon className="w-3 h-3" />
+                                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                      </motion.div>
+                                    </div>
+                                  </motion.div>
+                                );
+                              })
+                            )}
+                            <div ref={chatEndRef} />
+                          </div>
+
+                          {/* Input area améliorée - Apple style */}
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="px-5 sm:px-6 py-4 border-t border-gray-200/60 dark:border-[#3d3c3e]/50 bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-xl relative"
+                          >
+                            <div className="flex gap-3 items-end">
+                              <div className="relative flex-1">
+                                <motion.textarea
+                                  value={message}
+                                  onChange={(e) => setMessage(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                      e.preventDefault();
+                                      sendMessage();
+                                    }
+                                  }}
+                                  placeholder="Ask a question or practice an answer..."
+                                  rows={1}
+                                  className="w-full p-4 pr-14 text-sm bg-gray-50/80 dark:bg-[#242325]/50 border border-gray-200/60 dark:border-[#3d3c3e]/50 rounded-xl focus:ring-2 focus:ring-jobzai-500/50 focus:border-jobzai-500/50 dark:text-white resize-none min-h-[52px] max-h-[140px] transition-all shadow-sm hover:shadow-md focus:shadow-lg leading-5"
+                                  style={{
+                                    height: 'auto',
+                                    overflow: 'hidden'
+                                  }}
+                                  disabled={isSending}
+                                  whileFocus={{ scale: 1.005 }}
+                                />
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={sendMessage}
+                                  disabled={!message.trim() || isSending}
+                                  className="absolute right-2.5 bottom-2.5 p-2.5 rounded-lg bg-gradient-to-br from-jobzai-600 to-jobzai-700 text-white hover:from-jobzai-700 hover:to-jobzai-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center shadow-md hover:shadow-lg"
+                                >
+                                  {isSending ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Send className="w-4 h-4" />
+                                  )}
+                                </motion.button>
                               </div>
                             </div>
+                            <div className="flex items-center justify-between mt-2.5">
+                              <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.3 }}
+                                className="text-[10px] text-gray-400 dark:text-gray-500 flex items-center gap-1.5"
+                              >
+                                <HelpCircle className="w-3 h-3" />
+                                <span>Enter to send • Shift+Enter for new line</span>
+                              </motion.p>
+                              {chatMessages.length > 0 && (
+                                <button
+                                  onClick={async () => {
+                                    if (currentUser && application && interview && applicationId) {
+                                      try {
+                                        await saveChatHistory([]);
+                                        setChatMessages([]);
+                                        setMessage('');
+                                        notify.success('Chat cleared');
+                                      } catch (error) {
+                                        notify.error('Failed to clear chat');
+                                      }
+                                    } else {
+                                      setChatMessages([]);
+                                      setMessage('');
+                                    }
+                                  }}
+                                  className="text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex items-center gap-1"
+                                >
+                                  <X className="w-3 h-3" />
+                                  <span>Clear chat</span>
+                                </button>
+                              )}
+                            </div>
                           </motion.div>
-                        )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  )}
+                </div>
+
+                {/* Interview Whiteboard - Miro-like board - Lazy loaded */}
+                <LazySection minHeight="600px" rootMargin="50px">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                    className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.03] transition-all duration-300 hover:shadow-md dark:bg-neutral-900/50 dark:ring-white/[0.05] mb-8"
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-neutral-800">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-900/20">
+                          <StickyNote className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
+                            Interview Notes
+                          </h3>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Visual workspace for your ideas
+                          </p>
+                        </div>
                       </div>
 
-                      {/* Canvas area */}
-                      <div
-                        className={`relative flex-1 h-full overflow-hidden ${selectedTool === 'pen' ? 'cursor-crosshair' :
-                          selectedTool === 'select' ? 'cursor-default' :
-                            selectedTool === 'text' ? 'cursor-text' :
-                              'cursor-crosshair'
-                          }`}
-                        ref={canvasRef}
-                        onMouseDown={handleCanvasMouseDown}
-                        onMouseMove={handleCanvasMouseMove}
-                        onMouseUp={handleCanvasMouseUp}
-                        onMouseLeave={handleCanvasMouseUp}
+                      <button
+                        onClick={() => {
+                          const whiteboardElement = document.querySelector('[data-whiteboard-toggle]') as HTMLElement;
+                          if (whiteboardElement) {
+                            whiteboardElement.click();
+                          }
+                        }}
+                        className="group inline-flex items-center gap-2 rounded-lg bg-gray-50 px-3.5 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-200/50 transition-all duration-200 hover:bg-gray-100 hover:ring-gray-300/50 dark:bg-white/[0.03] dark:text-gray-300 dark:ring-white/[0.05] dark:hover:bg-white/[0.06] dark:hover:ring-white/10"
+                        title="Expand whiteboard"
                       >
-                        {/* Visual grid background to show canvas area */}
-                        <div
-                          className="absolute inset-0 pointer-events-none"
-                          style={{
-                            backgroundImage: `
+                        <Maximize2 className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+                        <span>Expand</span>
+                      </button>
+                    </div>
+
+                    {/* Whiteboard Content - Using tldraw */}
+                    <div className="h-[600px] bg-gray-50/50 dark:bg-neutral-950/30">
+                      {applicationId && interviewId && (
+                        <TldrawWhiteboard
+                          ref={tldrawWhiteboardRef}
+                          applicationId={applicationId}
+                          interviewId={interviewId}
+                          height={600}
+                        />
+                      )}
+                    </div>
+                  </motion.div>
+                </LazySection>
+
+                {/* Old sticky notes section - commented out for reference */}
+                {false && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className={`${isNotesExpanded
+                      ? 'fixed inset-4 z-50 bg-white dark:bg-[#2b2a2c] overflow-hidden'
+                      : 'bg-white dark:bg-[#2b2a2c] rounded-xl p-6 border border-gray-200 dark:border-[#3d3c3e] shadow-sm mb-8'
+                      }`}
+                  >
+                    {/* Header with title and buttons */}
+                    <div className={`flex items-center ${isNotesExpanded ? 'p-6 border-b border-gray-200 dark:border-[#3d3c3e] relative z-[60] bg-white dark:bg-[#2b2a2c]' : 'mb-6'}`}>
+                      {/* Left: Title */}
+                      <div className="flex-1 flex items-center gap-3">
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                          <StickyNote className="w-5 h-5 text-amber-500" />
+                          Interview Notes
+                          {filteredNotes.length !== stickyNotes.length && (
+                            <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                              ({filteredNotes.length}/{stickyNotes.length})
+                            </span>
+                          )}
+                        </h3>
+                      </div>
+
+                      {/* Center: Collapse button (only when expanded) */}
+                      {isNotesExpanded && (
+                        <div className="absolute left-1/2 transform -translate-x-1/2">
+                          <button
+                            onClick={() => setIsNotesExpanded(false)}
+                            className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors bg-gray-50 dark:bg-[#3d3c3e]/50"
+                            title="Collapse"
+                          >
+                            <Minimize2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Right: Other buttons */}
+                      <div className="flex-1 flex items-center justify-end gap-2">
+                        {!isNotesExpanded && (
+                          <>
+                            <select
+                              value={filterColor || ''}
+                              onChange={(e) => setFilterColor(e.target.value || null)}
+                              className="px-3 py-2 border border-gray-300 dark:border-[#4a494b] rounded-lg bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-jobzai-500"
+                            >
+                              <option value="">All Colors</option>
+                              <option value="#ffeb3b">Yellow</option>
+                              <option value="#4fc3f7">Blue</option>
+                              <option value="#81c784">Green</option>
+                              <option value="#ff8a65">Orange</option>
+                              <option value="#f48fb1">Pink</option>
+                              <option value="#ba68c8">Purple</option>
+                            </select>
+                            {filterColor && (
+                              <button
+                                onClick={() => setFilterColor(null)}
+                                className="px-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
+                                title="Clear filter"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              onClick={createNewNote}
+                              className="px-3 py-2 bg-gradient-to-r from-jobzai-500 to-jobzai-600 text-white rounded-lg hover:from-jobzai-600 hover:to-jobzai-700 transition-colors text-sm flex items-center gap-1.5 shadow-sm"
+                            >
+                              <Plus className="w-4 h-4" />
+                              New Note
+                            </button>
+                            <button
+                              onClick={toggleNotesExpanded}
+                              className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors"
+                              title="Expand"
+                            >
+                              <Maximize2 className="w-5 h-5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <AnimatePresence>
+                      {isNotesExpanded ? (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="relative h-[calc(100%-80px)] overflow-hidden bg-gray-50 dark:bg-[#242325]/50 flex"
+                        >
+                          {/* Tools Menu - Left Side */}
+                          <div className="relative z-20">
+                            <div
+                              className="tool-menu h-full bg-white dark:bg-[#2b2a2c] rounded-l-2xl shadow-lg border-r border-gray-200 dark:border-[#3d3c3e] flex flex-col items-center overflow-y-auto"
+                              style={{ padding: '8px', gap: '4px' }}
+                            >
+                              {/* Close button */}
+                              <button
+                                onClick={() => setIsNotesExpanded(false)}
+                                className="w-6 h-6 rounded-full bg-gray-100 dark:bg-[#3d3c3e] hover:bg-gray-200 dark:hover:bg-[#4a494b] flex items-center justify-center transition-colors mb-1"
+                              >
+                                <X className="w-3 h-3 text-gray-600 dark:text-gray-300" />
+                              </button>
+
+                              {/* Essential tools only - most used */}
+                              <button
+                                onClick={() => {
+                                  setSelectedTool('select');
+                                  setShowToolSubmenu(false);
+                                }}
+                                className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${selectedTool === 'select'
+                                  ? 'bg-jobzai-100 dark:bg-jobzai-900/30 text-jobzai-600 dark:text-jobzai-400'
+                                  : 'hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-600 dark:text-gray-400'
+                                  }`}
+                                title="Select"
+                              >
+                                <MousePointer className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  setSelectedTool('sticky');
+                                  setShowToolSubmenu(false);
+                                  createNewNote();
+                                }}
+                                className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${selectedTool === 'sticky'
+                                  ? 'bg-jobzai-100 dark:bg-jobzai-900/30 text-jobzai-600 dark:text-jobzai-400'
+                                  : 'hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-600 dark:text-gray-400'
+                                  }`}
+                                title="New Sticky Note"
+                              >
+                                <StickyNote className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  setSelectedTool('pen');
+                                  setShowToolSubmenu(true);
+                                }}
+                                className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${selectedTool === 'pen'
+                                  ? 'bg-jobzai-100 dark:bg-jobzai-900/30 text-jobzai-600 dark:text-jobzai-400'
+                                  : 'hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-600 dark:text-gray-400'
+                                  }`}
+                                title="Draw"
+                              >
+                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M12 19l7-7 3 3-7 7-3-3z" />
+                                  <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+                                  <path d="M2 2l7.586 7.586" />
+                                  <circle cx="11" cy="11" r="2" />
+                                </svg>
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  setSelectedTool('text');
+                                  setShowToolSubmenu(false);
+                                }}
+                                className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${selectedTool === 'text'
+                                  ? 'bg-jobzai-100 dark:bg-jobzai-900/30 text-jobzai-600 dark:text-jobzai-400'
+                                  : 'hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-600 dark:text-gray-400'
+                                  }`}
+                                title="Text"
+                              >
+                                <span className="text-sm font-bold">T</span>
+                              </button>
+                            </div>
+
+                            {/* Submenu for pen tool */}
+                            {showToolSubmenu && selectedTool === 'pen' && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="tool-submenu absolute left-0 top-full mt-2 bg-white dark:bg-[#2b2a2c] rounded-lg shadow-lg border border-gray-200 dark:border-[#3d3c3e] p-2 min-w-[100px] z-50"
+                              >
+                                <div className="space-y-1.5">
+                                  {/* Color options */}
+                                  <div className="space-y-1">
+                                    <div className="text-[10px] font-medium text-gray-600 dark:text-gray-400 mb-1">Colors</div>
+                                    {[
+                                      { color: '#3b82f6', name: 'Blue' },
+                                      { color: '#ef4444', name: 'Red' },
+                                      { color: '#fbbf24', name: 'Yellow' },
+                                      { color: '#ec4899', name: 'Pink' },
+                                    ].map((colorOption, idx) => (
+                                      <button
+                                        key={idx}
+                                        onClick={() => setDrawingColor(colorOption.color)}
+                                        className={`w-full flex items-center gap-1.5 p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#3d3c3e] transition-colors ${drawingColor === colorOption.color ? 'bg-jobzai-50 dark:bg-jobzai-900/20' : ''
+                                          }`}
+                                      >
+                                        <div className="w-3 h-3 rounded" style={{ backgroundColor: colorOption.color }}></div>
+                                        <span className="text-[10px] text-gray-700 dark:text-gray-300">{colorOption.name}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+
+                                  {/* Stroke width */}
+                                  <div className="pt-1.5 border-t border-gray-200 dark:border-[#3d3c3e]">
+                                    <div className="text-[10px] font-medium text-gray-600 dark:text-gray-400 mb-1">Size</div>
+                                    <div className="space-y-0.5">
+                                      {[1, 2, 3].map((width) => (
+                                        <button
+                                          key={width}
+                                          onClick={() => setDrawingStrokeWidth(width)}
+                                          className={`w-full flex items-center gap-1.5 p-1 rounded hover:bg-gray-100 dark:hover:bg-[#3d3c3e] ${drawingStrokeWidth === width ? 'bg-jobzai-50 dark:bg-jobzai-900/20' : ''
+                                            }`}
+                                        >
+                                          <div className="flex gap-0.5">
+                                            {Array(width).fill(0).map((_, i) => (
+                                              <div key={i} className="w-0.5 h-3 bg-gray-400 rounded"></div>
+                                            ))}
+                                          </div>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </div>
+
+                          {/* Canvas area */}
+                          <div
+                            className={`relative flex-1 h-full overflow-hidden ${selectedTool === 'pen' ? 'cursor-crosshair' :
+                              selectedTool === 'select' ? 'cursor-default' :
+                                selectedTool === 'text' ? 'cursor-text' :
+                                  'cursor-crosshair'
+                              }`}
+                            ref={canvasRef}
+                            onMouseDown={handleCanvasMouseDown}
+                            onMouseMove={handleCanvasMouseMove}
+                            onMouseUp={handleCanvasMouseUp}
+                            onMouseLeave={handleCanvasMouseUp}
+                          >
+                            {/* Visual grid background to show canvas area */}
+                            <div
+                              className="absolute inset-0 pointer-events-none"
+                              style={{
+                                backgroundImage: `
                           linear-gradient(to right, rgba(156, 163, 175, 0.1) 1px, transparent 1px),
                           linear-gradient(to bottom, rgba(156, 163, 175, 0.1) 1px, transparent 1px)
                         `,
-                            backgroundSize: '100px 100px'
-                          }}
-                        />
+                                backgroundSize: '100px 100px'
+                              }}
+                            />
 
-                        {/* Canvas info overlay */}
-                        <div className="absolute top-4 right-4 bg-white/95 dark:bg-[#2b2a2c]/95 backdrop-blur-sm rounded-lg shadow-lg px-3 py-2.5 z-50 text-xs border border-gray-200 dark:border-[#3d3c3e]">
-                          <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                              <div className="text-gray-700 dark:text-gray-300 font-medium">
-                                Canvas Active
+                            {/* Canvas info overlay */}
+                            <div className="absolute top-4 right-4 bg-white/95 dark:bg-[#2b2a2c]/95 backdrop-blur-sm rounded-lg shadow-lg px-3 py-2.5 z-50 text-xs border border-gray-200 dark:border-[#3d3c3e]">
+                              <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                  <div className="text-gray-700 dark:text-gray-300 font-medium">
+                                    Canvas Active
+                                  </div>
+                                </div>
+                                <div className="text-gray-600 dark:text-gray-400 text-[11px]">
+                                  {CANVAS_MAX_X}×{CANVAS_MAX_Y}px
+                                </div>
+                                <div className="text-jobzai-600 dark:text-jobzai-400 text-[10px] font-medium">
+                                  {stickyNotes.length} note{stickyNotes.length !== 1 ? 's' : ''}
+                                </div>
                               </div>
                             </div>
-                            <div className="text-gray-600 dark:text-gray-400 text-[11px]">
-                              {CANVAS_MAX_X}×{CANVAS_MAX_Y}px
-                            </div>
-                            <div className="text-jobzai-600 dark:text-jobzai-400 text-[10px] font-medium">
-                              {stickyNotes.length} note{stickyNotes.length !== 1 ? 's' : ''}
-                            </div>
-                          </div>
-                        </div>
 
-                        {/* Canvas limit warning */}
-                        <AnimatePresence>
-                          {showCanvasLimitWarning && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10 }}
-                              className="absolute top-16 right-4 bg-amber-500/90 text-white backdrop-blur-sm rounded-lg shadow-lg px-4 py-2 z-50 text-sm font-medium"
+                            {/* Canvas limit warning */}
+                            <AnimatePresence>
+                              {showCanvasLimitWarning && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: -10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -10 }}
+                                  className="absolute top-16 right-4 bg-amber-500/90 text-white backdrop-blur-sm rounded-lg shadow-lg px-4 py-2 z-50 text-sm font-medium"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <AlertTriangle className="w-4 h-4" />
+                                    Canvas limit reached
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+
+                            {/* SVG overlay for drawing */}
+                            <svg
+                              className="absolute inset-0 w-full h-full pointer-events-none"
+                              style={{ zIndex: 10 }}
                             >
-                              <div className="flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4" />
-                                Canvas limit reached
+                              {/* Render all shapes */}
+                              {shapes.map((shape) => {
+                                if (shape.type === 'pen' && shape.path) {
+                                  // Render path for pen drawings
+                                  return (
+                                    <path
+                                      key={shape.id}
+                                      d={shape.path}
+                                      stroke={shape.color}
+                                      strokeWidth={drawingStrokeWidth}
+                                      fill="none"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      className={selectedShape === shape.id ? 'opacity-80' : ''}
+                                    />
+                                  );
+                                }
+                                if (shape.type === 'line' || shape.type === 'arrow') {
+                                  const dx = (shape.endX || 0) - shape.startX;
+                                  const dy = (shape.endY || 0) - shape.startY;
+                                  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                                  return (
+                                    <g key={shape.id}>
+                                      <line
+                                        x1={shape.startX}
+                                        y1={shape.startY}
+                                        x2={shape.endX || shape.startX}
+                                        y2={shape.endY || shape.startY}
+                                        stroke={shape.color}
+                                        strokeWidth={drawingStrokeWidth}
+                                        strokeLinecap="round"
+                                        className={selectedShape === shape.id ? 'opacity-80' : ''}
+                                      />
+                                      {shape.type === 'arrow' && (
+                                        <polygon
+                                          points={`${shape.endX || shape.startX},${shape.endY || shape.startY} ${(shape.endX || shape.startX) - 10},${(shape.endY || shape.startY) - 5} ${(shape.endX || shape.startX) - 10},${(shape.endY || shape.startY) + 5}`}
+                                          fill={shape.color}
+                                          transform={`rotate(${angle} ${shape.endX || shape.startX} ${shape.endY || shape.startY})`}
+                                        />
+                                      )}
+                                    </g>
+                                  );
+                                }
+                                if (shape.type === 'rectangle') {
+                                  return (
+                                    <rect
+                                      key={shape.id}
+                                      x={Math.min(shape.startX, shape.endX || shape.startX)}
+                                      y={Math.min(shape.startY, shape.endY || shape.startY)}
+                                      width={Math.abs((shape.endX || shape.startX) - shape.startX)}
+                                      height={Math.abs((shape.endY || shape.startY) - shape.startY)}
+                                      stroke={shape.color}
+                                      strokeWidth={drawingStrokeWidth}
+                                      fill="none"
+                                      className={selectedShape === shape.id ? 'opacity-80' : ''}
+                                    />
+                                  );
+                                }
+                                if (shape.type === 'circle') {
+                                  const radius = Math.sqrt(
+                                    Math.pow((shape.endX || shape.startX) - shape.startX, 2) +
+                                    Math.pow((shape.endY || shape.startY) - shape.startY, 2)
+                                  );
+                                  return (
+                                    <circle
+                                      key={shape.id}
+                                      cx={shape.startX}
+                                      cy={shape.startY}
+                                      r={radius}
+                                      stroke={shape.color}
+                                      strokeWidth={drawingStrokeWidth}
+                                      fill="none"
+                                      className={selectedShape === shape.id ? 'opacity-80' : ''}
+                                    />
+                                  );
+                                }
+                                return null;
+                              })}
+
+                              {/* Render current drawing shape */}
+                              {drawingShape && (
+                                <>
+                                  {drawingShape.type === 'line' || drawingShape.type === 'arrow' ? (
+                                    <g>
+                                      <line
+                                        x1={drawingShape.startX}
+                                        y1={drawingShape.startY}
+                                        x2={drawingShape.endX || drawingShape.startX}
+                                        y2={drawingShape.endY || drawingShape.startY}
+                                        stroke={drawingShape.color}
+                                        strokeWidth={drawingStrokeWidth}
+                                        strokeLinecap="round"
+                                      />
+                                      {drawingShape.type === 'arrow' && drawingShape.endX && drawingShape.endY && (
+                                        <polygon
+                                          points={`${drawingShape.endX},${drawingShape.endY} ${drawingShape.endX - 10},${drawingShape.endY - 5} ${drawingShape.endX - 10},${drawingShape.endY + 5}`}
+                                          fill={drawingShape.color}
+                                        />
+                                      )}
+                                    </g>
+                                  ) : drawingShape.type === 'rectangle' ? (
+                                    <rect
+                                      x={Math.min(drawingShape.startX, drawingShape.endX || drawingShape.startX)}
+                                      y={Math.min(drawingShape.startY, drawingShape.endY || drawingShape.startY)}
+                                      width={Math.abs((drawingShape.endX || drawingShape.startX) - drawingShape.startX)}
+                                      height={Math.abs((drawingShape.endY || drawingShape.startY) - drawingShape.startY)}
+                                      stroke={drawingShape.color}
+                                      strokeWidth={drawingStrokeWidth}
+                                      fill="none"
+                                    />
+                                  ) : drawingShape.type === 'circle' ? (
+                                    <circle
+                                      cx={drawingShape.startX}
+                                      cy={drawingShape.startY}
+                                      r={Math.sqrt(
+                                        Math.pow((drawingShape.endX || drawingShape.startX) - drawingShape.startX, 2) +
+                                        Math.pow((drawingShape.endY || drawingShape.startY) - drawingShape.startY, 2)
+                                      )}
+                                      stroke={drawingShape.color}
+                                      strokeWidth={drawingStrokeWidth}
+                                      fill="none"
+                                    />
+                                  ) : null}
+                                </>
+                              )}
+
+                              {/* Render current pen path */}
+                              {isDrawingPath && drawingPath && (() => {
+                                // Use dynamic color based on current dark mode state for preview
+                                const isDarkMode = document.documentElement.classList.contains('dark');
+                                const isDefaultColor = drawingColor === '#ef4444' || drawingColor === '#ffffff';
+                                const previewColor = isDefaultColor
+                                  ? (isDarkMode ? '#ffffff' : '#ef4444')
+                                  : drawingColor;
+                                return (
+                                  <path
+                                    d={drawingPath}
+                                    stroke={previewColor}
+                                    strokeWidth={drawingStrokeWidth}
+                                    fill="none"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                );
+                              })()}
+                            </svg>
+
+                            {/* Notes overlay */}
+                            {filteredNotes.length === 0 ? (
+                              <div className="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                                <div className="text-center">
+                                  <StickyNote className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                                  <p className="mb-2">No notes found matching your filter.</p>
+                                  {filterColor && (
+                                    <button
+                                      onClick={() => setFilterColor(null)}
+                                      className="text-jobzai-600 dark:text-jobzai-400 hover:underline"
+                                    >
+                                      Clear filter
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                            ) : (
+                              <Xwrapper>
+                                {filteredNotes.map((note) => {
+                                  const position = notePositions[note.id] || { x: 0, y: 0 };
+                                  return (
+                                    <div
+                                      key={note.id}
+                                      className={`absolute rounded-lg shadow-lg z-20 transition-all duration-200 ${isDraggingNote && draggedNoteId === note.id
+                                        ? 'cursor-grabbing shadow-2xl scale-105 rotate-1'
+                                        : 'hover:shadow-xl'
+                                        } ${isResizing && resizingNoteId === note.id
+                                          ? 'ring-2 ring-jobzai-400 ring-offset-2'
+                                          : !isDraggingNote && 'hover:scale-[1.02]'
+                                        }`}
+                                      style={{
+                                        backgroundColor: note.color,
+                                        width: `${noteSizes[note.id]?.width || note.width || 250}px`,
+                                        height: `${noteSizes[note.id]?.height || note.height || 200}px`,
+                                        left: `${position.x}px`,
+                                        top: `${position.y}px`,
+                                        transition: isDraggingNote && draggedNoteId === note.id
+                                          ? 'none'
+                                          : (isResizing && resizingNoteId === note.id)
+                                            ? 'width 0s, height 0s, transform 0.2s'
+                                            : 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                      }}
+                                      onMouseDown={(e) => {
+                                        // Don't interfere with drag-handle or resize zones
+                                        // Let them handle their own events
+                                        const target = e.target as HTMLElement;
+                                        const isDragHandle = target.classList.contains('drag-handle') ||
+                                          target.closest('.drag-handle') !== null;
+                                        const isResizeZone = target.classList.contains('resize-zone') ||
+                                          target.closest('.resize-zone') !== null;
 
-                        {/* SVG overlay for drawing */}
-                        <svg
-                          className="absolute inset-0 w-full h-full pointer-events-none"
-                          style={{ zIndex: 10 }}
-                        >
-                          {/* Render all shapes */}
-                          {shapes.map((shape) => {
-                            if (shape.type === 'pen' && shape.path) {
-                              // Render path for pen drawings
-                              return (
-                                <path
-                                  key={shape.id}
-                                  d={shape.path}
-                                  stroke={shape.color}
-                                  strokeWidth={drawingStrokeWidth}
-                                  fill="none"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className={selectedShape === shape.id ? 'opacity-80' : ''}
-                                />
-                              );
-                            }
-                            if (shape.type === 'line' || shape.type === 'arrow') {
-                              const dx = (shape.endX || 0) - shape.startX;
-                              const dy = (shape.endY || 0) - shape.startY;
-                              const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-                              return (
-                                <g key={shape.id}>
-                                  <line
-                                    x1={shape.startX}
-                                    y1={shape.startY}
-                                    x2={shape.endX || shape.startX}
-                                    y2={shape.endY || shape.startY}
-                                    stroke={shape.color}
-                                    strokeWidth={drawingStrokeWidth}
-                                    strokeLinecap="round"
-                                    className={selectedShape === shape.id ? 'opacity-80' : ''}
-                                  />
-                                  {shape.type === 'arrow' && (
-                                    <polygon
-                                      points={`${shape.endX || shape.startX},${shape.endY || shape.startY} ${(shape.endX || shape.startX) - 10},${(shape.endY || shape.startY) - 5} ${(shape.endX || shape.startX) - 10},${(shape.endY || shape.startY) + 5}`}
-                                      fill={shape.color}
-                                      transform={`rotate(${angle} ${shape.endX || shape.startX} ${shape.endY || shape.startY})`}
-                                    />
-                                  )}
-                                </g>
-                              );
-                            }
-                            if (shape.type === 'rectangle') {
-                              return (
-                                <rect
-                                  key={shape.id}
-                                  x={Math.min(shape.startX, shape.endX || shape.startX)}
-                                  y={Math.min(shape.startY, shape.endY || shape.startY)}
-                                  width={Math.abs((shape.endX || shape.startX) - shape.startX)}
-                                  height={Math.abs((shape.endY || shape.startY) - shape.startY)}
-                                  stroke={shape.color}
-                                  strokeWidth={drawingStrokeWidth}
-                                  fill="none"
-                                  className={selectedShape === shape.id ? 'opacity-80' : ''}
-                                />
-                              );
-                            }
-                            if (shape.type === 'circle') {
-                              const radius = Math.sqrt(
-                                Math.pow((shape.endX || shape.startX) - shape.startX, 2) +
-                                Math.pow((shape.endY || shape.startY) - shape.startY, 2)
-                              );
-                              return (
-                                <circle
-                                  key={shape.id}
-                                  cx={shape.startX}
-                                  cy={shape.startY}
-                                  r={radius}
-                                  stroke={shape.color}
-                                  strokeWidth={drawingStrokeWidth}
-                                  fill="none"
-                                  className={selectedShape === shape.id ? 'opacity-80' : ''}
-                                />
-                              );
-                            }
-                            return null;
-                          })}
+                                        // If clicking on drag-handle or resize zone, let them handle it
+                                        if (isDragHandle || isResizeZone) {
+                                          return; // Don't interfere
+                                        }
 
-                          {/* Render current drawing shape */}
-                          {drawingShape && (
-                            <>
-                              {drawingShape.type === 'line' || drawingShape.type === 'arrow' ? (
-                                <g>
-                                  <line
-                                    x1={drawingShape.startX}
-                                    y1={drawingShape.startY}
-                                    x2={drawingShape.endX || drawingShape.startX}
-                                    y2={drawingShape.endY || drawingShape.startY}
-                                    stroke={drawingShape.color}
-                                    strokeWidth={drawingStrokeWidth}
-                                    strokeLinecap="round"
-                                  />
-                                  {drawingShape.type === 'arrow' && drawingShape.endX && drawingShape.endY && (
-                                    <polygon
-                                      points={`${drawingShape.endX},${drawingShape.endY} ${drawingShape.endX - 10},${drawingShape.endY - 5} ${drawingShape.endX - 10},${drawingShape.endY + 5}`}
-                                      fill={drawingShape.color}
-                                    />
-                                  )}
-                                </g>
-                              ) : drawingShape.type === 'rectangle' ? (
-                                <rect
-                                  x={Math.min(drawingShape.startX, drawingShape.endX || drawingShape.startX)}
-                                  y={Math.min(drawingShape.startY, drawingShape.endY || drawingShape.startY)}
-                                  width={Math.abs((drawingShape.endX || drawingShape.startX) - drawingShape.startX)}
-                                  height={Math.abs((drawingShape.endY || drawingShape.startY) - drawingShape.startY)}
-                                  stroke={drawingShape.color}
-                                  strokeWidth={drawingStrokeWidth}
-                                  fill="none"
-                                />
-                              ) : drawingShape.type === 'circle' ? (
-                                <circle
-                                  cx={drawingShape.startX}
-                                  cy={drawingShape.startY}
-                                  r={Math.sqrt(
-                                    Math.pow((drawingShape.endX || drawingShape.startX) - drawingShape.startX, 2) +
-                                    Math.pow((drawingShape.endY || drawingShape.startY) - drawingShape.startY, 2)
-                                  )}
-                                  stroke={drawingShape.color}
-                                  strokeWidth={drawingStrokeWidth}
-                                  fill="none"
-                                />
-                              ) : null}
-                            </>
-                          )}
+                                        // Only cancel drag if clicking on content/other areas
+                                        // Cancel any pending drag if clicking elsewhere
+                                        if (draggedNoteId === note.id) {
+                                          setDraggedNoteId(null);
+                                          setDragStartPos(null);
+                                          setIsDraggingNote(false);
+                                        }
+                                        // Cancel potential drag ref if it exists
+                                        if (potentialDragRef.current && potentialDragRef.current.noteId === note.id) {
+                                          potentialDragRef.current = null;
+                                          // Remove any event listeners that might have been added
+                                          document.body.style.userSelect = '';
+                                          document.body.style.cursor = '';
+                                        }
+                                      }}
+                                      onDoubleClick={(e) => {
+                                        e.stopPropagation();
+                                        openNote(note);
+                                      }}
+                                    >
+                                      {/* Drag handle - visible zone at the top for dragging */}
+                                      <div
+                                        className="drag-handle absolute top-0 left-0 right-0 h-6 cursor-grab active:cursor-grabbing z-10 rounded-t-lg transition-all"
+                                        style={{
+                                          background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, transparent 100%)',
+                                          borderBottom: '1px dashed rgba(0, 0, 0, 0.1)',
+                                          pointerEvents: 'auto'
+                                        }}
+                                        title="Drag from here to move"
+                                        onMouseDown={(e) => {
+                                          e.stopPropagation();
+                                          handleNoteDragStart(note.id, e);
+                                        }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                        }}
+                                      />
+                                      {/* Calculate adaptive font sizes */}
+                                      {useMemo(() => {
+                                        const currentWidth = noteSizes[note.id]?.width || note.width || 250;
+                                        const currentHeight = noteSizes[note.id]?.height || note.height || 200;
+                                        // Calculate adaptive font size based on note dimensions - larger text
+                                        const baseFontSize = Math.max(13, Math.min(28, currentWidth / 11));
+                                        const titleFontSize = Math.max(15, Math.min(32, currentWidth / 9));
+                                        const scaledPadding = Math.max(12, Math.min(24, currentWidth / 12));
 
-                          {/* Render current pen path */}
-                          {isDrawingPath && drawingPath && (() => {
-                            // Use dynamic color based on current dark mode state for preview
-                            const isDarkMode = document.documentElement.classList.contains('dark');
-                            const isDefaultColor = drawingColor === '#ef4444' || drawingColor === '#ffffff';
-                            const previewColor = isDefaultColor
-                              ? (isDarkMode ? '#ffffff' : '#ef4444')
-                              : drawingColor;
-                            return (
-                              <path
-                                d={drawingPath}
-                                stroke={previewColor}
-                                strokeWidth={drawingStrokeWidth}
-                                fill="none"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            );
-                          })()}
-                        </svg>
+                                        return (
+                                          <div
+                                            className="h-full flex flex-col no-drag"
+                                            style={{ padding: `${scaledPadding}px`, pointerEvents: 'auto' }}
+                                            onMouseDown={(e) => {
+                                              // Prevent drag when clicking on content
+                                              e.stopPropagation();
+                                              if (draggedNoteId === note.id) {
+                                                setDraggedNoteId(null);
+                                                setDragStartPos(null);
+                                              }
+                                            }}
+                                          >
+                                            <div className="flex justify-between items-start mb-2 flex-shrink-0 no-drag">
+                                              <h4
+                                                className="font-medium text-gray-800 truncate flex-1 no-drag"
+                                                style={{ fontSize: `${titleFontSize}px` }}
+                                              >
+                                                {note.title || 'Untitled Note'}
+                                              </h4>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  deleteNote(note.id);
+                                                }}
+                                                className="p-1 hover:bg-black/10 rounded-full flex-shrink-0 ml-2 no-drag"
+                                              >
+                                                <X className="w-3.5 h-3.5" />
+                                              </button>
+                                            </div>
+                                            <div
+                                              className="note-content text-gray-700 flex-1 overflow-y-auto hover:bg-black/5 rounded p-1 -m-1 transition-colors no-drag"
+                                              style={{ fontSize: `${baseFontSize}px`, lineHeight: '1.5' }}
+                                              title="Double-click to edit"
+                                            >
+                                              {note.content}
+                                            </div>
+                                          </div>
+                                        );
+                                      }, [noteSizes[note.id]?.width, noteSizes[note.id]?.height, note.width, note.height, note.title, note.content, note.id, isDraggingNote, isResizing, selectedTool])}
 
-                        {/* Notes overlay */}
-                        {filteredNotes.length === 0 ? (
-                          <div className="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400">
-                            <div className="text-center">
+                                      {/* Resize zones - corners */}
+                                      {/* Top-left corner */}
+                                      <div
+                                        className="resize-zone absolute top-0 left-0 w-4 h-4 cursor-nw-resize z-30"
+                                        onMouseDown={(e) => handleResizeStart(note.id, 'nw', e)}
+                                      />
+                                      {/* Top-right corner */}
+                                      <div
+                                        className="resize-zone absolute top-0 right-0 w-4 h-4 cursor-ne-resize z-30"
+                                        onMouseDown={(e) => handleResizeStart(note.id, 'ne', e)}
+                                      />
+                                      {/* Bottom-left corner */}
+                                      <div
+                                        className="resize-zone absolute bottom-0 left-0 w-4 h-4 cursor-sw-resize z-30"
+                                        onMouseDown={(e) => handleResizeStart(note.id, 'sw', e)}
+                                      />
+                                      {/* Bottom-right corner */}
+                                      <div
+                                        className="resize-zone absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-30"
+                                        onMouseDown={(e) => handleResizeStart(note.id, 'se', e)}
+                                      />
+
+                                      {/* Resize zones - edges */}
+                                      {/* Top edge */}
+                                      <div
+                                        className="resize-zone absolute top-0 left-4 right-4 h-2 cursor-n-resize z-30"
+                                        onMouseDown={(e) => handleResizeStart(note.id, 'n', e)}
+                                      />
+                                      {/* Bottom edge */}
+                                      <div
+                                        className="resize-zone absolute bottom-0 left-4 right-4 h-2 cursor-s-resize z-30"
+                                        onMouseDown={(e) => handleResizeStart(note.id, 's', e)}
+                                      />
+                                      {/* Left edge */}
+                                      <div
+                                        className="resize-zone absolute left-0 top-4 bottom-4 w-2 cursor-w-resize z-30"
+                                        onMouseDown={(e) => handleResizeStart(note.id, 'w', e)}
+                                      />
+                                      {/* Right edge */}
+                                      <div
+                                        className="resize-zone absolute right-0 top-4 bottom-4 w-2 cursor-e-resize z-30"
+                                        onMouseDown={(e) => handleResizeStart(note.id, 'e', e)}
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </Xwrapper>
+                            )}
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <>
+                          {filteredNotes.length === 0 ? (
+                            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                               <StickyNote className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                              <p className="mb-2">No notes found matching your filter.</p>
+                              <p>No notes found matching your filter.</p>
                               {filterColor && (
                                 <button
                                   onClick={() => setFilterColor(null)}
-                                  className="text-jobzai-600 dark:text-jobzai-400 hover:underline"
+                                  className="mt-2 text-jobzai-600 dark:text-jobzai-400 hover:underline"
                                 >
                                   Clear filter
                                 </button>
                               )}
                             </div>
-                          </div>
-                        ) : (
-                          <Xwrapper>
-                            {filteredNotes.map((note) => {
-                              const position = notePositions[note.id] || { x: 0, y: 0 };
-                              return (
-                                <div
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                              {filteredNotes.map(note => (
+                                <motion.div
                                   key={note.id}
-                                  className={`absolute rounded-lg shadow-lg z-20 transition-all duration-200 ${isDraggingNote && draggedNoteId === note.id
-                                    ? 'cursor-grabbing shadow-2xl scale-105 rotate-1'
-                                    : 'hover:shadow-xl'
-                                    } ${isResizing && resizingNoteId === note.id
-                                      ? 'ring-2 ring-jobzai-400 ring-offset-2'
-                                      : !isDraggingNote && 'hover:scale-[1.02]'
-                                    }`}
-                                  style={{
-                                    backgroundColor: note.color,
-                                    width: `${noteSizes[note.id]?.width || note.width || 250}px`,
-                                    height: `${noteSizes[note.id]?.height || note.height || 200}px`,
-                                    left: `${position.x}px`,
-                                    top: `${position.y}px`,
-                                    transition: isDraggingNote && draggedNoteId === note.id
-                                      ? 'none'
-                                      : (isResizing && resizingNoteId === note.id)
-                                        ? 'width 0s, height 0s, transform 0.2s'
-                                        : 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                  }}
-                                  onMouseDown={(e) => {
-                                    // Don't interfere with drag-handle or resize zones
-                                    // Let them handle their own events
-                                    const target = e.target as HTMLElement;
-                                    const isDragHandle = target.classList.contains('drag-handle') ||
-                                      target.closest('.drag-handle') !== null;
-                                    const isResizeZone = target.classList.contains('resize-zone') ||
-                                      target.closest('.resize-zone') !== null;
-
-                                    // If clicking on drag-handle or resize zone, let them handle it
-                                    if (isDragHandle || isResizeZone) {
-                                      return; // Don't interfere
-                                    }
-
-                                    // Only cancel drag if clicking on content/other areas
-                                    // Cancel any pending drag if clicking elsewhere
-                                    if (draggedNoteId === note.id) {
-                                      setDraggedNoteId(null);
-                                      setDragStartPos(null);
-                                      setIsDraggingNote(false);
-                                    }
-                                    // Cancel potential drag ref if it exists
-                                    if (potentialDragRef.current && potentialDragRef.current.noteId === note.id) {
-                                      potentialDragRef.current = null;
-                                      // Remove any event listeners that might have been added
-                                      document.body.style.userSelect = '';
-                                      document.body.style.cursor = '';
-                                    }
-                                  }}
-                                  onDoubleClick={(e) => {
-                                    e.stopPropagation();
-                                    openNote(note);
-                                  }}
+                                  initial={{ opacity: 0, scale: 0.8 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.8 }}
+                                  whileHover={{ y: -4, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
+                                  className="group relative"
+                                  style={{ height: '220px' }}
                                 >
-                                  {/* Drag handle - visible zone at the top for dragging */}
                                   <div
-                                    className="drag-handle absolute top-0 left-0 right-0 h-6 cursor-grab active:cursor-grabbing z-10 rounded-t-lg transition-all"
-                                    style={{
-                                      background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, transparent 100%)',
-                                      borderBottom: '1px dashed rgba(0, 0, 0, 0.1)',
-                                      pointerEvents: 'auto'
-                                    }}
-                                    title="Drag from here to move"
-                                    onMouseDown={(e) => {
-                                      e.stopPropagation();
-                                      handleNoteDragStart(note.id, e);
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                    }}
-                                  />
-                                  {/* Calculate adaptive font sizes */}
-                                  {useMemo(() => {
-                                    const currentWidth = noteSizes[note.id]?.width || note.width || 250;
-                                    const currentHeight = noteSizes[note.id]?.height || note.height || 200;
-                                    // Calculate adaptive font size based on note dimensions - larger text
-                                    const baseFontSize = Math.max(13, Math.min(28, currentWidth / 11));
-                                    const titleFontSize = Math.max(15, Math.min(32, currentWidth / 9));
-                                    const scaledPadding = Math.max(12, Math.min(24, currentWidth / 12));
-
-                                    return (
-                                      <div
-                                        className="h-full flex flex-col no-drag"
-                                        style={{ padding: `${scaledPadding}px`, pointerEvents: 'auto' }}
-                                        onMouseDown={(e) => {
-                                          // Prevent drag when clicking on content
+                                    className="absolute inset-0 rounded-xl p-4 flex flex-col shadow-md transition-all duration-300 cursor-pointer border border-transparent"
+                                    style={{ backgroundColor: note.color }}
+                                    onClick={() => openNote(note)}
+                                  >
+                                    <div className="flex justify-between items-start">
+                                      <h4 className="font-medium text-gray-800 truncate">
+                                        {note.title || 'Untitled Note'}
+                                      </h4>
+                                      <button
+                                        onClick={(e) => {
                                           e.stopPropagation();
-                                          if (draggedNoteId === note.id) {
-                                            setDraggedNoteId(null);
-                                            setDragStartPos(null);
-                                          }
+                                          deleteNote(note.id);
                                         }}
+                                        className="opacity-0 group-hover:opacity-100 text-gray-700 hover:text-red-600 transition-opacity p-1 hover:bg-black/10 rounded-full"
                                       >
-                                        <div className="flex justify-between items-start mb-2 flex-shrink-0 no-drag">
-                                          <h4
-                                            className="font-medium text-gray-800 truncate flex-1 no-drag"
-                                            style={{ fontSize: `${titleFontSize}px` }}
-                                          >
-                                            {note.title || 'Untitled Note'}
-                                          </h4>
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              deleteNote(note.id);
-                                            }}
-                                            className="p-1 hover:bg-black/10 rounded-full flex-shrink-0 ml-2 no-drag"
-                                          >
-                                            <X className="w-3.5 h-3.5" />
-                                          </button>
-                                        </div>
-                                        <div
-                                          className="note-content text-gray-700 flex-1 overflow-y-auto hover:bg-black/5 rounded p-1 -m-1 transition-colors no-drag"
-                                          style={{ fontSize: `${baseFontSize}px`, lineHeight: '1.5' }}
-                                          title="Double-click to edit"
-                                        >
-                                          {note.content}
-                                        </div>
-                                      </div>
-                                    );
-                                  }, [noteSizes[note.id]?.width, noteSizes[note.id]?.height, note.width, note.height, note.title, note.content, note.id, isDraggingNote, isResizing, selectedTool])}
+                                        <X className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                    <div className="mt-2 flex-1 overflow-y-auto">
+                                      <p className="text-sm text-gray-700">
+                                        {note.content}
+                                      </p>
+                                    </div>
+                                    <div className="mt-2 text-xs text-gray-600 flex items-center gap-1.5">
+                                      <CalendarDays className="w-3 h-3" />
+                                      {new Date(note.updatedAt).toLocaleDateString()}
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                )}
+              </div>
 
-                                  {/* Resize zones - corners */}
-                                  {/* Top-left corner */}
-                                  <div
-                                    className="resize-zone absolute top-0 left-0 w-4 h-4 cursor-nw-resize z-30"
-                                    onMouseDown={(e) => handleResizeStart(note.id, 'nw', e)}
-                                  />
-                                  {/* Top-right corner */}
-                                  <div
-                                    className="resize-zone absolute top-0 right-0 w-4 h-4 cursor-ne-resize z-30"
-                                    onMouseDown={(e) => handleResizeStart(note.id, 'ne', e)}
-                                  />
-                                  {/* Bottom-left corner */}
-                                  <div
-                                    className="resize-zone absolute bottom-0 left-0 w-4 h-4 cursor-sw-resize z-30"
-                                    onMouseDown={(e) => handleResizeStart(note.id, 'sw', e)}
-                                  />
-                                  {/* Bottom-right corner */}
-                                  <div
-                                    className="resize-zone absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-30"
-                                    onMouseDown={(e) => handleResizeStart(note.id, 'se', e)}
-                                  />
+              <FocusQuestionModal
+                open={Boolean(focusedQuestion)}
+                onClose={() => setFocusedQuestion(null)}
+                question={
+                  focusedQuestion
+                    ? {
+                      title: focusedQuestion.text,
+                      tags: focusedQuestion.tags,
+                      suggestedApproach: focusedQuestion.suggestedApproach ?? null,
+                    }
+                    : undefined
+                }
+              />
 
-                                  {/* Resize zones - edges */}
-                                  {/* Top edge */}
-                                  <div
-                                    className="resize-zone absolute top-0 left-4 right-4 h-2 cursor-n-resize z-30"
-                                    onMouseDown={(e) => handleResizeStart(note.id, 'n', e)}
-                                  />
-                                  {/* Bottom edge */}
-                                  <div
-                                    className="resize-zone absolute bottom-0 left-4 right-4 h-2 cursor-s-resize z-30"
-                                    onMouseDown={(e) => handleResizeStart(note.id, 's', e)}
-                                  />
-                                  {/* Left edge */}
-                                  <div
-                                    className="resize-zone absolute left-0 top-4 bottom-4 w-2 cursor-w-resize z-30"
-                                    onMouseDown={(e) => handleResizeStart(note.id, 'w', e)}
-                                  />
-                                  {/* Right edge */}
-                                  <div
-                                    className="resize-zone absolute right-0 top-4 bottom-4 w-2 cursor-e-resize z-30"
-                                    onMouseDown={(e) => handleResizeStart(note.id, 'e', e)}
-                                  />
-                                </div>
-                              );
-                            })}
-                          </Xwrapper>
-                        )}
+              {/* Improved note modal with modern design */}
+              <AnimatePresence>
+                {isNoteModalOpen && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    onClick={(e) => {
+                      if (e.target === e.currentTarget) {
+                        setIsNoteModalOpen(false);
+                      }
+                    }}
+                    className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4"
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                      transition={{
+                        type: "spring",
+                        damping: 25,
+                        stiffness: 300,
+                        duration: 0.3
+                      }}
+                      className="relative bg-white dark:bg-[#2b2a2c] rounded-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-auto shadow-2xl border border-gray-200/50 dark:border-[#3d3c3e]/50"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)'
+                      }}
+                    >
+                      {/* Decorative gradient accent */}
+                      <div
+                        className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
+                        style={{
+                          background: `linear-gradient(90deg, ${noteColor} 0%, ${noteColor}dd 100%)`,
+                          opacity: 0.8
+                        }}
+                      />
+
+                      <div className="flex justify-between items-center mb-6">
+                        <div>
+                          <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                            {activeNote ? 'Edit Note' : 'New Note'}
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            {activeNote ? 'Update your note details' : 'Create a new sticky note'}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setIsNoteModalOpen(false)}
+                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] p-2 rounded-full transition-all duration-200 hover:scale-110"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-6">
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 }}
+                        >
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Title
+                          </label>
+                          <input
+                            type="text"
+                            value={noteTitle}
+                            onChange={(e) => setNoteTitle(e.target.value)}
+                            placeholder="Give your note a title..."
+                            className="w-full p-4 border-2 border-gray-200 dark:border-[#3d3c3e] rounded-xl focus:ring-2 focus:ring-jobzai-500 focus:border-jobzai-500 dark:bg-[#3d3c3e]/50 dark:text-white transition-all duration-200 placeholder:text-gray-400"
+                            autoFocus
+                          />
+                        </motion.div>
+
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.15 }}
+                        >
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Content
+                          </label>
+                          <textarea
+                            value={noteContent}
+                            onChange={(e) => setNoteContent(e.target.value)}
+                            placeholder="Write your note content here..."
+                            rows={8}
+                            className="w-full p-4 border-2 border-gray-200 dark:border-[#3d3c3e] rounded-xl focus:ring-2 focus:ring-jobzai-500 focus:border-jobzai-500 dark:bg-[#3d3c3e]/50 dark:text-white resize-none transition-all duration-200 placeholder:text-gray-400"
+                          />
+                        </motion.div>
+
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2 }}
+                        >
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                            Color
+                          </label>
+                          <div className="flex flex-wrap gap-3">
+                            {[
+                              { color: '#ffeb3b', name: 'Yellow' },
+                              { color: '#4fc3f7', name: 'Blue' },
+                              { color: '#aed581', name: 'Green' },
+                              { color: '#ff8a65', name: 'Orange' },
+                              { color: '#f48fb1', name: 'Pink' },
+                              { color: '#b39ddb', name: 'Purple' }
+                            ].map(colorOption => (
+                              <motion.button
+                                key={colorOption.color}
+                                onClick={() => setNoteColor(colorOption.color)}
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                                className={`w-10 h-10 rounded-xl transition-all duration-200 shadow-md ${noteColor === colorOption.color
+                                  ? 'ring-3 ring-offset-2 ring-jobzai-500 scale-110 shadow-lg'
+                                  : 'hover:shadow-lg hover:scale-105'
+                                  }`}
+                                style={{ backgroundColor: colorOption.color }}
+                                title={colorOption.name}
+                              />
+                            ))}
+                          </div>
+                        </motion.div>
+
+                        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-[#3d3c3e]">
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setIsNoteModalOpen(false)}
+                            className="px-6 py-3 border-2 border-gray-300 dark:border-[#4a494b] rounded-xl hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 transition-all duration-200 text-gray-700 dark:text-gray-300 font-medium"
+                          >
+                            Cancel
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={saveNote}
+                            className="px-6 py-3 bg-gradient-to-r from-jobzai-600 to-jobzai-700 text-white rounded-xl hover:from-jobzai-700 hover:to-jobzai-800 transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl font-medium"
+                          >
+                            <Save className="w-4 h-4" />
+                            Save Note
+                          </motion.button>
+                        </div>
                       </div>
                     </motion.div>
-                  ) : (
-                    <>
-                      {filteredNotes.length === 0 ? (
-                        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                          <StickyNote className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                          <p>No notes found matching your filter.</p>
-                          {filterColor && (
-                            <button
-                              onClick={() => setFilterColor(null)}
-                              className="mt-2 text-jobzai-600 dark:text-jobzai-400 hover:underline"
-                            >
-                              Clear filter
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                          {filteredNotes.map(note => (
-                            <motion.div
-                              key={note.id}
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.8 }}
-                              whileHover={{ y: -4, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
-                              className="group relative"
-                              style={{ height: '220px' }}
-                            >
-                              <div
-                                className="absolute inset-0 rounded-xl p-4 flex flex-col shadow-md transition-all duration-300 cursor-pointer border border-transparent"
-                                style={{ backgroundColor: note.color }}
-                                onClick={() => openNote(note)}
-                              >
-                                <div className="flex justify-between items-start">
-                                  <h4 className="font-medium text-gray-800 truncate">
-                                    {note.title || 'Untitled Note'}
-                                  </h4>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      deleteNote(note.id);
-                                    }}
-                                    className="opacity-0 group-hover:opacity-100 text-gray-700 hover:text-red-600 transition-opacity p-1 hover:bg-black/10 rounded-full"
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                                <div className="mt-2 flex-1 overflow-y-auto">
-                                  <p className="text-sm text-gray-700">
-                                    {note.content}
-                                  </p>
-                                </div>
-                                <div className="mt-2 text-xs text-gray-600 flex items-center gap-1.5">
-                                  <CalendarDays className="w-3 h-3" />
-                                  {new Date(note.updatedAt).toLocaleDateString()}
-                                </div>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            )}
-          </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </MotionConfig>
 
-          <FocusQuestionModal
-            open={Boolean(focusedQuestion)}
-            onClose={() => setFocusedQuestion(null)}
-            question={
-              focusedQuestion
-                ? {
-                  title: focusedQuestion.text,
-                  tags: focusedQuestion.tags,
-                  suggestedApproach: focusedQuestion.suggestedApproach ?? null,
-                }
-                : undefined
-            }
-          />
-
-          {/* Improved note modal with modern design */}
+          {/* STAR Export Choice Modal */}
           <AnimatePresence>
-            {isNoteModalOpen && (
+            {showStarExportModal && pendingStarExport && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                onClick={(e) => {
-                  if (e.target === e.currentTarget) {
-                    setIsNoteModalOpen(false);
-                  }
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                onClick={() => {
+                  setShowStarExportModal(false);
+                  setPendingStarExport(null);
                 }}
-                className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4"
               >
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -7027,278 +7328,126 @@ Return ONLY the pitch text, no explanations or formatting.`;
                     stiffness: 300,
                     duration: 0.3
                   }}
-                  className="relative bg-white dark:bg-[#2b2a2c] rounded-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-auto shadow-2xl border border-gray-200/50 dark:border-[#3d3c3e]/50"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%)',
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)'
-                  }}
+                  className="relative bg-white dark:bg-[#2b2a2c] rounded-2xl p-8 max-w-2xl w-full shadow-2xl border border-gray-200/50 dark:border-[#3d3c3e]/50"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  {/* Decorative gradient accent */}
-                  <div
-                    className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
-                    style={{
-                      background: `linear-gradient(90deg, ${noteColor} 0%, ${noteColor}dd 100%)`,
-                      opacity: 0.8
-                    }}
-                  />
-
+                  {/* Header */}
                   <div className="flex justify-between items-center mb-6">
                     <div>
                       <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-                        {activeNote ? 'Edit Note' : 'New Note'}
+                        Export STAR Story
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        {activeNote ? 'Update your note details' : 'Create a new sticky note'}
+                        Choose where to create your STAR story
                       </p>
                     </div>
                     <button
-                      onClick={() => setIsNoteModalOpen(false)}
+                      onClick={() => {
+                        setShowStarExportModal(false);
+                        setPendingStarExport(null);
+                      }}
                       className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] p-2 rounded-full transition-all duration-200 hover:scale-110"
                     >
                       <X className="w-5 h-5" />
                     </button>
                   </div>
 
-                  <div className="space-y-6">
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
+                  {/* Options */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Notes Panel Option */}
+                    <motion.button
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={async () => {
+                        await exportStoryToNotes(pendingStarExport.skill, pendingStarExport.storyId);
+                        setShowStarExportModal(false);
+                        setPendingStarExport(null);
+                      }}
+                      className="p-6 rounded-xl border-2 border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-500 dark:hover:border-jobzai-500 bg-white dark:bg-[#2b2a2c] transition-all duration-200 text-left group"
                     >
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        Title
-                      </label>
-                      <input
-                        type="text"
-                        value={noteTitle}
-                        onChange={(e) => setNoteTitle(e.target.value)}
-                        placeholder="Give your note a title..."
-                        className="w-full p-4 border-2 border-gray-200 dark:border-[#3d3c3e] rounded-xl focus:ring-2 focus:ring-jobzai-500 focus:border-jobzai-500 dark:bg-[#3d3c3e]/50 dark:text-white transition-all duration-200 placeholder:text-gray-400"
-                        autoFocus
-                      />
-                    </motion.div>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.15 }}
-                    >
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        Content
-                      </label>
-                      <textarea
-                        value={noteContent}
-                        onChange={(e) => setNoteContent(e.target.value)}
-                        placeholder="Write your note content here..."
-                        rows={8}
-                        className="w-full p-4 border-2 border-gray-200 dark:border-[#3d3c3e] rounded-xl focus:ring-2 focus:ring-jobzai-500 focus:border-jobzai-500 dark:bg-[#3d3c3e]/50 dark:text-white resize-none transition-all duration-200 placeholder:text-gray-400"
-                      />
-                    </motion.div>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                    >
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                        Color
-                      </label>
-                      <div className="flex flex-wrap gap-3">
-                        {[
-                          { color: '#ffeb3b', name: 'Yellow' },
-                          { color: '#4fc3f7', name: 'Blue' },
-                          { color: '#aed581', name: 'Green' },
-                          { color: '#ff8a65', name: 'Orange' },
-                          { color: '#f48fb1', name: 'Pink' },
-                          { color: '#b39ddb', name: 'Purple' }
-                        ].map(colorOption => (
-                          <motion.button
-                            key={colorOption.color}
-                            onClick={() => setNoteColor(colorOption.color)}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            className={`w-10 h-10 rounded-xl transition-all duration-200 shadow-md ${noteColor === colorOption.color
-                              ? 'ring-3 ring-offset-2 ring-jobzai-500 scale-110 shadow-lg'
-                              : 'hover:shadow-lg hover:scale-105'
-                              }`}
-                            style={{ backgroundColor: colorOption.color }}
-                            title={colorOption.name}
-                          />
-                        ))}
+                      <div className="flex flex-col items-center text-center space-y-3">
+                        <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
+                          <FileText className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Notes Panel</h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Rich text document in sidebar
+                          </p>
+                        </div>
                       </div>
-                    </motion.div>
+                    </motion.button>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-[#3d3c3e]">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setIsNoteModalOpen(false)}
-                        className="px-6 py-3 border-2 border-gray-300 dark:border-[#4a494b] rounded-xl hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 transition-all duration-200 text-gray-700 dark:text-gray-300 font-medium"
-                      >
-                        Cancel
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={saveNote}
-                        className="px-6 py-3 bg-gradient-to-r from-jobzai-600 to-jobzai-700 text-white rounded-xl hover:from-jobzai-700 hover:to-jobzai-800 transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl font-medium"
-                      >
-                        <Save className="w-4 h-4" />
-                        Save Note
-                      </motion.button>
-                    </div>
+                    {/* Whiteboard Option */}
+                    <motion.button
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={async () => {
+                        await exportStoryToTldrawWhiteboard(pendingStarExport.skill, pendingStarExport.storyId);
+                        setShowStarExportModal(false);
+                        setPendingStarExport(null);
+                      }}
+                      className="p-6 rounded-xl border-2 border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-500 dark:hover:border-jobzai-500 bg-white dark:bg-[#2b2a2c] transition-all duration-200 text-left group"
+                    >
+                      <div className="flex flex-col items-center text-center space-y-3">
+                        <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30 transition-colors">
+                          <LayoutDashboard className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Whiteboard</h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Advanced whiteboard with shapes
+                          </p>
+                        </div>
+                      </div>
+                    </motion.button>
                   </div>
                 </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      </MotionConfig>
 
-      {/* STAR Export Choice Modal */}
-      <AnimatePresence>
-        {showStarExportModal && pendingStarExport && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-            onClick={() => {
-              setShowStarExportModal(false);
-              setPendingStarExport(null);
+          <LiveInterviewSession
+            isOpen={isLiveSessionOpen}
+            onClose={() => {
+              setIsLiveSessionOpen(false);
+              setHistorySessionData(null);
             }}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{
-                type: "spring",
-                damping: 25,
-                stiffness: 300,
-                duration: 0.3
-              }}
-              className="relative bg-white dark:bg-[#2b2a2c] rounded-2xl p-8 max-w-2xl w-full shadow-2xl border border-gray-200/50 dark:border-[#3d3c3e]/50"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-                    Export STAR Story
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Choose where to create your STAR story
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowStarExportModal(false);
-                    setPendingStarExport(null);
-                  }}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] p-2 rounded-full transition-all duration-200 hover:scale-110"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+            questions={filteredQuestions}
+            jobContext={{
+              companyName: application?.companyName || '',
+              position: application?.position || '',
+              jobDescription: interview?.jobPostContent || '',
+              requiredSkills: interview?.preparation?.requiredSkills || []
+            }}
+            onSessionComplete={handleSessionComplete}
+            onGenerateQuestions={generateLiveSessionQuestions}
+            companyName={application?.companyName}
+            position={application?.position}
+            previousSessions={liveSessionHistory}
+            historySession={historySessionData || undefined}
+          />
 
-              {/* Options */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Notes Panel Option */}
-                <motion.button
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={async () => {
-                    await exportStoryToNotes(pendingStarExport.skill, pendingStarExport.storyId);
-                    setShowStarExportModal(false);
-                    setPendingStarExport(null);
-                  }}
-                  className="p-6 rounded-xl border-2 border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-500 dark:hover:border-jobzai-500 bg-white dark:bg-[#2b2a2c] transition-all duration-200 text-left group"
-                >
-                  <div className="flex flex-col items-center text-center space-y-3">
-                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
-                      <FileText className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Notes Panel</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Rich text document in sidebar
-                      </p>
-                    </div>
-                  </div>
-                </motion.button>
-
-                {/* Whiteboard Option */}
-                <motion.button
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={async () => {
-                    await exportStoryToTldrawWhiteboard(pendingStarExport.skill, pendingStarExport.storyId);
-                    setShowStarExportModal(false);
-                    setPendingStarExport(null);
-                  }}
-                  className="p-6 rounded-xl border-2 border-gray-200 dark:border-[#3d3c3e] hover:border-jobzai-500 dark:hover:border-jobzai-500 bg-white dark:bg-[#2b2a2c] transition-all duration-200 text-left group"
-                >
-                  <div className="flex flex-col items-center text-center space-y-3">
-                    <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30 transition-colors">
-                      <LayoutDashboard className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Whiteboard</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Advanced whiteboard with shapes
-                      </p>
-                    </div>
-                  </div>
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <LiveInterviewSession
-        isOpen={isLiveSessionOpen}
-        onClose={() => {
-          setIsLiveSessionOpen(false);
-          setHistorySessionData(null);
-        }}
-        questions={filteredQuestions}
-        jobContext={{
-          companyName: application?.companyName || '',
-          position: application?.position || '',
-          jobDescription: interview?.jobPostContent || '',
-          requiredSkills: interview?.preparation?.requiredSkills || []
-        }}
-        onSessionComplete={handleSessionComplete}
-        onGenerateQuestions={generateLiveSessionQuestions}
-        companyName={application?.companyName}
-        position={application?.position}
-        previousSessions={liveSessionHistory}
-        historySession={historySessionData || undefined}
-      />
-
-      {/* Credit Confirmation Modal for Practice Live */}
-      <CreditConfirmModal
-        isOpen={showCreditModal}
-        onClose={() => {
-          setShowCreditModal(false);
-          setPendingLiveSession(false);
-        }}
-        onConfirm={() => {
-          setShowCreditModal(false);
-          if (pendingLiveSession) {
-            handleStartLiveSession(true);
-            setPendingLiveSession(false);
-          }
-        }}
-        featureName="Practice Live Session"
-        creditCost={CREDIT_COSTS.liveSession}
-        userCredits={userCredits}
-      />
+          {/* Credit Confirmation Modal for Practice Live */}
+          <CreditConfirmModal
+            isOpen={showCreditModal}
+            onClose={() => {
+              setShowCreditModal(false);
+              setPendingLiveSession(false);
+            }}
+            onConfirm={() => {
+              setShowCreditModal(false);
+              if (pendingLiveSession) {
+                handleStartLiveSession(true);
+                setPendingLiveSession(false);
+              }
+            }}
+            featureName="Practice Live Session"
+            creditCost={CREDIT_COSTS.liveSession}
+            userCredits={userCredits}
+          />
+        </>
+      )}
     </AuthLayout>
   );
 }
-
-
-
