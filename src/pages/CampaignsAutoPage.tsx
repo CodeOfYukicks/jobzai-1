@@ -68,6 +68,9 @@ import CreditConfirmModal from '../components/CreditConfirmModal';
 import { FilterBottomSheet } from '../components/common/BottomSheet';
 import MobileTopBar from '../components/mobile/MobileTopBar';
 import CampaignSelectorSheet from '../components/campaigns/CampaignSelectorSheet';
+import SwipeableRow from '../components/mobile/SwipeableRow';
+import AddToBoardSheet from '../components/campaigns/AddToBoardSheet';
+import MobileDeleteConfirm from '../components/mobile/MobileDeleteConfirm';
 
 type RecipientStatus = 'pending' | 'email_generated' | 'email_ready' | 'sent' | 'opened' | 'replied';
 
@@ -239,6 +242,15 @@ export default function CampaignsAutoPage() {
   const [isAddingToBoard, setIsAddingToBoard] = useState(false);
   const [openMenuRecipientId, setOpenMenuRecipientId] = useState<string | null>(null);
   const menuRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // Swipe interaction state
+  const [isAddToBoardSheetOpen, setIsAddToBoardSheetOpen] = useState(false);
+  const [swipeActionRecipient, setSwipeActionRecipient] = useState<CampaignRecipient | null>(null);
+
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmRecipient, setDeleteConfirmRecipient] = useState<CampaignRecipient | null>(null);
+  const [isDeletingRecipient, setIsDeletingRecipient] = useState(false);
 
   // Reply preview modal
   const [replyPreviewRecipient, setReplyPreviewRecipient] = useState<CampaignRecipient | null>(null);
@@ -1179,8 +1191,43 @@ export default function CampaignsAutoPage() {
   const handleBoardSelected = async (boardId: string) => {
     if (selectedRecipientForBoard) {
       await addContactToBoard(selectedRecipientForBoard, boardId);
+    } else if (swipeActionRecipient) {
+      // Handle swipe action add
+      await addContactToBoard(swipeActionRecipient, boardId);
+      setSwipeActionRecipient(null);
+      setIsAddToBoardSheetOpen(false);
     }
   };
+
+
+
+  // Handle swipe delete
+  const handleSwipeDelete = useCallback((recipient: CampaignRecipient) => {
+    setDeleteConfirmRecipient(recipient);
+    setShowDeleteConfirm(true);
+  }, []);
+
+  // Handle confirm delete
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmRecipient) return;
+
+    setIsDeletingRecipient(true);
+    try {
+      await handleRemoveRecipient(deleteConfirmRecipient.id);
+      setShowDeleteConfirm(false);
+      setDeleteConfirmRecipient(null);
+    } catch (error) {
+      console.error('Error deleting recipient:', error);
+    } finally {
+      setIsDeletingRecipient(false);
+    }
+  };
+
+  // Handle swipe add
+  const handleSwipeAdd = useCallback((recipient: CampaignRecipient) => {
+    setSwipeActionRecipient(recipient);
+    setIsAddToBoardSheetOpen(true);
+  }, []);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -1413,6 +1460,39 @@ export default function CampaignsAutoPage() {
           activeCampaignId={selectedCampaignId}
           onSelect={(id) => setSelectedCampaignId(id)}
           onNewCampaign={() => handleNewCampaignClick()}
+        />
+
+        <AddToBoardSheet
+          isOpen={isAddToBoardSheetOpen}
+          onClose={() => {
+            setIsAddToBoardSheetOpen(false);
+            setSwipeActionRecipient(null);
+          }}
+          boards={boards}
+          onSelectBoard={handleBoardSelected}
+          onCreateBoard={() => {
+            navigate('/job-board?createBoard=true&type=campaigns');
+          }}
+        />
+
+        <MobileDeleteConfirm
+          isOpen={showDeleteConfirm}
+          onClose={() => {
+            setShowDeleteConfirm(false);
+            setDeleteConfirmRecipient(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          application={deleteConfirmRecipient ? {
+            id: deleteConfirmRecipient.id,
+            companyName: deleteConfirmRecipient.company || 'Unknown Company',
+            position: deleteConfirmRecipient.fullName || 'Unknown Contact',
+            // Mock other required fields for the component
+            status: 'applied',
+            appliedDate: '',
+            updatedAt: '',
+            userId: ''
+          } as any : null}
+          isDeleting={isDeletingRecipient}
         />
 
         {/* Cover Photo Section with all header elements (Desktop only) */}
@@ -2253,45 +2333,55 @@ export default function CampaignsAutoPage() {
                   <div className="p-8 text-center text-gray-500 text-sm">No contacts found</div>
                 )}
                 {sortedRecipients.map((recipient) => (
-                  <div key={recipient.id} onClick={() => {
-                    if (recipient.emailGenerated) setEmailPreviewRecipient(recipient);
-                  }} className="py-4 bg-transparent active:opacity-70 transition-opacity">
-                    <div className="flex items-start gap-3">
-                      <div className="relative flex-shrink-0">
-                        <ProfileAvatar config={generateGenderedAvatarConfig(recipient.firstName, recipient.id)} size={40} className="rounded-full shadow-sm" />
-                        {recipient.status === 'replied' && (
-                          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#1a1a1a] flex items-center justify-center">
-                            <Check className="w-2 h-2 text-white" strokeWidth={3} />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start mb-0.5">
-                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate pr-2">{recipient.fullName}</h3>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wide ${getStatusStyles(recipient.status)}`}>
-                            {getStatusLabel(recipient.status)}
-                          </span>
+                  <SwipeableRow
+                    key={recipient.id}
+                    onSwipeLeft={() => handleSwipeDelete(recipient)}
+                    onSwipeRight={() => handleSwipeAdd(recipient)}
+                    leftLabel="Remove"
+                    rightLabel="Add to board"
+                    leftActionColor="bg-red-500"
+                    rightActionColor="bg-violet-500"
+                  >
+                    <div onClick={() => {
+                      if (recipient.emailGenerated) setEmailPreviewRecipient(recipient);
+                    }} className="py-4 bg-transparent active:opacity-70 transition-opacity px-4">
+                      <div className="flex items-start gap-3">
+                        <div className="relative flex-shrink-0">
+                          <ProfileAvatar config={generateGenderedAvatarConfig(recipient.firstName, recipient.id)} size={40} className="rounded-full shadow-sm" />
+                          {recipient.status === 'replied' && (
+                            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#1a1a1a] flex items-center justify-center">
+                              <Check className="w-2 h-2 text-white" strokeWidth={3} />
+                            </div>
+                          )}
                         </div>
-                        <p className="text-xs text-gray-500 truncate mb-1">{recipient.title} {recipient.company && `@ ${recipient.company}`}</p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start mb-0.5">
+                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate pr-2">{recipient.fullName}</h3>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wide ${getStatusStyles(recipient.status)}`}>
+                              {getStatusLabel(recipient.status)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 truncate mb-1">{recipient.title} {recipient.company && `@ ${recipient.company}`}</p>
 
-                        <div className="flex items-center justify-end gap-2 mt-2">
-                          {recipient.linkedinUrl && (
-                            <a href={recipient.linkedinUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-1.5 text-blue-600 bg-blue-50 dark:bg-blue-500/10 rounded-lg">
-                              <Linkedin className="w-3.5 h-3.5" />
-                            </a>
-                          )}
-                          {recipient.email && (
-                            <button onClick={(e) => {
-                              e.stopPropagation();
-                              handleCopyEmail(recipient.email!);
-                            }} className="p-1.5 text-gray-500 bg-gray-100 dark:bg-white/[0.05] rounded-lg">
-                              {copiedEmail === recipient.email ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                            </button>
-                          )}
+                          <div className="flex items-center justify-end gap-2 mt-2">
+                            {recipient.linkedinUrl && (
+                              <a href={recipient.linkedinUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-1.5 text-blue-600 bg-blue-50 dark:bg-blue-500/10 rounded-lg">
+                                <Linkedin className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                            {recipient.email && (
+                              <button onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyEmail(recipient.email!);
+                              }} className="p-1.5 text-gray-500 bg-gray-100 dark:bg-white/[0.05] rounded-lg">
+                                {copiedEmail === recipient.email ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </SwipeableRow>
                 ))}
               </div>
 

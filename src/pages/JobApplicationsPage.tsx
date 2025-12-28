@@ -214,6 +214,7 @@ export default function JobApplicationsPage() {
   const [boardToDelete, setBoardToDelete] = useState<KanbanBoard | null>(null);
   const [showMoveToBoardModal, setShowMoveToBoardModal] = useState(false);
   const [applicationToMove, setApplicationToMove] = useState<JobApplication | null>(null);
+  const [showMobileBoardWizard, setShowMobileBoardWizard] = useState(false);
 
   // Get effective cover photo (board cover takes priority when in a board)
   const currentBoard = boards.find(b => b.id === currentBoardId);
@@ -595,6 +596,17 @@ export default function JobApplicationsPage() {
   useEffect(() => {
     const highlightId = searchParams.get('highlight');
     const boardId = searchParams.get('board');
+    const createBoard = searchParams.get('createBoard');
+    const boardType = searchParams.get('type');
+
+    // Handle mobile board creation trigger
+    if (createBoard === 'true' && isMobile) {
+      setShowMobileBoardWizard(true);
+      // Clean URL
+      searchParams.delete('createBoard');
+      searchParams.delete('type');
+      setSearchParams(searchParams, { replace: true });
+    }
 
     if (highlightId && applications.length > 0 && boards.length > 0 && !isLoading) {
       const app = applications.find(a => a.id === highlightId);
@@ -7406,8 +7418,11 @@ END:VCALENDAR`;
         {/* Board Settings Modal - Desktop vs Mobile */}
         {isMobile ? (
           <MobileBoardCreationWizard
-            isOpen={showBoardSettingsModal && !editingBoard}
-            onClose={() => setShowBoardSettingsModal(false)}
+            isOpen={showBoardSettingsModal && !editingBoard || showMobileBoardWizard}
+            onClose={() => {
+              setShowBoardSettingsModal(false);
+              setShowMobileBoardWizard(false);
+            }}
             onSave={handleCreateBoard}
           />
         ) : (
