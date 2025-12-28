@@ -42,6 +42,18 @@
         "function": "api"
       },
       {
+        "source": "/api/openai-realtime-session",
+        "function": "api"
+      },
+      {
+        "source": "/api/analyze-live-interview",
+        "function": "api"
+      },
+      {
+        "source": "/api/cv-review",
+        "function": "api"
+      },
+      {
         "source": "/api/stripe/create-checkout-session",
         "function": "createCheckoutSession"
       },

@@ -267,7 +267,7 @@ app.post('/api/chatgpt', async (req, res) => {
         model: "gpt-5.2", // Using GPT-5.2 for best quality
         messages: messages,
         response_format: { type: 'json_object' },
-        max_tokens: 4000,
+        max_completion_tokens: 4000,
         temperature: 0.3 // Lower temperature for more consistent, structured responses
       })
     });
@@ -341,6 +341,370 @@ app.post('/api/chatgpt', async (req, res) => {
       status: 'error',
       message: error.message || "An error occurred processing your request",
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// ============================================
+// OpenAI Realtime Session Endpoint (Mock Interview)
+// Creates WebSocket session for real-time voice interview
+// ============================================
+app.post('/api/openai-realtime-session', async (req, res) => {
+  try {
+    console.log('🎙️ OpenAI Realtime Session endpoint called');
+
+    // Get API key from Firestore or environment variables
+    let apiKey = await getOpenAIApiKey();
+
+    if (!apiKey) {
+      console.error('❌ OpenAI API key is missing');
+      return res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key is missing. Please add it to Firestore (settings/openai) or .env file.'
+      });
+    }
+
+    console.log('✅ API key retrieved (first 10 chars):', apiKey.substring(0, 10) + '...');
+
+    // Model for Realtime API (GA version)
+    const model = 'gpt-4o-realtime-preview-2024-12-17';
+
+    console.log('📡 Creating OpenAI Realtime client secret via /v1/realtime/client_secrets (GA API)...');
+
+    // Use /v1/realtime/client_secrets endpoint for GA API
+    const secretResponse = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({})
+    });
+
+    if (!secretResponse.ok) {
+      const errorText = await secretResponse.text();
+      console.error('❌ OpenAI client_secrets creation failed:', secretResponse.status);
+      console.error('   Error:', errorText);
+
+      let errorMessage = 'Failed to create client secret';
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error?.message || errorMessage;
+      } catch (e) {
+        errorMessage = errorText.substring(0, 200);
+      }
+
+      return res.status(secretResponse.status).json({
+        status: 'error',
+        message: errorMessage
+      });
+    }
+
+    const secretData = await secretResponse.json();
+    console.log('✅ Client secret response received');
+
+    // Extract client_secret
+    let clientSecret;
+    let expiresAt;
+
+    if (secretData.client_secret?.value) {
+      clientSecret = secretData.client_secret.value;
+      expiresAt = secretData.client_secret.expires_at;
+    } else if (typeof secretData.client_secret === 'string') {
+      clientSecret = secretData.client_secret;
+      expiresAt = secretData.expires_at;
+    } else if (secretData.value) {
+      clientSecret = secretData.value;
+      expiresAt = secretData.expires_at;
+    }
+
+    if (!clientSecret) {
+      console.error('❌ Could not extract client_secret from response');
+      return res.status(500).json({
+        status: 'error',
+        message: 'Invalid response from OpenAI API - no client_secret found'
+      });
+    }
+
+    // Construct the WebSocket URL for GA API
+    const serverUrl = `wss://api.openai.com/v1/realtime?model=${model}`;
+
+    console.log('✅ Client secret created successfully');
+
+    res.json({
+      url: serverUrl,
+      client_secret: clientSecret,
+      expires_at: expiresAt
+    });
+
+  } catch (error) {
+    console.error('❌ Error in OpenAI Realtime session endpoint:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to create realtime session'
+    });
+  }
+});
+
+// ============================================
+// Live Interview Analysis Endpoint
+// Comprehensive analysis of mock interview transcript
+// ============================================
+app.post('/api/analyze-live-interview', async (req, res) => {
+  try {
+    console.log('📊 Live interview analysis endpoint called');
+
+    const { transcript, jobContext, userProfile } = req.body;
+
+    if (!transcript || !Array.isArray(transcript) || transcript.length === 0) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Transcript is required and must be a non-empty array'
+      });
+    }
+
+    // Get API key
+    let apiKey = await getOpenAIApiKey();
+
+    if (!apiKey) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key is missing'
+      });
+    }
+
+    // Format transcript for analysis
+    const formattedTranscript = transcript
+      .filter(entry => entry.text && entry.text.trim())
+      .map(entry => `${entry.role.toUpperCase()}: ${entry.text}`)
+      .join('\n\n');
+
+    // Build analysis prompt
+    const systemPrompt = `You are an expert HR interview analyst. Analyze this mock interview transcript and provide structured feedback.
+    
+Return a JSON object with this structure:
+{
+  "verdict": { "passed": boolean, "confidence": "high"|"medium"|"low", "hireDecision": "yes"|"maybe"|"no" },
+  "overallScore": 0-100,
+  "executiveSummary": "2-3 sentence summary",
+  "contentAnalysis": { "relevanceScore": 0-100, "specificityScore": 0-100, "didAnswerQuestions": "yes"|"partially"|"no", "examplesProvided": number, "examplesQuality": "strong"|"adequate"|"generic"|"none" },
+  "expressionAnalysis": { "organizationScore": 0-100, "clarityScore": 0-100, "confidenceScore": 0-100, "structureAssessment": "organized"|"mixed"|"scattered"|"minimal" },
+  "jobFitAnalysis": { "fitScore": 0-100, "matchedSkills": [], "missingSkills": [], "experienceRelevance": "high"|"medium"|"low", "wouldSurvive90Days": "likely"|"uncertain"|"unlikely" },
+  "strengths": ["strength1", "strength2", ...],
+  "criticalIssues": ["issue1", "issue2", ...],
+  "actionPlan": ["action1", "action2", ...]
+}`;
+
+    const userPrompt = `Analyze this mock interview:
+
+JOB CONTEXT:
+- Company: ${jobContext?.companyName || 'Unknown'}
+- Position: ${jobContext?.position || 'Unknown'}
+- Description: ${jobContext?.jobDescription?.substring(0, 500) || 'Not provided'}
+
+CANDIDATE PROFILE:
+- Name: ${userProfile?.firstName || 'Unknown'} ${userProfile?.lastName || ''}
+- Current Position: ${userProfile?.currentPosition || 'Not provided'}
+- Experience: ${userProfile?.yearsOfExperience || 'Not provided'} years
+
+TRANSCRIPT:
+${formattedTranscript}
+
+Provide comprehensive analysis in the JSON format specified.`;
+
+    // Call OpenAI API
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-5.2",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        response_format: { type: 'json_object' },
+        max_completion_tokens: 4000,
+        temperature: 0.3
+      })
+    });
+
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      console.error('❌ OpenAI API error:', errorText);
+      return res.status(openaiResponse.status).json({
+        status: 'error',
+        message: `OpenAI API error: ${errorText.substring(0, 200)}`
+      });
+    }
+
+    const responseData = await openaiResponse.json();
+    const content = responseData.choices[0]?.message?.content;
+
+    if (!content) {
+      throw new Error('Empty response from OpenAI API');
+    }
+
+    const analysis = JSON.parse(content);
+    console.log('✅ Interview analysis completed');
+
+    res.json({
+      status: 'success',
+      analysis
+    });
+
+  } catch (error) {
+    console.error('❌ Error in live interview analysis:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to analyze interview'
+    });
+  }
+});
+
+// ============================================
+// CV Review AI Analysis Endpoint
+// ============================================
+app.post('/api/cv-review', async (req, res) => {
+  try {
+    console.log("🔵 CV Review AI endpoint called");
+
+    // Get API key
+    let apiKey = await getOpenAIApiKey();
+
+    if (!apiKey) {
+      console.error('❌ OpenAI API key is missing for CV Review');
+      return res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key is missing.'
+      });
+    }
+
+    const { cvData, jobContext, previousAnalysis } = req.body;
+
+    if (!cvData) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'CV data is required'
+      });
+    }
+
+    // Build prompt
+    const cvJson = JSON.stringify(cvData, null, 2);
+    const firstName = cvData.personalInfo?.firstName || 'there';
+
+    let jobContextSection = '';
+    if (jobContext) {
+      jobContextSection = `
+TARGET JOB:
+- Position: ${jobContext.jobTitle || 'Not specified'}
+- Company: ${jobContext.company || 'Not specified'}
+- Keywords: ${(jobContext.keywords || []).join(', ') || 'None'}
+`;
+    }
+
+    const systemPrompt = `You are an elite CV strategist. Analyze the CV and provide specific suggestions.
+
+Response format MUST be valid JSON:
+{
+  "summary": {
+    "greeting": "Hey ${firstName}, I've analyzed your CV...",
+    "overallScore": 0-100,
+    "strengths": ["strength1", "strength2"],
+    "mainIssues": ["issue1", "issue2"]
+  },
+  "suggestions": [
+    {
+      "id": "unique-id",
+      "title": "Short title",
+      "description": "What to improve and why",
+      "section": "contact|about|experiences|education|skills|certifications|projects|languages",
+      "priority": "high|medium|low",
+      "tags": ["missing_info", "ats_optimize", "add_impact"],
+      "action": {
+        "type": "add|update|rewrite",
+        "targetSection": "section-name",
+        "targetField": "field-name",
+        "suggestedValue": "suggested text"
+      },
+      "isApplicable": true
+    }
+  ],
+  "analyzedAt": "${new Date().toISOString()}"
+}`;
+
+    const userPrompt = `Analyze this CV:
+${jobContextSection}
+
+CV DATA:
+${cvJson}
+
+Provide 5-10 specific, actionable suggestions. Be specific to this CV.`;
+
+    // Call OpenAI API
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-5.2",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        response_format: { type: 'json_object' },
+        max_completion_tokens: 8000,
+        temperature: 0.3
+      })
+    });
+
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      console.error('❌ OpenAI API error:', errorText);
+      return res.status(openaiResponse.status).json({
+        status: 'error',
+        message: `OpenAI API error: ${errorText.substring(0, 200)}`
+      });
+    }
+
+    const responseData = await openaiResponse.json();
+    const content = responseData.choices[0]?.message?.content;
+
+    if (!content) {
+      throw new Error('Empty response from OpenAI API');
+    }
+
+    const reviewResult = JSON.parse(content);
+
+    // Ensure required fields
+    if (!reviewResult.summary) {
+      reviewResult.summary = {
+        greeting: `Hey ${firstName}, I've analyzed your CV.`,
+        overallScore: 50,
+        strengths: [],
+        mainIssues: []
+      };
+    }
+    if (!reviewResult.suggestions) reviewResult.suggestions = [];
+    if (!reviewResult.analyzedAt) reviewResult.analyzedAt = new Date().toISOString();
+
+    console.log('✅ CV Review completed successfully');
+
+    res.json({
+      status: 'success',
+      result: reviewResult,
+      usage: responseData.usage
+    });
+
+  } catch (error) {
+    console.error('❌ Error in CV Review:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to analyze CV'
     });
   }
 });
