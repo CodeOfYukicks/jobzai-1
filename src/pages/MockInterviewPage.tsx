@@ -1547,7 +1547,8 @@ export default function MockInterviewPage() {
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.3 }}
-        className="h-full flex relative"
+        className="flex-1 h-full flex flex-col min-h-0"
+        style={{ height: '100%' }}
       >
         {/* Decorative Grid Background */}
         {/* Decorative Grid Background */}
@@ -1652,32 +1653,36 @@ export default function MockInterviewPage() {
           </div>
         </div>
 
-        {/* Desktop Layout (hidden md:flex) */}
+        {/* Desktop Layout */}
         <div className="hidden md:flex flex-1 w-full relative z-10">
           {hasPastSessions ? (
             // Split layout when there are past sessions
             <>
-              {/* Left Panel - Job Selection */}
-              <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
-                {renderJobSelectionPanel()}
+              {/* Left Panel - Job Selection - centered content */}
+              <div className="flex-1 grid place-items-center p-6 overflow-y-auto">
+                <div className="w-full max-w-md">
+                  {renderJobSelectionPanel()}
+                </div>
               </div>
 
               {/* Divider */}
               <div className="w-px bg-gray-200/60 dark:bg-[#3d3c3e]/40 my-6" />
 
-              {/* Right Panel - History */}
-              <div className="w-[340px] flex-shrink-0 p-6 overflow-hidden" id="past-sessions-desktop">
+              {/* Right Panel - History - independently scrollable */}
+              <div className="w-[340px] flex-shrink-0 h-full flex flex-col p-6" id="past-sessions-desktop">
                 {renderHistoryPanel()}
               </div>
             </>
           ) : (
             // Centered layout when no past sessions
-            <div className="flex-1 flex items-center justify-center p-6">
-              {renderJobSelectionPanel()}
+            <div className="flex-1 grid place-items-center p-6 overflow-y-auto">
+              <div className="w-full max-w-md">
+                {renderJobSelectionPanel()}
+              </div>
             </div>
           )}
         </div>
-      </motion.div>
+      </motion.div >
     );
   };
 
@@ -1697,11 +1702,12 @@ export default function MockInterviewPage() {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.4 }}
-        className="h-full flex flex-col items-center justify-center p-8 relative"
+        className="flex-1 h-full flex flex-col items-center justify-center px-8 overflow-y-auto min-h-0"
+        style={{ height: '100%' }}
       >
         {/* Decorative Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
-        <div className="w-full max-w-sm mx-auto flex flex-col items-center">
+        <div className="w-full max-w-sm flex flex-col items-center">
 
           {/* Hero: Company Logo with Glow */}
           <motion.div
@@ -1912,7 +1918,8 @@ export default function MockInterviewPage() {
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.4 }}
-      className="h-full flex flex-col"
+      className="flex-1 h-full flex flex-col min-h-0"
+      style={{ height: '100%' }}
     >
       {/* Premium Header */}
       <div className="flex-shrink-0 bg-white/95 dark:bg-[#242325]/95 backdrop-blur-md border-b border-gray-200/60 dark:border-[#3d3c3e]/60 shadow-sm">
@@ -2007,9 +2014,9 @@ export default function MockInterviewPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden h-full">
         {/* Orb Section - Center */}
-        <div className="flex-1 flex items-center justify-center p-6 lg:p-0 overflow-visible">
+        <div className="flex-1 flex items-center justify-center p-6 lg:p-0 overflow-visible h-full">
           <motion.div
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -2116,7 +2123,7 @@ export default function MockInterviewPage() {
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="w-full lg:w-[380px] flex-shrink-0 flex flex-col border-t lg:border-t-0 lg:border-l border-gray-100 dark:border-[#3d3c3e] bg-gray-50/80 dark:bg-[#242325]/80 backdrop-blur-sm"
+          className="w-full lg:w-[380px] h-full flex-shrink-0 flex flex-col border-t lg:border-t-0 lg:border-l border-gray-100 dark:border-[#3d3c3e] bg-gray-50/80 dark:bg-[#242325]/80 backdrop-blur-sm"
         >
           {/* Transcript Header */}
           <div className="flex-shrink-0 px-5 py-4 border-b border-gray-100 dark:border-[#3d3c3e] bg-white dark:bg-[#242325]">
@@ -2377,11 +2384,20 @@ export default function MockInterviewPage() {
   );
 
   const renderLivePhase = () => (
-    <>
-      <div className="hidden md:block h-full">
+    <motion.div
+      key="live"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="flex-1 h-full flex flex-col min-h-0"
+      style={{ height: '100%' }}
+    >
+      <div className="hidden md:flex flex-col flex-1 h-full min-h-0" style={{ height: '100%' }}>
         {renderLivePhaseDesktop()}
       </div>
-      {renderLivePhaseMobile()}
+      <div className="md:hidden flex flex-col flex-1 h-full min-h-0" style={{ height: '100%' }}>
+        {renderLivePhaseMobile()}
+      </div>
 
       {/* End Interview Confirmation Modal */}
       <AnimatePresence>
@@ -2523,7 +2539,7 @@ export default function MockInterviewPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </motion.div>
   );
 
   // ============================================
@@ -2544,7 +2560,7 @@ export default function MockInterviewPage() {
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.98 }}
         transition={{ duration: 0.4 }}
-        className="h-full"
+        className="h-full flex flex-col overflow-y-auto"
       >
         <MockInterviewResultsView
           transcript={displayTranscript}
@@ -2571,7 +2587,7 @@ export default function MockInterviewPage() {
         subtitle={phase === 'setup' ? 'Select an interview' : phase === 'live' ? 'Live Session' : 'Results'}
       />
 
-      <div className="h-full overflow-hidden">
+      <div className="h-full flex flex-col overflow-hidden" style={{ height: '100%' }}>
         <AnimatePresence mode="wait">
           {phase === 'setup' && renderSetupPhase()}
           {phase === 'preparation' && renderPreparationPhase()}

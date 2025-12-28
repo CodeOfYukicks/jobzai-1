@@ -3153,7 +3153,7 @@ END:VCALENDAR`;
       {/* CSS Variables pour les animations */}
       <style>{cssVariables}</style>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
+      <div className="min-h-0 flex-1 md:overflow-hidden overflow-y-auto overflow-x-hidden flex flex-col">
         {/* Mobile Top Bar */}
         <MobileTopBar
           title={view !== 'boards' && currentBoard ? currentBoard.name : 'Applications'}

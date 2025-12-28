@@ -444,7 +444,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const displaySidebarWidth = isEffectivelyExpanded ? sidebarExpandedWidth : sidebarCollapsedWidth;
 
   return (
-    <div className="min-h-dvh md:min-h-screen bg-white dark:bg-[#1a1a1a] md:bg-gray-50 md:dark:bg-[#333234] flex flex-col overflow-x-hidden">
+    <div className={`min-h-dvh bg-white dark:bg-[#1a1a1a] md:bg-gray-50 md:dark:bg-[#333234] flex flex-col overflow-x-hidden ${needsFullHeight ? 'md:h-screen md:overflow-hidden' : 'md:min-h-screen'}`}>
       {/* Top Bar - Desktop only */}
       <div className="hidden md:block">
         <TopBar
