@@ -3251,105 +3251,114 @@ export default function CampaignsAutoPage() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              transition={{ type: "spring", duration: 0.3 }}
-              className="bg-white dark:bg-[#1a1a1a] rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl"
+              transition={{ type: "spring", duration: 0.4, bounce: 0.2 }}
+              className="bg-white dark:bg-[#1a1a1a] rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl border border-gray-100 dark:border-white/[0.05]"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-[#3d3c3e] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-medium">
-                    {emailPreviewRecipient.firstName?.charAt(0)}{emailPreviewRecipient.lastName?.charAt(0)}
+              {/* Minimalist Header */}
+              <div className="px-8 pt-8 pb-4 flex items-start justify-between">
+                <div className="flex items-center gap-5">
+                  <div className="relative">
+                    <ProfileAvatar
+                      config={generateGenderedAvatarConfig(emailPreviewRecipient.firstName, emailPreviewRecipient.id)}
+                      size={56}
+                      className="rounded-full shadow-md ring-4 ring-white dark:ring-[#1a1a1a]"
+                    />
+                    <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-[3px] border-white dark:border-[#1a1a1a] flex items-center justify-center ${emailPreviewRecipient.status === 'replied' ? 'bg-emerald-500' :
+                        emailPreviewRecipient.status === 'opened' ? 'bg-blue-500' :
+                          emailPreviewRecipient.status === 'sent' ? 'bg-amber-500' :
+                            'bg-purple-500'
+                      }`}>
+                      {emailPreviewRecipient.status === 'replied' ? <Reply className="w-2.5 h-2.5 text-white" /> :
+                        emailPreviewRecipient.status === 'opened' ? <Eye className="w-2.5 h-2.5 text-white" /> :
+                          emailPreviewRecipient.status === 'sent' ? <Send className="w-2.5 h-2.5 text-white" /> :
+                            <Sparkles className="w-2.5 h-2.5 text-white" />}
+                    </div>
                   </div>
+
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Email to {emailPreviewRecipient.fullName}
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+                      {emailPreviewRecipient.fullName}
                     </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {emailPreviewRecipient.title} at {emailPreviewRecipient.company}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{emailPreviewRecipient.title}</span>
+                      <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+                      <span>{emailPreviewRecipient.company}</span>
+                    </div>
                   </div>
                 </div>
+
                 <button
                   onClick={() => setEmailPreviewRecipient(null)}
-                  className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2b2a2c] transition-colors"
+                  className="p-2 -mr-2 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Email Content */}
-              <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <div className="px-8 pb-8 overflow-y-auto max-h-[55vh]">
                 {emailPreviewRecipient.emailGenerated ? (
-                  <>
-                    {/* Subject */}
-                    <div className="mb-6">
-                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                        Subject
-                      </label>
-                      <div className="px-4 py-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl border border-gray-200 dark:border-white/[0.08]">
-                        <p className="text-gray-900 dark:text-white font-medium">
-                          {emailPreviewRecipient.emailSubject || 'No subject'}
-                        </p>
-                      </div>
+                  <div className="space-y-6">
+                    {/* Subject - Clean & Bold */}
+                    <div className="pt-2">
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 leading-snug">
+                        {emailPreviewRecipient.emailSubject || 'No subject'}
+                      </h4>
                     </div>
 
-                    {/* Body */}
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                        Message
-                      </label>
-                      <div className="px-4 py-4 bg-gray-50 dark:bg-white/[0.03] rounded-xl border border-gray-200 dark:border-white/[0.08]">
-                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                          {emailPreviewRecipient.emailContent || 'No content'}
-                        </p>
-                      </div>
+                    {/* Body - Elegant Typography */}
+                    <div className="prose prose-gray dark:prose-invert max-w-none">
+                      <p className="text-[15px] leading-relaxed text-gray-600 dark:text-gray-300 whitespace-pre-wrap font-normal">
+                        {emailPreviewRecipient.emailContent || 'No content'}
+                      </p>
                     </div>
 
-                    {/* Status Badge */}
-                    <div className="mt-6 flex items-center gap-3">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${getStatusStyles(emailPreviewRecipient.status)}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${emailPreviewRecipient.status === 'replied' ? 'bg-emerald-500' :
-                          emailPreviewRecipient.status === 'opened' ? 'bg-blue-500' :
-                            emailPreviewRecipient.status === 'sent' ? 'bg-amber-500' :
-                              'bg-purple-500'
-                          }`} />
-                        {getStatusLabel(emailPreviewRecipient.status)}
-                      </span>
+                    {/* Meta Info */}
+                    <div className="flex items-center gap-4 pt-4 border-t border-gray-100 dark:border-white/[0.05]">
+                      <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">
+                        <Mail className="w-3.5 h-3.5" />
+                        <span>Generated Email</span>
+                      </div>
+
                       {emailPreviewRecipient.sentAt && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          Sent {new Date(emailPreviewRecipient.sentAt.toDate?.() || emailPreviewRecipient.sentAt).toLocaleDateString()}
-                        </span>
+                        <>
+                          <span className="text-gray-300 dark:text-gray-700">•</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                            Sent {new Date(emailPreviewRecipient.sentAt.toDate?.() || emailPreviewRecipient.sentAt).toLocaleDateString()}
+                          </span>
+                        </>
                       )}
                     </div>
-                  </>
+                  </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-[#2b2a2c] flex items-center justify-center mx-auto mb-4">
-                      <Mail className="w-8 h-8 text-gray-400" />
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-50 dark:bg-white/[0.03] flex items-center justify-center mb-4">
+                      <Sparkles className="w-8 h-8 text-gray-300 dark:text-gray-600" />
                     </div>
-                    <p className="text-gray-500 dark:text-gray-400">
-                      Email not generated yet
-                    </p>
-                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                      Click "Generate Emails" to create personalized emails
+                    <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
+                      No email generated yet
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+                      Use the "Generate" button to create a personalized email for this contact.
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Footer */}
-              <div className="px-6 py-4 border-t border-gray-200 dark:border-[#3d3c3e] flex justify-end gap-3">
+              {/* Minimalist Footer */}
+              <div className="px-8 py-5 bg-gray-50/50 dark:bg-white/[0.02] border-t border-gray-100 dark:border-white/[0.05] flex justify-end gap-3">
                 <button
                   onClick={() => setEmailPreviewRecipient(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2b2a2c] rounded-lg transition-colors"
+                  className="px-5 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.05] rounded-xl transition-colors"
                 >
                   Close
                 </button>
+
                 {emailPreviewRecipient.emailGenerated && emailPreviewRecipient.email && (
                   <a
                     href={`mailto:${emailPreviewRecipient.email}?subject=${encodeURIComponent(emailPreviewRecipient.emailSubject || '')}&body=${encodeURIComponent(emailPreviewRecipient.emailContent || '')}`}
-                    className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors inline-flex items-center gap-2"
+                    className="px-5 py-2.5 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 rounded-xl transition-colors shadow-sm inline-flex items-center gap-2"
                   >
                     <Send className="w-4 h-4" />
                     Open in Mail
