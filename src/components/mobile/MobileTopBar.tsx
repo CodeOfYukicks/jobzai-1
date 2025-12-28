@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
 
+import FirebaseImage from '../FirebaseImage';
+
 interface MobileTopBarProps {
     /** Main page title */
     title: string;
@@ -27,16 +29,38 @@ export default function MobileTopBar({ title, subtitle, rightAction }: MobileTop
             style={{ paddingTop: 'env(safe-area-inset-top)' }}
         >
             <div className="flex items-center justify-between h-14 px-4">
-                {/* Left: Title + optional subtitle */}
-                <div className="flex flex-col min-w-0 flex-1">
-                    <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white truncate leading-tight">
-                        {title}
-                    </h1>
-                    {subtitle && (
-                        <span className="text-[13px] text-gray-500 dark:text-gray-400 truncate leading-tight">
-                            {subtitle}
-                        </span>
-                    )}
+                {/* Left: Logo + Title + optional subtitle */}
+                <div className="flex items-center min-w-0 flex-1">
+                    {/* Brand Logo */}
+                    <div className="flex-shrink-0 mr-3">
+                        {/* Light Mode Logo */}
+                        <div className="dark:hidden">
+                            <FirebaseImage
+                                path="images/logo-only.png"
+                                alt="Logo"
+                                className="w-7 h-7 object-contain"
+                            />
+                        </div>
+                        {/* Dark Mode Logo */}
+                        <div className="hidden dark:block">
+                            <FirebaseImage
+                                path="images/logo-only-dark.png"
+                                alt="Logo"
+                                className="w-7 h-7 object-contain"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col min-w-0">
+                        <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white truncate leading-tight">
+                            {title}
+                        </h1>
+                        {subtitle && (
+                            <span className="text-[13px] text-gray-500 dark:text-gray-400 truncate leading-tight">
+                                {subtitle}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {/* Right: Single action button */}
