@@ -2395,16 +2395,15 @@ export default function CampaignsAutoPage() {
                       {/* Contact Header */}
                       <th
                         style={{ width: `${columnWidths.contact}%` }}
-                        className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
-                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
-                        cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
-                        active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
+                        className="group relative px-6 py-4 text-left bg-gray-50/50 dark:bg-[#1a1a1a]
+                        border-b border-gray-100 dark:border-white/[0.05]
+                        cursor-pointer hover:bg-gray-100/50 dark:hover:bg-white/[0.02] 
+                        transition-colors duration-200 first:rounded-tl-2xl"
                         onClick={() => handleSort('contact')}
                       >
                         <div className="flex items-center gap-2">
-                          <User className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400" />
-                          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Contact</span>
+                          <User className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</span>
                           <div className={`transition-all duration-200 ${sortColumn === 'contact' ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'}`}>
                             {sortColumn === 'contact' && sortDirection === 'desc' ? (
                               <ChevronDown className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
@@ -2424,11 +2423,10 @@ export default function CampaignsAutoPage() {
                       {/* Title Header */}
                       <th
                         style={{ width: `${columnWidths.title}%` }}
-                        className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
-                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
-                        cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
-                        active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
+                        className="group relative px-6 py-4 text-left bg-gray-50/50 dark:bg-[#1a1a1a]
+                        border-b border-gray-100 dark:border-white/[0.05]
+                        cursor-pointer hover:bg-gray-100/50 dark:hover:bg-white/[0.02] 
+                        transition-colors duration-200"
                         onClick={() => handleSort('title')}
                       >
                         <div className="flex items-center gap-2">
@@ -2451,11 +2449,10 @@ export default function CampaignsAutoPage() {
                       {/* Company Header */}
                       <th
                         style={{ width: `${columnWidths.company}%` }}
-                        className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
-                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
-                        cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
-                        active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
+                        className="group relative px-6 py-4 text-left bg-gray-50/50 dark:bg-[#1a1a1a]
+                        border-b border-gray-100 dark:border-white/[0.05]
+                        cursor-pointer hover:bg-gray-100/50 dark:hover:bg-white/[0.02] 
+                        transition-colors duration-200"
                         onClick={() => handleSort('company')}
                       >
                         <div className="flex items-center gap-2">
@@ -2478,11 +2475,10 @@ export default function CampaignsAutoPage() {
                       {/* Location Header */}
                       <th
                         style={{ width: `${columnWidths.location}%` }}
-                        className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
-                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
-                        cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
-                        active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
+                        className="group relative px-6 py-4 text-left bg-gray-50/50 dark:bg-[#1a1a1a]
+                        border-b border-gray-100 dark:border-white/[0.05]
+                        cursor-pointer hover:bg-gray-100/50 dark:hover:bg-white/[0.02] 
+                        transition-colors duration-200"
                         onClick={() => handleSort('location')}
                       >
                         <div className="flex items-center gap-2">
@@ -2505,11 +2501,10 @@ export default function CampaignsAutoPage() {
                       {/* Email Header */}
                       <th
                         style={{ width: `${columnWidths.email}%` }}
-                        className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
-                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
-                        cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
-                        active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
+                        className="group relative px-6 py-4 text-left bg-gray-50/50 dark:bg-[#1a1a1a]
+                        border-b border-gray-100 dark:border-white/[0.05]
+                        cursor-pointer hover:bg-gray-100/50 dark:hover:bg-white/[0.02] 
+                        transition-colors duration-200"
                         onClick={() => handleSort('email')}
                       >
                         <div className="flex items-center gap-2">
@@ -2532,9 +2527,8 @@ export default function CampaignsAutoPage() {
                       {/* LinkedIn Header */}
                       <th
                         style={{ width: `${columnWidths.linkedin}%` }}
-                        className="relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
-                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
+                        className="relative px-6 py-4 text-left bg-gray-50/50 dark:bg-[#1a1a1a]
+                        border-b border-gray-100 dark:border-white/[0.05]
                         transition-colors duration-200"
                       >
                         <div className="flex items-center gap-2">
@@ -2550,11 +2544,10 @@ export default function CampaignsAutoPage() {
                       {/* Status Header */}
                       <th
                         style={{ width: `${columnWidths.status}%` }}
-                        className="group relative px-4 py-3.5 text-left bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
-                        backdrop-blur-md border-r border-gray-200/50 dark:border-white/[0.03] 
-                        cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/[0.015] 
-                        active:bg-gray-100/60 dark:active:bg-white/[0.025] transition-all duration-200"
+                        className="group relative px-6 py-4 text-left bg-gray-50/50 dark:bg-[#1a1a1a]
+                        border-b border-gray-100 dark:border-white/[0.05]
+                        cursor-pointer hover:bg-gray-100/50 dark:hover:bg-white/[0.02] 
+                        transition-colors duration-200"
                         onClick={() => handleSort('status')}
                       >
                         <div className="flex items-center gap-2">
@@ -2577,9 +2570,9 @@ export default function CampaignsAutoPage() {
                       {/* Actions Header */}
                       <th
                         style={{ width: `${columnWidths.actions}%` }}
-                        className="px-4 py-3.5 text-center bg-gradient-to-b from-white via-gray-50/50 to-gray-50/30 
-                        dark:from-[#2b2a2c] dark:via-[#2a2829] dark:to-[#2a2829]
-                        backdrop-blur-md transition-colors duration-200"
+                        className="px-6 py-4 text-center bg-gray-50/50 dark:bg-[#1a1a1a]
+                        border-b border-gray-100 dark:border-white/[0.05]
+                        transition-colors duration-200 last:rounded-tr-2xl"
                       >
                         <div className="flex items-center justify-center gap-2">
                           <Zap className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
@@ -2594,39 +2587,39 @@ export default function CampaignsAutoPage() {
                     {isLoadingRecipients ? (
                       Array.from({ length: 8 }).map((_, i) => (
                         <tr key={i} className="animate-pulse">
-                          <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200/60 to-gray-300/40 dark:from-white/[0.08] dark:to-white/[0.04]" />
+                          <td className="px-6 py-4 transition-colors duration-200">
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/[0.06]" />
                               <div className="flex-1 space-y-2">
-                                <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-24" />
+                                <div className="h-3.5 bg-gray-100 dark:bg-white/[0.06] rounded-full w-24" />
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
-                            <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-32" />
+                          <td className="px-6 py-4 transition-colors duration-200">
+                            <div className="h-3.5 bg-gray-100 dark:bg-white/[0.06] rounded-full w-32" />
                           </td>
-                          <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
-                            <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
-                              <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-20" />
+                          <td className="px-6 py-4 transition-colors duration-200">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.06]" />
+                              <div className="h-3.5 bg-gray-100 dark:bg-white/[0.06] rounded-full w-20" />
                             </div>
                           </td>
-                          <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
-                            <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-28" />
+                          <td className="px-6 py-4 transition-colors duration-200">
+                            <div className="h-3.5 bg-gray-100 dark:bg-white/[0.06] rounded-full w-28" />
                           </td>
-                          <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
-                            <div className="h-3.5 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-36" />
+                          <td className="px-6 py-4 transition-colors duration-200">
+                            <div className="h-3.5 bg-gray-100 dark:bg-white/[0.06] rounded-full w-36" />
                           </td>
-                          <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
-                            <div className="w-6 h-6 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
+                          <td className="px-6 py-4 transition-colors duration-200">
+                            <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.06]" />
                           </td>
-                          <td className="px-4 py-3.5 border-r border-gray-200/40 dark:border-white/[0.025]">
-                            <div className="h-6 bg-gray-200/60 dark:bg-white/[0.06] rounded-full w-16" />
+                          <td className="px-6 py-4 transition-colors duration-200">
+                            <div className="h-6 bg-gray-100 dark:bg-white/[0.06] rounded-full w-16" />
                           </td>
-                          <td className="px-4 py-3.5">
-                            <div className="flex items-center justify-center gap-1">
-                              <div className="w-7 h-7 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
-                              <div className="w-7 h-7 rounded bg-gray-200/60 dark:bg-white/[0.06]" />
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.06]" />
+                              <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.06]" />
                             </div>
                           </td>
                         </tr>
@@ -2681,32 +2674,28 @@ export default function CampaignsAutoPage() {
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.2, delay: 0.015 * Math.min(index, 20) }}
                           className={`group relative transition-all duration-200 ease-out
-                          ${index % 2 === 0
-                              ? 'bg-white dark:bg-[#2b2a2c]'
-                              : 'bg-gray-50/40 dark:bg-[#2a2829]'
-                            }
-                          hover:bg-gray-50/90 dark:hover:bg-white/[0.02] 
-                          hover:shadow-[0_1px_3px_-1px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_1px_3px_-1px_rgba(0,0,0,0.4)]
-                          active:bg-gray-100/80 dark:active:bg-white/[0.03]
-                          border-l-[3px] ${getStatusBorderColor(recipient.status)}`}
+                          bg-white dark:bg-[#1a1a1a]
+                          hover:bg-gray-50 dark:hover:bg-white/[0.02] 
+                          border-b border-gray-100 dark:border-white/[0.03]
+                          ${getStatusBorderColor(recipient.status)}`}
                         >
                           {/* Contact Cell with Avatar */}
-                          <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
-                            <div className="flex items-center gap-3">
+                          <td className="px-6 py-4 transition-colors duration-200">
+                            <div className="flex items-center gap-4">
                               {/* Premium Gendered Avatar */}
                               <div className="relative flex-shrink-0">
                                 <ProfileAvatar
                                   config={generateGenderedAvatarConfig(recipient.firstName, recipient.id)}
-                                  size={32}
-                                  className="rounded-full shadow-sm"
+                                  size={40}
+                                  className="rounded-full shadow-sm ring-2 ring-white dark:ring-[#1a1a1a]"
                                 />
                                 {recipient.status === 'replied' && (
-                                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0a0a0a] flex items-center justify-center">
-                                    <Check className="w-2 h-2 text-white" strokeWidth={3} />
+                                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white dark:border-[#1a1a1a] flex items-center justify-center">
+                                    <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
                                   </div>
                                 )}
                               </div>
-                              <span className="text-[13px] font-medium text-gray-900 dark:text-gray-50 truncate 
+                              <span className="text-[14px] font-semibold text-gray-900 dark:text-white truncate 
                               group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors cursor-default">
                                 {recipient.fullName}
                               </span>
@@ -2714,15 +2703,15 @@ export default function CampaignsAutoPage() {
                           </td>
 
                           {/* Title Cell */}
-                          <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
-                            <span className="text-[13px] text-gray-700 dark:text-gray-300 truncate block">
+                          <td className="px-6 py-4 transition-colors duration-200">
+                            <span className="text-[13px] font-medium text-gray-600 dark:text-gray-300 truncate block">
                               {recipient.title || <span className="text-gray-300 dark:text-gray-600/60">—</span>}
                             </span>
                           </td>
 
                           {/* Company Cell with Logo */}
-                          <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
-                            <div className="flex items-center gap-2.5">
+                          <td className="px-6 py-4 transition-colors duration-200">
+                            <div className="flex items-center gap-3">
                               {recipient.company && (
                                 recipient.isDemo && recipient.companyInitialsLogo ? (
                                   <div
@@ -2737,18 +2726,18 @@ export default function CampaignsAutoPage() {
                                   <CompanyLogo companyName={recipient.company} size="sm" />
                                 )
                               )}
-                              <span className="text-[13px] font-medium text-gray-800 dark:text-gray-100 truncate">
+                              <span className="text-[13px] font-medium text-gray-700 dark:text-gray-200 truncate">
                                 {recipient.company || <span className="text-gray-300 dark:text-gray-600 font-normal">—</span>}
                               </span>
                             </div>
                           </td>
 
                           {/* Location Cell */}
-                          <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
+                          <td className="px-6 py-4 transition-colors duration-200">
                             {recipient.location ? (
-                              <div className="flex items-center gap-1.5">
-                                <Globe className="w-3.5 h-3.5 text-gray-400 dark:text-gray-400 flex-shrink-0" />
-                                <span className="text-[13px] text-gray-700 dark:text-gray-300 truncate">
+                              <div className="flex items-center gap-2">
+                                <Globe className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                                <span className="text-[13px] text-gray-600 dark:text-gray-400 truncate">
                                   {recipient.location}
                                 </span>
                               </div>
@@ -2758,18 +2747,18 @@ export default function CampaignsAutoPage() {
                           </td>
 
                           {/* Email Cell with Copy */}
-                          <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
+                          <td className="px-6 py-4 transition-colors duration-200">
                             {recipient.email && !recipient.email.includes('not_unlocked') ? (
                               <div className="flex items-center gap-2 group/email">
-                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
                                   <BadgeCheck className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
-                                  <span className="text-[13px] text-gray-700 dark:text-gray-300 truncate">
+                                  <span className="text-[13px] text-gray-600 dark:text-gray-300 truncate">
                                     {recipient.email}
                                   </span>
                                 </div>
                                 <button
                                   onClick={() => handleCopyEmail(recipient.email!)}
-                                  className={`p-1 rounded transition-all duration-200 opacity-0 group-hover/email:opacity-100
+                                  className={`p-1.5 rounded-md transition-all duration-200 opacity-0 group-hover/email:opacity-100
                                   ${copiedEmail === recipient.email
                                       ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10'
                                       : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]'
@@ -2789,7 +2778,7 @@ export default function CampaignsAutoPage() {
                           </td>
 
                           {/* LinkedIn Cell */}
-                          <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
+                          <td className="px-6 py-4 transition-colors duration-200">
                             {recipient.linkedinUrl ? (
                               <a
                                 href={recipient.linkedinUrl}
@@ -2798,29 +2787,28 @@ export default function CampaignsAutoPage() {
                                 className="inline-flex items-center justify-center w-8 h-8 rounded-lg
                                 text-[#0A66C2] dark:text-[#71b7fb] 
                                 hover:bg-[#0A66C2]/10 dark:hover:bg-[#71b7fb]/10 
-                                hover:shadow-[0_0_0_4px_rgba(10,102,194,0.1)] dark:hover:shadow-[0_0_0_4px_rgba(113,183,251,0.1)]
                                 transition-all duration-200"
                                 title="View LinkedIn Profile"
                               >
                                 <Linkedin className="w-4 h-4" />
                               </a>
                             ) : (
-                              <span className="text-[13px] text-gray-300 dark:text-gray-600">—</span>
+                              <span className="text-gray-300 dark:text-gray-600">—</span>
                             )}
                           </td>
 
                           {/* Status Cell with Premium Badge */}
-                          <td className="px-4 py-3 border-r border-gray-200/40 dark:border-white/[0.025] transition-colors duration-200">
+                          <td className="px-6 py-4 transition-colors duration-200">
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold
                             ${recipient.status === 'replied'
-                                ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200/50 dark:ring-emerald-500/20'
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 ring-1 ring-emerald-200/50 dark:ring-emerald-500/20'
                                 : recipient.status === 'opened'
-                                  ? 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-500/10 dark:to-cyan-500/10 text-blue-700 dark:text-blue-400 ring-1 ring-blue-200/50 dark:ring-blue-500/20'
+                                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 ring-1 ring-blue-200/50 dark:ring-blue-500/20'
                                   : recipient.status === 'sent'
-                                    ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200/50 dark:ring-amber-500/20'
+                                    ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 ring-1 ring-amber-200/50 dark:ring-amber-500/20'
                                     : recipient.status === 'email_generated' || recipient.status === 'email_ready'
-                                      ? 'bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-500/10 dark:to-purple-500/10 text-violet-700 dark:text-violet-400 ring-1 ring-violet-200/50 dark:ring-violet-500/20'
-                                      : 'bg-gray-100 dark:bg-white/[0.05] text-gray-500 dark:text-gray-500 ring-1 ring-gray-200/50 dark:ring-white/[0.05]'
+                                      ? 'bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400 ring-1 ring-violet-200/50 dark:ring-violet-500/20'
+                                      : 'bg-gray-100 text-gray-500 dark:bg-white/[0.05] dark:text-gray-400 ring-1 ring-gray-200/50 dark:ring-white/[0.05]'
                               }`}
                             >
                               <span className={`w-1.5 h-1.5 rounded-full ${recipient.status === 'replied' ? 'bg-emerald-500 animate-pulse' :
@@ -2834,7 +2822,7 @@ export default function CampaignsAutoPage() {
                           </td>
 
                           {/* Actions Cell */}
-                          <td className="px-3 py-3">
+                          <td className="px-6 py-4">
                             <div className="flex items-center justify-center gap-1">
                               <button
                                 onClick={() => setEmailPreviewRecipient(recipient)}
@@ -2920,8 +2908,7 @@ export default function CampaignsAutoPage() {
 
               {/* Pagination/Footer - Hidden on Mobile */}
               {sortedRecipients.length > 0 && (
-                <div className="hidden md:flex items-center justify-between px-4 py-3 border-t border-gray-200/60 dark:border-white/[0.04]
-                bg-gradient-to-b from-gray-50/30 via-white to-white dark:from-[#2a2829] dark:via-[#2a2829] dark:to-[#2b2a2c]">
+                <div className="hidden md:flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-white/[0.05] bg-white dark:bg-[#1a1a1a]">
                   <div className="text-[12px] text-gray-500 dark:text-gray-400">
                     Showing <span className="font-semibold text-gray-700 dark:text-gray-200">{sortedRecipients.length}</span> of <span className="font-semibold text-gray-700 dark:text-gray-200">{recipients.length}</span> contacts
                   </div>
