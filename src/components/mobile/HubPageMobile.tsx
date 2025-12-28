@@ -89,7 +89,7 @@ function WidgetContent({ type }: { type: MobileWidgetType }) {
     switch (type) {
         case 'weather': return <WeatherCard />;
         case 'time': return <TimeWidget />;
-        case 'quote': return <DailyMotivation />;
+        case 'quote': return <DailyMotivation compact={true} />;
         case 'note': return <NoteWidget />;
         case 'hamster': return <HamsterWidget />;
         case 'pressButton': return <PressButtonWidget />;
@@ -237,40 +237,45 @@ export default function HubPageMobile() {
                         </p>
                     </motion.div>
 
-                    {/* Today's Focus Card - Primary Visual Anchor */}
+                    {/* Next Step Card - Premium, Subtle, Human */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
                         className="mb-6"
                     >
-                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#635BFF] to-[#8B5CF6] p-5 shadow-lg shadow-[#635BFF]/20">
-                            {/* Background decoration */}
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+                        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#2b2a2c] p-5 border border-gray-100 dark:border-[#3d3c3e] shadow-sm">
+                            {/* Subtle accent indicator */}
+                            <div className="absolute top-0 left-0 w-1 h-full bg-[#635BFF] opacity-80" />
 
-                            <div className="relative">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Sparkles className="w-4 h-4 text-white/80" />
-                                    <span className="text-xs font-semibold text-white/80 uppercase tracking-wider">
-                                        Today's Focus
-                                    </span>
+                            <div className="relative flex flex-col gap-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[#635BFF]" />
+                                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                            Next step
+                                        </span>
+                                    </div>
                                 </div>
 
-                                <h2 className="text-xl font-bold text-white mb-2">
-                                    {nextMission ? nextMission.title : 'Apply to 1 job today'}
-                                </h2>
-                                <p className="text-sm text-white/70 mb-5">
-                                    {nextMission ? nextMission.description : 'Find your next opportunity'}
-                                </p>
+                                <div>
+                                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white leading-tight mb-1">
+                                        {nextMission ? nextMission.title : 'Apply to a role you saved'}
+                                    </h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        {nextMission ? nextMission.description : '2 roles waiting for you'}
+                                    </p>
+                                </div>
 
-                                <button
-                                    onClick={(e) => handleNavigate(e, { href: '/jobs', color: '#635BFF' })}
-                                    className="w-full flex items-center justify-center gap-2 py-3.5 bg-white rounded-xl text-[#635BFF] font-semibold text-sm
-                    active:scale-[0.98] transition-transform"
-                                >
-                                    Start
-                                    <ChevronRight className="w-4 h-4" />
-                                </button>
+                                <div className="flex justify-end mt-1">
+                                    <button
+                                        onClick={(e) => handleNavigate(e, { href: '/jobs', color: '#635BFF' })}
+                                        className="flex items-center gap-1.5 text-sm font-medium text-[#635BFF] hover:text-[#534bc9] active:opacity-70 transition-colors"
+                                    >
+                                        Start
+                                        <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </motion.div>
@@ -326,8 +331,8 @@ export default function HubPageMobile() {
                                                 {/* Mission Info */}
                                                 <div className="flex-1 min-w-0">
                                                     <div className={`text-sm font-medium ${isComplete
-                                                            ? 'text-gray-400 dark:text-gray-500 line-through'
-                                                            : 'text-gray-900 dark:text-white'
+                                                        ? 'text-gray-400 dark:text-gray-500 line-through'
+                                                        : 'text-gray-900 dark:text-white'
                                                         }`}>
                                                         {mission.title}
                                                     </div>
@@ -450,7 +455,7 @@ export default function HubPageMobile() {
                                 <span className="text-sm font-medium">Add widgets</span>
                             </button>
                         ) : (
-                            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory">
+                            <div className="flex gap-3 overflow-x-auto py-4 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory">
                                 {widgets.map((widget) => (
                                     <div
                                         key={widget.id}

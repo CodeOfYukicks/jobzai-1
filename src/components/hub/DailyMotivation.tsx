@@ -35,7 +35,7 @@ const FALLBACK_QUOTES: Omit<QuoteData, 'dateKey'>[] = [
   { content: "The expert in anything was once a beginner.", author: "Helen Hayes" },
   { content: "Build your own dreams, or someone else will hire you to build theirs.", author: "Farrah Gray" },
   { content: "Don't let yesterday take up too much of today.", author: "Will Rogers" },
-  
+
   // ═══════════════════════════════════════════════════════════
   // SUCCESS & ACHIEVEMENT
   // ═══════════════════════════════════════════════════════════
@@ -49,7 +49,7 @@ const FALLBACK_QUOTES: Omit<QuoteData, 'dateKey'>[] = [
   { content: "The successful warrior is the average man, with laser-like focus.", author: "Bruce Lee" },
   { content: "Success is not how high you have climbed, but how you make a positive difference.", author: "Roy T. Bennett" },
   { content: "There are no secrets to success. It is the result of preparation, hard work, and learning.", author: "Colin Powell" },
-  
+
   // ═══════════════════════════════════════════════════════════
   // MOTIVATION & DRIVE
   // ═══════════════════════════════════════════════════════════
@@ -68,7 +68,7 @@ const FALLBACK_QUOTES: Omit<QuoteData, 'dateKey'>[] = [
   { content: "Fortune favors the bold.", author: "Virgil" },
   { content: "What you get by achieving your goals is not as important as what you become.", author: "Zig Ziglar" },
   { content: "If you want to achieve greatness, stop asking for permission.", author: "Unknown" },
-  
+
   // ═══════════════════════════════════════════════════════════
   // PERSISTENCE & RESILIENCE
   // ═══════════════════════════════════════════════════════════
@@ -82,7 +82,7 @@ const FALLBACK_QUOTES: Omit<QuoteData, 'dateKey'>[] = [
   { content: "The only way to guarantee failure is to quit.", author: "John C. Maxwell" },
   { content: "A river cuts through rock not because of its power, but because of its persistence.", author: "Jim Watkins" },
   { content: "Perseverance is not a long race; it is many short races one after the other.", author: "Walter Elliot" },
-  
+
   // ═══════════════════════════════════════════════════════════
   // MINDSET & ATTITUDE
   // ═══════════════════════════════════════════════════════════
@@ -96,7 +96,7 @@ const FALLBACK_QUOTES: Omit<QuoteData, 'dateKey'>[] = [
   { content: "Life is 10% what happens to you and 90% how you react to it.", author: "Charles R. Swindoll" },
   { content: "Be the change that you wish to see in the world.", author: "Mahatma Gandhi" },
   { content: "In the middle of difficulty lies opportunity.", author: "Albert Einstein" },
-  
+
   // ═══════════════════════════════════════════════════════════
   // ACTION & INITIATIVE
   // ═══════════════════════════════════════════════════════════
@@ -110,7 +110,7 @@ const FALLBACK_QUOTES: Omit<QuoteData, 'dateKey'>[] = [
   { content: "Don't wait for opportunity. Create it.", author: "Unknown" },
   { content: "Small steps in the right direction can turn out to be the biggest step of your life.", author: "Unknown" },
   { content: "The beginning is always today.", author: "Mary Shelley" },
-  
+
   // ═══════════════════════════════════════════════════════════
   // LEARNING & GROWTH
   // ═══════════════════════════════════════════════════════════
@@ -124,7 +124,7 @@ const FALLBACK_QUOTES: Omit<QuoteData, 'dateKey'>[] = [
   { content: "I am always doing that which I cannot do, in order that I may learn how to do it.", author: "Pablo Picasso" },
   { content: "Develop a passion for learning. If you do, you will never cease to grow.", author: "Anthony J. D'Angelo" },
   { content: "Growth is never by mere chance; it is the result of forces working together.", author: "James Cash Penney" },
-  
+
   // ═══════════════════════════════════════════════════════════
   // COURAGE & RISK
   // ═══════════════════════════════════════════════════════════
@@ -138,7 +138,7 @@ const FALLBACK_QUOTES: Omit<QuoteData, 'dateKey'>[] = [
   { content: "If you're not failing, you're not trying hard enough.", author: "Unknown" },
   { content: "Feel the fear and do it anyway.", author: "Susan Jeffers" },
   { content: "Be brave enough to be bad at something new.", author: "Unknown" },
-  
+
   // ═══════════════════════════════════════════════════════════
   // CREATIVITY & INNOVATION
   // ═══════════════════════════════════════════════════════════
@@ -152,7 +152,7 @@ const FALLBACK_QUOTES: Omit<QuoteData, 'dateKey'>[] = [
   { content: "You can't use up creativity. The more you use, the more you have.", author: "Maya Angelou" },
   { content: "Think left and think right and think low and think high.", author: "Dr. Seuss" },
   { content: "Have no fear of perfection—you'll never reach it.", author: "Salvador Dalí" },
-  
+
   // ═══════════════════════════════════════════════════════════
   // LEADERSHIP & INFLUENCE
   // ═══════════════════════════════════════════════════════════
@@ -166,7 +166,7 @@ const FALLBACK_QUOTES: Omit<QuoteData, 'dateKey'>[] = [
   { content: "If your actions inspire others to dream more, learn more, do more, you are a leader.", author: "John Quincy Adams" },
   { content: "Great leaders don't set out to be a leader. They set out to make a difference.", author: "Unknown" },
   { content: "The quality of a leader is reflected in the standards they set for themselves.", author: "Ray Kroc" },
-  
+
   // ═══════════════════════════════════════════════════════════
   // PURPOSE & PASSION
   // ═══════════════════════════════════════════════════════════
@@ -180,7 +180,7 @@ const FALLBACK_QUOTES: Omit<QuoteData, 'dateKey'>[] = [
   { content: "Passion is the genesis of genius.", author: "Tony Robbins" },
   { content: "Find what makes your heart sing and create your own music.", author: "Mac Anderson" },
   { content: "Don't ask what the world needs. Ask what makes you come alive and go do it.", author: "Howard Thurman" },
-  
+
   // ═══════════════════════════════════════════════════════════
   // SELF-BELIEF & CONFIDENCE
   // ═══════════════════════════════════════════════════════════
@@ -194,7 +194,7 @@ const FALLBACK_QUOTES: Omit<QuoteData, 'dateKey'>[] = [
   { content: "To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment.", author: "Ralph Waldo Emerson" },
   { content: "You are braver than you believe, stronger than you seem, and smarter than you think.", author: "A.A. Milne" },
   { content: "Self-confidence is the first requisite to great undertakings.", author: "Samuel Johnson" },
-  
+
   // ═══════════════════════════════════════════════════════════
   // WISDOM & REFLECTION
   // ═══════════════════════════════════════════════════════════
@@ -255,14 +255,14 @@ function getRandomFallbackQuote(forceRandom = false): Omit<QuoteData, 'dateKey'>
   return FALLBACK_QUOTES[index];
 }
 
-export default function DailyMotivation() {
+export default function DailyMotivation({ compact = false }: { compact?: boolean }) {
   const [quote, setQuote] = useState<QuoteData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchQuote = useCallback(async (forceRefresh = false) => {
     const todayKey = getTodayKey();
-    
+
     // Check localStorage first (unless forcing refresh)
     if (!forceRefresh) {
       try {
@@ -281,40 +281,40 @@ export default function DailyMotivation() {
     }
 
     setIsRefreshing(forceRefresh);
-    
+
     // Skip API if it recently failed to avoid console errors
     const skipAPI = shouldSkipAPI();
-    
+
     if (!skipAPI) {
       try {
         // Fetch from Quotable API with timeout
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-        
+
         const response = await fetch('https://api.quotable.io/random?maxLength=120', {
           signal: controller.signal,
         });
-        
+
         clearTimeout(timeoutId);
-        
+
         if (!response.ok) {
           throw new Error('API request failed');
         }
-        
+
         const data = await response.json();
         const newQuote: QuoteData = {
           content: data.content,
           author: data.author,
           dateKey: todayKey,
         };
-        
+
         // Cache in localStorage
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(newQuote));
         } catch (e) {
           // Ignore localStorage errors
         }
-        
+
         setQuote(newQuote);
         setLoading(false);
         setIsRefreshing(false);
@@ -324,7 +324,7 @@ export default function DailyMotivation() {
         markAPIFailure();
       }
     }
-    
+
     // Use fallback quote (either because API was skipped or failed)
     const fallback = getRandomFallbackQuote(forceRefresh);
     const fallbackQuote: QuoteData = {
@@ -359,13 +359,15 @@ export default function DailyMotivation() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[#B7E219] rounded-2xl h-full min-h-[220px] flex items-center justify-center"
+        className={`bg-[#B7E219] rounded-2xl h-full ${compact ? '' : 'min-h-[220px]'} flex items-center justify-center`}
       >
         <div className="flex items-center gap-2">
           <Loader2 className="w-4 h-4 animate-spin text-[#7F9B1D]" />
-          <span className="text-sm text-[#7F9B1D] font-medium">
-            Loading inspiration...
-          </span>
+          {!compact && (
+            <span className="text-sm text-[#7F9B1D] font-medium">
+              Loading inspiration...
+            </span>
+          )}
         </div>
       </motion.div>
     );
@@ -379,24 +381,24 @@ export default function DailyMotivation() {
       className="relative h-full"
     >
       {/* Main card */}
-      <div 
+      <div
         onClick={handleRefresh}
         onKeyDown={handleCardKeyDown}
         role="button"
         tabIndex={0}
-        className="group relative bg-[#B7E219] rounded-2xl h-full min-h-[220px] overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-[#B7E219]/30"
+        className={`group relative bg-[#B7E219] rounded-2xl h-full ${compact ? '' : 'min-h-[220px]'} overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-[#B7E219]/30`}
       >
         {/* Header */}
-        <div className="uppercase font-bold text-[#7F9B1D] px-6 pt-5 pb-2 text-xs tracking-wide leading-tight">
+        <div className={`uppercase font-bold text-[#7F9B1D] ${compact ? 'px-4 pt-4 pb-1 text-[10px]' : 'px-6 pt-5 pb-2 text-xs'} tracking-wide leading-tight`}>
           Quote of the day
         </div>
 
         {/* Quote SVG icon */}
-        <div className="text-[#DFF886] px-6 -mt-1">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 330 307" className="w-14 h-14">
-            <path 
-              fill="currentColor" 
-              d="M302.258 176.221C320.678 176.221 329.889 185.432 329.889 203.853V278.764C329.889 297.185 320.678 306.395 302.258 306.395H231.031C212.61 306.395 203.399 297.185 203.399 278.764V203.853C203.399 160.871 207.902 123.415 216.908 91.4858C226.323 59.1472 244.539 30.902 271.556 6.75027C280.562 -1.02739 288.135 -2.05076 294.275 3.68014L321.906 29.4692C328.047 35.2001 326.614 42.1591 317.608 50.3461C303.69 62.6266 292.228 80.4334 283.223 103.766C274.626 126.69 270.328 150.842 270.328 176.221H302.258ZM99.629 176.221C118.05 176.221 127.26 185.432 127.26 203.853V278.764C127.26 297.185 118.05 306.395 99.629 306.395H28.402C9.98126 306.395 0.770874 297.185 0.770874 278.764V203.853C0.770874 160.871 5.27373 123.415 14.2794 91.4858C23.6945 59.1472 41.9106 30.902 68.9277 6.75027C77.9335 -1.02739 85.5064 -2.05076 91.6467 3.68014L119.278 29.4692C125.418 35.2001 123.985 42.1591 114.98 50.3461C101.062 62.6266 89.6 80.4334 80.5942 103.766C71.9979 126.69 67.6997 150.842 67.6997 176.221H99.629Z" 
+        <div className={`text-[#DFF886] ${compact ? 'px-4 -mt-0.5' : 'px-6 -mt-1'}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 330 307" className={compact ? "w-8 h-8" : "w-14 h-14"}>
+            <path
+              fill="currentColor"
+              d="M302.258 176.221C320.678 176.221 329.889 185.432 329.889 203.853V278.764C329.889 297.185 320.678 306.395 302.258 306.395H231.031C212.61 306.395 203.399 297.185 203.399 278.764V203.853C203.399 160.871 207.902 123.415 216.908 91.4858C226.323 59.1472 244.539 30.902 271.556 6.75027C280.562 -1.02739 288.135 -2.05076 294.275 3.68014L321.906 29.4692C328.047 35.2001 326.614 42.1591 317.608 50.3461C303.69 62.6266 292.228 80.4334 283.223 103.766C274.626 126.69 270.328 150.842 270.328 176.221H302.258ZM99.629 176.221C118.05 176.221 127.26 185.432 127.26 203.853V278.764C127.26 297.185 118.05 306.395 99.629 306.395H28.402C9.98126 306.395 0.770874 297.185 0.770874 278.764V203.853C0.770874 160.871 5.27373 123.415 14.2794 91.4858C23.6945 59.1472 41.9106 30.902 68.9277 6.75027C77.9335 -1.02739 85.5064 -2.05076 91.6467 3.68014L119.278 29.4692C125.418 35.2001 123.985 42.1591 114.98 50.3461C101.062 62.6266 89.6 80.4334 80.5942 103.766C71.9979 126.69 67.6997 150.842 67.6997 176.221H99.629Z"
             />
           </svg>
         </div>
@@ -410,9 +412,9 @@ export default function DailyMotivation() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="absolute top-16 left-0 right-0 px-6 pt-8"
+              className={`absolute left-0 right-0 ${compact ? 'top-12 px-4 pt-2' : 'top-16 px-6 pt-8'}`}
             >
-              <p className="text-base font-black text-[#465512] leading-snug line-clamp-4">
+              <p className={`font-black text-[#465512] leading-snug ${compact ? 'text-xs line-clamp-5' : 'text-base line-clamp-4'}`}>
                 {quote.content}
               </p>
             </motion.div>
@@ -421,21 +423,9 @@ export default function DailyMotivation() {
 
         {/* Author - appears on hover */}
         {quote && (
-          <div className="absolute bottom-4 left-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-            <p className="font-bold text-[#7F9B1D] text-sm flex items-center gap-2">
-              <span>— {quote.author}</span>
-              <svg 
-                className="w-4 h-4 text-[#809B1D]/50 inline-block" 
-                viewBox="0 0 24 24" 
-                xmlns="http://www.w3.org/2000/svg"
-                fill="currentColor"
-              >
-                <path d="M0 0H24V24H0z" fill="none" />
-                <path d="M16.5 3C19.538 3 22 5.5 22 9c0 7-7.5 11-10 12.5C9.5 20 2 16 2 9c0-3.5 2.5-6 5.5-6C9.36 3 11 4 12 5c1-1 2.64-2 4.5-2z" />
-              </svg>
-            </p>
-            <p className="text-[11px] text-[#7F9B1D]/70 mt-0.5">
-              Tap to refresh
+          <div className={`absolute left-0 right-0 ${compact ? 'bottom-3 px-4' : 'bottom-4 px-6'} ${compact ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity duration-500`}>
+            <p className={`font-bold text-[#7F9B1D] ${compact ? 'text-[10px]' : 'text-sm'} flex items-center gap-2`}>
+              <span className="truncate">— {quote.author}</span>
             </p>
           </div>
         )}

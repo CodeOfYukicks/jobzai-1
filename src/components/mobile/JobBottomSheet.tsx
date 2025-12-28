@@ -28,6 +28,10 @@ import { Job } from '../../types/job-board';
 import { useAuth } from '../../contexts/AuthContext';
 import { notify } from '@/lib/notify';
 import { useJobInteractions } from '../../hooks/useJobInteractions';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
+import { generateJobSummaryAndInsights, generateBasicInsightsFromJobData, generateBasicSummaryFromJobData, JobDataForFallback } from '../../lib/jobExtractor';
+import { KanbanBoard } from '../../types/job';
 
 // Snap point types and constants
 type SnapPoint = 'peek' | 'half' | 'full';
@@ -78,6 +82,11 @@ export default function JobBottomSheet({
     const shareMenuRef = useRef<HTMLDivElement>(null);
     const sheetRef = useRef<HTMLDivElement>(null);
 
+    // Wishlist / Application State
+    const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
+    const [isInWishlist, setIsInWishlist] = useState(false);
+    const [boards, setBoards] = useState<KanbanBoard[]>([]);
+
     const y = useMotionValue(0);
     const backdropOpacity = useTransform(y, [0, 300], [1, 0]);
 
@@ -106,6 +115,58 @@ export default function JobBottomSheet({
             document.body.style.overflow = '';
         };
     }, [isOpen, onClose]);
+
+    // Check if job is already in wishlist (applications)
+    useEffect(() => {
+        const checkWishlistStatus = async () => {
+            if (!currentUser || !job) {
+                setIsInWishlist(false);
+                return;
+            }
+
+            try {
+                const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
+                const q = query(
+                    applicationsRef,
+                    where('companyName', '==', job.company),
+                    where('position', '==', job.title)
+                );
+                const existingApplications = await getDocs(q);
+                setIsInWishlist(!existingApplications.empty);
+            } catch (error) {
+                console.error('Error checking wishlist status:', error);
+            }
+        };
+
+        if (isOpen) {
+            checkWishlistStatus();
+        }
+    }, [currentUser, job, isOpen]);
+
+    // Fetch user's boards
+    useEffect(() => {
+        const fetchBoards = async () => {
+            if (!currentUser) return;
+            try {
+                const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
+                const boardsQuery = query(boardsRef, orderBy('createdAt', 'asc'));
+                const snapshot = await getDocs(boardsQuery);
+
+                const allBoards = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                })) as KanbanBoard[];
+
+                const jobBoards = allBoards.filter(board =>
+                    !board.boardType || board.boardType === 'jobs'
+                );
+                setBoards(jobBoards);
+            } catch (error) {
+                console.error('Error fetching boards:', error);
+            }
+        };
+        fetchBoards();
+    }, [currentUser]);
 
     // Close share menu when clicking outside
     useEffect(() => {
@@ -205,10 +266,116 @@ export default function JobBottomSheet({
     };
 
     // Handle save
-    const handleSave = () => {
+    // Core function to add job to wishlist (create application)
+    const handleAddToWishlist = async () => {
+        if (!currentUser) {
+            notify.error('Please log in to add jobs to your wishlist');
+            return;
+        }
         if (!job) return;
-        toggleSave(job.id, { matchScore: job.matchScore });
-        notify.success(isJobSaved(job.id) ? 'Removed from saved' : 'Saved for later');
+
+        // Use first board or undefined if no boards
+        const targetBoardId = boards.length > 0 ? boards[0].id : undefined;
+
+        try {
+            setIsAddingToWishlist(true);
+
+            // Double check if already exists
+            const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
+            const q = query(
+                applicationsRef,
+                where('companyName', '==', job.company),
+                where('position', '==', job.title)
+            );
+            const existingApplications = await getDocs(q);
+
+            if (!existingApplications.empty) {
+                notify.error('This job is already in your applications');
+                setIsAddingToWishlist(false);
+                return;
+            }
+
+            // Prepare job data
+            const jobDataForAnalysis: JobDataForFallback = {
+                title: job.title,
+                company: job.company,
+                location: job.location,
+                description: job.description,
+                tags: job.tags,
+                skills: job.skills,
+                technologies: job.technologies,
+                industries: job.industries,
+                type: job.type,
+                seniority: job.seniority,
+                salaryRange: job.salaryRange,
+                remote: job.remote,
+                roleFunction: job.roleFunction,
+            };
+
+            // Create basic application
+            const basicApplication = {
+                companyName: job.company,
+                position: job.title,
+                location: job.location,
+                status: 'wishlist',
+                appliedDate: new Date().toISOString().split('T')[0],
+                url: job.applyUrl || '',
+                description: '',
+                fullJobDescription: job.description || '',
+                notes: '',
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                contactName: '',
+                contactEmail: '',
+                contactPhone: '',
+                salary: job.salaryRange || '',
+                generatedEmails: [],
+                stickyNotes: [],
+                statusHistory: [{
+                    status: 'wishlist',
+                    date: new Date().toISOString().split('T')[0],
+                    notes: 'Added from Job Board'
+                }],
+                ...(targetBoardId && { boardId: targetBoardId })
+            };
+
+            // Add to Firestore
+            const docRef = await addDoc(applicationsRef, basicApplication);
+
+            setIsInWishlist(true);
+            setIsAddingToWishlist(false);
+            notify.success('Added to wishlist! 💜');
+
+            // Background AI Analysis
+            try {
+                const result = await generateJobSummaryAndInsights(jobDataForAnalysis);
+
+                const { updateDoc, doc } = await import('firebase/firestore');
+                await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
+                    description: result.summary,
+                    jobInsights: result.jobInsights,
+                    ...(result.jobTags && { jobTags: result.jobTags }),
+                    updatedAt: serverTimestamp()
+                });
+            } catch (aiError) {
+                console.error('AI analysis failed, using fallback:', aiError);
+                const localSummary = generateBasicSummaryFromJobData(jobDataForAnalysis);
+                const localInsights = generateBasicInsightsFromJobData(jobDataForAnalysis);
+
+                const { updateDoc, doc } = await import('firebase/firestore');
+                await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
+                    description: localSummary,
+                    jobInsights: localInsights,
+                    _fallbackUsed: true,
+                    updatedAt: serverTimestamp()
+                });
+            }
+        } catch (error) {
+            console.error('Error adding to wishlist:', error);
+            setIsInWishlist(false);
+            notify.error('Failed to add to wishlist');
+            setIsAddingToWishlist(false);
+        }
     };
 
     // Get snap height as animated value
@@ -216,7 +383,7 @@ export default function JobBottomSheet({
 
     if (!job) return null;
 
-    const isSaved = isJobSaved(job.id);
+    // Use isInWishlist instead of isSaved for the UI state of the wishlist button
     const showMetadata = snapPoint === 'half' || snapPoint === 'full';
     const showFullContent = snapPoint === 'full';
 
@@ -321,14 +488,34 @@ export default function JobBottomSheet({
                                     )}
                                 </div>
 
-                                {/* Primary CTA - Always visible */}
-                                <button
-                                    onClick={handleApply}
-                                    className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white px-6 py-3.5 rounded-xl font-semibold text-base shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <ExternalLink className="w-5 h-5" />
-                                    Apply Now
-                                </button>
+                                {/* Primary Actions - Split 50/50 */}
+                                <div className="flex gap-3">
+                                    {/* Wishlist Button */}
+                                    <button
+                                        onClick={handleAddToWishlist}
+                                        disabled={isAddingToWishlist || isInWishlist}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-base transition-all active:scale-[0.98] ${isInWishlist
+                                            ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800'
+                                            : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#4a494b]'
+                                            }`}
+                                    >
+                                        {isAddingToWishlist ? (
+                                            <Sparkles className="w-5 h-5 animate-spin" />
+                                        ) : (
+                                            <Bookmark className={`w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} />
+                                        )}
+                                        {isInWishlist ? 'Added' : 'Wishlist'}
+                                    </button>
+
+                                    {/* Apply Button */}
+                                    <button
+                                        onClick={handleApply}
+                                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white px-6 py-3.5 rounded-xl font-semibold text-base shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <ExternalLink className="w-5 h-5" />
+                                        Apply
+                                    </button>
+                                </div>
 
                                 {/* Expand hint at peek level */}
                                 {snapPoint === 'peek' && (
@@ -385,16 +572,17 @@ export default function JobBottomSheet({
 
                                     {/* Action Buttons Row */}
                                     <div className="flex gap-3">
-                                        {/* Save Button */}
+                                        {/* Save Button (Wishlist) */}
                                         <button
-                                            onClick={handleSave}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm transition-all active:scale-[0.98] ${isSaved
+                                            onClick={handleAddToWishlist}
+                                            disabled={isAddingToWishlist || isInWishlist}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm transition-all active:scale-[0.98] ${isInWishlist
                                                     ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800'
                                                     : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#4a494b]'
                                                 }`}
                                         >
-                                            <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
-                                            {isSaved ? 'Saved' : 'Save'}
+                                            <Bookmark className={`w-4 h-4 ${isInWishlist ? 'fill-current' : ''}`} />
+                                            {isInWishlist ? 'Added' : 'Wishlist'}
                                         </button>
 
                                         {/* Share Button with Dropdown */}
