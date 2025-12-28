@@ -2173,11 +2173,11 @@ export default function CampaignsAutoPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="hidden md:block mb-4 px-6"
+            className="hidden md:block mb-4 px-6 mt-6"
           >
             {/* Search + Targeting Tags + Dev Buttons */}
             {selectedCampaign && (
-              <div className="flex items-center gap-3 p-3 bg-gray-50/50 dark:bg-white/[0.02] rounded-xl border border-gray-100 dark:border-white/[0.04]">
+              <div className="flex items-center gap-3 p-3 bg-white dark:bg-[#1e1e20] rounded-xl border border-gray-200 dark:border-white/[0.08] shadow-sm">
                 {/* Search Bar */}
                 {recipients.length > 0 && (
                   <div className="relative w-64 flex-shrink-0">
