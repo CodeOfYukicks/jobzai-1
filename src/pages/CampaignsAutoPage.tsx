@@ -2894,7 +2894,11 @@ export default function CampaignsAutoPage() {
                                     </button>
                                     <div className="h-px bg-gray-100 dark:bg-white/[0.06] my-1" />
                                     <button
-                                      onClick={() => handleRemoveRecipient(recipient.id)}
+                                      onClick={() => {
+                                        setDeleteConfirmRecipient(recipient);
+                                        setShowDeleteConfirm(true);
+                                        setOpenMenuRecipientId(null);
+                                      }}
                                       className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 
                                       hover:bg-red-50 dark:hover:bg-red-500/10 active:bg-red-100 dark:active:bg-red-500/15
                                       transition-all duration-150"
@@ -3265,9 +3269,9 @@ export default function CampaignsAutoPage() {
                       className="rounded-full shadow-md ring-4 ring-white dark:ring-[#1a1a1a]"
                     />
                     <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-[3px] border-white dark:border-[#1a1a1a] flex items-center justify-center ${emailPreviewRecipient.status === 'replied' ? 'bg-emerald-500' :
-                        emailPreviewRecipient.status === 'opened' ? 'bg-blue-500' :
-                          emailPreviewRecipient.status === 'sent' ? 'bg-amber-500' :
-                            'bg-purple-500'
+                      emailPreviewRecipient.status === 'opened' ? 'bg-blue-500' :
+                        emailPreviewRecipient.status === 'sent' ? 'bg-amber-500' :
+                          'bg-purple-500'
                       }`}>
                       {emailPreviewRecipient.status === 'replied' ? <Reply className="w-2.5 h-2.5 text-white" /> :
                         emailPreviewRecipient.status === 'opened' ? <Eye className="w-2.5 h-2.5 text-white" /> :
