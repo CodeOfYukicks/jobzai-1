@@ -8069,7 +8069,21 @@ URL to visit: ${jobUrl}
           subtitle={`${analyses.length} analyses`}
           rightAction={{
             icon: Plus,
-            onClick: () => setIsNewAnalysisOpen(true),
+            onClick: () => {
+              setFormData({
+                jobTitle: '',
+                company: '',
+                jobDescription: '',
+                jobUrl: '',
+              });
+              setCvFile(null);
+              setCurrentStep(1);
+              setJobInputMode('ai');
+              setSelectedSavedJob(null);
+              setJobSearchQuery('');
+              setShowJobDropdown(false);
+              setIsModalOpen(true);
+            },
             ariaLabel: 'New analysis'
           }}
         />

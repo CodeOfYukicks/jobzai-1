@@ -80,9 +80,12 @@ import MobileCardContextMenu from '../components/mobile/MobileCardContextMenu';
 import MobileDeleteConfirm from '../components/mobile/MobileDeleteConfirm';
 import MobileStatusSelect from '../components/mobile/MobileStatusSelect';
 import MobileTopBar from '../components/mobile/MobileTopBar';
+import { useIsMobile } from '../hooks/useIsMobile';
+import MobileBoardCreationWizard from '../components/mobile/board-creation/MobileBoardCreationWizard';
 
 export default function JobApplicationsPage() {
   const { currentUser } = useAuth();
+  const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -7400,16 +7403,26 @@ END:VCALENDAR`;
         />
 
         {/* Board Settings Modal */}
-        <BoardSettingsModal
-          isOpen={showBoardSettingsModal}
-          onClose={() => {
-            setShowBoardSettingsModal(false);
-            setEditingBoard(null);
-          }}
-          onSave={editingBoard ? handleUpdateBoard : handleCreateBoard}
-          board={editingBoard}
-          mode={editingBoard ? 'edit' : 'create'}
-        />
+        {/* Board Settings Modal - Desktop vs Mobile */}
+        {isMobile ? (
+          <MobileBoardCreationWizard
+            isOpen={showBoardSettingsModal && !editingBoard}
+            onClose={() => setShowBoardSettingsModal(false)}
+            onSave={handleCreateBoard}
+          />
+        ) : (
+          <BoardSettingsModal
+            isOpen={showBoardSettingsModal}
+            onClose={() => {
+              setShowBoardSettingsModal(false);
+              setEditingBoard(null);
+            }}
+            onSave={editingBoard ? handleUpdateBoard : handleCreateBoard}
+            onDelete={editingBoard ? () => handleDeleteBoard() : undefined}
+            board={editingBoard}
+            mode={editingBoard ? 'edit' : 'create'}
+          />
+        )}
 
         {/* Delete Board Modal */}
         <DeleteBoardModal
