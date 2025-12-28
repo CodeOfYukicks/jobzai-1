@@ -166,8 +166,8 @@ export default function MobileNavigation() {
                         `}>
                           <item.icon
                             className={`w-4 h-4 ${isItemActive
-                                ? 'text-[#635BFF] dark:text-[#a5a0ff]'
-                                : 'text-gray-500 dark:text-gray-400'
+                              ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                              : 'text-gray-500 dark:text-gray-400'
                               }`}
                             strokeWidth={isItemActive ? 2.5 : 2}
                           />
@@ -216,10 +216,15 @@ export default function MobileNavigation() {
             const isActive = tab.id === 'menu' ? isMenuOpen : activeTab === tab.id;
             const isSubmenuOpen = activeSubmenu === tab.id;
             return (
-              <button
+              <motion.button
                 key={tab.id}
                 onClick={() => handleTabPress(tab)}
-                className="relative flex flex-col items-center justify-center min-w-[56px] h-full active:scale-95 transition-transform"
+                animate={{
+                  scale: isActive || isSubmenuOpen ? 1.05 : 1,
+                }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                className={`relative flex flex-col items-center justify-center min-w-[56px] h-full active:scale-95 transition-all ${isActive || isSubmenuOpen ? 'drop-shadow-[0_0_8px_rgba(99,91,255,0.4)]' : ''
+                  }`}
                 aria-current={isActive ? 'page' : undefined}
                 aria-expanded={isSubmenuOpen ? true : undefined}
               >
@@ -247,7 +252,7 @@ export default function MobileNavigation() {
                 >
                   {tab.label}
                 </span>
-              </button>
+              </motion.button>
             );
           })}
         </nav>
@@ -332,8 +337,8 @@ export default function MobileNavigation() {
                               `}>
                                 <item.icon
                                   className={`w-5 h-5 ${isItemActive
-                                      ? 'text-[#635BFF] dark:text-[#a5a0ff]'
-                                      : 'text-gray-500 dark:text-gray-400'
+                                    ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                                    : 'text-gray-500 dark:text-gray-400'
                                     }`}
                                   strokeWidth={isItemActive ? 2.5 : 2}
                                 />

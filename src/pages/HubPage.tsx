@@ -20,6 +20,8 @@ import EditableWidgetGrid from '../components/hub/EditableWidgetGrid';
 import { loadThemeFromStorage } from '../lib/theme';
 import MobileNavigation from '../components/mobile/MobileNavigation';
 import MobileTopBar from '../components/mobile/MobileTopBar';
+import HubPageMobile from '../components/mobile/HubPageMobile';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 // Navigation groups matching sidebar structure
 const navigationGroups = {
@@ -50,6 +52,9 @@ export default function HubPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const firstName = userData?.name?.split(' ')[0] || 'there';
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+
+  // All useState hooks must be called before any conditional returns
   const isNewUser = new Date(userData?.createdAt || '').getTime() > Date.now() - 24 * 60 * 60 * 1000;
   const [transition, setTransition] = useState({
     isOpen: false,
@@ -207,6 +212,11 @@ export default function HubPage() {
     });
     return () => unsubscribe();
   }, [currentUser]);
+
+  // Mobile-first: render dedicated mobile layout (must be after all hooks)
+  if (isMobile) {
+    return <HubPageMobile />;
+  }
 
   const handleSignOut = async () => {
     try {
