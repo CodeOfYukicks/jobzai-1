@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { ChevronDown } from 'lucide-react';
 
 import FirebaseImage from '../FirebaseImage';
 
@@ -13,13 +14,17 @@ interface MobileTopBarProps {
         onClick: () => void;
         ariaLabel?: string;
     };
+    /** Optional click handler for the title area */
+    onTitleClick?: () => void;
+    /** Whether to show a chevron next to the title */
+    showChevron?: boolean;
 }
 
 /**
  * Global mobile top bar component - iOS native style
  * Sticky, minimal, consistent across all pages
  */
-export default function MobileTopBar({ title, subtitle, rightAction }: MobileTopBarProps) {
+export default function MobileTopBar({ title, subtitle, rightAction, onTitleClick, showChevron }: MobileTopBarProps) {
     return (
         <motion.header
             initial={{ opacity: 0, y: -10 }}
@@ -52,9 +57,17 @@ export default function MobileTopBar({ title, subtitle, rightAction }: MobileTop
                     </div>
 
                     <div className="flex flex-col min-w-0">
-                        <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white truncate leading-tight">
-                            {title}
-                        </h1>
+                        <div
+                            onClick={onTitleClick}
+                            className={`flex items-center gap-1 ${onTitleClick ? 'cursor-pointer active:opacity-70 transition-opacity' : ''}`}
+                        >
+                            <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white truncate leading-tight">
+                                {title}
+                            </h1>
+                            {showChevron && (
+                                <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                            )}
+                        </div>
                         {subtitle && (
                             <span className="text-[13px] text-gray-500 dark:text-gray-400 truncate leading-tight">
                                 {subtitle}

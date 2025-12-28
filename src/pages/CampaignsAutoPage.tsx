@@ -67,6 +67,7 @@ import { CREDIT_COSTS } from '../lib/planLimits';
 import CreditConfirmModal from '../components/CreditConfirmModal';
 import { FilterBottomSheet } from '../components/common/BottomSheet';
 import MobileTopBar from '../components/mobile/MobileTopBar';
+import CampaignSelectorSheet from '../components/campaigns/CampaignSelectorSheet';
 
 type RecipientStatus = 'pending' | 'email_generated' | 'email_ready' | 'sent' | 'opened' | 'replied';
 
@@ -206,6 +207,8 @@ export default function CampaignsAutoPage() {
 
   // Campaign dropdown
   const [isCampaignDropdownOpen, setIsCampaignDropdownOpen] = useState(false);
+  // Mobile campaign selector
+  const [isCampaignSelectorOpen, setIsCampaignSelectorOpen] = useState(false);
 
   // Delete campaign modal
   const [deleteCampaignModal, setDeleteCampaignModal] = useState<{ show: boolean; campaign?: Campaign }>({ show: false });
@@ -1390,14 +1393,26 @@ export default function CampaignsAutoPage() {
     <AuthLayout>
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col scroll-smooth">
         {/* Mobile Top Bar */}
+        {/* Mobile Top Bar */}
         <MobileTopBar
-          title="Campaigns"
+          title={selectedCampaign?.name || "Campaigns"}
           subtitle={selectedCampaign ? `${recipients.length} contacts` : `${campaigns.length} campaigns`}
+          onTitleClick={() => setIsCampaignSelectorOpen(true)}
+          showChevron={true}
           rightAction={{
             icon: Plus,
             onClick: () => handleNewCampaignClick(),
             ariaLabel: 'New campaign'
           }}
+        />
+
+        <CampaignSelectorSheet
+          isOpen={isCampaignSelectorOpen}
+          onClose={() => setIsCampaignSelectorOpen(false)}
+          campaigns={campaigns}
+          activeCampaignId={selectedCampaignId}
+          onSelect={(id) => setSelectedCampaignId(id)}
+          onNewCampaign={() => handleNewCampaignClick()}
         />
 
         {/* Cover Photo Section with all header elements (Desktop only) */}
