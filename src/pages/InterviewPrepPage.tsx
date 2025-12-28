@@ -65,6 +65,7 @@ import {
   QuestionsTabMobile,
   SkillsTabMobile,
   ResourcesTabMobile,
+  HistoryTabMobile,
 } from '../components/interview/mobile';
 
 // Interface for the job application data
@@ -4235,6 +4236,23 @@ Return ONLY the pitch text, no explanations or formatting.`;
                     setResourcesData(next);
                     await saveResourcesData(next);
                   }}
+                />
+              )}
+
+              {tab === 'history' && (
+                <HistoryTabMobile
+                  key="history-mobile"
+                  liveSessionHistory={liveSessionHistory}
+                  onViewHistorySession={(session) => {
+                    setHistorySessionData({
+                      questions: session.questions || [],
+                      answers: session.answers,
+                      analysis: session.analysis,
+                      date: session.date
+                    });
+                    setIsLiveSessionOpen(true);
+                  }}
+                  onStartPractice={handleStartLiveSession}
                 />
               )}
             </AnimatePresence>

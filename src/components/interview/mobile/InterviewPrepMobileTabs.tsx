@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, HelpCircle, Briefcase, BookOpen } from 'lucide-react';
+import { LayoutDashboard, HelpCircle, Briefcase, BookOpen, History } from 'lucide-react';
 
-type TabId = 'overview' | 'questions' | 'skills' | 'resources';
+type TabId = 'overview' | 'questions' | 'skills' | 'resources' | 'history';
 
 interface InterviewPrepMobileTabsProps {
     activeTab: TabId;
@@ -14,6 +14,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
     { id: 'questions', label: 'Questions', icon: HelpCircle },
     { id: 'skills', label: 'Skills', icon: Briefcase },
     { id: 'resources', label: 'Resources', icon: BookOpen },
+    { id: 'history', label: 'History', icon: History },
 ];
 
 /**

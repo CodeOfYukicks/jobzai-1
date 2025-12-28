@@ -18,6 +18,8 @@ import { parseSearchQuery, toSearchAPIParams } from '../lib/searchParser';
 import '../components/job-board/premium-search.css';
 import { useAssistantPageData } from '../hooks/useAssistantPageData';
 import MobileTopBar from '../components/mobile/MobileTopBar';
+import JobBottomSheet from '../components/mobile/JobBottomSheet';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 function timeAgo(date: Date): string {
 	const diffMs = Date.now() - date.getTime();
@@ -95,6 +97,10 @@ export default function JobBoardPage() {
 	const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 	const [hasMore, setHasMore] = useState(true);
 	const [profileIncomplete, setProfileIncomplete] = useState(false);
+	const [mobileSheetJob, setMobileSheetJob] = useState<Job | null>(null);
+
+	// Mobile detection for bottom sheet
+	const isMobile = useIsMobile();
 
 	// Search & Filter State - Unified Search Input
 	const [searchInput, setSearchInput] = useState('');
@@ -630,7 +636,12 @@ export default function JobBoardPage() {
 												job={job}
 												isSelected={selectedJob?.id === job.id}
 												onClick={() => {
-													setSelectedJob(job);
+													// Mobile: open bottom sheet / Desktop: set selected job
+													if (isMobile) {
+														setMobileSheetJob(job);
+													} else {
+														setSelectedJob(job);
+													}
 													trackClick(job.id, {
 														source: mode === 'matches' ? 'for_you' : 'explore',
 														matchScore: job.matchScore,
@@ -697,6 +708,13 @@ export default function JobBoardPage() {
 				skillSearch={skillSearch}
 				setSkillSearch={setSkillSearch}
 				filteredSkills={filteredSkills}
+			/>
+
+			{/* Mobile Job Details Bottom Sheet */}
+			<JobBottomSheet
+				job={mobileSheetJob}
+				isOpen={!!mobileSheetJob}
+				onClose={() => setMobileSheetJob(null)}
 			/>
 		</AuthLayout >
 	);

@@ -4,3 +4,5 @@ export { default as OverviewTabMobile } from './OverviewTabMobile';
 export { default as QuestionsTabMobile } from './QuestionsTabMobile';
 export { default as SkillsTabMobile } from './SkillsTabMobile';
 export { default as ResourcesTabMobile } from './ResourcesTabMobile';
+export { default as HistoryTabMobile } from './HistoryTabMobile';
+
