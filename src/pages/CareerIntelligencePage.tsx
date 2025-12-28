@@ -267,8 +267,30 @@ export default function CareerIntelligencePage() {
           }}
         />
 
+        {/* Desktop Header */}
+        <div className="hidden md:block px-6 lg:px-10 pt-8 pb-4">
+          <div className="flex items-center justify-between max-w-5xl mx-auto">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Career Intelligence</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {getUserHeadline()}
+              </p>
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleGenerateInsights}
+              disabled={isGenerating}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+              <span>{isGenerating ? 'Generating...' : 'Refresh'}</span>
+            </motion.button>
+          </div>
+        </div>
+
         {/* Main Content Area */}
-        <div className="px-4 sm:px-6 lg:px-10 pt-4 pb-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col w-full max-w-lg mx-auto">
+        <div className="px-4 sm:px-6 lg:px-10 pt-4 pb-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col w-full max-w-lg md:max-w-5xl mx-auto">
 
           {/* Profile Tags - Now in main content */}
           {userData?.profileTags && userData.profileTags.length > 0 && (
@@ -312,7 +334,7 @@ export default function CareerIntelligencePage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="space-y-4"
+              className="space-y-4 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 md:space-y-0"
             >
               {[
                 'next-move',

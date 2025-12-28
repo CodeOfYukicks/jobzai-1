@@ -14,13 +14,13 @@ export default function TemplatesTab({
   layoutSettings,
   onSettingsChange
 }: TemplatesTabProps) {
-  
+
   const handleColorChange = (color: CVColorScheme) => {
     onSettingsChange({ accentColor: color });
   };
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
+    <div className="h-full flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-2">
       <div className="max-w-md mx-auto">
         {/* Header - Compact */}
         <div className="mb-2">

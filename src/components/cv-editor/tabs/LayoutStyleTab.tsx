@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  GripVertical, User, FileText, Briefcase, GraduationCap, 
+import {
+  GripVertical, User, FileText, Briefcase, GraduationCap,
   Code, Award, FolderOpen, Globe, Lock, Minus, Plus,
   ChevronDown, ChevronRight, Edit3, Type, Check, Palette,
   Calendar, AlignLeft, Layers, LayoutPanelLeft, LayoutList
@@ -76,50 +76,50 @@ interface LayoutStyleTabProps {
 
 // Premium font families with their categories
 const PREMIUM_FONTS = [
-  { 
-    name: 'Inter', 
+  {
+    name: 'Inter',
     category: 'Sans-Serif',
     description: 'Modern, clean, excellent readability',
     preview: 'The quick brown fox'
   },
-  { 
-    name: 'Playfair Display', 
+  {
+    name: 'Playfair Display',
     category: 'Serif',
     description: 'Elegant serif for executive CVs',
     preview: 'The quick brown fox'
   },
-  { 
-    name: 'Montserrat', 
+  {
+    name: 'Montserrat',
     category: 'Sans-Serif',
     description: 'Geometric, professional',
     preview: 'The quick brown fox'
   },
-  { 
-    name: 'Lora', 
+  {
+    name: 'Lora',
     category: 'Serif',
     description: 'Contemporary serif, sophisticated',
     preview: 'The quick brown fox'
   },
-  { 
-    name: 'Raleway', 
+  {
+    name: 'Raleway',
     category: 'Sans-Serif',
     description: 'Elegant, refined',
     preview: 'The quick brown fox'
   },
-  { 
-    name: 'Merriweather', 
+  {
+    name: 'Merriweather',
     category: 'Serif',
     description: 'Highly readable serif',
     preview: 'The quick brown fox'
   },
-  { 
-    name: 'Poppins', 
+  {
+    name: 'Poppins',
     category: 'Sans-Serif',
     description: 'Modern geometric, friendly',
     preview: 'The quick brown fox'
   },
-  { 
-    name: 'Source Sans Pro', 
+  {
+    name: 'Source Sans Pro',
     category: 'Sans-Serif',
     description: 'Clean, professional',
     preview: 'The quick brown fox'
@@ -150,16 +150,16 @@ const sectionIcons: Record<string, React.ReactNode> = {
 const lockedSections = ['personal', 'contact', 'links'];
 
 // Collapsible Section Component
-function CollapsibleSection({ 
-  title, 
+function CollapsibleSection({
+  title,
   icon: Icon,
-  defaultOpen = true, 
+  defaultOpen = true,
   children,
   badge
-}: { 
-  title: string; 
+}: {
+  title: string;
   icon: React.ComponentType<{ className?: string }>;
-  defaultOpen?: boolean; 
+  defaultOpen?: boolean;
   children: React.ReactNode;
   badge?: string;
 }) {
@@ -229,7 +229,7 @@ function PremiumSlider({
 }) {
   const percentage = ((value - min) / (max - min)) * 100;
   const tickCount = tickLabels?.length || 5;
-  const ticks = tickLabels || Array.from({ length: tickCount }, (_, i) => 
+  const ticks = tickLabels || Array.from({ length: tickCount }, (_, i) =>
     String(Math.round(min + (i * (max - min)) / (tickCount - 1)))
   );
 
@@ -245,7 +245,7 @@ function PremiumSlider({
       </div>
       <div className="relative pt-1 pb-1">
         <div className="relative h-2 bg-gray-100 dark:bg-[#2b2a2c] rounded-full overflow-hidden">
-          <motion.div 
+          <motion.div
             className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#635BFF] to-[#8B5CF6] rounded-full"
             initial={false}
             animate={{ width: `${percentage}%` }}
@@ -260,7 +260,7 @@ function PremiumSlider({
           onChange={(e) => onChange(Number(e.target.value))}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
-        <motion.div 
+        <motion.div
           className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-white dark:bg-gray-200 rounded-full shadow-lg border-2 border-[#635BFF] cursor-pointer pointer-events-none"
           initial={false}
           animate={{ left: `calc(${percentage}% - 10px)` }}
@@ -271,13 +271,12 @@ function PremiumSlider({
       {showTicks && (
         <div className="flex justify-between px-0.5">
           {ticks.map((tick, i) => (
-            <span 
-              key={i} 
-              className={`text-[10px] tabular-nums transition-colors ${
-                i <= (percentage / 100) * (tickCount - 1) 
-                  ? 'text-[#635BFF]/70 dark:text-[#a5a0ff]/70' 
-                  : 'text-gray-400 dark:text-gray-600'
-              }`}
+            <span
+              key={i}
+              className={`text-[10px] tabular-nums transition-colors ${i <= (percentage / 100) * (tickCount - 1)
+                ? 'text-[#635BFF]/70 dark:text-[#a5a0ff]/70'
+                : 'text-gray-400 dark:text-gray-600'
+                }`}
             >
               {tick}
             </span>
@@ -309,7 +308,7 @@ function FontPicker({
           <Type className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-[#635BFF]" />
         </div>
         <div className="flex-1 text-left">
-          <p 
+          <p
             className="text-sm font-semibold text-gray-900 dark:text-white"
             style={{ fontFamily: selectedFont }}
           >
@@ -349,18 +348,17 @@ function FontPicker({
                 <button
                   key={font.name}
                   onClick={() => { onSelect(font.name); setIsOpen(false); }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
-                    selectedFont === font.name ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
-                  }`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${selectedFont === font.name ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
+                    }`}
                 >
                   <div className="flex-1 text-left">
-                    <p 
+                    <p
                       className="text-sm text-gray-900 dark:text-white"
                       style={{ fontFamily: font.name }}
                     >
                       {font.name}
                     </p>
-                    <p 
+                    <p
                       className="text-xs text-gray-500 dark:text-gray-400 mt-0.5"
                       style={{ fontFamily: font.name }}
                     >
@@ -383,18 +381,17 @@ function FontPicker({
                 <button
                   key={font.name}
                   onClick={() => { onSelect(font.name); setIsOpen(false); }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
-                    selectedFont === font.name ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
-                  }`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${selectedFont === font.name ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
+                    }`}
                 >
                   <div className="flex-1 text-left">
-                    <p 
+                    <p
                       className="text-sm text-gray-900 dark:text-white"
                       style={{ fontFamily: font.name }}
                     >
                       {font.name}
                     </p>
-                    <p 
+                    <p
                       className="text-xs text-gray-500 dark:text-gray-400 mt-0.5"
                       style={{ fontFamily: font.name }}
                     >
@@ -439,11 +436,10 @@ function ColorSwatchPicker({
             onClick={() => onSelect(color.id)}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
-            className={`relative w-9 h-9 rounded-xl transition-all ${
-              selectedColor === color.id 
-                ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 ' + color.ring
-                : 'hover:ring-2 hover:ring-offset-1 hover:ring-offset-white dark:hover:ring-offset-gray-900 hover:ring-gray-300 dark:hover:ring-gray-600'
-            }`}
+            className={`relative w-9 h-9 rounded-xl transition-all ${selectedColor === color.id
+              ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 ' + color.ring
+              : 'hover:ring-2 hover:ring-offset-1 hover:ring-offset-white dark:hover:ring-offset-gray-900 hover:ring-gray-300 dark:hover:ring-gray-600'
+              }`}
             style={{ backgroundColor: color.hex }}
             title={color.name}
           >
@@ -485,17 +481,15 @@ function OptionSelector({
           <button
             key={option.value}
             onClick={() => onChange(option.value)}
-            className={`flex flex-col items-start px-3 py-2.5 rounded-xl border transition-all text-left ${
-              value === option.value
-                ? 'border-[#635BFF] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
-                : 'border-gray-200 dark:border-[#3d3c3e]/60 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-[#2b2a2c]/40'
-            }`}
+            className={`flex flex-col items-start px-3 py-2.5 rounded-xl border transition-all text-left ${value === option.value
+              ? 'border-[#635BFF] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
+              : 'border-gray-200 dark:border-[#3d3c3e]/60 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-[#2b2a2c]/40'
+              }`}
           >
-            <span className={`text-sm font-medium ${
-              value === option.value 
-                ? 'text-[#635BFF] dark:text-[#a5a0ff]' 
-                : 'text-gray-900 dark:text-white'
-            }`}>
+            <span className={`text-sm font-medium ${value === option.value
+              ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+              : 'text-gray-900 dark:text-white'
+              }`}>
               {option.preview || option.label}
             </span>
             <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
@@ -529,9 +523,9 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-    
+
     const { source, destination } = result;
-    
+
     // If template has sidebar, only allow reordering within same column
     if (templateLayout.hasSidebar) {
       // Check if both source and destination are in same droppable
@@ -542,19 +536,19 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
 
     // Get sections for the specific droppable
     const sortedSections = sortSections(sections);
-    
+
     if (templateLayout.hasSidebar) {
       // Separate sections into sidebar and main
       const sidebarSections = sortedSections.filter(s => templateLayout.sidebarSections.includes(s.type));
-      const mainSections = sortedSections.filter(s => 
+      const mainSections = sortedSections.filter(s =>
         templateLayout.mainSections.includes(s.type) && s.type !== 'personal'
       );
-      
+
       if (source.droppableId === 'sidebar-sections') {
         // Reorder within sidebar
         const [reorderedSection] = sidebarSections.splice(source.index, 1);
         sidebarSections.splice(destination.index, 0, reorderedSection);
-        
+
         // Recombine and reorder
         const personalSection = sortedSections.find(s => s.type === 'personal');
         const allSections = [
@@ -562,18 +556,18 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
           ...mainSections,
           ...sidebarSections
         ];
-        
+
         const updatedSections = allSections.map((section, index) => ({
           ...section,
           order: index
         }));
-        
+
         onReorder(updatedSections);
       } else if (source.droppableId === 'main-sections') {
         // Reorder within main
         const [reorderedSection] = mainSections.splice(source.index, 1);
         mainSections.splice(destination.index, 0, reorderedSection);
-        
+
         // Recombine and reorder
         const personalSection = sortedSections.find(s => s.type === 'personal');
         const allSections = [
@@ -581,12 +575,12 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
           ...mainSections,
           ...sidebarSections
         ];
-        
+
         const updatedSections = allSections.map((section, index) => ({
           ...section,
           order: index
         }));
-        
+
         onReorder(updatedSections);
       }
     } else {
@@ -594,16 +588,16 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
       const reorderableSections = sortedSections.filter(s => !lockedSections.includes(s.type));
       const [reorderedSection] = reorderableSections.splice(source.index, 1);
       reorderableSections.splice(destination.index, 0, reorderedSection);
-      
+
       // Combine locked sections (personal) at the start with reordered sections
       const lockedAtStart = sortedSections.filter(s => lockedSections.includes(s.type));
       const allSections = [...lockedAtStart, ...reorderableSections];
-      
+
       const updatedSections = allSections.map((section, index) => ({
         ...section,
         order: index
       }));
-      
+
       onReorder(updatedSections);
     }
   };
@@ -619,9 +613,9 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
   };
 
   const sortedSections = sortSections(sections);
-  
+
   // Separate sections for sidebar templates
-  const sidebarSectionsList = templateLayout.hasSidebar 
+  const sidebarSectionsList = templateLayout.hasSidebar
     ? sortedSections.filter(s => templateLayout.sidebarSections.includes(s.type))
     : [];
   const mainSectionsList = templateLayout.hasSidebar
@@ -629,7 +623,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
     : sortedSections.filter(s => !lockedSections.includes(s.type));
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto">
+    <div className="h-full flex-1 min-h-0 overflow-y-auto overscroll-contain">
       {/* Subtle gradient header */}
       <div className="sticky top-0 z-10 px-5 py-4 bg-gradient-to-b from-gray-50 via-gray-50/95 to-gray-50/0 dark:from-[#242325] dark:via-[#242325]/95 dark:to-[#242325]/0">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -642,8 +636,8 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
 
       <div className="px-5 pb-6 space-y-4">
         {/* Section Order - Collapsible */}
-        <CollapsibleSection 
-          title="Section Order" 
+        <CollapsibleSection
+          title="Section Order"
           icon={Layers}
           badge={`${sortedSections.length} sections`}
         >
@@ -664,11 +658,10 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                       <div
                         {...provided.droppableProps}
                         ref={provided.innerRef}
-                        className={`space-y-1.5 rounded-lg p-2 border-2 border-dashed transition-colors ${
-                          droppableSnapshot.isDraggingOver 
-                            ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10 border-[#635BFF]/30' 
-                            : 'border-gray-200 dark:border-[#3d3c3e]/60'
-                        }`}
+                        className={`space-y-1.5 rounded-lg p-2 border-2 border-dashed transition-colors ${droppableSnapshot.isDraggingOver
+                          ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10 border-[#635BFF]/30'
+                          : 'border-gray-200 dark:border-[#3d3c3e]/60'
+                          }`}
                       >
                         {mainSectionsList.map((section, index) => (
                           <Draggable
@@ -682,8 +675,8 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                 {...provided.draggableProps}
                                 className={`
                                   group flex items-center gap-2.5 px-3 py-2.5 rounded-xl
-                                  ${snapshot.isDragging 
-                                    ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50' 
+                                  ${snapshot.isDragging
+                                    ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50'
                                     : 'bg-gray-50/80 dark:bg-[#2b2a2c]/40 hover:bg-gray-100 dark:hover:bg-gray-800/60'
                                   }
                                 `}
@@ -700,9 +693,8 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                 >
                                   <GripVertical className="w-3.5 h-3.5" />
                                 </div>
-                                <div className={`flex-shrink-0 transition-colors duration-200 ${
-                                  snapshot.isDragging ? 'text-[#635BFF]' : 'text-gray-500 dark:text-gray-400'
-                                }`}>
+                                <div className={`flex-shrink-0 transition-colors duration-200 ${snapshot.isDragging ? 'text-[#635BFF]' : 'text-gray-500 dark:text-gray-400'
+                                  }`}>
                                   {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -738,11 +730,10 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                       <div
                         {...provided.droppableProps}
                         ref={provided.innerRef}
-                        className={`space-y-1.5 rounded-lg p-2 border-2 border-dashed transition-colors ${
-                          droppableSnapshot.isDraggingOver 
-                            ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10 border-[#635BFF]/30' 
-                            : 'border-gray-200 dark:border-[#3d3c3e]/60'
-                        }`}
+                        className={`space-y-1.5 rounded-lg p-2 border-2 border-dashed transition-colors ${droppableSnapshot.isDraggingOver
+                          ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10 border-[#635BFF]/30'
+                          : 'border-gray-200 dark:border-[#3d3c3e]/60'
+                          }`}
                       >
                         {sidebarSectionsList.map((section, index) => (
                           <Draggable
@@ -756,8 +747,8 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                 {...provided.draggableProps}
                                 className={`
                                   group flex items-center gap-2.5 px-3 py-2.5 rounded-xl
-                                  ${snapshot.isDragging 
-                                    ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50' 
+                                  ${snapshot.isDragging
+                                    ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50'
                                     : 'bg-gray-50/80 dark:bg-[#2b2a2c]/40 hover:bg-gray-100 dark:hover:bg-gray-800/60'
                                   }
                                 `}
@@ -774,9 +765,8 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                 >
                                   <GripVertical className="w-3.5 h-3.5" />
                                 </div>
-                                <div className={`flex-shrink-0 transition-colors duration-200 ${
-                                  snapshot.isDragging ? 'text-[#635BFF]' : 'text-gray-500 dark:text-gray-400'
-                                }`}>
+                                <div className={`flex-shrink-0 transition-colors duration-200 ${snapshot.isDragging ? 'text-[#635BFF]' : 'text-gray-500 dark:text-gray-400'
+                                  }`}>
                                   {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -815,13 +805,12 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                     <div
                       {...provided.droppableProps}
                       ref={provided.innerRef}
-                      className={`space-y-1.5 rounded-lg ${
-                        droppableSnapshot.isDraggingOver ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
-                      }`}
+                      className={`space-y-1.5 rounded-lg ${droppableSnapshot.isDraggingOver ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
+                        }`}
                     >
                       {sortedSections.map((section, index) => {
                         const isLocked = lockedSections.includes(section.type);
-                        
+
                         // For single column, only render non-locked sections in the droppable
                         if (isLocked) {
                           return (
@@ -843,12 +832,12 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                             </div>
                           );
                         }
-                        
+
                         // Find the index within non-locked sections
                         const nonLockedIndex = sortedSections
                           .filter(s => !lockedSections.includes(s.type))
                           .findIndex(s => s.id === section.id);
-                        
+
                         return (
                           <Draggable
                             key={section.id}
@@ -861,8 +850,8 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                 {...provided.draggableProps}
                                 className={`
                                   group flex items-center gap-2.5 px-3 py-2.5 rounded-xl
-                                  ${snapshot.isDragging 
-                                    ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50' 
+                                  ${snapshot.isDragging
+                                    ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50'
                                     : 'bg-gray-50/80 dark:bg-[#2b2a2c]/40 hover:bg-gray-100 dark:hover:bg-gray-800/60'
                                   }
                                 `}
@@ -879,9 +868,8 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                 >
                                   <GripVertical className="w-3.5 h-3.5" />
                                 </div>
-                                <div className={`flex-shrink-0 transition-colors duration-200 ${
-                                  snapshot.isDragging ? 'text-[#635BFF]' : 'text-gray-500 dark:text-gray-400'
-                                }`}>
+                                <div className={`flex-shrink-0 transition-colors duration-200 ${snapshot.isDragging ? 'text-[#635BFF]' : 'text-gray-500 dark:text-gray-400'
+                                  }`}>
                                   {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
                                 </div>
                                 <div className="flex-1 min-w-0">

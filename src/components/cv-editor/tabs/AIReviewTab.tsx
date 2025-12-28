@@ -59,7 +59,7 @@ const SectionIcon = ({ section }: { section: CVSectionType }) => {
 const TagBadge = ({ tag }: { tag: SuggestionTag }) => {
   const config = TAG_CONFIG[tag];
   if (!config) return null;
-  
+
   return (
     <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-full border ${config.bgColor} ${config.color}`}>
       <span className={`w-1 h-1 rounded-full mr-1.5 ${config.color.replace('text-', 'bg-')}`} />
@@ -97,7 +97,7 @@ const SuggestionCard = ({
   onFocus: () => void;
 }) => {
   const sectionConfig = SECTION_CONFIG[suggestion.section];
-  
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -108,8 +108,8 @@ const SuggestionCard = ({
         group relative bg-white dark:bg-[#2b2a2c]/50 rounded-xl border transition-all duration-200 cursor-pointer
         ${isFocused
           ? 'border-blue-400 dark:border-blue-500 ring-2 ring-blue-100 dark:ring-blue-900/30 shadow-lg'
-          : isSelected 
-            ? 'border-[#7c75ff] dark:border-[#a5a0ff] shadow-md shadow-[#635BFF]/10 dark:shadow-[#5249e6]/20' 
+          : isSelected
+            ? 'border-[#7c75ff] dark:border-[#a5a0ff] shadow-md shadow-[#635BFF]/10 dark:shadow-[#5249e6]/20'
             : 'border-gray-200 dark:border-[#3d3c3e]/50 hover:border-gray-300 dark:hover:border-[#4a494b] hover:shadow-sm'
         }
       `}
@@ -118,9 +118,9 @@ const SuggestionCard = ({
       {isFocused && (
         <div className="absolute -left-1 top-3 bottom-3 w-1 bg-blue-500 rounded-full" />
       )}
-      
+
       {/* Selection checkbox */}
-      <div 
+      <div
         className="absolute left-3 top-3.5 cursor-pointer z-10"
         onClick={(e) => {
           e.stopPropagation();
@@ -168,13 +168,13 @@ const SuggestionCard = ({
               <span className="text-xs font-semibold text-[#635BFF] dark:text-[#a5a0ff]">Ready to apply:</span>
             </div>
             <p className="text-xs text-[#635BFF] dark:text-[#a5a0ff]/90 leading-relaxed">
-              {typeof suggestion.action.suggestedValue === 'string' 
-                ? suggestion.action.suggestedValue 
+              {typeof suggestion.action.suggestedValue === 'string'
+                ? suggestion.action.suggestedValue
                 : JSON.stringify(suggestion.action.suggestedValue)}
             </p>
           </motion.div>
         )}
-        
+
         {/* Show manual action required for non-applicable suggestions */}
         {isFocused && !suggestion.isApplicable && (
           <motion.div
@@ -242,11 +242,11 @@ const SectionGroup = ({
   const [isExpanded, setIsExpanded] = useState(true);
   const config = SECTION_CONFIG[section];
   const selectedInSection = suggestions.filter(s => selectedIds.has(s.id)).length;
-  
+
   return (
     <div className="mb-4">
       {/* Section Header */}
-      <div 
+      <div
         className="flex items-center justify-between py-2 px-1 cursor-pointer group"
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -261,7 +261,7 @@ const SectionGroup = ({
             ({suggestions.length})
           </span>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {selectedInSection > 0 && (
             <span className="text-xs text-[#5249e6] dark:text-[#a5a0ff] font-medium">
@@ -278,8 +278,8 @@ const SectionGroup = ({
           >
             {selectedInSection === suggestions.length ? 'Deselect All' : 'Select All'}
           </button>
-          <ChevronDown 
-            className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+          <ChevronDown
+            className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
           />
         </div>
       </div>
@@ -332,11 +332,11 @@ const PriorityGroup = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const config = PRIORITY_CONFIG[priority];
-  
+
   return (
     <div className="mb-4">
       {/* Priority Header */}
-      <div 
+      <div
         className="flex items-center justify-between py-2 px-1 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -348,8 +348,8 @@ const PriorityGroup = ({
             ({suggestions.length})
           </span>
         </div>
-        <ChevronDown 
-          className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+        <ChevronDown
+          className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
         />
       </div>
 
@@ -384,19 +384,18 @@ const PriorityGroup = ({
 // Score Improvement Badge
 const ScoreImprovementBadge = ({ improvement }: { improvement: number }) => {
   if (improvement === 0) return null;
-  
+
   const isPositive = improvement > 0;
-  
+
   return (
     <motion.div
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ delay: 0.5, type: 'spring' }}
-      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
-        isPositive 
-          ? 'bg-[#635BFF]/5 dark:bg-[#5249e6]/20 text-[#635BFF] dark:text-[#a5a0ff]' 
-          : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
-      }`}
+      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${isPositive
+        ? 'bg-[#635BFF]/5 dark:bg-[#5249e6]/20 text-[#635BFF] dark:text-[#a5a0ff]'
+        : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+        }`}
     >
       <span>{isPositive ? '+' : ''}{improvement}</span>
       <span className="text-[10px] opacity-70">points</span>
@@ -409,7 +408,7 @@ const ScoreImprovementBadge = ({ improvement }: { improvement: number }) => {
 const ATSScoreRing = ({ score }: { score: number }) => {
   const circumference = 2 * Math.PI * 36;
   const strokeDashoffset = circumference - (score / 100) * circumference;
-  
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-[#635BFF]';
     if (score >= 60) return 'text-amber-500';
@@ -510,13 +509,13 @@ export default function AIReviewTab({
       projects: [],
       languages: []
     };
-    
+
     activeSuggestions.forEach(suggestion => {
       if (groups[suggestion.section]) {
         groups[suggestion.section].push(suggestion);
       }
     });
-    
+
     return groups;
   }, [activeSuggestions]);
 
@@ -527,11 +526,11 @@ export default function AIReviewTab({
       medium: [],
       low: []
     };
-    
+
     activeSuggestions.forEach(suggestion => {
       groups[suggestion.priority].push(suggestion);
     });
-    
+
     return groups;
   }, [activeSuggestions]);
 
@@ -552,7 +551,7 @@ export default function AIReviewTab({
   const selectAllInSection = useCallback((section: CVSectionType) => {
     const sectionSuggestions = suggestionsBySection[section];
     const allSelected = sectionSuggestions.every(s => selectedIds.has(s.id));
-    
+
     setSelectedIds(prev => {
       const newSet = new Set(prev);
       sectionSuggestions.forEach(s => {
@@ -581,13 +580,13 @@ export default function AIReviewTab({
     console.log('🟢 AIReviewTab.applySuggestion called');
     console.log('   Suggestion:', suggestion.title);
     console.log('   Has onApplySuggestion:', !!onApplySuggestion);
-    
+
     if (!onApplySuggestion) {
       console.error('❌ onApplySuggestion is not defined!');
       notify.error('Cannot apply - callback not configured');
       return;
     }
-    
+
     onApplySuggestion(suggestion);
     setIgnoredIds(prev => new Set([...prev, suggestion.id]));
     setFocusedSuggestionId(null);
@@ -597,16 +596,16 @@ export default function AIReviewTab({
   // Apply selected suggestions
   const applySelected = useCallback(() => {
     const selectedSuggestions = activeSuggestions.filter(s => selectedIds.has(s.id) && s.isApplicable && s.action.suggestedValue);
-    
+
     if (selectedSuggestions.length === 0) {
       notify.error('No applicable suggestions selected. Only suggestions with "Ready to apply" can be auto-applied.');
       return;
     }
-    
+
     selectedSuggestions.forEach(suggestion => {
       onApplySuggestion(suggestion);
     });
-    
+
     setIgnoredIds(prev => new Set([...prev, ...selectedIds]));
     setSelectedIds(new Set());
     setFocusedSuggestionId(null);
@@ -648,7 +647,7 @@ export default function AIReviewTab({
     const hasExperiences = cvData.experiences && cvData.experiences.length > 0;
     const hasEducation = cvData.education && cvData.education.length > 0;
     const hasSkills = cvData.skills && cvData.skills.length > 0;
-    
+
     // Count how many sections have content
     const filledSections = [
       hasName,
@@ -657,7 +656,7 @@ export default function AIReviewTab({
       hasEducation,
       hasSkills
     ].filter(Boolean).length;
-    
+
     // Consider CV empty/minimal if:
     // - No name AND no summary AND no experiences AND no education AND no skills
     // OR
@@ -668,7 +667,7 @@ export default function AIReviewTab({
   // Loading state
   if (isAnalyzing) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8">
+      <div className="h-full flex-1 flex flex-col items-center justify-center p-8">
         <div className="relative">
           <div className="w-16 h-16 rounded-full border-4 border-[#635BFF]/10 dark:border-[#5249e6]/30" />
           <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-transparent border-t-[#635BFF] animate-spin" />
@@ -686,7 +685,7 @@ export default function AIReviewTab({
   // Error state
   if (error && !result) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8">
+      <div className="h-full flex-1 flex flex-col items-center justify-center p-8">
         <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
           <AlertTriangle className="w-8 h-8 text-red-500" />
         </div>
@@ -709,7 +708,7 @@ export default function AIReviewTab({
   // Show empty CV message if CV is empty/minimal and no result yet
   if (!result && isCVEmptyOrMinimal) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8">
+      <div className="h-full flex-1 flex flex-col items-center justify-center p-8">
         <div className="max-w-md w-full">
           <div className="text-center mb-6">
             <div className="w-20 h-20 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mx-auto mb-4">
@@ -722,7 +721,7 @@ export default function AIReviewTab({
               Before we can analyze your CV, you need to add some content. Start by filling in the essential sections below.
             </p>
           </div>
-          
+
           <div className="bg-white dark:bg-[#2b2a2c] rounded-lg border border-gray-200 dark:border-[#3d3c3e] p-4 mb-4">
             <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-3">Get started by adding:</p>
             <ul className="space-y-2">
@@ -758,7 +757,7 @@ export default function AIReviewTab({
               )}
             </ul>
           </div>
-          
+
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-4">
             <div className="flex items-start gap-3">
               <Info className="w-5 h-5 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
@@ -780,7 +779,7 @@ export default function AIReviewTab({
   if (!result) return null;
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+    <div className="h-full flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* Header Controls */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 dark:border-[#3d3c3e]">
         <div className="flex items-center justify-between">
@@ -789,27 +788,25 @@ export default function AIReviewTab({
             <div className="flex items-center bg-gray-100 dark:bg-[#2b2a2c] rounded-lg p-0.5">
               <button
                 onClick={() => setGroupBy('section')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                  groupBy === 'section'
-                    ? 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${groupBy === 'section'
+                  ? 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
               >
                 Section
               </button>
               <button
                 onClick={() => setGroupBy('priority')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                  groupBy === 'priority'
-                    ? 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${groupBy === 'priority'
+                  ? 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
               >
                 Priority
               </button>
             </div>
           </div>
-          
+
           <button
             onClick={onReanalyze}
             disabled={isAnalyzing}
@@ -824,7 +821,7 @@ export default function AIReviewTab({
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
         <div className="px-4 py-4">
           {/* Show warning if CV is minimal even with results */}
           {isCVEmptyOrMinimal && (
@@ -842,7 +839,7 @@ export default function AIReviewTab({
               </div>
             </div>
           )}
-          
+
           {/* Missing for Job Section - Only show if job context was provided */}
           {result.missing_for_job && (
             <div className="mb-6 space-y-4">
@@ -855,13 +852,12 @@ export default function AIReviewTab({
                       Job Match Analysis
                     </span>
                   </div>
-                  <div className={`px-3 py-1 rounded-full text-sm font-bold ${
-                    result.missing_for_job.estimated_match_percentage >= 80 
-                      ? 'bg-[#635BFF]/10 dark:bg-[#5249e6]/40 text-[#635BFF] dark:text-[#a5a0ff]'
-                      : result.missing_for_job.estimated_match_percentage >= 60
+                  <div className={`px-3 py-1 rounded-full text-sm font-bold ${result.missing_for_job.estimated_match_percentage >= 80
+                    ? 'bg-[#635BFF]/10 dark:bg-[#5249e6]/40 text-[#635BFF] dark:text-[#a5a0ff]'
+                    : result.missing_for_job.estimated_match_percentage >= 60
                       ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
                       : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
-                  }`}>
+                    }`}>
                     {result.missing_for_job.estimated_match_percentage}% Match
                   </div>
                 </div>

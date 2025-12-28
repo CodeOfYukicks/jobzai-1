@@ -239,7 +239,7 @@ export default function EditorPanel({
         </div>
 
         {/* Collapsed Sections - Icon only */}
-        <div className="flex-1 overflow-y-auto py-3 px-2 space-y-2">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain py-3 px-2 space-y-2">
           {sortSections(cvData.sections).map((section) => (
             <motion.button
               key={section.id}
@@ -400,7 +400,7 @@ export default function EditorPanel({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 min-h-0 overflow-hidden flex flex-col"
+            className="h-full flex-1 min-h-0 overflow-hidden flex flex-col"
           >
             <AIReviewTab
               cvData={cvData}
@@ -422,7 +422,7 @@ export default function EditorPanel({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 min-h-0 overflow-hidden flex flex-col"
+            className="h-full flex-1 min-h-0 overflow-hidden flex flex-col"
           >
             {/* Premium Header with gradient fade */}
             <div className="sticky top-0 z-10 px-5 py-4 bg-gradient-to-b from-white via-white/95 to-white/0 dark:from-[#242325] dark:via-[#242325]/95 dark:to-[#242325]/0">
@@ -435,7 +435,7 @@ export default function EditorPanel({
             </div>
 
             {/* Sections List */}
-            <div ref={sectionsContainerRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-5 pb-6">
+            <div ref={sectionsContainerRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-5 pb-6">
               <DragDropContext onDragEnd={handleDragEnd}>
                 <Droppable droppableId="cv-sections">
                   {(provided, droppableSnapshot) => (
@@ -596,7 +596,7 @@ export default function EditorPanel({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 min-h-0 overflow-hidden flex flex-col"
+            className="h-full flex-1 min-h-0 overflow-hidden flex flex-col"
           >
             <TemplatesTab
               template={template}
@@ -614,7 +614,7 @@ export default function EditorPanel({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 min-h-0 overflow-hidden flex flex-col"
+            className="h-full flex-1 min-h-0 overflow-hidden flex flex-col"
           >
             <LayoutStyleTab
               sections={cvData.sections}

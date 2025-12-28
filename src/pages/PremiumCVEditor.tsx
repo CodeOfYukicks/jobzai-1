@@ -1258,7 +1258,10 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
 
   return (
     <AuthLayout>
-      <div className="h-full flex flex-col bg-gray-50 dark:bg-[#333234]">
+      {/* Desktop: Fixed positioning to bypass AuthLayout scroll wrapper */}
+      {/* Mobile: Normal flow with h-full */}
+      {/* Desktop offset: top-12 (48px topbar), left-[64px] (collapsed sidebar) */}
+      <div className="h-full lg:fixed lg:top-12 lg:left-[64px] lg:right-0 lg:bottom-0 lg:z-40 flex flex-col bg-gray-50 dark:bg-[#333234]">
         {/* Mobile Compact Header */}
         <header className="lg:hidden h-14 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e] flex-shrink-0 z-20 safe-area-top">
           <div className="flex items-center justify-between h-full px-4">
@@ -1528,9 +1531,8 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
         {/* Main Content */}
         <main className="flex-1 min-h-0 overflow-hidden">
           <div className="h-full flex overflow-hidden relative">
-            {/* Left: Editor Panel */}
             <div
-              className={`h-full relative border-r border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325] overflow-visible flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${isLeftPanelCollapsed
+              className={`h-full relative border-r border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325] overflow-hidden flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${isLeftPanelCollapsed
                 ? 'w-16'
                 : 'w-full lg:w-[480px]'
                 }`}
