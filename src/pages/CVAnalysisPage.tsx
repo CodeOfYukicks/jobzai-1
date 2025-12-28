@@ -8232,63 +8232,70 @@ URL to visit: ${jobUrl}
                     }`}>
                     AI-powered resume analysis for smarter applications
                   </p>
-                  {/* Usage Quota Indicator - Desktop Only */}
-                  {!isLoadingLimits && (
-                    <div className="inline-flex items-center gap-3 px-4 py-2 mt-3 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                          Analyses used:
-                        </span>
-                        <span className="text-sm font-bold text-gray-900 dark:text-white">
-                          {getUsageStats('resumeAnalyses').used}/{getUsageStats('resumeAnalyses').limit}
-                        </span>
-                      </div>
-                      <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${getUsageStats('resumeAnalyses').percentage >= 100
-                            ? 'bg-red-500'
-                            : getUsageStats('resumeAnalyses').percentage >= 80
-                              ? 'bg-amber-500'
-                              : 'bg-[#635bff]'
-                            }`}
-                          style={{ width: `${Math.min(100, getUsageStats('resumeAnalyses').percentage)}%` }}
-                        />
-                      </div>
-                      {getUsageStats('resumeAnalyses').remaining === 0 && (
-                        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                          25 credits/analysis
-                        </span>
-                      )}
-                    </div>
-                  )}
+
                 </div>
 
-                {/* New Analysis Button right */}
-                <motion.button
-                  data-tour="start-analysis-button"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    setFormData({
-                      jobTitle: '',
-                      company: '',
-                      jobDescription: '',
-                      jobUrl: '',
-                    });
-                    setCvFile(null);
-                    setCurrentStep(1);
-                    setJobInputMode('ai');
-                    setSelectedSavedJob(null);
-                    setJobSearchQuery('');
-                    setShowJobDropdown(false);
-                    setIsModalOpen(true);
-                  }}
-                  className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200
-                    text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015]"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>New Analysis</span>
-                </motion.button>
+
+
+                {/* Right Side: Credits Icon + Button */}
+                <div className="flex items-center gap-3">
+                  {/* Info Icon for Credits */}
+                  {!isLoadingLimits && (
+                    <div className="group relative flex items-center justify-center w-9 h-9 rounded-full bg-gray-100/50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 cursor-help transition-all border border-transparent hover:border-gray-200 dark:hover:border-white/10">
+                      <Info className={`w-5 h-5 ${coverPhoto ? 'text-white/90' : 'text-gray-500 dark:text-gray-400'}`} />
+
+                      {/* Tooltip */}
+                      <div className="absolute top-full right-0 mt-2 w-64 p-3 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Analysis Credits</div>
+                        {(() => {
+                          const stats = getUsageStats('resumeAnalyses');
+                          if (!stats) return null;
+                          return (
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-900 dark:text-white">{stats.used} / {stats.limit}</span>
+                                <span className="text-gray-500">{Math.round(stats.percentage)}%</span>
+                              </div>
+                              <div className="h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-gray-900 dark:bg-white rounded-full" style={{ width: `${Math.min(100, stats.percentage)}%` }} />
+                              </div>
+                              <div className="text-[10px] text-gray-400 mt-1">
+                                25 credits per analysis
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* New Analysis Button right */}
+                  <motion.button
+                    data-tour="start-analysis-button"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setFormData({
+                        jobTitle: '',
+                        company: '',
+                        jobDescription: '',
+                        jobUrl: '',
+                      });
+                      setCvFile(null);
+                      setCurrentStep(1);
+                      setJobInputMode('ai');
+                      setSelectedSavedJob(null);
+                      setJobSearchQuery('');
+                      setShowJobDropdown(false);
+                      setIsModalOpen(true);
+                    }}
+                    className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200
+                      text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015]"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>New Analysis</span>
+                  </motion.button>
+                </div>
               </motion.div>
             </div>
 
@@ -8582,142 +8589,146 @@ URL to visit: ${jobUrl}
             </motion.div>
           )}
         </div>
-      </div>
+      </div >
 
       {/* Premium Modal */}
       <AnimatePresence>
-        {isModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => {
-              setIsModalOpen(false);
-              setSelectedSavedJob(null);
-              setJobSearchQuery('');
-              setShowJobDropdown(false);
-            }}
-            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[10002] flex items-end sm:items-center justify-center p-0 sm:p-4"
-          >
+        {
+          isModalOpen && (
             <motion.div
-              data-tour="analysis-modal"
-              initial={{ opacity: 0, scale: 0.96, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-[#2b2a2c] w-full sm:rounded-2xl rounded-t-2xl max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/5"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setIsModalOpen(false);
+                setSelectedSavedJob(null);
+                setJobSearchQuery('');
+                setShowJobDropdown(false);
+              }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-md z-[10002] flex items-end sm:items-center justify-center p-0 sm:p-4"
             >
-              {/* Header */}
-              <div className="px-5 py-4 border-b border-gray-100 dark:border-[#3d3c3e]/50 flex items-center justify-between bg-white/95 dark:bg-[#2b2a2c]/95 backdrop-blur-xl z-10 sticky top-0">
-                <div>
-                  <h2 className="font-semibold text-lg text-gray-900 dark:text-white tracking-tight">
-                    {steps[currentStep - 1].title}
-                  </h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {steps[currentStep - 1].description}
-                  </p>
+              <motion.div
+                data-tour="analysis-modal"
+                initial={{ opacity: 0, scale: 0.96, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 20 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white dark:bg-[#2b2a2c] w-full sm:rounded-2xl rounded-t-2xl max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/5"
+              >
+                {/* Header */}
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-[#3d3c3e]/50 flex items-center justify-between bg-white/95 dark:bg-[#2b2a2c]/95 backdrop-blur-xl z-10 sticky top-0">
+                  <div>
+                    <h2 className="font-semibold text-lg text-gray-900 dark:text-white tracking-tight">
+                      {steps[currentStep - 1].title}
+                    </h2>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      {steps[currentStep - 1].description}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      setSelectedSavedJob(null);
+                      setJobSearchQuery('');
+                      setShowJobDropdown(false);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setSelectedSavedJob(null);
-                    setJobSearchQuery('');
-                    setShowJobDropdown(false);
-                  }}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
 
-              {/* Scrollable content */}
-              <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 overflow-x-visible">
-                <div className="relative">
-                  {steps[currentStep - 1].content}
+                {/* Scrollable content */}
+                <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 overflow-x-visible">
+                  <div className="relative">
+                    {steps[currentStep - 1].content}
+                  </div>
                 </div>
-              </div>
 
-              {/* Footer */}
-              <div className="px-5 py-4 border-t border-gray-100 dark:border-[#3d3c3e]/50 bg-white dark:bg-[#2b2a2c] flex justify-between items-center z-10">
-                <button
-                  onClick={() => {
-                    if (currentStep > 1) {
-                      setCurrentStep(currentStep - 1);
-                    }
-                  }}
-                  disabled={currentStep === 1}
-                  className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${currentStep === 1
-                    ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A]'
-                    }`}
-                >
-                  <ChevronRight className="h-4 w-4 rotate-180" />
-                  Back
-                </button>
-
-                <button
-                  data-tour={currentStep === steps.length ? "analyze-button" : "continue-button"}
-                  onClick={() => {
-                    if (currentStep < steps.length) {
-                      if (currentStep === 2) {
-                        if (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim()) {
-                          notify.error('Please fill in all job information fields');
-                          return;
-                        }
+                {/* Footer */}
+                <div className="px-5 py-4 border-t border-gray-100 dark:border-[#3d3c3e]/50 bg-white dark:bg-[#2b2a2c] flex justify-between items-center z-10">
+                  <button
+                    onClick={() => {
+                      if (currentStep > 1) {
+                        setCurrentStep(currentStep - 1);
                       }
-                      setCurrentStep(currentStep + 1);
-                    } else {
-                      handleAnalysis();
+                    }}
+                    disabled={currentStep === 1}
+                    className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${currentStep === 1
+                      ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A]'
+                      }`}
+                  >
+                    <ChevronRight className="h-4 w-4 rotate-180" />
+                    Back
+                  </button>
+
+                  <button
+                    data-tour={currentStep === steps.length ? "analyze-button" : "continue-button"}
+                    onClick={() => {
+                      if (currentStep < steps.length) {
+                        if (currentStep === 2) {
+                          if (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim()) {
+                            notify.error('Please fill in all job information fields');
+                            return;
+                          }
+                        }
+                        setCurrentStep(currentStep + 1);
+                      } else {
+                        handleAnalysis();
+                      }
+                    }}
+                    disabled={
+                      (currentStep === 1 && !cvFile && !usingSavedCV && !selectedBuilderItem) ||
+                      (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
+                      isDownloadingCV
                     }
-                  }}
-                  disabled={
-                    (currentStep === 1 && !cvFile && !usingSavedCV && !selectedBuilderItem) ||
-                    (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
-                    isDownloadingCV
-                  }
-                  className="px-5 py-2 bg-gradient-to-r from-[#635BFF] to-[#7c75ff] dark:from-[#635BFF] dark:to-[#5249e6] text-white rounded-lg hover:from-[#5249e6] hover:to-[#635BFF] dark:hover:from-[#5249e6] dark:hover:to-[#635BFF] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-[#635BFF]/20 dark:shadow-[#635BFF]/30 flex items-center gap-2"
-                >
-                  {currentStep === steps.length ? (
-                    <>
-                      <Sparkles className="h-4 w-4" />
-                      <span>Analyze Resume</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Continue</span>
-                      <ChevronRight className="h-4 w-4" />
-                    </>
-                  )}
-                </button>
-              </div>
+                    className="px-5 py-2 bg-gradient-to-r from-[#635BFF] to-[#7c75ff] dark:from-[#635BFF] dark:to-[#5249e6] text-white rounded-lg hover:from-[#5249e6] hover:to-[#635BFF] dark:hover:from-[#5249e6] dark:hover:to-[#635BFF] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-[#635BFF]/20 dark:shadow-[#635BFF]/30 flex items-center gap-2"
+                  >
+                    {currentStep === steps.length ? (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        <span>Analyze Resume</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Continue</span>
+                        <ChevronRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )
+        }
+      </AnimatePresence >
 
       {/* Loading Overlay removed - analyses now load in background */}
 
 
       {/* CV Selection Modal */}
-      {cvModalOpen && false && (
-        <CVSelectionModal
-          isOpen={cvModalOpen}
-          onClose={() => setCvModalOpen(false)}
-          onCVSelected={(file) => {
-            if (file instanceof File) {
-              setCvFile(file);
-              setSelectedCV(null);
-            } else {
-              setSelectedCV(file);
-              setCvFile(null);
-            }
-            setCvModalOpen(false);
-          }}
-          enableContentValidation={enableContentValidation}
-          setEnableContentValidation={setEnableContentValidation}
-        />
-      )}
+      {
+        cvModalOpen && false && (
+          <CVSelectionModal
+            isOpen={cvModalOpen}
+            onClose={() => setCvModalOpen(false)}
+            onCVSelected={(file) => {
+              if (file instanceof File) {
+                setCvFile(file);
+                setSelectedCV(null);
+              } else {
+                setSelectedCV(file);
+                setCvFile(null);
+              }
+              setCvModalOpen(false);
+            }}
+            enableContentValidation={enableContentValidation}
+            setEnableContentValidation={setEnableContentValidation}
+          />
+        )
+      }
 
       {/* CV Preview Modal - Using Premium PDF Viewer */}
       <PremiumPDFViewer
@@ -8778,7 +8789,7 @@ URL to visit: ${jobUrl}
         planLimit={getUsageStats('resumeAnalyses').limit}
         isLoading={pendingAnalysis && !showCreditModal}
       />
-    </AuthLayout>
+    </AuthLayout >
   );
 }
 

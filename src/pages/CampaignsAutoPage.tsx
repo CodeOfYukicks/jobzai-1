@@ -1786,6 +1786,9 @@ export default function CampaignsAutoPage() {
                               <div className="h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
                                 <div className="h-full bg-gray-900 dark:bg-white rounded-full" style={{ width: `${Math.min(100, stats.percentage)}%` }} />
                               </div>
+                              <div className="text-[10px] text-gray-400 mt-1">
+                                200 credits per campaign
+                              </div>
                             </div>
                           );
                         })()}
