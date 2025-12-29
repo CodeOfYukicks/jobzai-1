@@ -28,7 +28,7 @@ export async function queryChatFast(
 ): Promise<ChatFastResponse> {
   try {
     console.log('Sending request to GPT-4o-mini fast chat endpoint...');
-    
+
     const response = await fetch('/api/chat-fast', {
       method: 'POST',
       headers: {
@@ -45,7 +45,7 @@ export async function queryChatFast(
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('GPT-4o-mini API error response:', response.status, errorData);
-      
+
       return {
         text: errorData.text || errorData.message || `Sorry, there was a problem with the AI service (${response.status}).`,
         error: true,
@@ -55,7 +55,7 @@ export async function queryChatFast(
 
     const data = await response.json();
     console.log('GPT-4o-mini API response received:', response.status);
-    
+
     if (data.text) {
       console.log('Response content preview:', data.text.substring(0, 100) + '...');
       return {
@@ -79,7 +79,7 @@ export async function queryChatFast(
     }
   } catch (error) {
     console.error('Error querying GPT-4o-mini API:', error);
-    
+
     // Check if it's a network error
     if (error instanceof TypeError && error.message.includes('fetch')) {
       console.error('Network error or request blocked:', error.message);
@@ -89,7 +89,7 @@ export async function queryChatFast(
         errorMessage: error.message
       };
     }
-    
+
     // Generic error fallback
     return {
       text: "I'm sorry, I couldn't process your request due to a technical issue. Please try again later.",
@@ -101,12 +101,21 @@ export async function queryChatFast(
 
 /**
  * Makes a request for high-quality question generation using GPT-4o
+ * In production, uses Firebase Functions; in development, uses local server
  */
 export async function queryQuestionGeneration(prompt: string): Promise<ChatFastResponse> {
   try {
     console.log('Sending request to GPT-4o question generation endpoint...');
-    
-    const response = await fetch('/api/generate-questions', {
+
+    // Use Firebase Functions URL in production, local endpoint in development
+    const isProduction = import.meta.env.PROD || window.location.hostname !== 'localhost';
+    const apiUrl = isProduction
+      ? 'https://us-central1-jobzai.cloudfunctions.net/generateQuestions'
+      : '/api/generate-questions';
+
+    console.log('Using API URL:', apiUrl);
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -118,10 +127,11 @@ export async function queryQuestionGeneration(prompt: string): Promise<ChatFastR
       })
     });
 
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('GPT-4o question generation error:', response.status, errorData);
-      
+
       return {
         text: errorData.text || errorData.message || `Sorry, there was a problem generating questions (${response.status}).`,
         error: true,
@@ -131,7 +141,7 @@ export async function queryQuestionGeneration(prompt: string): Promise<ChatFastR
 
     const data = await response.json();
     console.log('GPT-4o question generation response received');
-    
+
     if (data.text) {
       return {
         text: data.text,

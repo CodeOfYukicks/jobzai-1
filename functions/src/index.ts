@@ -3172,3 +3172,166 @@ export const createPortalSession = onRequest({
     });
   }
 });
+
+/**
+ * Generate Interview Questions using GPT-4o
+ * This endpoint is used by the Practice Live feature in InterviewPrepPage
+ * Uses GPT-4o for high-quality question generation with JSON response format
+ */
+export const generateQuestions = onRequest({
+  region: 'us-central1',
+  cors: true,
+  maxInstances: 10,
+  invoker: 'public',
+}, async (req, res) => {
+  // Get origin from request for CORS
+  const origin = req.headers.origin;
+
+  // Set CORS headers
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '3600');
+
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    res.status(204).end();
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).json({ success: false, message: 'Method not allowed' });
+    return;
+  }
+
+  try {
+    console.log("🧠 GPT-4o Question Generation endpoint called");
+    console.log("   Request body keys:", Object.keys(req.body || {}));
+
+    // Get OpenAI API key
+    let apiKey: string;
+    try {
+      apiKey = await getOpenAIApiKey();
+    } catch (keyError: any) {
+      console.error('❌ Error retrieving OpenAI API key:', keyError);
+      res.status(500).json({
+        status: 'error',
+        message: `Failed to retrieve API key: ${keyError.message}`,
+        error: true,
+        errorMessage: keyError.message
+      });
+      return;
+    }
+
+    if (!apiKey) {
+      console.error('❌ ERROR: OpenAI API key missing');
+      res.status(500).json({
+        status: 'error',
+        message: 'OpenAI API key is missing.',
+        error: true,
+        errorMessage: 'API key not configured'
+      });
+      return;
+    }
+
+    const { prompt, max_tokens = 2000, temperature = 0.7 } = req.body;
+
+    if (!prompt) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Prompt is required',
+        error: true,
+        errorMessage: 'Missing prompt'
+      });
+      return;
+    }
+
+    console.log('📡 Sending request to OpenAI GPT-4o for question generation...');
+
+    // Call OpenAI API with GPT-4o for better quality
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert interview coach specializing in creating high-quality, targeted interview questions. Generate questions that are specific, relevant, and help candidates prepare effectively. Always respond with valid JSON format containing the questions and answers.'
+          },
+          {
+            role: 'user',
+            content: prompt + '\n\nRespond with valid JSON format.'
+          }
+        ],
+        temperature: temperature,
+        max_completion_tokens: max_tokens,
+        response_format: { type: 'json_object' }
+      })
+    });
+
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      console.error('❌ OpenAI API error:', errorText);
+      res.status(openaiResponse.status).json({
+        status: 'error',
+        message: 'Failed to generate questions',
+        error: true,
+        errorMessage: errorText.substring(0, 200)
+      });
+      return;
+    }
+
+    const responseData = await openaiResponse.json() as {
+      choices: Array<{ message: { content: string } }>;
+    };
+    const content = responseData.choices[0]?.message?.content;
+
+    if (!content) {
+      res.status(500).json({
+        status: 'error',
+        message: 'Empty response from AI',
+        error: true,
+        errorMessage: 'No content in response'
+      });
+      return;
+    }
+
+    console.log('✅ GPT-4o question generation completed');
+
+    // Parse and return the JSON response
+    try {
+      const questionsData = JSON.parse(content);
+      res.json({
+        status: 'success',
+        text: content,
+        data: questionsData,
+        choices: responseData.choices
+      });
+    } catch (parseError) {
+      // Return raw content if not valid JSON
+      res.json({
+        status: 'success',
+        text: content,
+        choices: responseData.choices
+      });
+    }
+
+  } catch (error: any) {
+    console.error("❌ Error in question generation:", error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to generate questions',
+      error: true,
+      errorMessage: error.message
+    });
+  }
+});
