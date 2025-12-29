@@ -570,23 +570,10 @@ export default function JobBottomSheet({
                                         )}
                                     </div>
 
-                                    {/* Action Buttons Row */}
+                                    {/* Share Button Row */}
                                     <div className="flex gap-3">
-                                        {/* Save Button (Wishlist) */}
-                                        <button
-                                            onClick={handleAddToWishlist}
-                                            disabled={isAddingToWishlist || isInWishlist}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm transition-all active:scale-[0.98] ${isInWishlist
-                                                    ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800'
-                                                    : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#4a494b]'
-                                                }`}
-                                        >
-                                            <Bookmark className={`w-4 h-4 ${isInWishlist ? 'fill-current' : ''}`} />
-                                            {isInWishlist ? 'Added' : 'Wishlist'}
-                                        </button>
-
                                         {/* Share Button with Dropdown */}
-                                        <div ref={shareMenuRef} className="relative flex-1">
+                                        <div ref={shareMenuRef} className="relative w-full">
                                             <button
                                                 onClick={() => setShowShareMenu(!showShareMenu)}
                                                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#4a494b] transition-all active:scale-[0.98]"
@@ -682,18 +669,7 @@ export default function JobBottomSheet({
                             )}
                         </div>
 
-                        {/* Sticky Apply Footer (Full mode only) */}
-                        {showFullContent && (
-                            <div className="sticky bottom-0 px-5 py-4 bg-white dark:bg-[#242325] border-t border-gray-100 dark:border-[#3d3c3e] safe-bottom flex-shrink-0">
-                                <button
-                                    onClick={handleApply}
-                                    className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white px-6 py-3.5 rounded-xl font-semibold text-base shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <ExternalLink className="w-5 h-5" />
-                                    Apply Now
-                                </button>
-                            </div>
-                        )}
+
                     </motion.div>
                 </>
             )}
