@@ -6,7 +6,6 @@ import { fetchCompleteUserData, CompleteUserData } from '../lib/userDataFetcher'
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, RefreshCw, Image, Camera, X, Loader2 } from 'lucide-react';
 import HeroInsightCard from '../components/career-intelligence/HeroInsightCard';
-import StrategicSignalCard from '../components/career-intelligence/StrategicSignalCard';
 import ActionPlanCard from '../components/career-intelligence/ActionPlanCard';
 import DeepDiveSection from '../components/career-intelligence/DeepDiveSection';
 import { generateCareerInsights, CareerInsightsData } from '../services/careerIntelligence';
@@ -270,115 +269,112 @@ export default function CareerIntelligencePage() {
     };
   };
 
-  // Extract data for Strategic Signal Cards
-  const getStrategicSignals = () => {
-    if (!insights) return [];
-
-    const getStatus = (score: number | undefined): 'strong' | 'moderate' | 'needs-focus' | 'action-needed' => {
-      if (!score) return 'moderate';
-      if (score >= 75) return 'strong';
-      if (score >= 50) return 'moderate';
-      if (score >= 25) return 'needs-focus';
-      return 'action-needed';
-    };
-
-    return [
-      {
-        type: 'market-fit' as const,
-        title: insights.marketPosition?.uniqueValue || 'Your market positioning',
-        description: insights.marketPosition?.summary || 'Understanding your fit in the current job market.',
-        status: getStatus(insights.marketPosition?.marketFitScore)
-      },
-      {
-        type: 'skill-gap' as const,
-        title: `${insights.skills?.criticalCount || 0} skills to focus on`,
-        description: insights.skills?.summary || 'Identifying the skills that will accelerate your career.',
-        status: getStatus(insights.skills?.criticalCount ? (100 - insights.skills.criticalCount * 20) : 60)
-      },
-      {
-        type: 'execution' as const,
-        title: insights.actionPlan?.weeklyActions?.[0]?.title || 'Your execution plan',
-        description: insights.actionPlan?.summary || 'Taking consistent action toward your goals.',
-        status: getStatus(insights.timeline?.successProbability)
-      }
-    ];
-  };
-
   // Extract data for Action Plan Card
   const getActionPlanData = () => {
     if (!insights?.actionPlan) return null;
 
+    // Map action to specific product feature
+    const getCtaLink = (action: any): 'resume-lab' | 'job-board' | 'campaigns' => {
+      const title = (action.title || '').toLowerCase();
+      const desc = (action.description || '').toLowerCase();
+      const combined = title + ' ' + desc;
+
+      if (combined.includes('cv') || combined.includes('resume') || combined.includes('profile')) {
+        return 'resume-lab';
+      }
+      if (combined.includes('campaign') || combined.includes('outreach') || combined.includes('reach out')) {
+        return 'campaigns';
+      }
+      return 'job-board';
+    };
+
+    // Get specific CTA label based on product
+    const getCtaLabel = (link: 'resume-lab' | 'job-board' | 'campaigns'): string => {
+      switch (link) {
+        case 'resume-lab': return 'Open Resume Lab';
+        case 'campaigns': return 'Launch Campaign';
+        case 'job-board': return 'Browse Jobs';
+      }
+    };
+
     return {
       introText: 'What will move the needle fastest',
-      actions: (insights.actionPlan.weeklyActions || []).slice(0, 3).map(action => ({
-        id: action.id,
-        title: action.title,
-        description: action.description,
-        timeEstimate: action.timeEstimate || '30 min',
-        ctaLabel: action.isCorrective ? 'Take action' : 'Get started',
-        ctaLink: (action.title.toLowerCase().includes('cv') || action.title.toLowerCase().includes('resume'))
-          ? 'resume-lab' as const
-          : action.title.toLowerCase().includes('network') || action.title.toLowerCase().includes('reach')
-            ? 'campaigns' as const
-            : 'job-board' as const
-      }))
+      actions: (insights.actionPlan.weeklyActions || []).slice(0, 3).map(action => {
+        const link = getCtaLink(action);
+        return {
+          id: action.id,
+          title: action.title,
+          description: action.description,
+          timeEstimate: action.timeEstimate || '30 min',
+          ctaLabel: getCtaLabel(link),
+          ctaLink: link
+        };
+      })
     };
   };
 
-  // Extract data for Deep Dives
+  // Extract data for Deep Dives - FOCUSED ON PRODUCT FEATURES
   const getDeepDiveItems = () => {
     if (!insights) return [];
 
     return [
       {
         type: 'network' as const,
-        title: 'Explore network strategy',
-        preview: insights.networkInsights?.summary?.slice(0, 60) + '...' || 'Build meaningful connections',
-        content: insights.networkInsights ? (
+        title: 'Launch outreach campaign',
+        preview: `Target hiring managers directly`,
+        content: (
           <div className="space-y-4">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {insights.networkInsights.summary}
+              Cold outreach campaigns can 3x your response rate compared to job board applications alone.
             </p>
-            {insights.networkInsights.networkingTips && (
-              <ul className="space-y-2">
-                {insights.networkInsights.networkingTips.slice(0, 3).map((tip, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
-                    <span className="text-indigo-500">•</span>
-                    {tip}
-                  </li>
-                ))}
-              </ul>
-            )}
+            <div className="space-y-2">
+              <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <span className="text-indigo-500">1.</span>
+                <span>Go to <strong>Campaigns</strong> and select your target companies</span>
+              </div>
+              <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <span className="text-indigo-500">2.</span>
+                <span>Use AI to generate personalized outreach emails</span>
+              </div>
+              <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <span className="text-indigo-500">3.</span>
+                <span>Track responses and follow up automatically</span>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/campaigns-auto')}
+              className="mt-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+            >
+              Open Campaigns →
+            </button>
           </div>
-        ) : null
+        )
       },
       {
         type: 'interview' as const,
-        title: 'View interview readiness',
+        title: 'Practice with Mock Interview',
         preview: `Readiness: ${insights.interviewReadiness?.readinessScore || '--'}%`,
         content: insights.interviewReadiness ? (
           <div className="space-y-4">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {insights.interviewReadiness.summary}
+              Practice answering role-specific questions with AI feedback before your real interviews.
             </p>
-            {insights.interviewReadiness.preparationAreas && (
+            {insights.interviewReadiness.topQuestions && (
               <div className="space-y-2">
-                {insights.interviewReadiness.preparationAreas.slice(0, 3).map((area, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">{area.area}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-indigo-500 rounded-full"
-                          style={{ width: `${area.currentLevel}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-500">{area.currentLevel}%</span>
-                    </div>
+                <span className="text-xs font-medium text-gray-500 uppercase">Questions to practice:</span>
+                {insights.interviewReadiness.topQuestions.slice(0, 2).map((q, i) => (
+                  <div key={i} className="p-2 rounded bg-gray-50 dark:bg-[#2a2a2b] text-sm text-gray-700 dark:text-gray-300">
+                    "{q.question}"
                   </div>
                 ))}
               </div>
             )}
+            <button
+              onClick={() => navigate('/mock-interview')}
+              className="mt-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+            >
+              Start Mock Interview →
+            </button>
           </div>
         ) : null
       },
@@ -408,7 +404,6 @@ export default function CareerIntelligencePage() {
   };
 
   const heroData = getHeroData();
-  const strategicSignals = getStrategicSignals();
   const actionPlanData = getActionPlanData();
   const deepDiveItems = getDeepDiveItems();
 
@@ -416,7 +411,7 @@ export default function CareerIntelligencePage() {
   if (isLoading) {
     return (
       <AuthLayout>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0f0f10]">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#1a1a1a]">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -434,7 +429,21 @@ export default function CareerIntelligencePage() {
 
   return (
     <AuthLayout>
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col bg-gray-50 dark:bg-[#0f0f10]">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col bg-gray-50 dark:bg-[#1a1a1a] relative">
+        {/* Subtle Grid Pattern Overlay - Light Mode */}
+        <div className="absolute inset-0 pointer-events-none dark:hidden"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)',
+            backgroundSize: '48px 48px'
+          }}
+        />
+        {/* Subtle Grid Pattern Overlay - Dark Mode */}
+        <div className="absolute inset-0 pointer-events-none hidden dark:block"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
+            backgroundSize: '48px 48px'
+          }}
+        />
         {/* Mobile Top Bar */}
         <MobileTopBar
           title="Career Intelligence"
@@ -579,7 +588,7 @@ export default function CareerIntelligencePage() {
         </div>
 
         {/* Main Content */}
-        <div className="px-4 sm:px-6 lg:px-10 pt-4 pb-8 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col w-full max-w-4xl mx-auto">
+        <div className="px-4 sm:px-6 lg:px-10 pt-4 pb-8 flex flex-col w-full max-w-4xl mx-auto">
 
           {/* Generating State */}
           <AnimatePresence>
@@ -607,8 +616,8 @@ export default function CareerIntelligencePage() {
 
           {/* Insights Content */}
           {insights && (
-            <div className="space-y-8">
-              {/* 1. Hero Insight */}
+            <div className="space-y-4">
+              {/* 1. Hero Insight - Strategic Diagnosis */}
               {heroData && (
                 <HeroInsightCard
                   headline={heroData.headline}
@@ -621,26 +630,7 @@ export default function CareerIntelligencePage() {
                 />
               )}
 
-              {/* 2. Strategic Signals */}
-              <div className="grid md:grid-cols-3 gap-4">
-                {strategicSignals.map((signal, index) => (
-                  <motion.div
-                    key={signal.type}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.1 + index * 0.05 }}
-                  >
-                    <StrategicSignalCard
-                      type={signal.type}
-                      title={signal.title}
-                      description={signal.description}
-                      status={signal.status}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* 3. Action Plan */}
+              {/* 2. Action Plan */}
               {actionPlanData && actionPlanData.actions.length > 0 && (
                 <ActionPlanCard
                   introText={actionPlanData.introText}
@@ -649,15 +639,9 @@ export default function CareerIntelligencePage() {
                 />
               )}
 
-              {/* 4. Deep Dives */}
+              {/* 3. Deep Dives - Optional Exploration */}
               {deepDiveItems.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.4 }}
-                >
-                  <DeepDiveSection items={deepDiveItems} />
-                </motion.div>
+                <DeepDiveSection items={deepDiveItems} />
               )}
             </div>
           )}
