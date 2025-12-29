@@ -546,6 +546,8 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                     data={campaignData}
                     onUpdate={updateCampaignData}
                     onEstimatedProspectsChange={setEstimatedProspects}
+                    onNext={handleNext}
+                    onBack={handleBack}
                   />
                 )}
                 {currentStep === 'gmail' && (

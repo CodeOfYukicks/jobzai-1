@@ -12,10 +12,15 @@ import type { CampaignData, Seniority, CompanySize } from '../NewCampaignModal';
 import LocationAutocomplete from '../LocationAutocomplete';
 import { previewApolloSearch, suggestAlternativeTitles, type ApolloPreviewResult, type TitleSuggestion } from '../../../lib/apolloService';
 
+import { useIsMobile } from '../../../hooks/useIsMobile';
+import MobileTargetingFlow from './mobile/MobileTargetingFlow';
+
 interface TargetingStepProps {
   data: CampaignData;
   onUpdate: (updates: Partial<CampaignData>) => void;
   onEstimatedProspectsChange?: (count: number) => void;
+  onNext?: () => void;
+  onBack?: () => void;
 }
 
 const COMPANY_SIZE_OPTIONS: { value: CompanySize; label: string }[] = [
@@ -40,7 +45,7 @@ interface UserProfile {
 }
 
 // Map years of experience to seniority
-function mapExperienceToSeniority(years: string | undefined): Seniority[] {
+export function mapExperienceToSeniority(years: string | undefined): Seniority[] {
   if (!years) return [];
   const yearsNum = parseInt(years);
   if (yearsNum <= 2) return ['entry'];
@@ -49,7 +54,13 @@ function mapExperienceToSeniority(years: string | undefined): Seniority[] {
   return ['manager', 'director'];
 }
 
-export default function TargetingStep({ data, onUpdate, onEstimatedProspectsChange }: TargetingStepProps) {
+function DesktopTargetingStep({
+  data,
+  onUpdate,
+  onEstimatedProspectsChange,
+  onNext,
+  onBack
+}: TargetingStepProps) {
   const { currentUser } = useAuth();
 
   // Apollo-compatible options
@@ -984,4 +995,22 @@ export default function TargetingStep({ data, onUpdate, onEstimatedProspectsChan
       )}
     </div>
   );
+}
+
+export default function TargetingStep(props: TargetingStepProps) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <MobileTargetingFlow
+        data={props.data}
+        onUpdate={props.onUpdate}
+        onEstimatedProspectsChange={props.onEstimatedProspectsChange}
+        onNext={props.onNext}
+        onBack={props.onBack}
+      />
+    );
+  }
+
+  return <DesktopTargetingStep {...props} />;
 }
