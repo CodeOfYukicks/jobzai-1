@@ -5,6 +5,8 @@ import { CampaignData } from '../NewCampaignModal';
 interface EmailGenerationModeStepProps {
   data: CampaignData;
   onUpdate: (updates: Partial<CampaignData>) => void;
+  onNext?: () => void;
+  onBack?: () => void;
 }
 
 type GenerationMode = 'template' | 'abtest' | 'auto';
@@ -18,7 +20,16 @@ interface ModeOption {
   recommended?: boolean;
 }
 
-export default function EmailGenerationModeStep({ data, onUpdate }: EmailGenerationModeStepProps) {
+import { useIsMobile } from '../../../hooks/useIsMobile';
+import MobileModeStep from './mobile/MobileModeStep';
+
+export default function EmailGenerationModeStep({ data, onUpdate, onNext, onBack }: EmailGenerationModeStepProps) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return <MobileModeStep data={data} onUpdate={onUpdate} onNext={onNext} onBack={onBack} />;
+  }
+
   const selectedMode = data.emailGenerationMode;
 
   const modes: ModeOption[] = [
@@ -73,7 +84,7 @@ export default function EmailGenerationModeStep({ data, onUpdate }: EmailGenerat
         {modes.map((mode, index) => {
           const Icon = mode.icon;
           const isSelected = selectedMode === mode.id;
-          
+
           return (
             <div key={mode.id} className="flex flex-col">
               <motion.button

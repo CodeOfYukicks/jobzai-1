@@ -5,11 +5,15 @@ import { CampaignData } from '../NewCampaignModal';
 import { notify } from '@/lib/notify';
 import { getAuth } from 'firebase/auth';
 import MergeFieldPills from '../MergeFieldPills';
+import { useIsMobile } from '../../../hooks/useIsMobile';
+import MobileTemplateStep from './mobile/MobileTemplateStep';
 
 interface TemplateGenerationStepProps {
   data: CampaignData;
   onUpdate: (updates: Partial<CampaignData>) => void;
   campaignId?: string;
+  onNext?: () => void;
+  onBack?: () => void;
 }
 
 interface EmailTemplate {
@@ -27,7 +31,7 @@ const MERGE_FIELDS = [
   { field: '{{location}}', desc: 'Location' },
 ];
 
-export default function TemplateGenerationStep({ data, onUpdate }: TemplateGenerationStepProps) {
+function DesktopTemplateGenerationStep({ data, onUpdate }: TemplateGenerationStepProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
@@ -38,7 +42,7 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
   const [editedSubject, setEditedSubject] = useState('');
   const [editedBody, setEditedBody] = useState('');
   const [showMergeFieldsTooltip, setShowMergeFieldsTooltip] = useState(false);
-  
+
   const subjectInputRef = useRef<HTMLInputElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -207,13 +211,13 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
     };
 
     // Update local templates
-    setTemplates(prev => prev.map(t => 
+    setTemplates(prev => prev.map(t =>
       t.id === selectedTemplateId ? updatedTemplate : t
     ));
 
     // Update campaign data
     onUpdate({ selectedTemplate: updatedTemplate });
-    
+
     setIsEditing(false);
     notify.success('Template updated!');
   };
@@ -226,8 +230,8 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
     return parts.map((part, idx) => {
       if (part.match(/\{\{[^}]+\}\}/)) {
         return (
-          <span 
-            key={idx} 
+          <span
+            key={idx}
             className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded-md
               bg-violet-500/10 dark:bg-violet-400/15
               text-violet-600 dark:text-violet-400
@@ -263,7 +267,7 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
               >
                 <Info className="w-4 h-4" />
               </button>
-              
+
               {/* Merge Fields Tooltip */}
               <AnimatePresence>
                 {showMergeFieldsTooltip && (
@@ -344,7 +348,7 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
           {templates.map((template, index) => {
             const isSelected = selectedTemplateId === template.id;
             const isExpanded = expandedTemplateId === template.id;
-            
+
             return (
               <motion.div
                 key={template.id}
@@ -395,10 +399,10 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
                   )}
 
                   {/* Expand/Collapse Icon */}
-                  <ChevronDown 
+                  <ChevronDown
                     className={`w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0 transition-transform duration-300
                       ${isExpanded ? 'rotate-180' : ''}
-                    `} 
+                    `}
                   />
                 </button>
 
@@ -574,4 +578,14 @@ export default function TemplateGenerationStep({ data, onUpdate }: TemplateGener
       )}
     </div>
   );
+}
+
+export default function TemplateGenerationStep(props: TemplateGenerationStepProps) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return <MobileTemplateStep {...props} />;
+  }
+
+  return <DesktopTemplateGenerationStep {...props} />;
 }

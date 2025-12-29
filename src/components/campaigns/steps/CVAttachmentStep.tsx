@@ -26,7 +26,20 @@ const SOURCE_CONFIG = {
   document: { label: 'PDF', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200/50 dark:border-amber-500/20' }
 };
 
-export default function CVAttachmentStep({ data, onUpdate }: CVAttachmentStepProps) {
+import { useIsMobile } from '../../../hooks/useIsMobile';
+import MobileCVAttachmentStep from './mobile/MobileCVAttachmentStep';
+
+export default function CVAttachmentStep(props: CVAttachmentStepProps & { onNext?: () => void; onBack?: () => void }) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return <MobileCVAttachmentStep {...props} onNext={props.onNext!} onBack={props.onBack!} />;
+  }
+
+  return <DesktopCVAttachmentStep {...props} />;
+}
+
+function DesktopCVAttachmentStep({ data, onUpdate }: CVAttachmentStepProps) {
   const { currentUser } = useAuth();
   const [cvOptions, setCvOptions] = useState<CVOption[]>([]);
   const [selectedCVId, setSelectedCVId] = useState<string | null>(data.cvAttachment?.id || null);
@@ -111,7 +124,7 @@ export default function CVAttachmentStep({ data, onUpdate }: CVAttachmentStepPro
 
   const handleToggleAttach = (enabled: boolean) => {
     setAttachEnabled(enabled);
-    
+
     if (!enabled) {
       setSelectedCVId(null);
       onUpdate({
@@ -257,11 +270,11 @@ export default function CVAttachmentStep({ data, onUpdate }: CVAttachmentStepPro
             <p className="text-[11px] font-medium text-gray-400 dark:text-white/40 uppercase tracking-wider px-1 mb-3">
               Select a resume
             </p>
-            
+
             {cvOptions.map((cv, index) => {
               const isSelected = selectedCVId === cv.id;
               const sourceConfig = SOURCE_CONFIG[cv.source];
-              
+
               return (
                 <motion.div
                   key={cv.id}

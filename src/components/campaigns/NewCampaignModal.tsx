@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { notify } from '@/lib/notify';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // Steps
 import TargetingStep from './steps/TargetingStep';
@@ -72,7 +73,7 @@ export interface CampaignData {
     id: string;
     name: string;
     url: string;
-    source: 'main' | 'resume-builder';
+    source: 'main' | 'resume-builder' | 'document';
   };
 }
 
@@ -410,6 +411,11 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
     }
   };
 
+  // Check for mobile optimized steps to hide default modal UI
+  const isMobile = useIsMobile();
+  const mobileOptimizedSteps: Step[] = ['targeting', 'gmail', 'mode', 'template', 'abtest', 'cvAttachment', 'review'];
+  const isMobileStep = isMobile && mobileOptimizedSteps.includes(currentStep);
+
   if (!isOpen) return null;
 
   return (
@@ -431,116 +437,117 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
           exit={{ opacity: 0, scale: 0.98, y: 20 }}
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           onClick={(e) => e.stopPropagation()}
-          className="relative 
+          className={`relative 
             w-full h-full 
             sm:h-auto sm:max-h-[92vh] sm:rounded-2xl
             md:max-w-5xl
             bg-white dark:bg-[#2b2a2c] 
             sm:border border-gray-200 dark:border-white/[0.08] 
             shadow-2xl shadow-black/20 dark:shadow-black/50 
-            flex flex-col"
+            flex flex-col
+            ${isMobileStep ? 'bg-white dark:bg-[#1a1a1a] shadow-none border-none' : ''}
+          `}
         >
-          {/* Header */}
-          <div className="flex-shrink-0 px-8 py-6 border-b border-gray-100 dark:border-white/[0.08]">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {/* Back button */}
-                <button
-                  onClick={handleBack}
-                  className="p-2 -ml-2 rounded-lg text-gray-400 dark:text-white/40 
-                    hover:text-gray-600 dark:hover:text-white 
-                    hover:bg-gray-100 dark:hover:bg-white/[0.06] 
-                    transition-colors duration-150"
-                >
-                  {currentStepIndex === 0 ? (
-                    <X className="w-5 h-5" />
-                  ) : (
-                    <ArrowLeft className="w-5 h-5" />
-                  )}
-                </button>
+          {/* Header - Hidden on mobile optimized steps */}
+          {!isMobileStep && (
+            <div className="flex-shrink-0 px-8 py-6 border-b border-gray-100 dark:border-white/[0.08]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  {/* Back button */}
+                  <button
+                    onClick={handleBack}
+                    className="p-2 -ml-2 rounded-lg text-gray-400 dark:text-white/40 
+                      hover:text-gray-600 dark:hover:text-white 
+                      hover:bg-gray-100 dark:hover:bg-white/[0.06] 
+                      transition-colors duration-150"
+                  >
+                    {currentStepIndex === 0 ? (
+                      <X className="w-5 h-5" />
+                    ) : (
+                      <ArrowLeft className="w-5 h-5" />
+                    )}
+                  </button>
 
-                {/* Title with editable name */}
-                <div className="flex-1 min-w-0">
-                  <div className={`
-                    relative rounded-lg transition-all duration-200
-                    ${nameError
-                      ? 'ring-2 ring-red-500 dark:ring-red-400 bg-red-50/50 dark:bg-red-500/[0.08] -mx-2 px-2 py-1'
-                      : ''
-                    }
-                  `}>
-                    <input
-                      type="text"
-                      value={campaignData.name}
-                      onChange={(e) => {
-                        updateCampaignData({ name: e.target.value });
-                        if (nameError) setNameError(false);
-                      }}
-                      placeholder="Untitled Campaign"
-                      className={`
-                        w-full text-[14px] font-medium tracking-tight 
-                        bg-transparent border-none outline-none focus:ring-0 p-0
-                        ${nameError
-                          ? 'text-red-600 dark:text-red-400 placeholder-red-400 dark:placeholder-red-400/60'
-                          : 'text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30'
-                        }
-                      `}
-                    />
-                    {nameError && (
-                      <motion.p
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-[11px] text-red-500 dark:text-red-400 mt-0.5"
-                      >
-                        This field is required
-                      </motion.p>
+                  {/* Title with editable name */}
+                  <div className="flex-1 min-w-0">
+                    <div className={`
+                      relative rounded-lg transition-all duration-200
+                      ${nameError
+                        ? 'ring-2 ring-red-500 dark:ring-red-400 bg-red-50/50 dark:bg-red-500/[0.08] -mx-2 px-2 py-1'
+                        : ''
+                      }
+                    `}>
+                      <input
+                        type="text"
+                        value={campaignData.name}
+                        onChange={(e) => {
+                          updateCampaignData({ name: e.target.value });
+                          if (nameError) setNameError(false);
+                        }}
+                        placeholder="Untitled Campaign"
+                        className={`
+                          w-full text-[14px] font-medium tracking-tight 
+                          bg-transparent border-none outline-none focus:ring-0 p-0
+                          ${nameError
+                            ? 'text-red-600 dark:text-red-400 placeholder-red-400 dark:placeholder-red-400/60'
+                            : 'text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30'
+                          }
+                        `}
+                      />
+                      {nameError && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-[11px] text-red-500 dark:text-red-400 mt-0.5"
+                        >
+                          This field is required
+                        </motion.p>
+                      )}
+                    </div>
+                    {!nameError && (
+                      <p className="text-[12px] text-gray-500 dark:text-white/40 mt-0.5">
+                        {STEP_CONFIG[currentStep].subtitle}
+                      </p>
                     )}
                   </div>
-                  {!nameError && (
-                    <p className="text-[12px] text-gray-500 dark:text-white/40 mt-0.5">
-                      {STEP_CONFIG[currentStep].subtitle}
-                    </p>
-                  )}
+                </div>
+
+                {/* Step indicator */}
+                <div className="flex items-center gap-2">
+                  {steps.map((step, idx) => (
+                    <div
+                      key={step}
+                      className={`h-2 rounded-full transition-all duration-300 ${idx < currentStepIndex
+                        ? 'w-2 bg-[#b7e219]'
+                        : idx === currentStepIndex
+                          ? 'w-6 bg-[#b7e219]'
+                          : 'w-2 bg-gray-200 dark:bg-white/20'
+                        }`}
+                    />
+                  ))}
                 </div>
               </div>
-
-              {/* Step indicator */}
-              <div className="flex items-center gap-2">
-                {steps.map((step, idx) => (
-                  <div
-                    key={step}
-                    className={`h-2 rounded-full transition-all duration-300 ${idx < currentStepIndex
-                      ? 'w-2 bg-[#b7e219]'
-                      : idx === currentStepIndex
-                        ? 'w-6 bg-[#b7e219]'
-                        : 'w-2 bg-gray-200 dark:bg-white/20'
-                      }`}
-                  />
-                ))}
-              </div>
             </div>
-          </div>
+          )}
 
-          {/* Progress bar */}
-          <div className="h-[2px] bg-gray-100 dark:bg-white/[0.06] flex-shrink-0">
-            <motion.div
-              className="h-full bg-[#b7e219]"
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-            />
-          </div>
+          {/* Progress bar - Hidden on mobile optimized steps */}
+          {!isMobileStep && (
+            <div className="h-[2px] bg-gray-100 dark:bg-white/[0.06] flex-shrink-0">
+              <motion.div
+                className="h-full bg-[#b7e219]"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+              />
+            </div>
+          )}
 
           {/* Content */}
           <div className="flex-1 min-h-0 overflow-y-auto" style={{ overflowX: 'visible' }}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentStep}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="p-8"
-              >
+            {isMobileStep ? (
+              // Mobile steps: Render directly without animation wrapper
+              // They use MobileStepWrapper which is fixed positioned
+              <div className="contents">
                 {currentStep === 'targeting' && (
                   <TargetingStep
                     data={campaignData}
@@ -554,93 +561,180 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
                   <GmailConnectStep
                     data={campaignData}
                     onUpdate={updateCampaignData}
+                    onNext={handleNext}
+                    onBack={handleBack}
                   />
                 )}
                 {currentStep === 'mode' && (
                   <EmailGenerationModeStep
                     data={campaignData}
                     onUpdate={updateCampaignData}
+                    onNext={handleNext}
+                    onBack={handleBack}
                   />
                 )}
                 {currentStep === 'template' && (
                   <TemplateGenerationStep
                     data={campaignData}
                     onUpdate={updateCampaignData}
-                    campaignId={campaignId}
+                    campaignId={campaignId || undefined}
+                    onNext={handleNext}
+                    onBack={handleBack}
                   />
                 )}
                 {currentStep === 'abtest' && (
                   <ABTestingStep
                     data={campaignData}
                     onUpdate={updateCampaignData}
+                    onNext={handleNext}
+                    onBack={handleBack}
                   />
                 )}
                 {currentStep === 'cvAttachment' && (
                   <CVAttachmentStep
                     data={campaignData}
                     onUpdate={updateCampaignData}
+                    onNext={handleNext}
+                    onBack={handleBack}
                   />
                 )}
                 {currentStep === 'review' && (
                   <ReviewStep
                     data={campaignData}
                     estimatedProspects={estimatedProspects}
+                    onUpdate={updateCampaignData}
+                    onBack={handleBack}
+                    onLaunch={handleLaunchCampaign}
                   />
                 )}
-              </motion.div>
-            </AnimatePresence>
+              </div>
+            ) : (
+              // Desktop steps: Render with animation wrapper
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentStep}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  className="p-8"
+                >
+                  {currentStep === 'targeting' && (
+                    <TargetingStep
+                      data={campaignData}
+                      onUpdate={updateCampaignData}
+                      onEstimatedProspectsChange={setEstimatedProspects}
+                      onNext={handleNext}
+                      onBack={handleBack}
+                    />
+                  )}
+                  {currentStep === 'gmail' && (
+                    <GmailConnectStep
+                      data={campaignData}
+                      onUpdate={updateCampaignData}
+                      onNext={handleNext}
+                      onBack={handleBack}
+                    />
+                  )}
+                  {currentStep === 'mode' && (
+                    <EmailGenerationModeStep
+                      data={campaignData}
+                      onUpdate={updateCampaignData}
+                      onNext={handleNext}
+                      onBack={handleBack}
+                    />
+                  )}
+                  {currentStep === 'template' && (
+                    <TemplateGenerationStep
+                      data={campaignData}
+                      onUpdate={updateCampaignData}
+                      campaignId={campaignId || undefined}
+                      onNext={handleNext}
+                      onBack={handleBack}
+                    />
+                  )}
+                  {currentStep === 'abtest' && (
+                    <ABTestingStep
+                      data={campaignData}
+                      onUpdate={updateCampaignData}
+                      onNext={handleNext}
+                      onBack={handleBack}
+                    />
+                  )}
+                  {currentStep === 'cvAttachment' && (
+                    <CVAttachmentStep
+                      data={campaignData}
+                      onUpdate={updateCampaignData}
+                      onNext={handleNext}
+                      onBack={handleBack}
+                    />
+                  )}
+                  {currentStep === 'review' && (
+                    <ReviewStep
+                      data={campaignData}
+                      estimatedProspects={estimatedProspects}
+                      onUpdate={updateCampaignData}
+                      onBack={handleBack}
+                      onLaunch={handleLaunchCampaign}
+                    />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            )}
           </div>
 
-          {/* Footer */}
-          <div className="flex-shrink-0 px-8 py-5 border-t border-gray-100 dark:border-white/[0.08] 
-            bg-gray-50/50 dark:bg-white/[0.02]">
-            <div className="flex items-center justify-between">
-              {/* Step info */}
-              <span className="text-[11px] text-gray-400 dark:text-white/30 font-medium uppercase tracking-wide">
-                Step {currentStepIndex + 1} of {steps.length}
-              </span>
+          {/* Footer - Hidden on mobile optimized steps */}
+          {!isMobileStep && (
+            <div className="flex-shrink-0 px-8 py-5 border-t border-gray-100 dark:border-white/[0.08] 
+              bg-gray-50/50 dark:bg-white/[0.02]">
+              <div className="flex items-center justify-between">
+                {/* Step info */}
+                <span className="text-[11px] text-gray-400 dark:text-white/30 font-medium uppercase tracking-wide">
+                  Step {currentStepIndex + 1} of {steps.length}
+                </span>
 
-              {/* Actions */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleBack}
-                  className="px-4 py-2 text-[13px] font-medium text-gray-500 dark:text-white/60 
-                    hover:text-gray-700 dark:hover:text-white 
-                    transition-colors duration-150"
-                >
-                  {currentStepIndex === 0 ? 'Cancel' : 'Back'}
-                </button>
+                {/* Actions */}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleBack}
+                    className="px-4 py-2 text-[13px] font-medium text-gray-500 dark:text-white/60 
+                      hover:text-gray-700 dark:hover:text-white 
+                      transition-colors duration-150"
+                  >
+                    {currentStepIndex === 0 ? 'Cancel' : 'Back'}
+                  </button>
 
-                <button
-                  onClick={handleNext}
-                  disabled={!canProceed() || isSubmitting}
-                  className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-[12px] font-semibold
-                    transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed
-                    ${currentStepIndex === steps.length - 1
-                      ? 'bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] border border-[#9fc015] shadow-sm'
-                      : 'bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-white/15 border border-gray-200 dark:border-white/10'
-                    }`}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Loading...</span>
-                    </>
-                  ) : currentStepIndex === steps.length - 1 ? (
-                    <>
-                      <Rocket className="w-4 h-4" />
-                      <span>Launch Campaign</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Continue</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
+                  <button
+                    onClick={handleNext}
+                    disabled={!canProceed() || isSubmitting}
+                    className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-[12px] font-semibold
+                      transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed
+                      ${currentStepIndex === steps.length - 1
+                        ? 'bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] border border-[#9fc015] shadow-sm'
+                        : 'bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-white/15 border border-gray-200 dark:border-white/10'
+                      }`}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Loading...</span>
+                      </>
+                    ) : currentStepIndex === steps.length - 1 ? (
+                      <>
+                        <Rocket className="w-4 h-4" />
+                        <span>Launch Campaign</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Continue</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>

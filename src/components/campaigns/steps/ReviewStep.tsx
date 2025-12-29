@@ -47,6 +47,7 @@ function expandTitles(titles: string[], enabled: boolean): { original: string[];
 interface ReviewStepProps {
     data: CampaignData;
     estimatedProspects?: number;
+    onUpdate?: (updates: Partial<CampaignData>) => void;
 }
 
 const SENIORITY_LABELS: Record<Seniority, string> = {
@@ -68,7 +69,20 @@ const COMPANY_SIZE_LABELS: Record<CompanySize, string> = {
     '5001+': '5K+'
 };
 
-export default function ReviewStep({ data, estimatedProspects = 0 }: ReviewStepProps) {
+import { useIsMobile } from '../../../hooks/useIsMobile';
+import MobileReviewStep from './mobile/MobileReviewStep';
+
+export default function ReviewStep(props: ReviewStepProps & { onBack?: () => void; onLaunch?: () => void }) {
+    const isMobile = useIsMobile();
+
+    if (isMobile) {
+        return <MobileReviewStep {...props} onUpdate={props.onUpdate!} onBack={props.onBack!} onLaunch={props.onLaunch!} />;
+    }
+
+    return <DesktopReviewStep {...props} />;
+}
+
+function DesktopReviewStep({ data, estimatedProspects = 0 }: ReviewStepProps) {
     const { original, expanded } = expandTitles(data.personTitles, data.expandTitles);
     const [showCVPreview, setShowCVPreview] = useState(false);
 

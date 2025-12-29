@@ -3,24 +3,28 @@ import { motion } from 'framer-motion';
 import { Mail, Check, AlertCircle, Loader2, Shield, Zap, RefreshCw } from 'lucide-react';
 import { useGmailOAuth } from '../../../hooks/useGmailOAuth';
 import type { CampaignData } from '../NewCampaignModal';
+import { useIsMobile } from '../../../hooks/useIsMobile';
+import MobileGmailStep from './mobile/MobileGmailStep';
 
 interface GmailConnectStepProps {
   data: CampaignData;
   onUpdate: (updates: Partial<CampaignData>) => void;
+  onNext?: () => void;
+  onBack?: () => void;
 }
 
-export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepProps) {
+function DesktopGmailConnectStep({ data, onUpdate }: GmailConnectStepProps) {
   const { isConnected, isLoading, email, error, connect, disconnect } = useGmailOAuth();
 
   // Sync connection state with campaign data
   useEffect(() => {
     if (isConnected && email) {
-      onUpdate({ 
+      onUpdate({
         gmailConnected: true,
         gmailEmail: email
       });
     } else {
-      onUpdate({ 
+      onUpdate({
         gmailConnected: false,
         gmailEmail: ''
       });
@@ -43,11 +47,10 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`relative overflow-hidden rounded-xl border ${
-          isConnected 
-            ? 'bg-emerald-50 dark:bg-emerald-500/[0.08] border-emerald-200 dark:border-emerald-500/20' 
-            : 'bg-gray-50 dark:bg-white/[0.02] border-gray-200 dark:border-white/[0.08]'
-        }`}
+        className={`relative overflow-hidden rounded-xl border ${isConnected
+          ? 'bg-emerald-50 dark:bg-emerald-500/[0.08] border-emerald-200 dark:border-emerald-500/20'
+          : 'bg-gray-50 dark:bg-white/[0.02] border-gray-200 dark:border-white/[0.08]'
+          }`}
       >
         {/* Background pattern */}
         <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.03]">
@@ -71,7 +74,7 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
                     <p className="text-[11px] text-gray-500 dark:text-white/50">{email}</p>
                   </div>
                 </div>
-                
+
                 <button
                   onClick={disconnect}
                   disabled={isLoading}
@@ -169,7 +172,7 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
         <p className="text-[11px] text-gray-400 dark:text-white/30 uppercase tracking-wider font-medium">
           Why connect Gmail?
         </p>
-        
+
         <div className="grid grid-cols-3 gap-2">
           {[
             {
@@ -216,4 +219,14 @@ export default function GmailConnectStep({ data, onUpdate }: GmailConnectStepPro
       </div>
     </div>
   );
+}
+
+export default function GmailConnectStep(props: GmailConnectStepProps) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return <MobileGmailStep {...props} />;
+  }
+
+  return <DesktopGmailConnectStep {...props} />;
 }

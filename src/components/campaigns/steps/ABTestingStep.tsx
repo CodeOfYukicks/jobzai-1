@@ -27,7 +27,20 @@ interface SectionConfig {
 
 const SUB_STEPS: SubStep[] = ['hooks', 'bodies', 'ctas'];
 
-export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
+import { useIsMobile } from '../../../hooks/useIsMobile';
+import MobileABTestingStep from './mobile/MobileABTestingStep';
+
+export default function ABTestingStep(props: ABTestingStepProps & { onNext?: () => void; onBack?: () => void }) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return <MobileABTestingStep {...props} />;
+  }
+
+  return <DesktopABTestingStep {...props} />;
+}
+
+function DesktopABTestingStep({ data, onUpdate }: ABTestingStepProps) {
   const [activeSubStep, setActiveSubStep] = useState<SubStep>('hooks');
 
   const sections: SectionConfig[] = [
@@ -61,7 +74,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
   ];
   const [previewIndices, setPreviewIndices] = useState({ hook: 0, body: 0, cta: 0 });
   const [generatingVariantIndex, setGeneratingVariantIndex] = useState<number | null>(null);
-  
+
   const textareaRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
   const avatarConfig = useAvatarConfig();
 
@@ -87,7 +100,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
   const addVariant = (section: SubStep) => {
     const currentVariants = abTestConfig[section];
     const sectionConfig = sections.find(s => s.id === section);
-    
+
     if (currentVariants.length >= (sectionConfig?.maxVariants || 5)) {
       notify.warning(`Maximum ${sectionConfig?.maxVariants} variants allowed`);
       return;
@@ -98,7 +111,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
 
   const removeVariant = (section: SubStep, index: number) => {
     const currentVariants = abTestConfig[section];
-    
+
     if (currentVariants.length <= 1) {
       notify.warning('At least one variant is required');
       return;
@@ -118,7 +131,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
   const insertMergeField = (fieldName: string, variantIndex: number) => {
     const textareaKey = `${activeSubStep}-${variantIndex}`;
     const textarea = textareaRefs.current.get(textareaKey);
-    
+
     if (!textarea) {
       const currentText = abTestConfig[activeSubStep][variantIndex];
       updateVariant(activeSubStep, variantIndex, currentText + fieldName);
@@ -144,7 +157,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
   // Generate single variant with AI
   const generateVariant = async (section: SubStep, index: number) => {
     setGeneratingVariantIndex(index);
-    
+
     try {
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
@@ -191,8 +204,8 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
     return parts.map((part, idx) => {
       if (part.match(/\{\{[^}]+\}\}/)) {
         return (
-          <span 
-            key={idx} 
+          <span
+            key={idx}
             className="inline-flex items-center px-1 py-0.5 mx-0.5 rounded
               bg-violet-500/10 dark:bg-violet-400/15
               text-violet-600 dark:text-violet-400
@@ -221,46 +234,46 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
       <div className="flex-shrink-0 space-y-5 mb-6">
         {/* Sub-step Progress Indicator - Simplified */}
         <div className="flex items-center gap-2">
-            {sections.map((section, idx) => {
-          const Icon = section.icon;
-              const isActive = activeSubStep === section.id;
-              const isPast = idx < currentSubStepIndex;
-          const variantCount = abTestConfig[section.id].filter(v => v.trim()).length;
-          
-          return (
-            <button
-              key={section.id}
-                  onClick={() => setActiveSubStep(section.id)}
-              className={`
+          {sections.map((section, idx) => {
+            const Icon = section.icon;
+            const isActive = activeSubStep === section.id;
+            const isPast = idx < currentSubStepIndex;
+            const variantCount = abTestConfig[section.id].filter(v => v.trim()).length;
+
+            return (
+              <button
+                key={section.id}
+                onClick={() => setActiveSubStep(section.id)}
+                className={`
                   flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium
                 transition-all duration-200
                 ${isActive
                     ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
-                      : isPast
+                    : isPast
                       ? 'bg-gray-100 dark:bg-white/[0.06] text-gray-700 dark:text-gray-300 hover:bg-gray-200/80 dark:hover:bg-white/[0.08]'
                       : 'bg-gray-50 dark:bg-white/[0.03] text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.05]'
-                    }
+                  }
                   `}
-                >
+              >
                 <Icon className="w-4 h-4" />
-              <span className="hidden sm:inline">{section.title}</span>
-                  {variantCount > 0 && (
-              <span className={`
+                <span className="hidden sm:inline">{section.title}</span>
+                {variantCount > 0 && (
+                  <span className={`
                     inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold
                 ${isActive
                       ? 'bg-white/20 dark:bg-gray-900/20 text-white dark:text-gray-900'
-                  : 'bg-gray-200 dark:bg-white/[0.08] text-gray-600 dark:text-gray-400'
-                }
+                      : 'bg-gray-200 dark:bg-white/[0.08] text-gray-600 dark:text-gray-400'
+                    }
               `}>
-                {variantCount}
-              </span>
-                  )}
-                  {idx < sections.length - 1 && (
-                    <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 ml-1 hidden sm:block" />
-                  )}
-            </button>
-          );
-        })}
+                    {variantCount}
+                  </span>
+                )}
+                {idx < sections.length - 1 && (
+                  <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 ml-1 hidden sm:block" />
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Info Tip - Subtle */}
@@ -274,26 +287,26 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
 
       {/* Active Section Editor */}
       <div className="flex-1 min-h-0">
-      <AnimatePresence mode="wait">
-        <motion.div
+        <AnimatePresence mode="wait">
+          <motion.div
             key={activeSubStep}
             initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
+            animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
             className="space-y-5"
-        >
-          {/* Section Header */}
+          >
+            {/* Section Header */}
             <div className="flex items-start justify-between">
-            <div>
+              <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-0.5">
-                {activeSectionConfig.title}
+                  {activeSectionConfig.title}
                 </h3>
                 <p className="text-[13px] text-gray-500 dark:text-white/60">
                   {activeSectionConfig.subtitle} <span className="text-gray-400 dark:text-white/40">({activeSectionConfig.recommended})</span>
-              </p>
-            </div>
-              
+                </p>
+              </div>
+
               <button
                 onClick={() => addVariant(activeSubStep)}
                 disabled={activeVariants.length >= activeSectionConfig.maxVariants}
@@ -301,15 +314,15 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
                   inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] font-medium
                   transition-all duration-200
                 ${activeVariants.length >= activeSectionConfig.maxVariants
-                  ? 'bg-gray-100 dark:bg-white/[0.04] text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                    ? 'bg-gray-100 dark:bg-white/[0.04] text-gray-400 dark:text-gray-600 cursor-not-allowed'
                     : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 shadow-sm'
-                }
+                  }
               `}
-            >
+              >
                 <Plus className="w-3.5 h-3.5" />
-              Add Variant
-            </button>
-          </div>
+                Add Variant
+              </button>
+            </div>
 
             {/* Shared Merge Fields */}
             <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-white/[0.02] border border-gray-200/50 dark:border-white/[0.06]">
@@ -318,7 +331,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
               </p>
               <MergeFieldPills onInsert={(field) => {
                 // Insert into the first variant's textarea by default, or the focused one
-                const focusedTextarea = Array.from(textareaRefs.current.entries()).find(([key]) => 
+                const focusedTextarea = Array.from(textareaRefs.current.entries()).find(([key]) =>
                   document.activeElement === textareaRefs.current.get(key)
                 );
                 const targetIndex = focusedTextarea ? parseInt(focusedTextarea[0].split('-')[1]) : 0;
@@ -328,28 +341,28 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
 
             {/* Variants List */}
             <div className="space-y-4">
-            {activeVariants.map((variant, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
+              {activeVariants.map((variant, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2, delay: index * 0.05 }}
                   className="group relative"
-              >
+                >
                   <div className="flex items-start gap-3">
-                  {/* Variant Number */}
+                    {/* Variant Number */}
                     <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.06] 
                       flex items-center justify-center text-[13px] font-bold text-gray-500 dark:text-gray-400 
                       flex-shrink-0 mt-1">
-                    {index + 1}
-                  </div>
+                      {index + 1}
+                    </div>
 
                     {/* Textarea Container - Fixed cursor issue */}
                     <div className="flex-1 space-y-2.5">
                       <textarea
                         ref={(el) => {
-                            const key = `${activeSubStep}-${index}`;
+                          const key = `${activeSubStep}-${index}`;
                           if (el) {
                             textareaRefs.current.set(key, el);
                           } else {
@@ -357,7 +370,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
                           }
                         }}
                         value={variant}
-                          onChange={(e) => updateVariant(activeSubStep, index, e.target.value)}
+                        onChange={(e) => updateVariant(activeSubStep, index, e.target.value)}
                         placeholder={activeSectionConfig.placeholder}
                         rows={activeSubStep === 'bodies' ? 4 : 2}
                         className="w-full px-4 py-3 text-[13px] bg-white dark:bg-[#1a1a1a] 
@@ -383,63 +396,63 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
                           disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         {/* Avatar */}
-                          <motion.div
-                            animate={generatingVariantIndex === index ? {
+                        <motion.div
+                          animate={generatingVariantIndex === index ? {
                             scale: [1, 1.1, 1],
-                            } : {}}
-                            transition={{
+                          } : {}}
+                          transition={{
                             duration: 1.2,
-                              repeat: Infinity,
-                              ease: 'easeInOut'
-                            }}
-                          >
-                            <Avatar 
-                              config={avatarConfig} 
-                            size={16} 
+                            repeat: Infinity,
+                            ease: 'easeInOut'
+                          }}
+                        >
+                          <Avatar
+                            config={avatarConfig}
+                            size={16}
                             className="rounded-full"
-                            />
-                          </motion.div>
-                        
+                          />
+                        </motion.div>
+
                         <span>
                           {generatingVariantIndex === index ? 'Generating...' : 'Generate with AI'}
                         </span>
                       </button>
-                  </div>
+                    </div>
 
-                  {/* Delete Button */}
-                  {activeVariants.length > 1 && (
-                    <button
+                    {/* Delete Button */}
+                    {activeVariants.length > 1 && (
+                      <button
                         onClick={() => removeVariant(activeSubStep, index)}
                         className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-1
                         text-gray-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400
                         hover:bg-red-50 dark:hover:bg-red-500/10 transition-all duration-200
                         opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-      </div>
-      
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
             {/* Progress Dots */}
             <div className="flex items-center justify-center gap-2 pt-4">
               {SUB_STEPS.map((step, idx) => (
-              <button
-                    key={step}
+                <button
+                  key={step}
                   onClick={() => setActiveSubStep(step)}
-                    className={`
+                  className={`
                     h-2 rounded-full transition-all duration-200
                       ${idx === currentSubStepIndex
                       ? 'w-6 bg-gray-900 dark:bg-white'
-                        : idx < currentSubStepIndex
+                      : idx < currentSubStepIndex
                         ? 'w-2 bg-gray-400 dark:bg-gray-500 hover:bg-gray-500 dark:hover:bg-gray-400'
                         : 'w-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
-                      }
+                    }
                     `}
-                  />
-                ))}
+                />
+              ))}
             </div>
           </motion.div>
         </AnimatePresence>
@@ -448,15 +461,15 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
       {/* Preview Section - Email-like UI */}
       <div className="flex-shrink-0 mt-6 pt-5 border-t border-gray-200/50 dark:border-white/[0.06]">
         {/* Preview Header */}
-              <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4">
           <h4 className="text-[13px] font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <Eye className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-              Live Preview
-                </h4>
-            
+            Live Preview
+          </h4>
+
           {/* Variant Combination Selector */}
-            {hasContent() && (
-              <div className="flex items-center gap-2">
+          {hasContent() && (
+            <div className="flex items-center gap-2">
               {/* Pill Selectors */}
               <div className="flex items-center gap-1 p-1 bg-gray-100/80 dark:bg-white/[0.04] rounded-lg">
                 {/* Hook Selector */}
@@ -475,8 +488,8 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
                           key={idx}
                           onClick={() => setPreviewIndices(prev => ({ ...prev, hook: idx }))}
                           className={`w-full px-3 py-1.5 text-[11px] font-medium text-left transition-colors
-                            ${previewIndices.hook === idx 
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' 
+                            ${previewIndices.hook === idx
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
                               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06]'
                             }`}
                         >
@@ -505,8 +518,8 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
                           key={idx}
                           onClick={() => setPreviewIndices(prev => ({ ...prev, body: idx }))}
                           className={`w-full px-3 py-1.5 text-[11px] font-medium text-left transition-colors
-                            ${previewIndices.body === idx 
-                              ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' 
+                            ${previewIndices.body === idx
+                              ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
                               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06]'
                             }`}
                         >
@@ -535,8 +548,8 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
                           key={idx}
                           onClick={() => setPreviewIndices(prev => ({ ...prev, cta: idx }))}
                           className={`w-full px-3 py-1.5 text-[11px] font-medium text-left transition-colors
-                            ${previewIndices.cta === idx 
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
+                            ${previewIndices.cta === idx
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06]'
                             }`}
                         >
@@ -563,12 +576,12 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
               >
                 <Shuffle className="w-4 h-4" />
               </button>
-              </div>
-            )}
-              </div>
+            </div>
+          )}
+        </div>
 
         {/* Email Preview Card */}
-          {hasContent() ? (
+        {hasContent() ? (
           <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f]">
             {/* Email Header */}
             <div className="px-4 py-3 bg-gray-50 dark:bg-white/[0.02] border-b border-gray-200/50 dark:border-white/[0.06]">
@@ -601,7 +614,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
                   </p>
                 </div>
               )}
-              
+
               {/* Body Section */}
               {abTestConfig.bodies[previewIndices.body]?.trim() && (
                 <div className="group relative mt-3">
@@ -611,7 +624,7 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
                   </p>
                 </div>
               )}
-              
+
               {/* CTA Section */}
               {abTestConfig.ctas[previewIndices.cta]?.trim() && (
                 <div className="group relative mt-3">
@@ -627,15 +640,15 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
             <div className="px-4 py-2.5 bg-gray-50 dark:bg-white/[0.02] border-t border-gray-200/50 dark:border-white/[0.06]">
               <p className="text-[10px] text-gray-500 dark:text-gray-500">
                 <span className="font-medium text-gray-700 dark:text-gray-300">
-                  {abTestConfig.hooks.filter(h => h.trim()).length * 
-                   abTestConfig.bodies.filter(b => b.trim()).length * 
-                   abTestConfig.ctas.filter(c => c.trim()).length}
+                  {abTestConfig.hooks.filter(h => h.trim()).length *
+                    abTestConfig.bodies.filter(b => b.trim()).length *
+                    abTestConfig.ctas.filter(c => c.trim()).length}
                 </span>
                 {' '}possible combinations will be tested
               </p>
             </div>
-            </div>
-          ) : (
+          </div>
+        ) : (
           <div className="rounded-xl border border-dashed border-gray-200 dark:border-white/[0.08] bg-gray-50/50 dark:bg-white/[0.01] p-8 text-center">
             <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-white/[0.04] flex items-center justify-center mx-auto mb-3">
               <Eye className="w-5 h-5 text-gray-400 dark:text-gray-600" />
@@ -645,9 +658,9 @@ export default function ABTestingStep({ data, onUpdate }: ABTestingStepProps) {
             </p>
             <p className="text-[11px] text-gray-400 dark:text-gray-600">
               Add variants above to see how your email will look
-          </p>
-        </div>
-      )}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
