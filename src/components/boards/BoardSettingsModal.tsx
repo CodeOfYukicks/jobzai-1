@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
+import {
+  X,
   Sparkles,
   Loader2,
   Trash2,
@@ -43,7 +43,7 @@ const COVER_PHOTOS = [
   // Minimal & Clean
   'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&h=400&fit=crop',
   'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&h=400&fit=crop',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?w=800&h=400&fit=crop',
   'https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=800&h=400&fit=crop',
 ];
 
@@ -116,7 +116,7 @@ export default function BoardSettingsModal({
         color,
         boardType,
       };
-      
+
       if (description.trim()) {
         boardData.description = description.trim();
       }
@@ -129,7 +129,7 @@ export default function BoardSettingsModal({
       if (customColumns.length > 0) {
         boardData.customColumns = customColumns;
       }
-      
+
       await onSave(boardData);
       onClose();
     } catch (error) {
@@ -172,7 +172,7 @@ export default function BoardSettingsModal({
   };
 
   const updateColumnColor = (id: string, newColor: string) => {
-    setCustomColumns(customColumns.map(c => 
+    setCustomColumns(customColumns.map(c =>
       c.id === id ? { ...c, color: newColor } : c
     ));
   };
@@ -212,9 +212,8 @@ export default function BoardSettingsModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 40 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className={`bg-white dark:bg-[#1a191b] rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-hidden border border-gray-200/20 dark:border-white/5 ${
-            step === 'type' && mode === 'create' ? 'max-w-lg' : 'max-w-2xl'
-          }`}
+          className={`bg-white dark:bg-[#1a191b] rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-hidden border border-gray-200/20 dark:border-white/5 ${step === 'type' && mode === 'create' ? 'max-w-lg' : 'max-w-2xl'
+            }`}
           style={{
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05) inset'
           }}
@@ -224,114 +223,138 @@ export default function BoardSettingsModal({
             {step === 'type' && mode === 'create' && (
               <motion.div
                 key="type-selection"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.2 }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
               >
                 {/* Header */}
-                <div className="relative px-5 py-4 border-b border-gray-100/50 dark:border-white/5">
+                <div className="relative px-6 pt-6 pb-4">
                   <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-all"
+                    className="absolute top-5 right-5 p-2 rounded-full hover:bg-white/[0.06] text-gray-500 dark:text-gray-500 hover:text-gray-300 transition-all duration-200"
                   >
                     <X className="w-4 h-4" />
                   </button>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white tracking-tight">
+                  <h2 className="text-lg font-medium text-gray-900 dark:text-[#fafafa] tracking-[-0.01em]">
                     Create New Board
                   </h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+                  <p className="text-[13px] text-gray-500 dark:text-[#8a8a8a] mt-1">
                     What type of board do you want to create?
                   </p>
                 </div>
 
                 {/* Type Cards */}
-                <div className="p-4 space-y-3">
-                  {/* Jobs Board Type */}
+                <div className="px-6 pb-6 space-y-3">
+                  {/* Jobs Board Type - Premium Primary Option */}
                   <motion.button
-                    whileHover={{ scale: 1.005 }}
+                    whileHover={{ y: -1 }}
                     whileTap={{ scale: 0.995 }}
                     onClick={() => handleSelectType('jobs')}
-                    className="relative w-full p-4 rounded-xl border border-gray-200/60 dark:border-white/[0.06] hover:border-[#635BFF]/50 dark:hover:border-[#635BFF]/40 bg-gradient-to-br from-white to-gray-50/80 dark:from-[#242325] dark:to-[#1f1e20] transition-all duration-200 group text-left overflow-hidden"
+                    className="relative w-full p-5 rounded-xl border border-white/[0.08] hover:border-white/[0.12] bg-gradient-to-b from-white/[0.04] to-transparent transition-all duration-300 group text-left overflow-hidden"
                     style={{
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(255,255,255,0.02) inset'
+                      boxShadow: '0 0 0 1px rgba(255,255,255,0.03) inset, 0 2px 8px -2px rgba(0,0,0,0.3), 0 4px 16px -4px rgba(0,0,0,0.2)'
                     }}
                   >
-                    {/* Subtle gradient overlay on hover */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#635BFF]/0 to-[#635BFF]/0 group-hover:from-[#635BFF]/[0.02] group-hover:to-[#8B5CF6]/[0.04] transition-all duration-300 pointer-events-none" />
-                    
+                    {/* Subtle glow on hover */}
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-[#635BFF]/0 to-[#635BFF]/0 group-hover:from-[#635BFF]/[0.04] group-hover:to-transparent transition-all duration-500 pointer-events-none" />
+                    {/* Top highlight line */}
+                    <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-white/[0.12] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
                     <div className="relative flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#635BFF] to-[#8B5CF6] flex items-center justify-center flex-shrink-0 shadow-md shadow-[#635BFF]/15 group-hover:shadow-lg group-hover:shadow-[#635BFF]/25 transition-shadow duration-200">
-                        <Briefcase className="w-6 h-6 text-white" />
+                      {/* Premium subtle icon */}
+                      <div className="relative w-11 h-11 rounded-lg bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] flex items-center justify-center flex-shrink-0 group-hover:border-[#635BFF]/30 transition-all duration-300">
+                        <Briefcase className="w-5 h-5 text-[#a5a5a5] group-hover:text-[#635BFF] transition-colors duration-300" />
+                        {/* Subtle corner accent */}
+                        <div className="absolute -top-px -right-px w-2 h-2 rounded-bl-md rounded-tr-lg bg-[#635BFF] opacity-60" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+                      <div className="flex-1 min-w-0 pt-0.5">
+                        <div className="flex items-center gap-2.5 mb-1.5">
+                          <h3 className="text-[15px] font-medium text-gray-900 dark:text-[#fafafa] tracking-[-0.01em]">
                             Job Applications
                           </h3>
-                          <span className="px-1.5 py-0.5 rounded-md bg-[#635BFF]/10 dark:bg-[#635BFF]/15 text-[#635BFF] text-[10px] font-semibold uppercase tracking-wide">
+                          <span className="px-2 py-0.5 rounded-full bg-white/[0.06] text-[10px] font-medium text-[#8a8a8a] uppercase tracking-wider">
                             Classic
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2.5 leading-relaxed">
+                        <p className="text-[13px] text-gray-500 dark:text-[#707070] mb-3 leading-relaxed">
                           Track applications to job postings with a traditional workflow
                         </p>
-                        <div className="flex flex-wrap gap-1">
-                          {Object.values(JOB_COLUMN_LABELS).map((label) => (
+                        {/* Subtle status preview - collapsed pills */}
+                        <div className="flex items-center gap-1.5">
+                          {Object.values(JOB_COLUMN_LABELS).slice(0, 4).map((label, i) => (
                             <span
                               key={label}
-                              className="px-2 py-0.5 rounded-md bg-gray-100/80 dark:bg-white/[0.04] text-[11px] font-medium text-gray-500 dark:text-gray-400 border border-gray-200/50 dark:border-white/[0.04]"
+                              className="px-2 py-0.5 rounded-md bg-white/[0.03] text-[10px] font-medium text-[#606060] border border-white/[0.04]"
                             >
                               {label}
                             </span>
                           ))}
+                          {Object.values(JOB_COLUMN_LABELS).length > 4 && (
+                            <span className="text-[10px] text-[#505050] font-medium">
+                              +{Object.values(JOB_COLUMN_LABELS).length - 4}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-[#635BFF] group-hover:translate-x-0.5 transition-all duration-200 flex-shrink-0 mt-4" />
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/[0.04] group-hover:bg-[#635BFF]/10 transition-all duration-300 flex-shrink-0 mt-1">
+                        <ArrowRight className="w-4 h-4 text-[#505050] group-hover:text-[#635BFF] group-hover:translate-x-0.5 transition-all duration-300" />
+                      </div>
                     </div>
                   </motion.button>
 
-                  {/* Campaigns Board Type */}
+                  {/* Campaigns Board Type - Secondary Option */}
                   <motion.button
-                    whileHover={{ scale: 1.005 }}
+                    whileHover={{ y: -1 }}
                     whileTap={{ scale: 0.995 }}
                     onClick={() => handleSelectType('campaigns')}
-                    className="relative w-full p-4 rounded-xl border border-gray-200/60 dark:border-white/[0.06] hover:border-[#8B5CF6]/50 dark:hover:border-[#8B5CF6]/40 bg-gradient-to-br from-white to-gray-50/80 dark:from-[#242325] dark:to-[#1f1e20] transition-all duration-200 group text-left overflow-hidden"
+                    className="relative w-full p-5 rounded-xl border border-white/[0.06] hover:border-white/[0.10] bg-gradient-to-b from-white/[0.02] to-transparent transition-all duration-300 group text-left overflow-hidden"
                     style={{
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(255,255,255,0.02) inset'
+                      boxShadow: '0 0 0 1px rgba(255,255,255,0.02) inset, 0 1px 4px -1px rgba(0,0,0,0.2)'
                     }}
                   >
-                    {/* Subtle gradient overlay on hover */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#8B5CF6]/0 to-[#EC4899]/0 group-hover:from-[#8B5CF6]/[0.02] group-hover:to-[#EC4899]/[0.04] transition-all duration-300 pointer-events-none" />
-                    
+                    {/* Subtle glow on hover */}
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-[#8B5CF6]/0 to-[#8B5CF6]/0 group-hover:from-[#8B5CF6]/[0.03] group-hover:to-transparent transition-all duration-500 pointer-events-none" />
+                    {/* Top highlight line */}
+                    <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
                     <div className="relative flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#EC4899] flex items-center justify-center flex-shrink-0 shadow-md shadow-[#8B5CF6]/15 group-hover:shadow-lg group-hover:shadow-[#8B5CF6]/25 transition-shadow duration-200">
-                        <Send className="w-6 h-6 text-white" />
+                      {/* Premium subtle icon */}
+                      <div className="w-11 h-11 rounded-lg bg-gradient-to-b from-white/[0.05] to-white/[0.01] border border-white/[0.06] flex items-center justify-center flex-shrink-0 group-hover:border-[#8B5CF6]/25 transition-all duration-300">
+                        <Send className="w-5 h-5 text-[#707070] group-hover:text-[#8B5CF6] transition-colors duration-300" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+                      <div className="flex-1 min-w-0 pt-0.5">
+                        <div className="flex items-center gap-2.5 mb-1.5">
+                          <h3 className="text-[15px] font-medium text-gray-900 dark:text-[#e5e5e5] tracking-[-0.01em]">
                             Outreach Campaigns
                           </h3>
-                          <span className="px-1.5 py-0.5 rounded-md bg-[#8B5CF6]/10 dark:bg-[#8B5CF6]/15 text-[#8B5CF6] text-[10px] font-semibold uppercase tracking-wide">
+                          <span className="px-2 py-0.5 rounded-full bg-white/[0.04] text-[10px] font-medium text-[#707070] uppercase tracking-wider">
                             Prospecting
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2.5 leading-relaxed">
+                        <p className="text-[13px] text-gray-500 dark:text-[#606060] mb-3 leading-relaxed">
                           Manage spontaneous applications and outreach campaigns
                         </p>
-                        <div className="flex flex-wrap gap-1">
-                          {Object.values(CAMPAIGN_COLUMN_LABELS).map((label) => (
+                        {/* Subtle status preview - collapsed pills */}
+                        <div className="flex items-center gap-1.5">
+                          {Object.values(CAMPAIGN_COLUMN_LABELS).slice(0, 4).map((label) => (
                             <span
                               key={label}
-                              className="px-2 py-0.5 rounded-md bg-gray-100/80 dark:bg-white/[0.04] text-[11px] font-medium text-gray-500 dark:text-gray-400 border border-gray-200/50 dark:border-white/[0.04]"
+                              className="px-2 py-0.5 rounded-md bg-white/[0.02] text-[10px] font-medium text-[#505050] border border-white/[0.03]"
                             >
                               {label}
                             </span>
                           ))}
+                          {Object.values(CAMPAIGN_COLUMN_LABELS).length > 4 && (
+                            <span className="text-[10px] text-[#454545] font-medium">
+                              +{Object.values(CAMPAIGN_COLUMN_LABELS).length - 4}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-[#8B5CF6] group-hover:translate-x-0.5 transition-all duration-200 flex-shrink-0 mt-4" />
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/[0.02] group-hover:bg-[#8B5CF6]/10 transition-all duration-300 flex-shrink-0 mt-1">
+                        <ArrowRight className="w-4 h-4 text-[#454545] group-hover:text-[#8B5CF6] group-hover:translate-x-0.5 transition-all duration-300" />
+                      </div>
                     </div>
                   </motion.button>
                 </div>
@@ -350,20 +373,20 @@ export default function BoardSettingsModal({
                 {/* Premium Header with Preview */}
                 <div className="relative">
                   {/* Cover Preview */}
-                  <div 
+                  <div
                     className="h-20 w-full overflow-hidden"
-                    style={{ 
-                      background: coverPhoto 
+                    style={{
+                      background: coverPhoto
                         ? `url(${coverPhoto}) center/cover`
                         : `linear-gradient(135deg, ${color}40 0%, ${color}20 50%, transparent 100%)`
                     }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white dark:to-[#1a191b]" />
                   </div>
-                  
+
                   {/* Floating Icon */}
                   <div className="absolute left-5 bottom-0 translate-y-1/2">
-                    <motion.div 
+                    <motion.div
                       className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl shadow-lg ring-[3px] ring-white dark:ring-[#1a191b]"
                       style={{ background: `linear-gradient(135deg, ${color}, ${color}dd)` }}
                       whileHover={{ scale: 1.05 }}
@@ -394,11 +417,10 @@ export default function BoardSettingsModal({
 
                   {/* Board Type Badge */}
                   <div className="absolute top-3 left-1/2 -translate-x-1/2">
-                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide backdrop-blur-sm ${
-                      boardType === 'jobs' 
-                        ? 'bg-[#635BFF]/80 text-white' 
-                        : 'bg-[#8B5CF6]/80 text-white'
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide backdrop-blur-sm ${boardType === 'jobs'
+                      ? 'bg-[#635BFF]/80 text-white'
+                      : 'bg-[#8B5CF6]/80 text-white'
+                      }`}>
                       {boardType === 'jobs' ? 'Job Applications' : 'Outreach Campaign'}
                     </span>
                   </div>
@@ -410,8 +432,8 @@ export default function BoardSettingsModal({
                     {mode === 'create' ? 'Configure Your Board' : 'Edit Board'}
                   </h2>
                   <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
-                    {mode === 'create' 
-                      ? `Set up your new ${boardType === 'jobs' ? 'job tracking' : 'outreach'} board` 
+                    {mode === 'create'
+                      ? `Set up your new ${boardType === 'jobs' ? 'job tracking' : 'outreach'} board`
                       : 'Update your board settings'
                     }
                   </p>
@@ -424,11 +446,10 @@ export default function BoardSettingsModal({
                       <button
                         key={section.id}
                         onClick={() => setActiveSection(section.id)}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-xs font-medium transition-all ${
-                          activeSection === section.id
-                            ? 'bg-white dark:bg-white/[0.08] text-gray-900 dark:text-white shadow-sm'
-                            : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                        }`}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-xs font-medium transition-all ${activeSection === section.id
+                          ? 'bg-white dark:bg-white/[0.08] text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                          }`}
                       >
                         <section.icon className="w-3.5 h-3.5" />
                         {section.label}
@@ -459,8 +480,8 @@ export default function BoardSettingsModal({
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder={boardType === 'jobs' 
-                              ? "e.g., Tech Jobs 2025, Remote Positions..." 
+                            placeholder={boardType === 'jobs'
+                              ? "e.g., Tech Jobs 2025, Remote Positions..."
                               : "e.g., Startup Outreach, Q1 Campaign..."
                             }
                             className="w-full px-3.5 py-2.5 rounded-lg text-sm border border-gray-200/80 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-[#635BFF] focus:bg-white dark:focus:bg-white/[0.04] transition-all outline-none"
@@ -509,11 +530,10 @@ export default function BoardSettingsModal({
                                     whileHover={{ scale: 1.1 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => setIcon(emoji)}
-                                    className={`w-8 h-8 rounded-md flex items-center justify-center text-base transition-all ${
-                                      icon === emoji 
-                                        ? 'bg-[#635BFF] ring-2 ring-[#635BFF]/30 shadow-md' 
-                                        : 'bg-gray-100/80 dark:bg-white/[0.04] hover:bg-gray-200 dark:hover:bg-white/[0.08]'
-                                    }`}
+                                    className={`w-8 h-8 rounded-md flex items-center justify-center text-base transition-all ${icon === emoji
+                                      ? 'bg-[#635BFF] ring-2 ring-[#635BFF]/30 shadow-md'
+                                      : 'bg-gray-100/80 dark:bg-white/[0.04] hover:bg-gray-200 dark:hover:bg-white/[0.08]'
+                                      }`}
                                   >
                                     {emoji}
                                   </motion.button>
@@ -547,11 +567,10 @@ export default function BoardSettingsModal({
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => setColor(c)}
-                                className={`w-10 h-10 rounded-xl transition-all ${
-                                  color === c 
-                                    ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 ring-gray-900 dark:ring-white shadow-lg' 
-                                    : 'hover:shadow-md'
-                                }`}
+                                className={`w-10 h-10 rounded-xl transition-all ${color === c
+                                  ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 ring-gray-900 dark:ring-white shadow-lg'
+                                  : 'hover:shadow-md'
+                                  }`}
                                 style={{ backgroundColor: c }}
                               >
                                 {color === c && (
@@ -577,7 +596,7 @@ export default function BoardSettingsModal({
                               </button>
                             )}
                           </div>
-                          
+
                           {/* Cover photo gallery */}
                           <div className="grid grid-cols-4 gap-2">
                             {COVER_PHOTOS.map((photo, index) => (
@@ -586,20 +605,19 @@ export default function BoardSettingsModal({
                                 whileHover={{ scale: 1.03 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => setCoverPhoto(photo)}
-                                className={`relative aspect-[2/1] rounded-xl overflow-hidden transition-all ${
-                                  coverPhoto === photo 
-                                    ? 'ring-2 ring-[#635BFF] ring-offset-2 ring-offset-white dark:ring-offset-gray-900' 
-                                    : 'hover:ring-2 hover:ring-gray-300 dark:hover:ring-gray-600'
-                                }`}
+                                className={`relative aspect-[2/1] rounded-xl overflow-hidden transition-all ${coverPhoto === photo
+                                  ? 'ring-2 ring-[#635BFF] ring-offset-2 ring-offset-white dark:ring-offset-gray-900'
+                                  : 'hover:ring-2 hover:ring-gray-300 dark:hover:ring-gray-600'
+                                  }`}
                               >
-                                <img 
-                                  src={photo} 
+                                <img
+                                  src={photo}
                                   alt={`Cover ${index + 1}`}
                                   className="w-full h-full object-cover"
                                   loading="lazy"
                                 />
                                 {coverPhoto === photo && (
-                                  <motion.div 
+                                  <motion.div
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     className="absolute inset-0 bg-[#635BFF]/30 flex items-center justify-center"
@@ -638,7 +656,7 @@ export default function BoardSettingsModal({
                           </p>
                           <div className="flex flex-wrap gap-2 mt-3">
                             {standardColumns.map((col) => (
-                              <span 
+                              <span
                                 key={col}
                                 className="px-3 py-1 rounded-lg bg-white dark:bg-[#3d3c3e] text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-[#4a494b]"
                               >
@@ -648,72 +666,6 @@ export default function BoardSettingsModal({
                           </div>
                         </div>
 
-                        {/* Custom Columns */}
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                            Custom Columns
-                            <span className="font-normal text-gray-400 ml-1">(optional)</span>
-                          </label>
-                          
-                          {/* Existing custom columns */}
-                          {customColumns.length > 0 && (
-                            <div className="space-y-2 mb-4">
-                              {customColumns.map((column, index) => (
-                                <motion.div 
-                                  key={column.id}
-                                  initial={{ opacity: 0, y: -10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, x: -20 }}
-                                  transition={{ delay: index * 0.05 }}
-                                  className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] group"
-                                >
-                                  <div className="flex gap-1">
-                                    {BOARD_COLORS.slice(0, 5).map((c) => (
-                                      <button
-                                        key={c}
-                                        onClick={() => updateColumnColor(column.id, c)}
-                                        className={`w-5 h-5 rounded-md transition-all ${
-                                          column.color === c ? 'ring-2 ring-offset-1 ring-gray-400' : ''
-                                        }`}
-                                        style={{ backgroundColor: c }}
-                                      />
-                                    ))}
-                                  </div>
-                                  <span className="flex-1 text-sm font-medium text-gray-900 dark:text-white">
-                                    {column.name}
-                                  </span>
-                                  <button
-                                    onClick={() => removeCustomColumn(column.id)}
-                                    className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </motion.div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Add new column */}
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={newColumnName}
-                              onChange={(e) => setNewColumnName(e.target.value)}
-                              placeholder="New column name..."
-                              onKeyDown={(e) => e.key === 'Enter' && addCustomColumn()}
-                              className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#2b2a2c] text-gray-900 dark:text-white placeholder-gray-400 focus:border-[#635BFF] transition-all outline-none"
-                            />
-                            <motion.button
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={addCustomColumn}
-                              disabled={!newColumnName.trim()}
-                              className="px-4 py-3 rounded-xl bg-[#635BFF] text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                            >
-                              <Plus className="w-5 h-5" />
-                            </motion.button>
-                          </div>
-                        </div>
 
                         {/* Delete Board */}
                         {mode === 'edit' && onDelete && !board?.isDefault && (
@@ -727,7 +679,7 @@ export default function BoardSettingsModal({
                                 Delete this board
                               </button>
                             ) : (
-                              <motion.div 
+                              <motion.div
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50"
@@ -798,11 +750,7 @@ export default function BoardSettingsModal({
                       whileTap={{ scale: 0.98 }}
                       onClick={handleSave}
                       disabled={!name.trim() || isSaving}
-                      className={`px-4 py-2 rounded-lg text-xs text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none flex items-center gap-1.5 ${
-                        boardType === 'jobs'
-                          ? 'bg-gradient-to-r from-[#635BFF] to-[#8B5CF6] hover:shadow-[#635BFF]/25'
-                          : 'bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] hover:shadow-[#8B5CF6]/25'
-                      }`}
+                      className="px-4 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100"
                     >
                       {isSaving ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
