@@ -25,7 +25,7 @@ export default function NameStep({ firstName: initialFirstName, lastName: initia
       if (userData?.lastName) {
         setLastName(userData.lastName);
       }
-      
+
       // Si toujours vide, essayer depuis displayName
       if (!firstName && !lastName && currentUser?.displayName) {
         const nameParts = currentUser.displayName.split(' ').filter(part => part.trim() !== '');
@@ -41,7 +41,7 @@ export default function NameStep({ firstName: initialFirstName, lastName: initia
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validation
     const newErrors = { firstName: '', lastName: '' };
     let isValid = true;
@@ -85,11 +85,10 @@ export default function NameStep({ firstName: initialFirstName, lastName: initia
               setFirstName(e.target.value);
               if (errors.firstName) setErrors(prev => ({ ...prev, firstName: '' }));
             }}
-            className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 ${
-              errors.firstName
+            className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 ${errors.firstName
                 ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
                 : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-[#635bff] dark:focus:border-[#7C3AED] focus:ring-2 focus:ring-[#635bff]/20 dark:focus:ring-[#7C3AED]/20'
-            } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+              } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
             placeholder="Enter your first name"
             autoFocus
           />
@@ -110,11 +109,10 @@ export default function NameStep({ firstName: initialFirstName, lastName: initia
               setLastName(e.target.value);
               if (errors.lastName) setErrors(prev => ({ ...prev, lastName: '' }));
             }}
-            className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 ${
-              errors.lastName
+            className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 ${errors.lastName
                 ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
                 : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-[#635bff] dark:focus:border-[#7C3AED] focus:ring-2 focus:ring-[#635bff]/20 dark:focus:ring-[#7C3AED]/20'
-            } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+              } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
             placeholder="Enter your last name"
           />
           {errors.lastName && (

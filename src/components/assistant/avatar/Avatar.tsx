@@ -27,8 +27,8 @@ interface AvatarProps {
   onClick?: () => void;
 }
 
-export default function Avatar({ 
-  config = DEFAULT_AVATAR_CONFIG, 
+export default function Avatar({
+  config = DEFAULT_AVATAR_CONFIG,
   size = 56,
   className = '',
   onClick
@@ -50,7 +50,7 @@ export default function Avatar({
         ...(config.backgroundColor && { backgroundColor: config.backgroundColor as any }),
         ...(config.flip !== undefined && { flip: config.flip }),
       });
-      
+
       return avatar.toDataUri();
     } catch (error) {
       console.error('[Avatar] Error generating avatar:', error);
@@ -73,7 +73,7 @@ export default function Avatar({
         src={avatarSvg}
         alt="AI Assistant Avatar"
         className="w-full h-full object-cover"
-        style={{ 
+        style={{
           borderRadius: 'inherit',
         }}
       />

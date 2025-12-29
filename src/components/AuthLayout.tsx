@@ -383,7 +383,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     (location.pathname.startsWith('/ats-analysis/') && location.pathname.endsWith('/cv-editor')) ||
     (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
     location.pathname.startsWith('/notes/') ||
-    location.pathname.startsWith('/whiteboard/');
+    location.pathname.startsWith('/whiteboard/') ||
+    location.pathname === '/billing';
 
   // Check if we are in "Builder Mode" (flush sidebar, no floating)
   const isBuilderMode = location.pathname.startsWith('/resume-builder') ||
@@ -424,7 +425,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/professional-profile' ||
     location.pathname === '/resume-builder' ||
     location.pathname === '/jobs' ||
-    location.pathname === '/settings';
+    location.pathname === '/settings' ||
+    location.pathname === '/billing';
 
   // Pages where we should hide the mobile global elements (Top Bar & Bottom Nav)
   // This gives a true native "full screen" app feel for specific editors

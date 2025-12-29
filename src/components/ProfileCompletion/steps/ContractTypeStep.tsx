@@ -32,19 +32,17 @@ export default function ContractTypeStep({ value, onNext, onBack }: ContractType
             onClick={() => setSelectedContractType(id)}
             className={`
               group relative p-6 rounded-xl transition-all duration-200
-              ${selectedContractType === id 
-                ? 'bg-[#635bff]/10 dark:bg-[#635bff]/20 border-2 border-[#635bff] dark:border-[#7C3AED] dark:shadow-[0_0_0_1px_rgba(141,117,230,0.4),0_8px_16px_rgba(141,117,230,0.2)]' 
+              ${selectedContractType === id
+                ? 'bg-[#635bff]/10 dark:bg-[#635bff]/20 border-2 border-[#635bff] dark:border-[#7C3AED] dark:shadow-[0_0_0_1px_rgba(141,117,230,0.4),0_8px_16px_rgba(141,117,230,0.2)]'
                 : 'bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent hover:border-[#635bff]/30 dark:hover:border-[#635bff]/30 dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)]'
               }
             `}
           >
             <div className="flex flex-col items-center text-center">
-              <Icon className={`h-10 w-10 mb-4 transition-colors ${
-                selectedContractType === id ? 'text-[#635bff] dark:text-[#A78BFA]' : 'text-gray-400 dark:text-gray-500 group-hover:text-[#635bff] dark:group-hover:text-[#A78BFA]'
-              }`} />
-              <span className={`font-medium text-lg transition-colors ${
-                selectedContractType === id ? 'text-[#635bff] dark:text-[#A78BFA]' : 'text-gray-700 dark:text-gray-300'
-              }`}>
+              <Icon className={`h-10 w-10 mb-4 transition-colors ${selectedContractType === id ? 'text-[#635bff] dark:text-[#A78BFA]' : 'text-gray-400 dark:text-gray-500 group-hover:text-[#635bff] dark:group-hover:text-[#A78BFA]'
+                }`} />
+              <span className={`font-medium text-lg transition-colors ${selectedContractType === id ? 'text-[#635bff] dark:text-[#A78BFA]' : 'text-gray-700 dark:text-gray-300'
+                }`}>
                 {label}
               </span>
             </div>

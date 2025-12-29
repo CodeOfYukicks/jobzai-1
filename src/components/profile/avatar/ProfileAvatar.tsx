@@ -24,13 +24,13 @@ interface ProfileAvatarProps {
   onClick?: () => void;
 }
 
-export default function ProfileAvatar({ 
-  config = DEFAULT_PROFILE_AVATAR_CONFIG, 
+export default function ProfileAvatar({
+  config = DEFAULT_PROFILE_AVATAR_CONFIG,
   size = 120,
   className = '',
   onClick
 }: ProfileAvatarProps) {
-  
+
   const avatarSvg = useMemo(() => {
     try {
       const avatar = createAvatar(lorelei, {
@@ -58,7 +58,7 @@ export default function ProfileAvatar({
         ...(config.skinColor && { skinColor: config.skinColor as any }),
         ...(config.backgroundColor && { backgroundColor: config.backgroundColor as any }),
       });
-      
+
       return avatar.toDataUri();
     } catch (error) {
       console.error('[ProfileAvatar] Error generating avatar:', error);
@@ -81,7 +81,7 @@ export default function ProfileAvatar({
         src={avatarSvg}
         alt="Profile Avatar"
         className="w-full h-full object-cover"
-        style={{ 
+        style={{
           borderRadius: 'inherit',
         }}
       />

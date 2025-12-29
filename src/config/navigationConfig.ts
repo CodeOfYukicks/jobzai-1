@@ -3,6 +3,7 @@ import {
     ScrollText,
     Lightbulb,
     User,
+    CreditCard,
     FileSearch,
     LayoutGrid,
     Briefcase,
@@ -47,6 +48,7 @@ export const navigationGroups = {
     ] as NavItem[],
     account: [
         { name: 'Profile', href: '/professional-profile', icon: User },
+        { name: 'Billing', href: '/billing', icon: CreditCard },
         { name: 'Settings', href: '/settings', icon: Settings },
     ] as NavItem[],
 };

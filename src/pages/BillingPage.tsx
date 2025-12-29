@@ -468,7 +468,11 @@ export default function BillingPage() {
   }
 
   if (isMobile) {
-    return <MobileBillingPage />;
+    return (
+      <AuthLayout>
+        <MobileBillingPage />
+      </AuthLayout>
+    );
   }
 
   return (

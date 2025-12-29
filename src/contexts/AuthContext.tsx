@@ -40,14 +40,14 @@ export const AuthContext = createContext<AuthContextType>({
   userData: null,
   loading: true,
   isProfileCompleted: false,
-  signInWithGoogle: async () => {},
-  logout: async () => {},
-  login: async (email: string, password: string) => {},
-  signup: async (email: string, password: string, firstName?: string, lastName?: string) => {},
-  resetPassword: async (email: string) => {},
-  resendVerificationEmail: async () => {},
-  updateUserProfile: async () => {},
-  completeProfile: async () => {},
+  signInWithGoogle: async () => { },
+  logout: async () => { },
+  login: async (email: string, password: string) => { },
+  signup: async (email: string, password: string, firstName?: string, lastName?: string) => { },
+  resetPassword: async (email: string) => { },
+  resendVerificationEmail: async () => { },
+  updateUserProfile: async () => { },
+  completeProfile: async () => { },
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const unsubscribe = auth.onAuthStateChanged(async user => {
       setCurrentUser(user);
-      
+
       // Unsubscribe from previous Firestore listener if exists
       if (unsubscribeFirestore) {
         unsubscribeFirestore();
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const userData = userDoc.data() as UserData;
               setUserData(userData);
               setIsProfileCompleted(userData?.profileCompleted ?? false);
-              
+
               // Load and apply theme from Firestore if available (only when logged in)
               if (userData?.theme) {
                 // Firestore has theme - use it and sync to localStorage
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // No theme in Firestore - check localStorage and current DOM state
                 const currentIsDark = document.documentElement.classList.contains('dark');
                 const localStorageTheme = loadThemeFromStorage();
-                
+
                 // Determine which theme to use
                 let themeToApply: Theme;
                 if (localStorageTheme !== 'system') {
@@ -100,10 +100,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   // Default to light if nothing is set
                   themeToApply = 'light';
                 }
-                
+
                 // Apply theme only if different from current state
                 applyTheme(themeToApply, true);
-                
+
                 // Save to Firestore for future consistency (non-blocking)
                 updateDoc(doc(db, 'users', user.uid), {
                   theme: themeToApply
@@ -170,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const userDoc = await getDoc(userRef);
         const userData = userDoc.data();
-        
+
         await syncUserToBrevo(
           {
             email: currentUser.email || '',
@@ -198,11 +198,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Update context state immediately
       setIsProfileCompleted(true);
-      
+
       // Wait for Firestore snapshot to update the context
       // This ensures that onSnapshot has time to update the context state
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // Double check that profileCompleted is set in Firestore
       const userDoc = await getDoc(userRef);
       const finalData = userDoc.data();
@@ -237,11 +237,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const result = await signInWithPopup(auth, provider);
       const userRef = doc(db, 'users', result.user.uid);
-      
+
       const userDoc = await getDoc(userRef);
       const isNewUser = !userDoc.exists();
       const isProfileComplete = userDoc.data()?.profileCompleted ?? false;
-      
+
       await setDoc(userRef, {
         email: result.user.email,
         name: result.user.displayName,
@@ -256,24 +256,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const displayName = result.user.displayName || '';
           const nameParts = displayName.split(' ');
-        await syncUserToBrevo(
-          {
-            email: result.user.email || '',
-            firstName: nameParts[0] || '',
-            lastName: nameParts.slice(1).join(' ') || '',
-            jobzai_user_id: result.user.uid,
-            jobzai_signup_date: new Date().toISOString(),
-            jobzai_profile_completed: false,
-            jobzai_source: 'google',
-          },
-          'user_signed_up',
-          {
-            userId: result.user.uid,
-            source: 'google',
-          }
-        );
-      } catch (brevoError) {
-        console.warn('Brevo sync failed (non-critical):', brevoError);
+          await syncUserToBrevo(
+            {
+              email: result.user.email || '',
+              firstName: nameParts[0] || '',
+              lastName: nameParts.slice(1).join(' ') || '',
+              jobzai_user_id: result.user.uid,
+              jobzai_signup_date: new Date().toISOString(),
+              jobzai_profile_completed: false,
+              jobzai_source: 'google',
+            },
+            'user_signed_up',
+            {
+              userId: result.user.uid,
+              source: 'google',
+            }
+          );
+        } catch (brevoError) {
+          console.warn('Brevo sync failed (non-critical):', brevoError);
         }
       }
 
@@ -282,7 +282,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         navigate('/hub');
       }
-      
+
       return result;
     } catch (error) {
       console.error('Google Sign In Error:', error);
@@ -293,19 +293,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
-      
+
       // Vérifier si l'email est vérifié
       if (!result.user.emailVerified) {
         await firebaseSignOut(auth);
         throw new Error('Please verify your email before logging in');
       }
-      
+
       // Mettre à jour lastLogin dans Firestore
       const userRef = doc(db, 'users', result.user.uid);
       await updateDoc(userRef, {
         lastLogin: new Date().toISOString()
       });
-      
+
       return result;
     } catch (error: any) {
       console.error('Login Error:', error);
@@ -329,7 +329,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!auth.currentUser) {
       throw new Error('No user is currently signed in');
     }
-    
+
     try {
       await sendEmailVerification(auth.currentUser, {
         url: window.location.origin + '/complete-profile',
@@ -355,7 +355,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = async (email: string, password: string, firstName?: string, lastName?: string) => {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      
+
       // Mettre à jour le displayName dans Firebase Auth si firstName et lastName sont fournis
       if (firstName && lastName) {
         try {
@@ -367,7 +367,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Ne pas bloquer l'inscription si la mise à jour du profil échoue
         }
       }
-      
+
       // Envoyer l'email de vérification immédiatement après la création du compte
       try {
         await sendEmailVerification(result.user, {
@@ -380,7 +380,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Ne pas bloquer l'inscription si l'envoi d'email échoue
         // L'utilisateur pourra demander un renvoi plus tard
       }
-      
+
       // Sauvegarder les données utilisateur dans Firestore
       const userRef = doc(db, 'users', result.user.uid);
       const userData: any = {
@@ -428,7 +428,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log("Redirecting to verify-email after signup");
       navigate('/verify-email');
-      
+
       return result;
     } catch (error) {
       console.error('Signup Error:', error);
@@ -438,7 +438,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateUserProfile = async (firstName: string, lastName: string, photoURL?: string) => {
     if (!auth.currentUser) return;
-    
+
     try {
       await updateProfile(auth.currentUser, {
         displayName: `${firstName} ${lastName}`,

@@ -28,11 +28,10 @@ export default function GenderStep({ value, onNext, onBack }: GenderStepProps) {
       <div className="grid grid-cols-2 gap-4">
         <button
           onClick={() => setSelectedGender('male')}
-          className={`p-4 rounded-lg border-2 transition-all duration-200 ${
-            selectedGender === 'male'
+          className={`p-4 rounded-lg border-2 transition-all duration-200 ${selectedGender === 'male'
               ? 'border-[#635bff] bg-[#635bff]/5 dark:bg-[#635bff]/10 dark:shadow-[0_0_0_1px_rgba(141,117,230,0.3),0_4px_12px_rgba(141,117,230,0.15)]'
               : 'border-gray-200 dark:border-gray-700 hover:border-[#635bff]/50 dark:hover:border-[#635bff]/50 bg-white dark:bg-gray-700/50 dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)]'
-          }`}
+            }`}
         >
           <User className="h-8 w-8 mx-auto mb-2 text-[#635bff] dark:text-[#A78BFA]" />
           <div className="font-medium text-gray-900 dark:text-white">Male</div>
@@ -40,11 +39,10 @@ export default function GenderStep({ value, onNext, onBack }: GenderStepProps) {
 
         <button
           onClick={() => setSelectedGender('female')}
-          className={`p-4 rounded-lg border-2 transition-all duration-200 ${
-            selectedGender === 'female'
+          className={`p-4 rounded-lg border-2 transition-all duration-200 ${selectedGender === 'female'
               ? 'border-[#635bff] bg-[#635bff]/5 dark:bg-[#635bff]/10 dark:shadow-[0_0_0_1px_rgba(141,117,230,0.3),0_4px_12px_rgba(141,117,230,0.15)]'
               : 'border-gray-200 dark:border-gray-700 hover:border-[#635bff]/50 dark:hover:border-[#635bff]/50 bg-white dark:bg-gray-700/50 dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)]'
-          }`}
+            }`}
         >
           <User className="h-8 w-8 mx-auto mb-2 text-[#635bff] dark:text-[#A78BFA]" />
           <div className="font-medium text-gray-900 dark:text-white">Female</div>
