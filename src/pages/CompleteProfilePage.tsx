@@ -15,6 +15,9 @@ import AvatarSetupStep from '../components/ProfileCompletion/steps/AvatarSetupSt
 import SubscriptionStep from '../components/ProfileCompletion/steps/SubscriptionStep';
 import OnboardingLayout from '../components/layouts/OnboardingLayout';
 import { saveAvatarConfig } from '../components/assistant/avatar/avatarConfig';
+import { useIsMobile } from '../hooks/useIsMobile';
+import MobileCompleteProfileFlow from './mobile/MobileCompleteProfileFlow';
+
 
 const STEPS = ['name', 'gender', 'contract', 'location', 'cv', 'motivation', 'avatars', 'subscription'] as const;
 type Step = typeof STEPS[number];
@@ -29,6 +32,7 @@ type StepInfo = {
 export default function CompleteProfilePage() {
   const navigate = useNavigate();
   const { currentUser, completeProfile } = useAuth();
+  const isMobile = useIsMobile();
   const [currentStep, setCurrentStep] = useState<Step>('name');
   const [formData, setFormData] = useState({
     firstName: '',
@@ -42,6 +46,11 @@ export default function CompleteProfilePage() {
     motivation: '',
     plan: 'free'
   });
+
+  // Use dedicated mobile flow on mobile devices
+  if (isMobile) {
+    return <MobileCompleteProfileFlow />;
+  }
 
   const handleNext = async (data: any) => {
     const updatedData = { ...formData, ...data };

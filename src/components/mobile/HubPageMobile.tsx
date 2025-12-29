@@ -1,6 +1,12 @@
 /**
- * HubPageMobile - Mobile-native Hub layout
- * Inspired by Apple Fitness, Notion mobile, Linear mobile
+ * HubPageMobile - Premium, Minimal, Mobile-Native Hub
+ * Inspired by Apple Fitness / Linear / Arc
+ * 
+ * Design principles:
+ * - One primary focus per screen
+ * - Remove anything that doesn't help user act NOW
+ * - Use spacing and typography instead of borders
+ * - Calm dark background, subtle accent for CTA only
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -11,100 +17,113 @@ import {
     Briefcase,
     FileSearch,
     Mic,
+    Calendar,
     ChevronRight,
-    Sparkles,
-    Target,
-    CheckCircle2,
-    Circle,
-    Flame,
-    Plus,
-    X,
-    Cloud,
     Clock,
-    StickyNote,
-    Heart,
-    CircleDot,
-    Eye,
-    Quote,
-    Settings2
+    MapPin,
+    Sparkles,
+    Bell,
+    CheckCircle2,
+    Mail,
+    RefreshCw,
+    Trophy,
+    SquareKanban,
+    X
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useMissions } from '../../contexts/MissionsContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 import { db } from '../../lib/firebase';
-import { collection, query, onSnapshot } from 'firebase/firestore';
-import MobileTopBar from './MobileTopBar';
+import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
+import { loadThemeFromStorage } from '../../lib/theme';
 import MobileNavigation from './MobileNavigation';
 import PageTransition from '../PageTransition';
-import WeatherCard from '../hub/WeatherCard';
-import TimeWidget from '../hub/TimeWidget';
-import NoteWidget from '../hub/NoteWidget';
-import HamsterWidget from '../hub/HamsterWidget';
-import PressButtonWidget from '../hub/PressButtonWidget';
-import EyeButtonWidget from '../hub/EyeButtonWidget';
-import DailyMotivation from '../hub/DailyMotivation';
+import type { AppNotification } from '../../services/notificationCenterService';
 
-// Widget types for mobile
-type MobileWidgetType = 'weather' | 'time' | 'note' | 'hamster' | 'pressButton' | 'eyeButton' | 'quote';
-
-interface MobileWidget {
-    id: string;
-    type: MobileWidgetType;
-}
-
-// Widget catalog for mobile
-const MOBILE_WIDGET_CATALOG: {
-    type: MobileWidgetType;
-    name: string;
-    description: string;
-    icon: React.ElementType;
-    color: string;
-}[] = [
-        { type: 'weather', name: 'Weather', description: 'Local conditions', icon: Cloud, color: '#22272B' },
-        { type: 'time', name: 'Clock', description: 'Retro digital watch', icon: Clock, color: '#dddf8f' },
-        { type: 'quote', name: 'Quote', description: 'Daily inspiration', icon: Quote, color: '#B7E219' },
-        { type: 'note', name: 'Quick Note', description: 'Write notes', icon: StickyNote, color: '#D97706' },
-        { type: 'hamster', name: 'Hamster', description: 'Motivational pet', icon: Heart, color: '#F97316' },
-        { type: 'pressButton', name: 'Press Me', description: 'Satisfying button', icon: CircleDot, color: '#FF5A78' },
-        { type: 'eyeButton', name: 'Eye Tracker', description: 'Following eyes', icon: Eye, color: '#3B82F6' },
-    ];
-
-// Default widgets for mobile
-const DEFAULT_MOBILE_WIDGETS: MobileWidget[] = [
-    { id: 'weather-1', type: 'weather' },
-    { id: 'time-1', type: 'time' },
-];
-
-const STORAGE_KEY = 'mobileHubWidgetConfig';
-
-// Quick actions configuration
+// Quick actions - lightweight, horizontal scroll
 const QUICK_ACTIONS = [
-    { id: 'jobs', name: 'Job Board', href: '/jobs', icon: LayoutGrid, color: '#635BFF' },
+    { id: 'jobs', name: 'Jobs', href: '/jobs', icon: LayoutGrid, color: '#635BFF' },
     { id: 'applications', name: 'Applications', href: '/applications', icon: Briefcase, color: '#F59E0B' },
-    { id: 'cv', name: 'Resume Lab', href: '/cv-analysis', icon: FileSearch, color: '#EC4899' },
-    { id: 'interview', name: 'Mock Interview', href: '/mock-interview', icon: Mic, color: '#EF4444' },
+    { id: 'cv', name: 'Resume', href: '/cv-analysis', icon: FileSearch, color: '#EC4899' },
+    { id: 'interview', name: 'Practice', href: '/mock-interview', icon: Mic, color: '#EF4444' },
+    { id: 'calendar', name: 'Calendar', href: '/calendar', icon: Calendar, color: '#10B981' },
 ];
 
-// Widget content renderer
-function WidgetContent({ type }: { type: MobileWidgetType }) {
-    switch (type) {
-        case 'weather': return <WeatherCard />;
-        case 'time': return <TimeWidget />;
-        case 'quote': return <DailyMotivation compact={true} />;
-        case 'note': return <NoteWidget />;
-        case 'hamster': return <HamsterWidget />;
-        case 'pressButton': return <PressButtonWidget />;
-        case 'eyeButton': return <EyeButtonWidget />;
-        default: return null;
-    }
+// Get time-based greeting
+function getGreeting(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
 }
+
+// Interface for upcoming interview
+interface UpcomingInterview {
+    id: string;
+    company: string;
+    position: string;
+    date: Date;
+    location?: string;
+}
+
+// Notification icon helper
+const getNotificationIcon = (type: AppNotification['type']) => {
+    switch (type) {
+        case 'task_complete': return CheckCircle2;
+        case 'email_reply':
+        case 'campaign_reply': return Mail;
+        case 'interview_reminder': return Calendar;
+        case 'status_change': return RefreshCw;
+        case 'achievement': return Trophy;
+        case 'card_added': return SquareKanban;
+        default: return Bell;
+    }
+};
+
+const getNotificationColor = (type: AppNotification['type']) => {
+    switch (type) {
+        case 'task_complete': return '#8B5CF6';
+        case 'email_reply': return '#10B981';
+        case 'campaign_reply': return '#06B6D4';
+        case 'interview_reminder': return '#3B82F6';
+        case 'status_change': return '#F59E0B';
+        case 'achievement': return '#EF4444';
+        case 'card_added': return '#6366F1';
+        default: return '#6B7280';
+    }
+};
+
+const formatTimeAgo = (date: Date | { toDate: () => Date } | any): string => {
+    try {
+        const now = new Date();
+        const notificationDate = date?.toDate ? date.toDate() : new Date(date);
+        const diffMs = now.getTime() - notificationDate.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m`;
+        if (diffHours < 24) return `${diffHours}h`;
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays}d`;
+        return notificationDate.toLocaleDateString();
+    } catch {
+        return '';
+    }
+};
 
 export default function HubPageMobile() {
     const { currentUser, userData } = useAuth();
-    const { missions, stats } = useMissions();
+    const { notifications, unreadCount, markAsRead, deleteNotification, markAllAsRead } = useNotifications();
     const navigate = useNavigate();
     const firstName = userData?.name?.split(' ')[0] || 'there';
 
-    const [totalApplications, setTotalApplications] = useState(0);
+    // State
+    const [savedJobs, setSavedJobs] = useState(0);
+    const [upcomingInterview, setUpcomingInterview] = useState<UpcomingInterview | null>(null);
+    const [logoUrl, setLogoUrl] = useState<string>('');
+    const [isDarkMode, setIsDarkMode] = useState(false);
     const [transition, setTransition] = useState({
         isOpen: false,
         color: '',
@@ -112,81 +131,114 @@ export default function HubPageMobile() {
         clickPosition: null as { x: number; y: number } | null
     });
 
-    // Widget state
-    const [widgets, setWidgets] = useState<MobileWidget[]>(DEFAULT_MOBILE_WIDGETS);
-    const [isGalleryOpen, setIsGalleryOpen] = useState(false);
-    const [isEditMode, setIsEditMode] = useState(false);
-
-    // Load saved widget configuration
+    // Load logo
     useEffect(() => {
-        try {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    setWidgets(parsed);
-                }
+        const loadLogo = async () => {
+            try {
+                const storage = getStorage();
+                const savedTheme = loadThemeFromStorage();
+                const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const dark = savedTheme === 'dark' || (savedTheme === 'system' && systemIsDark);
+                setIsDarkMode(dark);
+
+                const logoRef = ref(storage, dark ? 'images/logo-only-dark.png' : 'images/logo-only.png');
+                const url = await getDownloadURL(logoRef);
+                setLogoUrl(url);
+            } catch (error) {
+                console.error('Error loading logo:', error);
             }
-        } catch (e) {
-            console.error('Error loading mobile widget config:', e);
-        }
-    }, []);
-
-    // Save configuration
-    const saveConfig = useCallback((newWidgets: MobileWidget[]) => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(newWidgets));
-        } catch (e) {
-            console.error('Error saving mobile widget config:', e);
-        }
-    }, []);
-
-    // Add widget
-    const addWidget = (type: MobileWidgetType) => {
-        if (widgets.some(w => w.type === type)) return;
-        const newWidget: MobileWidget = {
-            id: `${type}-${Date.now()}`,
-            type,
         };
-        const newWidgets = [...widgets, newWidget];
-        setWidgets(newWidgets);
-        saveConfig(newWidgets);
-        setIsGalleryOpen(false);
-    };
+        loadLogo();
+    }, []);
 
-    // Remove widget
-    const removeWidget = (id: string) => {
-        const newWidgets = widgets.filter(w => w.id !== id);
-        setWidgets(newWidgets);
-        saveConfig(newWidgets);
-    };
-
-    // Get available widgets (not already added)
-    const availableWidgets = MOBILE_WIDGET_CATALOG.filter(
-        catalog => !widgets.some(w => w.type === catalog.type)
-    );
-
-    // Fetch applications count
+    // Fetch saved jobs count
     useEffect(() => {
         if (!currentUser?.uid) return;
-        const applicationsQuery = query(
-            collection(db, `users/${currentUser.uid}/jobApplications`)
+        const q = query(
+            collection(db, `users/${currentUser.uid}/savedJobs`)
         );
-        const unsubscribe = onSnapshot(applicationsQuery, (snapshot) => {
-            setTotalApplications(snapshot.size);
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setSavedJobs(snapshot.size);
         });
         return () => unsubscribe();
     }, [currentUser]);
 
-    // Calculate missions progress
-    const completedMissions = missions.filter(m => m.status === 'completed').length;
-    const totalMissions = missions.length;
+    // Fetch upcoming interview (within 48h)
+    useEffect(() => {
+        if (!currentUser?.uid) return;
+        const now = new Date();
+        const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
 
-    // Get next incomplete mission for Today's Focus
-    const nextMission = missions.find(m => m.status !== 'completed');
+        const q = query(
+            collection(db, `users/${currentUser.uid}/interviews`),
+            where('status', '==', 'scheduled'),
+            where('date', '>=', now),
+            where('date', '<=', in48h),
+            orderBy('date', 'asc'),
+            limit(1)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (!snapshot.empty) {
+                const doc = snapshot.docs[0];
+                const data = doc.data();
+                setUpcomingInterview({
+                    id: doc.id,
+                    company: data.company || 'Interview',
+                    position: data.position || '',
+                    date: data.date?.toDate() || new Date(),
+                    location: data.location
+                });
+            } else {
+                setUpcomingInterview(null);
+            }
+        });
+        return () => unsubscribe();
+    }, [currentUser]);
+
+    // Determine primary focus action
+    const getPrimaryFocus = () => {
+        if (upcomingInterview) {
+            const timeUntil = upcomingInterview.date.getTime() - Date.now();
+            const hoursUntil = Math.floor(timeUntil / (1000 * 60 * 60));
+            return {
+                title: 'Prepare for your interview',
+                subtitle: `${upcomingInterview.company}${upcomingInterview.position ? ` • ${upcomingInterview.position}` : ''}`,
+                time: hoursUntil <= 2 ? 'Starting soon' : `In ${hoursUntil}h`,
+                href: '/mock-interview',
+                color: '#EF4444',
+                cta: 'Practice now',
+                gradient: 'from-red-500/10 to-orange-500/5'
+            };
+        }
+
+        if (savedJobs > 0) {
+            return {
+                title: `Apply to ${Math.min(savedJobs, 3)} saved job${savedJobs > 1 ? 's' : ''}`,
+                subtitle: 'High-match roles waiting for you',
+                time: '~15 min',
+                href: '/jobs',
+                color: '#635BFF',
+                cta: 'Start applying',
+                gradient: 'from-indigo-500/10 to-purple-500/5'
+            };
+        }
+
+        return {
+            title: 'Find your next opportunity',
+            subtitle: 'Discover roles that match your profile',
+            time: '~5 min',
+            href: '/jobs',
+            color: '#635BFF',
+            cta: 'Browse jobs',
+            gradient: 'from-indigo-500/10 to-blue-500/5'
+        };
+    };
+
+    const primaryFocus = getPrimaryFocus();
 
     // Handle navigation with transition
-    const handleNavigate = (e: React.MouseEvent, item: { href: string; color: string }) => {
+    const handleNavigate = (e: React.MouseEvent, href: string, color: string) => {
         e.preventDefault();
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
         const clickPosition = {
@@ -196,18 +248,31 @@ export default function HubPageMobile() {
 
         setTransition({
             isOpen: true,
-            color: item.color,
-            path: item.href,
+            color,
+            path: href,
             clickPosition
         });
 
         setTimeout(() => {
-            navigate(item.href);
+            navigate(href);
         }, 700);
     };
 
+    // Handle notification click
+    const handleNotificationClick = useCallback((notification: AppNotification) => {
+        if (!notification.read) {
+            markAsRead(notification.id);
+        }
+        if (notification.actionUrl) {
+            navigate(notification.actionUrl);
+        }
+    }, [markAsRead, navigate]);
+
+    // Get recent notifications (max 5)
+    const recentNotifications = notifications.slice(0, 5);
+
     return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-[#1a1a1a] dark:to-[#1a1a1a] relative">
+        <div className="min-h-screen bg-[#fafafa] dark:bg-[#0a0a0a] relative">
             {/* Page Transition */}
             <PageTransition
                 {...transition}
@@ -218,184 +283,148 @@ export default function HubPageMobile() {
                 animate={{ opacity: transition.isOpen ? 0 : 1 }}
                 className="flex flex-col min-h-screen"
             >
-                {/* Mobile Top Bar */}
-                <MobileTopBar title="Hub" />
+                {/* Minimal Top Bar - Logo only */}
+                <header className="flex items-center justify-center py-4 px-5">
+                    {logoUrl ? (
+                        <motion.img
+                            src={logoUrl}
+                            alt="Logo"
+                            className="h-7 w-auto"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3 }}
+                        />
+                    ) : (
+                        <div className="h-7 w-7 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-full" />
+                    )}
+                </header>
 
                 {/* Main Content */}
-                <main className="flex-1 overflow-y-auto px-4 pt-4 pb-32">
-                    {/* Header with Greeting + Contextual Info */}
+                <main className="flex-1 px-5 pb-32 overflow-y-auto">
+                    {/* Greeting Section - Large Typography, No Card */}
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mb-6"
+                        className="mt-2 mb-8"
                     >
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                            Hey {firstName} 👋
+                        <h1 className="text-[32px] font-bold leading-tight text-gray-900 dark:text-white tracking-tight">
+                            {getGreeting()},
                         </h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            You have {totalApplications} active application{totalApplications !== 1 ? 's' : ''}
-                        </p>
+                        <h1 className="text-[32px] font-bold leading-tight text-gray-900 dark:text-white tracking-tight">
+                            {firstName}.
+                        </h1>
                     </motion.div>
 
-                    {/* Next Step Card - Premium, Subtle, Human */}
+                    {/* Primary Focus Card - Premium Apple-Style */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="mb-6"
+                        className="mb-10"
                     >
-                        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#2b2a2c] p-5 border border-gray-100 dark:border-[#3d3c3e] shadow-sm">
-                            {/* Subtle accent indicator */}
-                            <div className="absolute top-0 left-0 w-1 h-full bg-[#635BFF] opacity-80" />
+                        <button
+                            onClick={(e) => handleNavigate(e, primaryFocus.href, primaryFocus.color)}
+                            className="w-full text-left group"
+                        >
+                            {/* Card Container */}
+                            <div className={`relative overflow-hidden rounded-[24px] p-6
+                                bg-gradient-to-br ${primaryFocus.gradient}
+                                dark:bg-gradient-to-br dark:from-white/[0.08] dark:to-white/[0.02]
+                                backdrop-blur-xl
+                                border border-white/60 dark:border-white/[0.08]
+                                shadow-[0_8px_40px_-12px_rgba(0,0,0,0.12)]
+                                dark:shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)]
+                                active:scale-[0.98] transition-all duration-300`}
+                            >
+                                {/* Glassmorphism overlay */}
+                                <div className="absolute inset-0 bg-white/40 dark:bg-black/20 backdrop-blur-[2px]" />
 
-                            <div className="relative flex flex-col gap-3">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-[#635BFF]" />
-                                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                            Next step
-                                        </span>
+                                {/* Accent glow */}
+                                <div
+                                    className="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-20 blur-3xl"
+                                    style={{ backgroundColor: primaryFocus.color }}
+                                />
+
+                                {/* Content */}
+                                <div className="relative z-10">
+                                    {/* Top row: Badge + Time */}
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                                                bg-white/80 dark:bg-white/10
+                                                border border-white/60 dark:border-white/10"
+                                        >
+                                            <Sparkles
+                                                className="w-3.5 h-3.5"
+                                                style={{ color: primaryFocus.color }}
+                                            />
+                                            <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                                                Focus
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5">
+                                            <Clock className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                                            <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                                                {primaryFocus.time}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Title */}
+                                    <h2 className="text-[22px] font-bold text-gray-900 dark:text-white leading-tight mb-2 tracking-tight">
+                                        {primaryFocus.title}
+                                    </h2>
+
+                                    {/* Subtitle */}
+                                    <p className="text-[15px] text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+                                        {primaryFocus.subtitle}
+                                    </p>
+
+                                    {/* CTA Button */}
+                                    <div className="flex items-center justify-between">
+                                        <div
+                                            className="flex items-center gap-2 px-5 py-2.5 rounded-full
+                                                transition-all duration-300 group-active:scale-95"
+                                            style={{ backgroundColor: primaryFocus.color }}
+                                        >
+                                            <span className="text-[14px] font-semibold text-white">
+                                                {primaryFocus.cta}
+                                            </span>
+                                            <ChevronRight className="w-4 h-4 text-white/80 group-active:translate-x-0.5 transition-transform" />
+                                        </div>
                                     </div>
                                 </div>
-
-                                <div>
-                                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white leading-tight mb-1">
-                                        {nextMission ? nextMission.title : 'Apply to a role you saved'}
-                                    </h2>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        {nextMission ? nextMission.description : '2 roles waiting for you'}
-                                    </p>
-                                </div>
-
-                                <div className="flex justify-end mt-1">
-                                    <button
-                                        onClick={(e) => handleNavigate(e, { href: '/jobs', color: '#635BFF' })}
-                                        className="flex items-center gap-1.5 text-sm font-medium text-[#635BFF] hover:text-[#534bc9] active:opacity-70 transition-colors"
-                                    >
-                                        Start
-                                        <ChevronRight className="w-4 h-4" />
-                                    </button>
-                                </div>
                             </div>
-                        </div>
+                        </button>
                     </motion.div>
 
-                    {/* Missions Section - Compact */}
+                    {/* Quick Actions - Horizontal Scroll, No Card Backgrounds */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.15 }}
-                        className="mb-6"
+                        className="mb-10"
                     >
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <Target className="w-4 h-4 text-[#635BFF]" />
-                                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                                    Daily Missions
-                                </h3>
-                            </div>
-                            {stats && stats.currentStreak > 0 && (
-                                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-orange-100 dark:bg-orange-500/20">
-                                    <Flame className="w-3.5 h-3.5 text-orange-500" />
-                                    <span className="text-xs font-bold text-orange-600 dark:text-orange-400">
-                                        {stats.currentStreak}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] overflow-hidden">
-                            {missions.length === 0 ? (
-                                <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                                    No missions today
-                                </div>
-                            ) : (
-                                <>
-                                    {missions.slice(0, 3).map((mission, index) => {
-                                        const isComplete = mission.status === 'completed';
-                                        const progress = Math.min((mission.current / mission.target) * 100, 100);
-
-                                        return (
-                                            <div
-                                                key={mission.id}
-                                                className={`flex items-center gap-3 p-3.5 ${index < Math.min(missions.length - 1, 2) ? 'border-b border-gray-100 dark:border-[#3d3c3e]' : ''
-                                                    }`}
-                                            >
-                                                {/* Status Icon */}
-                                                {isComplete ? (
-                                                    <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
-                                                ) : (
-                                                    <Circle className="w-5 h-5 text-gray-300 dark:text-gray-600 flex-shrink-0" />
-                                                )}
-
-                                                {/* Mission Info */}
-                                                <div className="flex-1 min-w-0">
-                                                    <div className={`text-sm font-medium ${isComplete
-                                                        ? 'text-gray-400 dark:text-gray-500 line-through'
-                                                        : 'text-gray-900 dark:text-white'
-                                                        }`}>
-                                                        {mission.title}
-                                                    </div>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <div className="flex-1 h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                                                            <motion.div
-                                                                className={`h-full rounded-full ${isComplete ? 'bg-green-500' : 'bg-[#635BFF]'}`}
-                                                                initial={{ width: 0 }}
-                                                                animate={{ width: `${progress}%` }}
-                                                                transition={{ duration: 0.5, delay: index * 0.1 }}
-                                                            />
-                                                        </div>
-                                                        <span className="text-[10px] font-semibold text-gray-400 tabular-nums">
-                                                            {mission.current}/{mission.target}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-
-                                    {/* Progress Summary */}
-                                    <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-[#242325]">
-                                        <span className="text-xs text-gray-500 dark:text-gray-400">Progress</span>
-                                        <span className="text-xs font-bold text-[#635BFF]">
-                                            {completedMissions}/{totalMissions} complete
-                                        </span>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </motion.div>
-
-                    {/* Quick Actions */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="mb-6"
-                    >
-                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                            Quick Actions
-                        </h3>
-
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="flex gap-6 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">
                             {QUICK_ACTIONS.map((action, index) => (
                                 <motion.button
                                     key={action.id}
-                                    onClick={(e) => handleNavigate(e, action)}
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: 0.25 + index * 0.05 }}
-                                    className="flex flex-col items-center gap-2.5 p-4 rounded-2xl bg-white dark:bg-[#2b2a2c]
-                    border border-gray-100 dark:border-[#3d3c3e]
-                    active:scale-[0.97] transition-transform"
+                                    onClick={(e) => handleNavigate(e, action.href, action.color)}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.2 + index * 0.03 }}
+                                    className="flex flex-col items-center gap-2 flex-shrink-0 active:opacity-60 transition-opacity"
                                 >
                                     <div
-                                        className="w-12 h-12 rounded-xl flex items-center justify-center"
-                                        style={{ backgroundColor: `${action.color}15` }}
+                                        className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                                        style={{ backgroundColor: `${action.color}12` }}
                                     >
-                                        <action.icon className="w-6 h-6" style={{ color: action.color }} />
+                                        <action.icon
+                                            className="w-6 h-6"
+                                            style={{ color: action.color }}
+                                        />
                                     </div>
-                                    <span className="text-xs font-medium text-gray-700 dark:text-gray-200">
+                                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
                                         {action.name}
                                     </span>
                                 </motion.button>
@@ -403,176 +432,173 @@ export default function HubPageMobile() {
                         </div>
                     </motion.div>
 
-                    {/* Widgets Section - Enhanced */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.25 }}
-                        className="mb-4"
-                    >
-                        <div className="flex items-center justify-between mb-3">
-                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                                Widgets
-                            </h3>
-                            <div className="flex items-center gap-2">
-                                {isEditMode && widgets.length > 0 && (
-                                    <motion.button
-                                        initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.8 }}
-                                        onClick={() => setIsEditMode(false)}
-                                        className="flex items-center justify-center w-7 h-7 rounded-full bg-[#635BFF] text-white"
-                                    >
-                                        <CheckCircle2 className="w-4 h-4" />
-                                    </motion.button>
-                                )}
-                                {!isEditMode && widgets.length > 0 && (
+                    {/* Notifications Section */}
+                    {recentNotifications.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.25 }}
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                                        Activity
+                                    </h3>
+                                    {unreadCount > 0 && (
+                                        <span className="px-2 py-0.5 rounded-full bg-[#635BFF]/10 dark:bg-[#635BFF]/20 
+                                            text-[10px] font-bold text-[#635BFF] dark:text-[#a5a0ff]">
+                                            {unreadCount} new
+                                        </span>
+                                    )}
+                                </div>
+                                {unreadCount > 0 && (
                                     <button
-                                        onClick={() => setIsEditMode(true)}
-                                        className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                                        onClick={markAllAsRead}
+                                        className="text-xs font-medium text-gray-400 dark:text-gray-500 
+                                            active:text-[#635BFF] transition-colors"
                                     >
-                                        <Settings2 className="w-4 h-4" />
+                                        Mark all read
                                     </button>
                                 )}
-                                <button
-                                    onClick={() => setIsGalleryOpen(true)}
-                                    className="flex items-center justify-center w-7 h-7 rounded-full bg-[#635BFF]/10 text-[#635BFF]"
-                                >
-                                    <Plus className="w-4 h-4" strokeWidth={2.5} />
-                                </button>
                             </div>
-                        </div>
 
-                        {/* Widget Carousel */}
-                        {widgets.length === 0 ? (
-                            <button
-                                onClick={() => setIsGalleryOpen(true)}
-                                className="w-full py-8 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700
-                  flex flex-col items-center justify-center gap-2 text-gray-400 dark:text-gray-500
-                  active:bg-gray-50 dark:active:bg-gray-800/50 transition-colors"
-                            >
-                                <Plus className="w-6 h-6" />
-                                <span className="text-sm font-medium">Add widgets</span>
-                            </button>
-                        ) : (
-                            <div className="flex gap-3 overflow-x-auto py-4 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory">
-                                {widgets.map((widget) => (
-                                    <div
-                                        key={widget.id}
-                                        className="snap-start flex-shrink-0 w-[160px] h-[160px] relative"
-                                    >
-                                        {/* Remove button in edit mode */}
-                                        <AnimatePresence>
-                                            {isEditMode && (
-                                                <motion.button
-                                                    initial={{ opacity: 0, scale: 0.8 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    exit={{ opacity: 0, scale: 0.8 }}
-                                                    onClick={() => removeWidget(widget.id)}
-                                                    className="absolute -top-2 -right-2 z-10 w-6 h-6 rounded-full bg-red-500 text-white
-                            flex items-center justify-center shadow-lg"
+                            {/* Notification List */}
+                            <div className="space-y-2">
+                                <AnimatePresence mode="popLayout">
+                                    {recentNotifications.map((notification, index) => {
+                                        const Icon = getNotificationIcon(notification.type);
+                                        const color = getNotificationColor(notification.type);
+
+                                        return (
+                                            <motion.div
+                                                key={notification.id}
+                                                layout
+                                                initial={{ opacity: 0, x: -10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: -50 }}
+                                                transition={{ delay: index * 0.03 }}
+                                                onClick={() => handleNotificationClick(notification)}
+                                                className={`group relative flex items-start gap-3 p-4 rounded-2xl cursor-pointer
+                                                    ${notification.read
+                                                        ? 'bg-gray-50 dark:bg-white/[0.03]'
+                                                        : 'bg-white dark:bg-white/[0.06] shadow-sm border border-gray-100 dark:border-white/[0.06]'
+                                                    }
+                                                    active:scale-[0.98] transition-all duration-200`}
+                                            >
+                                                {/* Icon */}
+                                                <div
+                                                    className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+                                                    style={{ backgroundColor: `${color}15` }}
                                                 >
-                                                    <X className="w-3.5 h-3.5" />
-                                                </motion.button>
-                                            )}
-                                        </AnimatePresence>
-                                        <div className={`w-full h-full ${isEditMode ? 'pointer-events-none' : ''}`}>
-                                            <WidgetContent type={widget.type} />
-                                        </div>
-                                    </div>
-                                ))}
+                                                    <Icon className="w-5 h-5" style={{ color }} />
+                                                </div>
+
+                                                {/* Content */}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <h4 className={`text-[13px] font-semibold leading-tight ${notification.read
+                                                            ? 'text-gray-600 dark:text-gray-400'
+                                                            : 'text-gray-900 dark:text-white'
+                                                            }`}>
+                                                            {notification.title}
+                                                        </h4>
+                                                        <span className="flex-shrink-0 text-[11px] text-gray-400 dark:text-gray-500">
+                                                            {formatTimeAgo(notification.createdAt)}
+                                                        </span>
+                                                    </div>
+                                                    <p className={`mt-0.5 text-[12px] leading-relaxed line-clamp-2 ${notification.read
+                                                        ? 'text-gray-400 dark:text-gray-500'
+                                                        : 'text-gray-500 dark:text-gray-400'
+                                                        }`}>
+                                                        {notification.message}
+                                                    </p>
+                                                </div>
+
+                                                {/* Unread indicator */}
+                                                {!notification.read && (
+                                                    <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-[#635BFF]" />
+                                                )}
+
+                                                {/* Swipe to delete indicator (visual only) */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        deleteNotification(notification.id);
+                                                    }}
+                                                    className="absolute top-2 right-2 p-1.5 rounded-full opacity-0 group-active:opacity-100
+                                                        bg-gray-100 dark:bg-white/10 transition-opacity"
+                                                >
+                                                    <X className="w-3 h-3 text-gray-400" />
+                                                </button>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </AnimatePresence>
                             </div>
-                        )}
-                    </motion.div>
+                        </motion.div>
+                    )}
+
+                    {/* Optional Widget - Upcoming Interview (only if within 48h and not already in focus) */}
+                    {upcomingInterview && !getPrimaryFocus().title.includes('interview') && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="mt-8"
+                        >
+                            <button
+                                onClick={(e) => handleNavigate(e, '/upcoming-interviews', '#3B82F6')}
+                                className="w-full text-left active:scale-[0.98] transition-transform duration-200"
+                            >
+                                <div className="rounded-2xl bg-white dark:bg-[#1a1a1a] p-5 
+                                    border border-gray-100 dark:border-gray-800/50"
+                                >
+                                    <div className="flex items-start gap-4">
+                                        {/* Icon */}
+                                        <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-500/10 
+                                            flex items-center justify-center flex-shrink-0"
+                                        >
+                                            <Calendar className="w-5 h-5 text-blue-500" />
+                                        </div>
+
+                                        {/* Content */}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-medium text-blue-500 uppercase tracking-wide mb-1">
+                                                Upcoming Interview
+                                            </p>
+                                            <h3 className="text-base font-semibold text-gray-900 dark:text-white truncate">
+                                                {upcomingInterview.company}
+                                            </h3>
+                                            <div className="flex items-center gap-3 mt-1.5">
+                                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                                    {upcomingInterview.date.toLocaleTimeString('en-US', {
+                                                        hour: 'numeric',
+                                                        minute: '2-digit',
+                                                        hour12: true
+                                                    })}
+                                                </span>
+                                                {upcomingInterview.location && (
+                                                    <span className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                                                        <MapPin className="w-3 h-3" />
+                                                        {upcomingInterview.location}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Arrow */}
+                                        <ChevronRight className="w-5 h-5 text-gray-300 dark:text-gray-600 flex-shrink-0 mt-1" />
+                                    </div>
+                                </div>
+                            </button>
+                        </motion.div>
+                    )}
                 </main>
             </motion.div>
 
             {/* Mobile Bottom Navigation */}
             <MobileNavigation />
-
-            {/* Widget Gallery Sheet */}
-            <AnimatePresence>
-                {isGalleryOpen && (
-                    <>
-                        {/* Backdrop */}
-                        <motion.div
-                            className="fixed inset-0 bg-black/50 z-50"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setIsGalleryOpen(false)}
-                        />
-
-                        {/* Sheet */}
-                        <motion.div
-                            className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#1a1a1a] rounded-t-3xl overflow-hidden"
-                            initial={{ y: '100%' }}
-                            animate={{ y: 0 }}
-                            exit={{ y: '100%' }}
-                            transition={{ type: 'spring', stiffness: 400, damping: 40 }}
-                            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-                        >
-                            {/* Handle */}
-                            <div className="flex justify-center py-3">
-                                <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
-                            </div>
-
-                            {/* Header */}
-                            <div className="flex items-center justify-between px-5 pb-4">
-                                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                                    Add Widget
-                                </h2>
-                                <button
-                                    onClick={() => setIsGalleryOpen(false)}
-                                    className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center"
-                                >
-                                    <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                                </button>
-                            </div>
-
-                            {/* Widget Grid */}
-                            <div className="px-5 pb-8 max-h-[60vh] overflow-y-auto">
-                                {availableWidgets.length === 0 ? (
-                                    <div className="py-8 text-center text-gray-400 dark:text-gray-500">
-                                        <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                                        <p className="text-sm font-medium">All widgets added!</p>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {availableWidgets.map((widget) => {
-                                            const Icon = widget.icon;
-                                            return (
-                                                <button
-                                                    key={widget.type}
-                                                    onClick={() => addWidget(widget.type)}
-                                                    className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gray-50 dark:bg-[#2b2a2c]
-                            border border-gray-100 dark:border-[#3d3c3e]
-                            active:scale-[0.97] transition-transform"
-                                                >
-                                                    <div
-                                                        className="w-12 h-12 rounded-xl flex items-center justify-center"
-                                                        style={{ backgroundColor: `${widget.color}20` }}
-                                                    >
-                                                        <Icon className="w-6 h-6" style={{ color: widget.color }} />
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                                            {widget.name}
-                                                        </div>
-                                                        <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                                                            {widget.description}
-                                                        </div>
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
         </div>
     );
 }
