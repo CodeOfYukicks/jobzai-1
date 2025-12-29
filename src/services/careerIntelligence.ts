@@ -653,8 +653,12 @@ CRITICAL RULES:
 1. Reference specific numbers: ${totalApps} applications, ${responseRate}% response rate, ${avgMatchScore}% match
 2. ONLY recommend actions using: Resume Lab, Job Board, Campaigns, Mock Interview, CV Analysis, Application Tracking
 3. Be decisive. No "consider" or "might want to"
-4. Keep summaries to 1-2 sentences max
-5. Return ONLY valid JSON, no markdown`;
+4. Keep summaries to 1-2 sentences max — MAXIMUM 15 WORDS per headline
+5. Return ONLY valid JSON, no markdown
+6. NEVER use generic phrases like: "improve your CV", "network more", "be confident", "stay positive"
+7. ALWAYS reference user-specific data (years experience, response rate, match score, skills)
+8. The "summary" in nextMove must be punchy and opinionated, like: "Your profile is strong, but your targeting is off."
+9. Leverage/Risk/Opportunity descriptions must be SHORT (max 12 words each)`;
 
   try {
     const response = await axios.post('/api/chatgpt', {

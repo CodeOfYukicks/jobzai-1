@@ -8,6 +8,10 @@ import { Sparkles, RefreshCw, Image, Camera, X, Loader2 } from 'lucide-react';
 import HeroInsightCard from '../components/career-intelligence/HeroInsightCard';
 import ActionPlanCard from '../components/career-intelligence/ActionPlanCard';
 import DeepDiveSection from '../components/career-intelligence/DeepDiveSection';
+import MobileInsightHeader from '../components/career-intelligence/MobileInsightHeader';
+import InsightCarousel from '../components/career-intelligence/InsightCarousel';
+import MobileActionPlan from '../components/career-intelligence/MobileActionPlan';
+import ExploreFurtherList from '../components/career-intelligence/ExploreFurtherList';
 import { generateCareerInsights, CareerInsightsData } from '../services/careerIntelligence';
 import { notify } from '../lib/notify';
 import { getDoc, doc, updateDoc } from 'firebase/firestore';
@@ -17,9 +21,22 @@ import MobileTopBar from '../components/mobile/MobileTopBar';
 import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
 import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
 
+// Hook for responsive detection
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  return isMobile;
+}
+
 export default function CareerIntelligencePage() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const [userData, setUserData] = useState<CompleteUserData | null>(null);
   const [insights, setInsights] = useState<CareerInsightsData | null>(null);
@@ -616,34 +633,80 @@ export default function CareerIntelligencePage() {
 
           {/* Insights Content */}
           {insights && (
-            <div className="space-y-4">
-              {/* 1. Hero Insight - Strategic Diagnosis */}
-              {heroData && (
-                <HeroInsightCard
-                  headline={heroData.headline}
-                  leverage={heroData.leverage}
-                  risk={heroData.risk}
-                  opportunity={heroData.opportunity}
-                  estimatedTimeToOutcome={heroData.estimatedTimeToOutcome}
-                  confidenceScore={heroData.confidenceScore}
-                  isLoading={isGenerating}
-                />
-              )}
+            <>
+              {/* Mobile Layout */}
+              {isMobile ? (
+                <div className="-mx-4 sm:-mx-6">
+                  {/* Mobile Sticky Header */}
+                  {heroData && (
+                    <MobileInsightHeader
+                      headline={heroData.headline}
+                      confidenceLevel={
+                        (heroData.confidenceScore || 0) >= 70 ? 'high' :
+                          (heroData.confidenceScore || 0) >= 50 ? 'moderate' : 'monitor'
+                      }
+                      isLoading={isGenerating}
+                    />
+                  )}
 
-              {/* 2. Action Plan */}
-              {actionPlanData && actionPlanData.actions.length > 0 && (
-                <ActionPlanCard
-                  introText={actionPlanData.introText}
-                  actions={actionPlanData.actions}
-                  isLoading={isGenerating}
-                />
-              )}
+                  {/* Swipeable Insight Cards */}
+                  {heroData && (
+                    <InsightCarousel
+                      leverage={{ headline: heroData.leverage }}
+                      risk={{ headline: heroData.risk }}
+                      opportunity={{ headline: heroData.opportunity }}
+                      isLoading={isGenerating}
+                    />
+                  )}
 
-              {/* 3. Deep Dives - Optional Exploration */}
-              {deepDiveItems.length > 0 && (
-                <DeepDiveSection items={deepDiveItems} />
+                  {/* Mobile Action Plan */}
+                  {actionPlanData && actionPlanData.actions.length > 0 && (
+                    <MobileActionPlan
+                      actions={actionPlanData.actions}
+                      isLoading={isGenerating}
+                    />
+                  )}
+
+                  {/* Explore Further */}
+                  <ExploreFurtherList
+                    items={[
+                      { title: 'Launch outreach campaign', preview: 'Target hiring managers', path: '/campaigns-auto' },
+                      { title: 'Practice with Mock Interview', preview: `Readiness: ${insights.interviewReadiness?.readinessScore || '--'}%`, path: '/mock-interview' }
+                    ]}
+                  />
+                </div>
+              ) : (
+                /* Desktop Layout — Original */
+                <div className="space-y-4">
+                  {/* 1. Hero Insight - Strategic Diagnosis */}
+                  {heroData && (
+                    <HeroInsightCard
+                      headline={heroData.headline}
+                      leverage={heroData.leverage}
+                      risk={heroData.risk}
+                      opportunity={heroData.opportunity}
+                      estimatedTimeToOutcome={heroData.estimatedTimeToOutcome}
+                      confidenceScore={heroData.confidenceScore}
+                      isLoading={isGenerating}
+                    />
+                  )}
+
+                  {/* 2. Action Plan */}
+                  {actionPlanData && actionPlanData.actions.length > 0 && (
+                    <ActionPlanCard
+                      introText={actionPlanData.introText}
+                      actions={actionPlanData.actions}
+                      isLoading={isGenerating}
+                    />
+                  )}
+
+                  {/* 3. Deep Dives - Optional Exploration */}
+                  {deepDiveItems.length > 0 && (
+                    <DeepDiveSection items={deepDiveItems} />
+                  )}
+                </div>
               )}
-            </div>
+            </>
           )}
 
           {/* Empty State */}
