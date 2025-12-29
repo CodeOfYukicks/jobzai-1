@@ -1516,7 +1516,7 @@ export default function CampaignsAutoPage() {
                 <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
               </div>
             ) : (
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-[#242325]/50 dark:via-[#2b2a2c]/30 dark:to-purple-900/20 border-b border-white/20 dark:border-[#3d3c3e]/20 pointer-events-none">
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-[#242325]/50 dark:via-[#2b2a2c]/30 dark:to-purple-900/20 pointer-events-none">
                 <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]"
                   style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }}
                 />
@@ -2836,7 +2836,7 @@ export default function CampaignsAutoPage() {
 
           {/* Empty State - Only show when NO campaigns AND NO recipients exist */}
           {campaigns.length === 0 && recipients.length === 0 && !isLoadingRecipients && (
-            <div className="flex-1 flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-[#2b2a2c] border-y border-gray-200 dark:border-[#3d3c3e]">
+            <div className="flex-1 flex flex-col items-center justify-center py-16 px-4">
               <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center mb-4">
                 <Mail className="w-8 h-8 text-gray-400 dark:text-gray-500" />
               </div>
