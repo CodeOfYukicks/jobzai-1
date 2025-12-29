@@ -1038,19 +1038,22 @@ export default function CampaignsAutoPage() {
     try {
       setIsAddingToBoard(true);
 
-      // Check if this contact already exists in user's applications
       const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
-      const q = query(
-        applicationsRef,
-        where('contactEmail', '==', recipient.email),
-        where('companyName', '==', recipient.company)
-      );
-      const existingApplications = await getDocs(q);
 
-      if (!existingApplications.empty) {
-        notify.warning('Contact already in board');
-        setIsAddingToBoard(false);
-        return;
+      // Only check for duplicates if we have both email and company to compare
+      if (recipient.email && recipient.company) {
+        const q = query(
+          applicationsRef,
+          where('contactEmail', '==', recipient.email),
+          where('companyName', '==', recipient.company)
+        );
+        const existingApplications = await getDocs(q);
+
+        if (!existingApplications.empty) {
+          notify.warning('Contact already in board');
+          setIsAddingToBoard(false);
+          return;
+        }
       }
 
       // Build conversation history from campaign data
