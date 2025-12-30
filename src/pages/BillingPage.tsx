@@ -477,575 +477,577 @@ export default function BillingPage() {
 
   return (
     <AuthLayout>
-      <div className="px-4 sm:px-0 py-6 sm:py-8 space-y-8 sm:space-y-10">
-        {/* Current Plan Summary - Minimal card */}
-        <div className="flex flex-col gap-4 sm:gap-6 pb-6 sm:pb-8 border-b border-gray-200 dark:border-[#3d3c3e]">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] flex items-center justify-center text-gray-700 dark:text-gray-300">
-                {currentPlan.icon}
+      <div className="h-full overflow-y-auto">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 sm:space-y-10">
+          {/* Current Plan Summary - Minimal card */}
+          <div className="flex flex-col gap-4 sm:gap-6 pb-6 sm:pb-8 border-b border-gray-200 dark:border-[#3d3c3e]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] flex items-center justify-center text-gray-700 dark:text-gray-300">
+                  {currentPlan.icon}
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{currentPlan.name} Cubber</h1>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Current plan</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{currentPlan.name} Cubber</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Current plan</p>
+
+              <div className="flex items-center gap-4 sm:gap-8 w-full sm:w-auto justify-between sm:justify-end">
+                {currentPlan.id !== 'free' && currentUser?.stripeCustomerId && (
+                  <button
+                    onClick={handleManageSubscription}
+                    disabled={isManagingSubscription}
+                    className="text-sm font-medium text-[#635bff] hover:text-[#635bff]/80 disabled:opacity-50 transition-colors"
+                  >
+                    {isManagingSubscription ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Redirecting...
+                      </span>
+                    ) : (
+                      'Manage Subscription'
+                    )}
+                  </button>
+                )}
+
+                <div className="text-left sm:text-right">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Credits</div>
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{userPlanData?.credits || 0}</div>
+                </div>
+                <div className="h-8 sm:h-10 w-px bg-gray-200 dark:bg-[#3d3c3e]"></div>
+                <div className="text-right">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Monthly</div>
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">€{currentPlan.price.monthly}</div>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 sm:gap-8 w-full sm:w-auto justify-between sm:justify-end">
-              {currentPlan.id !== 'free' && currentUser?.stripeCustomerId && (
-                <button
-                  onClick={handleManageSubscription}
-                  disabled={isManagingSubscription}
-                  className="text-sm font-medium text-[#635bff] hover:text-[#635bff]/80 disabled:opacity-50 transition-colors"
-                >
-                  {isManagingSubscription ? (
-                    <span className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Redirecting...
-                    </span>
-                  ) : (
-                    'Manage Subscription'
-                  )}
-                </button>
-              )}
+            {currentPlan.id !== 'free' && (
+              <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-4 w-4" />
+                  <span>Next billing: {nextBillingDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                </div>
+              </div>
+            )}
+          </div>
 
-              <div className="text-left sm:text-right">
-                <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Credits</div>
-                <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{userPlanData?.credits || 0}</div>
+          {/* Stats Grid - Minimal cards */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+            <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-4 sm:p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Activity className="h-4 w-4 text-gray-500" />
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Usage</span>
               </div>
-              <div className="h-8 sm:h-10 w-px bg-gray-200 dark:bg-[#3d3c3e]"></div>
-              <div className="text-right">
-                <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Monthly</div>
-                <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">€{currentPlan.price.monthly}</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{usageStats.usagePercentage.toFixed(0)}%</div>
+              <div className="w-full bg-gray-200 dark:bg-[#3d3c3e] rounded-full h-1.5 mt-3">
+                <div
+                  className="bg-[#635bff] h-1.5 rounded-full transition-all duration-500"
+                  style={{ width: `${usageStats.usagePercentage}%` }}
+                />
               </div>
+            </div>
+
+            <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-4 sm:p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="h-4 w-4 text-gray-500" />
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Used</span>
+              </div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.creditsUsed}</div>
+              <div className="text-sm text-gray-500 mt-1">this month</div>
+            </div>
+
+            <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Target className="h-4 w-4 text-gray-500" />
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Remaining</span>
+              </div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.creditsRemaining}</div>
+              <div className="text-sm text-gray-500 mt-1">available</div>
+            </div>
+
+            <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingUp className="h-4 w-4 text-gray-500" />
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Daily Avg</span>
+              </div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.averagePerDay}</div>
+              <div className="text-sm text-gray-500 mt-1">per day</div>
             </div>
           </div>
 
-          {currentPlan.id !== 'free' && (
-            <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="h-4 w-4" />
-                <span>Next billing: {nextBillingDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+          {/* Enhanced Credit Usage Chart */}
+          {creditUsage.length > 0 && (
+            <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Credit Activity</h2>
+                  <p className="text-sm text-gray-500">Balance & transactions over time</p>
+                </div>
+                {/* Legend */}
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                    <span className="text-gray-500 dark:text-gray-400">Purchased</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-rose-500"></div>
+                    <span className="text-gray-500 dark:text-gray-400">Spent</span>
+                  </div>
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <ComposedChart data={creditUsage} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                  <defs>
+                    <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#635bff" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#635bff" stopOpacity={0.02} />
+                    </linearGradient>
+                    {/* Glow effect for line */}
+                    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                      <feMerge>
+                        <feMergeNode in="coloredBlur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#374151"
+                    opacity={0.15}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fill: '#6B7280', fontSize: 11 }}
+                    axisLine={{ stroke: '#374151', strokeOpacity: 0.3 }}
+                    tickLine={false}
+                    dy={8}
+                  />
+                  <YAxis
+                    tick={{ fill: '#6B7280', fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    dx={-8}
+                    domain={['dataMin - 5', 'dataMax + 10']}
+                  />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        const isSpent = data.type === 'spent';
+                        return (
+                          <div className="bg-gray-900 border border-gray-700 rounded-xl p-3 shadow-xl min-w-[180px]">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className={`w-2 h-2 rounded-full ${isSpent ? 'bg-rose-500' : 'bg-emerald-500'}`}></div>
+                              <span className="text-white font-semibold text-sm">{data.reasonLabel}</span>
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-gray-400">Date:</span>
+                                <span className="text-white font-medium">{data.date} • {data.time}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-400">{isSpent ? 'Spent:' : 'Added:'}</span>
+                                <span className={`font-bold ${isSpent ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                  {isSpent ? '-' : '+'}{data.credits} credits
+                                </span>
+                              </div>
+                              <div className="flex justify-between pt-1 border-t border-gray-700 mt-1">
+                                <span className="text-gray-400">Balance:</span>
+                                <span className="text-white font-bold">{data.balance} credits</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  {/* Balance Line */}
+                  <Line
+                    type="monotone"
+                    dataKey="balance"
+                    stroke="#635bff"
+                    strokeWidth={2.5}
+                    dot={false}
+                    activeDot={false}
+                    filter="url(#glow)"
+                  />
+                  {/* Transaction Points */}
+                  <Scatter
+                    dataKey="balance"
+                    shape={(props: any) => {
+                      const { cx, cy, payload } = props;
+                      const isSpent = payload.type === 'spent';
+                      const color = isSpent ? '#f43f5e' : '#10b981';
+                      const glowColor = isSpent ? 'rgba(244, 63, 94, 0.4)' : 'rgba(16, 185, 129, 0.4)';
+
+                      return (
+                        <g>
+                          {/* Outer glow */}
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={12}
+                            fill={glowColor}
+                            className="animate-pulse"
+                          />
+                          {/* Main dot */}
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={6}
+                            fill={color}
+                            stroke="#1f2937"
+                            strokeWidth={2}
+                            style={{ cursor: 'pointer' }}
+                          />
+                          {/* Inner highlight */}
+                          <circle
+                            cx={cx - 1.5}
+                            cy={cy - 1.5}
+                            r={2}
+                            fill="rgba(255,255,255,0.3)"
+                          />
+                        </g>
+                      );
+                    }}
+                  >
+                    {creditUsage.map((_, index) => (
+                      <Cell key={`cell-${index}`} />
+                    ))}
+                  </Scatter>
+                </ComposedChart>
+              </ResponsiveContainer>
+
+              {/* Recent Activity Feed */}
+              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Recent Activity</h3>
+                <div className="space-y-2 max-h-[180px] overflow-y-auto pr-2">
+                  {[...creditUsage].reverse().slice(0, 8).map((entry, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="flex items-center justify-between py-2 px-3 bg-white dark:bg-[#1f1f21] rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm
+                        ${entry.type === 'spent'
+                            ? 'bg-rose-500/10 text-rose-500'
+                            : 'bg-emerald-500/10 text-emerald-500'
+                          }`}
+                        >
+                          {entry.type === 'spent' ? '−' : '+'}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {entry.reasonLabel}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {entry.date} • {entry.time}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={`text-sm font-bold ${entry.type === 'spent' ? 'text-rose-500' : 'text-emerald-500'
+                        }`}>
+                        {entry.type === 'spent' ? '−' : '+'}{entry.credits}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
-        </div>
 
-        {/* Stats Grid - Minimal cards */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-4 sm:p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Activity className="h-4 w-4 text-gray-500" />
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Usage</span>
-            </div>
-            <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{usageStats.usagePercentage.toFixed(0)}%</div>
-            <div className="w-full bg-gray-200 dark:bg-[#3d3c3e] rounded-full h-1.5 mt-3">
-              <div
-                className="bg-[#635bff] h-1.5 rounded-full transition-all duration-500"
-                style={{ width: `${usageStats.usagePercentage}%` }}
-              />
-            </div>
-          </div>
+          {/* Plans Section */}
+          <div>
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight mb-4">
+                Choose your plan
+              </h2>
 
-          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-4 sm:p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="h-4 w-4 text-gray-500" />
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Used</span>
-            </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.creditsUsed}</div>
-            <div className="text-sm text-gray-500 mt-1">this month</div>
-          </div>
-
-          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Target className="h-4 w-4 text-gray-500" />
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Remaining</span>
-            </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.creditsRemaining}</div>
-            <div className="text-sm text-gray-500 mt-1">available</div>
-          </div>
-
-          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="h-4 w-4 text-gray-500" />
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Daily Avg</span>
-            </div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.averagePerDay}</div>
-            <div className="text-sm text-gray-500 mt-1">per day</div>
-          </div>
-        </div>
-
-        {/* Enhanced Credit Usage Chart */}
-        {creditUsage.length > 0 && (
-          <div className="bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Credit Activity</h2>
-                <p className="text-sm text-gray-500">Balance & transactions over time</p>
-              </div>
-              {/* Legend */}
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                  <span className="text-gray-500 dark:text-gray-400">Purchased</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-rose-500"></div>
-                  <span className="text-gray-500 dark:text-gray-400">Spent</span>
-                </div>
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={280}>
-              <ComposedChart data={creditUsage} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <defs>
-                  <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#635bff" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#635bff" stopOpacity={0.02} />
-                  </linearGradient>
-                  {/* Glow effect for line */}
-                  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-                    <feMerge>
-                      <feMergeNode in="coloredBlur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#374151"
-                  opacity={0.15}
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fill: '#6B7280', fontSize: 11 }}
-                  axisLine={{ stroke: '#374151', strokeOpacity: 0.3 }}
-                  tickLine={false}
-                  dy={8}
-                />
-                <YAxis
-                  tick={{ fill: '#6B7280', fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  dx={-8}
-                  domain={['dataMin - 5', 'dataMax + 10']}
-                />
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const data = payload[0].payload;
-                      const isSpent = data.type === 'spent';
-                      return (
-                        <div className="bg-gray-900 border border-gray-700 rounded-xl p-3 shadow-xl min-w-[180px]">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className={`w-2 h-2 rounded-full ${isSpent ? 'bg-rose-500' : 'bg-emerald-500'}`}></div>
-                            <span className="text-white font-semibold text-sm">{data.reasonLabel}</span>
-                          </div>
-                          <div className="space-y-1 text-xs">
-                            <div className="flex justify-between">
-                              <span className="text-gray-400">Date:</span>
-                              <span className="text-white font-medium">{data.date} • {data.time}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-400">{isSpent ? 'Spent:' : 'Added:'}</span>
-                              <span className={`font-bold ${isSpent ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                {isSpent ? '-' : '+'}{data.credits} credits
-                              </span>
-                            </div>
-                            <div className="flex justify-between pt-1 border-t border-gray-700 mt-1">
-                              <span className="text-gray-400">Balance:</span>
-                              <span className="text-white font-bold">{data.balance} credits</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                {/* Balance Line */}
-                <Line
-                  type="monotone"
-                  dataKey="balance"
-                  stroke="#635bff"
-                  strokeWidth={2.5}
-                  dot={false}
-                  activeDot={false}
-                  filter="url(#glow)"
-                />
-                {/* Transaction Points */}
-                <Scatter
-                  dataKey="balance"
-                  shape={(props: any) => {
-                    const { cx, cy, payload } = props;
-                    const isSpent = payload.type === 'spent';
-                    const color = isSpent ? '#f43f5e' : '#10b981';
-                    const glowColor = isSpent ? 'rgba(244, 63, 94, 0.4)' : 'rgba(16, 185, 129, 0.4)';
-
-                    return (
-                      <g>
-                        {/* Outer glow */}
-                        <circle
-                          cx={cx}
-                          cy={cy}
-                          r={12}
-                          fill={glowColor}
-                          className="animate-pulse"
-                        />
-                        {/* Main dot */}
-                        <circle
-                          cx={cx}
-                          cy={cy}
-                          r={6}
-                          fill={color}
-                          stroke="#1f2937"
-                          strokeWidth={2}
-                          style={{ cursor: 'pointer' }}
-                        />
-                        {/* Inner highlight */}
-                        <circle
-                          cx={cx - 1.5}
-                          cy={cy - 1.5}
-                          r={2}
-                          fill="rgba(255,255,255,0.3)"
-                        />
-                      </g>
-                    );
-                  }}
-                >
-                  {creditUsage.map((_, index) => (
-                    <Cell key={`cell-${index}`} />
-                  ))}
-                </Scatter>
-              </ComposedChart>
-            </ResponsiveContainer>
-
-            {/* Recent Activity Feed */}
-            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Recent Activity</h3>
-              <div className="space-y-2 max-h-[180px] overflow-y-auto pr-2">
-                {[...creditUsage].reverse().slice(0, 8).map((entry, idx) => (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="flex items-center justify-between py-2 px-3 bg-white dark:bg-[#1f1f21] rounded-lg"
+              {/* Toggle */}
+              <div className="flex items-center justify-center">
+                <div className="inline-flex items-center bg-gray-100 dark:bg-[#2b2a2c] p-1 rounded-full">
+                  <button
+                    onClick={() => setIsBiMonthly(false)}
+                    className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 ${!isBiMonthly
+                      ? 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                      }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm
-                        ${entry.type === 'spent'
-                          ? 'bg-rose-500/10 text-rose-500'
-                          : 'bg-emerald-500/10 text-emerald-500'
-                        }`}
-                      >
-                        {entry.type === 'spent' ? '−' : '+'}
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {entry.reasonLabel}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {entry.date} • {entry.time}
-                        </div>
-                      </div>
-                    </div>
-                    <div className={`text-sm font-bold ${entry.type === 'spent' ? 'text-rose-500' : 'text-emerald-500'
-                      }`}>
-                      {entry.type === 'spent' ? '−' : '+'}{entry.credits}
-                    </div>
-                  </motion.div>
-                ))}
+                    Pay monthly
+                  </button>
+                  <button
+                    onClick={() => setIsBiMonthly(true)}
+                    className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 flex items-center gap-2 ${isBiMonthly
+                      ? 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                      }`}
+                  >
+                    <span>Pay every 2 months</span>
+                    <span className="text-[#635bff] font-medium">save ~10%</span>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Plans Section */}
-        <div>
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight mb-4">
-              Choose your plan
-            </h2>
+            {/* Pricing Cards - Notion style */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {plans.map((plan, index) => {
+                const isCurrentPlan = plan.id === userPlanData?.plan;
 
-            {/* Toggle */}
-            <div className="flex items-center justify-center">
-              <div className="inline-flex items-center bg-gray-100 dark:bg-[#2b2a2c] p-1 rounded-full">
-                <button
-                  onClick={() => setIsBiMonthly(false)}
-                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 ${!isBiMonthly
-                    ? 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
-                    }`}
-                >
-                  Pay monthly
-                </button>
-                <button
-                  onClick={() => setIsBiMonthly(true)}
-                  className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 flex items-center gap-2 ${isBiMonthly
-                    ? 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
-                    }`}
-                >
-                  <span>Pay every 2 months</span>
-                  <span className="text-[#635bff] font-medium">save ~10%</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Pricing Cards - Notion style */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {plans.map((plan, index) => {
-              const isCurrentPlan = plan.id === userPlanData?.plan;
-
-              return (
-                <motion.div
-                  key={plan.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * index }}
-                  className={`
+                return (
+                  <motion.div
+                    key={plan.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 * index }}
+                    className={`
                     bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-6 relative transition-all duration-300
                     ${isCurrentPlan
-                      ? 'ring-2 ring-[#635bff]'
-                      : 'hover:bg-gray-100 dark:hover:bg-gray-750'
-                    }
+                        ? 'ring-2 ring-[#635bff]'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-750'
+                      }
                   `}
-                  style={{ display: 'grid', gridTemplateRows: 'auto auto auto 1fr auto' }}
-                >
-                  {plan.popular && !isCurrentPlan && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="px-4 py-1.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[11px] font-bold rounded-full uppercase tracking-wider">
-                        Most Popular
-                      </span>
-                    </div>
-                  )}
+                    style={{ display: 'grid', gridTemplateRows: 'auto auto auto 1fr auto' }}
+                  >
+                    {plan.popular && !isCurrentPlan && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <span className="px-4 py-1.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[11px] font-bold rounded-full uppercase tracking-wider">
+                          Most Popular
+                        </span>
+                      </div>
+                    )}
 
-                  {isCurrentPlan && (
-                    <div className="absolute top-4 right-4">
-                      <div className="w-6 h-6 rounded-full bg-[#635bff] flex items-center justify-center">
-                        <Check className="w-4 h-4 text-white" />
+                    {isCurrentPlan && (
+                      <div className="absolute top-4 right-4">
+                        <div className="w-6 h-6 rounded-full bg-[#635bff] flex items-center justify-center">
+                          <Check className="w-4 h-4 text-white" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Icon */}
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-white dark:bg-[#3d3c3e] shadow-sm border border-gray-100 dark:border-[#3d3c3e] text-gray-700 dark:text-gray-300">
+                      {plan.icon}
+                    </div>
+
+                    {/* Title + Description */}
+                    <div className="mb-4">
+                      <h3 className="text-xl font-bold mb-1 text-gray-900 dark:text-white">
+                        {plan.name} Cubber
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {plan.description}
+                      </p>
+                    </div>
+
+                    {/* Price + Credits */}
+                    <div className="mb-6">
+                      <div className="flex items-baseline gap-1 mb-2">
+                        <span className="text-4xl font-black text-gray-900 dark:text-white">
+                          €{isBiMonthly ? plan.price.biMonthly : plan.price.monthly}
+                        </span>
+                        <span className="text-sm font-medium text-gray-500">
+                          {plan.price.monthly === 0 ? '/forever' : isBiMonthly ? '/2 months' : '/month'}
+                        </span>
+                      </div>
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-[#635bff]/10 text-[#635bff]">
+                        <CoinIcon className="w-4 h-4" />
+                        <span>{plan.credits}/month</span>
                       </div>
                     </div>
-                  )}
 
-                  {/* Icon */}
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-white dark:bg-[#3d3c3e] shadow-sm border border-gray-100 dark:border-[#3d3c3e] text-gray-700 dark:text-gray-300">
-                    {plan.icon}
-                  </div>
-
-                  {/* Title + Description */}
-                  <div className="mb-4">
-                    <h3 className="text-xl font-bold mb-1 text-gray-900 dark:text-white">
-                      {plan.name} Cubber
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {plan.description}
-                    </p>
-                  </div>
-
-                  {/* Price + Credits */}
-                  <div className="mb-6">
-                    <div className="flex items-baseline gap-1 mb-2">
-                      <span className="text-4xl font-black text-gray-900 dark:text-white">
-                        €{isBiMonthly ? plan.price.biMonthly : plan.price.monthly}
-                      </span>
-                      <span className="text-sm font-medium text-gray-500">
-                        {plan.price.monthly === 0 ? '/forever' : isBiMonthly ? '/2 months' : '/month'}
-                      </span>
+                    {/* Features list */}
+                    <div className="space-y-3 mb-6">
+                      <p className="text-[13px] font-bold text-gray-900 dark:text-white">
+                        {index === 0 ? 'Includes:' : `Everything in ${plans[index - 1].name} +`}
+                      </p>
+                      <ul className="space-y-2">
+                        {plan.features.map((feature) => (
+                          <li key={feature} className="flex items-start gap-2 text-[13px] leading-tight text-gray-600 dark:text-gray-400">
+                            <span className="mt-0.5 flex-shrink-0 text-green-500">
+                              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </span>
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-[#635bff]/10 text-[#635bff]">
-                      <CoinIcon className="w-4 h-4" />
-                      <span>{plan.credits}/month</span>
-                    </div>
-                  </div>
 
-                  {/* Features list */}
-                  <div className="space-y-3 mb-6">
-                    <p className="text-[13px] font-bold text-gray-900 dark:text-white">
-                      {index === 0 ? 'Includes:' : `Everything in ${plans[index - 1].name} +`}
-                    </p>
-                    <ul className="space-y-2">
-                      {plan.features.map((feature) => (
-                        <li key={feature} className="flex items-start gap-2 text-[13px] leading-tight text-gray-600 dark:text-gray-400">
-                          <span className="mt-0.5 flex-shrink-0 text-green-500">
-                            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </span>
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* CTA Button */}
-                  <button
-                    onClick={() => !isCurrentPlan && plan.id !== 'free' && handleUpgrade(plan)}
-                    disabled={isCurrentPlan || (isProcessing && processingPlanId === plan.id)}
-                    className={`
+                    {/* CTA Button */}
+                    <button
+                      onClick={() => !isCurrentPlan && plan.id !== 'free' && handleUpgrade(plan)}
+                      disabled={isCurrentPlan || (isProcessing && processingPlanId === plan.id)}
+                      className={`
                       w-full py-3 rounded-xl text-sm font-bold transition-all
                       ${isCurrentPlan
-                        ? 'bg-white dark:bg-[#3d3c3e] text-gray-500 cursor-default border border-gray-200 dark:border-[#3d3c3e]'
-                        : isProcessing && processingPlanId === plan.id
-                          ? 'bg-[#635bff] text-white opacity-75 cursor-wait'
-                          : plan.popular
-                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
-                            : plan.name === 'Pro'
-                              ? 'bg-[#635bff] text-white hover:brightness-110'
-                              : 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-gray-600'
-                      }
+                          ? 'bg-white dark:bg-[#3d3c3e] text-gray-500 cursor-default border border-gray-200 dark:border-[#3d3c3e]'
+                          : isProcessing && processingPlanId === plan.id
+                            ? 'bg-[#635bff] text-white opacity-75 cursor-wait'
+                            : plan.popular
+                              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
+                              : plan.name === 'Pro'
+                                ? 'bg-[#635bff] text-white hover:brightness-110'
+                                : 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-gray-600'
+                        }
                     `}
-                  >
-                    {isCurrentPlan ? (
-                      'Current Plan'
-                    ) : isProcessing && processingPlanId === plan.id ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Processing...
-                      </span>
-                    ) : (
-                      plan.cta
-                    )}
-                  </button>
-                </motion.div>
-              );
-            })}
+                    >
+                      {isCurrentPlan ? (
+                        'Current Plan'
+                      ) : isProcessing && processingPlanId === plan.id ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Processing...
+                        </span>
+                      ) : (
+                        plan.cta
+                      )}
+                    </button>
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        {/* Credit Packages */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Need More Credits?</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-6">Purchase additional credits anytime. Credits never expire.</p>
+          {/* Credit Packages */}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Need More Credits?</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">Purchase additional credits anytime. Credits never expire.</p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {creditPackages.map((pkg) => (
-              <div
-                key={pkg.id}
-                className={`
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {creditPackages.map((pkg) => (
+                <div
+                  key={pkg.id}
+                  className={`
                   bg-gray-50 dark:bg-[#2b2a2c] rounded-xl p-6 text-center relative transition-all
                   ${pkg.popular ? 'ring-2 ring-[#635bff]' : ''}
                 `}
-              >
-                {pkg.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="px-3 py-1 bg-[#635bff] text-white text-[11px] font-bold rounded-full">
-                      Best Value
-                    </span>
-                  </div>
-                )}
-
-                <div className="text-4xl font-black text-gray-900 dark:text-white mb-1">
-                  {pkg.amount}
-                </div>
-                <div className="text-sm text-gray-500 mb-4">credits</div>
-                <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">€{pkg.price}</div>
-                <div className="text-sm text-gray-500 mb-6">
-                  €{(parseFloat(pkg.price) / pkg.amount * 100).toFixed(2)} per 100
-                </div>
-                <button
-                  onClick={() => handleBuyCredits(pkg)}
-                  disabled={isProcessing && processingPackageId === pkg.id}
-                  className="w-full py-3 rounded-xl text-sm font-bold bg-[#635bff] text-white hover:brightness-110 transition-all flex items-center justify-center gap-2"
                 >
-                  {isProcessing && processingPackageId === pkg.id ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    'Buy Now'
-                  )}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-
-
-        {/* Billing History - Minimal */}
-        <div className="border-t border-gray-200 dark:border-[#3d3c3e] pt-8">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Billing History</h2>
-          <p className="text-sm text-gray-500 mb-6">View and download invoices</p>
-
-          {invoices.length > 0 ? (
-            <div className="space-y-3">
-              {invoices.map((invoice) => (
-                <div
-                  key={invoice.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#2b2a2c] rounded-xl"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-white dark:bg-[#3d3c3e] flex items-center justify-center">
-                      <FileText className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {invoice.planName}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {invoice.invoiceNumber} • {invoice.createdAt.toLocaleDateString('en-US', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {invoice.currency === 'eur' ? '€' : '$'}{invoice.amount.toFixed(2)}
-                      </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${invoice.status === 'paid'
-                        ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                        : invoice.status === 'failed'
-                          ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                          : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400'
-                        }`}>
-                        {invoice.status}
+                  {pkg.popular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="px-3 py-1 bg-[#635bff] text-white text-[11px] font-bold rounded-full">
+                        Best Value
                       </span>
                     </div>
-                    <button
-                      onClick={() => {
-                        generateInvoicePDF(
-                          {
-                            invoiceNumber: invoice.invoiceNumber,
-                            date: invoice.createdAt,
-                            planName: invoice.planName,
-                            amount: invoice.amount,
-                            currency: invoice.currency,
-                            status: invoice.status,
-                          },
-                          currentUser?.email || 'customer@email.com',
-                          userPlanData?.fullName || (userPlanData?.firstName && userPlanData?.lastName
-                            ? `${userPlanData.firstName} ${userPlanData.lastName}`
-                            : userPlanData?.firstName) || currentUser?.displayName || undefined
-                        );
-                        toast.success('Invoice downloaded!');
-                      }}
-                      className="p-2 text-gray-400 hover:text-[#635bff] hover:bg-[#635bff]/10 rounded-lg transition-colors"
-                      title="Download Invoice PDF"
-                    >
-                      <Download className="h-5 w-5" />
-                    </button>
+                  )}
+
+                  <div className="text-4xl font-black text-gray-900 dark:text-white mb-1">
+                    {pkg.amount}
                   </div>
+                  <div className="text-sm text-gray-500 mb-4">credits</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">€{pkg.price}</div>
+                  <div className="text-sm text-gray-500 mb-6">
+                    €{(parseFloat(pkg.price) / pkg.amount * 100).toFixed(2)} per 100
+                  </div>
+                  <button
+                    onClick={() => handleBuyCredits(pkg)}
+                    disabled={isProcessing && processingPackageId === pkg.id}
+                    className="w-full py-3 rounded-xl text-sm font-bold bg-[#635bff] text-white hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                  >
+                    {isProcessing && processingPackageId === pkg.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Buy Now'
+                    )}
+                  </button>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="text-center py-12 bg-gray-50 dark:bg-[#2b2a2c] rounded-xl">
-              <FileText className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-500 dark:text-gray-400">No billing history yet</p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Invoices will appear here after your first payment</p>
-            </div>
-          )}
+          </div>
+
+
+
+          {/* Billing History - Minimal */}
+          <div className="border-t border-gray-200 dark:border-[#3d3c3e] pt-8">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Billing History</h2>
+            <p className="text-sm text-gray-500 mb-6">View and download invoices</p>
+
+            {invoices.length > 0 ? (
+              <div className="space-y-3">
+                {invoices.map((invoice) => (
+                  <div
+                    key={invoice.id}
+                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#2b2a2c] rounded-xl"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-white dark:bg-[#3d3c3e] flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {invoice.planName}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {invoice.invoiceNumber} • {invoice.createdAt.toLocaleDateString('en-US', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {invoice.currency === 'eur' ? '€' : '$'}{invoice.amount.toFixed(2)}
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${invoice.status === 'paid'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                          : invoice.status === 'failed'
+                            ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                            : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400'
+                          }`}>
+                          {invoice.status}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          generateInvoicePDF(
+                            {
+                              invoiceNumber: invoice.invoiceNumber,
+                              date: invoice.createdAt,
+                              planName: invoice.planName,
+                              amount: invoice.amount,
+                              currency: invoice.currency,
+                              status: invoice.status,
+                            },
+                            currentUser?.email || 'customer@email.com',
+                            userPlanData?.fullName || (userPlanData?.firstName && userPlanData?.lastName
+                              ? `${userPlanData.firstName} ${userPlanData.lastName}`
+                              : userPlanData?.firstName) || currentUser?.displayName || undefined
+                          );
+                          toast.success('Invoice downloaded!');
+                        }}
+                        className="p-2 text-gray-400 hover:text-[#635bff] hover:bg-[#635bff]/10 rounded-lg transition-colors"
+                        title="Download Invoice PDF"
+                      >
+                        <Download className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-gray-50 dark:bg-[#2b2a2c] rounded-xl">
+                <FileText className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-500 dark:text-gray-400">No billing history yet</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Invoices will appear here after your first payment</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </AuthLayout >
+    </AuthLayout>
   );
 }
