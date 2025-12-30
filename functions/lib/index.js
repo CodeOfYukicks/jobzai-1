@@ -503,7 +503,7 @@ async function handlePremiumAnalysis(req, res, resumeImages, jobContext, userId,
                 }
             ],
             response_format: { type: 'json_object' },
-            max_tokens: 6000,
+            max_completion_tokens: 6000,
             temperature: 0.2, // Low for consistency
         });
         console.log('✅ Premium analysis received from GPT-4o');
@@ -662,7 +662,7 @@ exports.analyzeCVVision = (0, https_1.onRequest)({
             model: model || 'gpt-4o',
             messages: messages,
             response_format: response_format || { type: 'json_object' },
-            max_tokens: max_tokens || 6000,
+            max_completion_tokens: max_completion_tokens || max_tokens || 6000,
             temperature: 0.1, // Low for consistency
         });
         console.log('✅ GPT-4o Vision API response received');
@@ -819,7 +819,7 @@ exports.analyzeResumePremium = (0, https_1.onRequest)({
                 }
             ],
             response_format: { type: 'json_object' },
-            max_tokens: 6000,
+            max_completion_tokens: 6000,
             temperature: 0.2, // Low for consistency
         });
         console.log('✅ Premium analysis received from GPT-4o');

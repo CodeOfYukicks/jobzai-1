@@ -556,7 +556,7 @@ async function handlePremiumAnalysis(
         }
       ],
       response_format: { type: 'json_object' },
-      max_tokens: 6000,
+      max_completion_tokens: 6000,
       temperature: 0.2, // Low for consistency
     });
 
@@ -747,7 +747,7 @@ export const analyzeCVVision = onRequest({
       model: model || 'gpt-4o',
       messages: messages,
       response_format: response_format || { type: 'json_object' },
-      max_tokens: max_tokens || 6000,
+      max_completion_tokens: max_completion_tokens || max_tokens || 6000,
       temperature: 0.1, // Low for consistency
     });
 
@@ -931,7 +931,7 @@ export const analyzeResumePremium = onRequest(
           }
         ],
         response_format: { type: 'json_object' },
-        max_tokens: 6000,
+        max_completion_tokens: 6000,
         temperature: 0.2, // Low for consistency
       });
 

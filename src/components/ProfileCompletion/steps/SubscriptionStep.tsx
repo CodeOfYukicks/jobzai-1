@@ -119,8 +119,15 @@ export default function SubscriptionStep({ onComplete, onBack, profileData }: Su
                 try {
                     const userRef = doc(db, 'users', currentUser.uid);
 
+                    // Remove undefined values from profileData (Firestore doesn't accept undefined)
+                    const sanitizedProfileData = profileData
+                        ? Object.fromEntries(
+                            Object.entries(profileData).filter(([, v]) => v !== undefined)
+                        )
+                        : {};
+
                     await updateDoc(userRef, {
-                        pendingProfileData: profileData || {},
+                        pendingProfileData: sanitizedProfileData,
                         pendingSubscription: {
                             planId: selectedPlan,
                             planName: selectedPlanData.name,
@@ -134,7 +141,7 @@ export default function SubscriptionStep({ onComplete, onBack, profileData }: Su
                         planName: selectedPlanData.name,
                         credits: selectedPlanData.creditsValue,
                         userId: currentUser.uid,
-                        profileData: profileData || {},
+                        profileData: sanitizedProfileData,
                     }));
 
                     const price = isBiMonthly ? selectedPlanData.price.biMonthly : selectedPlanData.price.monthly;
