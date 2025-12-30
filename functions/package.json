@@ -2,7 +2,7 @@
   "name": "functions",
   "version": "1.0.0",
   "description": "Firebase Functions for JobzAI",
-  "main": "index.js",
+  "main": "lib/index.js",
   "scripts": {
     "lint": "echo 'No linting configured'",
     "build": "tsc -p tsconfig.json",

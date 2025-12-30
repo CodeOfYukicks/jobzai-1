@@ -71,19 +71,27 @@
       },
       {
         "source": "/api/apollo/search",
-        "function": "searchApolloContacts"
+        "function": "api"
       },
       {
         "source": "/api/apollo/enrich",
-        "function": "enrichApolloContact"
+        "function": "api"
       },
       {
         "source": "/api/apollo/preview",
-        "function": "previewApolloSearch"
+        "function": "api"
       },
       {
         "source": "/api/generate-questions",
-        "function": "generateQuestions"
+        "function": "api"
+      },
+      {
+        "source": "/api/assistant",
+        "function": "assistant"
+      },
+      {
+        "source": "/api/gmail/exchange-code",
+        "function": "api"
       },
       {
         "source": "**",

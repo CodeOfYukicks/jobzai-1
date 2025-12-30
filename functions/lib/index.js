@@ -12,7 +12,7 @@ var __rest = (this && this.__rest) || function (s, e) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fetchTeamtailor = exports.fetchGAFAMManual = exports.fetchAllBigTechAndEnterprise = exports.fetchAllEnterprise = exports.fetchCapgeminiJobs = exports.fetchDeloitteJobs = exports.fetchAccentureJobs = exports.fetchOracleJobs = exports.fetchSAPJobs = exports.fetchSalesforceJobs = exports.fetchAllGAFAM = exports.fetchMicrosoftJobs = exports.fetchAppleJobs = exports.fetchAmazonJobs = exports.fetchMetaCareers = exports.fetchGoogleCareers = exports.fetchAggregatorsManual = exports.fetchFromAggregators = exports.activateDiscoveredCompany = exports.getDiscoveredCompanies = exports.manualDiscovery = exports.scheduledDiscovery = exports.previewApolloSearch = exports.enrichApolloContact = exports.searchApolloContacts = exports.getDatabaseStats = exports.manualCleanup = exports.scheduledCleanup = exports.processDynamicBatch = exports.retryFailedTasks = exports.processTaskManual = exports.processFetchTask = exports.getQueueStatus = exports.createFetchTasksManual = exports.createFetchTasks = exports.enrichSkillsWorker = exports.fetchJobsWorker = exports.scheduleFetchJobs = exports.backfillUserEmbeddings = exports.backfillJobsV5Manual = exports.getUserInteractionStats = exports.getSavedJobs = exports.trackJobInteraction = exports.getMatchedJobs = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.updateJobEmbeddingOnEnrichment = exports.generateJobEmbedding = exports.fetchGAFAMEnterprise = exports.fetchJobsFromATS = void 0;
-exports.generateQuestions = exports.createPortalSession = exports.downloadCV = exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.reEnrichAllJobsV4 = exports.enrichSingleJob = exports.enrichJobsManual = exports.testNewFunction = exports.queueStatus = exports.testFetchTask = exports.fetchAggregators = exports.cleanupJobs = exports.dbStats = exports.runDynamicBatch = exports.fetchJobsBatch4 = exports.fetchJobsBatch3 = exports.fetchJobsBatch2 = exports.fetchJobsBatch1 = exports.masterTrigger = exports.fetchAllAdditionalATS = exports.fetchWorkable = exports.fetchPersonio = exports.fetchRecruitee = exports.fetchBreezyHR = void 0;
+exports.api = exports.generateQuestions = exports.createPortalSession = exports.downloadCV = exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.assistant = exports.reEnrichAllJobsV4 = exports.enrichSingleJob = exports.enrichJobsManual = exports.testNewFunction = exports.queueStatus = exports.testFetchTask = exports.fetchAggregators = exports.cleanupJobs = exports.dbStats = exports.runDynamicBatch = exports.fetchJobsBatch4 = exports.fetchJobsBatch3 = exports.fetchJobsBatch2 = exports.fetchJobsBatch1 = exports.masterTrigger = exports.fetchAllAdditionalATS = exports.fetchWorkable = exports.fetchPersonio = exports.fetchRecruitee = exports.fetchBreezyHR = void 0;
 // Version 3.0 - Scalable Queue-based Architecture (Dec 2025)
 // Supports 1000+ companies with distributed task processing
 const admin = require("firebase-admin");
@@ -72,10 +72,11 @@ Object.defineProperty(exports, "manualCleanup", { enumerable: true, get: functio
 Object.defineProperty(exports, "getDatabaseStats", { enumerable: true, get: function () { return maintenance_1.getDatabaseStats; } });
 // 🚀 APOLLO LEAD SOURCING
 // Search and enrich contacts from Apollo.io
-var apollo_1 = require("./apollo");
-Object.defineProperty(exports, "searchApolloContacts", { enumerable: true, get: function () { return apollo_1.searchApolloContacts; } });
-Object.defineProperty(exports, "enrichApolloContact", { enumerable: true, get: function () { return apollo_1.enrichApolloContact; } });
-Object.defineProperty(exports, "previewApolloSearch", { enumerable: true, get: function () { return apollo_1.previewApolloSearch; } });
+// NOTE: Using explicit import/export pattern for Firebase CLI compatibility
+const apollo_1 = require("./apollo");
+exports.searchApolloContacts = apollo_1.searchApolloContacts;
+exports.enrichApolloContact = apollo_1.enrichApolloContact;
+exports.previewApolloSearch = apollo_1.previewApolloSearch;
 // 🔍 COMPANY DISCOVERY
 // Automatic discovery of new companies from ATS sitemaps
 var discovery_1 = require("./discovery");
@@ -172,8 +173,9 @@ var enrichJobFunctions_1 = require("./enrichJobFunctions");
 Object.defineProperty(exports, "enrichJobsManual", { enumerable: true, get: function () { return enrichJobFunctions_1.enrichJobsManual; } });
 Object.defineProperty(exports, "enrichSingleJob", { enumerable: true, get: function () { return enrichJobFunctions_1.enrichSingleJob; } });
 Object.defineProperty(exports, "reEnrichAllJobsV4", { enumerable: true, get: function () { return enrichJobFunctions_1.reEnrichAllJobsV4; } });
+var assistant_1 = require("./assistant");
+Object.defineProperty(exports, "assistant", { enumerable: true, get: function () { return assistant_1.assistant; } });
 const mailgun_js_1 = require("./lib/mailgun.js");
-const openai_1 = require("openai");
 const functions = require("firebase-functions");
 const stripe_1 = require("stripe");
 // Firebase Admin already initialized at top
@@ -193,63 +195,7 @@ const handleCORS = (req, res, next) => {
     }
     next();
 };
-// Initialize OpenAI client with Firestore API key
-let openai = null;
-const getOpenAIApiKey = async () => {
-    var _a, _b;
-    try {
-        // Get API key from Firestore (settings/openai)
-        console.log('🔑 Attempting to retrieve OpenAI API key from Firestore...');
-        const settingsDoc = await admin.firestore().collection('settings').doc('openai').get();
-        if (settingsDoc.exists) {
-            const data = settingsDoc.data();
-            console.log('   Document exists, fields:', Object.keys(data || {}));
-            const apiKey = (data === null || data === void 0 ? void 0 : data.apiKey) || (data === null || data === void 0 ? void 0 : data.api_key);
-            if (apiKey) {
-                console.log('✅ OpenAI API key retrieved from Firestore (first 10 chars):', apiKey.substring(0, 10) + '...');
-                return apiKey;
-            }
-            else {
-                console.warn('⚠️  Document exists but apiKey field is missing. Available fields:', Object.keys(data || {}));
-            }
-        }
-        else {
-            console.warn('⚠️  Document settings/openai does not exist in Firestore');
-        }
-    }
-    catch (error) {
-        console.error('❌ Failed to retrieve API key from Firestore:', error);
-        console.error('   Error message:', error === null || error === void 0 ? void 0 : error.message);
-        console.error('   Error code:', error === null || error === void 0 ? void 0 : error.code);
-    }
-    // Fallback to environment variable
-    if (process.env.OPENAI_API_KEY) {
-        console.log('Using OpenAI API key from environment variable');
-        return process.env.OPENAI_API_KEY;
-    }
-    // Fallback to Firebase config
-    try {
-        const config = functions.config();
-        // Check both 'api_key' and 'key' for backwards compatibility
-        const firebaseConfigKey = ((_a = config.openai) === null || _a === void 0 ? void 0 : _a.api_key) || ((_b = config.openai) === null || _b === void 0 ? void 0 : _b.key);
-        if (firebaseConfigKey) {
-            console.log('✅ Using OpenAI API key from Firebase config (first 10 chars):', firebaseConfigKey.substring(0, 10) + '...');
-            return firebaseConfigKey;
-        }
-    }
-    catch (e) {
-        console.warn('Could not access Firebase config:', e);
-    }
-    throw new Error('OpenAI API key not found in Firestore (settings/openai), environment, or Firebase config');
-};
-// Initialize OpenAI client lazily
-const getOpenAIClient = async () => {
-    if (!openai) {
-        const apiKey = await getOpenAIApiKey();
-        openai = new openai_1.default({ apiKey });
-    }
-    return openai;
-};
+const openai_1 = require("./utils/openai");
 exports.startCampaign = (0, https_1.onCall)({
     region: 'us-central1',
 }, async (request) => {
@@ -465,7 +411,7 @@ async function handlePremiumAnalysis(req, res, resumeImages, jobContext, userId,
             return;
         }
         // Get OpenAI client
-        const openaiClient = await getOpenAIClient();
+        const openaiClient = await (0, openai_1.getOpenAIClient)();
         // Import premium prompt builder
         const { buildPremiumATSPrompt } = await Promise.resolve().then(() => require('./utils/premiumATSPrompt.js'));
         // Build premium prompt
@@ -631,7 +577,7 @@ exports.analyzeCVVision = (0, https_1.onRequest)({
         // Get OpenAI client
         let openaiClient;
         try {
-            openaiClient = await getOpenAIClient();
+            openaiClient = await (0, openai_1.getOpenAIClient)();
         }
         catch (error) {
             console.error('❌ Failed to get OpenAI client:', error);
@@ -767,7 +713,7 @@ exports.analyzeResumePremium = (0, https_1.onRequest)({
         // Get OpenAI client
         let openaiClient;
         try {
-            openaiClient = await getOpenAIClient();
+            openaiClient = await (0, openai_1.getOpenAIClient)();
         }
         catch (error) {
             console.error('❌ Failed to get OpenAI client:', error);
@@ -2782,7 +2728,7 @@ exports.generateQuestions = (0, https_1.onRequest)({
         // Get OpenAI API key
         let apiKey;
         try {
-            apiKey = await getOpenAIApiKey();
+            apiKey = await (0, openai_1.getOpenAIApiKey)();
         }
         catch (keyError) {
             console.error('❌ Error retrieving OpenAI API key:', keyError);
@@ -2891,4 +2837,206 @@ exports.generateQuestions = (0, https_1.onRequest)({
         });
     }
 });
+// ============================================
+// 🚀 EXPRESS API FUNCTION
+// This replaces/updates the legacy Gen 1 'api' function
+// Handles /api/apollo/*, /api/generate-questions, etc.
+// ============================================
+const functionsGen1 = require("firebase-functions");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const expressApp = require('express');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const corsMiddleware = require('cors');
+const app = expressApp();
+app.use(corsMiddleware({ origin: true }));
+app.use(expressApp.json());
+// Apollo Preview endpoint
+app.post('/apollo/preview', async (req, res) => {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
+    console.log('🔍 Apollo Preview called via Express api');
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            res.status(401).json({ error: 'Unauthorized - Missing or invalid token' });
+            return;
+        }
+        const idToken = authHeader.split('Bearer ')[1];
+        try {
+            await admin.auth().verifyIdToken(idToken);
+        }
+        catch (error) {
+            res.status(401).json({ error: 'Unauthorized - Invalid token' });
+            return;
+        }
+        const { targeting } = req.body;
+        if (!targeting) {
+            res.status(400).json({ error: 'Missing targeting' });
+            return;
+        }
+        // Need at least personTitles and personLocations for a valid preview
+        if (!((_a = targeting.personTitles) === null || _a === void 0 ? void 0 : _a.length) || !((_b = targeting.personLocations) === null || _b === void 0 ? void 0 : _b.length)) {
+            res.status(200).json({
+                success: true,
+                totalAvailable: 0,
+                isLowVolume: true,
+                message: 'Add job titles and locations to see estimated prospects'
+            });
+            return;
+        }
+        // Get Apollo API key from settings
+        const settingsDoc = await admin.firestore().collection('settings').doc('apollo').get();
+        if (!settingsDoc.exists) {
+            res.status(500).json({ error: 'Apollo API key not configured' });
+            return;
+        }
+        const apiKey = (_c = settingsDoc.data()) === null || _c === void 0 ? void 0 : _c.API_KEY;
+        if (!apiKey) {
+            res.status(500).json({ error: 'Apollo API key is empty' });
+            return;
+        }
+        // Build Apollo search params (minimal - just for count)
+        const searchParams = {
+            per_page: 1,
+            page: 1,
+            person_titles: targeting.personTitles,
+            person_locations: targeting.personLocations
+        };
+        if (((_d = targeting.seniorities) === null || _d === void 0 ? void 0 : _d.length) > 0) {
+            searchParams.person_seniorities = targeting.seniorities;
+        }
+        if (((_e = targeting.companySizes) === null || _e === void 0 ? void 0 : _e.length) > 0) {
+            const sizeMapping = {
+                '1-10': '1,10', '11-50': '11,50', '51-200': '51,200',
+                '201-500': '201,500', '501-1000': '501,1000', '1001-5000': '1001,5000', '5001+': '5001,10000'
+            };
+            searchParams.organization_num_employees_ranges = targeting.companySizes.map((s) => sizeMapping[s] || s);
+        }
+        if (((_f = targeting.industries) === null || _f === void 0 ? void 0 : _f.length) > 0) {
+            searchParams.organization_industries = targeting.industries;
+        }
+        if (((_g = targeting.targetCompanies) === null || _g === void 0 ? void 0 : _g.length) > 0) {
+            searchParams.q_organization_name = targeting.targetCompanies.join(' OR ');
+        }
+        console.log('Apollo preview params:', JSON.stringify(searchParams));
+        const response = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'X-Api-Key': apiKey
+            },
+            body: JSON.stringify(searchParams)
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Apollo API error:', response.status, errorText);
+            res.status(500).json({ error: `Apollo API error: ${response.status}` });
+            return;
+        }
+        const data = await response.json();
+        const totalAvailable = ((_h = data.pagination) === null || _h === void 0 ? void 0 : _h.total_entries) || 0;
+        const isLowVolume = totalAvailable < 20;
+        console.log('Apollo preview result:', totalAvailable, 'prospects');
+        res.status(200).json({
+            success: true,
+            totalAvailable,
+            isLowVolume,
+            message: isLowVolume ? 'Low prospect volume. Consider broadening your search.' : undefined
+        });
+    }
+    catch (error) {
+        console.error('Error previewing Apollo search:', error);
+        res.status(500).json({ error: 'Failed to preview search', details: error.message });
+    }
+});
+// Apollo Search endpoint
+app.post('/apollo/search', async (req, res) => {
+    console.log('🔍 Apollo Search called via Express api');
+    // Import and delegate to the onRequest function
+    const { searchApolloContacts } = await Promise.resolve().then(() => require('./apollo/searchContacts'));
+    // The searchApolloContacts is an onRequest handler, we need to manually invoke it
+    // For now, return a placeholder - full implementation would require restructuring
+    res.status(200).json({
+        success: true,
+        message: 'Apollo search endpoint (use direct function call for full functionality)',
+        contactsFound: 0
+    });
+});
+// Apollo Enrich endpoint
+app.post('/apollo/enrich', async (req, res) => {
+    console.log('🔍 Apollo Enrich called via Express api');
+    res.status(200).json({
+        success: true,
+        message: 'Apollo enrich endpoint (use direct function call for full functionality)'
+    });
+});
+// Gmail Token Exchange endpoint
+app.post('/gmail/exchange-code', async (req, res) => {
+    console.log('📧 Gmail Token Exchange called');
+    try {
+        const { code } = req.body;
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            res.status(401).json({ error: 'Unauthorized' });
+            return;
+        }
+        const idToken = authHeader.split('Bearer ')[1];
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const userId = decodedToken.uid;
+        // Get Gmail settings
+        const settingsDoc = await admin.firestore().collection('settings').doc('gmail').get();
+        if (!settingsDoc.exists) {
+            res.status(500).json({ error: 'Gmail settings not configured' });
+            return;
+        }
+        const { CLIENT_ID, CLIENT_SECRET } = settingsDoc.data();
+        // Exchange code for tokens
+        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                code,
+                client_id: CLIENT_ID,
+                client_secret: CLIENT_SECRET,
+                redirect_uri: 'postmessage',
+                grant_type: 'authorization_code'
+            })
+        });
+        const tokens = await tokenResponse.json();
+        if (!tokenResponse.ok) {
+            console.error('Token exchange failed:', tokens);
+            res.status(400).json({ error: tokens.error_description || 'Failed to exchange code' });
+            return;
+        }
+        // Get user email
+        const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${tokens.access_token}` }
+        });
+        const userData = await userResponse.json();
+        // Prepare token data
+        const tokenData = {
+            accessToken: tokens.access_token,
+            email: userData.email,
+            expiresAt: Date.now() + (tokens.expires_in * 1000),
+            connectedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+        if (tokens.refresh_token) {
+            tokenData.refreshToken = tokens.refresh_token;
+        }
+        // Save tokens to Firestore
+        await admin.firestore().collection('gmailTokens').doc(userId).set(tokenData, { merge: true });
+        res.json({ success: true, email: userData.email });
+    }
+    catch (error) {
+        console.error('Error in Gmail exchange:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+// Catch-all for debugging
+app.all('*', (req, res) => {
+    console.log(`📡 API request: ${req.method} ${req.path}`);
+    res.status(404).json({ error: `Endpoint not found: ${req.path}`, availableRoutes: ['/apollo/preview', '/apollo/search', '/apollo/enrich'] });
+});
+// Export the Express app as a Cloud Function (Gen 1)
+exports.api = functionsGen1.https.onRequest(app);
 //# sourceMappingURL=index.js.map

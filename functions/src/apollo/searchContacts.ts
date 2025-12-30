@@ -77,9 +77,11 @@ export const searchApolloContacts = onRequest(
     region: 'us-central1',
     cors: true,
     maxInstances: 10,
-    timeoutSeconds: 60
+    timeoutSeconds: 60,
+    invoker: 'public' // Allow public access - required for Firebase Hosting rewrites
   },
   async (req, res) => {
+    console.log('🔍 searchApolloContacts called - v1.0.1');
     // Only allow POST
     if (req.method !== 'POST') {
       res.status(405).json({ error: 'Method not allowed' });
@@ -336,9 +338,11 @@ export const enrichApolloContact = onRequest(
     region: 'us-central1',
     cors: true,
     maxInstances: 10,
-    timeoutSeconds: 30
+    timeoutSeconds: 30,
+    invoker: 'public' // Allow public access - required for Firebase Hosting rewrites
   },
   async (req, res) => {
+    console.log('🔍 enrichApolloContact called - v1.0.1');
     if (req.method !== 'POST') {
       res.status(405).json({ error: 'Method not allowed' });
       return;

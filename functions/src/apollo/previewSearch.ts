@@ -52,9 +52,11 @@ export const previewApolloSearch = onRequest(
         region: 'us-central1',
         cors: true,
         maxInstances: 10,
-        timeoutSeconds: 30
+        timeoutSeconds: 30,
+        invoker: 'public' // Allow public access - important for Firebase Hosting rewrites
     },
     async (req, res) => {
+        console.log('🔍 previewApolloSearch called - v1.0.1'); // Version tag for tracking
         if (req.method !== 'POST') {
             res.status(405).json({ error: 'Method not allowed' });
             return;
