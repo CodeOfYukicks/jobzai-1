@@ -1,3 +1,6 @@
+// Suppress tldraw license warnings in production (temporary until license key is added)
+import './lib/suppressTldrawLicense';
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';

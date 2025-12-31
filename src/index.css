@@ -556,3 +556,12 @@
     }
   }
 }
+
+/* ========================================
+   TLDRAW WATERMARK FIX
+   ======================================== */
+.tlui-watermark_SEE-LICENSE,
+.tl-watermark_SEE-LICENSE,
+[class*="watermark"] {
+  display: none !important;
+}

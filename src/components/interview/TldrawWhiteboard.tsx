@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { Tldraw, TLStoreSnapshot, TldrawEditor, loadSnapshot, getSnapshot, Editor } from 'tldraw';
-import { createShapeId, toRichText } from '@tldraw/editor';
+import { Tldraw, TLStoreSnapshot, loadSnapshot, getSnapshot, Editor, createShapeId } from 'tldraw';
 import 'tldraw/tldraw.css';
 import { doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -34,7 +33,7 @@ const tldrawCustomStyles = `
     --color-background: var(--tldraw-bg);
   }
   
-  /* Hide tldraw watermark */
+  /* Hide watermark only */
   .tlui-watermark_SEE-LICENSE,
   .tl-watermark_SEE-LICENSE,
   [class*="watermark"] {
@@ -105,7 +104,7 @@ async function saveTldrawToFirestore(
   try {
     const applicationRef = doc(db, 'users', userId, 'jobApplications', applicationId);
     const applicationDoc = await getDoc(applicationRef);
-    
+
     if (!applicationDoc.exists()) {
       throw new Error('Application not found');
     }
@@ -131,7 +130,7 @@ async function saveTldrawToFirestore(
       interviews: updatedInterviews,
       updatedAt: serverTimestamp(),
     });
-    
+
     console.log('[TLDRAW] Saved to Firestore');
   } catch (error) {
     console.error('[TLDRAW] Error saving to Firestore:', error);
@@ -150,7 +149,7 @@ async function loadTldrawFromFirestore(
   try {
     const applicationRef = doc(db, 'users', userId, 'jobApplications', applicationId);
     const applicationDoc = await getDoc(applicationRef);
-    
+
     if (!applicationDoc.exists()) {
       return null;
     }
@@ -230,7 +229,7 @@ export const TldrawWhiteboard = forwardRef<TldrawWhiteboardRef, TldrawWhiteboard
         x: startX,
         y: startY,
         props: {
-          richText: toRichText(`⭐ STAR: ${skill}`),
+          text: `⭐ STAR: ${skill}`,
           color: 'yellow',
           size: 'm',
         },
@@ -245,7 +244,7 @@ export const TldrawWhiteboard = forwardRef<TldrawWhiteboardRef, TldrawWhiteboard
         x: startX,
         y: situationY,
         props: {
-          richText: toRichText(formatStarText('📋 SITUATION', story.situation || 'No situation provided')),
+          text: formatStarText('📋 SITUATION', story.situation || 'No situation provided'),
           color: 'blue',
           size: 'm',
         },
@@ -260,7 +259,7 @@ export const TldrawWhiteboard = forwardRef<TldrawWhiteboardRef, TldrawWhiteboard
         x: startX,
         y: actionY,
         props: {
-          richText: toRichText(formatStarText('⚡ ACTION', story.action || 'No action provided')),
+          text: formatStarText('⚡ ACTION', story.action || 'No action provided'),
           color: 'orange',
           size: 'm',
         },
@@ -275,7 +274,7 @@ export const TldrawWhiteboard = forwardRef<TldrawWhiteboardRef, TldrawWhiteboard
         x: startX,
         y: resultY,
         props: {
-          richText: toRichText(formatStarText('✅ RESULT', story.result || 'No result provided')),
+          text: formatStarText('✅ RESULT', story.result || 'No result provided'),
           color: 'green',
           size: 'm',
         },
@@ -450,7 +449,7 @@ export const TldrawWhiteboard = forwardRef<TldrawWhiteboardRef, TldrawWhiteboard
 
     // Subscribe to store changes for auto-save
     let saveTimeout: NodeJS.Timeout | null = null;
-    
+
     const unsubscribe = editorInstance.store.listen(() => {
       if (!currentUser) return;
 
@@ -517,7 +516,7 @@ export const TldrawWhiteboard = forwardRef<TldrawWhiteboardRef, TldrawWhiteboard
 
   if (isLoading) {
     return (
-      <div 
+      <div
         className="flex items-center justify-center bg-gray-50 dark:bg-neutral-950"
         style={{ width: width || '100%', height: height || 600 }}
       >
@@ -532,10 +531,10 @@ export const TldrawWhiteboard = forwardRef<TldrawWhiteboardRef, TldrawWhiteboard
   }
 
   const tldrawContent = (
-    <div 
+    <div
       className={`tldraw-container ${isDarkMode ? 'tldraw-dark' : 'tldraw-light'}`}
-      style={{ 
-        width: isFullscreen ? '100%' : (width || '100%'), 
+      style={{
+        width: isFullscreen ? '100%' : (width || '100%'),
         height: isFullscreen ? '100%' : (height || 600),
         ['--tldraw-bg' as any]: isDarkMode ? '#0a0a0a' : '#f9fafb',
         position: 'relative',
