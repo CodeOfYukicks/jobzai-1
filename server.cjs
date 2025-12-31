@@ -3852,7 +3852,10 @@ Always respond with valid JSON only - no markdown, no backticks.`
     console.log('   Verdict:', analysis.verdict.passed ? 'PASSED' : 'NEEDS WORK');
     console.log('   Highlights count:', analysis.transcriptHighlights.length);
 
-    res.json(analysis);
+    res.json({
+      status: 'success',
+      analysis
+    });
 
   } catch (error) {
     console.error('❌ Error analyzing interview:', error);

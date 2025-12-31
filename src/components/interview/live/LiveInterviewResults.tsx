@@ -160,7 +160,6 @@ const TimelineNode: React.FC<{
     isLast: boolean;
     delay: number;
 }> = ({ question, index, answer, qAnalysis, isExpanded, onToggle, isLast, delay }) => {
-    // ... (TimelineNode implementation remains mostly the same, just handling qAnalysis safely)
     const hasAnswer = answer && answer.trim() !== '';
     const score = qAnalysis?.score ?? 0;
 
@@ -177,56 +176,107 @@ const TimelineNode: React.FC<{
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay, duration: 0.2 }}
-            className="relative"
+            className="relative flex gap-4"
         >
-            {/* ... (rest of TimelineNode) ... */}
-            {/* Expanded Content */}
-            <AnimatePresence>
-                {isExpanded && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                    >
-                        <div className="border-t border-neutral-100 p-3 space-y-3 dark:border-neutral-700">
-                            {hasAnswer && qAnalysis ? (
-                                <>
-                                    {/* Your Answer */}
-                                    <div>
-                                        <h4 className="text-[10px] font-medium uppercase tracking-wider text-neutral-400 dark:text-neutral-500 mb-1">
-                                            Your Answer
-                                        </h4>
-                                        <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed whitespace-pre-wrap bg-neutral-50 dark:bg-neutral-900/50 rounded p-2">
-                                            {answer}
-                                        </p>
-                                    </div>
+            {/* Timeline Line */}
+            <div className="flex flex-col items-center">
+                <div className={`relative z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white dark:border-[#141416] ${getNodeColor()}`}>
+                    {hasAnswer ? (
+                        <span className="text-[10px] font-bold text-white">{index + 1}</span>
+                    ) : (
+                        <div className="h-2 w-2 rounded-full bg-white/50" />
+                    )}
+                </div>
+                {!isLast && (
+                    <div className="w-px flex-1 bg-neutral-200 dark:bg-neutral-800 my-1" />
+                )}
+            </div>
 
-                                    {/* Feedback */}
-                                    {qAnalysis.detailedFeedback && (
-                                        <div>
-                                            <h4 className="text-[10px] font-medium uppercase tracking-wider text-neutral-400 dark:text-neutral-500 mb-1">
-                                                Feedback
+            {/* Content */}
+            <div className="flex-1 pb-8 min-w-0">
+                <button
+                    onClick={onToggle}
+                    className="group flex w-full items-start justify-between gap-4 text-left"
+                >
+                    <div>
+                        <h3 className="text-sm font-medium text-neutral-900 dark:text-white leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                            {question.text}
+                        </h3>
+                        {hasAnswer && (
+                            <div className="mt-1 flex items-center gap-2">
+                                <span className="text-[10px] font-medium text-neutral-500 dark:text-neutral-400">
+                                    {qAnalysis ? `Score: ${score}/100` : 'Analyzed'}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                    <ChevronDown className={`h-4 w-4 flex-shrink-0 text-neutral-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Expanded Content */}
+                <AnimatePresence>
+                    {isExpanded && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                        >
+                            <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-[#1a1a1c]">
+                                {hasAnswer ? (
+                                    <>
+                                        {/* Your Answer */}
+                                        <div className="mb-3">
+                                            <h4 className="text-[10px] font-medium uppercase tracking-wider text-neutral-400 dark:text-neutral-500 mb-1.5">
+                                                Your Answer
                                             </h4>
-                                            <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                                                {qAnalysis.detailedFeedback}
+                                            <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed whitespace-pre-wrap">
+                                                {answer}
                                             </p>
                                         </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="text-center py-3">
-                                    <AlertCircle className="h-6 w-6 text-neutral-300 dark:text-neutral-600 mx-auto mb-1" />
-                                    <p className="text-xs text-neutral-400 dark:text-neutral-500">
-                                        {hasAnswer ? 'No specific feedback for this question' : 'No answer provided'}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+
+                                        {/* Feedback */}
+                                        {qAnalysis?.detailedFeedback && (
+                                            <div>
+                                                <h4 className="text-[10px] font-medium uppercase tracking-wider text-neutral-400 dark:text-neutral-500 mb-1.5">
+                                                    Feedback
+                                                </h4>
+                                                <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed">
+                                                    {qAnalysis.detailedFeedback}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {/* Improvements */}
+                                        {qAnalysis?.whatToImprove && qAnalysis.whatToImprove.length > 0 && (
+                                            <div className="mt-3">
+                                                <h4 className="text-[10px] font-medium uppercase tracking-wider text-amber-500/80 mb-1.5">
+                                                    To Improve
+                                                </h4>
+                                                <ul className="space-y-1">
+                                                    {qAnalysis.whatToImprove.map((item: string, i: number) => (
+                                                        <li key={i} className="text-xs text-neutral-600 dark:text-neutral-300 flex items-start gap-1.5">
+                                                            <span className="mt-1 h-1 w-1 rounded-full bg-amber-500 flex-shrink-0" />
+                                                            {item}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div className="text-center py-2">
+                                        <p className="text-xs text-neutral-400 dark:text-neutral-500 italic">
+                                            No answer provided
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
         </motion.div>
     );
 };
