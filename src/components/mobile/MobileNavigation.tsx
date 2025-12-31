@@ -8,8 +8,11 @@ import {
   Clock,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  Sparkles
 } from 'lucide-react';
+import { Avatar } from '../assistant/avatar';
+import { DEFAULT_AVATAR_CONFIG } from '../assistant/avatar';
 import {
   navigationGroups,
   applyPaths,
@@ -18,6 +21,7 @@ import {
   menuPaths,
   type NavItem
 } from '../../config/navigationConfig';
+import MobileAIAssistantModal from './MobileAIAssistantModal';
 
 // Tab categories that show submenus
 type TabCategory = 'apply' | 'track' | 'prepare';
@@ -26,8 +30,8 @@ type TabCategory = 'apply' | 'track' | 'prepare';
 const BOTTOM_TABS = [
   { id: 'hub', icon: Home, label: 'Hub', path: '/hub', hasSubmenu: false },
   { id: 'apply', icon: FileSearch, label: 'Apply', path: null, hasSubmenu: true },
+  { id: 'ai', icon: Sparkles, label: '', path: null, hasSubmenu: false, isSpecial: true },
   { id: 'track', icon: Briefcase, label: 'Track', path: null, hasSubmenu: true },
-  { id: 'prepare', icon: Clock, label: 'Prepare', path: null, hasSubmenu: true },
   { id: 'menu', icon: Menu, label: 'Menu', path: null, hasSubmenu: false },
 ] as const;
 
@@ -51,6 +55,7 @@ export default function MobileNavigation() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAIOpen, setIsAIOpen] = useState(false);
   const [activeSubmenu, setActiveSubmenu] = useState<TabCategory | null>(null);
 
   // Check if a path is active
@@ -65,7 +70,7 @@ export default function MobileNavigation() {
     if (location.pathname === '/hub') return 'hub';
     if (applyPaths.some(p => isActivePath(p))) return 'apply';
     if (trackPaths.some(p => isActivePath(p))) return 'track';
-    if (preparePaths.some(p => isActivePath(p))) return 'prepare';
+    if (preparePaths.some(p => isActivePath(p))) return 'prepare'; // Still accessible via menu
     if (menuPaths.some(p => isActivePath(p))) return 'menu';
     return null;
   };
@@ -80,6 +85,9 @@ export default function MobileNavigation() {
     if (tab.id === 'menu') {
       setActiveSubmenu(null);
       setIsMenuOpen(true);
+    } else if (tab.id === 'ai') {
+      setActiveSubmenu(null);
+      setIsAIOpen(true);
     } else if (tab.id === 'hub') {
       setActiveSubmenu(null);
       navigate('/hub');
@@ -109,6 +117,12 @@ export default function MobileNavigation() {
 
   return (
     <>
+      {/* AI Assistant Modal */}
+      <MobileAIAssistantModal
+        isOpen={isAIOpen}
+        onClose={() => setIsAIOpen(false)}
+      />
+
       {/* Category Submenu Popover */}
       <AnimatePresence>
         {activeSubmenu && (
@@ -215,6 +229,8 @@ export default function MobileNavigation() {
           {BOTTOM_TABS.map((tab) => {
             const isActive = tab.id === 'menu' ? isMenuOpen : activeTab === tab.id;
             const isSubmenuOpen = activeSubmenu === tab.id;
+            const isAI = tab.id === 'ai';
+
             return (
               <motion.button
                 key={tab.id}
@@ -223,14 +239,16 @@ export default function MobileNavigation() {
                   scale: isActive || isSubmenuOpen ? 1.05 : 1,
                 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                className={`relative flex flex-col items-center justify-center min-w-[56px] h-full active:scale-95 transition-all ${isActive || isSubmenuOpen ? 'drop-shadow-[0_0_8px_rgba(99,91,255,0.4)]' : ''
-                  }`}
+                className={`relative flex flex-col items-center justify-center min-w-[56px] h-full active:scale-95 transition-all 
+                  ${isActive || isSubmenuOpen ? 'drop-shadow-[0_0_8px_rgba(99,91,255,0.4)]' : ''}
+                  ${isAI ? '-mt-1' : ''}
+                `}
                 aria-current={isActive ? 'page' : undefined}
                 aria-expanded={isSubmenuOpen ? true : undefined}
               >
-                {/* Active pill indicator */}
+                {/* Active pill indicator (except for AI) */}
                 <AnimatePresence>
-                  {(isActive || isSubmenuOpen) && (
+                  {(isActive || isSubmenuOpen) && !isAI && (
                     <motion.span
                       layoutId="mobile-nav-indicator"
                       className={`absolute top-1.5 w-6 h-1 rounded-full ${activeBg}`}
@@ -241,17 +259,42 @@ export default function MobileNavigation() {
                     />
                   )}
                 </AnimatePresence>
-                <tab.icon
-                  className={`w-5 h-5 mb-0.5 transition-colors ${isActive || isSubmenuOpen ? activeColor : 'text-gray-400 dark:text-gray-500'
-                    }`}
-                  strokeWidth={isActive || isSubmenuOpen ? 2.5 : 2}
-                />
-                <span
-                  className={`text-[10px] leading-tight tracking-tight whitespace-nowrap transition-colors ${isActive || isSubmenuOpen ? `${activeColor} font-semibold` : 'text-gray-500 dark:text-gray-400 font-medium'
-                    }`}
-                >
-                  {tab.label}
-                </span>
+
+
+                <div className={`
+                  relative flex items-center justify-center transition-all duration-300
+                  ${isAI
+                    ? 'w-12 h-12 rounded-full bg-gradient-to-br from-[#635BFF] to-[#8F89FF] shadow-lg shadow-[#635BFF]/30 text-white p-0.5'
+                    : ''
+                  }
+                `}>
+                  {isAI ? (
+                    <Avatar
+                      config={DEFAULT_AVATAR_CONFIG}
+                      size={44}
+                      className="bg-transparent rounded-full overflow-hidden"
+                    />
+                  ) : (
+                    <tab.icon
+                      className={`
+                        transition-colors 
+                        ${isActive || isSubmenuOpen ? activeColor : 'text-gray-400 dark:text-gray-500'}
+                        w-5 h-5 mb-0.5
+                      `}
+                      strokeWidth={isActive || isSubmenuOpen ? 2.5 : 2}
+                    />
+                  )}
+                </div>
+
+                {/* Label (hidden for AI) */}
+                {!isAI && (
+                  <span
+                    className={`text-[10px] leading-tight tracking-tight whitespace-nowrap transition-colors ${isActive || isSubmenuOpen ? `${activeColor} font-semibold` : 'text-gray-500 dark:text-gray-400 font-medium'
+                      }`}
+                  >
+                    {tab.label}
+                  </span>
+                )}
               </motion.button>
             );
           })}
