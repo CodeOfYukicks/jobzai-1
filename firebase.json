@@ -38,6 +38,22 @@
         "function": "api"
       },
       {
+        "source": "/api/perplexity",
+        "function": "api"
+      },
+      {
+        "source": "/api/chat-fast",
+        "function": "api"
+      },
+      {
+        "source": "/api/fetch-job-post",
+        "function": "api"
+      },
+      {
+        "source": "/api/gpt",
+        "function": "api"
+      },
+      {
         "source": "/api/test",
         "function": "api"
       },

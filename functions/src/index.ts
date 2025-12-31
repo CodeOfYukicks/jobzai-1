@@ -3905,6 +3905,326 @@ app.post('/api/gmail/exchange-code', async (req, res) => {
 });
 
 // Catch-all for debugging
+// ============================================
+// NEW ENDPOINTS RESTORED
+// ============================================
+
+// Perplexity API
+app.post('/api/perplexity', async (req: any, res: any) => {
+  console.log('🧠 Perplexity API called');
+  try {
+    // Parse body if it's a string (sometimes happens with certain content-types or proxies)
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        console.error('Failed to parse req.body:', e);
+      }
+    }
+
+    console.log('📝 Incoming Request Body:', JSON.stringify(body).substring(0, 500));
+
+    const { model, messages: bodyMessages, prompt, systemMessage, temperature = 0.7, max_tokens = 1000 } = body;
+
+    let messages = bodyMessages;
+
+    // Handle legacy/frontend format where prompt is sent instead of messages
+    if (!messages && prompt) {
+      messages = [
+        { role: 'system', content: systemMessage || 'You are a helpful AI assistant.' },
+        { role: 'user', content: prompt }
+      ];
+    }
+
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      console.error('❌ Messages array is missing or empty (and no prompt provided)');
+      return res.status(400).json({ error: 'Messages array or prompt is required.' });
+    }
+
+    // Get Perplexity API key
+    let apiKey = process.env.PERPLEXITY_API_KEY;
+    if (!apiKey) {
+      const settingsDoc = await admin.firestore().collection('settings').doc('perplexity').get();
+      apiKey = settingsDoc.data()?.apiKey;
+    }
+
+    if (!apiKey) {
+      console.error('❌ Perplexity API key missing');
+      return res.status(500).json({ error: 'Perplexity API key not configured' });
+    }
+
+    // Trim key to remove potential whitespace/newlines
+    apiKey = apiKey.trim();
+    console.log(`🔑 Using Perplexity Key: ${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 4)} (Length: ${apiKey.length})`);
+
+    const payload = {
+      model: model || 'llama-3.1-sonar-small-128k-online',
+      messages,
+      temperature,
+      max_tokens
+    };
+
+    console.log('Tb Sending Payload to Perplexity:', JSON.stringify(payload).substring(0, 500));
+
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'Jobzai/1.0 (Firebase Functions)'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      const headers = Object.fromEntries(response.headers.entries());
+      console.error('Perplexity API error:', response.status, errorText);
+      console.error('Response Headers:', headers);
+
+      // Return detailed error for debugging
+      return res.status(response.status).json({
+        error: `Perplexity API Error (${response.status}): ${errorText}`,
+        debug: {
+          status: response.status,
+          headers: headers,
+          keyLength: apiKey.length,
+          keyStart: apiKey.substring(0, 5),
+          payloadPreview: JSON.stringify(payload).substring(0, 200)
+        }
+      });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error: any) {
+    console.error('Error in Perplexity API:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Chat Fast (GPT-4o-mini)
+app.post('/api/chat-fast', async (req: any, res: any) => {
+  console.log('⚡ Chat Fast API called');
+  try {
+    const { prompt, systemMessage, temperature = 0.7, max_tokens = 1000 } = req.body;
+
+    const apiKey = await getOpenAIApiKey();
+    if (!apiKey) {
+      return res.status(500).json({ error: 'OpenAI API key not configured' });
+    }
+
+    const messages = [];
+    if (systemMessage) {
+      messages.push({ role: 'system', content: systemMessage });
+    }
+    messages.push({ role: 'user', content: prompt });
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages,
+        temperature,
+        max_tokens
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
+      return res.status(response.status).json({ error: errorText });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error: any) {
+    console.error('Error in Chat Fast API:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Fetch Job Post Content
+app.post('/api/fetch-job-post', async (req: any, res: any) => {
+  console.log('📥 Fetch Job Post called');
+  try {
+    const { url } = req.body;
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+
+    // Simple fetch implementation - in a real scenario, use a scraping service or Puppeteer
+    // For now, we'll try to fetch the HTML and return it, or use a text extractor
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch URL: ${response.status}`);
+      }
+
+      const html = await response.text();
+      // Very basic text extraction (naive)
+      const text = html.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gm, "")
+        .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gm, "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .substring(0, 10000); // Limit size
+
+      res.json({ content: text, rawHtml: html.substring(0, 20000) });
+    } catch (fetchError: any) {
+      console.warn('Direct fetch failed, returning error for fallback:', fetchError.message);
+      res.status(422).json({ error: 'Could not fetch content directly', details: fetchError.message });
+    }
+  } catch (error: any) {
+    console.error('Error fetching job post:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Claude API
+app.post('/api/claude', async (req: any, res: any) => {
+  console.log('🧠 Claude API called');
+  try {
+    const { model, messages, system, temperature = 0.7, max_tokens = 1000 } = req.body;
+
+    // Get Anthropic API key
+    let apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      const settingsDoc = await admin.firestore().collection('settings').doc('anthropic').get();
+      apiKey = settingsDoc.data()?.apiKey;
+    }
+
+    if (!apiKey) {
+      return res.status(500).json({ error: 'Anthropic API key not configured' });
+    }
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: model || 'claude-3-5-sonnet-20240620',
+        messages,
+        system,
+        temperature,
+        max_tokens
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Anthropic API error:', errorText);
+      return res.status(response.status).json({ error: errorText });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error: any) {
+    console.error('Error in Claude API:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GPT API (Standard)
+app.post('/api/gpt', async (req: any, res: any) => {
+  console.log('🧠 GPT API called');
+  try {
+    const { model, messages, temperature = 0.7, max_tokens = 1000, response_format } = req.body;
+
+    const apiKey = await getOpenAIApiKey();
+    if (!apiKey) {
+      return res.status(500).json({ error: 'OpenAI API key not configured' });
+    }
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: model || 'gpt-4o',
+        messages,
+        temperature,
+        max_tokens,
+        response_format
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
+      return res.status(response.status).json({ error: errorText });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error: any) {
+    console.error('Error in GPT API:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ChatGPT Alias (for legacy calls)
+app.post('/api/chatgpt', async (req: any, res: any) => {
+  console.log('🧠 ChatGPT API (Alias) called');
+  // Forward to GPT handler logic
+  try {
+    const { prompt, systemMessage, temperature = 0.7 } = req.body;
+
+    const apiKey = await getOpenAIApiKey();
+    if (!apiKey) {
+      return res.status(500).json({ error: 'OpenAI API key not configured' });
+    }
+
+    const messages = [];
+    if (systemMessage) {
+      messages.push({ role: 'system', content: systemMessage });
+    }
+    messages.push({ role: 'user', content: prompt });
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages,
+        temperature,
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
+      return res.status(response.status).json({ error: errorText });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error: any) {
+    console.error('Error in ChatGPT API:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Catch-all for debugging
 app.all('*', (req, res) => {
   console.log(`📡 API request: ${req.method} ${req.path}`);
   res.status(404).json({ error: `Endpoint not found: ${req.path}`, availableRoutes: ['/api/apollo/preview', '/api/apollo/search', '/api/apollo/enrich', '/api/openai-realtime-session', '/api/analyze-live-interview', '/api/cv-review', '/api/gmail/exchange-code'] });

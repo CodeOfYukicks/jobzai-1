@@ -62,7 +62,7 @@ export class LiveInterviewClient {
   private mediaStream: MediaStream | null = null;
   private audioWorkletNode: AudioWorkletNode | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
-  
+
   // Playback queue for AI audio responses - each entry tracks its origin
   private audioPlaybackQueue: Array<{
     buffer: AudioBuffer;
@@ -71,12 +71,12 @@ export class LiveInterviewClient {
   }> = [];
   private isPlaying = false;
   private currentPlaybackSource: AudioBufferSourceNode | null = null;
-  
+
   // Gapless audio playback scheduling
   private nextPlaybackTime: number = 0;
   private playbackStarted: boolean = false;
   private readonly PREBUFFER_COUNT = 3; // Wait for 3 chunks before starting playback
-  
+
   // Barge-in control
   private isInterrupted: boolean = false;
   private scheduledSources: AudioBufferSourceNode[] = []; // Track all scheduled sources
@@ -86,25 +86,25 @@ export class LiveInterviewClient {
   private cancelledResponseIds: Set<string> = new Set(); // Track cancelled response IDs to reject late audio
   private interruptionGeneration: number = 0; // Increments on each interruption - used to invalidate old audio
   private currentAudioGeneration: number = 0; // The generation that's currently allowed to play
-  
+
   // Master gain node for instant muting
   private masterGainNode: GainNode | null = null;
-  
+
   // State
   private connectionStatus: ConnectionStatus = 'disconnected';
   private transcript: TranscriptEntry[] = [];
   private currentAssistantItemId: string | null = null;
   private currentUserItemId: string | null = null;
   private greetingTriggered: boolean = false;
-  
+
   // Timer
   private startTime: number = 0;
   private readonly MAX_DURATION_MS = 10 * 60 * 1000; // 10 minutes
   private isInterviewEnded: boolean = false;
-  
+
   // Accumulated audio data for decoding
   private pendingAudioChunks: string[] = [];
-  
+
   // Configuration
   private config: LiveInterviewClientConfig;
   private jobContext: JobContext | null = null;
@@ -134,22 +134,22 @@ export class LiveInterviewClient {
     this.interruptionGeneration = 0; // Reset generation counter
     this.currentAudioGeneration = 0; // Reset accepted generation
     this.resetAudioPlayback(); // Reset audio state
-    
+
     try {
       this.setConnectionStatus('connecting');
-      
+
       // Request microphone permission and get session credentials in parallel
       const [sessionData] = await Promise.all([
         this.createSession(),
         this.requestMicrophonePermission(),
       ]);
-      
+
       // Connect to WebSocket
       await this.connectWebSocket(sessionData);
-      
+
       // Setup audio pipeline after WebSocket is connected
       await this.setupAudioPipeline();
-      
+
       this.config.onSessionStarted?.();
     } catch (error) {
       this.setConnectionStatus('error');
@@ -163,54 +163,54 @@ export class LiveInterviewClient {
    */
   async stop(): Promise<void> {
     this.setConnectionStatus('ended');
-    
+
     // Stop audio worklet
     if (this.audioWorkletNode) {
       this.audioWorkletNode.port.postMessage({ type: 'stop' });
       this.audioWorkletNode.disconnect();
       this.audioWorkletNode = null;
     }
-    
+
     // Stop media stream tracks
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(track => track.stop());
       this.mediaStream = null;
     }
-    
+
     // Disconnect master gain node
     if (this.masterGainNode) {
       this.masterGainNode.disconnect();
       this.masterGainNode = null;
     }
-    
+
     // Disconnect source node
     if (this.sourceNode) {
       this.sourceNode.disconnect();
       this.sourceNode = null;
     }
-    
+
     // Stop any playing audio
     if (this.currentPlaybackSource) {
       this.currentPlaybackSource.stop();
       this.currentPlaybackSource = null;
     }
-    
+
     // Close audio context
     if (this.audioContext) {
       await this.audioContext.close();
       this.audioContext = null;
     }
-    
+
     // Close WebSocket
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
-    
+
     // Clear state
     this.resetAudioPlayback();
     this.pendingAudioChunks = [];
-    
+
     this.config.onSessionEnded?.();
   }
 
@@ -285,13 +285,13 @@ export class LiveInterviewClient {
       console.log('⚠️ Interview already concluded');
       return;
     }
-    
+
     console.log('🏁 Concluding interview...');
     this.isInterviewEnded = true;
-    
+
     // Stop any ongoing audio playback
     this.stopAudioPlayback();
-    
+
     // Send a response.create with conclusion instructions
     this.sendEvent({
       type: 'response.create',
@@ -305,7 +305,7 @@ export class LiveInterviewClient {
 Be warm but professional. Keep the conclusion brief (30 seconds max). Do NOT ask any more questions.`,
       },
     });
-    
+
     // The interview will fully stop when onInterviewConcluded callback is called
     // This happens after the AI finishes its conclusion message
   }
@@ -333,21 +333,21 @@ Be warm but professional. Keep the conclusion brief (30 seconds max). Do NOT ask
         'Content-Type': 'application/json',
       },
     });
-    
+
     if (!response.ok) {
       const error = await response.text();
       throw new Error(`Failed to create session: ${error}`);
     }
-    
+
     const sessionData = await response.json();
-    
+
     // Check if session was created successfully
     if (sessionData.status === 'error') {
       throw new Error(sessionData.message || 'Failed to create session');
     }
-    
+
     console.log('✅ Session created with voice:', sessionData.voice || 'ash');
-    
+
     return sessionData;
   }
 
@@ -361,35 +361,35 @@ Be warm but professional. Keep the conclusion brief (30 seconds max). Do NOT ask
       // The WebSocket URL includes the model, and auth is done via subprotocol
       // Format: openai-insecure-api-key.{ephemeral_key}
       const wsUrl = sessionData.url;
-      
+
       console.log('🔌 Connecting to WebSocket:', wsUrl);
-      
+
       // Create WebSocket with the ephemeral key authentication
       // The subprotocol format allows browser WebSocket to pass authentication
       this.ws = new WebSocket(wsUrl, [
         'realtime',
         `openai-insecure-api-key.${sessionData.client_secret}`,
       ]);
-      
+
       this.ws.onopen = () => {
         console.log('🔌 WebSocket connected to OpenAI Realtime API');
         this.setConnectionStatus('ready');
         // Don't configure here - wait for session.created event
         resolve();
       };
-      
+
       this.ws.onclose = (event) => {
         console.log('🔌 WebSocket closed:', event.code, event.reason);
         if (this.connectionStatus !== 'ended') {
           this.setConnectionStatus('disconnected');
         }
       };
-      
+
       this.ws.onerror = (event) => {
         console.error('🔌 WebSocket error:', event);
         reject(new Error('WebSocket connection failed'));
       };
-      
+
       this.ws.onmessage = (event) => {
         this.handleServerEvent(JSON.parse(event.data) as ServerEvent);
       };
@@ -402,15 +402,15 @@ Be warm but professional. Keep the conclusion brief (30 seconds max). Do NOT ask
    */
   private configureSession(): void {
     const instructions = this.buildInterviewerInstructions();
-    
+
     console.log('📝 Configuring session with full configuration...');
     console.log('📝 Job context:', this.jobContext?.companyName, '-', this.jobContext?.position);
     console.log('📝 User profile:', this.userProfile?.firstName, this.userProfile?.lastName);
-    
+
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:configureSession',message:'Configuring session with input_audio_transcription',data:{hasInstructions:!!instructions,instructionsLength:instructions?.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-transcription-config'})}).catch(()=>{});
+    // Debug logging removed for production
     // #endregion
-    
+
     // Send session.update with configuration
     // IMPORTANT: 'type: realtime' is REQUIRED or the API will reject the update!
     // NOTE: input_audio_transcription is configured server-side in /api/openai-realtime-session
@@ -422,15 +422,15 @@ Be warm but professional. Keep the conclusion brief (30 seconds max). Do NOT ask
         instructions: instructions,
       },
     };
-    
+
     console.log('📤 Sending session.update with:');
     console.log('   - type: realtime (required)');
     console.log('   - instructions: ' + instructions.length + ' chars');
     console.log('   - input_audio_transcription: configured server-side');
     this.sendEvent(sessionUpdate as ClientEvent);
-    
+
     console.log('⏳ Waiting for session.updated confirmation before starting interview...');
-    
+
     // Fallback: if session.updated doesn't arrive within 3 seconds, start anyway
     // This handles cases where the update might fail silently
     setTimeout(() => {
@@ -441,7 +441,7 @@ Be warm but professional. Keep the conclusion brief (30 seconds max). Do NOT ask
       }
     }, 3000);
   }
-  
+
   /**
    * Trigger the AI to start the interview with a greeting
    */
@@ -452,17 +452,17 @@ Be warm but professional. Keep the conclusion brief (30 seconds max). Do NOT ask
       return;
     }
     this.greetingTriggered = true;
-    
+
     // Start the timer
     this.startTime = Date.now();
     console.log('⏱️ Interview timer started');
-    
+
     console.log('🎤 Triggering AI to start the interview...');
-    
+
     const userName = this.userProfile?.firstName || 'the candidate';
     const position = this.jobContext?.position || 'the position';
     const company = this.jobContext?.companyName || 'the company';
-    
+
     // Use response.create with specific instructions for the greeting
     // This ensures the AI knows exactly how to start even if session.update failed
     this.sendEvent({
@@ -480,7 +480,7 @@ IMPORTANT: Your name is Sarah Mitchell. Never say "[Interviewer Name]" - always 
 Be warm but professional. Speak clearly and at a measured pace like a real interviewer would.`,
       },
     });
-    
+
     console.log('✅ Initial greeting triggered with interviewer instructions');
   }
 
@@ -489,7 +489,7 @@ Be warm but professional. Speak clearly and at a measured pace like a real inter
    */
   private buildInterviewerInstructions(): string {
     const { jobContext, userProfile } = this;
-    
+
     // Build user context string
     const userContextParts: string[] = [];
     if (userProfile?.firstName || userProfile?.lastName) {
@@ -512,11 +512,11 @@ Be warm but professional. Speak clearly and at a measured pace like a real inter
       const truncatedCV = userProfile.cvText.slice(0, 2000);
       userContextParts.push(`Resume Summary:\n${truncatedCV}`);
     }
-    
-    const userContext = userContextParts.length > 0 
+
+    const userContext = userContextParts.length > 0
       ? `\n\n## Candidate Profile\n${userContextParts.join('\n')}`
       : '';
-    
+
     // Build job context string
     const jobContextParts: string[] = [];
     if (jobContext?.companyName) {
@@ -533,7 +533,7 @@ Be warm but professional. Speak clearly and at a measured pace like a real inter
     if (jobContext?.requirements && jobContext.requirements.length > 0) {
       jobContextParts.push(`Key Requirements: ${jobContext.requirements.slice(0, 8).join(', ')}`);
     }
-    
+
     const jobContextStr = jobContextParts.length > 0
       ? `\n\n## Position Details\n${jobContextParts.join('\n')}`
       : '';
@@ -603,13 +603,13 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
    */
   private async requestMicrophonePermission(): Promise<void> {
     console.log('🎤 Requesting microphone permission...');
-    
+
     try {
       // First, enumerate devices to see what's available
       const devices = await navigator.mediaDevices.enumerateDevices();
       const audioInputs = devices.filter(d => d.kind === 'audioinput');
       console.log('🎤 Available microphones:', audioInputs.map(d => `${d.label || 'Unknown'} (${d.deviceId.slice(0, 8)}...)`));
-      
+
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -618,12 +618,12 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
           // Don't force sample rate - let the browser choose optimal
         },
       });
-      
+
       // Verify the audio track is enabled
       const audioTracks = this.mediaStream.getAudioTracks();
       console.log('✅ Microphone access granted');
       console.log('🎤 Number of audio tracks:', audioTracks.length);
-      
+
       if (audioTracks.length > 0) {
         const track = audioTracks[0];
         const settings = track.getSettings();
@@ -634,22 +634,22 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         console.log('🎤 Sample rate:', settings.sampleRate);
         console.log('🎤 Channel count:', settings.channelCount);
         console.log('🎤 Device ID:', settings.deviceId?.slice(0, 20) + '...');
-        
+
         // Ensure the track is enabled
         if (!track.enabled) {
           track.enabled = true;
           console.log('🎤 Track was disabled, now enabled');
         }
-        
+
         // Listen for track ending
         track.onended = () => {
           console.error('❌ Audio track ended unexpectedly!');
         };
-        
+
         track.onmute = () => {
           console.warn('⚠️ Audio track was muted!');
         };
-        
+
         track.onunmute = () => {
           console.log('✅ Audio track unmuted');
         };
@@ -669,50 +669,50 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
     if (!this.mediaStream) {
       throw new Error('No media stream available');
     }
-    
+
     // Create audio context for both capture and playback
     this.audioContext = new AudioContext({
       sampleRate: 48000, // Standard browser rate
     });
-    
+
     // Create master gain node for instant muting during barge-in
     this.masterGainNode = this.audioContext.createGain();
     this.masterGainNode.gain.value = 1; // Start at full volume
     this.masterGainNode.connect(this.audioContext.destination);
     console.log('🔊 Master gain node created for barge-in control');
-    
+
     // IMPORTANT: Resume AudioContext if suspended (browser security policy)
     if (this.audioContext.state === 'suspended') {
       console.log('🔊 AudioContext is suspended, resuming...');
       await this.audioContext.resume();
       console.log('✅ AudioContext resumed, state:', this.audioContext.state);
     }
-    
+
     // Load the audio worklet processor
     await this.audioContext.audioWorklet.addModule('/audio-worklet-processor.js');
-    
+
     // Create source node from microphone
     this.sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
-    
+
     // Create audio worklet node for processing
     this.audioWorkletNode = new AudioWorkletNode(
       this.audioContext,
       'audio-realtime-processor'
     );
-    
+
     // Log when worklet is ready
     console.log('🎤 Audio worklet processor loaded and ready');
-    
+
     // Track audio sending for debugging
     let audioChunkCount = 0;
     let lastAudioLog = Date.now();
     let maxVolumeInPeriod = 0;
     let loggedFirstChunk = false;
-    
+
     // Handle messages from the worklet (audio chunks and volume levels)
     this.audioWorkletNode.port.onmessage = (event) => {
       const { type, audio, level } = event.data;
-      
+
       if (type === 'audio') {
         if (this.ws?.readyState === WebSocket.OPEN) {
           // Log first chunk details for debugging
@@ -722,14 +722,14 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
             console.log('   - First 50 chars:', audio.substring(0, 50));
             loggedFirstChunk = true;
           }
-          
+
           // Send audio chunk to OpenAI
           this.sendEvent({
             type: 'input_audio_buffer.append',
             audio,
           });
           audioChunkCount++;
-          
+
           // Log every 5 seconds to confirm audio is being sent
           const now = Date.now();
           if (now - lastAudioLog > 5000) {
@@ -753,24 +753,24 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         console.log('🔬 Worklet debug:', event.data.message);
       }
     };
-    
+
     // Connect the audio pipeline: mic -> worklet
     this.sourceNode.connect(this.audioWorkletNode);
-    
+
     // IMPORTANT: Connect worklet to destination to ensure audio flows through
     // We use a GainNode with 0 gain to prevent feedback while still processing
     const silentGain = this.audioContext.createGain();
     silentGain.gain.value = 0; // Silent - no audio to speakers
     this.audioWorkletNode.connect(silentGain);
     silentGain.connect(this.audioContext.destination);
-    
+
     console.log('✅ Audio pipeline connected: microphone -> worklet -> (silent) -> destination');
-    
+
     // Add an AnalyserNode to independently verify audio is flowing
     const analyser = this.audioContext.createAnalyser();
     analyser.fftSize = 256;
     this.sourceNode.connect(analyser);
-    
+
     // Check audio levels periodically using the analyser
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
     const checkAudioInterval = setInterval(() => {
@@ -785,7 +785,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         clearInterval(checkAudioInterval); // Only log once when we detect audio
       }
     }, 2000);
-    
+
     // Set status to live once audio is flowing
     this.setConnectionStatus('live');
   }
@@ -800,24 +800,24 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
    */
   private async playAudioChunk(base64Audio: string, responseId?: string): Promise<void> {
     if (!this.audioContext) return;
-    
+
     // === STRICT BARGE-IN VALIDATION ===
     // These checks are intentionally aggressive to prevent ANY old audio from playing
-    
+
     // 1. FIRST CHECK: If interrupted, REJECT ALL AUDIO - no exceptions!
     //    This is the most important check. When user is speaking, NO AI audio should play.
     if (this.isInterrupted) {
       // Don't even log frequently to avoid console spam
       return;
     }
-    
+
     // 2. Check generation counter - reject audio from before the latest interruption
     //    This catches audio that was "in flight" when we interrupted
     if (this.currentAudioGeneration !== this.interruptionGeneration) {
       console.log('🔇 Rejecting audio from old generation:', this.currentAudioGeneration, 'current:', this.interruptionGeneration);
       return;
     }
-    
+
     // 3. Check cooldown period after interruption - give time for old audio to clear
     if (this.interruptedAt > 0) {
       const timeSinceInterrupt = Date.now() - this.interruptedAt;
@@ -827,7 +827,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
       // Cooldown passed, clear the timestamp
       this.interruptedAt = 0;
     }
-    
+
     // 4. If responseId is provided, validate it strictly
     if (responseId) {
       // Reject if from a cancelled response
@@ -841,19 +841,19 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         return;
       }
     }
-    
+
     // 5. If we had an interruption recently but no responseId, be extra cautious
     //    Only allow if we've explicitly accepted this generation
     if (!responseId && this.interruptionGeneration > 0 && this.currentAudioGeneration < this.interruptionGeneration) {
       console.log('🔇 Rejecting audio without responseId after interruption');
       return;
     }
-    
+
     // Debug: log state on first chunk
     if (!this.playbackStarted) {
       console.log('🔊 Playing first chunk. Gen:', this.currentAudioGeneration, 'Response:', responseId);
     }
-    
+
     try {
       // Decode base64 to binary
       const binaryString = atob(base64Audio);
@@ -861,7 +861,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      
+
       // Convert PCM16 to Float32 for Web Audio API
       const pcm16 = new Int16Array(bytes.buffer);
       const float32 = new Float32Array(pcm16.length);
@@ -869,18 +869,18 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         // Convert from Int16 range to Float32 range
         float32[i] = pcm16[i] / 32768;
       }
-      
+
       // Create audio buffer (24kHz mono from OpenAI)
       const audioBuffer = this.audioContext.createBuffer(1, float32.length, 24000);
       audioBuffer.getChannelData(0).set(float32);
-      
+
       // Add to queue WITH tracking info - this enables validation at scheduling time
       this.audioPlaybackQueue.push({
         buffer: audioBuffer,
         responseId: responseId || null,
         generation: this.currentAudioGeneration,
       });
-      
+
       // Start playback after collecting enough chunks (pre-buffering)
       if (!this.playbackStarted && this.audioPlaybackQueue.length >= this.PREBUFFER_COUNT) {
         this.playbackStarted = true;
@@ -890,7 +890,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         // Already playing, schedule this chunk
         this.scheduleQueuedAudio();
       }
-      
+
       // Calculate and report output volume
       const rms = Math.sqrt(float32.reduce((sum, s) => sum + s * s, 0) / float32.length);
       const normalizedVolume = Math.min(1, rms * 3);
@@ -907,14 +907,14 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
     if (!this.audioContext || !this.masterGainNode || this.audioPlaybackQueue.length === 0 || this.isInterrupted) {
       return;
     }
-    
+
     // Check generation BEFORE scheduling any audio
     if (this.currentAudioGeneration !== this.interruptionGeneration) {
       console.log('🔇 scheduleQueuedAudio: Generation mismatch, clearing queue');
       this.audioPlaybackQueue = [];
       return;
     }
-    
+
     // Schedule all queued buffers
     while (this.audioPlaybackQueue.length > 0) {
       // Check for interruption BEFORE each buffer - handles rapid interrupts
@@ -923,48 +923,48 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         this.audioPlaybackQueue = [];
         return;
       }
-      
+
       const entry = this.audioPlaybackQueue.shift()!;
-      
+
       // VALIDATE EACH BUFFER at scheduling time (second line of defense)
       // This catches any buffers that snuck into the queue before state was updated
       if (entry.generation !== this.interruptionGeneration) {
         console.log('🔇 Skipping buffer from old generation:', entry.generation, 'current:', this.interruptionGeneration);
         continue; // Skip this buffer, move to next
       }
-      
+
       if (entry.responseId && entry.responseId !== this.currentResponseId) {
         console.log('🔇 Skipping buffer from old response:', entry.responseId, 'current:', this.currentResponseId);
         continue; // Skip this buffer, move to next
       }
-      
+
       if (entry.responseId && this.cancelledResponseIds.has(entry.responseId)) {
         console.log('🔇 Skipping buffer from cancelled response:', entry.responseId);
         continue; // Skip this buffer, move to next
       }
-      
+
       // Create buffer source
       const source = this.audioContext.createBufferSource();
       source.buffer = entry.buffer;
-      
+
       // Connect through master gain node (allows instant muting)
       source.connect(this.masterGainNode);
-      
+
       // Track this source so we can stop it later
       this.scheduledSources.push(source);
-      
+
       // Schedule to play at the exact time the previous chunk ends
       const currentTime = this.audioContext.currentTime;
       const startTime = Math.max(currentTime, this.nextPlaybackTime);
-      
+
       source.start(startTime);
-      
+
       // Update next playback time (duration = samples / sampleRate)
       this.nextPlaybackTime = startTime + entry.buffer.duration;
-      
+
       this.isPlaying = true;
       this.currentPlaybackSource = source;
-      
+
       // Cleanup when done
       source.onended = () => {
         // Remove from tracked sources
@@ -972,7 +972,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         if (index > -1) {
           this.scheduledSources.splice(index, 1);
         }
-        
+
         // Check if all sources are done
         if (this.scheduledSources.length === 0 && this.audioPlaybackQueue.length === 0) {
           this.isPlaying = false;
@@ -981,7 +981,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
       };
     }
   }
-  
+
   /**
    * Reset audio playback state (called when response ends)
    */
@@ -992,7 +992,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
     this.isPlaying = false;
     this.scheduledSources = [];
   }
-  
+
   /**
    * Force stop all audio sources without changing interrupted state
    */
@@ -1006,7 +1006,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
       } catch (e) { /* ignore */ }
     }
     this.scheduledSources = [];
-    
+
     // Stop current source
     if (this.currentPlaybackSource) {
       try {
@@ -1016,10 +1016,10 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
       } catch (e) { /* ignore */ }
       this.currentPlaybackSource = null;
     }
-    
+
     this.isPlaying = false;
   }
-  
+
   /**
    * Recreate the master gain node - this is the NUCLEAR option
    * By disconnecting the old gain node, ANY scheduled sources connected to it
@@ -1027,41 +1027,41 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
    */
   private recreateMasterGain(): void {
     if (!this.audioContext) return;
-    
+
     // Disconnect old gain node - this SEVERS the connection for all sources
     if (this.masterGainNode) {
       try {
         this.masterGainNode.disconnect();
       } catch (e) { /* ignore */ }
     }
-    
+
     // Create fresh gain node
     this.masterGainNode = this.audioContext.createGain();
     this.masterGainNode.gain.value = 1; // Full volume for new audio
     this.masterGainNode.connect(this.audioContext.destination);
-    
+
     console.log('🔊 Master gain node RECREATED - old sources orphaned');
   }
-  
+
   /**
    * Stop audio playback immediately (for barge-in/interruption)
    */
   private stopAudioPlayback(): void {
     console.log('🔇 STOP AUDIO - sources:', this.scheduledSources.length, 'queue:', this.audioPlaybackQueue.length);
-    
+
     // Set interrupted flag and timestamp FIRST
     this.isInterrupted = true;
     this.interruptedAt = Date.now();
-    
+
     // NUCLEAR OPTION: Recreate the master gain node
     // This DISCONNECTS the old gain node, orphaning any scheduled sources
     // Even if we miss some sources in our tracking, they can't play without a gain node
     this.recreateMasterGain();
-    
+
     // Stop and DISCONNECT ALL scheduled sources (belt and suspenders)
     const sourcesToStop = [...this.scheduledSources];
     this.scheduledSources = []; // Clear immediately
-    
+
     for (const source of sourcesToStop) {
       try {
         source.onended = null; // Remove callback to prevent any interference
@@ -1071,7 +1071,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         // Ignore - source might already be stopped
       }
     }
-    
+
     // Stop the currently playing source
     if (this.currentPlaybackSource) {
       try {
@@ -1083,15 +1083,15 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
       }
       this.currentPlaybackSource = null;
     }
-    
+
     // Clear the queue
     this.audioPlaybackQueue = [];
-    
+
     // Reset playback state
     this.playbackStarted = false;
     this.nextPlaybackTime = 0;
     this.isPlaying = false;
-    
+
     console.log('🔇 Audio STOPPED and CLEARED');
   }
 
@@ -1107,7 +1107,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
     if (event.type !== 'response.audio.delta') {
       console.log('📨 Server event:', event.type);
     }
-    
+
     switch (event.type) {
       case 'session.created':
         console.log('✅ Session created:', event.session.id);
@@ -1116,13 +1116,13 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         console.log('📝 Session ready, now configuring interviewer persona...');
         this.configureSession();
         break;
-        
+
       case 'session.updated':
         console.log('✅ Session updated successfully!');
         // Log the session config to see what was actually applied
         const session = (event as any).session;
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:session.updated',message:'Session updated - checking transcription config',data:{hasSession:!!session,inputAudioTranscription:session?.input_audio_transcription,turnDetection:session?.turn_detection?.type},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-transcription-config'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'liveInterviewClient.ts:session.updated', message: 'Session updated - checking transcription config', data: { hasSession: !!session, inputAudioTranscription: session?.input_audio_transcription, turnDetection: session?.turn_detection?.type }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H1-transcription-config' }) }).catch(() => { });
         // #endregion
         if (session) {
           console.log('📝 Session config:', {
@@ -1135,74 +1135,74 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         // NOW trigger the greeting since session is confirmed configured
         this.triggerInitialGreeting();
         break;
-        
+
       case 'error':
         const errorMsg = event.error.message || '';
-        
+
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:error',message:'Server error received',data:{errorType:event.error.type,errorCode:event.error.code,errorMsg:errorMsg},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2-api-error'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'liveInterviewClient.ts:error', message: 'Server error received', data: { errorType: event.error.type, errorCode: event.error.code, errorMsg: errorMsg }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H2-api-error' }) }).catch(() => { });
         // #endregion
-        
+
         // Ignore "no active response" errors - these happen when cancelling and are expected
         if (errorMsg.includes('no active response')) {
           console.log('ℹ️ No active response to cancel (this is normal after barge-in)');
           break;
         }
-        
+
         console.error('❌ SERVER ERROR:', event.error);
         console.error('❌ Error type:', event.error.type);
         console.error('❌ Error code:', event.error.code);
         console.error('❌ Error message:', errorMsg);
-        
+
         // Check if this is a session configuration error
-        if (errorMsg.includes('session') || 
-            errorMsg.includes('Unknown parameter') ||
-            errorMsg.includes('Invalid value') ||
-            errorMsg.includes('Missing required parameter') ||
-            errorMsg.includes('instructions') ||
-            errorMsg.includes('transcription')) {
+        if (errorMsg.includes('session') ||
+          errorMsg.includes('Unknown parameter') ||
+          errorMsg.includes('Invalid value') ||
+          errorMsg.includes('Missing required parameter') ||
+          errorMsg.includes('instructions') ||
+          errorMsg.includes('transcription')) {
           console.warn('⚠️ SESSION CONFIG ERROR - Configuration may not be applied!');
           // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:error:config',message:'Session config error detected',data:{errorType:event.error.type,errorCode:event.error.code,errorMsg:errorMsg},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2-api-error'})}).catch(()=>{});
+          fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'liveInterviewClient.ts:error:config', message: 'Session config error detected', data: { errorType: event.error.type, errorCode: event.error.code, errorMsg: errorMsg }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H2-api-error' }) }).catch(() => { });
           // #endregion
         } else {
           // Only show non-configuration errors to user
           this.config.onError?.(new Error(errorMsg));
         }
         break;
-        
+
       case 'input_audio_buffer.speech_started':
         // User started speaking - implement barge-in (interrupt AI)
         this.currentUserItemId = event.item_id;
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:speech_started',message:'User started speaking',data:{itemId:event.item_id,currentUserItemId:this.currentUserItemId},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3-item-id'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'liveInterviewClient.ts:speech_started', message: 'User started speaking', data: { itemId: event.item_id, currentUserItemId: this.currentUserItemId }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H3-item-id' }) }).catch(() => { });
         // #endregion
         console.log('🎤🎤🎤 BARGE-IN TRIGGERED 🎤🎤🎤');
         console.log('   isPlaying:', this.isPlaying, 'sources:', this.scheduledSources.length);
         console.log('   currentResponseId:', this.currentResponseId);
         console.log('   generation:', this.interruptionGeneration);
-        
+
         // INCREMENT GENERATION COUNTER - This invalidates ALL audio from before this moment
         this.interruptionGeneration++;
         console.log('   ✅ Generation incremented to:', this.interruptionGeneration);
-        
+
         // Track the current response as cancelled BEFORE stopping playback
         // This ensures any late audio from this response will be rejected
         if (this.currentResponseId) {
           this.cancelledResponseIds.add(this.currentResponseId);
           console.log('   ✅ Added to cancelled responses:', this.currentResponseId);
         }
-        
+
         // ALWAYS stop AI audio playback immediately (client-side)
         this.stopAudioPlayback();
         console.log('   ✅ stopAudioPlayback() called');
-        
+
         // Server-side: Cancel the response
         this.sendEvent({
           type: 'response.cancel',
         });
         console.log('   ✅ response.cancel sent');
-        
+
         // Server-side: Truncate the assistant's item if we have one
         // This properly handles conversation state
         if (this.currentAssistantItemId) {
@@ -1214,15 +1214,15 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
           } as any);
           console.log('🔇 Truncated assistant item:', this.currentAssistantItemId);
         }
-        
+
         console.log('🔇 BARGE-IN complete');
         break;
-        
+
       case 'input_audio_buffer.speech_stopped':
         // User stopped speaking
         console.log('🎤 User stopped speaking');
         break;
-      
+
       case 'input_audio_buffer.committed':
         // Audio buffer was committed - this happens after speech is detected
         console.log('🎤 Audio buffer committed, item:', (event as any).item_id);
@@ -1231,12 +1231,12 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
           this.currentUserItemId = (event as any).item_id;
         }
         break;
-        
+
       case 'conversation.item.input_audio_transcription.delta':
         // User's speech transcription streaming delta
         const transcriptDelta = (event as any).delta || (event as any).transcript;
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:transcription.delta',message:'User transcription delta received',data:{transcriptDelta:transcriptDelta,itemId:(event as any).item_id,currentUserItemId:this.currentUserItemId,fullEvent:JSON.stringify(event).substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3-H4-transcription-events'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'liveInterviewClient.ts:transcription.delta', message: 'User transcription delta received', data: { transcriptDelta: transcriptDelta, itemId: (event as any).item_id, currentUserItemId: this.currentUserItemId, fullEvent: JSON.stringify(event).substring(0, 500) }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H3-H4-transcription-events' }) }).catch(() => { });
         // #endregion
         console.log('📝 User transcription delta:', transcriptDelta);
         if (transcriptDelta) {
@@ -1260,11 +1260,11 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
           }
         }
         break;
-        
+
       case 'conversation.item.input_audio_transcription.completed':
         // User's speech was transcribed - NOW create the entry with text
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:transcription.completed',message:'User transcription completed',data:{transcript:event.transcript,itemId:event.item_id,currentUserItemId:this.currentUserItemId,transcriptLength:this.transcript.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3-H4-transcription-events'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'liveInterviewClient.ts:transcription.completed', message: 'User transcription completed', data: { transcript: event.transcript, itemId: event.item_id, currentUserItemId: this.currentUserItemId, transcriptLength: this.transcript.length }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H3-H4-transcription-events' }) }).catch(() => { });
         // #endregion
         console.log('📝 User transcription COMPLETED:', event.transcript);
         if (event.transcript && event.transcript.trim()) {
@@ -1287,12 +1287,12 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
           }
         }
         break;
-        
+
       case 'conversation.item.input_audio_transcription.failed':
         // User's speech transcription failed - log for debugging
         const transcriptionError = (event as any).error;
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'liveInterviewClient.ts:transcription.failed',message:'User transcription FAILED',data:{itemId:event.item_id,errorType:transcriptionError?.type,errorCode:transcriptionError?.code,errorMessage:transcriptionError?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H5-transcription-failed'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'liveInterviewClient.ts:transcription.failed', message: 'User transcription FAILED', data: { itemId: event.item_id, errorType: transcriptionError?.type, errorCode: transcriptionError?.code, errorMessage: transcriptionError?.message }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H5-transcription-failed' }) }).catch(() => { });
         // #endregion
         console.error('❌ User transcription failed:', transcriptionError);
         console.error('   Item ID:', event.item_id);
@@ -1302,41 +1302,41 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
         // Don't show error to user - transcription failure is not critical
         // The interview can continue, we just won't have the user's text
         break;
-        
+
       case 'response.created':
         // AI is starting a new response
         const newResponseId = (event as any).response?.id || `resp_${Date.now()}`;
         console.log('🤖 NEW RESPONSE:', newResponseId);
         console.log('   Previous generation:', this.currentAudioGeneration, 'Interruption generation:', this.interruptionGeneration);
-        
+
         // Clear any leftover audio from previous response
         this.stopAllAudioSources();
         this.audioPlaybackQueue = [];
         this.playbackStarted = false;
         this.nextPlaybackTime = 0;
-        
+
         // Update state for new response
         this.currentAssistantItemId = null;
         this.currentResponseId = newResponseId;
-        
+
         // ACCEPT THE NEW GENERATION - This is the key to allowing new audio
         // We set currentAudioGeneration to match interruptionGeneration, which
         // signals that audio for this response is allowed to play
         this.currentAudioGeneration = this.interruptionGeneration;
         console.log('   ✅ Accepted generation:', this.currentAudioGeneration);
-        
+
         // NOW reset isInterrupted - the new response is ready
         // This is safe because we've updated the generation counter
         this.isInterrupted = false;
-        
+
         // Restore gain for new audio
         if (this.masterGainNode && this.audioContext) {
           this.masterGainNode.gain.setValueAtTime(1, this.audioContext.currentTime);
         }
-        
+
         console.log('🔊 Ready for audio');
         break;
-        
+
       case 'response.output_item.added':
         // New output item from AI - just track ID, don't create entry yet
         if (event.item.role === 'assistant') {
@@ -1344,7 +1344,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
           console.log('🤖 AI output item added:', event.item.id);
         }
         break;
-      
+
       // GA API sends conversation.item.created or conversation.item.added for new items
       case 'conversation.item.created':
       case 'conversation.item.added':
@@ -1367,7 +1367,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
           }
         }
         break;
-      
+
       case 'conversation.item.done':
         // Item is complete - mark it
         console.log('✅ Conversation item done:', event.item?.id);
@@ -1375,39 +1375,39 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
           this.updateTranscriptEntry(event.item.id, { isComplete: true });
         }
         break;
-        
+
       case 'response.audio_transcript.delta':
         // AI audio transcript delta - update transcript
         if (this.currentAssistantItemId) {
           this.appendToTranscriptEntry(event.item_id, event.delta);
         }
         break;
-      
+
       // GA API might use response.text.delta for text responses
       case 'response.text.delta':
         if (this.currentAssistantItemId) {
           this.appendToTranscriptEntry(event.item_id, event.delta);
         }
         break;
-        
+
       case 'response.audio.delta':
         // AI audio chunk - play it (pass response_id to filter old responses)
         this.playAudioChunk(event.delta, (event as any).response_id);
         break;
-      
+
       // GA API audio delta event (might be named differently)
       case 'response.output_audio.delta':
         if ((event as any).delta) {
           this.playAudioChunk((event as any).delta, (event as any).response_id);
         }
         break;
-        
+
       case 'response.audio.done':
       case 'response.output_audio.done':
         // AI finished speaking this chunk
         console.log('🔊 Audio done');
         break;
-      
+
       // GA API transcript events
       case 'response.output_audio_transcript.delta':
         // Real-time transcript of AI speech
@@ -1419,7 +1419,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
           }
         }
         break;
-        
+
       case 'response.output_audio_transcript.done':
         // Final transcript of AI speech
         const transcript = (event as any).transcript;
@@ -1445,7 +1445,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
           }
         }
         break;
-      
+
       case 'response.content_part.done':
         // Content part completed - might contain audio or text
         console.log('📦 Content part done:', (event as any).part?.type);
@@ -1454,12 +1454,12 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
           this.updateTranscriptEntry(this.currentAssistantItemId, { text: part.transcript });
         }
         break;
-      
+
       case 'response.output_item.done':
         // Output item completed
         console.log('📦 Output item done');
         break;
-        
+
       case 'response.done':
         // AI finished responding
         console.log('✅ RESPONSE DONE:', this.currentResponseId);
@@ -1467,12 +1467,12 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
           this.updateTranscriptEntry(this.currentAssistantItemId, { isComplete: true });
         }
         this.currentAssistantItemId = null;
-        
+
         // Reset ALL state for next response
         this.resetAudioPlayback();
         this.isInterrupted = false;
         this.interruptedAt = 0;
-        
+
         // Clean up: remove this response from cancelled set (if it was there)
         // and clear old entries to prevent memory leaks
         if (this.currentResponseId) {
@@ -1483,14 +1483,14 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
           const idsArray = Array.from(this.cancelledResponseIds);
           this.cancelledResponseIds = new Set(idsArray.slice(-10));
         }
-        
+
         this.currentResponseId = null;
-        
+
         // Make sure gain is at 1 for next response
         if (this.masterGainNode && this.audioContext) {
           this.masterGainNode.gain.setValueAtTime(1, this.audioContext.currentTime);
         }
-        
+
         // If interview was being concluded, notify that conclusion is complete
         if (this.isInterviewEnded) {
           console.log('🏁 Interview conclusion message delivered');
@@ -1499,12 +1499,12 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
           console.log('   Ready for next response');
         }
         break;
-        
+
       case 'response.cancelled':
         // Response was cancelled (due to barge-in)
         const cancelledResponseId = (event as any).response?.id;
         console.log('🔇 Response cancelled:', cancelledResponseId);
-        
+
         // CRITICAL: Only reset if this is the CURRENT response being cancelled
         // If this is an OLD response that was already cancelled, ignore it!
         // Otherwise we'd reset the state for the NEW response that's already playing
@@ -1512,32 +1512,32 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
           console.log('   ℹ️ Ignoring - this is an old cancelled response, not current');
           break;
         }
-        
+
         // Also check if it's in our cancelled set (we already handled it)
         if (cancelledResponseId && this.cancelledResponseIds.has(cancelledResponseId)) {
           console.log('   ℹ️ Ignoring - already in cancelled set');
           break;
         }
-        
+
         this.currentAssistantItemId = null;
         this.resetAudioPlayback();
         break;
-        
+
       case 'rate_limits.updated':
         // Rate limit info - could display to user if needed
         break;
-        
+
       default:
         // Log unknown events for debugging with more detail
         const eventData = event as any;
         console.log('📨 Unhandled event:', event.type);
-        
+
         // SPECIAL: Log any event related to transcription for debugging
         if (event.type.includes('transcription') || event.type.includes('transcript')) {
           console.log('🎯 TRANSCRIPTION-RELATED EVENT DETECTED:', event.type);
           console.log('   Full event data:', JSON.stringify(eventData, null, 2));
         }
-        
+
         // Check if this event has audio data
         // GUARDED: Only play if NOT interrupted and has a valid response_id
         if (eventData.delta && typeof eventData.delta === 'string' && eventData.delta.length > 100) {
@@ -1610,7 +1610,7 @@ IMPORTANT: Never say "[Interviewer Name]" - your name is Sarah Mitchell.`;
    */
   private addOrUpdateAssistantEntry(id: string, text: string): void {
     if (!text || !text.trim()) return;
-    
+
     const existingIndex = this.transcript.findIndex(e => e.id === id);
     if (existingIndex === -1) {
       // Create new entry

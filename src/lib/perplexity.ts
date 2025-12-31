@@ -17,7 +17,7 @@ export interface PerplexityOptions {
 export async function queryPerplexity(prompt: string, options?: PerplexityOptions): Promise<any> {
   try {
     console.log('Sending request to Perplexity API via /api/perplexity...');
-    
+
     const requestBody: any = {
       prompt: prompt,
       model: options?.model || 'sonar-pro',
@@ -41,7 +41,7 @@ export async function queryPerplexity(prompt: string, options?: PerplexityOption
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('Perplexity API error response:', response.status, errorData);
-      
+
       return {
         text: errorData.text || errorData.message || `Sorry, there was a problem with the AI service (${response.status}).`,
         error: true,
@@ -51,7 +51,17 @@ export async function queryPerplexity(prompt: string, options?: PerplexityOption
 
     const data = await response.json();
     console.log('Perplexity API response received:', response.status);
-    
+
+    // Handle OpenAI-compatible format (Perplexity)
+    if (data.choices && data.choices[0]?.message?.content) {
+      const content = data.choices[0].message.content;
+      console.log('Response content:', content.substring(0, 100) + '...');
+      return {
+        ...data,
+        text: content
+      };
+    }
+
     // The server already formats the response with the same structure
     if (data.text) {
       console.log('Response content:', data.text.substring(0, 100) + '...');
@@ -72,7 +82,7 @@ export async function queryPerplexity(prompt: string, options?: PerplexityOption
     }
   } catch (error) {
     console.error('Error querying Perplexity API:', error);
-    
+
     // Check if it's a network error
     if (error instanceof TypeError && error.message.includes('fetch')) {
       console.error('Network error or request blocked:', error.message);
@@ -82,7 +92,7 @@ export async function queryPerplexity(prompt: string, options?: PerplexityOption
         errorMessage: error.message
       };
     }
-    
+
     // Generic error fallback
     return {
       text: "I'm sorry, I couldn't process your request due to a technical issue. This could be a network problem, an issue with the Perplexity API, or with your browser settings blocking certain requests. Please try again later.",
@@ -100,7 +110,7 @@ export async function queryPerplexity(prompt: string, options?: PerplexityOption
 export async function queryPerplexityForJobExtraction(prompt: string): Promise<any> {
   try {
     console.log('Sending job extraction request to Perplexity API via /api/perplexity...');
-    
+
     // Build the specialized system message for job extraction
     const systemMessage = `You are a precise job posting information extractor. Your ONLY task is to visit URLs and extract EXACT information from job posting pages.
 
@@ -192,7 +202,7 @@ CRITICAL RULES - FOLLOW THESE EXACTLY:
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('Perplexity API error response:', response.status, errorData);
-      
+
       return {
         text: errorData.text || errorData.message || `Sorry, there was a problem with the AI service (${response.status}).`,
         error: true,
@@ -202,7 +212,17 @@ CRITICAL RULES - FOLLOW THESE EXACTLY:
 
     const data = await response.json();
     console.log('Perplexity API response received:', response.status);
-    
+
+    // Handle OpenAI-compatible format (Perplexity)
+    if (data.choices && data.choices[0]?.message?.content) {
+      const content = data.choices[0].message.content;
+      console.log('Response content:', content.substring(0, 200) + '...');
+      return {
+        ...data,
+        text: content
+      };
+    }
+
     // The server already formats the response with the same structure
     if (data.text) {
       console.log('Response content:', data.text.substring(0, 200) + '...');
@@ -223,7 +243,7 @@ CRITICAL RULES - FOLLOW THESE EXACTLY:
     }
   } catch (error) {
     console.error('Error querying Perplexity API for job extraction:', error);
-    
+
     // Check if it's a network error
     if (error instanceof TypeError && error.message.includes('fetch')) {
       console.error('Network error or request blocked:', error.message);
@@ -233,7 +253,7 @@ CRITICAL RULES - FOLLOW THESE EXACTLY:
         errorMessage: error.message
       };
     }
-    
+
     // Generic error fallback
     return {
       text: "I'm sorry, I couldn't process your request due to a technical issue. This could be a network problem, an issue with the Perplexity API, or with your browser settings blocking certain requests. Please try again later.",

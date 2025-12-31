@@ -49,14 +49,14 @@ export interface UseRealtimeInterviewReturn {
   isAISpeaking: boolean;
   elapsedTime: number;
   isMuted: boolean;
-  
+
   // Actions
   connect: (jobContext: JobContext, userProfile: UserProfile) => Promise<void>;
   disconnect: () => void;
   concludeInterview: () => void;
   getFullTranscript: () => TranscriptEntry[];
   toggleMute: () => void;
-  
+
   // Audio levels (for UI visualization)
   inputAudioLevel: number;
   outputAudioLevel: number;
@@ -77,19 +77,19 @@ export function useRealtimeInterview(): UseRealtimeInterviewReturn {
   // Connection state
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [error, setError] = useState<string | null>(null);
-  
+
   // Transcript state
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
-  
+
   // Audio state
   const [inputAudioLevel, setInputAudioLevel] = useState(0);
   const [outputAudioLevel, setOutputAudioLevel] = useState(0);
   const [isAISpeaking, setIsAISpeaking] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  
+
   // Timer state
   const [elapsedTime, setElapsedTime] = useState(0);
-  
+
   // Refs for resources
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null); // For capture (48kHz)
@@ -97,7 +97,7 @@ export function useRealtimeInterview(): UseRealtimeInterviewReturn {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const workletNodeRef = useRef<AudioWorkletNode | null>(null);
   const playbackGainRef = useRef<GainNode | null>(null);
-  
+
   // Refs for state tracking
   const startTimeRef = useRef<number>(0);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -110,12 +110,12 @@ export function useRealtimeInterview(): UseRealtimeInterviewReturn {
   const userProfileRef = useRef<UserProfile | null>(null);
   const sessionReadyRef = useRef<boolean>(false);
   const isMutedRef = useRef<boolean>(false);
-  
+
   // Audio playback queue
   const audioQueueRef = useRef<AudioBuffer[]>([]);
   const isPlayingRef = useRef<boolean>(false);
   const nextPlayTimeRef = useRef<number>(0);
-  
+
   // Audio accumulation buffer for smoother playback (reduces chunk boundary artifacts)
   const pendingSamplesRef = useRef<Float32Array[]>([]);
   const pendingSamplesLengthRef = useRef<number>(0);
@@ -177,11 +177,11 @@ export function useRealtimeInterview(): UseRealtimeInterviewReturn {
   const buildInstructions = useCallback((): string => {
     const job = jobContextRef.current;
     const user = userProfileRef.current;
-    
+
     const userName = user?.firstName || 'the candidate';
     const position = job?.position || 'the position';
     const company = job?.companyName || 'the company';
-    
+
     // Build user context
     const userParts: string[] = [];
     if (user?.firstName || user?.lastName) {
@@ -192,18 +192,18 @@ export function useRealtimeInterview(): UseRealtimeInterviewReturn {
     if (user?.skills?.length) userParts.push(`Key Skills: ${user.skills.slice(0, 10).join(', ')}`);
     if (user?.education) userParts.push(`Education: ${user.education}`);
     if (user?.cvText) userParts.push(`Resume Summary:\n${user.cvText.slice(0, 2000)}`);
-    
-    const userContext = userParts.length > 0 
-      ? `\n\n## Candidate Profile\n${userParts.join('\n')}` 
+
+    const userContext = userParts.length > 0
+      ? `\n\n## Candidate Profile\n${userParts.join('\n')}`
       : '';
-    
+
     // Build job context
     const jobParts: string[] = [];
     if (job?.companyName) jobParts.push(`Company: ${job.companyName}`);
     if (job?.position) jobParts.push(`Position: ${job.position}`);
     if (job?.jobDescription) jobParts.push(`Job Description:\n${job.jobDescription.slice(0, 1500)}`);
     if (job?.requirements?.length) jobParts.push(`Key Requirements: ${job.requirements.slice(0, 8).join(', ')}`);
-    
+
     const jobContext = jobParts.length > 0
       ? `\n\n## Position Details\n${jobParts.join('\n')}`
       : '';
@@ -260,18 +260,18 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
 
     isPlayingRef.current = true;
     setIsAISpeaking(true);
-    
+
     const buffer = audioQueueRef.current.shift()!;
     const source = playbackContextRef.current.createBufferSource();
     source.buffer = buffer;
     source.connect(playbackGainRef.current);
-    
+
     const currentTime = playbackContextRef.current.currentTime;
     const startTime = Math.max(currentTime, nextPlayTimeRef.current);
-    
+
     source.start(startTime);
     nextPlayTimeRef.current = startTime + buffer.duration;
-    
+
     // Calculate output level for visualization
     const data = buffer.getChannelData(0);
     let sum = 0;
@@ -280,7 +280,7 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
     }
     const rms = Math.sqrt(sum / (data.length / 100));
     setOutputAudioLevel(Math.min(1, rms * 3));
-    
+
     source.onended = () => {
       if (audioQueueRef.current.length > 0) {
         playNextInQueue();
@@ -295,7 +295,7 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
   // Flush accumulated samples into an AudioBuffer and queue it
   const flushPendingSamples = useCallback(() => {
     if (!playbackContextRef.current || pendingSamplesRef.current.length === 0) return;
-    
+
     // Concatenate all pending samples into one buffer
     const totalLength = pendingSamplesLengthRef.current;
     const combined = new Float32Array(totalLength);
@@ -304,7 +304,7 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
       combined.set(chunk, offset);
       offset += chunk.length;
     }
-    
+
     // Apply fade-in/fade-out to reduce clicks at boundaries
     const fadeLength = Math.min(64, Math.floor(totalLength / 10)); // ~2.7ms fade at 24kHz
     for (let i = 0; i < fadeLength; i++) {
@@ -312,17 +312,17 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
       combined[i] *= fadeIn;
       combined[totalLength - 1 - i] *= fadeIn;
     }
-    
+
     // Create audio buffer
     const audioBuffer = playbackContextRef.current.createBuffer(1, totalLength, 24000);
     audioBuffer.getChannelData(0).set(combined);
-    
+
     audioQueueRef.current.push(audioBuffer);
-    
+
     // Clear pending samples
     pendingSamplesRef.current = [];
     pendingSamplesLengthRef.current = 0;
-    
+
     // Start playback if not already playing
     if (!isPlayingRef.current) {
       nextPlayTimeRef.current = playbackContextRef.current.currentTime + 0.1;
@@ -332,7 +332,7 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
 
   const queueAudioChunk = useCallback(async (base64Audio: string) => {
     if (!playbackContextRef.current) return;
-    
+
     try {
       // Decode base64 to PCM16
       const binaryString = atob(base64Audio);
@@ -340,18 +340,18 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      
+
       // Convert PCM16 to Float32
       const pcm16 = new Int16Array(bytes.buffer);
       const float32 = new Float32Array(pcm16.length);
       for (let i = 0; i < pcm16.length; i++) {
         float32[i] = pcm16[i] / 32768;
       }
-      
+
       // Accumulate samples instead of playing immediately
       pendingSamplesRef.current.push(float32);
       pendingSamplesLengthRef.current += float32.length;
-      
+
       // Flush when we have enough samples (reduces boundary artifacts)
       if (pendingSamplesLengthRef.current >= SAMPLES_PER_CHUNK) {
         flushPendingSamples();
@@ -369,7 +369,7 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
     nextPlayTimeRef.current = 0;
     setIsAISpeaking(false);
     setOutputAudioLevel(0);
-    
+
     // Mute instantly
     if (playbackGainRef.current && playbackContextRef.current) {
       playbackGainRef.current.gain.setValueAtTime(0, playbackContextRef.current.currentTime);
@@ -394,7 +394,7 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
 
   const handleServerEvent = useCallback((event: any) => {
     const eventType = event.type as string;
-    
+
     // Log events (except frequent audio deltas)
     if (!eventType.includes('audio.delta')) {
       console.log('📨 Server event:', eventType);
@@ -406,23 +406,23 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
         console.log('✅ Session created');
         // Don't block here - we already sent session.update on open
         break;
-        
+
       case 'session.updated':
         console.log('✅ Session updated - ready to go');
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useRealtimeInterview.ts:364',message:'session.updated received - config applied',data:{sessionConfig: event.session ? JSON.stringify(event.session).substring(0, 300) : 'no session data'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-H3'})}).catch(()=>{});
+        // Debug logging removed for production
         // #endregion
         sessionReadyRef.current = true;
         setConnectionStatus('live');
         // Trigger initial greeting
         triggerGreeting();
         break;
-        
+
       case 'error':
         const errorMsg = event.error?.message || 'Unknown error';
         console.error('❌ Server error:', errorMsg);
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useRealtimeInterview.ts:374',message:'SERVER ERROR',data:{errorMsg, fullError: JSON.stringify(event.error)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-H4'})}).catch(()=>{});
+        // Debug logging removed for production
         // #endregion
         // Ignore "no active response" errors (normal after barge-in)
         if (!errorMsg.includes('no active response')) {
@@ -436,11 +436,11 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
         // Generate stable ID for this user entry
         const userId = event.item_id || `user_${Date.now()}`;
         currentUserIdRef.current = userId;
-        
+
         // Create placeholder entry immediately to reserve correct position in transcript
         // This ensures user entries always appear before AI responses
         addOrUpdateTranscript(userId, 'user', '', false);
-        
+
         // Clear silence timeout
         if (silenceTimeoutRef.current) {
           clearTimeout(silenceTimeoutRef.current);
@@ -450,11 +450,11 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
         stopAudioPlayback();
         sendEvent({ type: 'response.cancel' });
         break;
-        
+
       case 'input_audio_buffer.speech_stopped':
         console.log('🎤 User stopped speaking');
         break;
-        
+
       case 'input_audio_buffer.committed':
         console.log('🎤 Audio buffer committed');
         if (event.item_id) {
@@ -466,7 +466,7 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
       case 'conversation.item.input_audio_transcription.completed':
         console.log('📝 User transcription:', event.transcript);
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useRealtimeInterview.ts:408',message:'USER TRANSCRIPTION RECEIVED',data:{transcript: event.transcript, itemId: event.item_id},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
+        // Debug logging removed for production
         // #endregion
         if (event.transcript?.trim()) {
           const id = event.item_id || currentUserIdRef.current || `user_${Date.now()}`;
@@ -492,7 +492,7 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
           });
         }
         break;
-        
+
       case 'conversation.item.input_audio_transcription.failed':
         console.warn('⚠️ Transcription failed:', event.error);
         break;
@@ -502,7 +502,7 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
         console.log('🤖 Response started');
         currentAssistantIdRef.current = null;
         break;
-        
+
       case 'response.output_item.added':
         if (event.item?.role === 'assistant') {
           currentAssistantIdRef.current = event.item.id;
@@ -521,7 +521,7 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
           addOrUpdateTranscript(id, 'assistant', delta, false);
         }
         break;
-        
+
       case 'response.audio_transcript.done':
       case 'response.output_audio_transcript.done':
       case 'response.text.done':
@@ -543,7 +543,7 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
           queueAudioChunk(event.delta);
         }
         break;
-        
+
       case 'response.audio.done':
       case 'response.output_audio.done':
         console.log('🔊 AI audio done');
@@ -558,13 +558,13 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
           setTranscriptComplete(currentAssistantIdRef.current);
         }
         currentAssistantIdRef.current = null;
-        
+
         // Check if this was the conclusion
         if (isEndedRef.current) {
           console.log('🏁 Interview concluded');
         }
         break;
-        
+
       case 'response.cancelled':
         console.log('🔇 Response cancelled');
         currentAssistantIdRef.current = null;
@@ -574,7 +574,7 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
       case 'rate_limits.updated':
         // Ignore
         break;
-        
+
       default:
         // Log unknown events that might contain useful data
         if (event.transcript) {
@@ -590,16 +590,16 @@ IMPORTANT: Your name is Alex. Never say "[Interviewer Name]".`;
 
   const triggerGreeting = useCallback(() => {
     if (!jobContextRef.current || !userProfileRef.current) return;
-    
+
     const userName = userProfileRef.current.firstName || 'the candidate';
     const position = jobContextRef.current.position || 'the position';
     const company = jobContextRef.current.companyName || 'the company';
-    
+
     console.log('🎤 Triggering initial greeting...');
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/f1b6f097-e586-4b69-89f1-94728d17977c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useRealtimeInterview.ts:533',message:'triggerGreeting called',data:{userName, position, company},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H5'})}).catch(()=>{});
+    // Debug logging removed for production
     // #endregion
-    
+
     sendEvent({
       type: 'response.create',
       response: {
@@ -628,37 +628,37 @@ Be warm but professional. Your name is Alex.`,
           autoGainControl: true,
         },
       });
-      
+
       // Create audio context for capture (48kHz for microphone)
       audioContextRef.current = new AudioContext({ sampleRate: 48000 });
-      
+
       // Resume if suspended
       if (audioContextRef.current.state === 'suspended') {
         await audioContextRef.current.resume();
       }
-      
+
       // Create separate audio context for playback at 24kHz (matches OpenAI output)
       // This eliminates resampling artifacts that cause crackling/buzzing
       playbackContextRef.current = new AudioContext({ sampleRate: 24000 });
       if (playbackContextRef.current.state === 'suspended') {
         await playbackContextRef.current.resume();
       }
-      
+
       // Create playback gain node on the playback context
       playbackGainRef.current = playbackContextRef.current.createGain();
       playbackGainRef.current.connect(playbackContextRef.current.destination);
-      
+
       // Load audio worklet
       await audioContextRef.current.audioWorklet.addModule('/audio-worklet-processor.js');
-      
+
       // Create nodes
       const sourceNode = audioContextRef.current.createMediaStreamSource(mediaStreamRef.current);
       workletNodeRef.current = new AudioWorkletNode(audioContextRef.current, 'audio-realtime-processor');
-      
+
       // Handle audio data from worklet
       workletNodeRef.current.port.onmessage = (event) => {
         const { type, audio, level } = event.data;
-        
+
         if (type === 'audio' && wsRef.current?.readyState === WebSocket.OPEN) {
           // Only send audio if not muted
           if (!isMutedRef.current) {
@@ -667,12 +667,12 @@ Be warm but professional. Your name is Alex.`,
               audio,
             });
             lastAudioTimeRef.current = Date.now();
-            
+
             // Reset silence timeout
             if (silenceTimeoutRef.current) {
               clearTimeout(silenceTimeoutRef.current);
             }
-            
+
             // Set silence fallback timeout
             silenceTimeoutRef.current = setTimeout(() => {
               // Manual commit if server VAD didn't trigger
@@ -687,16 +687,16 @@ Be warm but professional. Your name is Alex.`,
           setInputAudioLevel(isMutedRef.current ? 0 : level);
         }
       };
-      
+
       // Connect pipeline
       sourceNode.connect(workletNodeRef.current);
-      
+
       // Silent output to keep worklet running
       const silentGain = audioContextRef.current.createGain();
       silentGain.gain.value = 0;
       workletNodeRef.current.connect(silentGain);
       silentGain.connect(audioContextRef.current.destination);
-      
+
       console.log('✅ Audio capture ready');
     } catch (err) {
       console.error('❌ Audio setup failed:', err);
@@ -714,48 +714,48 @@ Be warm but professional. Your name is Alex.`,
     userProfileRef.current = userProfile;
     isEndedRef.current = false;
     sessionReadyRef.current = false;
-    
+
     // Reset state
     setTranscript([]);
     setError(null);
     setElapsedTime(0);
     setConnectionStatus('connecting');
-    
+
     try {
       // Get session credentials from backend
       const response = await fetch('/api/openai-realtime-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to create session');
       }
-      
+
       const sessionData = await response.json();
       if (sessionData.status === 'error') {
         throw new Error(sessionData.message);
       }
-      
+
       console.log('✅ Session credentials received');
-      
+
       // Setup audio capture first
       await setupAudioCapture();
-      
+
       // Connect WebSocket
       wsRef.current = new WebSocket(sessionData.url, [
         'realtime',
         `openai-insecure-api-key.${sessionData.client_secret}`,
       ]);
-      
+
       wsRef.current.onopen = () => {
         console.log('🔌 WebSocket connected');
         setConnectionStatus('ready');
-        
+
         // IMMEDIATELY send session.update (don't wait for session.created)
         const instructions = buildInstructions();
         console.log('📝 Sending session.update...');
-        
+
         // GA Realtime API session.update payload
         // - session.type: "realtime" is REQUIRED
         // - audio.input.transcription replaces input_audio_transcription
@@ -783,15 +783,15 @@ Be warm but professional. Your name is Alex.`,
             },
           },
         };
-        
+
         sendEvent(sessionUpdatePayload);
-        
+
         // Start timer
         startTimeRef.current = Date.now();
         timerIntervalRef.current = setInterval(() => {
           const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
           setElapsedTime(elapsed);
-          
+
           // Auto-conclude at max duration
           if (elapsed * 1000 >= MAX_DURATION_MS && !isEndedRef.current) {
             console.log('⏱️ Time is up!');
@@ -799,7 +799,7 @@ Be warm but professional. Your name is Alex.`,
           }
         }, 1000);
       };
-      
+
       wsRef.current.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -808,20 +808,20 @@ Be warm but professional. Your name is Alex.`,
           console.error('Failed to parse message:', err);
         }
       };
-      
+
       wsRef.current.onerror = (event) => {
         console.error('🔌 WebSocket error:', event);
         setError('Connection error');
         setConnectionStatus('error');
       };
-      
+
       wsRef.current.onclose = (event) => {
         console.log('🔌 WebSocket closed:', event.code, event.reason);
         if (connectionStatus !== 'ended') {
           setConnectionStatus('disconnected');
         }
       };
-      
+
     } catch (err) {
       console.error('❌ Connection failed:', err);
       setError(err instanceof Error ? err.message : 'Connection failed');
@@ -833,7 +833,7 @@ Be warm but professional. Your name is Alex.`,
   const disconnect = useCallback(() => {
     console.log('🔌 Disconnecting...');
     setConnectionStatus('ended');
-    
+
     // Clear timers
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
@@ -843,36 +843,36 @@ Be warm but professional. Your name is Alex.`,
       clearTimeout(silenceTimeoutRef.current);
       silenceTimeoutRef.current = null;
     }
-    
+
     // Stop audio worklet
     if (workletNodeRef.current) {
       workletNodeRef.current.port.postMessage({ type: 'stop' });
       workletNodeRef.current.disconnect();
       workletNodeRef.current = null;
     }
-    
+
     // Stop media stream
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
     }
-    
+
     // Close audio contexts (check state to avoid "already closed" error)
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current.close().catch(() => { });
       audioContextRef.current = null;
     }
     if (playbackContextRef.current && playbackContextRef.current.state !== 'closed') {
-      playbackContextRef.current.close().catch(() => {});
+      playbackContextRef.current.close().catch(() => { });
       playbackContextRef.current = null;
     }
-    
+
     // Close WebSocket
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
-    
+
     // Clear audio queue
     audioQueueRef.current = [];
     isPlayingRef.current = false;
@@ -883,13 +883,13 @@ Be warm but professional. Your name is Alex.`,
 
   const concludeInterview = useCallback(() => {
     if (isEndedRef.current) return;
-    
+
     console.log('🏁 Concluding interview...');
     isEndedRef.current = true;
-    
+
     // Stop audio playback
     stopAudioPlayback();
-    
+
     // Send conclusion request
     sendEvent({
       type: 'response.create',
