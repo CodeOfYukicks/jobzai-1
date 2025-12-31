@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls, PanInfo } from 'framer-motion';
 import { X, Sparkles, History, Plus, MessageSquare, ChevronRight, Trash2 } from 'lucide-react';
 import { useAssistant } from '../../contexts/AssistantContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -31,6 +31,7 @@ export default function MobileAIAssistantModal({ isOpen, onClose }: MobileAIAssi
     const { profile } = useUserProfile();
     const [showQuickActions, setShowQuickActions] = useState(true);
     const [showHistory, setShowHistory] = useState(false);
+    const dragControls = useDragControls();
 
     // Hide quick actions when there are messages
     useEffect(() => {
@@ -46,6 +47,12 @@ export default function MobileAIAssistantModal({ isOpen, onClose }: MobileAIAssi
         onClose();
         setShowHistory(false);
         closeAssistant();
+    };
+
+    const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+        if (info.offset.y > 100 || info.velocity.y > 500) {
+            handleClose();
+        }
     };
 
     const handleNewChat = () => {
@@ -69,7 +76,6 @@ export default function MobileAIAssistantModal({ isOpen, onClose }: MobileAIAssi
 
     // Get current page name for subtitle
     const pageName = currentPageContext?.pageName || 'Jobzai';
-    const subtitle = pageName === 'Jobzai' ? 'AI Assistant' : `Assistant for ${pageName}`;
 
     return (
         <AnimatePresence>
@@ -90,16 +96,28 @@ export default function MobileAIAssistantModal({ isOpen, onClose }: MobileAIAssi
                         animate={{ y: 0 }}
                         exit={{ y: '100%' }}
                         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                        className="fixed inset-x-0 bottom-0 z-[61] h-[92vh] bg-white dark:bg-[#1e1e1f] rounded-t-[32px] overflow-hidden flex flex-col shadow-2xl"
+                        drag="y"
+                        dragControls={dragControls}
+                        dragListener={false}
+                        dragConstraints={{ top: 0 }}
+                        dragElastic={{ top: 0, bottom: 0.5 }}
+                        onDragEnd={handleDragEnd}
+                        className="fixed inset-x-0 bottom-0 z-[61] h-[92vh] bg-white dark:bg-[#1e1e1f] rounded-t-[32px] overflow-hidden flex flex-col shadow-2xl overscroll-none touch-none"
                         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
                     >
                         {/* Drag Handle */}
-                        <div className="w-full flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing touch-none" onClick={handleClose}>
+                        <div
+                            className="w-full flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing touch-none"
+                            onPointerDown={(e) => dragControls.start(e)}
+                        >
                             <div className="w-12 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600/50" />
                         </div>
 
                         {/* Header */}
-                        <div className="px-5 py-3 flex items-center justify-between border-b border-gray-100 dark:border-white/5">
+                        <div
+                            className="px-5 py-3 flex items-center justify-between border-b border-gray-100 dark:border-white/5 cursor-grab active:cursor-grabbing"
+                            onPointerDown={(e) => dragControls.start(e)}
+                        >
                             <div className="flex items-center gap-3">
                                 <Avatar
                                     config={DEFAULT_AVATAR_CONFIG}
@@ -113,7 +131,7 @@ export default function MobileAIAssistantModal({ isOpen, onClose }: MobileAIAssi
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2" onPointerDown={(e) => e.stopPropagation()}>
                                 <button
                                     onClick={() => setShowHistory(!showHistory)}
                                     className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors
