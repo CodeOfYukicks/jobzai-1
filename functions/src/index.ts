@@ -4217,7 +4217,15 @@ app.post('/api/chatgpt', async (req: any, res: any) => {
     }
 
     const data = await response.json();
-    res.json(data);
+
+    // Format response to match client expectations (jobExtractor.ts)
+    const content = data.choices?.[0]?.message?.content || '';
+
+    res.json({
+      status: 'success',
+      content,
+      usage: data.usage
+    });
   } catch (error: any) {
     console.error('Error in ChatGPT API:', error);
     res.status(500).json({ error: error.message });

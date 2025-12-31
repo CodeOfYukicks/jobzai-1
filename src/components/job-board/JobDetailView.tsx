@@ -25,11 +25,11 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
     const [isInWishlist, setIsInWishlist] = useState(false);
     const [showShareMenu, setShowShareMenu] = useState(false);
     const shareMenuRef = useRef<HTMLDivElement>(null);
-    
+
     // Board selection state
     const [boards, setBoards] = useState<KanbanBoard[]>([]);
     const [showBoardSelector, setShowBoardSelector] = useState(false);
-    
+
     // Job Interactions (V5.0 - Feedback Loop)
     const { isJobSaved, toggleSave, trackView, trackApply } = useJobInteractions();
     const viewStartTime = useRef<number | null>(null);
@@ -43,7 +43,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                 const timeSpent = Date.now() - viewStartTime.current;
                 trackView(lastTrackedJobId.current, { timeSpentMs: timeSpent });
             }
-            
+
             // Start tracking new job
             viewStartTime.current = Date.now();
             lastTrackedJobId.current = job.id;
@@ -112,14 +112,14 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                 const boardsRef = collection(db, 'users', currentUser.uid, 'boards');
                 const boardsQuery = query(boardsRef, orderBy('createdAt', 'asc'));
                 const snapshot = await getDocs(boardsQuery);
-                
+
                 const allBoards = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 })) as KanbanBoard[];
 
                 // Filter for job-type boards only (boardType === 'jobs' or undefined/null for legacy boards)
-                const jobBoards = allBoards.filter(board => 
+                const jobBoards = allBoards.filter(board =>
                     !board.boardType || board.boardType === 'jobs'
                 );
 
@@ -136,10 +136,10 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
     // Handle share to different platforms
     const handleShare = (platform: 'copy' | 'linkedin' | 'twitter' | 'whatsapp' | 'email') => {
         if (!job) return;
-        
+
         const shareUrl = job.applyUrl || window.location.href;
         const shareText = `${job.title} chez ${job.company}`;
-        
+
         switch (platform) {
             case 'copy':
                 navigator.clipboard.writeText(shareUrl);
@@ -259,10 +259,14 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
 
                 // Update Firestore with AI-generated data
                 const { updateDoc, doc } = await import('firebase/firestore');
+
+                // Sanitize jobTags to remove undefined values (Firestore doesn't support undefined)
+                const sanitizedTags = result.jobTags ? JSON.parse(JSON.stringify(result.jobTags)) : undefined;
+
                 await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
                     description: result.summary,
                     jobInsights: result.jobInsights,
-                    ...(result.jobTags && { jobTags: result.jobTags }),
+                    ...(sanitizedTags && { jobTags: sanitizedTags }),
                     updatedAt: serverTimestamp()
                 });
 
@@ -270,7 +274,7 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
             } catch (aiError) {
                 // AI failed - but the job is already saved with basic info
                 console.error('❌ [addJobToWishlist] AI analysis failed:', aiError);
-                
+
                 // Use local fallback (no API call, instant)
                 const localSummary = generateBasicSummaryFromJobData(jobDataForAnalysis);
                 const localInsights = generateBasicInsightsFromJobData(jobDataForAnalysis);
@@ -351,18 +355,17 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                         <div className="flex gap-2">
                             {/* Share Button with Dropdown */}
                             <div ref={shareMenuRef} className="relative">
-                                <button 
+                                <button
                                     onClick={() => setShowShareMenu(!showShareMenu)}
-                                    className={`p-2.5 rounded-xl border transition-colors ${
-                                        showShareMenu 
+                                    className={`p-2.5 rounded-xl border transition-colors ${showShareMenu
                                             ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
                                             : 'border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-                                    }`}
+                                        }`}
                                     title="Partager"
                                 >
                                     <Share2 className="w-5 h-5" />
                                 </button>
-                                
+
                                 <AnimatePresence>
                                     {showShareMenu && (
                                         <motion.div
@@ -415,22 +418,21 @@ export function JobDetailView({ job, onDismiss }: JobDetailViewProps) {
                                     )}
                                 </AnimatePresence>
                             </div>
-                            <button 
+                            <button
                                 onClick={() => {
                                     toggleSave(job.id, { matchScore: job.matchScore });
                                     notify.success(isJobSaved(job.id) ? 'Removed from saved jobs' : 'Saved for later');
                                 }}
-                                className={`p-2.5 rounded-xl border transition-colors ${
-                                    isJobSaved(job.id)
+                                className={`p-2.5 rounded-xl border transition-colors ${isJobSaved(job.id)
                                         ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
                                         : 'border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-                                }`}
+                                    }`}
                                 title={isJobSaved(job.id) ? 'Remove from saved' : 'Save for later'}
                             >
                                 <Bookmark className={`w-5 h-5 ${isJobSaved(job.id) ? 'fill-current' : ''}`} />
                             </button>
                             {onDismiss && (
-                                <button 
+                                <button
                                     onClick={() => {
                                         onDismiss(job.id);
                                         notify.success('Job hidden from your feed');
@@ -576,16 +578,16 @@ function BriefcaseIcon(props: any) {
     return <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
 }
 
-function MatchScoreItem({ icon, label, score, maxScore }: { 
-    icon: React.ReactNode, 
-    label: string, 
-    score: number, 
+function MatchScoreItem({ icon, label, score, maxScore }: {
+    icon: React.ReactNode,
+    label: string,
+    score: number,
     maxScore: number,
 }) {
     const isNegative = score < 0;
     const displayScore = Math.abs(score);
     const percentage = Math.max(0, Math.round((score / maxScore) * 100));
-    
+
     const getColor = (pct: number, negative: boolean) => {
         if (negative) return 'bg-red-500';
         if (pct >= 80) return 'bg-emerald-500';
@@ -595,22 +597,20 @@ function MatchScoreItem({ icon, label, score, maxScore }: {
     };
 
     return (
-        <div className={`flex flex-col items-center p-2 rounded-xl ${
-            isNegative ? 'bg-red-50 dark:bg-red-900/20' : 'bg-white/50 dark:bg-[#2b2a2c]/50'
-        }`}>
+        <div className={`flex flex-col items-center p-2 rounded-xl ${isNegative ? 'bg-red-50 dark:bg-red-900/20' : 'bg-white/50 dark:bg-[#2b2a2c]/50'
+            }`}>
             <div className={`mb-1 ${isNegative ? 'text-red-500' : 'text-indigo-600 dark:text-indigo-400'}`}>
                 {icon}
             </div>
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</div>
             <div className="w-full h-1.5 bg-gray-200 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
-                <div 
+                <div
                     className={`h-full ${getColor(percentage, isNegative)} rounded-full transition-all duration-500`}
                     style={{ width: `${isNegative ? 100 : percentage}%` }}
                 />
             </div>
-            <div className={`text-xs font-bold mt-1 ${
-                isNegative ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'
-            }`}>
+            <div className={`text-xs font-bold mt-1 ${isNegative ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'
+                }`}>
                 {isNegative ? `-${displayScore}` : `${score}/${maxScore}`}
             </div>
         </div>
@@ -623,14 +623,14 @@ function MatchScoreItem({ icon, label, score, maxScore }: {
  */
 function MatchExplanationSection({ job }: { job: Job }) {
     const [isExpanded, setIsExpanded] = useState(false);
-    
+
     const getScoreColor = (score: number) => {
         if (score >= 70) return 'bg-emerald-500';
         if (score >= 50) return 'bg-blue-500';
         if (score >= 35) return 'bg-amber-500';
         return 'bg-gray-400';
     };
-    
+
     const getScoreLabel = (score: number) => {
         if (score >= 70) return 'Excellent Match';
         if (score >= 50) return 'Good Match';
@@ -638,7 +638,7 @@ function MatchExplanationSection({ job }: { job: Job }) {
         return 'Low Match';
     };
 
-    const roleLabel = job.roleFunction && job.roleFunction !== 'other' 
+    const roleLabel = job.roleFunction && job.roleFunction !== 'other'
         ? job.roleFunction.charAt(0).toUpperCase() + job.roleFunction.slice(1).replace(/_/g, ' ') + ' role'
         : null;
 
@@ -674,7 +674,7 @@ function MatchExplanationSection({ job }: { job: Job }) {
                         </button>
                     )}
                 </div>
-                
+
                 {/* Skills to develop - inline compact */}
                 {skillGaps.length > 0 && (
                     <div className="mt-3 flex items-center gap-2 text-xs">
@@ -684,7 +684,7 @@ function MatchExplanationSection({ job }: { job: Job }) {
                         </span>
                         <div className="flex flex-wrap gap-1">
                             {skillGaps.map((skill, idx) => (
-                                <span 
+                                <span
                                     key={idx}
                                     className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
                                 >
@@ -695,7 +695,7 @@ function MatchExplanationSection({ job }: { job: Job }) {
                     </div>
                 )}
             </div>
-            
+
             {/* Expandable Detailed Breakdown */}
             <AnimatePresence>
                 {isExpanded && job.matchDetails && (
@@ -712,100 +712,100 @@ function MatchExplanationSection({ job }: { job: Job }) {
                                 Detailed Score Breakdown
                             </h4>
                             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 mb-4">
-                                <MatchScoreItem 
+                                <MatchScoreItem
                                     icon={<Users className="w-4 h-4" />}
-                                    label="Role Fit" 
-                                    score={job.matchDetails.roleFunctionScore} 
+                                    label="Role Fit"
+                                    score={job.matchDetails.roleFunctionScore}
                                     maxScore={25}
                                 />
-                                <MatchScoreItem 
+                                <MatchScoreItem
                                     icon={<Code className="w-4 h-4" />}
-                                    label="Skills" 
-                                    score={job.matchDetails.skillsScore} 
+                                    label="Skills"
+                                    score={job.matchDetails.skillsScore}
                                     maxScore={35}
                                 />
-                                <MatchScoreItem 
+                                <MatchScoreItem
                                     icon={<MapPin className="w-4 h-4" />}
-                                    label="Location" 
-                                    score={job.matchDetails.locationScore} 
+                                    label="Location"
+                                    score={job.matchDetails.locationScore}
                                     maxScore={15}
                                 />
-                                <MatchScoreItem 
+                                <MatchScoreItem
                                     icon={<TrendingUp className="w-4 h-4" />}
-                                    label="Level" 
-                                    score={job.matchDetails.experienceScore} 
+                                    label="Level"
+                                    score={job.matchDetails.experienceScore}
                                     maxScore={15}
                                 />
-                                <MatchScoreItem 
+                                <MatchScoreItem
                                     icon={<Briefcase className="w-4 h-4" />}
-                                    label="Industry" 
-                                    score={job.matchDetails.industryScore} 
+                                    label="Industry"
+                                    score={job.matchDetails.industryScore}
                                     maxScore={10}
                                 />
-                                <MatchScoreItem 
+                                <MatchScoreItem
                                     icon={<Target className="w-4 h-4" />}
-                                    label="Title" 
-                                    score={job.matchDetails.titleScore} 
+                                    label="Title"
+                                    score={job.matchDetails.titleScore}
                                     maxScore={10}
                                 />
                             </div>
-                            
+
                             {/* V6.0 New Scores Grid */}
-                            {(job.matchDetails.companyNetworkScore !== undefined || 
-                              job.matchDetails.cultureFitScore !== undefined || 
-                              job.matchDetails.certificationBoost !== undefined) && (
-                                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 mb-4">
-                                    {job.matchDetails.companyNetworkScore !== undefined && job.matchDetails.companyNetworkScore > 0 && (
-                                        <MatchScoreItem 
-                                            icon={<Building2 className="w-4 h-4" />}
-                                            label="Network" 
-                                            score={job.matchDetails.companyNetworkScore} 
-                                            maxScore={10}
-                                        />
-                                    )}
-                                    {job.matchDetails.cultureFitScore !== undefined && job.matchDetails.cultureFitScore > 0 && (
-                                        <MatchScoreItem 
-                                            icon={<Users className="w-4 h-4" />}
-                                            label="Culture" 
-                                            score={job.matchDetails.cultureFitScore} 
-                                            maxScore={8}
-                                        />
-                                    )}
-                                    {job.matchDetails.educationMatchScore !== undefined && job.matchDetails.educationMatchScore > 0 && (
-                                        <MatchScoreItem 
-                                            icon={<GraduationCap className="w-4 h-4" />}
-                                            label="Education" 
-                                            score={job.matchDetails.educationMatchScore} 
-                                            maxScore={5}
-                                        />
-                                    )}
-                                    {job.matchDetails.certificationBoost !== undefined && job.matchDetails.certificationBoost > 0 && (
-                                        <MatchScoreItem 
-                                            icon={<Award className="w-4 h-4" />}
-                                            label="Certs" 
-                                            score={job.matchDetails.certificationBoost} 
-                                            maxScore={15}
-                                        />
-                                    )}
-                                    {job.matchDetails.semanticScore > 0 && (
-                                        <MatchScoreItem 
-                                            icon={<Brain className="w-4 h-4" />}
-                                            label="AI Match" 
-                                            score={job.matchDetails.semanticScore} 
-                                            maxScore={40}
-                                        />
-                                    )}
-                                    {job.matchDetails.collaborativeScore > 0 && (
-                                        <MatchScoreItem 
-                                            icon={<Sparkles className="w-4 h-4" />}
-                                            label="Popular" 
-                                            score={job.matchDetails.collaborativeScore} 
-                                            maxScore={8}
-                                        />
-                                    )}
-                                </div>
-                            )}
-                            
+                            {(job.matchDetails.companyNetworkScore !== undefined ||
+                                job.matchDetails.cultureFitScore !== undefined ||
+                                job.matchDetails.certificationBoost !== undefined) && (
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 mb-4">
+                                        {job.matchDetails.companyNetworkScore !== undefined && job.matchDetails.companyNetworkScore > 0 && (
+                                            <MatchScoreItem
+                                                icon={<Building2 className="w-4 h-4" />}
+                                                label="Network"
+                                                score={job.matchDetails.companyNetworkScore}
+                                                maxScore={10}
+                                            />
+                                        )}
+                                        {job.matchDetails.cultureFitScore !== undefined && job.matchDetails.cultureFitScore > 0 && (
+                                            <MatchScoreItem
+                                                icon={<Users className="w-4 h-4" />}
+                                                label="Culture"
+                                                score={job.matchDetails.cultureFitScore}
+                                                maxScore={8}
+                                            />
+                                        )}
+                                        {job.matchDetails.educationMatchScore !== undefined && job.matchDetails.educationMatchScore > 0 && (
+                                            <MatchScoreItem
+                                                icon={<GraduationCap className="w-4 h-4" />}
+                                                label="Education"
+                                                score={job.matchDetails.educationMatchScore}
+                                                maxScore={5}
+                                            />
+                                        )}
+                                        {job.matchDetails.certificationBoost !== undefined && job.matchDetails.certificationBoost > 0 && (
+                                            <MatchScoreItem
+                                                icon={<Award className="w-4 h-4" />}
+                                                label="Certs"
+                                                score={job.matchDetails.certificationBoost}
+                                                maxScore={15}
+                                            />
+                                        )}
+                                        {job.matchDetails.semanticScore > 0 && (
+                                            <MatchScoreItem
+                                                icon={<Brain className="w-4 h-4" />}
+                                                label="AI Match"
+                                                score={job.matchDetails.semanticScore}
+                                                maxScore={40}
+                                            />
+                                        )}
+                                        {job.matchDetails.collaborativeScore > 0 && (
+                                            <MatchScoreItem
+                                                icon={<Sparkles className="w-4 h-4" />}
+                                                label="Popular"
+                                                score={job.matchDetails.collaborativeScore}
+                                                maxScore={8}
+                                            />
+                                        )}
+                                    </div>
+                                )}
+
                             {/* Bonuses & Penalties Summary */}
                             <div className="flex flex-wrap gap-3 text-xs">
                                 {job.matchDetails.historyBonus > 0 && (
@@ -853,7 +853,7 @@ function MatchExplanationSection({ job }: { job: Job }) {
                     </motion.div>
                 )}
             </AnimatePresence>
-            
+
             {/* Language Requirements Warning */}
             {job.languageRequirements && job.languageRequirements.length > 0 && (
                 <div className="px-6 pb-4">

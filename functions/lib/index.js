@@ -3636,6 +3636,7 @@ app.post('/api/gpt', async (req, res) => {
 });
 // ChatGPT Alias (for legacy calls)
 app.post('/api/chatgpt', async (req, res) => {
+    var _a, _b, _c;
     console.log('🧠 ChatGPT API (Alias) called');
     // Forward to GPT handler logic
     try {
@@ -3667,7 +3668,13 @@ app.post('/api/chatgpt', async (req, res) => {
             return res.status(response.status).json({ error: errorText });
         }
         const data = await response.json();
-        res.json(data);
+        // Format response to match client expectations (jobExtractor.ts)
+        const content = ((_c = (_b = (_a = data.choices) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.message) === null || _c === void 0 ? void 0 : _c.content) || '';
+        res.json({
+            status: 'success',
+            content,
+            usage: data.usage
+        });
     }
     catch (error) {
         console.error('Error in ChatGPT API:', error);

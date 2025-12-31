@@ -351,10 +351,14 @@ export default function JobBottomSheet({
                 const result = await generateJobSummaryAndInsights(jobDataForAnalysis);
 
                 const { updateDoc, doc } = await import('firebase/firestore');
+
+                // Sanitize jobTags to remove undefined values (Firestore doesn't support undefined)
+                const sanitizedTags = result.jobTags ? JSON.parse(JSON.stringify(result.jobTags)) : undefined;
+
                 await updateDoc(doc(db, 'users', currentUser.uid, 'jobApplications', docRef.id), {
                     description: result.summary,
                     jobInsights: result.jobInsights,
-                    ...(result.jobTags && { jobTags: result.jobTags }),
+                    ...(sanitizedTags && { jobTags: sanitizedTags }),
                     updatedAt: serverTimestamp()
                 });
             } catch (aiError) {
