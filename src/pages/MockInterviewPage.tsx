@@ -940,14 +940,20 @@ export default function MockInterviewPage() {
       }
 
       const analysisResult = await response.json();
+
+      // API returns { status: 'success', analysis: {...} }
+      // Extract the actual analysis object
+      const rawAnalysis = analysisResult.analysis || analysisResult;
+
       console.log('📊 Analysis result received:', {
-        overallScore: analysisResult.overallScore,
-        hasExecutiveSummary: !!analysisResult.executiveSummary,
-        executiveSummaryLength: analysisResult.executiveSummary?.length,
+        hasAnalysisProperty: !!analysisResult.analysis,
+        overallScore: rawAnalysis.overallScore,
+        hasExecutiveSummary: !!rawAnalysis.executiveSummary,
+        executiveSummaryLength: rawAnalysis.executiveSummary?.length,
       });
 
       // Normalize analysis with all required fields and defaults
-      const processedAnalysis = normalizeAnalysis(analysisResult);
+      const processedAnalysis = normalizeAnalysis(rawAnalysis);
 
       console.log('📊 Processed analysis:', {
         overallScore: processedAnalysis.overallScore,

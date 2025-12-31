@@ -15,7 +15,7 @@ export function generateId(): string {
 // Format date for display
 export function formatDate(date: string, format: 'short' | 'long' = 'short'): string {
   if (!date) return '';
-  
+
   const d = new Date(date);
   if (format === 'short') {
     return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
@@ -35,7 +35,7 @@ export function formatDateRange(startDate: string, endDate: string, current: boo
 // Parse markdown-like text to HTML
 export function parseMarkdown(text: string): string {
   if (!text) return '';
-  
+
   return text
     // Bold text
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -52,7 +52,7 @@ export function parseMarkdown(text: string): string {
 // Clean text for ATS compatibility
 export function cleanForATS(text: string): string {
   if (!text) return '';
-  
+
   return text
     // Remove special characters except basic punctuation
     .replace(/[^\w\s.,;:!?()-]/g, '')
@@ -93,7 +93,7 @@ export function isValidURL(url: string): boolean {
 // Format URL for display
 export function formatURL(url: string): string {
   if (!url) return '';
-  
+
   // Remove protocol and www
   return url
     .replace(/^https?:\/\//, '')
@@ -135,8 +135,8 @@ export function getEnabledSections<T extends { enabled: boolean }>(sections: T[]
 
 // Export CV to PDF using canvas method for pixel-perfect rendering
 export async function exportToPDF(
-  cvData: CVData, 
-  template: CVTemplate, 
+  cvData: CVData,
+  template: CVTemplate,
   layoutSettings?: CVLayoutSettings
 ): Promise<void> {
   const element = document.getElementById('cv-preview-content');
@@ -155,13 +155,19 @@ export async function exportToPDF(
 
 // Export CV to PDF with canvas method - pixel perfect rendering
 async function exportWithCanvas(
-  cvData: CVData, 
-  template: CVTemplate, 
+  cvData: CVData,
+  template: CVTemplate,
   quality: 'high' | 'medium' | 'low' = 'high'
 ): Promise<void> {
   const element = document.getElementById('cv-preview-content');
   if (!element) {
-    throw new Error('Preview element not found');
+    throw new Error('Preview not available. Please switch to Preview mode first.');
+  }
+
+  // Check if element has proper dimensions (must be visible)
+  const rect = element.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) {
+    throw new Error('Preview not visible. Please switch to Preview mode before exporting.');
   }
 
   try {
@@ -177,9 +183,14 @@ async function exportWithCanvas(
       backgroundColor: '#ffffff'
     });
 
+    // Validate canvas dimensions
+    if (canvas.width === 0 || canvas.height === 0) {
+      throw new Error('Failed to capture preview. Please try again.');
+    }
+
     // Convert canvas to image
     const imgData = canvas.toDataURL('image/jpeg', jpegQuality);
-    
+
     // Create PDF
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -189,12 +200,11 @@ async function exportWithCanvas(
 
     // A4 dimensions
     const pageWidth = 210;
-    const pageHeight = 297;
-    
+
     // Calculate image dimensions to fit A4
     const imgWidth = pageWidth;
     const imgHeight = (canvas.height * pageWidth) / canvas.width;
-    
+
     // Add image to PDF (x, y, width, height)
     pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
 
@@ -202,7 +212,7 @@ async function exportWithCanvas(
     const firstName = cvData.personalInfo.firstName || 'CV';
     const lastName = cvData.personalInfo.lastName || '';
     const fileName = `${firstName}_${lastName}_CV_${new Date().toISOString().split('T')[0]}.pdf`.replace(/\s+/g, '_');
-    
+
     // Save PDF
     pdf.save(fileName);
   } catch (error) {
@@ -213,7 +223,7 @@ async function exportWithCanvas(
 
 // Enhanced export - always uses canvas for best quality and reliability
 export async function exportToPDFEnhanced(
-  cvData: CVData, 
+  cvData: CVData,
   template: CVTemplate,
   layoutSettings?: CVLayoutSettings,
   options?: {
@@ -223,7 +233,7 @@ export async function exportToPDFEnhanced(
   }
 ): Promise<void> {
   const quality = options?.quality || 'high';
-  
+
   // Always use canvas method for pixel-perfect rendering
   // This ensures what you see in preview is exactly what you get in PDF
   await exportWithCanvas(cvData, template, quality);
@@ -231,13 +241,19 @@ export async function exportToPDFEnhanced(
 
 // Generate PDF as Blob for upload to library (does not download)
 export async function exportToPDFBlob(
-  cvData: CVData, 
+  cvData: CVData,
   template: CVTemplate,
   quality: 'high' | 'medium' | 'low' = 'high'
 ): Promise<{ blob: Blob; fileName: string }> {
   const element = document.getElementById('cv-preview-content');
   if (!element) {
-    throw new Error('Preview element not found');
+    throw new Error('Preview not available. Please switch to Preview mode first.');
+  }
+
+  // Check if element has proper dimensions (must be visible)
+  const rect = element.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) {
+    throw new Error('Preview not visible. Please switch to Preview mode before exporting.');
   }
 
   // Determine scale based on quality
@@ -252,9 +268,14 @@ export async function exportToPDFBlob(
     backgroundColor: '#ffffff'
   });
 
+  // Validate canvas dimensions
+  if (canvas.width === 0 || canvas.height === 0) {
+    throw new Error('Failed to capture preview. Please try again.');
+  }
+
   // Convert canvas to image
   const imgData = canvas.toDataURL('image/jpeg', jpegQuality);
-  
+
   // Create PDF
   const pdf = new jsPDF({
     orientation: 'portrait',
@@ -264,11 +285,11 @@ export async function exportToPDFBlob(
 
   // A4 dimensions
   const pageWidth = 210;
-  
+
   // Calculate image dimensions to fit A4
   const imgWidth = pageWidth;
   const imgHeight = (canvas.height * pageWidth) / canvas.width;
-  
+
   // Add image to PDF (x, y, width, height)
   pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
 
@@ -276,17 +297,17 @@ export async function exportToPDFBlob(
   const firstName = cvData.personalInfo.firstName || 'CV';
   const lastName = cvData.personalInfo.lastName || '';
   const fileName = `${firstName}_${lastName}_CV_${new Date().toISOString().split('T')[0]}.pdf`.replace(/\s+/g, '_');
-  
+
   // Get blob from PDF
   const blob = pdf.output('blob');
-  
+
   return { blob, fileName };
 }
 
 // Copy CV content to clipboard
 export async function copyToClipboard(cvData: CVData): Promise<void> {
   const text = formatCVAsText(cvData);
-  
+
   try {
     await navigator.clipboard.writeText(text);
   } catch (error) {
@@ -303,7 +324,7 @@ export async function copyToClipboard(cvData: CVData): Promise<void> {
 // Format CV as plain text
 function formatCVAsText(cvData: CVData): string {
   const lines: string[] = [];
-  
+
   // Personal Info
   lines.push(`${cvData.personalInfo.firstName} ${cvData.personalInfo.lastName}`);
   if (cvData.personalInfo.title) lines.push(cvData.personalInfo.title);
@@ -312,14 +333,14 @@ function formatCVAsText(cvData: CVData): string {
   if (cvData.personalInfo.location) lines.push(cvData.personalInfo.location);
   if (cvData.personalInfo.linkedin) lines.push(cvData.personalInfo.linkedin);
   lines.push('');
-  
+
   // Summary
   if (cvData.summary) {
     lines.push('PROFESSIONAL SUMMARY');
     lines.push(cvData.summary);
     lines.push('');
   }
-  
+
   // Experience
   if (cvData.experiences.length > 0) {
     lines.push('WORK EXPERIENCE');
@@ -332,7 +353,7 @@ function formatCVAsText(cvData: CVData): string {
       lines.push('');
     });
   }
-  
+
   // Education
   if (cvData.education.length > 0) {
     lines.push('EDUCATION');
@@ -344,14 +365,14 @@ function formatCVAsText(cvData: CVData): string {
       lines.push('');
     });
   }
-  
+
   // Skills
   if (cvData.skills.length > 0) {
     lines.push('SKILLS');
     lines.push(cvData.skills.map(s => s.name).join(', '));
     lines.push('');
   }
-  
+
   // Certifications
   if (cvData.certifications.length > 0) {
     lines.push('CERTIFICATIONS');
@@ -360,7 +381,7 @@ function formatCVAsText(cvData: CVData): string {
     });
     lines.push('');
   }
-  
+
   // Projects
   if (cvData.projects.length > 0) {
     lines.push('PROJECTS');
@@ -374,7 +395,7 @@ function formatCVAsText(cvData: CVData): string {
       lines.push('');
     });
   }
-  
+
   // Languages
   if (cvData.languages.length > 0) {
     lines.push('LANGUAGES');
@@ -383,7 +404,7 @@ function formatCVAsText(cvData: CVData): string {
     });
     lines.push('');
   }
-  
+
   return lines.join('\n');
 }
 
@@ -435,6 +456,6 @@ export function getTemplateMetadata(template: CVTemplate): {
       features: ['100% ATS-safe', 'Single column', 'Generous spacing', 'No distractions']
     }
   };
-  
+
   return templates[template] || templates['modern-professional'];
 }

@@ -869,6 +869,22 @@ export default function PremiumCVEditor() {
 
   // Handle direct download export
   const handleExportDownload = async () => {
+    const isMobile = window.innerWidth < 1024;
+
+    // On mobile, require Preview mode (better UX than auto-switching)
+    if (isMobile && !showPreview) {
+      notify.error('Please switch to Preview mode before exporting.');
+      return;
+    }
+
+    // On desktop, auto-show preview if hidden
+    const previewWasHidden = !showPreview;
+    if (previewWasHidden) {
+      setShowPreview(true);
+      // Wait for React to render the preview DOM element
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
     setIsExporting(true);
     try {
       await exportToPDFEnhanced(cvData, template, layoutSettings, {
@@ -877,10 +893,14 @@ export default function PremiumCVEditor() {
       });
       setIsExportModalOpen(false);
       notify.success('CV exported successfully! High-quality PDF generated.');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error exporting CV:', error);
-      notify.error('Failed to export CV. Please try again.');
+      notify.error(error.message || 'Failed to export CV. Please try again.');
     } finally {
+      // Restore preview state on desktop
+      if (previewWasHidden) {
+        setShowPreview(false);
+      }
       setIsExporting(false);
     }
   };
@@ -890,6 +910,22 @@ export default function PremiumCVEditor() {
     if (!currentUser) {
       notify.error('Please sign in to save to library');
       return;
+    }
+
+    const isMobile = window.innerWidth < 1024;
+
+    // On mobile, require Preview mode (better UX than auto-switching)
+    if (isMobile && !showPreview) {
+      notify.error('Please switch to Preview mode before exporting.');
+      return;
+    }
+
+    // On desktop, auto-show preview if hidden
+    const previewWasHidden = !showPreview;
+    if (previewWasHidden) {
+      setShowPreview(true);
+      // Wait for React to render the preview DOM element
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
 
     setIsExporting(true);
@@ -934,10 +970,14 @@ export default function PremiumCVEditor() {
         </div>,
         { duration: 5000 }
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving PDF to library:', error);
-      notify.error('Failed to save PDF to library. Please try again.');
+      notify.error(error.message || 'Failed to save PDF to library. Please try again.');
     } finally {
+      // Restore preview state on desktop
+      if (previewWasHidden) {
+        setShowPreview(false);
+      }
       setIsExporting(false);
     }
   };
