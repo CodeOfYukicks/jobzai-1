@@ -16,6 +16,8 @@ interface MobileDocumentRowProps {
     onDelete: () => void;
     onDuplicate?: () => void;
     onLongPress: () => void;
+    /** Optional callback for swipe-to-delete with confirmation. When provided, swipe left triggers this instead of onDelete directly. */
+    onDeleteRequest?: () => void;
 }
 
 // Get icon based on document type
@@ -70,14 +72,15 @@ const SWIPE_THRESHOLD = 80;
 const SWIPE_VELOCITY_THRESHOLD = 500;
 
 export default function MobileDocumentRow({
-    id,
+    id: _id,
     title,
     type,
     date,
     onClick,
     onDelete,
     onDuplicate,
-    onLongPress
+    onLongPress,
+    onDeleteRequest
 }: MobileDocumentRowProps) {
     const [isDragging, setIsDragging] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -106,16 +109,37 @@ export default function MobileDocumentRow({
         const shouldDelete = info.offset.x < -SWIPE_THRESHOLD || info.velocity.x < -SWIPE_VELOCITY_THRESHOLD;
         const shouldDuplicate = (info.offset.x > SWIPE_THRESHOLD || info.velocity.x > SWIPE_VELOCITY_THRESHOLD) && onDuplicate;
 
+        console.log('🔄 MobileDocumentRow drag end:', {
+            offsetX: info.offset.x,
+            velocityX: info.velocity.x,
+            shouldDelete,
+            shouldDuplicate,
+            hasOnDeleteRequest: !!onDeleteRequest,
+            SWIPE_THRESHOLD,
+            SWIPE_VELOCITY_THRESHOLD
+        });
+
         if (shouldDelete) {
-            setIsDeleting(true);
-            // Animate out then delete
-            setTimeout(() => {
-                onDelete();
-            }, 200);
+            console.log('🗑️ Delete triggered, onDeleteRequest:', !!onDeleteRequest);
+            // If onDeleteRequest is provided, use it (for confirmation modal flow)
+            // Otherwise, directly animate out and delete
+            if (onDeleteRequest) {
+                console.log('📱 Calling onDeleteRequest...');
+                onDeleteRequest();
+                // Don't animate out - let parent handle after confirmation
+            } else {
+                setIsDeleting(true);
+                // Animate out then delete
+                setTimeout(() => {
+                    onDelete();
+                }, 200);
+            }
         } else if (shouldDuplicate) {
             onDuplicate?.();
         }
     };
+
+
 
     const handlePointerDown = () => {
         longPressTimer.current = setTimeout(() => {

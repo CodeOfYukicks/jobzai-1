@@ -156,6 +156,15 @@ export default function ResumeBuilderPage() {
     type: 'note' | 'resume' | 'whiteboard' | 'pdf';
   } | null>(null);
 
+  // Mobile delete confirmation modal state (for swipe-to-delete)
+  const [mobileDeleteModal, setMobileDeleteModal] = useState<{
+    isOpen: boolean;
+    id: string | null;
+    title: string;
+    type: 'note' | 'resume' | 'whiteboard' | 'pdf' | null;
+  }>({ isOpen: false, id: null, title: '', type: null });
+
+
   // Fetch folders from Firestore
   const fetchFolders = useCallback(async () => {
     if (!currentUser) return;
@@ -943,6 +952,43 @@ export default function ResumeBuilderPage() {
     }
   }, [currentUser]);
 
+  // Mobile delete confirmation modal helpers
+  const openMobileDeleteModal = useCallback((id: string, title: string, type: 'note' | 'resume' | 'whiteboard' | 'pdf') => {
+    console.log('🎯 openMobileDeleteModal called!', { id, title, type });
+    setMobileDeleteModal({ isOpen: true, id, title, type });
+  }, []);
+
+
+  const cancelMobileDelete = useCallback(() => {
+    setMobileDeleteModal({ isOpen: false, id: null, title: '', type: null });
+  }, []);
+
+  const confirmMobileDelete = useCallback(async () => {
+    if (!mobileDeleteModal.id || !mobileDeleteModal.type) return;
+
+    const { id, type } = mobileDeleteModal;
+
+    // Close modal first
+    setMobileDeleteModal({ isOpen: false, id: null, title: '', type: null });
+
+    // Perform the actual delete based on type
+    switch (type) {
+      case 'note':
+        await handleDeleteNote(id);
+        break;
+      case 'resume':
+        await deleteResume(id);
+        break;
+      case 'whiteboard':
+        await handleDeleteWhiteboard(id);
+        break;
+      case 'pdf':
+        await deleteDocument(id);
+        break;
+    }
+  }, [mobileDeleteModal, handleDeleteNote, deleteResume, handleDeleteWhiteboard, deleteDocument]);
+
+
   const handleRenameWhiteboard = useCallback(async (whiteboardId: string, newTitle: string) => {
     if (!currentUser) return;
 
@@ -1456,6 +1502,7 @@ export default function ResumeBuilderPage() {
                   date={note.updatedAt?.toDate ? note.updatedAt.toDate() : note.updatedAt ? new Date(note.updatedAt) : null}
                   onClick={() => handleEditNote(note.id)}
                   onDelete={() => handleDeleteNote(note.id)}
+                  onDeleteRequest={() => openMobileDeleteModal(note.id, note.title, 'note')}
                   onLongPress={() => setMobileContextMenuDoc({
                     id: note.id,
                     title: note.title,
@@ -1474,6 +1521,7 @@ export default function ResumeBuilderPage() {
                   date={whiteboard.updatedAt?.toDate ? whiteboard.updatedAt.toDate() : whiteboard.updatedAt ? new Date(whiteboard.updatedAt) : null}
                   onClick={() => handleEditWhiteboard(whiteboard.id)}
                   onDelete={() => handleDeleteWhiteboard(whiteboard.id)}
+                  onDeleteRequest={() => openMobileDeleteModal(whiteboard.id, whiteboard.title, 'whiteboard')}
                   onLongPress={() => setMobileContextMenuDoc({
                     id: whiteboard.id,
                     title: whiteboard.title,
@@ -1492,6 +1540,7 @@ export default function ResumeBuilderPage() {
                   date={resume.updatedAt?.toDate ? resume.updatedAt.toDate() : resume.updatedAt ? new Date(resume.updatedAt) : null}
                   onClick={() => handleEditResume(resume.id)}
                   onDelete={() => deleteResume(resume.id)}
+                  onDeleteRequest={() => openMobileDeleteModal(resume.id, resume.name, 'resume')}
                   onLongPress={() => setMobileContextMenuDoc({
                     id: resume.id,
                     title: resume.name,
@@ -1510,10 +1559,12 @@ export default function ResumeBuilderPage() {
                   date={document.updatedAt?.toDate ? document.updatedAt.toDate() : document.updatedAt ? new Date(document.updatedAt) : null}
                   onClick={() => handleViewDocument(document)}
                   onDelete={() => deleteDocument(document.id)}
+                  onDeleteRequest={() => openMobileDeleteModal(document.id, document.name, 'pdf')}
                   onLongPress={() => setMobileContextMenuDoc({
                     id: document.id,
                     title: document.name,
                     type: 'pdf'
+
                   })}
                 />
               ))}
@@ -2129,6 +2180,83 @@ export default function ResumeBuilderPage() {
           editingFolder={editingFolder}
           isSaving={isSavingFolder}
         />
+
+        {/* Mobile Delete Confirmation Modal (for swipe-to-delete) */}
+        <AnimatePresence>
+          {mobileDeleteModal.isOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+              onClick={cancelMobileDelete}
+            >
+
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                className="bg-white dark:bg-[#2b2a2c] rounded-xl w-full max-w-sm mx-4 shadow-xl border border-gray-200/50 dark:border-[#3d3c3e]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-[#3d3c3e]">
+                  <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                    Delete {mobileDeleteModal.type === 'pdf' ? 'Document' :
+                      mobileDeleteModal.type === 'resume' ? 'Resume' :
+                        mobileDeleteModal.type === 'whiteboard' ? 'Board' : 'Note'}?
+                  </h2>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={cancelMobileDelete}
+                    className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                </div>
+
+                {/* Body */}
+                <div className="p-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Are you sure you want to delete this {mobileDeleteModal.type}? This action cannot be undone.
+                  </p>
+
+                  {/* Document Info */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-[#242325] mb-4">
+                    <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {mobileDeleteModal.title || 'Untitled'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex gap-2 p-4 pt-0">
+                  <button
+                    onClick={cancelMobileDelete}
+                    className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold bg-gray-100 dark:bg-[#3d3c3e] hover:bg-gray-200 dark:hover:bg-[#4d4c4e] text-gray-900 dark:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmMobileDelete}
+                    className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </AuthLayout>
   );

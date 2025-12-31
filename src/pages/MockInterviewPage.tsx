@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { notify } from '@/lib/notify';
 import AuthLayout from '../components/AuthLayout';
 import MobileTopBar from '../components/mobile/MobileTopBar';
+import SwipeableRow from '../components/mobile/SwipeableRow';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { KanbanBoard } from '../types/job';
 import {
@@ -302,6 +303,12 @@ export default function MockInterviewPage() {
   const [showEndConfirmation, setShowEndConfirmation] = useState(false);
   const [showBackConfirmation, setShowBackConfirmation] = useState(false);
   const [showNavigationConfirmation, setShowNavigationConfirmation] = useState(false);
+
+  // Delete session confirmation modal state (for mobile swipe-to-delete)
+  const [deleteSessionModal, setDeleteSessionModal] = useState<{ isOpen: boolean; sessionId: string | null; sessionTitle: string }>(
+    { isOpen: false, sessionId: null, sessionTitle: '' }
+  );
+  const [swipeResetKey, setSwipeResetKey] = useState(0);
 
   // Mobile UI state
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
@@ -1157,7 +1164,38 @@ export default function MockInterviewPage() {
 
   const isSessionActive = connectionStatus === 'connecting' || connectionStatus === 'ready' || connectionStatus === 'live';
 
-  // Delete a past session
+  // Open delete confirmation modal for a session (used by mobile swipe-to-delete)
+  const openDeleteSessionModal = useCallback((session: MockInterviewSession) => {
+    setDeleteSessionModal({
+      isOpen: true,
+      sessionId: session.id,
+      sessionTitle: `${session.position} at ${session.companyName}`
+    });
+  }, []);
+
+  // Cancel delete and reset swipe position
+  const cancelDeleteSession = useCallback(() => {
+    setDeleteSessionModal({ isOpen: false, sessionId: null, sessionTitle: '' });
+    setSwipeResetKey(prev => prev + 1); // Reset swipe position
+  }, []);
+
+  // Actually delete the session (called after confirmation)
+  const confirmDeleteSession = useCallback(async () => {
+    if (!currentUser || !deleteSessionModal.sessionId) return;
+
+    try {
+      await deleteDoc(doc(db, 'users', currentUser.uid, 'mockInterviewSessions', deleteSessionModal.sessionId));
+      setPastSessions(prev => prev.filter(s => s.id !== deleteSessionModal.sessionId));
+      notify.success('Session deleted');
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      notify.error('Failed to delete session');
+    } finally {
+      setDeleteSessionModal({ isOpen: false, sessionId: null, sessionTitle: '' });
+    }
+  }, [currentUser, deleteSessionModal.sessionId]);
+
+  // Delete a past session (desktop - direct click on trash icon)
   const handleDeleteSession = useCallback(async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentUser) return;
@@ -2653,13 +2691,96 @@ export default function MockInterviewPage() {
                 {pastSessions.length === 0 ? (
                   <div className="text-center py-10 text-gray-500">No past sessions found.</div>
                 ) : (
-                  pastSessions.map((session, index) => renderSessionCard(session, index))
+                  pastSessions.map((session, index) => (
+                    <SwipeableRow
+                      key={session.id}
+                      onSwipeLeft={() => openDeleteSessionModal(session)}
+                      leftActionColor="bg-red-500"
+                      leftLabel="Delete"
+                      resetKey={swipeResetKey}
+                    >
+                      {renderSessionCard(session, index)}
+                    </SwipeableRow>
+                  ))
                 )}
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
+
+      {/* Delete Session Confirmation Modal (for mobile swipe-to-delete) */}
+      <AnimatePresence>
+        {deleteSessionModal.isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={cancelDeleteSession}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-white dark:bg-[#2b2a2c] rounded-xl w-full max-w-sm mx-4 shadow-xl border border-gray-200/50 dark:border-[#3d3c3e]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-[#3d3c3e]">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                  Delete Session?
+                </h2>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={cancelDeleteSession}
+                  className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </motion.button>
+              </div>
+
+              {/* Body */}
+              <div className="p-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Are you sure you want to delete this interview session? This action cannot be undone.
+                </p>
+
+                {/* Session Info */}
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-[#242325] mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {deleteSessionModal.sessionTitle}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex gap-2 p-4 pt-0">
+                <button
+                  onClick={cancelDeleteSession}
+                  className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold bg-gray-100 dark:bg-[#3d3c3e] hover:bg-gray-200 dark:hover:bg-[#4d4c4e] text-gray-900 dark:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteSession}
+                  className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
 
       {/* Navigation Confirmation Modal (for page navigation during active interview) */}
       <AnimatePresence>
