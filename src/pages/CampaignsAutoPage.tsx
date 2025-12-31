@@ -252,6 +252,7 @@ export default function CampaignsAutoPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmRecipient, setDeleteConfirmRecipient] = useState<CampaignRecipient | null>(null);
   const [isDeletingRecipient, setIsDeletingRecipient] = useState(false);
+  const [swipeResetKey, setSwipeResetKey] = useState(0); // Used to reset swipe position when modal is cancelled
 
   // Reply preview modal
   const [replyPreviewRecipient, setReplyPreviewRecipient] = useState<CampaignRecipient | null>(null);
@@ -1040,19 +1041,30 @@ export default function CampaignsAutoPage() {
 
       const applicationsRef = collection(db, 'users', currentUser.uid, 'jobApplications');
 
-      // Only check for duplicates if we have both email and company to compare
-      if (recipient.email && recipient.company) {
-        const q = query(
-          applicationsRef,
-          where('contactEmail', '==', recipient.email),
-          where('companyName', '==', recipient.company)
-        );
-        const existingApplications = await getDocs(q);
+      // Only check for duplicates if we have email to compare
+      // Uses single-field query to avoid needing a composite index
+      if (recipient.email) {
+        try {
+          const q = query(
+            applicationsRef,
+            where('contactEmail', '==', recipient.email)
+          );
+          const existingApplications = await getDocs(q);
 
-        if (!existingApplications.empty) {
-          notify.warning('Contact already in board');
-          setIsAddingToBoard(false);
-          return;
+          // Check if any existing application matches this company
+          const isDuplicate = existingApplications.docs.some(doc => {
+            const data = doc.data();
+            return data.companyName === recipient.company;
+          });
+
+          if (isDuplicate) {
+            notify.warning('Contact already in board');
+            setIsAddingToBoard(false);
+            return;
+          }
+        } catch (duplicateCheckError) {
+          // If duplicate check fails, proceed with adding (better UX than failing)
+          console.warn('Duplicate check failed, proceeding:', duplicateCheckError);
         }
       }
 
@@ -1116,8 +1128,8 @@ export default function CampaignsAutoPage() {
         }
       }
 
-      // Create application/contact entry
-      const contactApplication = {
+      // Create application/contact entry - Firebase doesn't accept undefined values
+      const contactApplication: Record<string, any> = {
         companyName: recipient.company || '',
         position: recipient.title || '',
         location: recipient.location || '',
@@ -1129,13 +1141,17 @@ export default function CampaignsAutoPage() {
         contactLinkedIn: recipient.linkedinUrl || '',
         outreachChannel: 'email' as const,
         lastContactedAt: recipient.sentAt?.toDate ? recipient.sentAt.toDate().toISOString() : new Date().toISOString(),
-        conversationHistory: conversationHistory.length > 0 ? conversationHistory : undefined,
-        gmailThreadId: recipient.gmailThreadId || undefined,
+        conversationHistory: conversationHistory.length > 0 ? conversationHistory : [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        boardId: boardId,
+        boardId: boardId || null,
         boardType: 'campaigns' as const,
       };
+
+      // Only add gmailThreadId if it exists (Firebase doesn't accept undefined)
+      if (recipient.gmailThreadId) {
+        contactApplication.gmailThreadId = recipient.gmailThreadId;
+      }
 
       const newAppDoc = await addDoc(applicationsRef, contactApplication);
 
@@ -1484,6 +1500,8 @@ export default function CampaignsAutoPage() {
           onClose={() => {
             setShowDeleteConfirm(false);
             setDeleteConfirmRecipient(null);
+            // Reset swipe position when modal is closed without deleting
+            setSwipeResetKey(prev => prev + 1);
           }}
           onConfirm={handleConfirmDelete}
           application={deleteConfirmRecipient ? {
@@ -1992,80 +2010,79 @@ export default function CampaignsAutoPage() {
             </motion.button>
           </div>
 
-          {/* Mobile Stats & Search Section */}
-          <div className="md:hidden flex flex-col gap-4 p-4 pb-2">
-            {/* Stats Grid */}
-            {/* Compact Stats Row - Single Line */}
-            <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 scroll-smooth">
-              {/* Contacts */}
-              <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 dark:bg-[#252525] border border-gray-100 dark:border-white/[0.05] rounded-xl flex-shrink-0 shadow-sm">
-                <Users className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                <span className="text-sm font-bold text-gray-900 dark:text-white">{stats.contacts}</span>
-              </div>
-              {/* Generated */}
-              <div className="flex items-center gap-2 px-3 py-2.5 bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/10 rounded-xl flex-shrink-0 shadow-sm">
-                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span className="text-sm font-bold text-purple-900 dark:text-purple-100">{stats.generated}</span>
-              </div>
-              {/* Sent */}
-              <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/10 rounded-xl flex-shrink-0 shadow-sm">
-                <Send className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                <span className="text-sm font-bold text-amber-900 dark:text-amber-100">{stats.sent}</span>
-              </div>
-              {/* Opened */}
-              <div className="flex items-center gap-2 px-3 py-2.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/10 rounded-xl flex-shrink-0 shadow-sm">
-                <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-sm font-bold text-blue-900 dark:text-blue-100">{stats.opened}</span>
-              </div>
-              {/* Replied */}
-              <div className="flex items-center gap-2 px-3 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/10 rounded-xl flex-shrink-0 shadow-sm">
-                <Reply className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span className="text-sm font-bold text-emerald-900 dark:text-emerald-100">{stats.replied}</span>
-              </div>
+          {/* Mobile Stats & Actions Bar - Premium Minimal Design */}
+          <div className="md:hidden">
+            {/* Unified Stats Container */}
+            <div className="mx-4 mt-3 p-3 bg-[#1a1a1c] dark:bg-[#1a1a1c] rounded-2xl border border-white/[0.06]">
+              {/* Stats Row */}
+              <div className="flex items-center justify-between">
+                {/* Stats Group */}
+                <div className="flex items-center gap-1">
+                  {/* Generated */}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-500/10">
+                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                    <span className="text-xs font-semibold text-white tabular-nums">{stats.generated}</span>
+                  </div>
+                  {/* Sent */}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10">
+                    <Send className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-xs font-semibold text-white tabular-nums">{stats.sent}</span>
+                  </div>
+                  {/* Opened */}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-500/10">
+                    <Eye className="w-3.5 h-3.5 text-blue-400" />
+                    <span className="text-xs font-semibold text-white tabular-nums">{stats.opened}</span>
+                  </div>
+                  {/* Replied */}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10">
+                    <Reply className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-xs font-semibold text-white tabular-nums">{stats.replied}</span>
+                  </div>
+                </div>
 
-              {/* Vertical Divider */}
-              <div className="w-px h-8 bg-gray-200 dark:bg-white/10 mx-1 flex-shrink-0" />
-
-              {/* Action Buttons */}
-              <button
-                onClick={(e) => { e.stopPropagation(); handleGenerateEmails(); }}
-                disabled={isGeneratingEmails || recipients.filter(r => !r.emailGenerated).length === 0}
-                className={`flex items-center justify-center w-[42px] h-[42px] rounded-xl border flex-shrink-0 transition-colors
-                  ${recipients.filter(r => !r.emailGenerated).length > 0
-                    ? 'border-purple-200 dark:border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 active:bg-purple-100 dark:active:bg-purple-500/20'
-                    : 'border-gray-100 dark:border-white/5 text-gray-300 dark:text-gray-600 bg-transparent cursor-not-allowed'
-                  }`}
-              >
-                {isGeneratingEmails ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); handleSendEmails(); }}
-                disabled={isSendingEmails || recipients.filter(r => r.status === 'email_generated').length === 0}
-                className={`flex items-center justify-center w-[42px] h-[42px] rounded-xl border flex-shrink-0 transition-colors
-                  ${recipients.filter(r => r.status === 'email_generated').length > 0
-                    ? 'border-emerald-200 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 active:bg-emerald-100 dark:active:bg-emerald-500/20'
-                    : 'border-gray-100 dark:border-white/5 text-gray-300 dark:text-gray-600 bg-transparent cursor-not-allowed'
-                  }`}
-              >
-                {isSendingEmails ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 ml-0.5" />}
-              </button>
+                {/* Action Buttons */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleGenerateEmails(); }}
+                    disabled={isGeneratingEmails || recipients.filter(r => !r.emailGenerated).length === 0}
+                    className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all
+                      ${recipients.filter(r => !r.emailGenerated).length > 0
+                        ? 'text-purple-400 bg-purple-500/15 active:scale-95'
+                        : 'text-gray-600 bg-white/[0.03] cursor-not-allowed opacity-40'
+                      }`}
+                  >
+                    {isGeneratingEmails ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleSendEmails(); }}
+                    disabled={isSendingEmails || recipients.filter(r => r.status === 'email_generated').length === 0}
+                    className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all
+                      ${recipients.filter(r => r.status === 'email_generated').length > 0
+                        ? 'text-emerald-400 bg-emerald-500/15 active:scale-95'
+                        : 'text-gray-600 bg-white/[0.03] cursor-not-allowed opacity-40'
+                      }`}
+                  >
+                    {isSendingEmails ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Mobile Search & Filter */}
-            <div className="flex gap-2">
+            {/* Search Bar */}
+            <div className="flex gap-2 px-4 py-3">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <input
                   type="text"
-                  placeholder="Search..."
+                  placeholder="Search contacts..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-10 pl-9 pr-4 bg-gray-50 dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.1] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                  className="w-full h-10 pl-9 pr-4 bg-white/[0.04] border border-white/[0.06] rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white/[0.12] transition-colors"
                 />
               </div>
               <button
-                onClick={() => setIsFilterSheetOpen(true)} // We need to create this state
-                className="w-10 h-10 flex items-center justify-center bg-gray-50 dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.1] rounded-xl text-gray-600 dark:text-gray-300"
+                onClick={() => setIsFilterSheetOpen(true)}
+                className="w-10 h-10 flex items-center justify-center bg-white/[0.04] border border-white/[0.06] rounded-xl text-gray-400 active:bg-white/[0.08] transition-colors"
               >
                 <Filter className="w-4 h-4" />
               </button>
@@ -2244,6 +2261,7 @@ export default function CampaignsAutoPage() {
                     rightLabel="Add to board"
                     leftActionColor="bg-red-500"
                     rightActionColor="bg-violet-500"
+                    resetKey={swipeResetKey}
                   >
                     <div onClick={() => {
                       if (recipient.emailGenerated) setEmailPreviewRecipient(recipient);

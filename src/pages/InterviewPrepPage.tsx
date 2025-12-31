@@ -491,6 +491,51 @@ export default function InterviewPrepPage() {
   const [mobileScrollY, setMobileScrollY] = useState(0);
   const mobileScrollRef = useRef<HTMLDivElement>(null);
 
+  // Mobile swipe gesture handling for tab switching
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const SWIPE_THRESHOLD = 50; // Minimum distance for a swipe
+  const SWIPE_VELOCITY_THRESHOLD = 0.3; // Minimum velocity (px/ms)
+  const MOBILE_TABS = ['overview', 'questions', 'skills', 'resources', 'history'] as const;
+  type MobileTabId = typeof MOBILE_TABS[number];
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now()
+    };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    const deltaTime = Date.now() - touchStartRef.current.time;
+    const velocity = Math.abs(deltaX) / deltaTime;
+
+    // Only trigger swipe if horizontal movement is dominant and threshold is met
+    if (
+      Math.abs(deltaX) > SWIPE_THRESHOLD &&
+      Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && // Horizontal bias
+      velocity > SWIPE_VELOCITY_THRESHOLD
+    ) {
+      const currentIndex = MOBILE_TABS.indexOf(tab as MobileTabId);
+
+      if (deltaX < 0 && currentIndex < MOBILE_TABS.length - 1) {
+        // Swipe left → next tab
+        setTab(MOBILE_TABS[currentIndex + 1]);
+      } else if (deltaX > 0 && currentIndex > 0) {
+        // Swipe right → previous tab
+        setTab(MOBILE_TABS[currentIndex - 1]);
+      }
+    }
+
+    touchStartRef.current = null;
+  }, [tab]);
+
   // Play sound from Firebase Storage when user clicks "Prepare Live"
   const playFuturisticSound = async () => {
     try {
@@ -4170,8 +4215,12 @@ Return ONLY the pitch text, no explanations or formatting.`;
             onTabChange={(newTab) => setTab(newTab)}
           />
 
-          {/* Mobile Tab Content */}
-          <div className="pt-4">
+          {/* Mobile Tab Content - Swipeable */}
+          <div
+            className="pt-4"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             <AnimatePresence mode="wait">
               {tab === 'overview' && (
                 <OverviewTabMobile

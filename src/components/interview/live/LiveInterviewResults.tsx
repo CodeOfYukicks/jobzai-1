@@ -352,7 +352,7 @@ export const LiveInterviewResults: React.FC<LiveInterviewResultsProps> = ({
     const expertInsight = analysis.actionPlan?.[0] || (analysis as any).recommendation || '';
 
     return (
-        <div className="flex flex-col h-full w-full overflow-hidden bg-white dark:bg-[#1a1a1c]">
+        <div className="flex flex-col h-full w-full bg-white dark:bg-[#1a1a1c]">
             {/* Mobile Tab Switcher */}
             <div className="md:hidden flex border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#1a1a1c] sticky top-0 z-10">
                 <button
@@ -375,10 +375,10 @@ export const LiveInterviewResults: React.FC<LiveInterviewResultsProps> = ({
                 </button>
             </div>
 
-            <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+            <div className="flex flex-col md:flex-row flex-1 overflow-auto">
                 {/* Left Column - Summary */}
                 <div className={`w-full md:w-1/2 md:border-r border-neutral-200 dark:border-neutral-800 overflow-y-auto ${mobileTab !== 'summary' ? 'hidden md:block' : ''}`}>
-                    <div className="p-4 sm:p-6 pb-20 md:pb-24">
+                    <div className="p-4 sm:p-6 pb-4">
                         {/* Hero - Minimal */}
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
@@ -517,7 +517,7 @@ export const LiveInterviewResults: React.FC<LiveInterviewResultsProps> = ({
 
                 {/* Right Column - Question Breakdown */}
                 <div className={`w-full md:w-1/2 overflow-y-auto bg-neutral-50 dark:bg-[#141416] flex-1 md:flex-none ${mobileTab !== 'questions' ? 'hidden md:block' : ''}`}>
-                    <div className="p-4 sm:p-6 pb-20 md:pb-24">
+                    <div className="p-4 sm:p-6 pb-4">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -555,11 +555,13 @@ export const LiveInterviewResults: React.FC<LiveInterviewResultsProps> = ({
             </div>
 
             {/* Sticky Footer */}
+            {/* Footer Actions */}
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="fixed bottom-[calc(64px+env(safe-area-inset-bottom))] md:bottom-0 left-0 md:left-16 right-0 border-t border-neutral-200 bg-white/95 backdrop-blur-sm dark:border-neutral-800 dark:bg-[#1a1a1c]/95 z-20"
+                className="flex-shrink-0 border-t border-neutral-200 bg-white dark:border-neutral-800 dark:bg-[#1a1a1c]"
+                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             >
                 <div className="px-4 sm:px-6 py-3 flex gap-2 justify-between sm:justify-end">
                     <button

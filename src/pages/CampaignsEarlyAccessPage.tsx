@@ -122,7 +122,7 @@ export default function CampaignsEarlyAccessPage() {
     <AuthLayout>
       {/* Decorative Grid Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
-      
+
       <div className="min-h-screen flex items-center justify-center px-4 py-6 sm:py-8 relative">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -145,16 +145,13 @@ export default function CampaignsEarlyAccessPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="mb-6 max-w-2xl mx-auto space-y-3"
+            className="mb-6 max-w-lg mx-auto space-y-4"
           >
             <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-              <span className="font-semibold text-[#635BFF] dark:text-[#a5a0ff]">Apply to real jobs, automatically.</span> AutoPilot scans job boards 24/7, finds positions that match your profile, and submits tailored applications — while you focus on what matters.
+              <span className="font-semibold text-[#635BFF] dark:text-[#a5a0ff]">Job hunting on autopilot.</span> We find matching roles and apply for you — while you sleep.
             </p>
-            <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-              No more endless scrolling. No more copy-pasting cover letters. AutoPilot handles the repetitive work so you can wake up to interview invites instead of job alerts.
-            </p>
-            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 leading-relaxed">
-              <span className="font-semibold text-gray-700 dark:text-gray-200">100+ applications per week</span> — personalized to each job, submitted at the perfect time.
+            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">
+              <span className="font-semibold text-gray-700 dark:text-gray-200">100+ tailored applications/week.</span> Wake up to interviews, not job alerts.
             </p>
           </motion.div>
 
@@ -230,42 +227,41 @@ export default function CampaignsEarlyAccessPage() {
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#635BFF] to-[#7c75ff] flex items-center justify-center flex-shrink-0">
                     <span className="text-white font-bold text-sm">{jobCards[currentCardIndex].icon}</span>
                   </div>
-                  
+
                   {/* Job Info */}
                   <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 dark:text-white text-sm truncate">
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm truncate">
                       {jobCards[currentCardIndex].title}
-                          </h3>
+                    </h3>
                     <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
                       {jobCards[currentCardIndex].company}
                     </p>
                   </div>
-                  
+
                   {/* Applied Badge */}
                   <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400 flex-shrink-0">
                     <Check className="h-4 w-4" />
-                          <span className="text-xs font-medium">Applied</span>
+                    <span className="text-xs font-medium">Applied</span>
                   </div>
-                      </div>
-                
-                <div className="pt-3 border-t border-gray-100 dark:border-[#3d3c3e]">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Applied by AutoPilot while you slept
-                        </p>
                 </div>
-                    </motion.div>
-              </AnimatePresence>
-            
+
+                <div className="pt-3 border-t border-gray-100 dark:border-[#3d3c3e]">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Applied by AutoPilot while you slept
+                  </p>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
             {/* Dots indicator */}
             <div className="flex justify-center gap-1.5 mt-4">
               {jobCards.map((_, index) => (
                 <div
                   key={index}
-                  className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                    index === currentCardIndex 
-                      ? 'bg-[#635BFF] w-4' 
+                  className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${index === currentCardIndex
+                      ? 'bg-[#635BFF] w-4'
                       : 'bg-gray-300 dark:bg-[#4a494b]'
-                  }`}
+                    }`}
                 />
               ))}
             </div>

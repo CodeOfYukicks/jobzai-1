@@ -249,7 +249,7 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-40 flex flex-col bg-white dark:bg-[#1a1a1c] md:top-12 md:left-16 md:bottom-0"
+                    className="fixed inset-0 z-[60] md:z-40 flex flex-col bg-white dark:bg-[#1a1a1c] md:top-12 md:left-16 md:bottom-0"
                 >
                     {/* Header - Compact */}
                     <div className="flex items-center justify-between px-4 py-3 sm:py-2 border-b border-black/5 dark:border-white/5" style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}>

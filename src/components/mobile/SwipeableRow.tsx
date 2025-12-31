@@ -15,6 +15,8 @@ interface SwipeableRowProps {
     className?: string;
     threshold?: number;
     enabled?: boolean;
+    /** Change this key to force reset the swipe position (e.g., when delete modal is cancelled) */
+    resetKey?: number | string;
 }
 
 export default function SwipeableRow({
@@ -29,7 +31,8 @@ export default function SwipeableRow({
     rightLabel = 'Add',
     className = '',
     threshold = 0.3, // 30% of width
-    enabled = true
+    enabled = true,
+    resetKey
 }: SwipeableRowProps) {
     const x = useMotionValue(0);
     const controls = useAnimation();
@@ -41,6 +44,13 @@ export default function SwipeableRow({
             setContainerWidth(containerRef.current.offsetWidth);
         }
     }, []);
+
+    // Reset position when resetKey changes (used to reset after modal cancel)
+    useEffect(() => {
+        if (resetKey !== undefined) {
+            controls.start({ x: 0, transition: { duration: 0.2 } });
+        }
+    }, [resetKey, controls]);
 
     // Background opacity/scale transforms
     const leftOpacity = useTransform(x, [-50, -100], [0, 1]);

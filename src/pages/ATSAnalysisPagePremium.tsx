@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -205,6 +205,50 @@ export default function ATSAnalysisPagePremium() {
   const [activeBackgroundTask, setActiveBackgroundTask] = useState<BackgroundTask | null>(null);
 
   const hasCalculatedScoreRef = useRef(false);
+
+  // Mobile swipe gesture handling for tab switching
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const SWIPE_THRESHOLD = 50; // Minimum distance for a swipe
+  const SWIPE_VELOCITY_THRESHOLD = 0.3; // Minimum velocity (px/ms)
+  const MOBILE_TABS = ['overview', 'match', 'gaps', 'summary', 'cv'] as const;
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now()
+    };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    const deltaTime = Date.now() - touchStartRef.current.time;
+    const velocity = Math.abs(deltaX) / deltaTime;
+
+    // Only trigger swipe if horizontal movement is dominant and threshold is met
+    if (
+      Math.abs(deltaX) > SWIPE_THRESHOLD &&
+      Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && // Horizontal bias
+      velocity > SWIPE_VELOCITY_THRESHOLD
+    ) {
+      const currentIndex = MOBILE_TABS.indexOf(mainTab as typeof MOBILE_TABS[number]);
+
+      if (deltaX < 0 && currentIndex < MOBILE_TABS.length - 1) {
+        // Swipe left → next tab
+        setMainTab(MOBILE_TABS[currentIndex + 1]);
+      } else if (deltaX > 0 && currentIndex > 0) {
+        // Swipe right → previous tab
+        setMainTab(MOBILE_TABS[currentIndex - 1]);
+      }
+    }
+
+    touchStartRef.current = null;
+  }, [mainTab]);
 
   // Fetch analysis from Firestore
   useEffect(() => {
@@ -823,7 +867,7 @@ export default function ATSAnalysisPagePremium() {
             </div>
           </nav>
 
-          {/* Tab Content */}
+          {/* Tab Content - Swipeable on mobile */}
           <AnimatePresence mode="wait">
             <motion.div
               key={mainTab}
@@ -831,6 +875,8 @@ export default function ATSAnalysisPagePremium() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.2 }}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
             >
               {mainTab === 'overview' && <OverviewTab analysis={analysis} />}
               {mainTab === 'match' && <MatchDetailsTab analysis={analysis} />}
