@@ -66,6 +66,10 @@
         "function": "api"
       },
       {
+        "source": "/api/transcribe-audio",
+        "function": "api"
+      },
+      {
         "source": "/api/cv-review",
         "function": "api"
       },

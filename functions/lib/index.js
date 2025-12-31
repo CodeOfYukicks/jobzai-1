@@ -176,6 +176,7 @@ Object.defineProperty(exports, "reEnrichAllJobsV4", { enumerable: true, get: fun
 var assistant_1 = require("./assistant");
 Object.defineProperty(exports, "assistant", { enumerable: true, get: function () { return assistant_1.assistant; } });
 const mailgun_js_1 = require("./lib/mailgun.js");
+const openai_1 = require("openai");
 const functions = require("firebase-functions");
 const stripe_1 = require("stripe");
 // Firebase Admin already initialized at top
@@ -195,7 +196,7 @@ const handleCORS = (req, res, next) => {
     }
     next();
 };
-const openai_1 = require("./utils/openai");
+const openai_2 = require("./utils/openai");
 exports.startCampaign = (0, https_1.onCall)({
     region: 'us-central1',
 }, async (request) => {
@@ -411,7 +412,7 @@ async function handlePremiumAnalysis(req, res, resumeImages, jobContext, userId,
             return;
         }
         // Get OpenAI client
-        const openaiClient = await (0, openai_1.getOpenAIClient)();
+        const openaiClient = await (0, openai_2.getOpenAIClient)();
         // Import premium prompt builder
         const { buildPremiumATSPrompt } = await Promise.resolve().then(() => require('./utils/premiumATSPrompt.js'));
         // Build premium prompt
@@ -577,7 +578,7 @@ exports.analyzeCVVision = (0, https_1.onRequest)({
         // Get OpenAI client
         let openaiClient;
         try {
-            openaiClient = await (0, openai_1.getOpenAIClient)();
+            openaiClient = await (0, openai_2.getOpenAIClient)();
         }
         catch (error) {
             console.error('❌ Failed to get OpenAI client:', error);
@@ -713,7 +714,7 @@ exports.analyzeResumePremium = (0, https_1.onRequest)({
         // Get OpenAI client
         let openaiClient;
         try {
-            openaiClient = await (0, openai_1.getOpenAIClient)();
+            openaiClient = await (0, openai_2.getOpenAIClient)();
         }
         catch (error) {
             console.error('❌ Failed to get OpenAI client:', error);
@@ -2728,7 +2729,7 @@ exports.generateQuestions = (0, https_1.onRequest)({
         // Get OpenAI API key
         let apiKey;
         try {
-            apiKey = await (0, openai_1.getOpenAIApiKey)();
+            apiKey = await (0, openai_2.getOpenAIApiKey)();
         }
         catch (keyError) {
             console.error('❌ Error retrieving OpenAI API key:', keyError);
@@ -2981,7 +2982,7 @@ app.post('/api/openai-realtime-session', async (req, res) => {
         // Get API key from Firestore or environment variables
         let apiKey = null;
         try {
-            apiKey = await (0, openai_1.getOpenAIApiKey)();
+            apiKey = await (0, openai_2.getOpenAIApiKey)();
         }
         catch (e) {
             console.error('Error getting OpenAI API key:', e);
@@ -3086,7 +3087,7 @@ app.post('/api/analyze-live-interview', async (req, res) => {
         // Get API key
         let apiKey = null;
         try {
-            apiKey = await (0, openai_1.getOpenAIApiKey)();
+            apiKey = await (0, openai_2.getOpenAIApiKey)();
         }
         catch (e) {
             console.error('Error getting OpenAI API key:', e);
@@ -3480,7 +3481,7 @@ app.post('/api/chat-fast', async (req, res) => {
     console.log('⚡ Chat Fast API called');
     try {
         const { prompt, systemMessage, temperature = 0.7, max_tokens = 1000 } = req.body;
-        const apiKey = await (0, openai_1.getOpenAIApiKey)();
+        const apiKey = await (0, openai_2.getOpenAIApiKey)();
         if (!apiKey) {
             return res.status(500).json({ error: 'OpenAI API key not configured' });
         }
@@ -3602,7 +3603,7 @@ app.post('/api/gpt', async (req, res) => {
     console.log('🧠 GPT API called');
     try {
         const { model, messages, temperature = 0.7, max_tokens = 1000, response_format } = req.body;
-        const apiKey = await (0, openai_1.getOpenAIApiKey)();
+        const apiKey = await (0, openai_2.getOpenAIApiKey)();
         if (!apiKey) {
             return res.status(500).json({ error: 'OpenAI API key not configured' });
         }
@@ -3639,7 +3640,7 @@ app.post('/api/chatgpt', async (req, res) => {
     // Forward to GPT handler logic
     try {
         const { prompt, systemMessage, temperature = 0.7 } = req.body;
-        const apiKey = await (0, openai_1.getOpenAIApiKey)();
+        const apiKey = await (0, openai_2.getOpenAIApiKey)();
         if (!apiKey) {
             return res.status(500).json({ error: 'OpenAI API key not configured' });
         }
@@ -3671,6 +3672,60 @@ app.post('/api/chatgpt', async (req, res) => {
     catch (error) {
         console.error('Error in ChatGPT API:', error);
         res.status(500).json({ error: error.message });
+    }
+});
+const os = require("os");
+const fs = require("fs");
+const path = require("path");
+app.post('/api/transcribe-audio', async (req, res) => {
+    var _a;
+    console.log('🎙️ Transcribe Audio API called');
+    try {
+        const { audioData, detectedLanguage } = req.body;
+        if (!audioData) {
+            return res.status(400).json({ status: 'error', message: 'No audio data provided' });
+        }
+        // Get OpenAI API key
+        let apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            const settingsDoc = await admin.firestore().collection('settings').doc('openai').get();
+            apiKey = (_a = settingsDoc.data()) === null || _a === void 0 ? void 0 : _a.apiKey;
+        }
+        if (!apiKey) {
+            return res.status(500).json({ status: 'error', message: 'OpenAI API key not configured' });
+        }
+        // Initialize OpenAI client
+        const openai = new openai_1.default({ apiKey });
+        // Convert base64 to buffer
+        const base64Data = audioData.split(';base64,').pop();
+        const buffer = Buffer.from(base64Data, 'base64');
+        // Create a temporary file
+        const tempFilePath = path.join(os.tmpdir(), `audio_${Date.now()}.webm`);
+        fs.writeFileSync(tempFilePath, buffer);
+        try {
+            console.log('Sending audio to Whisper API...');
+            const transcription = await openai.audio.transcriptions.create({
+                file: fs.createReadStream(tempFilePath),
+                model: 'whisper-1',
+                language: detectedLanguage || undefined,
+            });
+            console.log('Transcription successful');
+            res.json({
+                status: 'success',
+                transcription: transcription.text,
+                detectedLanguage: detectedLanguage // Whisper doesn't always return detected language in simple transcription
+            });
+        }
+        finally {
+            // Clean up temp file
+            if (fs.existsSync(tempFilePath)) {
+                fs.unlinkSync(tempFilePath);
+            }
+        }
+    }
+    catch (error) {
+        console.error('Error in Transcribe Audio API:', error);
+        res.status(500).json({ status: 'error', message: error.message });
     }
 });
 // Catch-all for debugging

@@ -4224,6 +4224,70 @@ app.post('/api/chatgpt', async (req: any, res: any) => {
   }
 });
 
+// Transcribe Audio (Whisper)
+import { toFile } from 'openai';
+import * as os from 'os';
+import * as fs from 'fs';
+import * as path from 'path';
+
+app.post('/api/transcribe-audio', async (req: any, res: any) => {
+  console.log('🎙️ Transcribe Audio API called');
+  try {
+    const { audioData, detectedLanguage } = req.body;
+
+    if (!audioData) {
+      return res.status(400).json({ status: 'error', message: 'No audio data provided' });
+    }
+
+    // Get OpenAI API key
+    let apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      const settingsDoc = await admin.firestore().collection('settings').doc('openai').get();
+      apiKey = settingsDoc.data()?.apiKey;
+    }
+
+    if (!apiKey) {
+      return res.status(500).json({ status: 'error', message: 'OpenAI API key not configured' });
+    }
+
+    // Initialize OpenAI client
+    const openai = new OpenAI({ apiKey });
+
+    // Convert base64 to buffer
+    const base64Data = audioData.split(';base64,').pop();
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    // Create a temporary file
+    const tempFilePath = path.join(os.tmpdir(), `audio_${Date.now()}.webm`);
+    fs.writeFileSync(tempFilePath, buffer);
+
+    try {
+      console.log('Sending audio to Whisper API...');
+      const transcription = await openai.audio.transcriptions.create({
+        file: fs.createReadStream(tempFilePath),
+        model: 'whisper-1',
+        language: detectedLanguage || undefined,
+      });
+
+      console.log('Transcription successful');
+      res.json({
+        status: 'success',
+        transcription: transcription.text,
+        detectedLanguage: detectedLanguage // Whisper doesn't always return detected language in simple transcription
+      });
+    } finally {
+      // Clean up temp file
+      if (fs.existsSync(tempFilePath)) {
+        fs.unlinkSync(tempFilePath);
+      }
+    }
+
+  } catch (error: any) {
+    console.error('Error in Transcribe Audio API:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
 // Catch-all for debugging
 app.all('*', (req, res) => {
   console.log(`📡 API request: ${req.method} ${req.path}`);

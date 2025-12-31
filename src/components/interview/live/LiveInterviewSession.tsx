@@ -148,21 +148,24 @@ export const LiveInterviewSession: React.FC<LiveInterviewSessionProps> = ({
     const analyzeInterview = async (finalAnswers: Record<number, string>) => {
         setIsAnalyzing(true);
         try {
-            console.log('📤 Sending to analyze-interview:', {
-                questionsCount: sessionQuestions.length,
-                questionIds: sessionQuestions.map(q => q.id),
-                answersKeys: Object.keys(finalAnswers),
-                answers: finalAnswers
+            // Construct transcript for backend
+            const transcript = sessionQuestions.flatMap(q => [
+                { role: 'interviewer', text: q.text },
+                { role: 'candidate', text: finalAnswers[q.id] || "No answer provided" }
+            ]);
+
+            console.log('📤 Sending to analyze-live-interview:', {
+                transcriptLength: transcript.length,
+                jobContext
             });
 
-            const response = await fetch('/api/analyze-interview', {
+            const response = await fetch('/api/analyze-live-interview', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    questions: sessionQuestions,
-                    answers: finalAnswers,
+                    transcript,
                     jobContext
                 }),
             });
