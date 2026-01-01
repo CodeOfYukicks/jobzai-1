@@ -338,148 +338,114 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Menu mobile avec overlay */}
+      {/* Menu mobile premium - Fullscreen minimaliste */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <>
-            {/* Overlay sombre */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm md:hidden"
-              onClick={() => setIsMobileMenuOpen(false)}
-            />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="md:hidden flex flex-col"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: '100vw',
+              height: '100vh',
+              zIndex: 99999,
+              backgroundColor: '#ffffff',
+            }}
+          >
+            {/* Header avec logo et bouton fermer */}
+            <div className="flex-shrink-0 flex items-center justify-between px-4 h-14 border-b border-gray-100 bg-white">
+              <a
+                href="/"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIsMobileMenuOpen(false);
+                  if (currentUser) {
+                    navigate('/dashboard');
+                  } else {
+                    navigate('/');
+                  }
+                }}
+                className="flex items-center"
+              >
+                <FirebaseImage
+                  path="images/logo-only.png"
+                  alt="Cubbbe"
+                  className="h-10 w-auto"
+                />
+              </a>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 -mr-2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
 
-            {/* Menu */}
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute top-16 left-0 right-0 bg-white md:hidden shadow-lg border-t border-gray-100"
-            >
-              <div className="px-4 py-6 space-y-4 max-h-[calc(100vh-80px)] overflow-y-auto" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
-                {/* Navigation Section */}
-                <div className="space-y-4">
-                  {/* Apply Section */}
-                  <div>
-                    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Apply
-                    </div>
-                    {productFeatures.apply.map((item) => (
-                      <a
-                        key={item.name}
-                        href={item.href}
-                        className="block py-3 px-4 text-gray-900 font-medium hover:text-[#7066fd] hover:bg-gray-50 rounded-lg transition-colors min-h-[44px] flex items-center"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        {item.name}
-                      </a>
-                    ))}
-                  </div>
+            {/* Navigation centrale - prend l'espace restant */}
+            <div className="flex-1 flex flex-col items-center justify-center px-8 bg-white">
+              <nav className="flex flex-col items-center space-y-8">
+                {[
+                  { name: 'How it Works', href: '#how-it-works' },
+                  { name: 'Pricing', href: '#pricing' },
+                  { name: 'Blog', href: '/blog' },
+                ].map((item, index) => (
+                  <motion.a
+                    key={item.name}
+                    href={item.href}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 + index * 0.05, duration: 0.3 }}
+                    className="text-3xl font-medium text-gray-900 hover:text-[#7066fd] transition-colors tracking-tight"
+                    onClick={(e) => {
+                      if (item.href.startsWith('#')) {
+                        e.preventDefault();
+                        setIsMobileMenuOpen(false);
+                        const element = document.querySelector(item.href);
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      } else {
+                        setIsMobileMenuOpen(false);
+                      }
+                    }}
+                  >
+                    {item.name}
+                  </motion.a>
+                ))}
+              </nav>
+            </div>
 
-                  {/* Track Section */}
-                  <div>
-                    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Track
-                    </div>
-                    {productFeatures.track.map((item) => (
-                      <a
-                        key={item.name}
-                        href={item.href}
-                        className="block py-2.5 px-4 text-gray-900 font-medium hover:text-[#7066fd] transition-colors"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        {item.name}
-                      </a>
-                    ))}
-                  </div>
-
-                  {/* Prepare Section */}
-                  <div>
-                    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Prepare
-                    </div>
-                    {productFeatures.prepare.map((item) => (
-                      <a
-                        key={item.name}
-                        href={item.href}
-                        className="block py-2.5 px-4 text-gray-900 font-medium hover:text-[#7066fd] transition-colors"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        {item.name}
-                      </a>
-                    ))}
-                  </div>
-
-                  {/* Improve Section */}
-                  <div>
-                    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Improve
-                    </div>
-                    {productFeatures.improve.map((item) => (
-                      <a
-                        key={item.name}
-                        href={item.href}
-                        className="block py-2.5 px-4 text-gray-900 font-medium hover:text-[#7066fd] transition-colors"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        {item.name}
-                      </a>
-                    ))}
-                  </div>
-
-                  {/* Pricing */}
-                  <div className="pt-2 border-t border-gray-100">
-                    <a
-                      href="#pricing"
-                      className="block py-2.5 px-4 text-gray-900 font-medium hover:text-[#7066fd] transition-colors"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Pricing
-                    </a>
-                  </div>
-                </div>
-
-                {/* Auth Section - Toujours afficher sur landing page ou si pas connecté */}
-                {showPublicMenu && (
-                  <div className="space-y-2 pt-4 border-t border-gray-100">
-                    <Link
-                      to="/login"
-                      className="flex items-center justify-center py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-base min-h-[48px]"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Log in
-                    </Link>
-                    <Link
-                      to="/signup"
-                      className="flex items-center justify-center py-3 px-4 text-white bg-[#7066fd] rounded-lg hover:bg-[#5b52e0] transition-colors font-semibold text-base min-h-[48px]"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Get Started
-                    </Link>
-                  </div>
-                )}
-
-                {/* Authenticated Navigation Mobile - Seulement si connecté ET pas sur landing page ou blog */}
-                {currentUser && !isPublicPage && (
-                  <div className="space-y-1 pt-4 border-t border-gray-100">
-                    {authenticatedNavigation.map((item) => (
-                      <Link
-                        key={item.name}
-                        to={item.href}
-                        className="flex items-center space-x-3 py-3 px-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        <item.icon className="h-5 w-5" />
-                        <span>{item.name}</span>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </>
+            {/* Footer avec CTA */}
+            <div className="flex-shrink-0 px-6 pb-6 pt-4 bg-white" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.3 }}
+              >
+                <Link
+                  to="/signup"
+                  className="flex items-center justify-center w-full py-4 text-white bg-[#7066fd] rounded-2xl hover:bg-[#5b52e0] transition-all duration-200 font-semibold text-lg shadow-lg shadow-[#7066fd]/25"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Get Started
+                </Link>
+                <Link
+                  to="/login"
+                  className="flex items-center justify-center w-full py-3 mt-3 text-gray-600 hover:text-gray-900 transition-colors font-medium text-base"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Already have an account? Log in
+                </Link>
+              </motion.div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </nav>

@@ -796,26 +796,71 @@ function SavingsCalculator() {
   );
 }
 
-// Try For Free Section - Notion Style
+// Try For Free Section - Notion Style with Mobile Optimization
 function TryForFree() {
+  const [activeFeature, setActiveFeature] = useState(0);
+  const featureScrollRef = useRef<HTMLDivElement>(null);
+
+  const secondaryFeatures = [
+    {
+      title: 'Job Tracker',
+      description: 'Track all your applications in one organized dashboard.',
+      icon: (
+        <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
+          <rect x="3" y="3" width="26" height="26" rx="4" stroke="currentColor" strokeWidth="2" />
+          <path d="M3 11h26" stroke="currentColor" strokeWidth="2" />
+          <path d="M11 11v18" stroke="currentColor" strokeWidth="2" />
+        </svg>
+      ),
+      imagePath: 'images/try-job-tracker.png',
+    },
+    {
+      title: 'Mock Interview',
+      description: 'Practice with AI and build unshakeable confidence.',
+      icon: (
+        <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
+          <rect x="2" y="5" width="28" height="22" rx="3" stroke="currentColor" strokeWidth="2" />
+          <circle cx="16" cy="16" r="4" stroke="currentColor" strokeWidth="2" />
+          <path d="M16 5v3M16 24v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      ),
+      imagePath: 'images/try-mock-interview.png',
+    },
+  ];
+
+  // Handle scroll to update active indicator (mobile)
+  useEffect(() => {
+    const container = featureScrollRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const scrollLeft = container.scrollLeft;
+      const cardWidth = container.offsetWidth * 0.85;
+      const newIndex = Math.round(scrollLeft / cardWidth);
+      setActiveFeature(Math.min(Math.max(newIndex, 0), secondaryFeatures.length - 1));
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [secondaryFeatures.length]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="pt-16 pb-16"
+      className="pt-12 md:pt-16 pb-12 md:pb-16"
     >
-      {/* Title */}
-      <h2 className="text-5xl lg:text-6xl font-extrabold text-gray-900 mb-10 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
+      {/* Title - Responsive */}
+      <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-6 md:mb-10 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
         Try for free.
       </h2>
 
-      {/* Cards Grid - 2 columns, auto rows */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] lg:grid-rows-[1fr_1fr] gap-4 lg:auto-rows-fr">
+      {/* Desktop Layout */}
+      <div className="hidden lg:grid grid-cols-[1fr_1fr] grid-rows-[1fr_1fr] gap-4 auto-rows-fr">
         {/* Main Card - AutoPilot - spans both rows */}
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm lg:row-span-2 flex flex-col">
+        <div className="bg-white rounded-2xl overflow-hidden shadow-sm row-span-2 flex flex-col">
           <div className="p-8 pb-6">
-            {/* Icon - Simple black */}
             <svg viewBox="0 0 40 40" fill="none" className="w-12 h-12 mb-5">
               <rect x="4" y="4" width="32" height="32" rx="6" stroke="#1a1a1a" strokeWidth="2.5" />
               <path d="M12 20h16M20 12v16" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" />
@@ -836,7 +881,6 @@ function TryForFree() {
             </Link>
           </div>
 
-          {/* Image - Full width */}
           <div className="px-8 pb-4">
             <div className="rounded-xl overflow-hidden bg-[#f5f0e8]">
               <FirebaseImage
@@ -847,7 +891,6 @@ function TryForFree() {
             </div>
           </div>
 
-          {/* Sub-section like Notion's "Design system" */}
           <div className="px-8 py-6 border-t border-gray-100 mt-auto">
             <h4 className="text-xl font-bold text-gray-900 mb-2">Mass Applications</h4>
             <p className="text-gray-500 text-sm leading-relaxed">
@@ -857,77 +900,143 @@ function TryForFree() {
           </div>
         </div>
 
-        {/* Job Tracker Card - row 1, col 2 */}
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm relative flex flex-col">
-          <div className="p-6 pr-[55%] flex-1">
-            {/* Icon - Simple line */}
-            <svg viewBox="0 0 32 32" fill="none" className="w-10 h-10 mb-3">
-              <rect x="3" y="3" width="26" height="26" rx="4" stroke="#1a1a1a" strokeWidth="2" />
-              <path d="M3 11h26" stroke="#1a1a1a" strokeWidth="2" />
-              <path d="M11 11v18" stroke="#1a1a1a" strokeWidth="2" />
-            </svg>
+        {/* Secondary Cards - Desktop */}
+        {secondaryFeatures.map((feature, index) => (
+          <div key={feature.title} className="bg-white rounded-2xl overflow-hidden shadow-sm relative flex flex-col">
+            <div className="p-6 pr-[55%] flex-1">
+              <div className="text-gray-900 mb-3">{feature.icon}</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-1">{feature.title}</h3>
+              <p className="text-gray-500 text-sm mb-4">{feature.description}</p>
+              <Link
+                to="/signup"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors w-fit"
+              >
+                Try free
+              </Link>
+            </div>
+            <div className="absolute right-0 top-5 bottom-0 w-[52%] overflow-hidden">
+              <div className="rounded-tl-xl shadow-2xl overflow-hidden h-[120%]">
+                <FirebaseImage
+                  path={feature.imagePath}
+                  alt={`${feature.title} Screenshot`}
+                  className="w-full h-full object-cover object-left-top"
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
 
-            <h3 className="text-xl font-bold text-gray-900 mb-1">
-              Job Tracker
-            </h3>
-            <p className="text-gray-500 text-sm mb-4">
-              Track all your applications in one place.
-            </p>
+      {/* Mobile Layout */}
+      <div className="lg:hidden space-y-4">
+        {/* AutoPilot Card - Simplified for Mobile */}
+        <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+          <div className="p-5">
+            {/* Compact header with icon */}
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <svg viewBox="0 0 40 40" fill="none" className="w-6 h-6">
+                  <rect x="4" y="4" width="32" height="32" rx="6" stroke="#1a1a1a" strokeWidth="2.5" />
+                  <path d="M12 20h16M20 12v16" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                  AutoPilot
+                </h3>
+                <p className="text-gray-500 text-sm">
+                  Mass-apply to jobs with AI
+                </p>
+              </div>
+            </div>
 
+            {/* Key benefit */}
+            <div className="bg-gray-50 rounded-xl p-4 mb-4">
+              <p className="text-sm text-gray-700 leading-relaxed">
+                <span className="font-semibold text-gray-900">Send 100+ applications</span> in minutes.
+                AI personalizes each one to the company and role.
+              </p>
+            </div>
+
+            {/* CTA - Full width for better touch */}
             <Link
               to="/signup"
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors w-fit"
+              className="flex items-center justify-center w-full py-3.5 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors"
             >
-              Try free
+              Start free trial
             </Link>
-          </div>
-
-          {/* Screenshot - absolute, top to bottom, clipped at bottom */}
-          <div className="absolute right-0 top-5 bottom-0 w-[52%] overflow-hidden">
-            <div className="rounded-tl-xl shadow-2xl overflow-hidden h-[120%]">
-              <FirebaseImage
-                path="images/try-job-tracker.png"
-                alt="Job Tracker Screenshot"
-                className="w-full h-full object-cover object-left-top"
-              />
-            </div>
           </div>
         </div>
 
-        {/* Mock Interview Card - row 2, col 2 */}
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm relative flex flex-col">
-          <div className="p-6 pr-[55%] flex-1">
-            {/* Icon - Simple line */}
-            <svg viewBox="0 0 32 32" fill="none" className="w-10 h-10 mb-3">
-              <rect x="2" y="5" width="28" height="22" rx="3" stroke="#1a1a1a" strokeWidth="2" />
-              <circle cx="16" cy="16" r="4" stroke="#1a1a1a" strokeWidth="2" />
-              <path d="M16 5v3M16 24v3" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" />
-            </svg>
+        {/* Secondary Features - Horizontal Scroll */}
+        <div>
+          <div
+            ref={featureScrollRef}
+            className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4 pb-2"
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            {secondaryFeatures.map((feature, index) => (
+              <div
+                key={feature.title}
+                className="flex-shrink-0 w-[85%] snap-center pr-3"
+                style={{ scrollSnapAlign: 'center' }}
+              >
+                <div className="bg-white rounded-2xl p-5 shadow-sm h-full">
+                  {/* Icon + Title */}
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 text-gray-700">
+                      {feature.icon}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">{feature.title}</h3>
+                      <p className="text-gray-500 text-sm mt-0.5">{feature.description}</p>
+                    </div>
+                  </div>
 
-            <h3 className="text-xl font-bold text-gray-900 mb-1">
-              Mock Interview
-            </h3>
-            <p className="text-gray-500 text-sm mb-4">
-              Practice with AI-powered interviews.
-            </p>
+                  {/* Mini Preview */}
+                  <div className="rounded-xl overflow-hidden bg-gray-100 mb-4 h-32">
+                    <FirebaseImage
+                      path={feature.imagePath}
+                      alt={`${feature.title} Preview`}
+                      className="w-full h-full object-cover object-top"
+                    />
+                  </div>
 
-            <Link
-              to="/signup"
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors w-fit"
-            >
-              Try free
-            </Link>
+                  {/* CTA */}
+                  <Link
+                    to="/signup"
+                    className="flex items-center justify-center w-full py-3 border border-gray-200 text-gray-900 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    Try free
+                  </Link>
+                </div>
+              </div>
+            ))}
           </div>
 
-          {/* Screenshot - absolute, top to bottom, clipped at bottom */}
-          <div className="absolute right-0 top-5 bottom-0 w-[52%] overflow-hidden">
-            <div className="rounded-tl-xl shadow-2xl overflow-hidden h-[120%]">
-              <FirebaseImage
-                path="images/try-mock-interview.png"
-                alt="Mock Interview Screenshot"
-                className="w-full h-full object-cover object-left-top"
+          {/* Indicators */}
+          <div className="flex justify-center gap-2 mt-3">
+            {secondaryFeatures.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  const container = featureScrollRef.current;
+                  if (container) {
+                    const cardWidth = container.offsetWidth * 0.85;
+                    container.scrollTo({ left: cardWidth * index, behavior: 'smooth' });
+                  }
+                }}
+                className={`h-1.5 rounded-full transition-all duration-300 ${activeFeature === index
+                    ? 'w-6 bg-gray-900'
+                    : 'w-1.5 bg-gray-300'
+                  }`}
+                aria-label={`View ${secondaryFeatures[index].title}`}
               />
-            </div>
+            ))}
           </div>
         </div>
       </div>
