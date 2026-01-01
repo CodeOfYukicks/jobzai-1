@@ -46,8 +46,10 @@ function HeroFeatureCard() {
   const [videoUrls, setVideoUrls] = useState<Record<string, string>>({});
   const [loadingVideos, setLoadingVideos] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
 
   const activeFeatureData = campaignFeatures.find(f => f.id === activeFeature);
+  const activeFeatureIndex = campaignFeatures.findIndex(f => f.id === activeFeature);
 
   // Load video URLs from Firebase Storage
   useEffect(() => {
@@ -81,6 +83,23 @@ function HeroFeatureCard() {
     }
   }, [activeFeature, videoUrls]);
 
+  // Handle mobile scroll to update active feature
+  useEffect(() => {
+    const container = mobileScrollRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const scrollLeft = container.scrollLeft;
+      const cardWidth = container.offsetWidth;
+      const newIndex = Math.round(scrollLeft / cardWidth);
+      const newFeature = campaignFeatures[Math.min(Math.max(newIndex, 0), campaignFeatures.length - 1)];
+      if (newFeature) setActiveFeature(newFeature.id);
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -88,9 +107,10 @@ function HeroFeatureCard() {
       viewport={{ once: true }}
       className="bg-white rounded-2xl overflow-hidden shadow-sm"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-[45%_55%]">
+      {/* Desktop Layout */}
+      <div className="hidden lg:grid grid-cols-[45%_55%]">
         {/* Left Content */}
-        <div className="p-6 lg:p-8 flex flex-col">
+        <div className="p-8 flex flex-col">
           {/* Label + Badge */}
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm font-medium text-gray-500">AI Campaigns</span>
@@ -100,7 +120,7 @@ function HeroFeatureCard() {
           </div>
 
           {/* Title */}
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+          <h2 className="text-4xl font-bold text-gray-900 mb-4 leading-tight">
             You set the target.<br />
             AI does the outreach.
           </h2>
@@ -117,21 +137,14 @@ function HeroFeatureCard() {
           <div className="mt-auto -ml-2">
             {campaignFeatures.map((feature, index) => (
               <div key={feature.id}>
-                {/* Separator */}
                 {index > 0 && <div className="h-px bg-gray-100 ml-2" />}
-
-                {/* Clickable Item */}
                 <button
                   onClick={() => setActiveFeature(feature.id)}
-                  className={`w-full text-left py-3 transition-all duration-200 ${activeFeature === feature.id ? 'pl-4 border-l-2 border-gray-900' : 'pl-2 border-l-2 border-transparent hover:pl-3'
-                    }`}
+                  className={`w-full text-left py-3 transition-all duration-200 ${activeFeature === feature.id ? 'pl-4 border-l-2 border-gray-900' : 'pl-2 border-l-2 border-transparent hover:pl-3'}`}
                 >
-                  <h4 className={`font-semibold transition-colors ${activeFeature === feature.id ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
-                    }`}>
+                  <h4 className={`font-semibold transition-colors ${activeFeature === feature.id ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'}`}>
                     {feature.title}
                   </h4>
-
-                  {/* Expandable Description */}
                   <AnimatePresence>
                     {activeFeature === feature.id && (
                       <motion.p
@@ -151,15 +164,11 @@ function HeroFeatureCard() {
           </div>
         </div>
 
-        {/* Right Preview - Changes based on active feature */}
-        <div className="relative bg-gradient-to-br from-emerald-50 to-emerald-100 min-h-[200px] sm:min-h-[450px] lg:min-h-[520px]">
-          {/* Decorative stripe - like Notion's wavy pattern */}
-          <div className="absolute left-0 top-0 bottom-0 w-8 sm:w-16 bg-gradient-to-b from-teal-300/40 via-emerald-400/30 to-teal-300/40"
+        {/* Right Preview */}
+        <div className="relative bg-gradient-to-br from-emerald-50 to-emerald-100 min-h-[520px]">
+          <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-b from-teal-300/40 via-emerald-400/30 to-teal-300/40"
             style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M0 30 Q15 20 30 30 T60 30\' fill=\'none\' stroke=\'%2310b981\' stroke-width=\'2\' opacity=\'0.3\'/%3E%3C/svg%3E")', backgroundRepeat: 'repeat-y' }} />
-
-          {/* Dynamic Preview Content */}
-          <div className="absolute top-4 sm:top-6 bottom-4 sm:bottom-6 left-6 sm:left-10 right-0 bg-zinc-950 rounded-l-xl shadow-lg overflow-hidden">
-            {/* Browser Chrome */}
+          <div className="absolute top-6 bottom-6 left-10 right-0 bg-zinc-950 rounded-l-xl shadow-lg overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-2.5 bg-[#fafafa] border-b border-gray-100">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-[#FF5F56]"></div>
@@ -167,8 +176,6 @@ function HeroFeatureCard() {
                 <div className="w-3 h-3 rounded-full bg-[#27C93F]"></div>
               </div>
             </div>
-
-            {/* Preview Content - Video or Placeholder */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeFeature}
@@ -189,7 +196,7 @@ function HeroFeatureCard() {
                     loop
                     muted
                     playsInline
-                    className="w-full h-full object-contain sm:object-cover bg-zinc-950"
+                    className="w-full h-full object-cover bg-zinc-950"
                   >
                     <source src={videoUrls[activeFeature]} type="video/mp4" />
                   </video>
@@ -199,18 +206,81 @@ function HeroFeatureCard() {
                       <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-emerald-100 flex items-center justify-center">
                         <span className="text-2xl">??</span>
                       </div>
-                      <p className="text-sm text-gray-400">
-                        {activeFeatureData?.title}
-                      </p>
-                      <p className="text-xs text-gray-300 mt-1">
-                        Video coming soon
-                      </p>
+                      <p className="text-sm text-gray-400">{activeFeatureData?.title}</p>
+                      <p className="text-xs text-gray-300 mt-1">Video coming soon</p>
                     </div>
                   </div>
                 )}
               </motion.div>
             </AnimatePresence>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="lg:hidden">
+        {/* Header */}
+        <div className="p-5 pb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-sm font-medium text-gray-500">AI Campaigns</span>
+            <span className="px-2 py-0.5 text-xs font-semibold bg-green-100 text-green-700 rounded-full">
+              New
+            </span>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">
+            You set the target.<br />
+            AI does the outreach.
+          </h2>
+          <Link
+            to="/signup"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
+          >
+            Get started <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        {/* Feature Cards Carousel */}
+        <div
+          ref={mobileScrollRef}
+          className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
+          {campaignFeatures.map((feature, index) => (
+            <div
+              key={feature.id}
+              className="flex-shrink-0 w-full snap-center px-5 pb-4"
+              style={{ scrollSnapAlign: 'center' }}
+            >
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h4 className="font-semibold text-gray-900 mb-1">{feature.title}</h4>
+                <p className="text-sm text-gray-500 leading-relaxed">{feature.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Indicators */}
+        <div className="flex justify-center gap-2 pb-4">
+          {campaignFeatures.map((feature, index) => (
+            <button
+              key={feature.id}
+              onClick={() => {
+                const container = mobileScrollRef.current;
+                if (container) {
+                  container.scrollTo({ left: container.offsetWidth * index, behavior: 'smooth' });
+                }
+              }}
+              className={`h-1.5 rounded-full transition-all duration-300 ${activeFeature === feature.id
+                ? 'w-6 bg-gray-900'
+                : 'w-1.5 bg-gray-300'
+                }`}
+              aria-label={`View ${feature.title}`}
+            />
+          ))}
         </div>
       </div>
     </motion.div>
@@ -249,24 +319,19 @@ function SecondaryFeatureCard() {
       transition={{ delay: 0.1 }}
       className="bg-white rounded-2xl overflow-hidden shadow-sm"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-[45%_55%]">
-        {/* Left Content */}
-        <div className="p-6 lg:p-8 flex flex-col">
-          {/* Label + Badge */}
+      {/* Desktop Layout */}
+      <div className="hidden lg:grid grid-cols-[45%_55%]">
+        <div className="p-8 flex flex-col">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm font-medium text-gray-500">CV Rewrite</span>
             <span className="px-2.5 py-1 text-xs font-semibold bg-orange-100 text-orange-700 rounded-full">
               New update
             </span>
           </div>
-
-          {/* Title */}
-          <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 leading-tight">
+          <h3 className="text-3xl font-bold text-gray-900 mb-4 leading-tight">
             Your CV tailored to each role.<br />
             Optimized for recruiters.
           </h3>
-
-          {/* CTA Button */}
           <Link
             to="/signup"
             className="inline-flex items-center justify-center w-9 h-9 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors"
@@ -275,13 +340,9 @@ function SecondaryFeatureCard() {
           </Link>
         </div>
 
-        {/* Right Preview */}
-        <div className="relative bg-gradient-to-br from-blue-50 to-indigo-100 min-h-[200px] sm:min-h-[320px] lg:min-h-[380px]">
-          {/* Decorative stripe */}
+        <div className="relative bg-gradient-to-br from-blue-50 to-indigo-100 min-h-[380px]">
           <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-b from-blue-200/50 via-indigo-300/30 to-blue-200/50" />
-
-          {/* Video Container */}
-          <div className="absolute top-4 sm:top-6 bottom-4 sm:bottom-6 left-4 sm:left-8 right-4 sm:right-6 rounded-xl shadow-lg overflow-hidden bg-white">
+          <div className="absolute top-6 bottom-6 left-8 right-6 rounded-xl shadow-lg overflow-hidden bg-white">
             {isLoading ? (
               <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
                 <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
@@ -293,7 +354,7 @@ function SecondaryFeatureCard() {
                 loop
                 muted
                 playsInline
-                className="w-full h-full object-contain sm:object-cover bg-gray-50"
+                className="w-full h-full object-cover bg-gray-50"
               >
                 <source src={videoUrl} type="video/mp4" />
               </video>
@@ -310,6 +371,37 @@ function SecondaryFeatureCard() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="lg:hidden p-5">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+            <FileText className="w-6 h-6 text-orange-600" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm font-medium text-gray-500">CV Rewrite</span>
+              <span className="px-2 py-0.5 text-xs font-semibold bg-orange-100 text-orange-600 rounded-full">
+                New
+              </span>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 leading-tight">
+              CV tailored to each role
+            </h3>
+          </div>
+        </div>
+
+        <p className="text-sm text-gray-500 mt-3 mb-4">
+          AI optimizes your resume for ATS systems and recruiters. Stand out in every application.
+        </p>
+
+        <Link
+          to="/signup"
+          className="flex items-center justify-center w-full py-3 border border-gray-200 text-gray-900 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+        >
+          Try CV Rewrite
+        </Link>
       </div>
     </motion.div>
   );
@@ -347,24 +439,19 @@ function MockInterviewCard() {
       transition={{ delay: 0.1 }}
       className="bg-white rounded-2xl overflow-hidden shadow-sm"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-[45%_55%]">
-        {/* Left Content */}
-        <div className="p-6 lg:p-8 flex flex-col">
-          {/* Label + Badge */}
+      {/* Desktop Layout */}
+      <div className="hidden lg:grid grid-cols-[45%_55%]">
+        <div className="p-8 flex flex-col">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm font-medium text-gray-500">Mock Interview</span>
             <span className="px-2.5 py-1 text-xs font-semibold bg-purple-100 text-purple-700 rounded-full">
               AI Powered
             </span>
           </div>
-
-          {/* Title */}
-          <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 leading-tight">
+          <h3 className="text-3xl font-bold text-gray-900 mb-4 leading-tight">
             Train like it's<br />
             the real interview.
           </h3>
-
-          {/* CTA Button */}
           <Link
             to="/signup"
             className="inline-flex items-center justify-center w-9 h-9 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors"
@@ -373,13 +460,9 @@ function MockInterviewCard() {
           </Link>
         </div>
 
-        {/* Right Preview */}
-        <div className="relative bg-gradient-to-br from-purple-50 to-violet-100 min-h-[200px] sm:min-h-[320px] lg:min-h-[380px]">
-          {/* Decorative stripe */}
+        <div className="relative bg-gradient-to-br from-purple-50 to-violet-100 min-h-[380px]">
           <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-b from-purple-200/50 via-violet-300/30 to-purple-200/50" />
-
-          {/* Video Container */}
-          <div className="absolute top-4 sm:top-6 bottom-4 sm:bottom-6 left-4 sm:left-8 right-4 sm:right-6 rounded-xl shadow-lg overflow-hidden bg-zinc-950">
+          <div className="absolute top-6 bottom-6 left-8 right-6 rounded-xl shadow-lg overflow-hidden bg-zinc-950">
             {isLoading ? (
               <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
                 <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
@@ -391,7 +474,7 @@ function MockInterviewCard() {
                 loop
                 muted
                 playsInline
-                className="w-full h-full object-contain sm:object-cover bg-zinc-950"
+                className="w-full h-full object-cover bg-zinc-950"
               >
                 <source src={videoUrl} type="video/mp4" />
               </video>
@@ -408,6 +491,37 @@ function MockInterviewCard() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="lg:hidden p-5">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+            <MessageSquare className="w-6 h-6 text-purple-600" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm font-medium text-gray-500">Mock Interview</span>
+              <span className="px-2 py-0.5 text-xs font-semibold bg-purple-100 text-purple-600 rounded-full">
+                AI
+              </span>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 leading-tight">
+              Train like the real thing
+            </h3>
+          </div>
+        </div>
+
+        <p className="text-sm text-gray-500 mt-3 mb-4">
+          Practice with AI interviews tailored to your target roles. Get instant feedback and improve.
+        </p>
+
+        <Link
+          to="/signup"
+          className="flex items-center justify-center w-full py-3 border border-gray-200 text-gray-900 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+        >
+          Try Mock Interview
+        </Link>
       </div>
     </motion.div>
   );
@@ -1031,8 +1145,8 @@ function TryForFree() {
                   }
                 }}
                 className={`h-1.5 rounded-full transition-all duration-300 ${activeFeature === index
-                    ? 'w-6 bg-gray-900'
-                    : 'w-1.5 bg-gray-300'
+                  ? 'w-6 bg-gray-900'
+                  : 'w-1.5 bg-gray-300'
                   }`}
                 aria-label={`View ${secondaryFeatures[index].title}`}
               />
@@ -1176,16 +1290,16 @@ export default function FeatureSection() {
   ];
 
   return (
-    <section id="features" className="pt-16 pb-0 lg:pt-20 lg:pb-0">
-      <div className="max-w-7xl mx-auto px-6">
-        {/* Section Title */}
+    <section id="features" className="pt-12 pb-0 lg:pt-20 lg:pb-0">
+      <div className="max-w-7xl mx-auto px-4 md:px-6">
+        {/* Section Title - Responsive */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mb-10"
+          className="mb-6 md:mb-10"
         >
-          <h2 className="text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
+          <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
             Introducing <span className="italic font-black">Cubbbe 3.0</span>
           </h2>
         </motion.div>
@@ -1194,12 +1308,12 @@ export default function FeatureSection() {
         <HeroFeatureCard />
 
         {/* Secondary Card - CV Rewrite */}
-        <div className="mt-6">
+        <div className="mt-4 md:mt-6">
           <SecondaryFeatureCard />
         </div>
 
         {/* Grid Cards - Application Tracking + Interview Prep */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-4 md:mt-6">
           {/* Application Tracking with Toggle */}
           <ApplicationTrackingCard />
 
@@ -1214,20 +1328,20 @@ export default function FeatureSection() {
         </div>
 
         {/* Mock Interview Card - Full width like CV Rewrite */}
-        <div className="mt-6">
+        <div className="mt-4 md:mt-6">
           <MockInterviewCard />
         </div>
       </div>
 
       {/* Savings Calculator - Full Width White Bar */}
-      <div className="bg-white mt-12">
-        <div className="max-w-7xl mx-auto px-6">
+      <div className="bg-white mt-8 md:mt-12">
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
           <SavingsCalculator />
         </div>
       </div>
 
       {/* Try For Free Section */}
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-4 md:px-6">
         <TryForFree />
       </div>
     </section>
