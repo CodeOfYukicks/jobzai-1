@@ -392,7 +392,7 @@ export default function Navbar() {
             <div className="flex-1 flex flex-col items-center justify-center px-8 bg-white">
               <nav className="flex flex-col items-center space-y-8">
                 {[
-                  { name: 'How it Works', href: '#how-it-works' },
+                  { name: 'How it Works', href: '#features' },
                   { name: 'Pricing', href: '#pricing' },
                   { name: 'Blog', href: '/blog' },
                 ].map((item, index) => (

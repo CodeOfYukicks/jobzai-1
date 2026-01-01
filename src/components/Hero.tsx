@@ -54,6 +54,7 @@ const FloatingElement = ({ icon: Icon, color, bgColor, barColor, delay, x, y, ro
 export default function Hero() {
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [isPlaying, setIsPlaying] = useState(true);
+  const [showLogos, setShowLogos] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const togglePlay = () => {
@@ -68,17 +69,33 @@ export default function Hero() {
   };
 
   useEffect(() => {
-    const loadVideo = async () => {
-      try {
-        const storage = getStorage();
-        const videoRef = ref(storage, 'images/campaign_hero.mp4');
-        const url = await getDownloadURL(videoRef);
-        setVideoUrl(url);
-      } catch (error) {
-        console.error('Error loading video:', error);
-      }
-    };
-    loadVideo();
+    // Defer video loading to not block initial render
+    const timer = setTimeout(() => {
+      const loadVideo = async () => {
+        try {
+          const storage = getStorage();
+          const videoRef = ref(storage, 'images/campaign_hero.mp4');
+          const url = await getDownloadURL(videoRef);
+          setVideoUrl(url);
+        } catch (error) {
+          console.error('Error loading video:', error);
+        }
+      };
+      loadVideo();
+    }, 3000); // Load video 3s after initial render
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Defer logo loading to not block critical render path
+  useEffect(() => {
+    if ('requestIdleCallback' in window) {
+      const id = requestIdleCallback(() => setShowLogos(true));
+      return () => cancelIdleCallback(id);
+    } else {
+      const timer = setTimeout(() => setShowLogos(true), 2000);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   const scrollToFeatures = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -160,39 +177,26 @@ export default function Hero() {
             ))}
           </div>
 
-          {/* Trust Badge - Compact on mobile */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mt-6 md:mt-16 mb-3 md:mb-4 pointer-events-auto"
-          >
+          {/* Trust Badge - Rendered instantly (no animation delay) */}
+          <div className="mt-6 md:mt-16 mb-3 md:mb-4 pointer-events-auto">
             <span className="inline-flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-gray-100 text-gray-600 text-xs md:text-sm font-medium">
               <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500"></span>
               Trusted by 20,000+ job seekers
             </span>
-          </motion.div>
+          </div>
 
-          {/* Main Headline - Smaller on mobile */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+          {/* Main Headline - LCP Element - NO ANIMATION for instant render */}
+          <h1
             className="text-[2.5rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-gray-900 mb-4 md:mb-6 pointer-events-auto"
             style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 900 }}
           >
             Stop applying.
             <br />
             <span className="text-gray-900">Start getting answers.</span>
-          </motion.h1>
+          </h1>
 
-          {/* Subtitle - Shorter on mobile */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-base md:text-lg lg:text-xl text-gray-600 max-w-xl md:max-w-2xl mx-auto mb-5 md:mb-8 leading-relaxed pointer-events-auto px-2"
-          >
+          {/* Subtitle - Instant render */}
+          <p className="text-base md:text-lg lg:text-xl text-gray-600 max-w-xl md:max-w-2xl mx-auto mb-5 md:mb-8 leading-relaxed pointer-events-auto px-2">
             <span className="hidden md:inline">
               <span className="font-semibold text-gray-900">Send</span> high-quality personalized spontaneous applications — at scale.
               <br />
@@ -201,15 +205,10 @@ export default function Hero() {
             <span className="md:hidden">
               AI writes and sends personalized applications for you. Track. Prepare. Get hired.
             </span>
-          </motion.p>
+          </p>
 
-          {/* CTAs - Horizontal on mobile */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-row items-center justify-center gap-2 md:gap-3 mb-4 md:mb-6 pointer-events-auto"
-          >
+          {/* CTAs - Instant render */}
+          <div className="flex flex-row items-center justify-center gap-2 md:gap-3 mb-4 md:mb-6 pointer-events-auto">
             <Link
               to="/signup"
               className="inline-flex items-center justify-center h-11 md:h-12 px-5 md:px-8 text-sm md:text-[16px] font-semibold text-white bg-[#000000] hover:bg-[#333333] rounded-xl md:rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
@@ -222,15 +221,10 @@ export default function Hero() {
             >
               How it works
             </button>
-          </motion.div>
+          </div>
 
-          {/* Mini Social Proof - Mobile only */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="flex items-center justify-center gap-1.5 mb-6 md:mb-10 pointer-events-auto"
-          >
+          {/* Mini Social Proof - Instant render */}
+          <div className="flex items-center justify-center gap-1.5 mb-6 md:mb-10 pointer-events-auto">
             <div className="flex">
               {[1, 2, 3, 4, 5].map((i) => (
                 <Star key={i} className="w-3.5 h-3.5 md:w-4 md:h-4 text-yellow-400 fill-yellow-400" />
@@ -239,7 +233,7 @@ export default function Hero() {
             <span className="text-xs md:text-sm text-gray-500 ml-1">
               <span className="font-semibold text-gray-700">4.9</span> · 20K+ users
             </span>
-          </motion.div>
+          </div>
         </div>
 
         {/* Video Preview */}
@@ -304,63 +298,67 @@ export default function Hero() {
           <div className="absolute -inset-x-4 -bottom-4 h-24 -z-10 bg-gradient-to-b from-transparent to-gray-100/60 blur-2xl"></div>
         </motion.div>
 
-        {/* Company Logos Section */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          className="mt-12 md:mt-24 w-full"
-        >
-          <p className="text-center text-xs md:text-sm text-gray-500 mb-4 md:mb-8 uppercase tracking-wider font-semibold">
-            Our users landed offers at
-          </p>
+        {/* Company Logos Section - Deferred loading */}
+        {showLogos && (
+          <div className="mt-12 md:mt-24 w-full animate-fade-in">
+            <p className="text-center text-xs md:text-sm text-gray-500 mb-4 md:mb-8 uppercase tracking-wider font-semibold">
+              Our users landed offers at
+            </p>
 
-          {/* Logo Marquee */}
-          <div className="relative overflow-hidden py-2 md:py-4">
-            {/* Fade gradients */}
-            <div className="absolute left-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+            {/* Logo Marquee */}
+            <div className="relative overflow-hidden py-2 md:py-4">
+              {/* Fade gradients */}
+              <div className="absolute left-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
+              <div className="absolute right-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
 
-            {/* Marquee track */}
-            <div
-              className="flex items-center gap-10 md:gap-20 animate-marquee"
-              style={{
-                width: 'max-content',
-              }}
-            >
-              {[...Array(2)].map((_, setIndex) => (
-                <div key={setIndex} className="flex items-center gap-10 md:gap-20">
-                  <img src="https://img.logo.dev/google.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Google" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
-                  <img src="https://img.logo.dev/apple.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Apple" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
-                  <img src="https://img.logo.dev/microsoft.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Microsoft" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
-                  <img src="https://img.logo.dev/amazon.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Amazon" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
-                  <img src="https://img.logo.dev/netflix.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Netflix" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
-                  <img src="https://img.logo.dev/jpmorgan.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="JPMorgan" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
-                  <img src="https://img.logo.dev/spotify.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Spotify" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
-                  <img src="https://img.logo.dev/tesla.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Tesla" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
-                  <img src="https://img.logo.dev/adobe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Adobe" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
-                  <img src="https://img.logo.dev/stripe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Stripe" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
-                  <img src="https://img.logo.dev/uber.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Uber" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
-                  <img src="https://img.logo.dev/airbnb.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Airbnb" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" />
-                </div>
-              ))}
+              {/* Marquee track */}
+              <div
+                className="flex items-center gap-10 md:gap-20 animate-marquee"
+                style={{
+                  width: 'max-content',
+                }}
+              >
+                {[...Array(2)].map((_, setIndex) => (
+                  <div key={setIndex} className="flex items-center gap-10 md:gap-20">
+                    <img src="https://img.logo.dev/google.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Google" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/apple.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Apple" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/microsoft.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Microsoft" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/amazon.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Amazon" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/netflix.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Netflix" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/jpmorgan.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="JPMorgan" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/spotify.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Spotify" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/tesla.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Tesla" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/adobe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Adobe" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/stripe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Stripe" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/uber.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Uber" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/airbnb.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Airbnb" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* CSS for marquee animation */}
-          <style>{`
-            @keyframes marquee {
-              0% { transform: translateX(0); }
-              100% { transform: translateX(-50%); }
-            }
-            .animate-marquee {
-              animation: marquee 30s linear infinite;
-            }
-            .animate-marquee:hover {
-              animation-play-state: paused;
-            }
-          `}</style>
-        </motion.div>
+            {/* CSS for marquee animation */}
+            <style>{`
+              @keyframes marquee {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(-50%); }
+              }
+              .animate-marquee {
+                animation: marquee 30s linear infinite;
+              }
+              .animate-marquee:hover {
+                animation-play-state: paused;
+              }
+              @keyframes fade-in {
+                from { opacity: 0; }
+                to { opacity: 1; }
+              }
+              .animate-fade-in {
+                animation: fade-in 0.5s ease-out;
+              }
+            `}</style>
+          </div>
+        )}
 
       </div>
     </div>

@@ -3,39 +3,126 @@
 
 <head>
   <meta charset="UTF-8" />
-  <!-- Favicon Cubbbe -->
+
+  <!-- Primary Meta Tags -->
+  <title>Cubbbe – AI Job Search & Tailored Applications</title>
+  <meta name="description"
+    content="Automate your job search with AI. Send personalized applications at scale, track responses, and land interviews faster with Cubbbe." />
+  <meta name="keywords"
+    content="job search automation, AI job applications, tailored applications, apply to jobs with AI, job search assistant, cover letter automation, mock interview, career tools" />
+  <meta name="author" content="Cubbbe" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://cubbbe.com/" />
+
+  <!-- Favicon & App Icons -->
   <link rel="icon" type="image/png" href="/images/logo-only.png" />
   <link rel="shortcut icon" type="image/png" href="/images/logo-only.png" />
-  <link rel="apple-touch-icon" href="/images/logo-only.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/logo-only.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+
+  <!-- Brand & App Meta -->
+  <meta name="application-name" content="Cubbbe" />
+  <meta name="apple-mobile-web-app-title" content="Cubbbe" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="theme-color" content="#6366f1" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Cubbbe" />
+  <meta property="og:title" content="Cubbbe – AI Job Search & Tailored Applications" />
+  <meta property="og:description"
+    content="Automate your job search with AI. Send personalized applications at scale, track responses, and land interviews faster." />
+  <meta property="og:url" content="https://cubbbe.com/" />
+  <meta property="og:image" content="https://cubbbe.com/og/default.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Cubbbe – AI Job Search & Tailored Applications" />
+  <meta name="twitter:description"
+    content="Automate your job search with AI. Send personalized applications at scale, track responses, and land interviews faster." />
+  <meta name="twitter:image" content="https://cubbbe.com/og/default.png" />
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://cubbbe.com/#organization",
+        "name": "Cubbbe",
+        "url": "https://cubbbe.com",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://cubbbe.com/images/logo-only.png",
+          "width": 512,
+          "height": 512
+        },
+        "description": "AI-powered job search & tailored applications"
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://cubbbe.com/#website",
+        "url": "https://cubbbe.com",
+        "name": "Cubbbe",
+        "description": "AI-powered job search & tailored applications",
+        "publisher": {"@id": "https://cubbbe.com/#organization"}
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://cubbbe.com/#webpage",
+        "url": "https://cubbbe.com",
+        "name": "Cubbbe – AI Job Search & Tailored Applications",
+        "description": "Automate your job search with AI. Send personalized applications at scale, track responses, and land interviews faster with Cubbbe.",
+        "isPartOf": {"@id": "https://cubbbe.com/#website"},
+        "about": {"@id": "https://cubbbe.com/#organization"},
+        "primaryImageOfPage": {
+          "@type": "ImageObject",
+          "url": "https://cubbbe.com/og/default.png"
+        }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://cubbbe.com/"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <!-- Font Preconnects -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- Premium CV Fonts -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;600;700;800&family=Montserrat:wght@300;400;500;600;700;800&family=Lora:wght@400;500;600;700&family=Raleway:wght@300;400;500;600;700;800&family=Merriweather:wght@300;400;700;900&family=Poppins:wght@300;400;500;600;700;800&family=Source+Sans+Pro:wght@300;400;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap"
-    rel="stylesheet">
-  <!-- UI Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&display=swap"
-    rel="stylesheet">
-  <!-- Space Grotesk for Headings -->
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
-    rel="stylesheet">
-  <!-- Premium Data Table Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
-    rel="stylesheet">
-  <!-- Premium Display Font for Headers -->
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
-  <!-- Outfit for Extra Bold Landing Headlines -->
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap"
-    rel="stylesheet">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
+  <!-- Critical Landing Page Fonts - Loaded Non-Blocking -->
+  <!-- Inter (UI) + Outfit (Headlines) only - others lazy-loaded on CV pages -->
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800;900&family=Instrument+Serif:ital@0;1&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800;900&family=Instrument+Serif:ital@0;1&display=swap">
+  </noscript>
+
+  <!-- Geist Font (self-hosted from CDN with font-display: swap) -->
+  <style>
     @font-face {
       font-family: 'Geist';
-      src: url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/Geist-Regular.woff2') format('woff2'),
-        url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/Geist-Regular.woff') format('woff');
+      src: url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/Geist-Regular.woff2') format('woff2');
       font-weight: 400;
       font-style: normal;
       font-display: swap;
@@ -43,8 +130,7 @@
 
     @font-face {
       font-family: 'Geist';
-      src: url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/Geist-Medium.woff2') format('woff2'),
-        url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/Geist-Medium.woff') format('woff');
+      src: url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/Geist-Medium.woff2') format('woff2');
       font-weight: 500;
       font-style: normal;
       font-display: swap;
@@ -52,8 +138,7 @@
 
     @font-face {
       font-family: 'Geist';
-      src: url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/Geist-SemiBold.woff2') format('woff2'),
-        url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/Geist-SemiBold.woff') format('woff');
+      src: url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/Geist-SemiBold.woff2') format('woff2');
       font-weight: 600;
       font-style: normal;
       font-display: swap;
@@ -61,21 +146,36 @@
 
     @font-face {
       font-family: 'Geist';
-      src: url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/Geist-Bold.woff2') format('woff2'),
-        url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/Geist-Bold.woff') format('woff');
+      src: url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/Geist-Bold.woff2') format('woff2');
       font-weight: 700;
       font-style: normal;
       font-display: swap;
     }
   </style>
-  <title>Cubbbe - Revolutionize Your Job Search with AI</title>
-  <meta name="description"
-    content="Automate your job search with AI-powered personalized applications. Send hundreds of tailored applications in minutes." />
 </head>
 
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
+
+  <!-- Google Analytics - Deferred to not block render -->
+  <script>
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        var script = document.createElement('script');
+        script.src = 'https://www.googletagmanager.com/gtag/js?id=G-M2CG9CM4EJ';
+        script.async = true;
+        document.head.appendChild(script);
+        script.onload = function () {
+          window.dataLayer = window.dataLayer || [];
+          function gtag() { dataLayer.push(arguments); }
+          window.gtag = gtag;
+          gtag('js', new Date());
+          gtag('config', 'G-M2CG9CM4EJ');
+        };
+      }, 2000);
+    });
+  </script>
 </body>
 
 </html>
