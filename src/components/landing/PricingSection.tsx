@@ -148,7 +148,7 @@ export default function PricingSection() {
     >
       {tier.popular && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="px-4 py-1.5 bg-gray-900 text-white text-[11px] font-bold rounded-full uppercase tracking-wider whitespace-nowrap">
+          <span className="px-4 py-1.5 bg-violet-600 text-white text-[11px] font-medium rounded-full uppercase tracking-wider whitespace-nowrap">
             Most Popular
           </span>
         </div>
@@ -174,8 +174,8 @@ export default function PricingSection() {
             {tier.price.monthly === 0 ? '/forever' : isBiMonthly ? '/2 months' : '/month'}
           </span>
         </div>
-        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#001d3d] text-white">
-          <CoinIcon className="w-4 h-4" />
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-200/80 text-gray-600">
+          <CoinIcon className="w-3.5 h-3.5" />
           <span>{tier.credits}/month</span>
         </div>
       </div>
@@ -184,8 +184,8 @@ export default function PricingSection() {
       <Link
         to="/signup"
         className={`w-full py-3 rounded-xl text-sm font-semibold transition-all text-center mb-5 block ${tier.popular
-          ? 'bg-gray-900 text-white hover:bg-gray-800'
-          : 'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 shadow-sm'
+          ? 'bg-violet-600 text-white hover:bg-violet-700'
+          : 'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50'
           }`}
       >
         {tier.cta}
@@ -199,8 +199,8 @@ export default function PricingSection() {
         <ul className="space-y-2">
           {tier.features.slice(0, isMobile ? 5 : tier.features.length).map((feature) => (
             <li key={feature} className="group relative flex items-start gap-2 text-[13px] leading-tight text-gray-600">
-              <span className="mt-0.5 flex-shrink-0 text-[#ffc300]">
-                <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <span className="mt-0.5 flex-shrink-0 text-violet-500">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </span>
@@ -246,7 +246,7 @@ export default function PricingSection() {
                   }`}
               >
                 <span>Pay every 2 months</span>
-                <span className="text-[#0275de] font-medium">save ~10%</span>
+                <span className="text-violet-600 font-medium">save ~10%</span>
               </button>
             </div>
           </div>

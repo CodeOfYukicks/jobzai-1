@@ -846,12 +846,12 @@ function SavingsCalculator() {
               key={tool.id}
               onClick={() => toggleTool(tool.id)}
               className={`flex items-center gap-3 p-3 md:p-3 rounded-xl border transition-all duration-200 text-left ${selectedTools.includes(tool.id)
-                ? 'border-[#ffc300] bg-[#ffd60a]/20'
+                ? 'border-violet-400 bg-violet-50'
                 : 'border-gray-200 hover:border-gray-300 bg-white'
                 }`}
             >
               <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${selectedTools.includes(tool.id)
-                ? 'bg-[#ffc300]'
+                ? 'bg-violet-500'
                 : 'border-2 border-gray-300'
                 }`}>
                 {selectedTools.includes(tool.id) && (
