@@ -299,8 +299,8 @@ export default function SignupPage() {
                     <span
                       key={req.key}
                       className={`text-xs px-2 py-1 rounded-md transition-colors ${passwordCriteria[req.key as keyof typeof passwordCriteria]
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-500'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-gray-100 text-gray-500'
                         }`}
                     >
                       {passwordCriteria[req.key as keyof typeof passwordCriteria] && (
@@ -439,18 +439,35 @@ export default function SignupPage() {
             className="space-y-4 mb-10"
           >
             {[
-              { icon: Zap, text: 'AI writes personalized applications for you' },
-              { icon: Target, text: '100+ targeted applications per hour' },
-              { icon: TrendingUp, text: '3x more interviews, guaranteed' },
+              {
+                icon: Zap,
+                headline: 'Reclaim your evenings',
+                subline: 'While you rest, AI sends applications tailored to your dream roles.'
+              },
+              {
+                icon: Target,
+                headline: 'While you wait, others are moving',
+                subline: '847 applications sent in the last hour by people just like you.'
+              },
+              {
+                icon: TrendingUp,
+                headline: 'Walk into interviews prepared',
+                subline: '3x higher response rate when every message is written for you.'
+              },
             ].map((benefit, index) => (
               <div
                 key={index}
-                className="flex items-center gap-4 bg-white/5 backdrop-blur-sm rounded-xl px-5 py-4 border border-white/10"
+                className="bg-white/5 backdrop-blur-sm rounded-xl px-5 py-4 border border-white/10"
               >
-                <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                  <benefit.icon className="w-5 h-5 text-purple-300" />
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <benefit.icon className="w-5 h-5 text-purple-300" />
+                  </div>
+                  <div>
+                    <p className="text-white font-medium text-sm mb-0.5">{benefit.headline}</p>
+                    <p className="text-white/60 text-xs leading-relaxed">{benefit.subline}</p>
+                  </div>
                 </div>
-                <span className="text-white/90 text-sm font-medium">{benefit.text}</span>
               </div>
             ))}
           </motion.div>
@@ -462,17 +479,15 @@ export default function SignupPage() {
             transition={{ duration: 0.6, delay: 0.8 }}
             className="flex items-center gap-4"
           >
-            {/* Avatars */}
+            {/* DiceBear Avatars */}
             <div className="flex -space-x-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-violet-500 border-2 border-[#1a1a2e] flex items-center justify-center"
-                >
-                  <span className="text-white text-xs font-bold">
-                    {['JD', 'MK', 'AS', 'LP', 'RW'][i - 1]}
-                  </span>
-                </div>
+              {['Felix', 'Aneka', 'Leo', 'Sara', 'Max'].map((name, i) => (
+                <img
+                  key={name}
+                  src={`https://api.dicebear.com/7.x/notionists/svg?seed=${name}&backgroundColor=c0aede,b6e3f4,ffd5dc,d1f4d1,ffdfba`}
+                  alt={name}
+                  className="w-10 h-10 rounded-full border-2 border-[#1a1a2e] bg-white"
+                />
               ))}
             </div>
             <div>
