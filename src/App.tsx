@@ -78,6 +78,7 @@ import { resumePendingTasks } from './services/cvRewriteWorker';
 import { useGmailReplyChecker } from './hooks/useGmailReplyChecker';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { MicroFeedback } from './components/ui/MicroFeedback';
+import CookieConsent from './components/CookieConsent';
 
 const queryClient = new QueryClient();
 
@@ -299,6 +300,7 @@ export default function App() {
               <AIAssistantModal />
               <TourOverlay />
               <MicroFeedback />
+              <CookieConsent />
             </TourProvider>
           </AssistantProvider>
         </NotificationProvider>
