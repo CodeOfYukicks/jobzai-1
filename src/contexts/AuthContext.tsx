@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../lib/firebase';
 import { GoogleAuthProvider, signInWithPopup, User, createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
-import { sendCustomVerificationEmail, sendCustomPasswordResetEmail } from '../services/customAuthEmails';
+import { sendCustomVerificationEmail, sendCustomPasswordResetEmail, sendWelcomeEmail } from '../services/customAuthEmails';
 import { doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
@@ -209,6 +209,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const finalData = userDoc.data();
       if (finalData?.profileCompleted) {
         setIsProfileCompleted(true);
+
+        // Send welcome email after profile completion (non-blocking)
+        try {
+          const displayName = profileData.firstName && profileData.lastName
+            ? `${profileData.firstName} ${profileData.lastName}`
+            : currentUser.displayName || undefined;
+          await sendWelcomeEmail(currentUser.email || '', displayName);
+          console.log('Welcome email sent successfully');
+        } catch (welcomeEmailError) {
+          console.warn('Welcome email failed (non-critical):', welcomeEmailError);
+        }
+
         navigate('/hub');
         notify.success('Profile completed successfully!');
       } else {
