@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Mail, RefreshCw, Loader2, CheckCircle2, ArrowLeft, Inbox, MousePointerClick, Rocket } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { notify } from '@/lib/notify';
-import { sendEmailVerification } from 'firebase/auth';
+import { sendCustomVerificationEmail } from '../services/customAuthEmails';
 import { forceLightMode } from '../lib/theme';
 import FirebaseImage from '../components/FirebaseImage';
 
@@ -108,43 +108,28 @@ export default function EmailVerificationPage() {
 
     try {
       setIsResending(true);
-      console.log('Sending verification email to:', currentUser.email);
-      console.log('Redirect URL:', window.location.origin + '/complete-profile');
+      console.log('Sending branded verification email to:', currentUser.email);
 
-      await sendEmailVerification(currentUser, {
-        url: window.location.origin + '/complete-profile',
-        handleCodeInApp: false
-      });
+      // Use custom branded email via Brevo
+      const result = await sendCustomVerificationEmail(
+        currentUser.email || '',
+        currentUser.displayName || undefined,
+        window.location.origin + '/complete-profile'
+      );
 
-      console.log('Verification email sent successfully');
-      setTimeLeft(60);
-      notify.success('Verification email sent! Please check your inbox and spam folder.', {
-        duration: 5000,
-        description: 'If you don\'t see it, check your spam/junk folder'
-      });
+      if (result.success) {
+        console.log('Branded verification email sent successfully via Brevo');
+        setTimeLeft(60);
+        notify.success('Verification email sent! Please check your inbox.', {
+          duration: 5000,
+          description: 'Check your spam folder if you don\'t see it'
+        });
+      } else {
+        throw new Error(result.message || 'Failed to send verification email');
+      }
     } catch (error: any) {
       console.error('Error sending verification email:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-
-      // Messages d'erreur plus spécifiques
-      let errorMessage = 'Failed to send verification email. Please try again.';
-
-      if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many requests. Please wait a few minutes before trying again.';
-      } else if (error.code === 'auth/user-not-found') {
-        errorMessage = 'User not found. Please log in again.';
-      } else if (error.code === 'auth/email-already-verified') {
-        errorMessage = 'Email is already verified. Redirecting...';
-        setIsVerified(true);
-        setTimeout(() => {
-          navigate('/complete-profile');
-        }, 1500);
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      notify.error(errorMessage);
+      notify.error(error.message || 'Failed to send verification email. Please try again.');
     } finally {
       setIsResending(false);
     }
@@ -370,10 +355,10 @@ export default function EmailVerificationPage() {
                   <span className="text-white/80 text-sm">{item.text}</span>
                 </div>
                 <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${item.status === 'Done'
-                    ? 'bg-emerald-500/20 text-emerald-300'
-                    : item.status === 'Pending'
-                      ? 'bg-amber-500/20 text-amber-300'
-                      : 'bg-white/10 text-white/50'
+                  ? 'bg-emerald-500/20 text-emerald-300'
+                  : item.status === 'Pending'
+                    ? 'bg-amber-500/20 text-amber-300'
+                    : 'bg-white/10 text-white/50'
                   }`}>
                   {item.status}
                 </span>

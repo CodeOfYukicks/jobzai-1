@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../lib/firebase';
-import { GoogleAuthProvider, signInWithPopup, User, createUserWithEmailAndPassword, sendEmailVerification, updateProfile, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, User, createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
+import { sendCustomVerificationEmail, sendCustomPasswordResetEmail } from '../services/customAuthEmails';
 import { doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
@@ -315,10 +316,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
-      await sendPasswordResetEmail(auth, email, {
-        url: window.location.origin + '/login',
-        handleCodeInApp: false
-      });
+      // Use custom branded email via Brevo
+      const result = await sendCustomPasswordResetEmail(email, window.location.origin + '/login');
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to send password reset email');
+      }
     } catch (error: any) {
       console.error('Reset Password Error:', error);
       throw error;
@@ -331,10 +333,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      await sendEmailVerification(auth.currentUser, {
-        url: window.location.origin + '/complete-profile',
-        handleCodeInApp: false
-      });
+      // Use custom branded email via Brevo
+      const result = await sendCustomVerificationEmail(
+        auth.currentUser.email || '',
+        auth.currentUser.displayName || undefined,
+        window.location.origin + '/complete-profile'
+      );
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to send verification email');
+      }
     } catch (error: any) {
       console.error('Resend Verification Email Error:', error);
       throw error;
@@ -369,12 +376,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Envoyer l'email de vérification immédiatement après la création du compte
+      // Using custom branded email via Brevo
       try {
-        await sendEmailVerification(result.user, {
-          url: window.location.origin + '/complete-profile',
-          handleCodeInApp: false
-        });
-        console.log('Verification email sent successfully');
+        const displayName = firstName && lastName ? `${firstName} ${lastName}` : undefined;
+        const emailResult = await sendCustomVerificationEmail(
+          result.user.email || '',
+          displayName,
+          window.location.origin + '/complete-profile'
+        );
+        if (emailResult.success) {
+          console.log('Custom verification email sent successfully via Brevo');
+        } else {
+          console.warn('Custom email failed, verification may still work:', emailResult.message);
+        }
       } catch (emailError) {
         console.error('Error sending verification email:', emailError);
         // Ne pas bloquer l'inscription si l'envoi d'email échoue

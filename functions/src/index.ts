@@ -6,6 +6,15 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 
+// 📧 CUSTOM BRANDED AUTH EMAILS
+// Premium email templates via Brevo instead of Firebase default
+export {
+  sendCustomVerificationEmail,
+  sendCustomPasswordResetEmail,
+  sendWelcomeEmail
+} from './customAuthEmails';
+
+
 export { fetchJobsFromATS } from './fetchJobs';
 export { fetchGAFAMEnterprise } from './fetchGAFAMEnterprise';
 export { generateJobEmbedding, updateJobEmbeddingOnEnrichment } from './generateJobEmbedding';
