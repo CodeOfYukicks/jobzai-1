@@ -34,77 +34,173 @@ export interface GeneratedSEOArticle {
 
 const CUBBBE_SERVICES = {
     fr: {
-        cvAnalysis: {
-            name: 'Analyse de CV Cubbbe',
-            description: 'Notre outil d\'analyse de CV IA évalue votre CV par rapport aux offres d\'emploi',
-            url: '/cv-analysis'
+        // === HUB ===
+        hub: {
+            name: 'Hub Cubbbe',
+            description: 'Votre centre de commande pour piloter votre recherche d\'emploi depuis un seul endroit',
+            url: '/hub',
+            category: 'hub'
         },
-        cvRewrite: {
-            name: 'Réécriture de CV IA',
-            description: 'Optimisez automatiquement votre CV avec notre IA',
-            url: '/cv-optimizer'
+        // === APPLY ===
+        jobBoard: {
+            name: 'Job Board Intelligent',
+            description: 'Trouvez des offres correspondant parfaitement à votre profil grâce à notre IA',
+            url: '/jobs',
+            category: 'apply'
         },
-        mockInterview: {
-            name: 'Entretien Mock IA',
-            description: 'Préparez vos entretiens avec notre simulateur IA en temps réel',
-            url: '/mock-interview'
+        autoPilot: {
+            name: 'AutoPilot Cubbbe',
+            description: 'Automatisez vos candidatures avec notre IA qui postule pour vous 24h/24',
+            url: '/campaigns',
+            category: 'apply'
         },
         outreachCampaigns: {
             name: 'Campagnes d\'Outreach',
-            description: 'Automatisez votre prospection avec des emails personnalisés IA',
-            url: '/campaigns-auto'
+            description: 'Automatisez votre prospection avec des emails personnalisés IA qui captent l\'attention des recruteurs',
+            url: '/campaigns-auto',
+            category: 'apply'
         },
-        jobBoard: {
-            name: 'Job Board Intelligent',
-            description: 'Trouvez des offres correspondant parfaitement à votre profil',
-            url: '/jobs'
+        cvAnalysis: {
+            name: 'Resume Lab - Analyse de CV',
+            description: 'Notre outil d\'analyse de CV IA évalue et optimise votre CV par rapport aux offres d\'emploi',
+            url: '/cv-analysis',
+            category: 'apply'
+        },
+        // === TRACK ===
+        applicationTracking: {
+            name: 'Suivi des Candidatures',
+            description: 'Gardez un œil sur toutes vos candidatures avec notre tableau de bord kanban intuitif',
+            url: '/applications',
+            category: 'track'
+        },
+        calendar: {
+            name: 'Calendrier Cubbbe',
+            description: 'Organisez vos entretiens et ne ratez plus jamais un rendez-vous important',
+            url: '/calendar',
+            category: 'track'
+        },
+        // === PREPARE ===
+        interviewHub: {
+            name: 'Interview Hub',
+            description: 'Accédez à tous vos entretiens à venir et préparez-vous efficacement',
+            url: '/upcoming-interviews',
+            category: 'prepare'
+        },
+        mockInterview: {
+            name: 'Entretien Mock IA',
+            description: 'Préparez vos entretiens avec notre simulateur IA en temps réel qui vous donne un feedback instantané',
+            url: '/mock-interview',
+            category: 'prepare'
         },
         resumeBuilder: {
-            name: 'Créateur de CV',
-            description: 'Créez un CV professionnel en quelques minutes',
-            url: '/resume-builder'
+            name: 'Document Manager',
+            description: 'Créez et gérez vos CV professionnels en quelques minutes avec nos templates premium',
+            url: '/resume-builder',
+            category: 'prepare'
         },
-        interviewPrep: {
-            name: 'Préparation Entretien',
-            description: 'Recevez des conseils personnalisés pour chaque entretien',
-            url: '/upcoming-interviews'
+        // === IMPROVE ===
+        professionalProfile: {
+            name: 'Profil Professionnel',
+            description: 'Créez un profil optimisé qui attire les recruteurs et met en valeur vos compétences',
+            url: '/professional-profile',
+            category: 'improve'
+        },
+        recommendations: {
+            name: 'Recommandations IA',
+            description: 'Recevez des conseils personnalisés basés sur votre profil pour améliorer votre stratégie',
+            url: '/recommendations',
+            category: 'improve'
+        },
+        dashboard: {
+            name: 'Dashboard Analytics',
+            description: 'Analysez vos performances de recherche d\'emploi et optimisez votre stratégie avec des données',
+            url: '/dashboard',
+            category: 'improve'
         }
     },
     en: {
-        cvAnalysis: {
-            name: 'Cubbbe CV Analysis',
-            description: 'Our AI CV analysis tool evaluates your resume against job postings',
-            url: '/cv-analysis'
+        // === HUB ===
+        hub: {
+            name: 'Cubbbe Hub',
+            description: 'Your command center to manage your entire job search from one place',
+            url: '/hub',
+            category: 'hub'
         },
-        cvRewrite: {
-            name: 'AI CV Rewrite',
-            description: 'Automatically optimize your resume with our AI',
-            url: '/cv-optimizer'
+        // === APPLY ===
+        jobBoard: {
+            name: 'Smart Job Board',
+            description: 'Find job postings that perfectly match your profile with our AI matching',
+            url: '/jobs',
+            category: 'apply'
         },
-        mockInterview: {
-            name: 'AI Mock Interview',
-            description: 'Prepare for interviews with our real-time AI simulator',
-            url: '/mock-interview'
+        autoPilot: {
+            name: 'Cubbbe AutoPilot',
+            description: 'Automate your job applications with our AI that applies for you 24/7',
+            url: '/campaigns',
+            category: 'apply'
         },
         outreachCampaigns: {
             name: 'Outreach Campaigns',
-            description: 'Automate your prospecting with AI-personalized emails',
-            url: '/campaigns-auto'
+            description: 'Automate your prospecting with AI-personalized emails that catch recruiters\' attention',
+            url: '/campaigns-auto',
+            category: 'apply'
         },
-        jobBoard: {
-            name: 'Smart Job Board',
-            description: 'Find job postings that perfectly match your profile',
-            url: '/jobs'
+        cvAnalysis: {
+            name: 'Resume Lab - CV Analysis',
+            description: 'Our AI CV analysis tool evaluates and optimizes your resume against job postings',
+            url: '/cv-analysis',
+            category: 'apply'
+        },
+        // === TRACK ===
+        applicationTracking: {
+            name: 'Application Tracking',
+            description: 'Keep track of all your applications with our intuitive kanban dashboard',
+            url: '/applications',
+            category: 'track'
+        },
+        calendar: {
+            name: 'Cubbbe Calendar',
+            description: 'Organize your interviews and never miss an important appointment again',
+            url: '/calendar',
+            category: 'track'
+        },
+        // === PREPARE ===
+        interviewHub: {
+            name: 'Interview Hub',
+            description: 'Access all your upcoming interviews and prepare effectively',
+            url: '/upcoming-interviews',
+            category: 'prepare'
+        },
+        mockInterview: {
+            name: 'AI Mock Interview',
+            description: 'Prepare for interviews with our real-time AI simulator that gives instant feedback',
+            url: '/mock-interview',
+            category: 'prepare'
         },
         resumeBuilder: {
-            name: 'Resume Builder',
-            description: 'Create a professional resume in minutes',
-            url: '/resume-builder'
+            name: 'Document Manager',
+            description: 'Create and manage professional resumes in minutes with our premium templates',
+            url: '/resume-builder',
+            category: 'prepare'
         },
-        interviewPrep: {
-            name: 'Interview Preparation',
-            description: 'Get personalized advice for each interview',
-            url: '/upcoming-interviews'
+        // === IMPROVE ===
+        professionalProfile: {
+            name: 'Professional Profile',
+            description: 'Create an optimized profile that attracts recruiters and showcases your skills',
+            url: '/professional-profile',
+            category: 'improve'
+        },
+        recommendations: {
+            name: 'AI Recommendations',
+            description: 'Get personalized advice based on your profile to improve your strategy',
+            url: '/recommendations',
+            category: 'improve'
+        },
+        dashboard: {
+            name: 'Analytics Dashboard',
+            description: 'Analyze your job search performance and optimize your strategy with data',
+            url: '/dashboard',
+            category: 'improve'
         }
     }
 };
@@ -165,25 +261,71 @@ export const generateSEOArticle = async (config: SEOArticleConfig): Promise<Gene
         : TONE_INSTRUCTIONS_EN[config.tone];
 
     const servicesContext = isFrench ? `
-## SERVICES CUBBBE À MENTIONNER (intègre 2-3 de ces outils de façon naturelle):
-- **${services.cvAnalysis.name}** (${services.cvAnalysis.url}): ${services.cvAnalysis.description}
-- **${services.cvRewrite.name}** (${services.cvRewrite.url}): ${services.cvRewrite.description}
-- **${services.mockInterview.name}** (${services.mockInterview.url}): ${services.mockInterview.description}
-- **${services.outreachCampaigns.name}** (${services.outreachCampaigns.url}): ${services.outreachCampaigns.description}
+## SERVICES CUBBBE À MENTIONNER (intègre 4-5 de ces outils de façon naturelle):
+
+### 🎯 APPLY (Postuler)
 - **${services.jobBoard.name}** (${services.jobBoard.url}): ${services.jobBoard.description}
+- **${services.autoPilot.name}** (${services.autoPilot.url}): ${services.autoPilot.description}
+- **${services.outreachCampaigns.name}** (${services.outreachCampaigns.url}): ${services.outreachCampaigns.description}
+- **${services.cvAnalysis.name}** (${services.cvAnalysis.url}): ${services.cvAnalysis.description}
+
+### 📊 TRACK (Suivre)
+- **${services.applicationTracking.name}** (${services.applicationTracking.url}): ${services.applicationTracking.description}
+- **${services.calendar.name}** (${services.calendar.url}): ${services.calendar.description}
+
+### 🎤 PREPARE (Préparer)
+- **${services.interviewHub.name}** (${services.interviewHub.url}): ${services.interviewHub.description}
+- **${services.mockInterview.name}** (${services.mockInterview.url}): ${services.mockInterview.description}
 - **${services.resumeBuilder.name}** (${services.resumeBuilder.url}): ${services.resumeBuilder.description}
 
-Intègre ces outils Cubbbe naturellement dans l'article comme solutions concrètes. Utilise le format markdown pour les liens: [Nom de l'outil](URL)
+### 📈 IMPROVE (Améliorer)
+- **${services.professionalProfile.name}** (${services.professionalProfile.url}): ${services.professionalProfile.description}
+- **${services.recommendations.name}** (${services.recommendations.url}): ${services.recommendations.description}
+- **${services.dashboard.name}** (${services.dashboard.url}): ${services.dashboard.description}
+
+### 🏠 HUB
+- **${services.hub.name}** (${services.hub.url}): ${services.hub.description}
+
+## RÈGLES D'INTÉGRATION DES BACKLINKS (TRÈS IMPORTANT):
+1. Intègre **4-5 outils Cubbbe** naturellement dans l'article comme solutions concrètes
+2. Utilise le format markdown pour les liens: [Nom de l'outil](URL)
+3. Ajoute **au moins 2 encadrés CTA stylisés** dans le corps de l'article avec ce format:
+   > 💡 **Astuce Cubbbe:** [Texte encourageant avec lien vers l'outil]
+4. Termine l'article par une section "**🚀 Outils Cubbbe recommandés**" listant 3-4 outils pertinents
+5. Varie les outils mentionnés en fonction du sujet de l'article
 ` : `
-## CUBBBE SERVICES TO MENTION (naturally integrate 2-3 of these tools):
-- **${services.cvAnalysis.name}** (${services.cvAnalysis.url}): ${services.cvAnalysis.description}
-- **${services.cvRewrite.name}** (${services.cvRewrite.url}): ${services.cvRewrite.description}
-- **${services.mockInterview.name}** (${services.mockInterview.url}): ${services.mockInterview.description}
-- **${services.outreachCampaigns.name}** (${services.outreachCampaigns.url}): ${services.outreachCampaigns.description}
+## CUBBBE SERVICES TO MENTION (naturally integrate 4-5 of these tools):
+
+### 🎯 APPLY
 - **${services.jobBoard.name}** (${services.jobBoard.url}): ${services.jobBoard.description}
+- **${services.autoPilot.name}** (${services.autoPilot.url}): ${services.autoPilot.description}
+- **${services.outreachCampaigns.name}** (${services.outreachCampaigns.url}): ${services.outreachCampaigns.description}
+- **${services.cvAnalysis.name}** (${services.cvAnalysis.url}): ${services.cvAnalysis.description}
+
+### 📊 TRACK
+- **${services.applicationTracking.name}** (${services.applicationTracking.url}): ${services.applicationTracking.description}
+- **${services.calendar.name}** (${services.calendar.url}): ${services.calendar.description}
+
+### 🎤 PREPARE
+- **${services.interviewHub.name}** (${services.interviewHub.url}): ${services.interviewHub.description}
+- **${services.mockInterview.name}** (${services.mockInterview.url}): ${services.mockInterview.description}
 - **${services.resumeBuilder.name}** (${services.resumeBuilder.url}): ${services.resumeBuilder.description}
 
-Naturally integrate these Cubbbe tools in the article as concrete solutions. Use markdown format for links: [Tool Name](URL)
+### 📈 IMPROVE
+- **${services.professionalProfile.name}** (${services.professionalProfile.url}): ${services.professionalProfile.description}
+- **${services.recommendations.name}** (${services.recommendations.url}): ${services.recommendations.description}
+- **${services.dashboard.name}** (${services.dashboard.url}): ${services.dashboard.description}
+
+### 🏠 HUB
+- **${services.hub.name}** (${services.hub.url}): ${services.hub.description}
+
+## BACKLINK INTEGRATION RULES (VERY IMPORTANT):
+1. Naturally integrate **4-5 Cubbbe tools** in the article as concrete solutions
+2. Use markdown format for links: [Tool Name](URL)
+3. Add **at least 2 styled CTA boxes** in the article body with this format:
+   > 💡 **Cubbbe Tip:** [Encouraging text with link to the tool]
+4. End the article with a "**🚀 Recommended Cubbbe Tools**" section listing 3-4 relevant tools
+5. Vary the tools mentioned based on the article topic
 `;
 
     const systemPrompt = isFrench ? `
@@ -244,10 +386,12 @@ ${servicesContext}
 - Exemples concrets et cas pratiques
 - Transitions fluides entre sections
 
-### 5. INTÉGRATION CUBBBE (OBLIGATOIRE)
-- Mentionne 2-3 outils Cubbbe comme solutions
-- Intègre-les naturellement, pas comme de la pub
-- Utilise des CTA subtils vers les outils
+### 5. INTÉGRATION CUBBBE (OBLIGATOIRE - TRÈS IMPORTANT)
+- Mentionne **4-5 outils Cubbbe** comme solutions tout au long de l'article
+- Intègre-les naturellement dans le contexte, pas comme de la pub
+- Ajoute **au moins 2 encadrés CTA stylisés** avec le format: > 💡 **Astuce Cubbbe:** [texte + lien]
+- Termine par une section "**🚀 Outils Cubbbe recommandés**" avec 3-4 outils pertinents
+- Utilise des liens markdown: [Nom de l'outil](URL)
 
 ### 6. SECTION FAQ (OBLIGATOIRE)
 - 4-5 questions "People Also Ask"
@@ -316,10 +460,12 @@ ${servicesContext}
 - Concrete examples and case studies
 - Smooth transitions between sections
 
-### 5. CUBBBE INTEGRATION (MANDATORY)
-- Mention 2-3 Cubbbe tools as solutions
-- Integrate them naturally, not as ads
-- Use subtle CTAs to the tools
+### 5. CUBBBE INTEGRATION (MANDATORY - VERY IMPORTANT)
+- Mention **4-5 Cubbbe tools** as solutions throughout the article
+- Integrate them naturally in context, not as ads
+- Add **at least 2 styled CTA boxes** with format: > 💡 **Cubbbe Tip:** [text + link]
+- End with a "**🚀 Recommended Cubbbe Tools**" section listing 3-4 relevant tools
+- Use markdown links: [Tool Name](URL)
 
 ### 6. FAQ SECTION (MANDATORY)
 - 4-5 "People Also Ask" questions
