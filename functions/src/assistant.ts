@@ -1,5 +1,20 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { getOpenAIClient } from './utils/openai';
+import * as admin from 'firebase-admin';
+
+// Get Anthropic API key from Firestore
+const getAnthropicApiKey = async (): Promise<string | null> => {
+    try {
+        const settingsDoc = await admin.firestore().collection('settings').doc('anthropic').get();
+        if (settingsDoc.exists) {
+            const data = settingsDoc.data();
+            return data?.apiKey || null;
+        }
+    } catch (error) {
+        console.error('Failed to get Anthropic API key:', error);
+    }
+    return process.env.ANTHROPIC_API_KEY || null;
+};
 
 export const assistant = onRequest({
     region: 'us-central1',
@@ -25,7 +40,7 @@ export const assistant = onRequest({
     try {
         const {
             message,
-            aiProvider,
+            aiProvider = 'openai', // Default to OpenAI
             conversationHistory,
             pageContext,
             selectedContextItems,
@@ -47,8 +62,6 @@ export const assistant = onRequest({
             mode: inlineEditMode ? 'inline-edit' : whiteboardMode ? 'whiteboard' : 'chat',
             messageLength: message?.length
         });
-
-        const openai = await getOpenAIClient();
 
         // Construct system prompt based on mode
         let systemPrompt = `You are an advanced AI assistant for Cubbbe, a career acceleration platform.
@@ -112,10 +125,13 @@ Work Experience:
 ${userContext.workExperience?.map((exp: any) => `- ${exp.title} at ${exp.company} (${exp.startDate} - ${exp.endDate || 'Present'})\n  ${exp.description || ''}`).join('\n') || 'N/A'}
 
 Education:
-${userContext.education?.map((edu: any) => `- ${edu.degree} in ${edu.field} at ${edu.school} (${edu.startDate} - ${edu.endDate || 'Present'})`).join('\n') || 'N/A'}
+${userContext.education?.map((edu: any) => `- ${edu.degree} in ${edu.field} at ${edu.institution} (${edu.year || 'N/A'})`).join('\n') || 'N/A'}
 
 Languages: ${userContext.languages?.map((l: any) => `${l.language} (${l.proficiency})`).join(', ') || 'N/A'}
 Certifications: ${userContext.certifications?.map((c: any) => `${c.name} (${c.issuer})`).join(', ') || 'N/A'}
+
+CV Text (Full Resume):
+${userContext.cvText ? userContext.cvText.substring(0, 3000) + '...' : 'N/A'}
 `;
             }
 
@@ -135,14 +151,7 @@ ${selectedContextItems.map((item: any) => `- [${item.type}] ${item.title}: ${JSO
             }
         }
 
-        // Prepare messages
-        const messages = [
-            { role: 'system', content: systemPrompt },
-            ...(conversationHistory || []).map((msg: any) => ({ role: msg.role, content: msg.content })),
-            { role: 'user', content: message }
-        ];
-
-        // Set up streaming response
+        // Set up streaming response headers
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
@@ -156,20 +165,116 @@ ${selectedContextItems.map((item: any) => `- [${item.type}] ${item.title}: ${JSO
         // Send padding to bypass buffering (2KB of spaces)
         res.write(':' + ' '.repeat(2048) + '\n\n');
 
-        const stream = await openai.chat.completions.create({
-            model: 'gpt-4o', // Use a capable model
-            messages: messages as any,
-            stream: true,
-            temperature: 0.7,
-        });
+        // Route to the appropriate provider
+        if (aiProvider === 'anthropic') {
+            // Use Claude/Anthropic
+            console.log('🤖 Using Anthropic Claude Sonnet 4.5');
 
-        for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content || '';
-            if (content) {
-                res.write(`data: ${JSON.stringify({ content })}\n\n`);
-                // Flush after each chunk if possible
-                if ((res as any).flush) {
-                    (res as any).flush();
+            const anthropicApiKey = await getAnthropicApiKey();
+            if (!anthropicApiKey) {
+                throw new Error('Anthropic API key not configured');
+            }
+
+            // Format messages for Anthropic
+            const anthropicMessages = [
+                ...(conversationHistory || []).map((msg: any) => ({
+                    role: msg.role === 'assistant' ? 'assistant' : 'user',
+                    content: msg.content
+                })),
+                { role: 'user', content: message }
+            ];
+
+            // Call Anthropic API with streaming
+            console.log('🤖 Calling Anthropic with model: claude-sonnet-4-5-20250929');
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'x-api-key': anthropicApiKey,
+                    'anthropic-version': '2023-06-01',
+                    'content-type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'claude-sonnet-4-5-20250929', // Claude Sonnet 4.5
+                    system: systemPrompt,
+                    messages: anthropicMessages,
+                    max_tokens: 4096,
+                    temperature: 0.7,
+                    stream: true
+                })
+            });
+
+            console.log('🤖 Anthropic response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ Anthropic API error:', errorText);
+                throw new Error(`Anthropic API error: ${errorText}`);
+            }
+
+            // Handle streaming from Anthropic
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            if (reader) {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            if (data === '[DONE]') continue;
+
+                            try {
+                                const parsed = JSON.parse(data);
+                                // Anthropic sends content_block_delta events
+                                if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+                                    res.write(`data: ${JSON.stringify({ content: parsed.delta.text })}\n\n`);
+                                    if ((res as any).flush) {
+                                        (res as any).flush();
+                                    }
+                                }
+                            } catch (e) {
+                                // Ignore JSON parse errors for non-data lines
+                            }
+                        }
+                    }
+                }
+            }
+
+        } else {
+            // Use OpenAI (default) - GPT 5.2
+            console.log('🤖 Using OpenAI GPT-5.2');
+
+            const openai = await getOpenAIClient();
+
+            // Prepare messages for OpenAI
+            const messages = [
+                { role: 'system', content: systemPrompt },
+                ...(conversationHistory || []).map((msg: any) => ({ role: msg.role, content: msg.content })),
+                { role: 'user', content: message }
+            ];
+
+            const stream = await openai.chat.completions.create({
+                model: 'gpt-5.2', // GPT 5.2
+                messages: messages as any,
+                stream: true,
+                temperature: 0.7,
+            });
+
+            for await (const chunk of stream) {
+                const content = chunk.choices[0]?.delta?.content || '';
+                if (content) {
+                    res.write(`data: ${JSON.stringify({ content })}\n\n`);
+                    // Flush after each chunk if possible
+                    if ((res as any).flush) {
+                        (res as any).flush();
+                    }
                 }
             }
         }
@@ -187,3 +292,4 @@ ${selectedContextItems.map((item: any) => `- [${item.type}] ${item.title}: ${JSO
         }
     }
 });
+

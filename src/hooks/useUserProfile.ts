@@ -95,19 +95,33 @@ export const useUserProfile = (): UseUserProfileReturn => {
       // Fetch from both sources and merge them
       const profileDocRef = doc(db, 'users', currentUser.uid, 'profile', 'data');
       const userDocRef = doc(db, 'users', currentUser.uid);
-      
+
       const [profileDoc, userDoc] = await Promise.all([
         getDoc(profileDocRef),
         getDoc(userDocRef)
       ]);
 
+      // Debug: log what we got from Firestore
+      console.log('👤 [useUserProfile] Raw data from Firestore:');
+      console.log('👤 [useUserProfile] - userDoc exists:', userDoc.exists());
+      console.log('👤 [useUserProfile] - profileDoc exists:', profileDoc.exists());
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        console.log('👤 [useUserProfile] - userDoc data keys:', Object.keys(data || {}));
+        console.log('👤 [useUserProfile] - userDoc.skills:', data?.skills);
+        console.log('👤 [useUserProfile] - userDoc.professionalSummary:', data?.professionalSummary?.substring(0, 100) + '...');
+        console.log('👤 [useUserProfile] - userDoc.workExperience:', data?.workExperience?.length || 0, 'items');
+      }
+
+
       // Merge data: user document first (base), then profile subcollection (override)
       // This ensures CV data from user doc is always included
       let mergedData: UserProfile = {};
-      
+
       if (userDoc.exists()) {
         const userData = userDoc.data();
         // Extract CV-related fields from user document
+        // Map alternative field names from Firestore to our standard interface
         mergedData = {
           ...mergedData,
           cvText: userData.cvText,
@@ -115,21 +129,41 @@ export const useUserProfile = (): UseUserProfileReturn => {
           cvSkills: userData.cvSkills,
           cvUrl: userData.cvUrl,
           cvName: userData.cvName,
-          // Also include other profile fields that might be in user doc
+          // Basic info
           firstName: userData.firstName,
           lastName: userData.lastName,
           email: userData.email,
           phone: userData.phone,
-          location: userData.location,
-          currentJobTitle: userData.currentJobTitle,
-          currentCompany: userData.currentCompany,
-          yearsOfExperience: userData.yearsOfExperience,
+          // Location - try multiple possible field names
+          location: userData.location || userData.city || (userData.city && userData.country ? `${userData.city}, ${userData.country}` : undefined),
+          // Professional info - map alternative field names
+          currentJobTitle: userData.currentJobTitle || userData.currentPosition || userData.headline || userData.targetPosition,
+          currentCompany: userData.currentCompany || userData.company,
+          yearsOfExperience: userData.yearsOfExperience ? Number(userData.yearsOfExperience) : undefined,
           industry: userData.industry,
           professionalSummary: userData.professionalSummary,
           skills: userData.skills,
-          education: userData.education,
-          workExperience: userData.workExperience,
-          languages: userData.languages,
+          // Education - Firestore uses 'educations' (plural)
+          education: userData.education || userData.educations?.map((edu: any) => ({
+            degree: edu.degree,
+            institution: edu.institution || edu.school,
+            year: edu.endDate || edu.year,
+            field: edu.field,
+          })),
+          // Work Experience - Firestore uses 'professionalHistory'
+          workExperience: userData.workExperience || userData.professionalHistory?.map((exp: any) => ({
+            title: exp.title,
+            company: exp.company,
+            startDate: exp.startDate,
+            endDate: exp.endDate,
+            description: exp.responsibilities?.join('. ') || exp.description,
+            current: exp.current,
+          })),
+          // Languages - map proficiency field name
+          languages: userData.languages?.map((lang: any) => ({
+            language: lang.language,
+            proficiency: lang.proficiency || lang.level,
+          })),
           certifications: userData.certifications,
           linkedinUrl: userData.linkedinUrl,
           githubUrl: userData.githubUrl,
@@ -137,6 +171,7 @@ export const useUserProfile = (): UseUserProfileReturn => {
           websiteUrl: userData.websiteUrl,
         };
       }
+
 
       if (profileDoc.exists()) {
         const profileData = profileDoc.data() as UserProfile;

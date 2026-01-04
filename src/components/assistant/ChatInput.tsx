@@ -1016,8 +1016,16 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
       // Debug: log context items being sent
       console.log('📎 Sending context items to API:', contextItems);
 
+      // Debug: log userContext being sent
+      console.log('👤 ════════════════════════════════════════════════════════');
+      console.log('👤 [USER CONTEXT] Profile object:', profile);
+      console.log('👤 [USER CONTEXT] UserData object:', userData);
+      console.log('👤 [USER CONTEXT] Sending to API:', userContext);
+      console.log('👤 ════════════════════════════════════════════════════════');
+
       const providerInfo = aiProviders.find(p => p.id === selectedAIProvider);
       console.log('🤖 ════════════════════════════════════════════════════════');
+
       console.log('🤖 [REQUEST] Using AI Provider:', providerInfo?.name);
       console.log('🤖 [REQUEST] Provider ID:', selectedAIProvider);
       console.log('🤖 [REQUEST] Model:', providerInfo?.model);
