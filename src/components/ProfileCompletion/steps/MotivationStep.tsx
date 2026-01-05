@@ -103,35 +103,34 @@ Return only the improved text, nothing else.`
               setOriginalText(e.target.value);
             }
           }}
-          rows={6}
+          rows={5}
           placeholder="Example: I'm looking to transition from my current role in marketing to a product management position. I'm particularly interested in tech companies with strong mentorship programs..."
-          className="w-full p-4 pb-12 border border-gray-200 dark:border-gray-700 rounded-xl
-            bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
-            focus:ring-2 focus:ring-[#635bff]/20 dark:focus:ring-[#635bff]/20 focus:border-[#635bff] dark:focus:border-[#635bff]
-            transition-all duration-200 resize-none
-            shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]"
+          className="w-full p-4 pb-12 bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-gray-700 rounded-lg
+            text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+            focus:border-gray-400 dark:focus:border-gray-500 focus:outline-none focus:ring-0
+            transition-colors resize-none text-[15px]"
         />
 
-        {/* AI Improve Button - Bottom right corner, integrated */}
+        {/* AI Improve Button - Subtle */}
         {motivation.trim() && !showImproved && (
           <button
             onClick={improveWithAI}
             disabled={isImproving}
-            className="absolute bottom-3 right-3 group flex items-center gap-1.5 px-2.5 py-1.5 
-              text-gray-400 dark:text-gray-500 rounded-md 
-              text-xs font-medium transition-all duration-150
+            className="absolute bottom-3 right-3 group flex items-center gap-1.5 px-2 py-1 
+              text-gray-400 dark:text-gray-500 rounded 
+              text-xs font-medium transition-colors
               disabled:opacity-50 disabled:cursor-not-allowed
-              hover:text-[#635bff] dark:hover:text-[#635bff]
-              hover:bg-[#635bff]/5 dark:hover:bg-[#635bff]/10"
+              hover:text-gray-600 dark:hover:text-gray-300
+              hover:bg-gray-100 dark:hover:bg-white/10"
           >
             {isImproving ? (
               <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-3 w-3 animate-spin" />
                 <span>Improving...</span>
               </>
             ) : (
               <>
-                <Sparkles className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+                <Sparkles className="h-3 w-3" />
                 <span>Improve with AI</span>
               </>
             )}
@@ -139,42 +138,33 @@ Return only the improved text, nothing else.`
         )}
       </div>
 
-      {/* Improved Text Preview - Notion-style minimal design */}
+      {/* Improved Text Preview - Cleaner */}
       <AnimatePresence>
         {showImproved && improvedText && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-5 space-y-4
-              border border-gray-200 dark:border-gray-700
-              shadow-lg dark:shadow-[0_8px_24px_rgba(0,0,0,0.3)]"
+            exit={{ opacity: 0, y: -5 }}
+            className="bg-white dark:bg-gray-800 rounded-lg p-4 space-y-3
+              border border-gray-200 dark:border-gray-700"
           >
             {/* Header */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#635bff]/10 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-[#635bff]" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm">AI Suggestion</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Review the improved version below</p>
-                </div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple-500" />
+                <span className="text-sm font-medium text-gray-900 dark:text-white">AI Suggestion</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={rejectImproved}
-                  className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 
-                    hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 
-                    rounded-lg transition-all duration-150"
+                  className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                 >
                   Dismiss
                 </button>
                 <button
                   onClick={acceptImproved}
-                  className="px-4 py-1.5 bg-[#635bff] text-white rounded-lg 
-                    text-sm font-medium hover:bg-[#5147e5] transition-all duration-150
-                    shadow-sm hover:shadow-md"
+                  className="px-3 py-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded text-sm font-medium
+                    hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                 >
                   Apply
                 </button>
@@ -182,42 +172,39 @@ Return only the improved text, nothing else.`
             </div>
 
             {/* Improved text content */}
-            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-100 dark:border-gray-700/50">
-              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                {improvedText}
-              </p>
-            </div>
+            <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+              {improvedText}
+            </p>
 
             {/* Revert option */}
             {motivation !== originalText && (
               <button
                 onClick={revertToOriginal}
-                className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 
+                className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 
                   hover:text-gray-600 dark:hover:text-gray-400 transition-colors"
               >
                 <RotateCcw className="h-3 w-3" />
-                Revert to original
+                Revert
               </button>
             )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="flex justify-between pt-6">
+      {/* Navigation Footer */}
+      <div className="flex items-center justify-between pt-6">
         <button
           onClick={onBack}
-          className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-medium"
+          className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
         >
           Back
         </button>
         <button
           onClick={() => motivation.trim() && onNext({ motivation: motivation.trim() })}
           disabled={!motivation.trim() || isSubmitting}
-          className="px-8 py-2 bg-[#635bff] dark:bg-[#7C3AED] text-white rounded-lg font-medium
-            disabled:opacity-50 disabled:cursor-not-allowed
-            hover:brightness-110 dark:hover:brightness-110 transition-all duration-200
-            shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]
-            hover:shadow-lg dark:hover:shadow-[0_6px_12px_rgba(141,117,230,0.4)]
+          className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium
+            disabled:opacity-40 disabled:cursor-not-allowed
+            hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors
             flex items-center gap-2"
         >
           {isSubmitting ? (
@@ -226,10 +213,11 @@ Return only the improved text, nothing else.`
               <span>Saving...</span>
             </>
           ) : (
-            <span>Complete Profile</span>
+            <span>Continue</span>
           )}
         </button>
       </div>
     </div>
   );
 }
+

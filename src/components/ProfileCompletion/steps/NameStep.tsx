@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { User } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface NameStepProps {
@@ -64,17 +62,10 @@ export default function NameStep({ firstName: initialFirstName, lastName: initia
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <h2 className="text-lg font-medium text-gray-900 dark:text-white">What's your name?</h2>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          We'll use this to personalize your experience
-        </p>
-      </div>
-
-      <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-8">
+      <div className="space-y-6">
         <div>
-          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="firstName" className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
             First Name
           </label>
           <input
@@ -85,20 +76,20 @@ export default function NameStep({ firstName: initialFirstName, lastName: initia
               setFirstName(e.target.value);
               if (errors.firstName) setErrors(prev => ({ ...prev, firstName: '' }));
             }}
-            className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 ${errors.firstName
-                ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
-                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-[#635bff] dark:focus:border-[#7C3AED] focus:ring-2 focus:ring-[#635bff]/20 dark:focus:ring-[#7C3AED]/20'
-              } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+            className={`w-full px-0 py-3 bg-transparent border-0 border-b transition-colors ${errors.firstName
+              ? 'border-red-400 dark:border-red-500'
+              : 'border-gray-200 dark:border-gray-700 focus:border-gray-900 dark:focus:border-white'
+              } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0 text-lg`}
             placeholder="Enter your first name"
             autoFocus
           />
           {errors.firstName && (
-            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.firstName}</p>
+            <p className="mt-2 text-sm text-red-500 dark:text-red-400">{errors.firstName}</p>
           )}
         </div>
 
         <div>
-          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="lastName" className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
             Last Name
           </label>
           <input
@@ -109,26 +100,28 @@ export default function NameStep({ firstName: initialFirstName, lastName: initia
               setLastName(e.target.value);
               if (errors.lastName) setErrors(prev => ({ ...prev, lastName: '' }));
             }}
-            className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 ${errors.lastName
-                ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
-                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-[#635bff] dark:focus:border-[#7C3AED] focus:ring-2 focus:ring-[#635bff]/20 dark:focus:ring-[#7C3AED]/20'
-              } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+            className={`w-full px-0 py-3 bg-transparent border-0 border-b transition-colors ${errors.lastName
+              ? 'border-red-400 dark:border-red-500'
+              : 'border-gray-200 dark:border-gray-700 focus:border-gray-900 dark:focus:border-white'
+              } text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0 text-lg`}
             placeholder="Enter your last name"
           />
           {errors.lastName && (
-            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.lastName}</p>
+            <p className="mt-2 text-sm text-red-500 dark:text-red-400">{errors.lastName}</p>
           )}
         </div>
       </div>
 
-      <motion.button
-        type="submit"
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        className="w-full px-6 py-3 bg-[#635bff] dark:bg-[#7C3AED] text-white rounded-lg font-medium hover:brightness-110 dark:hover:brightness-110 transition-colors duration-200 shadow-lg hover:shadow-xl"
-      >
-        Continue
-      </motion.button>
+      {/* Navigation Footer - Right aligned */}
+      <div className="flex justify-end pt-6">
+        <button
+          type="submit"
+          className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium
+            hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+        >
+          Continue
+        </button>
+      </div>
     </form>
   );
 }

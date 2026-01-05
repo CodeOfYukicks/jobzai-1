@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Globe, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface LocationStepProps {
   value: string;
@@ -321,16 +321,13 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
   const canContinue = city.trim() && country.trim();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* City Input */}
-      <div className="relative max-w-sm mx-auto lg:max-w-none">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      <div className="relative">
+        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
           City
         </label>
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <MapPin className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-          </div>
           <input
             ref={cityInputRef}
             type="text"
@@ -338,16 +335,14 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
             onChange={handleCityChange}
             onFocus={() => city.length >= 2 && setShowCitySuggestions(true)}
             placeholder="Enter city..."
-            className="w-full pl-12 pr-10 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl
-              bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
-              focus:ring-2 focus:ring-[#635bff]/20 dark:focus:ring-[#7C3AED]/20 focus:border-[#635bff] dark:focus:border-[#7C3AED]
-              transition-all duration-200
-              shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]
-              focus:shadow-md dark:focus:shadow-[0_4px_8px_rgba(141,117,230,0.2),0_2px_4px_rgba(0,0,0,0.3)]"
+            className="w-full px-0 py-3 bg-transparent border-0 border-b border-gray-200 dark:border-gray-700
+              text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+              focus:border-gray-900 dark:focus:border-white focus:outline-none focus:ring-0
+              transition-colors text-lg"
           />
           {loadingCities && (
-            <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-              <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
+            <div className="absolute inset-y-0 right-0 flex items-center">
+              <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
             </div>
           )}
         </div>
@@ -357,25 +352,25 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
           {showCitySuggestions && (citySuggestions.length > 0 || loadingCities) && (
             <motion.div
               ref={citySuggestionsRef}
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-60 overflow-y-auto"
+              exit={{ opacity: 0, y: -5 }}
+              className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto"
             >
               {loadingCities ? (
-                <div className="p-4 text-center text-gray-500">
-                  <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                <div className="p-3 text-center text-gray-500">
+                  <Loader2 className="h-4 w-4 animate-spin mx-auto" />
                 </div>
               ) : (
                 citySuggestions.map((suggestion, index) => (
                   <button
                     key={index}
                     onClick={() => handleCitySelect(suggestion)}
-                    className="w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                    className="w-full px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
-                    <div className="font-medium text-gray-900 dark:text-white">{suggestion.name}</div>
+                    <span className="text-sm text-gray-900 dark:text-white">{suggestion.name}</span>
                     {suggestion.country && (
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{suggestion.country}</div>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">· {suggestion.country}</span>
                     )}
                   </button>
                 ))
@@ -386,14 +381,11 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
       </div>
 
       {/* Country Input */}
-      <div className="relative max-w-sm mx-auto lg:max-w-none">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      <div className="relative">
+        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
           Country
         </label>
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Globe className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-          </div>
           <input
             ref={countryInputRef}
             type="text"
@@ -401,16 +393,14 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
             onChange={handleCountryChange}
             onFocus={() => country.length >= 2 && setShowCountrySuggestions(true)}
             placeholder="Enter country..."
-            className="w-full pl-12 pr-10 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl
-            bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
-            focus:ring-2 focus:ring-[#635bff]/20 dark:focus:ring-[#7C3AED]/20 focus:border-[#635bff] dark:focus:border-[#7C3AED]
-            transition-all duration-200
-            shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]
-            focus:shadow-md dark:focus:shadow-[0_4px_8px_rgba(141,117,230,0.2),0_2px_4px_rgba(0,0,0,0.3)]"
+            className="w-full px-0 py-3 bg-transparent border-0 border-b border-gray-200 dark:border-gray-700
+              text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+              focus:border-gray-900 dark:focus:border-white focus:outline-none focus:ring-0
+              transition-colors text-lg"
           />
           {loadingCountries && (
-            <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-              <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
+            <div className="absolute inset-y-0 right-0 flex items-center">
+              <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
             </div>
           )}
         </div>
@@ -420,23 +410,23 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
           {showCountrySuggestions && (countrySuggestions.length > 0 || loadingCountries) && (
             <motion.div
               ref={countrySuggestionsRef}
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-60 overflow-y-auto"
+              exit={{ opacity: 0, y: -5 }}
+              className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto"
             >
               {loadingCountries ? (
-                <div className="p-4 text-center text-gray-500">
-                  <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                <div className="p-3 text-center text-gray-500">
+                  <Loader2 className="h-4 w-4 animate-spin mx-auto" />
                 </div>
               ) : (
                 countrySuggestions.map((country, index) => (
                   <button
                     key={index}
                     onClick={() => handleCountrySelect(country)}
-                    className="w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                    className="w-full px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
-                    <div className="font-medium text-gray-900 dark:text-white">{country.name.common}</div>
+                    <span className="text-sm text-gray-900 dark:text-white">{country.name.common}</span>
                   </button>
                 ))
               )}
@@ -445,44 +435,42 @@ export default function LocationStep({ value, onNext, onBack }: LocationStepProp
         </AnimatePresence>
       </div>
 
-      {/* Popular Locations */}
-      <div className="text-center lg:text-left">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Popular Locations</h3>
-        <div className="flex flex-wrap justify-center lg:justify-start gap-2">
-          {popularCities.map((suggestion) => (
+      {/* Popular Locations - Subtle */}
+      <div>
+        <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mb-2 uppercase tracking-wide">Popular</p>
+        <div className="flex flex-wrap gap-2">
+          {popularCities.slice(0, 6).map((suggestion) => (
             <button
               key={suggestion.displayName}
               onClick={() => handlePopularCitySelect(suggestion)}
               className={`
-                px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+                px-3 py-1.5 rounded-full text-xs font-medium transition-colors
                 ${city === suggestion.name && country === suggestion.country
-                  ? 'bg-[#635bff] dark:bg-[#7C3AED] text-white shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)]'
+                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                  : 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/[0.1]'
                 }
               `}
             >
-              {suggestion.displayName}
+              {suggestion.name}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Navigation Buttons */}
-      <div className="flex justify-between pt-6 max-w-sm mx-auto lg:max-w-none">
+      {/* Navigation Footer */}
+      <div className="flex items-center justify-between pt-6">
         <button
           onClick={onBack}
-          className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-medium"
+          className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
         >
           Back
         </button>
         <button
           onClick={() => canContinue && onNext({ city: city.trim(), country: country.trim() })}
           disabled={!canContinue}
-          className="px-8 py-2 bg-[#635bff] dark:bg-[#7C3AED] text-white rounded-lg font-medium
-            disabled:opacity-50 disabled:cursor-not-allowed
-            hover:brightness-110 dark:hover:brightness-110 transition-all duration-200
-            shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]
-            hover:shadow-lg dark:hover:shadow-[0_6px_12px_rgba(141,117,230,0.4)]"
+          className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium
+            disabled:opacity-40 disabled:cursor-not-allowed
+            hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
         >
           Continue
         </button>

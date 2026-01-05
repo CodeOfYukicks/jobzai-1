@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shuffle, Sparkles, ArrowRight, Pencil } from 'lucide-react';
+import { Shuffle, Sparkles, Pencil } from 'lucide-react';
 import ProfileAvatar from '../../profile/avatar/ProfileAvatar';
 import ProfileAvatarEditor from '../../profile/avatar/ProfileAvatarEditor';
 import Avatar from '../../assistant/avatar/Avatar';
@@ -307,26 +307,21 @@ export default function AvatarSetupStep({ onNext, onBack }: AvatarSetupStepProps
                 </p>
             </div>
 
-            {/* Navigation */}
-            <div className="flex justify-between pt-2">
+            {/* Navigation Footer */}
+            <div className="flex items-center justify-between pt-4">
                 <button
                     onClick={onBack}
-                    className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-medium
-            transition-colors duration-200"
+                    className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                 >
                     Back
                 </button>
 
                 <button
                     onClick={handleContinue}
-                    className="group px-8 py-3 bg-gradient-to-r from-[#635bff] to-[#6366F1] text-white rounded-xl font-medium
-            hover:from-[#7D65D6] hover:to-[#5558E3] transition-all duration-200
-            shadow-lg shadow-[#635bff]/25 dark:shadow-[#635bff]/20
-            hover:shadow-xl hover:shadow-[#635bff]/30
-            flex items-center gap-2"
+                    className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium
+                        hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                 >
-                    <span>Continue</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    Continue
                 </button>
             </div>
 

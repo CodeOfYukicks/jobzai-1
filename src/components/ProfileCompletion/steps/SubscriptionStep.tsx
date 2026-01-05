@@ -31,12 +31,8 @@ const plans = [
         creditsValue: 10,
         description: 'Start your job search journey with essential tools',
         features: [
-            'Access to Job Board',
-            'Application Tracking',
-            'Calendar Follow-up View',
-            'Full Interview Prep',
+            'Basic page access',
             '1 Resume Analysis / month',
-            '4 Resume Templates',
         ],
         cta: 'Start Free',
         icon: (
@@ -55,10 +51,14 @@ const plans = [
         features: [
             'Personalized Job Board',
             'Track Applications + Outreach',
+            'Calendar Follow-up View',
+            'Full Interview Prep',
             '2 Mock Interviews / month',
             '10 Resume Analyses / month',
             'Premium Resume Templates',
             '2 Campaigns (200 contacts)',
+            'AI Recommendations',
+            'Priority Support',
         ],
         cta: 'Get Premium',
         popular: true,
@@ -76,12 +76,16 @@ const plans = [
         creditsValue: 500,
         description: 'The ultimate toolkit for ambitious professionals',
         features: [
+            'Personalized Job Board',
+            'Track Applications + Outreach',
+            'Calendar Follow-up View',
             'AI Interview Coaching',
             '5 Mock Interviews / month',
             '20 Resume Analyses / month',
             'Premium Resume Templates',
             '5 Campaigns (500 contacts)',
-            'Priority Support 24/7',
+            'AI Recommendations',
+            'Priority Support',
         ],
         cta: 'Go Pro',
         icon: (
@@ -259,15 +263,11 @@ export default function SubscriptionStep({ onComplete, onBack, profileData }: Su
                                 </div>
                             )}
 
-                            {/* Icon */}
-                            <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-white dark:bg-gray-700 shadow-sm border border-gray-100 dark:border-gray-600 text-gray-700 dark:text-gray-300">
-                                {plan.icon}
-                            </div>
 
                             {/* Title + Description */}
                             <div className="mb-4">
                                 <h3 className="text-xl font-bold mb-1 text-gray-900 dark:text-white">
-                                    {plan.name} Cubber
+                                    {plan.name} Cubbber
                                 </h3>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
                                     {plan.description}
@@ -284,7 +284,7 @@ export default function SubscriptionStep({ onComplete, onBack, profileData }: Su
                                         {plan.price.monthly === 0 ? '/forever' : isBiMonthly ? '/2 months' : '/month'}
                                     </span>
                                 </div>
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-[#635bff]/10 text-[#635bff]">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-gray-200/80 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                                     <CoinIcon className="w-4 h-4" />
                                     <span>{plan.credits}/month</span>
                                 </div>
@@ -307,8 +307,8 @@ export default function SubscriptionStep({ onComplete, onBack, profileData }: Su
                                 <ul className="space-y-2">
                                     {plan.features.map((feature) => (
                                         <li key={feature} className="flex items-start gap-2 text-[13px] leading-tight text-gray-600 dark:text-gray-400">
-                                            <span className="mt-0.5 flex-shrink-0 text-green-500">
-                                                <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <span className="mt-0.5 flex-shrink-0 text-violet-500">
+                                                <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
                                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                 </svg>
                                             </span>
@@ -342,22 +342,21 @@ export default function SubscriptionStep({ onComplete, onBack, profileData }: Su
                 </motion.div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex justify-between items-center pt-6 border-t border-gray-200 dark:border-gray-700">
+            {/* Navigation Footer */}
+            <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
                 <button
                     onClick={onBack}
-                    className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-medium"
+                    className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                 >
                     Back
                 </button>
                 <button
                     onClick={handleSubmit}
                     disabled={isProcessing}
-                    className="px-8 py-2 bg-[#635bff] text-white rounded-lg font-medium
-            disabled:opacity-50 disabled:cursor-not-allowed 
-            hover:brightness-110 transition-all duration-200
-            shadow-md hover:shadow-lg
-            flex items-center gap-2"
+                    className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium
+                        disabled:opacity-40 disabled:cursor-not-allowed
+                        hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors
+                        flex items-center gap-2"
                 >
                     {isProcessing ? (
                         <>

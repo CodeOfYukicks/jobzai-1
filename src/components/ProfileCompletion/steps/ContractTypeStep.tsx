@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Briefcase, Clock, Calendar, GraduationCap } from 'lucide-react';
 
 interface ContractTypeStepProps {
   value: string;
@@ -9,62 +8,67 @@ interface ContractTypeStepProps {
 }
 
 const contractTypes = [
-  { id: 'full-time', label: 'Full Time', icon: Briefcase },
-  { id: 'part-time', label: 'Part Time', icon: Clock },
-  { id: 'contract', label: 'Contract', icon: Calendar },
-  { id: 'internship', label: 'Internship', icon: GraduationCap },
+  { id: 'full-time', label: 'Full Time' },
+  { id: 'part-time', label: 'Part Time' },
+  { id: 'contract', label: 'Contract' },
+  { id: 'internship', label: 'Internship' },
 ] as const;
 
 export default function ContractTypeStep({ value, onNext, onBack }: ContractTypeStepProps) {
   const [selectedContractType, setSelectedContractType] = useState(value);
 
-  // Update local state when prop value changes
   useEffect(() => {
     setSelectedContractType(value);
   }, [value]);
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-2 gap-6">
-        {contractTypes.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setSelectedContractType(id)}
-            className={`
-              group relative p-6 rounded-xl transition-all duration-200
-              ${selectedContractType === id
-                ? 'bg-[#635bff]/10 dark:bg-[#635bff]/20 border-2 border-[#635bff] dark:border-[#7C3AED] dark:shadow-[0_0_0_1px_rgba(141,117,230,0.4),0_8px_16px_rgba(141,117,230,0.2)]'
-                : 'bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent hover:border-[#635bff]/30 dark:hover:border-[#635bff]/30 dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)]'
-              }
-            `}
-          >
-            <div className="flex flex-col items-center text-center">
-              <Icon className={`h-10 w-10 mb-4 transition-colors ${selectedContractType === id ? 'text-[#635bff] dark:text-[#A78BFA]' : 'text-gray-400 dark:text-gray-500 group-hover:text-[#635bff] dark:group-hover:text-[#A78BFA]'
-                }`} />
-              <span className={`font-medium text-lg transition-colors ${selectedContractType === id ? 'text-[#635bff] dark:text-[#A78BFA]' : 'text-gray-700 dark:text-gray-300'
-                }`}>
+      {/* Selection Pills - Clean, minimal */}
+      <div className="flex flex-wrap gap-3">
+        {contractTypes.map(({ id, label }) => {
+          const isSelected = selectedContractType === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setSelectedContractType(id)}
+              className={`
+                relative px-5 py-3 rounded-full text-sm font-medium transition-all duration-200
+                ${isSelected
+                  ? 'text-white'
+                  : 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/[0.1]'
+                }
+              `}
+            >
+              {/* Selected background with animation */}
+              {isSelected && (
+                <motion.div
+                  layoutId="contract-selected"
+                  className="absolute inset-0 bg-gray-900 dark:bg-white rounded-full"
+                  transition={{ type: 'spring', bounce: 0.15, duration: 0.5 }}
+                />
+              )}
+              <span className={`relative z-10 ${isSelected ? 'text-white dark:text-gray-900' : ''}`}>
                 {label}
               </span>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="flex justify-between pt-6">
+      {/* Navigation Footer */}
+      <div className="flex items-center justify-between pt-4">
         <button
           onClick={onBack}
-          className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-medium"
+          className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
         >
           Back
         </button>
         <button
           onClick={() => selectedContractType && onNext({ contractType: selectedContractType as any })}
           disabled={!selectedContractType}
-          className="px-8 py-2 bg-[#635bff] dark:bg-[#7C3AED] text-white rounded-lg font-medium
-            disabled:opacity-50 disabled:cursor-not-allowed
-            hover:brightness-110 dark:hover:brightness-110 transition-all duration-200
-            shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]
-            hover:shadow-lg dark:hover:shadow-[0_6px_12px_rgba(141,117,230,0.4)]"
+          className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium
+            disabled:opacity-40 disabled:cursor-not-allowed
+            hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
         >
           Continue
         </button>

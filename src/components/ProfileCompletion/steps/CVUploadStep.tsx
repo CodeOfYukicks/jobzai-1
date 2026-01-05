@@ -53,6 +53,7 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
   const [uploadedCvSkills, setUploadedCvSkills] = useState<string[]>([]);
   const [uploadedExperiences, setUploadedExperiences] = useState<ExtractedExperience[]>([]);
   const [fullProfileData, setFullProfileData] = useState<FullProfileData | null>(null);
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
 
   // Update local state when props change
   useEffect(() => {
@@ -281,30 +282,23 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
   return (
     <div className="space-y-6">
       {uploadedCvUrl && uploadedCvName ? (
-        <div className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl border border-gray-200 dark:border-gray-700
-          shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]">
+        <div className="p-4 bg-gray-50 dark:bg-white/[0.03] rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <FileText className="h-5 w-5 text-[#635bff] dark:text-[#A78BFA]" />
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
               <div>
-                <p className="font-medium text-gray-900 dark:text-white">{uploadedCvName}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">CV uploaded successfully</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{uploadedCvName}</p>
+                <p className="text-xs text-green-600 dark:text-green-400">Uploaded successfully</p>
               </div>
             </div>
 
-            <label className="flex items-center px-4 py-2 text-sm font-medium text-[#635bff] dark:text-[#A78BFA]
-              bg-[#635bff]/10 dark:bg-[#635bff]/20 rounded-lg cursor-pointer 
-              hover:bg-[#635bff]/20 dark:hover:bg-[#635bff]/30 
-              transition-all duration-200
-              shadow-sm dark:shadow-[0_2px_4px_rgba(141,117,230,0.2)]
-              hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(141,117,230,0.3)]">
+            <label className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white cursor-pointer transition-colors">
               {isUploading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Change CV
-                </>
+                'Change'
               )}
               <input
                 type="file"
@@ -316,119 +310,60 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
             </label>
           </div>
 
-          <div className="mt-4 flex items-center space-x-4 text-sm">
-            <a
-              href={uploadedCvUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#635bff] dark:text-[#A78BFA] hover:underline flex items-center"
-            >
-              <FileText className="w-4 h-4 mr-1" />
-              View CV
-            </a>
-          </div>
-
           {/* Show extraction progress */}
           {isExtractingProfile && (
-            <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-              <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
-                <Sparkles className="w-4 h-4 animate-pulse" />
-                <span className="text-sm font-medium">
-                  Auto-filling your profile...
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-purple-600 dark:text-purple-400">
-                Extracting skills, education, languages and more from your CV
-              </p>
+            <div className="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <Sparkles className="w-4 h-4 animate-pulse text-purple-500" />
+              <span>Analyzing your CV...</span>
             </div>
           )}
 
-          {/* Show extracted experiences summary */}
-          {uploadedExperiences.length > 0 && !isExtractingProfile && (
-            <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
-                <Briefcase className="w-4 h-4" />
-                <span className="text-sm font-medium">
-                  {uploadedExperiences.length} experience{uploadedExperiences.length > 1 ? 's' : ''} extracted
-                </span>
-              </div>
-              <div className="mt-2 space-y-1">
-                {uploadedExperiences.slice(0, 3).map((exp, idx) => (
-                  <p key={idx} className="text-xs text-green-600 dark:text-green-400">
-                    • {exp.title} at {exp.company}
-                  </p>
-                ))}
-                {uploadedExperiences.length > 3 && (
-                  <p className="text-xs text-green-500 dark:text-green-500 italic">
-                    +{uploadedExperiences.length - 3} more...
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Show full profile extraction success */}
+          {/* Show extracted data summary */}
           {fullProfileData && !isExtractingProfile && (
-            <div className="mt-3 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-              <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
-                <Sparkles className="w-4 h-4" />
-                <span className="text-sm font-medium">
-                  Profile auto-filled!
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {fullProfileData.skills.length > 0 && (
+                <span className="text-xs px-2 py-0.5 bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-400 rounded-full">
+                  {fullProfileData.skills.length} skills
                 </span>
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {fullProfileData.skills.length > 0 && (
-                  <span className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-800/50 text-purple-700 dark:text-purple-300 rounded-full">
-                    {fullProfileData.skills.length} skills
-                  </span>
-                )}
-                {fullProfileData.tools.length > 0 && (
-                  <span className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-800/50 text-purple-700 dark:text-purple-300 rounded-full">
-                    {fullProfileData.tools.length} tools
-                  </span>
-                )}
-                {fullProfileData.languages.length > 0 && (
-                  <span className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-800/50 text-purple-700 dark:text-purple-300 rounded-full">
-                    {fullProfileData.languages.length} languages
-                  </span>
-                )}
-                {fullProfileData.educations.length > 0 && (
-                  <span className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-800/50 text-purple-700 dark:text-purple-300 rounded-full">
-                    {fullProfileData.educations.length} educations
-                  </span>
-                )}
-              </div>
+              )}
+              {fullProfileData.tools.length > 0 && (
+                <span className="text-xs px-2 py-0.5 bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-400 rounded-full">
+                  {fullProfileData.tools.length} tools
+                </span>
+              )}
+              {uploadedExperiences.length > 0 && (
+                <span className="text-xs px-2 py-0.5 bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-400 rounded-full">
+                  {uploadedExperiences.length} experiences
+                </span>
+              )}
             </div>
           )}
         </div>
       ) : (
         <div className="flex items-center justify-center w-full">
           <label
-            className={`flex flex-col w-full h-32 border-2 border-dashed 
-            rounded-lg cursor-pointer 
-            transition-all duration-200 bg-white dark:bg-gray-800
-            shadow-sm dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)]
+            className={`flex flex-col w-full py-10 border border-dashed rounded-lg cursor-pointer transition-colors
             ${isDragging
-                ? 'border-[#635bff] bg-[#635bff]/10 dark:bg-[#635bff]/20 shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]'
-                : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-[#635bff]/50 dark:hover:border-[#635bff]/50 hover:shadow-md dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)]'
+                ? 'border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-white/[0.03]'
+                : 'border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600'
               }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            <div className="flex flex-col items-center justify-center">
               {isUploading ? (
                 <>
-                  <Loader2 className="w-8 h-8 mb-3 text-gray-400 dark:text-gray-500 animate-spin" />
+                  <Loader2 className="w-6 h-6 mb-2 text-gray-400 animate-spin" />
                   <p className="text-sm text-gray-500 dark:text-gray-400">Uploading...</p>
                 </>
               ) : (
                 <>
-                  <Upload className={`w-8 h-8 mb-3 ${isDragging ? 'text-[#635bff] dark:text-[#A78BFA]' : 'text-gray-400 dark:text-gray-500'}`} />
-                  <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                    <span className="font-semibold">Click to upload</span> or drag and drop
+                  <Upload className={`w-6 h-6 mb-2 ${isDragging ? 'text-gray-600 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'}`} />
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className="font-medium">Click to upload</span> or drag and drop
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">PDF or Word (MAX. 5MB)</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">PDF or Word · Max 5MB</p>
                 </>
               )}
             </div>
@@ -443,40 +378,31 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
         </div>
       )}
 
-      {/* Info box about CV importance */}
+      {/* Subtle hint */}
       {!uploadedCvUrl && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-          <div className="flex items-start space-x-3">
-            <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
-                Why upload your CV?
-              </p>
-              <p className="text-sm text-blue-700 dark:text-blue-300">
-                Your CV helps our AI understand your experience, skills, and background to provide more relevant job recommendations and personalized suggestions.
-              </p>
-            </div>
-          </div>
-        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
+          Your CV helps us personalize your experience
+        </p>
       )}
 
-      <div className="flex justify-between items-center pt-6">
+      {/* Navigation Footer */}
+      <div className="flex items-center justify-between pt-6">
         <button
           onClick={onBack}
-          className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-medium"
+          className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
         >
           Back
         </button>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => onNext({ cvUrl: '', cvName: '' })}
-            className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-medium
-              border border-gray-300 dark:border-gray-600 rounded-lg
-              hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200"
-          >
-            Do it later
-          </button>
+          {!uploadedCvUrl && (
+            <button
+              onClick={() => setShowSkipConfirm(true)}
+              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+            >
+              Skip for now
+            </button>
+          )}
           <button
             onClick={() => uploadedCvUrl && uploadedCvName && onNext({
               cvUrl: uploadedCvUrl,
@@ -485,7 +411,6 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
               cvTechnologies: uploadedCvTechnologies,
               cvSkills: uploadedCvSkills,
               professionalHistory: uploadedExperiences.length > 0 ? uploadedExperiences : undefined,
-              // Include full profile data if available
               ...(fullProfileData ? {
                 skills: fullProfileData.skills,
                 tools: fullProfileData.tools,
@@ -496,17 +421,15 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
               } : {})
             })}
             disabled={!uploadedCvUrl || !uploadedCvName || isExtractingProfile}
-            className="px-8 py-2 bg-[#635bff] dark:bg-[#7C3AED] text-white rounded-lg font-medium
-              disabled:opacity-50 disabled:cursor-not-allowed
-              hover:brightness-110 dark:hover:brightness-110 transition-all duration-200
-              shadow-md dark:shadow-[0_4px_8px_rgba(141,117,230,0.3)]
-              hover:shadow-lg dark:hover:shadow-[0_6px_12px_rgba(141,117,230,0.4)]
+            className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-medium
+              disabled:opacity-40 disabled:cursor-not-allowed
+              hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors
               flex items-center gap-2"
           >
             {isExtractingProfile ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Extracting...
+                Analyzing...
               </>
             ) : (
               'Continue'
@@ -514,6 +437,47 @@ export default function CVUploadStep({ cvUrl, cvName, onNext, onBack }: CVUpload
           </button>
         </div>
       </div>
+
+      {/* Skip Confirmation Modal */}
+      {showSkipConfirm && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-6">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowSkipConfirm(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative bg-white dark:bg-gray-800 rounded-xl p-6 max-w-sm w-full shadow-xl"
+          >
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Skip CV upload?
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              Your CV helps auto-fill your profile, personalize job recommendations, and improve your applications. You can always upload it later.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSkipConfirm(false)}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900
+                  hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+              >
+                Upload CV
+              </button>
+              <button
+                onClick={() => {
+                  setShowSkipConfirm(false);
+                  onNext({ cvUrl: '', cvName: '' });
+                }}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-white/10
+                  hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
+              >
+                Skip anyway
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
