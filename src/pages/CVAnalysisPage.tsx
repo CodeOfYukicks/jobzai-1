@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Dialog, Disclosure, Transition } from '@headlessui/react';
 import AuthLayout from '../components/AuthLayout';
+import { OnboardingSpotlight } from '../components/onboarding';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { CompanyLogo } from '../components/common/CompanyLogo';
@@ -8792,6 +8793,16 @@ URL to visit: ${jobUrl}
         remainingQuota={getUsageStats('resumeAnalyses').remaining}
         planLimit={getUsageStats('resumeAnalyses').limit}
         isLoading={pendingAnalysis && !showCreditModal}
+      />
+
+      {/* Onboarding Spotlight */}
+      <OnboardingSpotlight
+        pageKey="cv-analysis"
+        icon={<SearchCheck className="w-6 h-6 text-violet-600 dark:text-violet-400" />}
+        title="Optimize your resume for this role"
+        description="Upload your CV and paste the job listing. AI calculates your ATS compatibility score and gives actionable recommendations."
+        secondaryDescription="Aim for 70%+ to maximize your chances of getting past automated screening."
+        position="center"
       />
     </AuthLayout >
   );

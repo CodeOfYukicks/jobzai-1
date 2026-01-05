@@ -49,6 +49,7 @@ import {
   RecentReplies,
 } from '../components/dashboard';
 import MobileTopBar from '../components/mobile/MobileTopBar';
+import { OnboardingSpotlight } from '../components/onboarding';
 
 type TabType = 'overview' | 'applications' | 'campaigns';
 
@@ -1243,6 +1244,14 @@ export default function DashboardPage() {
           onDirectApply={handleDirectApplyCover}
           onRemove={coverPhoto ? handleRemoveCover : undefined}
           currentCover={coverPhoto || undefined}
+        />
+
+        {/* Onboarding Spotlight */}
+        <OnboardingSpotlight
+          pageKey="dashboard"
+          title="Your command center"
+          description="See your active applications, upcoming interviews, and campaign performance at a glance."
+          position="center"
         />
       </div>
     </AuthLayout>

@@ -72,6 +72,7 @@ import CampaignSelectorSheet from '../components/campaigns/CampaignSelectorSheet
 import SwipeableRow from '../components/mobile/SwipeableRow';
 import AddToBoardSheet from '../components/campaigns/AddToBoardSheet';
 import MobileDeleteConfirm from '../components/mobile/MobileDeleteConfirm';
+import { OnboardingSpotlight } from '../components/onboarding';
 
 type RecipientStatus = 'pending' | 'email_generated' | 'email_ready' | 'sent' | 'opened' | 'replied';
 
@@ -3366,6 +3367,15 @@ export default function CampaignsAutoPage() {
           </div>
         </div>
       </FilterBottomSheet>
+
+      {/* Onboarding Spotlight */}
+      <OnboardingSpotlight
+        pageKey="campaigns"
+        icon={<Mail className="w-6 h-6 text-violet-600 dark:text-violet-400" />}
+        title="Reach companies directly"
+        description="Create personalized cold outreach campaigns to target companies. AI generates tailored emails for each prospect to help you land spontaneous opportunities."
+        position="center"
+      />
     </AuthLayout>
   );
 }

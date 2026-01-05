@@ -9,6 +9,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserStats } from '../hooks/useUserStats';
+import { useOnboarding, TOUR_STEPS } from '../contexts/OnboardingContext';
 import { db } from '../lib/firebase';
 import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import type { Activity } from '../types/stats';
@@ -53,6 +54,7 @@ export default function HubPage() {
   const firstName = userData?.name?.split(' ')[0] || 'there';
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { startTour, hasCompletedTour, isTourActive } = useOnboarding();
 
   // All useState hooks must be called before any conditional returns
   const isNewUser = new Date(userData?.createdAt || '').getTime() > Date.now() - 24 * 60 * 60 * 1000;
@@ -312,6 +314,34 @@ export default function HubPage() {
             <p className="hidden md:block text-gray-500 dark:text-gray-400 text-base md:text-lg max-w-xl mt-2">
               {isNewUser ? "Let's start your job search journey together." : "Here's what's happening today."}
             </p>
+
+            {/* Tour prompt for users who haven't completed the tour */}
+            {!hasCompletedTour && !isTourActive && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="mt-4 md:mt-6"
+              >
+                <button
+                  onClick={() => {
+                    startTour();
+                    // Navigate to first tour step
+                    if (TOUR_STEPS.length > 0) {
+                      navigate(TOUR_STEPS[0].path);
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium
+                    bg-[#1a1a1c] hover:bg-[#252528] dark:bg-white/10 dark:hover:bg-white/15
+                    text-white
+                    border border-[#2a2a2c] dark:border-white/20
+                    transition-colors duration-150"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                  Take a quick tour
+                </button>
+              </motion.div>
+            )}
           </motion.div>
 
           {/* Stats Row - Mobile: Horizontal Scroll, Desktop: Grid */}

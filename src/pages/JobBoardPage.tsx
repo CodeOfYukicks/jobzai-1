@@ -20,6 +20,8 @@ import { useAssistantPageData } from '../hooks/useAssistantPageData';
 import MobileTopBar from '../components/mobile/MobileTopBar';
 import JobBottomSheet from '../components/mobile/JobBottomSheet';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { OnboardingSpotlight } from '../components/onboarding';
+import { Bookmark } from 'lucide-react';
 
 function timeAgo(date: Date): string {
 	const diffMs = Date.now() - date.getTime();
@@ -715,6 +717,15 @@ export default function JobBoardPage() {
 				job={mobileSheetJob}
 				isOpen={!!mobileSheetJob}
 				onClose={() => setMobileSheetJob(null)}
+			/>
+
+			{/* Onboarding Spotlight */}
+			<OnboardingSpotlight
+				pageKey="job-board"
+				icon={<Bookmark className="w-6 h-6 text-violet-600 dark:text-violet-400" />}
+				title="Discover your next opportunity"
+				description="Switch to 'For You' to see jobs ranked by how well they match your profile. Save jobs to your wishlist to track them in your Applications board."
+				position="center"
 			/>
 		</AuthLayout >
 	);

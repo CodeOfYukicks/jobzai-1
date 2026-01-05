@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { notify } from '@/lib/notify';
 import AuthLayout from '../components/AuthLayout';
+import { OnboardingSpotlight } from '../components/onboarding';
 import { analyzeJobPost, JobPostAnalysisResult } from '../services/jobPostAnalyzer';
 import { queryPerplexity } from '../lib/perplexity';
 import { queryChatFast, queryQuestionGeneration } from '../lib/chatFast';
@@ -6768,6 +6769,16 @@ Return ONLY the pitch text, no explanations or formatting.`;
           />
         </>
       )}
+
+      {/* Onboarding Spotlight */}
+      <OnboardingSpotlight
+        pageKey="interview-prep"
+        icon={<MessageSquare className="w-6 h-6 text-violet-600 dark:text-violet-400" />}
+        title="Prepare for this interview"
+        description="Likely questions, company news, and a preparation checklist — everything you need to walk in confident."
+        secondaryDescription="Practice with AI using 'Practice Live' for real-time feedback."
+        position="center"
+      />
     </AuthLayout>
   );
 }

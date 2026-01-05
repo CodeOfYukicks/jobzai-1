@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { useOnboarding, TOUR_STEPS } from '../../contexts/OnboardingContext';
 import { db } from '../../lib/firebase';
 import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
@@ -118,6 +119,10 @@ export default function HubPageMobile() {
     const { notifications, unreadCount, markAsRead, deleteNotification, markAllAsRead } = useNotifications();
     const navigate = useNavigate();
     const firstName = userData?.name?.split(' ')[0] || 'there';
+    const { startTour, hasCompletedTour, isTourActive } = useOnboarding();
+
+    // Check if user is new (within last 24h)
+    const isNewUser = new Date(userData?.createdAt || '').getTime() > Date.now() - 24 * 60 * 60 * 1000;
 
     // State
     const [savedJobs, setSavedJobs] = useState(0);
@@ -313,6 +318,28 @@ export default function HubPageMobile() {
                         <h1 className="text-[32px] font-bold leading-tight text-gray-900 dark:text-white tracking-tight">
                             {firstName}.
                         </h1>
+
+                        {/* Tour prompt for users who haven't completed the tour */}
+                        {!hasCompletedTour && !isTourActive && (
+                            <motion.button
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                onClick={() => {
+                                    startTour();
+                                    if (TOUR_STEPS.length > 0) {
+                                        navigate(TOUR_STEPS[0].path);
+                                    }
+                                }}
+                                className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-medium
+                                    bg-gray-900 dark:bg-white/10 hover:bg-gray-800 dark:hover:bg-white/15
+                                    text-white
+                                    transition-colors duration-150"
+                            >
+                                <ChevronRight className="w-3.5 h-3.5" />
+                                Take a quick tour
+                            </motion.button>
+                        )}
                     </motion.div>
 
                     {/* Primary Focus Card - Premium Apple-Style */}

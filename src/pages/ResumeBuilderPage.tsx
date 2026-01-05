@@ -5,6 +5,7 @@ import {
   FileText, Search, Loader2, Sparkles, ChevronDown, X, Check, Info, Upload, StickyNote, Palette, Plus, FolderOpen
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
+import { OnboardingSpotlight } from '../components/onboarding';
 import MobileTopBar from '../components/mobile/MobileTopBar';
 import MobileDocumentRow, { MobileDocumentContextMenu } from '../components/mobile/MobileDocumentRow';
 import MobileCreateSheet from '../components/mobile/MobileCreateSheet';
@@ -2258,6 +2259,16 @@ export default function ResumeBuilderPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Onboarding Spotlight */}
+      <OnboardingSpotlight
+        pageKey="resume-builder"
+        icon={<FileText className="w-6 h-6 text-violet-600 dark:text-violet-400" />}
+        title="Your professional documents"
+        description="Create tailored resumes for each application. Notes, whiteboards, and imported PDFs — all in one place."
+        secondaryDescription="Organize by folders and use AI to enhance your job descriptions."
+        position="center"
+      />
     </AuthLayout>
   );
 }

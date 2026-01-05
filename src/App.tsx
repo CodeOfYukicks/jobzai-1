@@ -5,6 +5,7 @@ import { useRecommendationsLoading } from './contexts/RecommendationsLoadingCont
 import { useAuth } from './contexts/AuthContext';
 import { AssistantProvider } from './contexts/AssistantContext';
 import { TourProvider } from './contexts/TourContext';
+import { OnboardingProvider } from './contexts/OnboardingContext';
 import BackgroundLoadingNotification from './components/recommendations/BackgroundLoadingNotification';
 import LoadingStartModal from './components/recommendations/LoadingStartModal';
 import PageLoader from './components/PageLoader';
@@ -296,11 +297,13 @@ export default function App() {
         <NotificationProvider>
           <AssistantProvider>
             <TourProvider>
-              <AppContent />
-              <AIAssistantModal />
-              <TourOverlay />
-              <MicroFeedback />
-              <CookieConsent />
+              <OnboardingProvider>
+                <AppContent />
+                <AIAssistantModal />
+                <TourOverlay />
+                <MicroFeedback />
+                <CookieConsent />
+              </OnboardingProvider>
             </TourProvider>
           </AssistantProvider>
         </NotificationProvider>

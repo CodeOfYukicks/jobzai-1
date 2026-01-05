@@ -5,6 +5,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { notify } from '@/lib/notify';
 import AuthLayout from '../components/AuthLayout';
+import { OnboardingSpotlight } from '../components/onboarding';
 import MobileTopBar from '../components/mobile/MobileTopBar';
 import SwipeableRow from '../components/mobile/SwipeableRow';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -2869,6 +2870,16 @@ export default function MockInterviewPage() {
         remainingQuota={getUsageStats('mockInterviews').remaining}
         planLimit={getUsageStats('mockInterviews').limit}
         isLoading={pendingInterviewStart && !showCreditModal}
+      />
+
+      {/* Onboarding Spotlight */}
+      <OnboardingSpotlight
+        pageKey="mock-interview"
+        icon={<Mic className="w-6 h-6 text-violet-600 dark:text-violet-400" />}
+        title="A realistic practice interview"
+        description="Select a job, and AI plays the role of the interviewer. Get detailed feedback on your performance afterward."
+        secondaryDescription="Your responses are analyzed for content, clarity, and job fit."
+        position="center"
       />
     </AuthLayout>
   );

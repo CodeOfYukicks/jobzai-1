@@ -82,6 +82,7 @@ import MobileStatusSelect from '../components/mobile/MobileStatusSelect';
 import MobileTopBar from '../components/mobile/MobileTopBar';
 import { useIsMobile } from '../hooks/useIsMobile';
 import MobileBoardCreationWizard from '../components/mobile/board-creation/MobileBoardCreationWizard';
+import { OnboardingSpotlight } from '../components/onboarding';
 
 export default function JobApplicationsPage() {
   const { currentUser } = useAuth();
@@ -7463,6 +7464,16 @@ END:VCALENDAR`;
           currentBoardId={applicationToMove?.boardId || (boards.find(b => b.isDefault)?.id || null)}
           applicationName={applicationToMove ? `${applicationToMove.companyName} - ${applicationToMove.position}` : ''}
           currentBoardType={currentBoardType}
+        />
+
+        {/* Onboarding Spotlight */}
+        <OnboardingSpotlight
+          pageKey="job-applications"
+          icon={<FolderKanban className="w-6 h-6 text-violet-600 dark:text-violet-400" />}
+          title="Your application tracker"
+          description="Manage all your opportunities in one place — both job applications and outreach campaigns. Drag cards to update their status."
+          secondaryDescription="Create separate boards to organize by company, role type, or campaign."
+          position="center"
         />
       </div>
     </AuthLayout>
