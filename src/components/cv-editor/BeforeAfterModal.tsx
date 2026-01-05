@@ -5,6 +5,7 @@
  */
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, GitCompare, Columns,
@@ -32,9 +33,9 @@ interface BeforeAfterModalProps {
   onRevertAll?: () => void;
 }
 
-const sectionConfig: Record<ComparisonSectionType, { 
-  icon: typeof FileText; 
-  label: string; 
+const sectionConfig: Record<ComparisonSectionType, {
+  icon: typeof FileText;
+  label: string;
 }> = {
   summary: { icon: FileText, label: 'Summary' },
   experiences: { icon: Briefcase, label: 'Experience' },
@@ -48,13 +49,13 @@ const sectionConfig: Record<ComparisonSectionType, {
 // Animated counter component
 function AnimatedCounter({ value, className = '' }: { value: number; className?: string }) {
   const [displayValue, setDisplayValue] = useState(0);
-  
+
   useEffect(() => {
     const duration = 600;
     const steps = 15;
     const increment = value / steps;
     let current = 0;
-    
+
     const timer = setInterval(() => {
       current += increment;
       if (current >= value) {
@@ -64,10 +65,10 @@ function AnimatedCounter({ value, className = '' }: { value: number; className?:
         setDisplayValue(Math.floor(current));
       }
     }, duration / steps);
-    
+
     return () => clearInterval(timer);
   }, [value]);
-  
+
   return <span className={className}>{displayValue}</span>;
 }
 
@@ -88,48 +89,48 @@ export default function BeforeAfterModal({
   // Get available sections with changes
   const availableSections = useMemo(() => {
     if (!comparison) return [];
-    
+
     const sections: { type: ComparisonSectionType; hasChanges: boolean; changeCount: number }[] = [];
-    
+
     if (comparison.summary) {
       const stats = comparison.summary.changeStats;
-      sections.push({ 
-        type: 'summary', 
+      sections.push({
+        type: 'summary',
         hasChanges: comparison.summary.hasChanges,
         changeCount: stats.added + stats.removed + stats.modified
       });
     }
     if (comparison.experiences) {
       const stats = comparison.experiences.changeStats;
-      sections.push({ 
-        type: 'experiences', 
+      sections.push({
+        type: 'experiences',
         hasChanges: comparison.experiences.hasChanges,
         changeCount: stats.added + stats.removed + stats.modified
       });
     }
     if (comparison.education) {
       const stats = comparison.education.changeStats;
-      sections.push({ 
-        type: 'education', 
+      sections.push({
+        type: 'education',
         hasChanges: comparison.education.hasChanges,
         changeCount: stats.added + stats.removed + stats.modified
       });
     }
     if (comparison.skills) {
       const stats = comparison.skills.changeStats;
-      sections.push({ 
-        type: 'skills', 
+      sections.push({
+        type: 'skills',
         hasChanges: comparison.skills.hasChanges,
         changeCount: stats.added + stats.removed + stats.modified
       });
     }
-    
+
     return sections;
   }, [comparison]);
 
   // Auto-select first section with changes if none selected
-  const effectiveSection = selectedSection || 
-    availableSections.find(s => s.hasChanges)?.type || 
+  const effectiveSection = selectedSection ||
+    availableSections.find(s => s.hasChanges)?.type ||
     availableSections[0]?.type ||
     'summary';
 
@@ -141,27 +142,27 @@ export default function BeforeAfterModal({
         return comparison.summary ? (
           <SummaryDiff comparison={comparison.summary} viewMode={viewMode} />
         ) : null;
-      
+
       case 'experiences':
         return comparison.experiences ? (
-          <ExperienceDiff 
-            comparison={comparison.experiences} 
+          <ExperienceDiff
+            comparison={comparison.experiences}
             viewMode={viewMode}
             expandedIds={expandedExperienceIds}
             onToggleExpand={onToggleExperienceExpanded}
           />
         ) : null;
-      
+
       case 'education':
         return comparison.education ? (
           <EducationDiff comparison={comparison.education} viewMode={viewMode} />
         ) : null;
-      
+
       case 'skills':
         return comparison.skills ? (
           <SkillsDiff comparison={comparison.skills} viewMode={viewMode} />
         ) : null;
-      
+
       default:
         return null;
     }
@@ -177,7 +178,8 @@ export default function BeforeAfterModal({
     };
   }, [comparison]);
 
-  return (
+  // Use portal to render at document body level, avoiding parent fixed positioning context
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
         <>
@@ -188,7 +190,7 @@ export default function BeforeAfterModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 z-50 bg-black/40 dark:bg-black/80 backdrop-blur-sm"
+            className="fixed inset-0 z-[9999] bg-black/40 dark:bg-black/80 backdrop-blur-sm"
           />
 
           {/* Modal */}
@@ -197,7 +199,7 @@ export default function BeforeAfterModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: 10 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="fixed inset-4 sm:inset-6 md:inset-8 lg:inset-12 z-50
+            className="fixed inset-4 sm:inset-6 md:inset-8 lg:inset-12 z-[9999]
                        flex flex-col overflow-hidden rounded-xl
                        bg-white dark:bg-[#0a0a0a]
                        border border-gray-200 dark:border-white/[0.08]
@@ -230,23 +232,21 @@ export default function BeforeAfterModal({
                                   border border-gray-200 dark:border-white/[0.08]">
                     <button
                       onClick={() => onSetViewMode('diff')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ${
-                        viewMode === 'diff' 
-                          ? 'bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white shadow-sm' 
-                          : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
-                      }`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ${viewMode === 'diff'
+                        ? 'bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
+                        }`}
                     >
                       <GitCompare className="w-3.5 h-3.5" />
                       <span>Unified</span>
                     </button>
-                    
+
                     <button
                       onClick={() => onSetViewMode('split')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ${
-                        viewMode === 'split' 
-                          ? 'bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white shadow-sm' 
-                          : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
-                      }`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ${viewMode === 'split'
+                        ? 'bg-white dark:bg-[#2b2a2c] text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
+                        }`}
                     >
                       <Columns className="w-3.5 h-3.5" />
                       <span>Side by Side</span>
@@ -280,23 +280,21 @@ export default function BeforeAfterModal({
                       onClick={() => onSelectSection(type)}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium 
                                   transition-all duration-150 whitespace-nowrap
-                                  border ${
-                        isActive
+                                  border ${isActive
                           ? 'bg-gray-100 dark:bg-[#1a1a1a] text-gray-900 dark:text-white border-gray-200 dark:border-white/[0.08]'
                           : 'text-gray-500 dark:text-white/40 border-transparent hover:text-gray-700 dark:hover:text-white/60 hover:bg-gray-50 dark:hover:bg-white/[0.03]'
-                      }`}
+                        }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
                       <span>{config.label}</span>
-                      
+
                       {/* Change count badge */}
                       {hasChanges && changeCount > 0 && (
-                        <span 
-                          className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
-                            isActive 
-                              ? 'bg-[#b7e219]/20 text-[#7cb305] dark:text-[#b7e219]' 
-                              : 'bg-gray-200 dark:bg-white/[0.08] text-gray-500 dark:text-white/50'
-                          }`}
+                        <span
+                          className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${isActive
+                            ? 'bg-[#b7e219]/20 text-[#7cb305] dark:text-[#b7e219]'
+                            : 'bg-gray-200 dark:bg-white/[0.08] text-gray-500 dark:text-white/50'
+                            }`}
                         >
                           {changeCount}
                         </span>
@@ -423,4 +421,9 @@ export default function BeforeAfterModal({
       )}
     </AnimatePresence>
   );
+
+  // Render via portal to escape parent fixed positioning context
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 }

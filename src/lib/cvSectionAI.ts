@@ -27,43 +27,43 @@ function detectUserIntent(userRequest: string): {
   specificRequest: string;
 } {
   const lower = userRequest.toLowerCase();
-  
+
   // Détection de structuration (nombre de points/bullets)
-  if (lower.match(/keep (only )?\d+ (points?|bullets?|achievements?)/i) || 
-      lower.match(/reduce to \d+ (points?|bullets?|achievements?)/i) ||
-      lower.match(/just \d+ (points?|bullets?|achievements?)/i) ||
-      lower.match(/only \d+ (points?|bullets?|achievements?)/i)) {
+  if (lower.match(/keep (only )?\d+ (points?|bullets?|achievements?)/i) ||
+    lower.match(/reduce to \d+ (points?|bullets?|achievements?)/i) ||
+    lower.match(/just \d+ (points?|bullets?|achievements?)/i) ||
+    lower.match(/only \d+ (points?|bullets?|achievements?)/i)) {
     return { type: 'structure', specificRequest: userRequest };
   }
-  
+
   // Détection de longueur/mots
-  if (lower.match(/\d+ words?/i) || 
-      lower.includes('shorter') || 
-      lower.includes('longer') || 
-      lower.includes('more concise') ||
-      lower.includes('brief')) {
+  if (lower.match(/\d+ words?/i) ||
+    lower.includes('shorter') ||
+    lower.includes('longer') ||
+    lower.includes('more concise') ||
+    lower.includes('brief')) {
     return { type: 'length', specificRequest: userRequest };
   }
-  
+
   // Détection de contenu (add/remove)
-  if (lower.includes('remove') || 
-      lower.includes('delete') ||
-      lower.includes('without') ||
-      lower.includes('no metrics') ||
-      lower.includes('no numbers') ||
-      lower.includes('add ')) {
+  if (lower.includes('remove') ||
+    lower.includes('delete') ||
+    lower.includes('without') ||
+    lower.includes('no metrics') ||
+    lower.includes('no numbers') ||
+    lower.includes('add ')) {
     return { type: 'content', specificRequest: userRequest };
   }
-  
+
   // Détection de ton/style
-  if (lower.includes('tone') || 
-      lower.includes('more technical') || 
-      lower.includes('more creative') ||
-      lower.includes('less formal') ||
-      lower.includes('more professional')) {
+  if (lower.includes('tone') ||
+    lower.includes('more technical') ||
+    lower.includes('more creative') ||
+    lower.includes('less formal') ||
+    lower.includes('more professional')) {
     return { type: 'tone', specificRequest: userRequest };
   }
-  
+
   return { type: 'general', specificRequest: userRequest };
 }
 
@@ -74,7 +74,7 @@ function buildSimplePromptForIntent(
   input: SectionRewriteInput,
   intent: { type: string; specificRequest: string }
 ): string {
-  
+
   const simpleBaseContext = `
 You are an expert CV writer. Your job is to follow the user's request EXACTLY.
 
@@ -90,7 +90,7 @@ USER REQUEST: "${intent.specificRequest}"
 `;
 
   let simpleInstruction = '';
-  
+
   switch (intent.type) {
     case 'structure':
       simpleInstruction = `
@@ -105,7 +105,7 @@ RULES (simple):
 
 OUTPUT: Return exactly the requested number of bullet points, nothing more, nothing less.`;
       break;
-      
+
     case 'length':
       simpleInstruction = `
 YOUR TASK: Follow the user's request about LENGTH/WORD COUNT exactly.
@@ -118,7 +118,7 @@ RULES (simple):
 
 OUTPUT: Content matching the exact length requirement.`;
       break;
-      
+
     case 'content':
       simpleInstruction = `
 YOUR TASK: Add or remove what the user specifically asked for.
@@ -132,7 +132,7 @@ RULES (simple):
 
 OUTPUT: Content with the exact modifications requested.`;
       break;
-      
+
     case 'tone':
       simpleInstruction = `
 YOUR TASK: Change the TONE/STYLE as requested.
@@ -145,7 +145,7 @@ RULES (simple):
 
 OUTPUT: Same content with the requested tone applied.`;
       break;
-      
+
     default:
       simpleInstruction = `
 YOUR TASK: Make the improvement the user requested.
@@ -159,7 +159,7 @@ RULES (simple):
 
 OUTPUT: Improved content as requested.`;
   }
-  
+
   return simpleBaseContext + simpleInstruction + `
 
 OUTPUT FORMAT:
@@ -458,10 +458,10 @@ Return a JSON object with this exact structure:
  */
 function buildSummaryPrompt(input: SectionRewriteInput): string {
   // Check if this is Resume Builder context (no specific job target)
-  const isResumeBuilderContext = input.jobContext.jobTitle === 'General Professional Role' || 
-                                input.jobContext.company === 'Target Company' ||
-                                !input.jobContext.jobDescription || 
-                                input.jobContext.jobDescription === 'General professional position';
+  const isResumeBuilderContext = input.jobContext.jobTitle === 'General Professional Role' ||
+    input.jobContext.company === 'Target Company' ||
+    !input.jobContext.jobDescription ||
+    input.jobContext.jobDescription === 'General professional position';
 
   // Use Resume Builder prompts for Resume Builder context
   if (isResumeBuilderContext) {
@@ -470,10 +470,10 @@ function buildSummaryPrompt(input: SectionRewriteInput): string {
 
   // Use existing CV Analysis prompts (unchanged)
   // Check if this is general enhancement (no specific job target)
-  const isGeneralEnhancement = input.jobContext.jobTitle === 'General Professional Role' || 
-                                input.jobContext.company === 'Target Company' ||
-                                !input.jobContext.jobDescription || 
-                                input.jobContext.jobDescription === 'General professional position';
+  const isGeneralEnhancement = input.jobContext.jobTitle === 'General Professional Role' ||
+    input.jobContext.company === 'Target Company' ||
+    !input.jobContext.jobDescription ||
+    input.jobContext.jobDescription === 'General professional position';
 
   const baseContext = isGeneralEnhancement ? `
 # PROFESSIONAL SUMMARY - ELEVATOR PITCH GENERATOR
@@ -608,12 +608,12 @@ Show progression with a mini narrative journey
 
 **Part 3 - CLIMAX (15-20 words):**
 End with powerful value proposition${isGeneralEnhancement ? '' : ` for target company`}
-${isGeneralEnhancement ? 
-  `- Example: "Seeking to leverage expertise to drive innovation and deliver measurable results in next role"
+${isGeneralEnhancement ?
+          `- Example: "Seeking to leverage expertise to drive innovation and deliver measurable results in next role"
 - Formula: "Seeking to bring [key skills] to [type of organization] to [specific impact]"` :
-  `- Example: "Now ready to drive ${input.jobContext.company}'s next phase of cloud innovation and operational excellence"
+          `- Example: "Now ready to drive ${input.jobContext.company}'s next phase of cloud innovation and operational excellence"
 - Formula: "Now/Seeking to bring [key skills] to ${input.jobContext.company} to [specific impact]"`
-}"
+        }"
 
 **TONE & STYLE:**
 - Like a movie trailer: create intrigue, show growth, make recruiter lean in
@@ -654,10 +654,10 @@ Scan the FULL CV and extract the TOP 3 most impressive metrics, then build the s
 5. Growth metrics (X% increase, Xx growth, market expansion)
 
 **FORMULA TO FOLLOW:**
-"${isGeneralEnhancement ? 
-  '[Job Title] with [X years] driving measurable impact: [Achievement 1 with impressive metric], [Achievement 2 with metric], [Achievement 3 with metric]. Proven ability to deliver [key strength] and drive results.' :
-  `[Job Title] with [X years] driving measurable impact: [Achievement 1 with impressive metric], [Achievement 2 with metric], [Achievement 3 with metric]. Proven ability to deliver [key strength] for ${input.jobContext.company}.`
-}"
+"${isGeneralEnhancement ?
+          '[Job Title] with [X years] driving measurable impact: [Achievement 1 with impressive metric], [Achievement 2 with metric], [Achievement 3 with metric]. Proven ability to deliver [key strength] and drive results.' :
+          `[Job Title] with [X years] driving measurable impact: [Achievement 1 with impressive metric], [Achievement 2 with metric], [Achievement 3 with metric]. Proven ability to deliver [key strength] for ${input.jobContext.company}.`
+        }"
 
 **FORMATTING RULES:**
 - Lead with most impressive number first
@@ -705,14 +705,14 @@ Create the MOST CONCISE version possible (40-50 words) while maximizing impact p
 - Example: "Led compliance platform serving 2M users across 15 markets, improving data accuracy 40% and reducing audit time 60%"
 
 **Part 3 (12-15 words): VALUE PROPOSITION**
-${isGeneralEnhancement ? 
-  `- What you bring to potential employers
+${isGeneralEnhancement ?
+          `- What you bring to potential employers
 - Format: "Bringing [expertise type] to [type of organization]'s [relevant initiative]"
 - Example: "Bringing enterprise-scale expertise to drive digital transformation and operational excellence"` :
-  `- What you bring to the specific company
+          `- What you bring to the specific company
 - Format: "Bringing [expertise type] to ${input.jobContext.company}'s [relevant initiative]"
 - Example: "Bringing enterprise-scale expertise to ${input.jobContext.company}'s digital transformation and compliance evolution"`
-}
+        }
 
 **WHAT TO CUT:**
 ❌ Adjectives: "skilled", "experienced", "passionate", "dedicated"
@@ -777,11 +777,11 @@ ${input.jobContext.keywords.slice(0, 12).join(', ')}
 
 **GOOD EXAMPLE (natural integration):**
 ${isGeneralEnhancement ?
-  `"Senior Data Engineer specializing in Python, AWS, and real-time analytics pipelines. Architected scalable ML infrastructure processing 5M daily transactions, leveraging Docker and Kubernetes for 99.9% uptime. Seeking to bring cloud-native expertise and agile leadership to drive data platform evolution."
+          `"Senior Data Engineer specializing in Python, AWS, and real-time analytics pipelines. Architected scalable ML infrastructure processing 5M daily transactions, leveraging Docker and Kubernetes for 99.9% uptime. Seeking to bring cloud-native expertise and agile leadership to drive data platform evolution."
 *(Keywords naturally integrated: Python, AWS, ML, Docker, Kubernetes, cloud-native, agile)*` :
-  `"Senior Data Engineer specializing in Python, AWS, and real-time analytics pipelines. Architected scalable ML infrastructure processing 5M daily transactions, leveraging Docker and Kubernetes for 99.9% uptime. Seeking to bring cloud-native expertise and agile leadership to ${input.jobContext.company}'s data platform evolution."
+          `"Senior Data Engineer specializing in Python, AWS, and real-time analytics pipelines. Architected scalable ML infrastructure processing 5M daily transactions, leveraging Docker and Kubernetes for 99.9% uptime. Seeking to bring cloud-native expertise and agile leadership to ${input.jobContext.company}'s data platform evolution."
 *(Keywords naturally integrated: Python, AWS, ML, Docker, Kubernetes, cloud-native, agile)*`
-}
+        }
 
 **BAD EXAMPLE (keyword stuffing - AVOID):**
 "Python AWS Kubernetes expert skilled in machine learning, Docker, DevOps, CI/CD, with cloud-native experience in agile teams using microservices architecture..."
@@ -797,14 +797,14 @@ ${isGeneralEnhancement ?
 Create a compelling 50-60 word Professional Summary that works as a powerful elevator pitch.
 
 Focus on:
-${isGeneralEnhancement ? 
-  `- Unique positioning and professional expertise
+${isGeneralEnhancement ?
+          `- Unique positioning and professional expertise
 - Top 2-3 quantified achievements
 - Clear value proposition for potential employers` :
-  `- Unique positioning for the ${input.jobContext.jobTitle} role
+          `- Unique positioning for the ${input.jobContext.jobTitle} role
 - Top 2-3 quantified achievements
 - Clear value proposition for ${input.jobContext.company}`
-}
+        }
 
 OUTPUT: Return ONLY the improved summary, 50-60 words.`;
   }
@@ -920,7 +920,7 @@ The user is refining iteratively - STACK all their requests together:
 ` : ''}`;
 
   let actionInstructions = '';
-  
+
   switch (input.action) {
     case 'rewrite':
       actionInstructions = `
@@ -1209,18 +1209,18 @@ function buildActionPrompt(input: SectionRewriteInput): string {
   }
 
   // For Work Experience/Projects: if custom request, use simple intent-based prompt
-  if ((input.sectionType === 'experience' || input.sectionType === 'project') && 
-      input.currentContent.includes('[USER REQUEST]:')) {
+  if ((input.sectionType === 'experience' || input.sectionType === 'project') &&
+    input.currentContent.includes('[USER REQUEST]:')) {
     const userRequest = input.currentContent.split('[USER REQUEST]:')[1]?.trim() || '';
     const intent = detectUserIntent(userRequest);
     return buildSimplePromptForIntent(input, intent);
   }
 
   // Check if this is Resume Builder context (no specific job target)
-  const isResumeBuilderContext = input.jobContext.jobTitle === 'General Professional Role' || 
-                                input.jobContext.company === 'Target Company' ||
-                                !input.jobContext.jobDescription || 
-                                input.jobContext.jobDescription === 'General professional position';
+  const isResumeBuilderContext = input.jobContext.jobTitle === 'General Professional Role' ||
+    input.jobContext.company === 'Target Company' ||
+    !input.jobContext.jobDescription ||
+    input.jobContext.jobDescription === 'General professional position';
 
   // Use Resume Builder prompts for Resume Builder context
   if (isResumeBuilderContext) {
@@ -1229,10 +1229,10 @@ function buildActionPrompt(input: SectionRewriteInput): string {
 
   // Use existing CV Analysis prompts (unchanged)
   // Check if this is general enhancement (no specific job target)
-  const isGeneralEnhancement = input.jobContext.jobTitle === 'General Professional Role' || 
-                                input.jobContext.company === 'Target Company' ||
-                                !input.jobContext.jobDescription || 
-                                input.jobContext.jobDescription === 'General professional position';
+  const isGeneralEnhancement = input.jobContext.jobTitle === 'General Professional Role' ||
+    input.jobContext.company === 'Target Company' ||
+    !input.jobContext.jobDescription ||
+    input.jobContext.jobDescription === 'General professional position';
 
   const baseContext = isGeneralEnhancement ? `
 # CONTEXT - PROFESSIONAL CV ENHANCEMENT
@@ -1332,7 +1332,7 @@ The user is refining iteratively - STACK all their requests together:
 ` : ''}`;
 
   let actionInstructions = '';
-  
+
   switch (input.action) {
     case 'rewrite':
       actionInstructions = `
@@ -1647,7 +1647,7 @@ export async function rewriteSection(input: SectionRewriteInput): Promise<string
     }
 
     const data = await response.json();
-    
+
     if (data.status !== 'success') {
       throw new Error(data.message || 'AI service returned an error');
     }
@@ -1655,7 +1655,24 @@ export async function rewriteSection(input: SectionRewriteInput): Promise<string
     // Extract content from response
     let content = '';
     if (typeof data.content === 'string') {
-      content = data.content;
+      // Check if the string is a JSON object like { "content": "..." }
+      const trimmedContent = data.content.trim();
+      if (trimmedContent.startsWith('{') && trimmedContent.endsWith('}')) {
+        try {
+          const parsed = JSON.parse(trimmedContent);
+          if (parsed.content && typeof parsed.content === 'string') {
+            content = parsed.content;
+          } else {
+            // JSON but no 'content' field, use original string
+            content = data.content;
+          }
+        } catch {
+          // Not valid JSON, use as-is
+          content = data.content;
+        }
+      } else {
+        content = data.content;
+      }
     } else if (data.content && typeof data.content === 'object') {
       // OpenAI returns JSON object with 'content' field
       if (data.content.content) {
@@ -1663,6 +1680,20 @@ export async function rewriteSection(input: SectionRewriteInput): Promise<string
       } else {
         // Fallback to stringifying the whole object
         content = JSON.stringify(data.content);
+      }
+    }
+
+    // Final cleanup: remove any remaining JSON wrapper if present
+    // This handles edge cases where the content might still have { "content": "..." } format
+    const finalTrimmed = content.trim();
+    if (finalTrimmed.startsWith('{') && finalTrimmed.includes('"content"')) {
+      try {
+        const finalParsed = JSON.parse(finalTrimmed);
+        if (finalParsed.content && typeof finalParsed.content === 'string') {
+          content = finalParsed.content;
+        }
+      } catch {
+        // Keep as-is if parsing fails
       }
     }
 
@@ -1687,21 +1718,21 @@ const extractSectionContent = (content: string, titles: string[]): string => {
 
 const splitBlocksByHeading = (sectionText: string): string[] => {
   if (!sectionText?.trim()) return [];
-  
+
   // Pattern amélioré pour détecter les blocs avec headers ###
   // Supporte: \n###, \n\n###, ### au début de ligne
   const blocks = sectionText
     .split(/(?=\n*###\s+)/)
     .map(block => block.trim())
     .filter(Boolean);
-  
+
   // Si on n'a trouvé qu'un seul bloc mais qu'il contient plusieurs ###, essayer de le diviser
   if (blocks.length === 1 && blocks[0].match(/###\s+/g)?.length > 1) {
     // Diviser par lignes qui commencent par ###
     const lines = blocks[0].split('\n');
     const newBlocks: string[] = [];
     let currentBlock: string[] = [];
-    
+
     for (const line of lines) {
       if (line.trim().startsWith('###')) {
         // Nouveau bloc détecté
@@ -1713,15 +1744,15 @@ const splitBlocksByHeading = (sectionText: string): string[] => {
         currentBlock.push(line);
       }
     }
-    
+
     // Ajouter le dernier bloc
     if (currentBlock.length > 0) {
       newBlocks.push(currentBlock.join('\n'));
     }
-    
+
     return newBlocks.length > 0 ? newBlocks : blocks;
   }
-  
+
   return blocks;
 };
 
@@ -1733,14 +1764,14 @@ const normalizeBulletLine = (line: string) => line.replace(/^[-•*\s]+/, '').tr
  */
 function normalizeDate(dateStr: string): string {
   if (!dateStr) return '';
-  
+
   const cleaned = dateStr.trim();
-  
+
   // Handle "Present", "Current", etc.
   if (/present|current|actuel|en cours/i.test(cleaned)) {
     return 'Present';
   }
-  
+
   // Handle formats like "Jan 2020", "January 2020"
   const monthYearMatch = cleaned.match(/([a-z]+)\s+(\d{4})/i);
   if (monthYearMatch) {
@@ -1748,7 +1779,7 @@ function normalizeDate(dateStr: string): string {
     const year = monthYearMatch[2];
     return `${month.charAt(0).toUpperCase() + month.slice(1).toLowerCase()} ${year}`;
   }
-  
+
   // Handle formats like "2020-01", "2020/01"
   const yearMonthMatch = cleaned.match(/(\d{4})[-/](\d{1,2})/);
   if (yearMonthMatch) {
@@ -1759,7 +1790,7 @@ function normalizeDate(dateStr: string): string {
       return `${months[monthNum - 1]} ${year}`;
     }
   }
-  
+
   // Handle formats like "01/2020", "01-2020"
   const monthYearSlashMatch = cleaned.match(/(\d{1,2})[-/](\d{4})/);
   if (monthYearSlashMatch) {
@@ -1770,13 +1801,13 @@ function normalizeDate(dateStr: string): string {
       return `${months[monthNum - 1]} ${year}`;
     }
   }
-  
+
   // Handle year only "2020"
   const yearOnlyMatch = cleaned.match(/^(\d{4})$/);
   if (yearOnlyMatch) {
     return yearOnlyMatch[1];
   }
-  
+
   // Return as-is if no pattern matches
   return cleaned;
 }
@@ -1784,14 +1815,14 @@ function normalizeDate(dateStr: string): string {
 const parsePeriodLine = (line?: string) => {
   if (!line) return { start: '', end: '' };
   const cleaned = line.replace(/\s{2,}/g, ' ').trim();
-  
+
   // Try multiple patterns
   const patterns = [
     /([\w./]+\s*\d{4}|Present|Current|Actuel)\s*[-–—]\s*([\w./]+\s*\d{4}|Present|Current|Actuel)/i,
     /(\d{4})\s*[-–—]\s*(\d{4}|Present|Current|Actuel)/i,
     /([a-z]+\s+\d{4})\s*[-–—]\s*([a-z]+\s+\d{4}|Present|Current|Actuel)/i,
   ];
-  
+
   for (const pattern of patterns) {
     const match = cleaned.match(pattern);
     if (match) {
@@ -1801,7 +1832,7 @@ const parsePeriodLine = (line?: string) => {
       };
     }
   }
-  
+
   return { start: '', end: '' };
 };
 
@@ -1811,7 +1842,7 @@ const parsePeriodLine = (line?: string) => {
  */
 function detectExperiencesWithoutHeaders(text: string): any[] {
   const experiences: any[] = [];
-  
+
   // Pattern 1: "Job Title at Company Name (Start - End)"
   const pattern1 = /([^•\n]+?)\s+at\s+([^(]+?)\s*\(([^)]+)\)/gi;
   let match;
@@ -1820,7 +1851,7 @@ function detectExperiencesWithoutHeaders(text: string): any[] {
     const company = match[2].trim();
     const period = match[3].trim();
     const { start, end } = parsePeriodLine(period);
-    
+
     if (title && company) {
       experiences.push({
         title,
@@ -1833,14 +1864,14 @@ function detectExperiencesWithoutHeaders(text: string): any[] {
       });
     }
   }
-  
+
   // Pattern 2: Look for job titles followed by company and dates on next lines
   const lines = text.split('\n');
   for (let i = 0; i < lines.length - 2; i++) {
     const line1 = lines[i].trim();
     const line2 = lines[i + 1].trim();
     const line3 = lines[i + 2].trim();
-    
+
     // Check if line2 looks like a company and line3 looks like dates
     if (
       line1 &&
@@ -1869,7 +1900,7 @@ function detectExperiencesWithoutHeaders(text: string): any[] {
       }
     }
   }
-  
+
   return experiences;
 }
 
@@ -1880,31 +1911,31 @@ function detectExperiencesWithoutHeaders(text: string): any[] {
 function detectSubExperiences(blockText: string, mainTitle: string, mainCompany: string): any[] {
   const subExperiences: any[] = [];
   const lines = blockText.split('\n').map(l => l.trim()).filter(Boolean);
-  
+
   // Pattern 1: Lines like "Project Name - Company (XX months)" or "Project Name (XX months)"
   const projectPatternMonths = /^([^-•\n]+?)\s*[-–—]?\s*([^(]+?)?\s*\((\d+)\s*months?\)/i;
-  
+
   // Pattern 2: Lines like "Project Name - Company" or "Project Name" followed by dates
   const projectPatternName = /^([A-Z][^-•\n]{3,}?)(?:\s*[-–—]\s*([A-Z][^-•\n]+))?$/;
-  
+
   // Pattern 3: Lines with dates that might indicate a new project section
   const datePattern = /(\d{4})\s*[-–—]\s*(\d{4}|Present|Current)/i;
-  
+
   let currentSubExp: any = null;
   let currentBullets: string[] = [];
   let foundFirstProject = false;
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    
+
     // Skip the main header line (already processed)
     if (line.startsWith('###')) continue;
-    
+
     // Skip date lines that belong to main experience
     if (i < 3 && datePattern.test(line) && !foundFirstProject) {
       continue; // This is probably the main experience date
     }
-    
+
     // Check for project pattern with months
     const projectMatchMonths = line.match(projectPatternMonths);
     if (projectMatchMonths) {
@@ -1913,11 +1944,11 @@ function detectSubExperiences(blockText: string, mainTitle: string, mainCompany:
         currentSubExp.bullets = currentBullets;
         subExperiences.push(currentSubExp);
       }
-      
+
       // Start new sub-experience
       const projectName = projectMatchMonths[1].trim();
       const companyName = projectMatchMonths[2]?.trim() || mainCompany;
-      
+
       currentSubExp = {
         title: projectName,
         company: companyName,
@@ -1928,25 +1959,25 @@ function detectSubExperiences(blockText: string, mainTitle: string, mainCompany:
       foundFirstProject = true;
       continue;
     }
-    
+
     // Check for project name pattern (bold text, company names, etc.)
     // Look for lines that look like project/client names (capitalized, not bullets, not dates)
-    if (!line.startsWith('-') && !line.startsWith('•') && !line.startsWith('*') && 
-        !datePattern.test(line) && 
-        line.length > 5 && line.length < 100 &&
-        /^[A-Z]/.test(line) && // Starts with capital
-        !line.includes('@') && // Not an email
-        !line.match(/^\d+%/) && // Not a percentage
-        (line.includes('-') || line.match(/^[A-Z][a-z]+/))) { // Has dash or looks like a name
-      
+    if (!line.startsWith('-') && !line.startsWith('•') && !line.startsWith('*') &&
+      !datePattern.test(line) &&
+      line.length > 5 && line.length < 100 &&
+      /^[A-Z]/.test(line) && // Starts with capital
+      !line.includes('@') && // Not an email
+      !line.match(/^\d+%/) && // Not a percentage
+      (line.includes('-') || line.match(/^[A-Z][a-z]+/))) { // Has dash or looks like a name
+
       // Check if next line has dates
       const nextLine = i + 1 < lines.length ? lines[i + 1] : '';
       const nextHasDate = datePattern.test(nextLine);
-      
+
       // Check if previous line was empty or a bullet (indicates new section)
       const prevLine = i > 0 ? lines[i - 1] : '';
       const isNewSection = !prevLine || prevLine.startsWith('-') || prevLine.startsWith('•');
-      
+
       if ((nextHasDate || isNewSection) && !currentSubExp) {
         // This might be a new project/client name
         const parts = line.split(/\s*[-–—]\s*/);
@@ -1957,7 +1988,7 @@ function detectSubExperiences(blockText: string, mainTitle: string, mainCompany:
         };
         currentBullets = [];
         foundFirstProject = true;
-        
+
         if (nextHasDate) {
           const dateMatch = nextLine.match(datePattern);
           if (dateMatch) {
@@ -1969,7 +2000,7 @@ function detectSubExperiences(blockText: string, mainTitle: string, mainCompany:
         continue;
       }
     }
-    
+
     // Check for dates pattern that might indicate new project
     const dateMatch = line.match(datePattern);
     if (dateMatch && currentSubExp && !currentSubExp.startDate) {
@@ -1978,7 +2009,7 @@ function detectSubExperiences(blockText: string, mainTitle: string, mainCompany:
       currentSubExp.endDate = dateMatch[2];
       continue;
     }
-    
+
     // Collect bullets for current sub-experience
     if (currentSubExp && (line.startsWith('-') || line.startsWith('•') || line.startsWith('*'))) {
       currentBullets.push(normalizeBulletLine(line));
@@ -1987,21 +2018,21 @@ function detectSubExperiences(blockText: string, mainTitle: string, mainCompany:
       // We'll keep them for the main experience
     }
   }
-  
+
   // Save last sub-experience
   if (currentSubExp) {
     currentSubExp.bullets = currentBullets;
     subExperiences.push(currentSubExp);
   }
-  
+
   return subExperiences;
 }
 
 const parseExperienceBlocks = (sectionText: string): any[] => {
   const blocks = splitBlocksByHeading(sectionText);
-  
+
   console.log(`🔍 splitBlocksByHeading returned ${blocks.length} blocks`);
-  
+
   // Fallback: try to detect experiences without headers
   if (!blocks.length) {
     console.log('⚠️ No blocks found, trying detectExperiencesWithoutHeaders');
@@ -2015,9 +2046,9 @@ const parseExperienceBlocks = (sectionText: string): any[] => {
     }
     return [];
   }
-  
+
   const parsedExperiences: any[] = [];
-  
+
   blocks.forEach((block, idx) => {
     const lines = block.split('\n').map(line => line.trim()).filter(Boolean);
     if (!lines.length) {
@@ -2053,7 +2084,7 @@ const parseExperienceBlocks = (sectionText: string): any[] => {
     // Si le bloc est très long, contient des patterns de sous-projets, ou plusieurs lignes de dates
     const hasMultipleDates = (block.match(/(\d{4})\s*[-–—]\s*(\d{4}|Present|Current)/gi) || []).length > 1;
     const hasProjectPatterns = block.match(/\((\d+)\s*months?\)/i) || block.match(/[A-Z][a-z]+\s*[-–—]\s*[A-Z]/);
-    
+
     if (block.length > 500 || hasMultipleDates || hasProjectPatterns) {
       subExperiences = detectSubExperiences(block, title, company);
       console.log(`🔍 Block ${idx} (${title}): contains ${subExperiences.length} sub-experiences`, {
@@ -2091,7 +2122,7 @@ const parseExperienceBlocks = (sectionText: string): any[] => {
       });
     }
   });
-  
+
   console.log(`✅ Total parsed experiences: ${parsedExperiences.length}`);
   return parsedExperiences.filter(Boolean);
 };
@@ -2217,9 +2248,9 @@ const getLabeledValue = (lines: string[], labels: string[]): string => {
 // Helper function to convert structured data to CVData format
 function convertStructuredDataToCVData(structuredData: any): any {
   console.log('Converting structured data to CVData format:', structuredData);
-  
+
   const generateId = () => Math.random().toString(36).substr(2, 9);
-  
+
   return {
     personalInfo: {
       firstName: structuredData.personalInfo?.firstName || '',
@@ -2256,12 +2287,12 @@ function convertStructuredDataToCVData(structuredData: any): any {
       honors: edu.honors || [],
       coursework: edu.coursework || []
     })),
-    skills: Array.isArray(structuredData.skills) 
+    skills: Array.isArray(structuredData.skills)
       ? structuredData.skills.map((skill: string | any) => ({
-          id: generateId(),
-          name: typeof skill === 'string' ? skill : (skill.name || skill),
-          category: typeof skill === 'object' ? (skill.category || 'technical') : 'technical'
-        }))
+        id: generateId(),
+        name: typeof skill === 'string' ? skill : (skill.name || skill),
+        category: typeof skill === 'object' ? (skill.category || 'technical') : 'technical'
+      }))
       : [],
     certifications: (structuredData.certifications || []).map((cert: any) => ({
       id: cert.id || generateId(),
@@ -2306,35 +2337,35 @@ export function parseCVData(cvRewrite: any): any {
     console.log('📄 Found structured_data, converting to CVData format');
     return convertStructuredDataToCVData(cvRewrite.structured_data);
   }
-  
+
   // Parse the initial_cv markdown into structured data
   // Try multiple sources for the CV content
-  const content = cvRewrite.initial_cv || 
-                  cvRewrite.content ||
-                  cvRewrite.initial_markdown ||
-                  cvRewrite.cv_content ||
-                  cvRewrite || // If cvRewrite is a string itself
-                  '';
-  
+  const content = cvRewrite.initial_cv ||
+    cvRewrite.content ||
+    cvRewrite.initial_markdown ||
+    cvRewrite.cv_content ||
+    cvRewrite || // If cvRewrite is a string itself
+    '';
+
   // If content is an object, try to extract text from it
   const textContent = typeof content === 'string' ? content : (content.text || content.content || '');
-  
+
   console.log('📄 Parsing CV data:', {
-    source: cvRewrite.initial_cv ? 'initial_cv' : 
-            cvRewrite.content ? 'content' : 
-            cvRewrite.initial_markdown ? 'initial_markdown' : 
-            cvRewrite.cv_content ? 'cv_content' : 
+    source: cvRewrite.initial_cv ? 'initial_cv' :
+      cvRewrite.content ? 'content' :
+        cvRewrite.initial_markdown ? 'initial_markdown' :
+          cvRewrite.cv_content ? 'cv_content' :
             typeof cvRewrite === 'string' ? 'direct string' : 'NONE',
     contentLength: textContent.length,
     contentPreview: textContent.substring(0, 200)
   });
-  
+
   // Extract name (first # or ## header)
   const nameMatch = textContent.match(/^#{1,2}\s+(.+)$/m);
   const name = nameMatch ? nameMatch[1].trim() : 'Your Name';
   const [firstName, ...lastNameParts] = name.split(/\s+/).filter(Boolean);
   const lastName = lastNameParts.join(' ');
-  
+
   // Extract contact info
   const emailMatch = textContent.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
   const phoneMatch = textContent.match(/(\+?\d[\d\s().-]{7,})/);
@@ -2362,7 +2393,7 @@ export function parseCVData(cvRewrite: any): any {
     const fallbackLine = headerLines.find((line: string) => line.includes(',') && !line.includes('@') && !line.toLowerCase().includes('linkedin'));
     inferredLocation = fallbackLine || '';
   }
-  
+
   // Extract summary
   // 1. Try explicit summary headers
   let summary = '';
@@ -2384,14 +2415,14 @@ export function parseCVData(cvRewrite: any): any {
     }
     summary = summaryLines.join(' ');
   }
-  
+
   let experienceSection = extractSectionContent(textContent, [
     'Professional Experience',
     'Experience',
     'Work Experience',
     'Career Experience',
   ]);
-  
+
   // Debug: log la section extraite
   if (experienceSection) {
     const headerCount = (experienceSection.match(/###\s+/g) || []).length;
@@ -2399,9 +2430,9 @@ export function parseCVData(cvRewrite: any): any {
     // Log un extrait pour voir le format
     console.log(`📋 Experience section preview (first 500 chars):`, experienceSection.substring(0, 500));
   }
-  
+
   let experiences = parseExperienceBlocks(experienceSection);
-  
+
   // Debug: log le nombre d'expériences parsées et leurs détails
   console.log(`📋 Parsed ${experiences.length} experiences from section`);
   if (experiences.length > 0) {
@@ -2412,7 +2443,7 @@ export function parseCVData(cvRewrite: any): any {
       bulletsCount: exp.bullets?.length || 0,
     })));
   }
-  
+
   if (!experiences.length) {
     // Fallback: essayer de parser avant la section Education
     const beforeEducation = textContent.split(/##\s+Education/i)[0] || textContent;
@@ -2421,7 +2452,7 @@ export function parseCVData(cvRewrite: any): any {
     experiences = parseExperienceBlocks(beforeEducation);
     console.log(`📋 Fallback parsing: ${experiences.length} experiences`);
   }
-  
+
   const educationSection = extractSectionContent(textContent, [
     'Education',
     'Academic Background',
@@ -2429,7 +2460,7 @@ export function parseCVData(cvRewrite: any): any {
     'Education & Certifications',
   ]);
   const education = parseEducationBlocks(educationSection);
-  
+
   // Extract skills
   const skillsSection = extractSectionContent(textContent, [
     'Skills',
@@ -2446,14 +2477,14 @@ export function parseCVData(cvRewrite: any): any {
     'Professional Certifications',
   ]);
   const certifications = parseCertificationBlocks(certificationsSection);
-  
+
   const languagesSection = extractSectionContent(textContent, [
     'Languages',
     'Language Skills',
     'Languages & Proficiency',
   ]);
   const languages = parseLanguageEntries(languagesSection);
-  
+
   const hobbiesSection = extractSectionContent(textContent, [
     'Hobbies & Interests',
     'Hobbies',
