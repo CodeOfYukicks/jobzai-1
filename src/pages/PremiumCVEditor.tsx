@@ -531,11 +531,85 @@ export default function PremiumCVEditor() {
     runAnalysis();
   };
 
+  // Helper function to clean suggested values from AI
+  // Removes JSON wrappers and fixes formatting issues
+  const cleanSuggestedValue = (value: any): string | null => {
+    if (value === null || value === undefined) return null;
+
+    // If already a clean string
+    if (typeof value === 'string') {
+      let cleaned = value.trim();
+
+      // Check if it's a JSON object string like { "content": "..." }
+      if (cleaned.startsWith('{') && cleaned.endsWith('}')) {
+        try {
+          const parsed = JSON.parse(cleaned);
+          // Extract content field if present
+          if (parsed.content && typeof parsed.content === 'string') {
+            cleaned = parsed.content.trim();
+          } else if (parsed.suggestedValue && typeof parsed.suggestedValue === 'string') {
+            cleaned = parsed.suggestedValue.trim();
+          } else if (parsed.value && typeof parsed.value === 'string') {
+            cleaned = parsed.value.trim();
+          }
+        } catch {
+          // Not valid JSON, continue with the string
+        }
+      }
+
+      // Remove leading/trailing quotes that might have been added
+      if ((cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+        (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+        cleaned = cleaned.slice(1, -1);
+      }
+
+      // Remove any "content:" prefix that might slip through
+      const contentPrefixMatch = cleaned.match(/^["']?content["']?\s*:\s*["']?(.+?)["']?$/i);
+      if (contentPrefixMatch) {
+        cleaned = contentPrefixMatch[1];
+      }
+
+      return cleaned.length > 0 ? cleaned : null;
+    }
+
+    // If it's an object with content field
+    if (typeof value === 'object') {
+      if (value.content && typeof value.content === 'string') {
+        return value.content.trim();
+      }
+      if (value.suggestedValue && typeof value.suggestedValue === 'string') {
+        return value.suggestedValue.trim();
+      }
+      if (value.value && typeof value.value === 'string') {
+        return value.value.trim();
+      }
+      // Last resort: stringify non-null objects
+      try {
+        const str = JSON.stringify(value);
+        // But don't return JSON objects as values
+        if (str.startsWith('{') || str.startsWith('[')) {
+          console.warn('Unexpected object value in suggestion, cannot clean:', value);
+          return null;
+        }
+        return str;
+      } catch {
+        return null;
+      }
+    }
+
+    // For other types (numbers, etc.)
+    return String(value);
+  };
+
   // Apply suggestion from AI Review
   const handleApplySuggestion = useCallback((suggestion: CVSuggestion) => {
     console.log('Applying suggestion:', suggestion);
     const { action, id } = suggestion;
-    const { type, targetSection, targetField, suggestedValue } = action;
+    const { type, targetSection, targetField } = action;
+
+    // Clean the suggested value before using it
+    const suggestedValue = cleanSuggestedValue(action.suggestedValue);
+    console.log('Cleaned suggestedValue:', suggestedValue);
 
     // Ignore functionality
     if (type === 'remove' && targetSection === 'suggestion') {
@@ -620,7 +694,7 @@ export default function PremiumCVEditor() {
               ...prev,
               experiences: prev.experiences.map(item =>
                 item.id === action.targetItemId
-                  ? { ...item, [targetField]: action.suggestedValue }
+                  ? { ...item, [targetField]: suggestedValue }
                   : item
               )
             }));
@@ -630,7 +704,7 @@ export default function PremiumCVEditor() {
               ...prev,
               experiences: prev.experiences.map(item =>
                 item.id === action.targetItemId
-                  ? { ...item, description: action.suggestedValue! }
+                  ? { ...item, description: suggestedValue }
                   : item
               )
             }));
@@ -653,7 +727,7 @@ export default function PremiumCVEditor() {
               ...prev,
               education: prev.education.map(item =>
                 item.id === action.targetItemId
-                  ? { ...item, [targetField]: action.suggestedValue }
+                  ? { ...item, [targetField]: suggestedValue }
                   : item
               )
             }));
@@ -663,7 +737,7 @@ export default function PremiumCVEditor() {
               ...prev,
               education: prev.education.map(item =>
                 item.id === action.targetItemId
-                  ? { ...item, description: action.suggestedValue }
+                  ? { ...item, description: suggestedValue }
                   : item
               )
             }));
@@ -687,7 +761,7 @@ export default function PremiumCVEditor() {
               ...prev,
               certifications: prev.certifications.map(item =>
                 item.id === action.targetItemId
-                  ? { ...item, [targetField]: action.suggestedValue }
+                  ? { ...item, [targetField]: suggestedValue }
                   : item
               )
             }));
@@ -697,7 +771,7 @@ export default function PremiumCVEditor() {
               ...prev,
               certifications: prev.certifications.map(item =>
                 item.id === action.targetItemId
-                  ? { ...item, name: action.suggestedValue! }
+                  ? { ...item, name: suggestedValue }
                   : item
               )
             }));
@@ -712,7 +786,7 @@ export default function PremiumCVEditor() {
           console.log('✅ Adding new certification');
           const newCert = {
             id: `cert-ai-${Date.now()}`,
-            name: action.suggestedValue!,
+            name: suggestedValue,
             issuer: '',
             date: ''
           };
@@ -748,7 +822,7 @@ export default function PremiumCVEditor() {
               ...prev,
               projects: prev.projects.map(item =>
                 item.id === action.targetItemId
-                  ? { ...item, [targetField]: action.suggestedValue }
+                  ? { ...item, [targetField]: suggestedValue }
                   : item
               )
             }));
@@ -758,7 +832,7 @@ export default function PremiumCVEditor() {
               ...prev,
               projects: prev.projects.map(item => {
                 if (item.id === action.targetItemId) {
-                  const newHighlights = [...(item.highlights || []), action.suggestedValue!];
+                  const newHighlights = [...(item.highlights || []), suggestedValue];
                   return { ...item, highlights: newHighlights };
                 }
                 return item;
@@ -783,7 +857,7 @@ export default function PremiumCVEditor() {
               ...prev,
               languages: prev.languages.map(item =>
                 item.id === action.targetItemId
-                  ? { ...item, [targetField]: action.suggestedValue }
+                  ? { ...item, [targetField]: suggestedValue }
                   : item
               )
             }));
@@ -793,7 +867,7 @@ export default function PremiumCVEditor() {
               ...prev,
               languages: prev.languages.map(item =>
                 item.id === action.targetItemId
-                  ? { ...item, name: action.suggestedValue! }
+                  ? { ...item, name: suggestedValue }
                   : item
               )
             }));
@@ -818,7 +892,7 @@ export default function PremiumCVEditor() {
             ...prev,
             personalInfo: {
               ...prev.personalInfo,
-              [targetField]: action.suggestedValue
+              [targetField]: suggestedValue
             }
           }));
           setIsDirty(true);

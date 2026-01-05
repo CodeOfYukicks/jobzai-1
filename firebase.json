@@ -52,6 +52,10 @@
     ],
     "rewrites": [
       {
+        "source": "/sitemap.xml",
+        "function": "sitemap"
+      },
+      {
         "source": "/api/analyze-cv-vision",
         "function": "analyzeCVVision"
       },

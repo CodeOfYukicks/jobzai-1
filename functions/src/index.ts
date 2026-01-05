@@ -176,6 +176,7 @@ export const testNewFunction = onRequest({
 
 export { enrichJobsManual, enrichSingleJob, reEnrichAllJobsV4 } from './enrichJobFunctions';
 export { assistant } from './assistant';
+export { sitemap } from './sitemap';
 import { emailService } from './lib/mailgun.js';
 import OpenAI from 'openai';
 import * as functions from 'firebase-functions';
