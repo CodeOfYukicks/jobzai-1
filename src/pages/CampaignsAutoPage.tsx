@@ -2101,13 +2101,13 @@ export default function CampaignsAutoPage() {
                 {/* Search Bar */}
                 {recipients.length > 0 && (
                   <div className="relative w-64 flex-shrink-0">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search contacts..."
-                      className="w-full pl-10 pr-4 py-2 text-[13px] bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
+                      className="w-full pl-10 pr-4 py-1.5 text-xs bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] 
                         rounded-lg focus:outline-none focus:border-gray-300 dark:focus:border-white/[0.15] focus:ring-2 focus:ring-gray-100 dark:focus:ring-white/[0.05]
                         text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-200"
                     />

@@ -4060,7 +4060,8 @@ URL to visit: ${jobUrl}
 
         // Validation des données extraites
         if (!extractedData.position || !extractedData.companyName) {
-          throw new Error('Missing required fields: position and companyName are required');
+          console.error('Missing required fields:', extractedData);
+          throw new Error('Could not automatically extract job details from this URL. Please enter them manually.');
         }
 
         // Validation stricte de la longueur de la description
@@ -4137,6 +4138,9 @@ URL to visit: ${jobUrl}
         } else {
           notify.success('Job information extracted successfully!');
         }
+
+        // Switch to manual mode to show the extracted data
+        setJobInputMode('manual');
       } catch (parseError: any) {
         console.error('Error parsing extracted data:', parseError);
         notify.error(`Failed to parse extracted information: ${parseError.message || 'Unknown error'}. Please try again or enter the information manually.`);

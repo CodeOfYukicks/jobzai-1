@@ -154,7 +154,7 @@ export default function PreviewContainer({
     <div ref={containerRef} className="h-full flex flex-col bg-gray-100 dark:bg-[#333234] relative">
       {/* Zoom Controls Bar - Hidden on mobile */}
       {!isMobile && (
-        <div className="flex-shrink-0 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e]">
+        <div className="relative z-30 flex-shrink-0 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e]">
           <div className="px-4 py-3 flex items-center justify-between">
             {/* Zoom Controls */}
             <div className="flex items-center gap-2">
@@ -255,13 +255,21 @@ export default function PreviewContainer({
       )}
 
       {/* Preview Area - Less padding on mobile */}
-      <div className={`flex-1 min-h-0 overflow-auto ${isMobile ? 'p-4' : 'p-8'} flex flex-col items-center`}>
-        <div className="flex justify-center" style={{ minWidth: 'fit-content' }}>
+      <div className={`flex-1 min-h-0 overflow-auto ${isMobile ? 'p-4' : 'p-8'} flex flex-col`}>
+        <div
+          className="mx-auto transition-all duration-200"
+          style={{
+            // Explicitly set dimensions based on zoom to force scrollbars
+            width: isMobile ? '100%' : `${(A4_WIDTH_PX * effectiveZoom) / 100}px`,
+            minHeight: `${(A4_HEIGHT_PX * effectiveZoom) / 100}px`,
+            minWidth: 'fit-content'
+          }}
+        >
           <motion.div
             animate={{ scale: effectiveZoom / 100 }}
             transition={{ duration: 0.2, ease: 'easeInOut' }}
             style={{
-              transformOrigin: 'top center',
+              transformOrigin: 'top left', // Scale from top-left to fill the explicit container
             }}
           >
             {/* A4 Paper Container with Overflow Indicator */}

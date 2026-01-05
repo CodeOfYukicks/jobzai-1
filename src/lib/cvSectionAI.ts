@@ -1653,25 +1653,34 @@ export async function rewriteSection(input: SectionRewriteInput): Promise<string
     }
 
     // Extract content from response
+    // Extract content from response
     let content = '';
     if (typeof data.content === 'string') {
+      let rawContent = data.content.trim();
+
+      // Remove markdown code blocks if present
+      // Matches ```json ... ``` or ``` ... ```
+      const codeBlockMatch = rawContent.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+      if (codeBlockMatch) {
+        rawContent = codeBlockMatch[1].trim();
+      }
+
       // Check if the string is a JSON object like { "content": "..." }
-      const trimmedContent = data.content.trim();
-      if (trimmedContent.startsWith('{') && trimmedContent.endsWith('}')) {
+      if (rawContent.startsWith('{') && rawContent.endsWith('}')) {
         try {
-          const parsed = JSON.parse(trimmedContent);
+          const parsed = JSON.parse(rawContent);
           if (parsed.content && typeof parsed.content === 'string') {
             content = parsed.content;
           } else {
-            // JSON but no 'content' field, use original string
-            content = data.content;
+            // JSON but no 'content' field, use original string (cleaned of markdown)
+            content = rawContent;
           }
         } catch {
-          // Not valid JSON, use as-is
-          content = data.content;
+          // Not valid JSON, use as-is (cleaned of markdown)
+          content = rawContent;
         }
       } else {
-        content = data.content;
+        content = rawContent;
       }
     } else if (data.content && typeof data.content === 'object') {
       // OpenAI returns JSON object with 'content' field

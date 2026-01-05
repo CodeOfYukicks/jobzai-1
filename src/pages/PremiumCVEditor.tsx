@@ -540,6 +540,13 @@ export default function PremiumCVEditor() {
     if (typeof value === 'string') {
       let cleaned = value.trim();
 
+      // Remove markdown code blocks if present
+      // Matches ```json ... ``` or ``` ... ```
+      const codeBlockMatch = cleaned.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+      if (codeBlockMatch) {
+        cleaned = codeBlockMatch[1].trim();
+      }
+
       // Check if it's a JSON object string like { "content": "..." }
       if (cleaned.startsWith('{') && cleaned.endsWith('}')) {
         try {

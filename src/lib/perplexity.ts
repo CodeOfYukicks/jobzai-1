@@ -194,7 +194,6 @@ CRITICAL RULES - FOLLOW THESE EXACTLY:
         model: 'sonar-pro',
         temperature: 0.0,
         max_tokens: 16000,
-        search_recency_filter: 'day',
         return_citations: true
       })
     });

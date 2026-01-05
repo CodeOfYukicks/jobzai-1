@@ -68,9 +68,13 @@ interface ToastContainerProps {
   onDismiss: (id: string) => void;
 }
 
+import { createPortal } from 'react-dom';
+
 export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
-  return (
-    <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none">
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className="fixed top-4 right-4 z-[100000] flex flex-col gap-3 pointer-events-none">
       <AnimatePresence mode="popLayout">
         {toasts.map((toast) => (
           <div key={toast.id} className="pointer-events-auto">
@@ -78,7 +82,8 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
           </div>
         ))}
       </AnimatePresence>
-    </div>
+    </div>,
+    document.body
   );
 }
 
