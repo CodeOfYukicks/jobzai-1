@@ -54,7 +54,7 @@ export default function HubPage() {
   const firstName = userData?.name?.split(' ')[0] || 'there';
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { startTour, hasCompletedTour, isTourActive } = useOnboarding();
+  const { startTour, canShowTourButton, isTourActive } = useOnboarding();
 
   // All useState hooks must be called before any conditional returns
   const isNewUser = new Date(userData?.createdAt || '').getTime() > Date.now() - 24 * 60 * 60 * 1000;
@@ -315,8 +315,8 @@ export default function HubPage() {
               {isNewUser ? "Let's start your job search journey together." : "Here's what's happening today."}
             </p>
 
-            {/* Tour prompt for users who haven't completed the tour */}
-            {!hasCompletedTour && !isTourActive && (
+            {/* Tour prompt for users who haven't completed the tour (visible for 24h) */}
+            {canShowTourButton && !isTourActive && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}

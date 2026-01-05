@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
 
 // ============================================
 // TYPES
@@ -11,7 +10,7 @@ export interface TourStep {
     title: string;
     description: string;
     secondaryDescription?: string;
-    icon?: string; // Icon name to use
+    icon?: string;
 }
 
 interface OnboardingContextType {
@@ -30,6 +29,7 @@ interface OnboardingContextType {
     nextTourStep: () => void;
     skipTour: () => void;
     hasCompletedTour: boolean;
+    canShowTourButton: boolean; // True if within 24h of first completion or never completed
 }
 
 // ============================================
@@ -87,7 +87,9 @@ export const TOUR_STEPS: TourStep[] = [
 
 const STORAGE_KEY = 'cubbbe_onboarding_seen';
 const DISABLED_KEY = 'cubbbe_onboarding_disabled';
-const TOUR_COMPLETED_KEY = 'cubbbe_tour_completed';
+const TOUR_COMPLETED_KEY = 'cubbbe_tour_completed_at'; // Stores timestamp
+
+const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
 // ============================================
 // CONTEXT
@@ -119,14 +121,20 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         }
     });
 
-    const [hasCompletedTour, setHasCompletedTour] = useState<boolean>(() => {
-        if (typeof window === 'undefined') return false;
+    // Tour completion state - stores timestamp
+    const [tourCompletedAt, setTourCompletedAt] = useState<number | null>(() => {
+        if (typeof window === 'undefined') return null;
         try {
-            return localStorage.getItem(TOUR_COMPLETED_KEY) === 'true';
+            const stored = localStorage.getItem(TOUR_COMPLETED_KEY);
+            return stored ? parseInt(stored, 10) : null;
         } catch {
-            return false;
+            return null;
         }
     });
+
+    // Derived state
+    const hasCompletedTour = tourCompletedAt !== null;
+    const canShowTourButton = !tourCompletedAt || (Date.now() - tourCompletedAt < TWENTY_FOUR_HOURS);
 
     // Tour state
     const [isTourActive, setIsTourActive] = useState(false);
@@ -178,7 +186,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     const resetOnboarding = useCallback(() => {
         setSeenPages(new Set());
         setIsOnboardingDisabled(false);
-        setHasCompletedTour(false);
+        setTourCompletedAt(null);
         setIsTourActive(false);
         setCurrentTourStep(0);
         try {
@@ -194,6 +202,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     const startTour = useCallback(() => {
         setIsTourActive(true);
         setCurrentTourStep(0);
+        // Reset seen pages for fresh tour experience
+        setSeenPages(new Set());
     }, []);
 
     // Move to next tour step (called by OnboardingSpotlight)
@@ -211,11 +221,12 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         if (currentTourStep < TOUR_STEPS.length - 1) {
             setCurrentTourStep(prev => prev + 1);
         } else {
-            // Tour complete
+            // Tour complete - store timestamp
             setIsTourActive(false);
-            setHasCompletedTour(true);
+            const now = Date.now();
+            setTourCompletedAt(now);
             try {
-                localStorage.setItem(TOUR_COMPLETED_KEY, 'true');
+                localStorage.setItem(TOUR_COMPLETED_KEY, now.toString());
             } catch {
                 // Ignore
             }
@@ -225,7 +236,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     // Skip the entire tour
     const skipTour = useCallback(() => {
         setIsTourActive(false);
-        setHasCompletedTour(true);
+        const now = Date.now();
+        setTourCompletedAt(now);
         // Mark all tour pages as seen
         setSeenPages(prev => {
             const newSet = new Set(prev);
@@ -233,7 +245,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
             return newSet;
         });
         try {
-            localStorage.setItem(TOUR_COMPLETED_KEY, 'true');
+            localStorage.setItem(TOUR_COMPLETED_KEY, now.toString());
         } catch {
             // Ignore
         }
@@ -254,6 +266,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
                 nextTourStep,
                 skipTour,
                 hasCompletedTour,
+                canShowTourButton,
             }}
         >
             {children}

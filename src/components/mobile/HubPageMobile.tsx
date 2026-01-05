@@ -119,7 +119,7 @@ export default function HubPageMobile() {
     const { notifications, unreadCount, markAsRead, deleteNotification, markAllAsRead } = useNotifications();
     const navigate = useNavigate();
     const firstName = userData?.name?.split(' ')[0] || 'there';
-    const { startTour, hasCompletedTour, isTourActive } = useOnboarding();
+    const { startTour, canShowTourButton, isTourActive } = useOnboarding();
 
     // Check if user is new (within last 24h)
     const isNewUser = new Date(userData?.createdAt || '').getTime() > Date.now() - 24 * 60 * 60 * 1000;
@@ -319,8 +319,8 @@ export default function HubPageMobile() {
                             {firstName}.
                         </h1>
 
-                        {/* Tour prompt for users who haven't completed the tour */}
-                        {!hasCompletedTour && !isTourActive && (
+                        {/* Tour prompt (visible for 24h after completion) */}
+                        {canShowTourButton && !isTourActive && (
                             <motion.button
                                 initial={{ opacity: 0, y: 5 }}
                                 animate={{ opacity: 1, y: 0 }}
