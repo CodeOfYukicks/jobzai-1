@@ -2859,7 +2859,7 @@ app.use(corsMiddleware({ origin: true }));
 app.use(expressApp.json());
 // Apollo Preview endpoint
 app.post('/api/apollo/preview', async (req, res) => {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g;
     console.log('🔍 Apollo Preview called via Express api');
     try {
         const authHeader = req.headers.authorization;
@@ -2921,9 +2921,12 @@ app.post('/api/apollo/preview', async (req, res) => {
         if (((_f = targeting.industries) === null || _f === void 0 ? void 0 : _f.length) > 0) {
             searchParams.organization_industries = targeting.industries;
         }
-        if (((_g = targeting.targetCompanies) === null || _g === void 0 ? void 0 : _g.length) > 0) {
-            searchParams.q_organization_name = targeting.targetCompanies.join(' OR ');
-        }
+        // NOTE: We intentionally DO NOT filter by targetCompanies in preview
+        // Priority companies should only PRIORITIZE results during actual search, not FILTER them
+        // The preview should show the total available prospects without company filtering
+        // if (targeting.targetCompanies?.length > 0) {
+        //   searchParams.q_organization_name = targeting.targetCompanies.join(' OR ');
+        // }
         console.log('Apollo preview params:', JSON.stringify(searchParams));
         const response = await fetch('https://api.apollo.io/v1/mixed_people/search', {
             method: 'POST',
@@ -2941,7 +2944,7 @@ app.post('/api/apollo/preview', async (req, res) => {
             return;
         }
         const data = await response.json();
-        const totalAvailable = ((_h = data.pagination) === null || _h === void 0 ? void 0 : _h.total_entries) || 0;
+        const totalAvailable = ((_g = data.pagination) === null || _g === void 0 ? void 0 : _g.total_entries) || 0;
         const isLowVolume = totalAvailable < 20;
         console.log('Apollo preview result:', totalAvailable, 'prospects');
         res.status(200).json({
@@ -2956,26 +2959,360 @@ app.post('/api/apollo/preview', async (req, res) => {
         res.status(500).json({ error: 'Failed to preview search', details: error.message });
     }
 });
-// Apollo Search endpoint
+// Apollo Search endpoint - Full implementation
 app.post('/api/apollo/search', async (req, res) => {
+    var _a, _b, _c, _d, _e;
     console.log('🔍 Apollo Search called via Express api');
-    // Import and delegate to the onRequest function
-    const { searchApolloContacts } = await Promise.resolve().then(() => require('./apollo/searchContacts'));
-    // The searchApolloContacts is an onRequest handler, we need to manually invoke it
-    // For now, return a placeholder - full implementation would require restructuring
-    res.status(200).json({
-        success: true,
-        message: 'Apollo search endpoint (use direct function call for full functionality)',
-        contactsFound: 0
-    });
+    try {
+        // Verify auth token
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            res.status(401).json({ error: 'Unauthorized - Missing or invalid token' });
+            return;
+        }
+        const idToken = authHeader.split('Bearer ')[1];
+        let decodedToken;
+        try {
+            decodedToken = await admin.auth().verifyIdToken(idToken);
+        }
+        catch (error) {
+            res.status(401).json({ error: 'Unauthorized - Invalid token' });
+            return;
+        }
+        const userId = decodedToken.uid;
+        const { campaignId, targeting, maxResults = 100, expandTitles = true } = req.body;
+        if (!campaignId || !targeting) {
+            res.status(400).json({ error: 'Missing campaignId or targeting' });
+            return;
+        }
+        // Get Apollo API key from settings
+        const settingsDoc = await admin.firestore().collection('settings').doc('apollo').get();
+        if (!settingsDoc.exists) {
+            res.status(500).json({ error: 'Apollo API key not configured' });
+            return;
+        }
+        const apiKey = (_a = settingsDoc.data()) === null || _a === void 0 ? void 0 : _a.API_KEY;
+        if (!apiKey) {
+            res.status(500).json({ error: 'Apollo API key is empty' });
+            return;
+        }
+        // Import and apply title expansion if enabled
+        let personTitles = targeting.personTitles || [];
+        if (expandTitles && personTitles.length > 0) {
+            try {
+                const { expandJobTitles } = await Promise.resolve().then(() => require('./data/jobTitleSynonyms'));
+                const originalCount = personTitles.length;
+                personTitles = expandJobTitles(personTitles);
+                console.log(`Title expansion: ${originalCount} → ${personTitles.length} titles`);
+            }
+            catch (e) {
+                console.log('Title expansion not available, using original titles');
+            }
+        }
+        // Seniority and company size mappings
+        const SENIORITY_MAPPING = {
+            'entry': 'entry', 'senior': 'senior', 'manager': 'manager',
+            'director': 'director', 'vp': 'vp', 'c_suite': 'c_suite'
+        };
+        const COMPANY_SIZE_MAPPING = {
+            '1-10': '1,10', '11-50': '11,50', '51-200': '51,200',
+            '201-500': '201,500', '501-1000': '501,1000', '1001-5000': '1001,5000', '5001+': '5001,10000'
+        };
+        // Build Apollo search params - fetch MORE than maxResults to allow for filtering/shuffling
+        // We fetch 150% of max to have buffer for exclusions
+        const fetchMultiplier = 1.5;
+        const fetchCount = Math.min(Math.ceil(maxResults * fetchMultiplier), 100); // Apollo max is 100 per page
+        const searchParams = {
+            per_page: fetchCount,
+            page: 1
+        };
+        if (personTitles.length > 0) {
+            searchParams.person_titles = personTitles;
+        }
+        if (((_b = targeting.personLocations) === null || _b === void 0 ? void 0 : _b.length) > 0) {
+            searchParams.person_locations = targeting.personLocations;
+        }
+        if (((_c = targeting.seniorities) === null || _c === void 0 ? void 0 : _c.length) > 0) {
+            searchParams.person_seniorities = targeting.seniorities.map((s) => SENIORITY_MAPPING[s] || s);
+        }
+        if (((_d = targeting.companySizes) === null || _d === void 0 ? void 0 : _d.length) > 0) {
+            searchParams.organization_num_employees_ranges = targeting.companySizes.map((s) => COMPANY_SIZE_MAPPING[s] || s);
+        }
+        if (((_e = targeting.industries) === null || _e === void 0 ? void 0 : _e.length) > 0) {
+            searchParams.organization_industries = targeting.industries;
+        }
+        console.log('Apollo search params:', JSON.stringify(searchParams));
+        // Helper function to call Apollo API
+        async function callApolloSearch(params) {
+            const response = await fetch('https://api.apollo.io/v1/mixed_people/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache',
+                    'X-Api-Key': apiKey
+                },
+                body: JSON.stringify(params)
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Apollo API error:', response.status, errorText);
+                throw new Error(`Apollo API error: ${response.status}`);
+            }
+            const data = await response.json();
+            return data.people || [];
+        }
+        // Shuffle function (Fisher-Yates) for randomizing results
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+        let allPeople = [];
+        const targetCompanies = targeting.targetCompanies || [];
+        const excludedCompanies = targeting.excludedCompanies || [];
+        const excludedLower = excludedCompanies.map((c) => c.toLowerCase());
+        // Helper to filter out excluded companies
+        function filterExcluded(people) {
+            if (excludedLower.length === 0)
+                return people;
+            return people.filter(person => {
+                var _a;
+                if (!((_a = person.organization) === null || _a === void 0 ? void 0 : _a.name))
+                    return true;
+                return !excludedLower.some((excluded) => person.organization.name.toLowerCase().includes(excluded));
+            });
+        }
+        if (targetCompanies.length > 0) {
+            console.log('Priority companies specified:', targetCompanies);
+            // For priority companies, fetch more to ensure we have enough after filtering
+            // Search WITH target companies filter (priority ~40%)
+            const targetParams = Object.assign(Object.assign({}, searchParams), { q_organization_name: targetCompanies.join(' OR '), per_page: 60 // More than before to ensure buffer
+             });
+            let targetPeople = await callApolloSearch(targetParams);
+            console.log(`Found ${targetPeople.length} people from target companies (before exclusion filter)`);
+            // Search WITHOUT company filter (general ~60%) - also fetch from page 2 for variety
+            const generalParams1 = Object.assign(Object.assign({}, searchParams), { per_page: 100, page: 1 });
+            const generalParams2 = Object.assign(Object.assign({}, searchParams), { per_page: 100, page: 2 });
+            const [generalPeople1, generalPeople2] = await Promise.all([
+                callApolloSearch(generalParams1),
+                callApolloSearch(generalParams2).catch(() => []) // Page 2 might not exist
+            ]);
+            let generalPeople = [...generalPeople1, ...generalPeople2];
+            console.log(`Found ${generalPeople.length} general prospects (pages 1+2)`);
+            // Shuffle general people for variety
+            generalPeople = shuffleArray(generalPeople);
+            // Filter excluded from both sets
+            targetPeople = filterExcluded(targetPeople);
+            generalPeople = filterExcluded(generalPeople);
+            console.log(`After exclusion filter: ${targetPeople.length} priority, ${generalPeople.length} general`);
+            // Merge and dedupe (prioritize target companies first)
+            const seenIds = new Set();
+            // Add target company people first (these take priority)
+            for (const person of targetPeople) {
+                if (!seenIds.has(person.id) && allPeople.length < maxResults) {
+                    seenIds.add(person.id);
+                    allPeople.push(person);
+                }
+            }
+            // Fill remaining slots with general people
+            for (const person of generalPeople) {
+                if (!seenIds.has(person.id) && allPeople.length < maxResults) {
+                    seenIds.add(person.id);
+                    allPeople.push(person);
+                }
+            }
+            console.log(`Total merged: ${allPeople.length} people (${targetPeople.length} priority slots used)`);
+        }
+        else {
+            // No priority companies - fetch from multiple pages and shuffle for variety
+            const [page1, page2] = await Promise.all([
+                callApolloSearch(Object.assign(Object.assign({}, searchParams), { page: 1 })),
+                callApolloSearch(Object.assign(Object.assign({}, searchParams), { page: 2 })).catch(() => [])
+            ]);
+            allPeople = [...page1, ...page2];
+            console.log(`Apollo returned ${allPeople.length} people (pages 1+2)`);
+            // Filter excluded companies
+            allPeople = filterExcluded(allPeople);
+            console.log(`After exclusion filter: ${allPeople.length} people`);
+            // Shuffle for variety
+            allPeople = shuffleArray(allPeople);
+            // Take only maxResults
+            allPeople = allPeople.slice(0, maxResults);
+        }
+        console.log(`Final prospect count: ${allPeople.length}`);
+        // Enrich contacts to get emails (Apollo requires separate API call to reveal emails)
+        console.log(`📧 Enriching ${allPeople.length} contacts to get emails...`);
+        async function enrichContact(personId) {
+            var _a, _b;
+            try {
+                const response = await fetch('https://api.apollo.io/v1/people/match', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Api-Key': apiKey
+                    },
+                    body: JSON.stringify({
+                        id: personId,
+                        reveal_personal_emails: false
+                    })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    return {
+                        email: ((_a = data.person) === null || _a === void 0 ? void 0 : _a.email) || null,
+                        linkedinUrl: ((_b = data.person) === null || _b === void 0 ? void 0 : _b.linkedin_url) || null
+                    };
+                }
+                return { email: null, linkedinUrl: null };
+            }
+            catch (error) {
+                console.error(`Failed to enrich contact ${personId}:`, error);
+                return { email: null, linkedinUrl: null };
+            }
+        }
+        // Batch enrich contacts (in parallel batches of 10 to avoid rate limits)
+        const batchSize = 10;
+        const enrichedPeople = [];
+        for (let i = 0; i < allPeople.length; i += batchSize) {
+            const batch = allPeople.slice(i, i + batchSize);
+            const enrichPromises = batch.map(async (person) => {
+                // Only enrich if email is missing or looks like a placeholder
+                if (!person.email || person.email.includes('not_unlocked')) {
+                    const enriched = await enrichContact(person.id);
+                    return Object.assign(Object.assign({}, person), { email: enriched.email || person.email, linkedin_url: enriched.linkedinUrl || person.linkedin_url });
+                }
+                return person;
+            });
+            const enrichedBatch = await Promise.all(enrichPromises);
+            enrichedPeople.push(...enrichedBatch);
+            // Small delay between batches to avoid rate limiting
+            if (i + batchSize < allPeople.length) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+        const emailCount = enrichedPeople.filter((p) => p.email && !p.email.includes('not_unlocked')).length;
+        console.log(`📧 Email enrichment complete: ${emailCount}/${enrichedPeople.length} contacts have emails`);
+        // Store contacts in Firestore
+        const batch = admin.firestore().batch();
+        const campaignRef = admin.firestore().collection('campaigns').doc(campaignId);
+        const recipientsRef = campaignRef.collection('recipients');
+        const contacts = enrichedPeople.map((person) => {
+            var _a, _b, _c, _d, _e;
+            return ({
+                apolloId: person.id,
+                firstName: person.first_name,
+                lastName: person.last_name,
+                fullName: person.name,
+                title: person.title,
+                email: person.email,
+                linkedinUrl: person.linkedin_url,
+                company: ((_a = person.organization) === null || _a === void 0 ? void 0 : _a.name) || null,
+                companyWebsite: ((_b = person.organization) === null || _b === void 0 ? void 0 : _b.website_url) || null,
+                companyIndustry: ((_c = person.organization) === null || _c === void 0 ? void 0 : _c.industry) || null,
+                companySize: ((_d = person.organization) === null || _d === void 0 ? void 0 : _d.estimated_num_employees) || null,
+                location: [person.city, person.state, person.country].filter(Boolean).join(', ') || null,
+                status: 'pending',
+                emailGenerated: false,
+                emailContent: null,
+                emailSubject: null,
+                sentAt: null,
+                openedAt: null,
+                repliedAt: null,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                isTargetCompany: targetCompanies.length > 0 && ((_e = person.organization) === null || _e === void 0 ? void 0 : _e.name)
+                    ? targetCompanies.some((tc) => person.organization.name.toLowerCase().includes(tc.toLowerCase()))
+                    : false
+            });
+        });
+        contacts.forEach(contact => {
+            const docRef = recipientsRef.doc();
+            batch.set(docRef, contact);
+        });
+        batch.update(campaignRef, {
+            'stats.contactsFound': contacts.length,
+            status: 'contacts_fetched',
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        await batch.commit();
+        res.status(200).json({
+            success: true,
+            contactsFound: contacts.length,
+            totalAvailable: contacts.length,
+            contacts: contacts.map(c => ({
+                fullName: c.fullName,
+                title: c.title,
+                company: c.company,
+                hasEmail: !!c.email,
+                isTargetCompany: c.isTargetCompany
+            }))
+        });
+    }
+    catch (error) {
+        console.error('Error searching Apollo:', error);
+        res.status(500).json({ error: 'Failed to search Apollo contacts', details: error.message });
+    }
 });
-// Apollo Enrich endpoint
+// Apollo Enrich endpoint - Full implementation
 app.post('/api/apollo/enrich', async (req, res) => {
+    var _a, _b, _c;
     console.log('🔍 Apollo Enrich called via Express api');
-    res.status(200).json({
-        success: true,
-        message: 'Apollo enrich endpoint (use direct function call for full functionality)'
-    });
+    try {
+        // Verify auth token
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            res.status(401).json({ error: 'Unauthorized' });
+            return;
+        }
+        const idToken = authHeader.split('Bearer ')[1];
+        try {
+            await admin.auth().verifyIdToken(idToken);
+        }
+        catch (error) {
+            res.status(401).json({ error: 'Unauthorized - Invalid token' });
+            return;
+        }
+        const { apolloId } = req.body;
+        if (!apolloId) {
+            res.status(400).json({ error: 'Missing apolloId' });
+            return;
+        }
+        // Get Apollo API key
+        const settingsDoc = await admin.firestore().collection('settings').doc('apollo').get();
+        const apiKey = (_a = settingsDoc.data()) === null || _a === void 0 ? void 0 : _a.API_KEY;
+        if (!apiKey) {
+            res.status(500).json({ error: 'Apollo API key not configured' });
+            return;
+        }
+        // Call Apollo People Enrichment API
+        const response = await fetch('https://api.apollo.io/v1/people/match', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Api-Key': apiKey
+            },
+            body: JSON.stringify({
+                id: apolloId,
+                reveal_personal_emails: false
+            })
+        });
+        if (!response.ok) {
+            res.status(500).json({ error: 'Failed to enrich contact' });
+            return;
+        }
+        const data = await response.json();
+        res.status(200).json({
+            success: true,
+            email: ((_b = data.person) === null || _b === void 0 ? void 0 : _b.email) || null,
+            linkedinUrl: ((_c = data.person) === null || _c === void 0 ? void 0 : _c.linkedin_url) || null
+        });
+    }
+    catch (error) {
+        console.error('Error enriching Apollo contact:', error);
+        res.status(500).json({ error: 'Failed to enrich contact', details: error.message });
+    }
 });
 // ============================================
 // OpenAI Realtime Session Endpoint (Mock Interview)
