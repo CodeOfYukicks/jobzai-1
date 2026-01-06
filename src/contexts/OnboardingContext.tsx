@@ -11,6 +11,8 @@ export interface TourStep {
     description: string;
     secondaryDescription?: string;
     icon?: string;
+    /** Optional video URL for animated demo (WebM or MP4) */
+    videoUrl?: string;
 }
 
 interface OnboardingContextType {
@@ -42,42 +44,49 @@ export const TOUR_STEPS: TourStep[] = [
         path: '/dashboard',
         title: 'Your command center',
         description: 'See your active applications, upcoming interviews, and campaign performance at a glance.',
+        videoUrl: '/videos/onboarding/dashboard.mp4',
     },
     {
         pageKey: 'job-board',
         path: '/jobs',
         title: 'Discover opportunities',
         description: 'Browse job listings matched to your profile. Save jobs to track them in your applications.',
+        videoUrl: '/videos/onboarding/job-board.mp4',
     },
     {
         pageKey: 'job-applications',
         path: '/applications',
         title: 'Track your applications',
         description: 'Manage all your opportunities in one place — both job applications and outreach campaigns.',
+        videoUrl: '/videos/onboarding/applications.mp4',
     },
     {
         pageKey: 'campaigns',
         path: '/campaigns-auto',
         title: 'Reach companies directly',
         description: 'Create personalized cold outreach campaigns. AI generates tailored emails for each prospect.',
+        videoUrl: '/videos/onboarding/campaigns.mp4',
     },
     {
         pageKey: 'cv-analysis',
         path: '/cv-analysis',
         title: 'Optimize your resume',
         description: 'Upload your CV and paste a job listing. Get your ATS compatibility score and recommendations.',
+        videoUrl: '/videos/onboarding/cv-analysis.mp4',
     },
     {
         pageKey: 'resume-builder',
         path: '/resume-builder',
         title: 'Your documents',
         description: 'Create tailored resumes, notes, and whiteboards — all organized in one place.',
+        videoUrl: '/videos/onboarding/resume-builder.mp4',
     },
     {
         pageKey: 'mock-interview',
         path: '/mock-interview',
         title: 'Practice interviews',
         description: 'AI plays the role of the interviewer. Get detailed feedback on your performance.',
+        videoUrl: '/videos/onboarding/mock-interview.mp4',
     },
 ];
 

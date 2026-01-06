@@ -10,6 +10,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserStats } from '../hooks/useUserStats';
 import { useOnboarding, TOUR_STEPS } from '../contexts/OnboardingContext';
+import { WelcomeTourModal } from '../components/onboarding';
 import { db } from '../lib/firebase';
 import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import type { Activity } from '../types/stats';
@@ -233,6 +234,9 @@ export default function HubPage() {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-[#333234] dark:to-[#2b2a2c] relative pb-24 md:pb-0">
       {/* Decorative Grid Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+
+      {/* Welcome Tour Modal for new users */}
+      <WelcomeTourModal />
 
       <PageTransition
         {...transition}

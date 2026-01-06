@@ -33,6 +33,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useOnboarding, TOUR_STEPS } from '../../contexts/OnboardingContext';
+import { WelcomeTourModal } from '../onboarding';
 import { db } from '../../lib/firebase';
 import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
@@ -278,11 +279,13 @@ export default function HubPageMobile() {
 
     return (
         <div className="min-h-screen bg-[#fafafa] dark:bg-[#0a0a0a] relative">
-            {/* Page Transition */}
             <PageTransition
                 {...transition}
                 onAnimationComplete={() => { }}
             />
+
+            {/* Welcome Tour Modal for new users */}
+            <WelcomeTourModal />
 
             <motion.div
                 animate={{ opacity: transition.isOpen ? 0 : 1 }}

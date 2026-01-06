@@ -70,6 +70,10 @@ export function OnboardingSpotlight({
     const currentTourStep = onboarding?.currentTourStep ?? 0;
     const isLastStep = currentTourStep === TOUR_STEPS.length - 1;
 
+    // Get current step's video URL if in tour mode
+    const currentStepData = isTourMode ? TOUR_STEPS[currentTourStep] : null;
+    const videoUrl = currentStepData?.videoUrl;
+
     // Check if we should show this spotlight
     useEffect(() => {
         if (!onboarding) return;
@@ -205,6 +209,23 @@ export function OnboardingSpotlight({
 
                                 {/* Content */}
                                 <div className="px-5">
+                                    {/* Video (if available) */}
+                                    {videoUrl && (
+                                        <div className="mb-4 rounded-xl overflow-hidden bg-black/20">
+                                            <video
+                                                key={videoUrl}
+                                                autoPlay
+                                                loop
+                                                muted
+                                                playsInline
+                                                className="w-full h-auto max-h-[200px] object-cover"
+                                            >
+                                                <source src={videoUrl} type="video/webm" />
+                                                <source src={videoUrl.replace('.webm', '.mp4')} type="video/mp4" />
+                                            </video>
+                                        </div>
+                                    )}
+
                                     {/* Title */}
                                     <h3 className="text-[17px] font-semibold text-white tracking-[-0.02em] mb-2">
                                         {title}
@@ -295,6 +316,23 @@ export function OnboardingSpotlight({
                                 {isTourMode && (
                                     <div className="mb-3 text-[11px] text-[#505055] font-medium tracking-wide uppercase">
                                         {currentTourStep + 1} of {TOUR_STEPS.length}
+                                    </div>
+                                )}
+
+                                {/* Video (if available) */}
+                                {videoUrl && (
+                                    <div className="mb-4 rounded-lg overflow-hidden bg-black/20">
+                                        <video
+                                            key={videoUrl}
+                                            autoPlay
+                                            loop
+                                            muted
+                                            playsInline
+                                            className="w-full h-auto max-h-[180px] object-cover"
+                                        >
+                                            <source src={videoUrl} type="video/webm" />
+                                            <source src={videoUrl.replace('.webm', '.mp4')} type="video/mp4" />
+                                        </video>
                                     </div>
                                 )}
 
