@@ -1,11 +1,12 @@
 import { useState, useLayoutEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Loader2, RefreshCw, Eye, EyeOff, Check, X, ArrowRight, Zap, Target, TrendingUp } from 'lucide-react';
+import { Mail, Lock, User, Loader2, RefreshCw, Eye, EyeOff, Check, X, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { notify } from '@/lib/notify';
 import { forceLightMode } from '../lib/theme';
 import FirebaseImage from '../components/FirebaseImage';
+import { AuthRightPanel } from '../components/auth';
 
 export default function SignupPage() {
   const [firstName, setFirstName] = useState('');
@@ -379,133 +380,8 @@ export default function SignupPage() {
           </p>
         </motion.div>
       </div>
-
       {/* Side Panel - Right (Desktop Only) */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className="hidden lg:flex w-[55%] flex-col items-center justify-center p-12 relative overflow-hidden"
-        style={{
-          background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 30%, #2d1f4e 60%, #3b2a6b 100%)'
-        }}
-      >
-        {/* Animated glow effects */}
-        <motion.div
-          animate={{
-            x: [0, 50, 0],
-            y: [0, 30, 0],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-500/20 rounded-full blur-[120px]"
-        />
-        <motion.div
-          animate={{
-            x: [0, -40, 0],
-            y: [0, -20, 0],
-            scale: [1, 1.2, 1]
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-violet-600/15 rounded-full blur-[100px]"
-        />
-
-        {/* Content */}
-        <div className="relative z-10 max-w-lg">
-          {/* Emotional Headline */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="mb-10"
-          >
-            <h2 className="text-4xl lg:text-5xl font-bold text-white leading-tight mb-4">
-              Stop the endless
-              <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-violet-200">
-                job search grind.
-              </span>
-            </h2>
-            <p className="text-white/70 text-lg leading-relaxed">
-              While you're reading this, Cubbbe users have already sent <span className="text-white font-semibold">247 applications</span>.
-            </p>
-          </motion.div>
-
-          {/* Benefits */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="space-y-4 mb-10"
-          >
-            {[
-              {
-                icon: Zap,
-                headline: 'Reclaim your evenings',
-                subline: 'While you rest, AI sends applications tailored to your dream roles.'
-              },
-              {
-                icon: Target,
-                headline: 'While you wait, others are moving',
-                subline: '847 applications sent in the last hour by people just like you.'
-              },
-              {
-                icon: TrendingUp,
-                headline: 'Walk into interviews prepared',
-                subline: '3x higher response rate when every message is written for you.'
-              },
-            ].map((benefit, index) => (
-              <div
-                key={index}
-                className="bg-white/5 backdrop-blur-sm rounded-xl px-5 py-4 border border-white/10"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <benefit.icon className="w-5 h-5 text-purple-300" />
-                  </div>
-                  <div>
-                    <p className="text-white font-medium text-sm mb-0.5">{benefit.headline}</p>
-                    <p className="text-white/60 text-xs leading-relaxed">{benefit.subline}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </motion.div>
-
-          {/* Social Proof */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="flex items-center gap-4"
-          >
-            {/* DiceBear Avatars */}
-            <div className="flex -space-x-3">
-              {['Felix', 'Aneka', 'Leo', 'Sara', 'Max'].map((name, i) => (
-                <img
-                  key={name}
-                  src={`https://api.dicebear.com/7.x/notionists/svg?seed=${name}&backgroundColor=c0aede,b6e3f4,ffd5dc,d1f4d1,ffdfba`}
-                  alt={name}
-                  className="w-10 h-10 rounded-full border-2 border-[#1a1a2e] bg-white"
-                />
-              ))}
-            </div>
-            <div>
-              <p className="text-white font-semibold text-sm">Join 20,000+ job seekers</p>
-              <p className="text-white/60 text-xs">who found their competitive edge</p>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Subtle dot pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.8) 1px, transparent 0)`,
-            backgroundSize: '32px 32px'
-          }}
-        />
-      </motion.div>
+      <AuthRightPanel variant="signup" />
     </div>
   );
 }

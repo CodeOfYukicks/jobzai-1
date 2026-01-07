@@ -1,11 +1,12 @@
 import { useState, useLayoutEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Loader2, Eye, EyeOff, ArrowRight, Sparkles, Clock, Shield } from 'lucide-react';
+import { Mail, Lock, Loader2, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { notify } from '@/lib/notify';
 import FirebaseImage from '../components/FirebaseImage';
 import { forceLightMode } from '../lib/theme';
+import { AuthRightPanel } from '../components/auth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -254,103 +255,7 @@ export default function LoginPage() {
       </div>
 
       {/* Side Panel - Right (Desktop Only) */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className="hidden lg:flex w-[55%] flex-col items-center justify-center p-12 relative overflow-hidden"
-        style={{
-          background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 30%, #2d1f4e 60%, #3b2a6b 100%)'
-        }}
-      >
-        {/* Animated glow effects */}
-        <motion.div
-          animate={{
-            x: [0, -50, 0],
-            y: [0, 30, 0],
-            scale: [1, 1.15, 1]
-          }}
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-0 left-0 w-[500px] h-[500px] bg-purple-500/15 rounded-full blur-[120px]"
-        />
-        <motion.div
-          animate={{
-            x: [0, 40, 0],
-            y: [0, -25, 0],
-            scale: [1, 1.2, 1]
-          }}
-          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-0 right-0 w-[450px] h-[450px] bg-violet-600/20 rounded-full blur-[100px]"
-        />
-
-        {/* Content */}
-        <div className="relative z-10 max-w-lg">
-          {/* Welcome Headline */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="mb-10"
-          >
-            <h2 className="text-4xl lg:text-5xl font-bold text-white leading-tight mb-4">
-              Your applications
-              <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-violet-200">
-                are waiting.
-              </span>
-            </h2>
-            <p className="text-white/70 text-lg leading-relaxed">
-              Pick up where you left off. Your AI-powered job search continues.
-            </p>
-          </motion.div>
-
-          {/* Status Cards */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="space-y-4 mb-10"
-          >
-            {[
-              { icon: Sparkles, text: 'New matches since your last visit', value: '12' },
-              { icon: Clock, text: 'Applications sent this week', value: '47' },
-              { icon: Shield, text: 'Response rate', value: '89%' },
-            ].map((stat, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between bg-white/5 backdrop-blur-sm rounded-xl px-5 py-4 border border-white/10"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                    <stat.icon className="w-5 h-5 text-purple-300" />
-                  </div>
-                  <span className="text-white/80 text-sm">{stat.text}</span>
-                </div>
-                <span className="text-white font-bold text-lg">{stat.value}</span>
-              </div>
-            ))}
-          </motion.div>
-
-          {/* Motivational */}
-          <motion.p
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="text-white/50 text-sm italic"
-          >
-            "Consistency is key. Keep applying, you're closer than you think."
-          </motion.p>
-        </div>
-
-        {/* Subtle dot pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.8) 1px, transparent 0)`,
-            backgroundSize: '32px 32px'
-          }}
-        />
-      </motion.div>
+      <AuthRightPanel variant="login" />
     </div>
   );
 }

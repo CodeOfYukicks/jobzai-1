@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, FileText, BarChart3, MessageSquare, Check } from 'lucide-react';
+import { ArrowRight, FileText, Check, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import FirebaseImage from '../FirebaseImage';
+import ProductShowcaseSection from './ProductShowcaseSection';
 
 // Savings calculator data - tools replaced by Cubbbe with their market prices
 const savingsTools = [
@@ -1298,33 +1299,17 @@ export default function FeatureSection() {
         <HeroFeatureCard />
 
         {/* Secondary Card - CV Rewrite */}
-        <div className="mt-4 md:mt-6">
+        <div className="mt-4 md:mt-6 mb-6 md:mb-8">
           <SecondaryFeatureCard />
         </div>
 
-        {/* Grid Cards - Application Tracking + Interview Prep */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-4 md:mt-6">
-          {/* Application Tracking with Toggle */}
-          <ApplicationTrackingCard />
-
-          {/* Interview Prep */}
-          {gridFeatures.map((feature, index) => (
-            <GridFeatureCard
-              key={feature.label}
-              {...feature}
-              delay={0.1 + index * 0.1}
-            />
-          ))}
-        </div>
-
-        {/* Mock Interview Card - Full width like CV Rewrite */}
-        <div className="mt-4 md:mt-6">
-          <MockInterviewCard />
-        </div>
       </div>
 
+      {/* Premium Product Showcase - Application Tracking, Interview Prep, Mock Interview */}
+      <ProductShowcaseSection />
+
       {/* Savings Calculator - Full Width White Bar */}
-      <div className="bg-white mt-8 md:mt-12">
+      <div className="bg-white">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           <SavingsCalculator />
         </div>
