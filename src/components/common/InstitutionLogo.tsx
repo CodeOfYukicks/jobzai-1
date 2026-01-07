@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { GraduationCap } from 'lucide-react';
-import { getSchoolDomainVariants, getClearbitUrl, getGoogleFaviconUrl, getSchoolInitials } from '../../utils/logo';
+import { getSchoolDomainVariants, getClearbitUrl, getLogoDevUrl, getGoogleFaviconUrl, getSchoolInitials } from '../../utils/logo';
 
 interface InstitutionLogoProps {
   institutionName: string;
@@ -24,19 +24,19 @@ const getInitialLogoState = (institutionName: string): { logoSrc: string | null;
   if (!institutionName) {
     return { logoSrc: null, isLoading: false, domainIndex: 0 };
   }
-  
+
   const cacheKey = institutionName.toLowerCase().trim();
   const cached = urlCache.get(cacheKey);
-  
+
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
     return { logoSrc: cached.url, isLoading: false, domainIndex: 0 };
   }
-  
+
   const domains = getSchoolDomainVariants(institutionName);
   if (domains.length === 0) {
     return { logoSrc: null, isLoading: false, domainIndex: 0 };
   }
-  
+
   // Return Clearbit URL for first domain to try
   return { logoSrc: getClearbitUrl(domains[0]), isLoading: true, domainIndex: 0 };
 };
@@ -52,7 +52,8 @@ export function InstitutionLogo({
   const [logoSrc, setLogoSrc] = useState<string | null>(initialState.logoSrc);
   const [isLoading, setIsLoading] = useState(initialState.isLoading);
   const [currentDomainIndex, setCurrentDomainIndex] = useState(initialState.domainIndex);
-  const triedGoogleForCurrentDomain = useRef(false);
+  // Track fallback level per domain: 0 = Clearbit, 1 = Logo.dev, 2 = Google Favicon
+  const fallbackLevelForCurrentDomain = useRef(0);
   const isMounted = useRef(true);
   const prevInstitutionName = useRef(institutionName);
   const domainsRef = useRef<string[]>([]);
@@ -109,7 +110,7 @@ export function InstitutionLogo({
     }
 
     const cacheKey = institutionName.toLowerCase().trim();
-    
+
     // Check cache
     const cached = urlCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
@@ -121,7 +122,7 @@ export function InstitutionLogo({
     // Get all possible domains to try
     const domains = getSchoolDomainVariants(institutionName);
     domainsRef.current = domains;
-    
+
     if (domains.length === 0) {
       setLogoSrc(null);
       setIsLoading(false);
@@ -130,7 +131,7 @@ export function InstitutionLogo({
     }
 
     // Reset state for new load
-    triedGoogleForCurrentDomain.current = false;
+    fallbackLevelForCurrentDomain.current = 0;
     setCurrentDomainIndex(0);
     setIsLoading(true);
 
@@ -144,7 +145,7 @@ export function InstitutionLogo({
 
     const domains = domainsRef.current;
     const currentDomain = domains[currentDomainIndex];
-    
+
     if (!currentDomain) {
       // No more domains to try
       setLogoSrc(null);
@@ -154,20 +155,29 @@ export function InstitutionLogo({
       return;
     }
 
-    // If haven't tried Google Favicon for current domain yet, try it
-    if (!triedGoogleForCurrentDomain.current) {
-      triedGoogleForCurrentDomain.current = true;
+    // Fallback cascade for current domain: Clearbit (0) → Logo.dev (1) → Google Favicon (2)
+    fallbackLevelForCurrentDomain.current += 1;
+
+    if (fallbackLevelForCurrentDomain.current === 1) {
+      // Try Logo.dev
+      const logoDevUrl = getLogoDevUrl(currentDomain);
+      setLogoSrc(logoDevUrl);
+      return;
+    }
+
+    if (fallbackLevelForCurrentDomain.current === 2) {
+      // Try Google Favicon
       const googleUrl = getGoogleFaviconUrl(currentDomain);
       setLogoSrc(googleUrl);
       return;
     }
 
-    // Google also failed for this domain, try next domain
+    // All fallbacks failed for this domain, try next domain
     const nextIndex = currentDomainIndex + 1;
-    
+
     if (nextIndex < domains.length) {
-      // Reset google flag and try next domain with Clearbit
-      triedGoogleForCurrentDomain.current = false;
+      // Reset fallback level and try next domain with Clearbit
+      fallbackLevelForCurrentDomain.current = 0;
       setCurrentDomainIndex(nextIndex);
       const clearbitUrl = getClearbitUrl(domains[nextIndex]);
       setLogoSrc(clearbitUrl);
@@ -175,7 +185,7 @@ export function InstitutionLogo({
       // All domains exhausted, use fallback
       setLogoSrc(null);
       setIsLoading(false);
-      
+
       // Cache the negative result
       const cacheKey = institutionName.toLowerCase().trim();
       urlCache.set(cacheKey, { url: null, timestamp: Date.now() });
@@ -184,9 +194,9 @@ export function InstitutionLogo({
 
   const handleLogoLoad = () => {
     if (!isMounted.current) return;
-    
+
     setIsLoading(false);
-    
+
     // Cache the successful URL
     if (logoSrc) {
       const cacheKey = institutionName.toLowerCase().trim();

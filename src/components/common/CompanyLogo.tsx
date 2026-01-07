@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getCompanyDomain, getClearbitUrl, getGoogleFaviconUrl, getCompanyInitials, getCompanyGradient } from '../../utils/logo';
+import { getCompanyDomain, getClearbitUrl, getLogoDevUrl, getGoogleFaviconUrl, getCompanyInitials, getCompanyGradient } from '../../utils/logo';
 
 interface CompanyLogoProps {
   companyName: string;
@@ -23,19 +23,19 @@ const getInitialLogoState = (companyName: string): { logoSrc: string | null; isL
   if (!companyName) {
     return { logoSrc: null, isLoading: false };
   }
-  
+
   const cacheKey = companyName.toLowerCase().trim();
   const cached = urlCache.get(cacheKey);
-  
+
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
     return { logoSrc: cached.url, isLoading: false };
   }
-  
+
   const companyDomain = getCompanyDomain(companyName);
   if (!companyDomain) {
     return { logoSrc: null, isLoading: false };
   }
-  
+
   // Return Clearbit URL to try first
   return { logoSrc: getClearbitUrl(companyDomain), isLoading: true };
 };
@@ -52,7 +52,8 @@ export function CompanyLogo({
   const [isLoading, setIsLoading] = useState(initialState.isLoading);
   const isMounted = useRef(true);
   const prevCompanyName = useRef(companyName);
-  const triedGoogle = useRef(false);
+  // Track fallback level: 0 = Clearbit, 1 = Logo.dev, 2 = Google Favicon, 3 = Give up
+  const fallbackLevel = useRef(0);
 
   const sizeClasses = {
     sm: 'h-8 w-8',
@@ -91,7 +92,7 @@ export function CompanyLogo({
     }
 
     const cacheKey = companyName.toLowerCase().trim();
-    
+
     // Vérifier le cache
     const cached = urlCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
@@ -101,7 +102,7 @@ export function CompanyLogo({
     }
 
     // Reset l'état pour un nouveau chargement
-    triedGoogle.current = false;
+    fallbackLevel.current = 0;
     setIsLoading(true);
 
     const companyDomain = getCompanyDomain(companyName);
@@ -127,16 +128,22 @@ export function CompanyLogo({
       return;
     }
 
-    // If Clearbit failed and we haven't tried Google Favicon yet, try it
-    if (!triedGoogle.current) {
-      triedGoogle.current = true;
+    // Fallback cascade: Clearbit (0) → Logo.dev (1) → Google Favicon (2) → Give up (3)
+    fallbackLevel.current += 1;
+
+    if (fallbackLevel.current === 1) {
+      // Try Logo.dev
+      const logoDevUrl = getLogoDevUrl(companyDomain);
+      setLogoSrc(logoDevUrl);
+    } else if (fallbackLevel.current === 2) {
+      // Try Google Favicon
       const googleUrl = getGoogleFaviconUrl(companyDomain);
       setLogoSrc(googleUrl);
     } else {
-      // Both APIs failed, use gradient fallback with initials
+      // All APIs failed, use gradient fallback with initials
       setLogoSrc(null);
       setIsLoading(false);
-      
+
       // Cache the negative result
       const cacheKey = companyName.toLowerCase().trim();
       urlCache.set(cacheKey, { url: null, timestamp: Date.now() });
@@ -145,9 +152,9 @@ export function CompanyLogo({
 
   const handleLogoLoad = () => {
     if (!isMounted.current) return;
-    
+
     setIsLoading(false);
-    
+
     // Cache the URL that worked
     if (logoSrc) {
       const cacheKey = companyName.toLowerCase().trim();
