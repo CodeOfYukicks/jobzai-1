@@ -115,7 +115,7 @@ function HeroFeatureCard() {
           {/* Label + Badge */}
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm font-medium text-gray-500">AI Campaigns</span>
-            <span className="px-2.5 py-1 text-xs font-semibold bg-green-100 text-green-700 rounded-full">
+            <span className="px-2.5 py-1 text-xs font-semibold bg-[#add7f6] text-[#2667ff] rounded-full">
               New
             </span>
           </div>
@@ -166,8 +166,8 @@ function HeroFeatureCard() {
         </div>
 
         {/* Right Preview */}
-        <div className="relative bg-gradient-to-br from-emerald-50 to-emerald-100 min-h-[520px]">
-          <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-b from-teal-300/40 via-emerald-400/30 to-teal-300/40"
+        <div className="relative bg-gradient-to-br from-[#add7f6]/30 to-[#87bfff]/40 min-h-[520px]">
+          <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-b from-[#87bfff]/40 via-[#3f8efc]/30 to-[#87bfff]/40"
             style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M0 30 Q15 20 30 30 T60 30\' fill=\'none\' stroke=\'%2310b981\' stroke-width=\'2\' opacity=\'0.3\'/%3E%3C/svg%3E")', backgroundRepeat: 'repeat-y' }} />
           <div className="absolute top-6 bottom-6 left-10 right-0 bg-zinc-950 rounded-l-xl shadow-lg overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-2.5 bg-[#fafafa] border-b border-gray-100">
@@ -224,7 +224,7 @@ function HeroFeatureCard() {
         <div className="p-5 pb-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-sm font-medium text-gray-500">AI Campaigns</span>
-            <span className="px-2 py-0.5 text-xs font-semibold bg-green-100 text-green-700 rounded-full">
+            <span className="px-2 py-0.5 text-xs font-semibold bg-[#add7f6] text-[#2667ff] rounded-full">
               New
             </span>
           </div>
@@ -325,7 +325,7 @@ function SecondaryFeatureCard() {
         <div className="p-8 flex flex-col">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm font-medium text-gray-500">CV Rewrite</span>
-            <span className="px-2.5 py-1 text-xs font-semibold bg-orange-100 text-orange-700 rounded-full">
+            <span className="px-2.5 py-1 text-xs font-semibold bg-[#add7f6] text-[#2667ff] rounded-full">
               New update
             </span>
           </div>
@@ -341,8 +341,8 @@ function SecondaryFeatureCard() {
           </Link>
         </div>
 
-        <div className="relative bg-gradient-to-br from-blue-50 to-indigo-100 min-h-[380px]">
-          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-b from-blue-200/50 via-indigo-300/30 to-blue-200/50" />
+        <div className="relative bg-gradient-to-br from-[#add7f6]/30 to-[#87bfff]/40 min-h-[380px]">
+          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-b from-[#87bfff]/50 via-[#3f8efc]/30 to-[#87bfff]/50" />
           <div className="absolute top-6 bottom-6 left-8 right-6 rounded-xl shadow-lg overflow-hidden bg-white">
             {isLoading ? (
               <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
@@ -362,8 +362,8 @@ function SecondaryFeatureCard() {
             ) : (
               <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
                 <div className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-100 flex items-center justify-center">
-                    <FileText className="w-8 h-8 text-blue-600" />
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#add7f6] flex items-center justify-center">
+                    <FileText className="w-8 h-8 text-[#2667ff]" />
                   </div>
                   <p className="text-sm text-gray-400">CV Rewrite Demo</p>
                   <p className="text-xs text-gray-300 mt-1">Video coming soon</p>
@@ -377,13 +377,13 @@ function SecondaryFeatureCard() {
       {/* Mobile Layout */}
       <div className="lg:hidden p-5">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
-            <FileText className="w-6 h-6 text-orange-600" />
+          <div className="w-12 h-12 rounded-xl bg-[#add7f6] flex items-center justify-center flex-shrink-0">
+            <FileText className="w-6 h-6 text-[#2667ff]" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-sm font-medium text-gray-500">CV Rewrite</span>
-              <span className="px-2 py-0.5 text-xs font-semibold bg-orange-100 text-orange-600 rounded-full">
+              <span className="px-2 py-0.5 text-xs font-semibold bg-[#add7f6] text-[#2667ff] rounded-full">
                 New
               </span>
             </div>
@@ -445,7 +445,7 @@ function MockInterviewCard() {
         <div className="p-8 flex flex-col">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm font-medium text-gray-500">Mock Interview</span>
-            <span className="px-2.5 py-1 text-xs font-semibold bg-purple-100 text-purple-700 rounded-full">
+            <span className="px-2.5 py-1 text-xs font-semibold bg-[#add7f6] text-[#2667ff] rounded-full">
               AI Powered
             </span>
           </div>
@@ -461,8 +461,8 @@ function MockInterviewCard() {
           </Link>
         </div>
 
-        <div className="relative bg-gradient-to-br from-purple-50 to-violet-100 min-h-[380px]">
-          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-b from-purple-200/50 via-violet-300/30 to-purple-200/50" />
+        <div className="relative bg-gradient-to-br from-[#add7f6]/30 to-[#87bfff]/40 min-h-[380px]">
+          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-b from-[#87bfff]/50 via-[#3f8efc]/30 to-[#87bfff]/50" />
           <div className="absolute top-6 bottom-6 left-8 right-6 rounded-xl shadow-lg overflow-hidden bg-zinc-950">
             {isLoading ? (
               <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
@@ -482,8 +482,8 @@ function MockInterviewCard() {
             ) : (
               <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
                 <div className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-purple-100 flex items-center justify-center">
-                    <MessageSquare className="w-8 h-8 text-purple-600" />
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#add7f6] flex items-center justify-center">
+                    <MessageSquare className="w-8 h-8 text-[#2667ff]" />
                   </div>
                   <p className="text-sm text-gray-400">Mock Interview Demo</p>
                   <p className="text-xs text-gray-300 mt-1">Video coming soon</p>
@@ -497,13 +497,13 @@ function MockInterviewCard() {
       {/* Mobile Layout */}
       <div className="lg:hidden p-5">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
-            <MessageSquare className="w-6 h-6 text-purple-600" />
+          <div className="w-12 h-12 rounded-xl bg-[#add7f6] flex items-center justify-center flex-shrink-0">
+            <MessageSquare className="w-6 h-6 text-[#2667ff]" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-sm font-medium text-gray-500">Mock Interview</span>
-              <span className="px-2 py-0.5 text-xs font-semibold bg-purple-100 text-purple-600 rounded-full">
+              <span className="px-2 py-0.5 text-xs font-semibold bg-[#add7f6] text-[#2667ff] rounded-full">
                 AI
               </span>
             </div>
@@ -726,9 +726,9 @@ function ApplicationTrackingCard() {
       </div>
 
       {/* Preview Zone */}
-      <div className="relative h-48 sm:h-96 bg-[#FFECE8]">
+      <div className="relative h-48 sm:h-96 bg-[#add7f6]/30">
         {/* Accent border at top */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-[#FF6B5B]" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-[#3f8efc]" />
 
         {/* Video - Notion style */}
         <div className="absolute left-4 sm:left-6 right-4 sm:right-6 top-4 sm:top-6 bottom-0 rounded-t-2xl shadow-lg overflow-hidden bg-zinc-950">
@@ -759,8 +759,8 @@ function ApplicationTrackingCard() {
               ) : (
                 <div className="h-full flex items-center justify-center bg-white">
                   <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#FFECE8] flex items-center justify-center">
-                      <BarChart3 className="w-8 h-8 text-[#FF6B5B]" />
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#add7f6] flex items-center justify-center">
+                      <BarChart3 className="w-8 h-8 text-[#2667ff]" />
                     </div>
                     <p className="text-sm text-gray-400">{activeModeData?.label}</p>
                     <p className="text-xs text-gray-300 mt-1">Video coming soon</p>
@@ -847,12 +847,12 @@ function SavingsCalculator() {
               key={tool.id}
               onClick={() => toggleTool(tool.id)}
               className={`flex items-center gap-3 p-3 md:p-3 rounded-xl border transition-all duration-200 text-left ${selectedTools.includes(tool.id)
-                ? 'border-violet-400 bg-violet-50'
+                ? 'border-[#3f8efc] bg-[#add7f6]/30'
                 : 'border-gray-200 hover:border-gray-300 bg-white'
                 }`}
             >
               <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${selectedTools.includes(tool.id)
-                ? 'bg-violet-500'
+                ? 'bg-[#2667ff]'
                 : 'border-2 border-gray-300'
                 }`}>
                 {selectedTools.includes(tool.id) && (
@@ -1184,7 +1184,7 @@ function MarketingStats() {
       bgColor: 'bg-white',
       textColor: 'text-gray-900',
       labelColor: 'text-gray-500',
-      statColor: 'text-[#0275de]',
+      statColor: 'text-[#2667ff]',
     },
     {
       label: 'Case Study',
@@ -1192,7 +1192,7 @@ function MarketingStats() {
       description: 'AI-powered outreach achieves first interviews within',
       stat: '24h',
       statLabel: '',
-      bgColor: 'bg-[#0275de]',
+      bgColor: 'bg-[#2667ff]',
       textColor: 'text-white',
       labelColor: 'text-blue-200',
       statColor: 'text-white',
@@ -1217,7 +1217,7 @@ function MarketingStats() {
       bgColor: 'bg-white',
       textColor: 'text-gray-900',
       labelColor: 'text-gray-500',
-      statColor: 'text-[#0275de]',
+      statColor: 'text-[#2667ff]',
     },
   ];
 
@@ -1272,9 +1272,9 @@ export default function FeatureSection() {
       label: 'Interview Prep',
       title: 'Practice with AI. Show up confident.',
       icon: MessageSquare,
-      accentColor: 'text-[#4A9EFF]',
-      accentBg: 'bg-[#E8F4FF]',
-      accentBorder: 'bg-[#4A9EFF]',
+      accentColor: 'text-[#2667ff]',
+      accentBg: 'bg-[#add7f6]/30',
+      accentBorder: 'bg-[#3f8efc]',
       href: '/signup',
       videoPath: 'images/interviewprep.mp4',
     },

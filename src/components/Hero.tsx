@@ -2,54 +2,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { useEffect, useState, useRef } from 'react';
-import { FileText, Calendar, Sparkles, Target, Mail, Star } from 'lucide-react';
-
-interface FloatingElementProps {
-  icon: React.ElementType;
-  color: string;
-  bgColor: string;
-  barColor: string;
-  delay: number;
-  x: string | number;
-  y: string | number;
-  rotation?: number;
-  scale?: number;
-}
-
-const FloatingElement = ({ icon: Icon, color, bgColor, barColor, delay, x, y, rotation = 0, scale = 1 }: FloatingElementProps) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
-      animate={{
-        opacity: 1,
-        scale: scale,
-        x: x,
-        y: y,
-      }}
-      transition={{
-        duration: 0.8,
-        delay: delay,
-        type: "spring",
-        stiffness: 50
-      }}
-      className="absolute flex items-center justify-center shadow-sm hover:shadow-md transition-shadow duration-300"
-      style={{
-        width: 64,
-        height: 64,
-        borderRadius: 12,
-        backgroundColor: bgColor,
-        zIndex: 0,
-        rotate: rotation,
-      }}
-    >
-      <div
-        className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl"
-        style={{ backgroundColor: barColor }}
-      />
-      <Icon size={32} color={color} strokeWidth={1.5} />
-    </motion.div>
-  );
-};
+import { Star } from 'lucide-react';
 
 export default function Hero() {
   const [videoUrl, setVideoUrl] = useState<string>('');
@@ -113,69 +66,17 @@ export default function Hero() {
     }
   };
 
-  const floatingElements = [
-    {
-      icon: Mail,
-      color: "#059669",
-      bgColor: "#ECFDF5",
-      barColor: "#10B981",
-      x: "-500px",
-      y: "-100px",
-      delay: 0.2,
-      rotation: -12,
-    },
-    {
-      icon: Calendar,
-      color: "#DC2626",
-      bgColor: "#FEF2F2",
-      barColor: "#EF4444",
-      x: "500px",
-      y: "-100px",
-      delay: 0.3,
-      rotation: 12,
-    },
-    {
-      icon: FileText,
-      color: "#2563EB",
-      bgColor: "#EFF6FF",
-      barColor: "#3B82F6",
-      x: "-560px",
-      y: "100px",
-      delay: 0.4,
-      rotation: -15,
-    },
-    {
-      icon: Target,
-      color: "#D97706",
-      bgColor: "#FFFBEB",
-      barColor: "#F59E0B",
-      x: "560px",
-      y: "100px",
-      delay: 0.5,
-      rotation: 15,
-      scale: 0.9
-    }
-  ];
-
   return (
     <div id="home" className="relative bg-white min-h-screen flex flex-col items-center pt-20 md:pt-24 pb-8 md:pb-16 overflow-x-hidden">
 
       {/* Decorative Grid Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
 
       {/* Main Content Container */}
-      <div className="relative w-full max-w-7xl mx-auto px-4 md:px-6 flex flex-col items-center">
+      <div className="relative w-full max-w-7xl mx-auto px-4 md:px-6 flex flex-col items-center z-10">
 
         {/* Content Wrapper */}
-        <div className="relative z-10 max-w-4xl mx-auto text-center pointer-events-none">
-          {/* Floating Elements - Hidden on mobile */}
-          <div className="absolute inset-0 hidden lg:flex items-center justify-center z-[-1] pointer-events-none">
-            {floatingElements.map((el, index) => (
-              <div key={index} className="absolute">
-                <FloatingElement {...el} />
-              </div>
-            ))}
-          </div>
+        <div className="relative max-w-4xl mx-auto text-center pointer-events-none">
 
           {/* Trust Badge - Rendered instantly (no animation delay) */}
           <div className="mt-6 md:mt-16 mb-3 md:mb-4 pointer-events-auto">
@@ -320,18 +221,18 @@ export default function Hero() {
               >
                 {[...Array(2)].map((_, setIndex) => (
                   <div key={setIndex} className="flex items-center gap-10 md:gap-20">
-                    <img src="https://img.logo.dev/google.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Google" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/apple.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Apple" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/microsoft.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Microsoft" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/amazon.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Amazon" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/netflix.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Netflix" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/jpmorgan.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="JPMorgan" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/spotify.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Spotify" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/tesla.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Tesla" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/adobe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Adobe" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/stripe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Stripe" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/uber.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Uber" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/airbnb.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Airbnb" className="h-6 md:h-10 w-auto opacity-90 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/google.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Google" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/apple.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Apple" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/microsoft.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Microsoft" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/amazon.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Amazon" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/netflix.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Netflix" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/jpmorgan.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="JPMorgan" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/spotify.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Spotify" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/tesla.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Tesla" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/adobe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Adobe" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/stripe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Stripe" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/uber.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Uber" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
+                    <img src="https://img.logo.dev/airbnb.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Airbnb" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
                   </div>
                 ))}
               </div>

@@ -194,7 +194,7 @@ export default function Navbar() {
               </Link>
               <Link
                 to="/signup"
-                className="px-5 py-2 text-sm font-medium text-gray-900 bg-[#ffc300] rounded-md transition-colors duration-200 hover:bg-[#e6b000]"
+                className="px-5 py-2 text-sm font-medium text-white bg-[#2667ff] rounded-md transition-colors duration-200 hover:bg-[#1a4fd9]"
               >
                 Get Started
               </Link>
@@ -241,7 +241,7 @@ export default function Navbar() {
                   <div className="space-y-5">
                     {productFeatures.apply.map((item) => (
                       <a key={item.name} href={item.href} className="block group">
-                        <div className="text-[15px] font-semibold text-gray-900 group-hover:text-[#7066fd] transition-colors">{item.name}</div>
+                        <div className="text-[15px] font-semibold text-gray-900 group-hover:text-[#2667ff] transition-colors">{item.name}</div>
                         <div className="text-sm text-gray-500 mt-0.5">{item.description}</div>
                       </a>
                     ))}
@@ -254,7 +254,7 @@ export default function Navbar() {
                   <div className="space-y-5">
                     {productFeatures.track.map((item) => (
                       <a key={item.name} href={item.href} className="block group">
-                        <div className="text-[15px] font-semibold text-gray-900 group-hover:text-[#7066fd] transition-colors">{item.name}</div>
+                        <div className="text-[15px] font-semibold text-gray-900 group-hover:text-[#2667ff] transition-colors">{item.name}</div>
                         <div className="text-sm text-gray-500 mt-0.5">{item.description}</div>
                       </a>
                     ))}
@@ -267,7 +267,7 @@ export default function Navbar() {
                   <div className="space-y-5">
                     {productFeatures.prepare.map((item) => (
                       <a key={item.name} href={item.href} className="block group">
-                        <div className="text-[15px] font-semibold text-gray-900 group-hover:text-[#7066fd] transition-colors">{item.name}</div>
+                        <div className="text-[15px] font-semibold text-gray-900 group-hover:text-[#2667ff] transition-colors">{item.name}</div>
                         <div className="text-sm text-gray-500 mt-0.5">{item.description}</div>
                       </a>
                     ))}
@@ -280,7 +280,7 @@ export default function Navbar() {
                   <div className="space-y-5">
                     {productFeatures.improve.map((item) => (
                       <a key={item.name} href={item.href} className="block group">
-                        <div className="text-[15px] font-semibold text-gray-900 group-hover:text-[#7066fd] transition-colors">{item.name}</div>
+                        <div className="text-[15px] font-semibold text-gray-900 group-hover:text-[#2667ff] transition-colors">{item.name}</div>
                         <div className="text-sm text-gray-500 mt-0.5">{item.description}</div>
                       </a>
                     ))}
@@ -298,7 +298,7 @@ export default function Navbar() {
                     </p>
                     <Link
                       to="/signup"
-                      className="inline-flex items-center justify-center w-full px-4 py-2.5 text-sm font-medium text-white bg-[#7066fd] rounded-lg hover:bg-[#5b52e0] transition-colors"
+                      className="inline-flex items-center justify-center w-full px-4 py-2.5 text-sm font-medium text-white bg-[#2667ff] rounded-lg hover:bg-[#1a4fd9] transition-colors"
                     >
                       Get Started
                     </Link>
@@ -402,7 +402,7 @@ export default function Navbar() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 + index * 0.05, duration: 0.3 }}
-                    className="text-3xl font-medium text-gray-900 hover:text-[#7066fd] transition-colors tracking-tight"
+                    className="text-3xl font-medium text-gray-900 hover:text-[#2667ff] transition-colors tracking-tight"
                     onClick={(e) => {
                       if (item.href.startsWith('#')) {
                         e.preventDefault();
@@ -431,7 +431,7 @@ export default function Navbar() {
               >
                 <Link
                   to="/signup"
-                  className="flex items-center justify-center w-full py-4 text-white bg-[#7066fd] rounded-2xl hover:bg-[#5b52e0] transition-all duration-200 font-semibold text-lg shadow-lg shadow-[#7066fd]/25"
+                  className="flex items-center justify-center w-full py-4 text-white bg-[#2667ff] rounded-2xl hover:bg-[#1a4fd9] transition-all duration-200 font-semibold text-lg shadow-lg shadow-[#2667ff]/25"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Get Started
