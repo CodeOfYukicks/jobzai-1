@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Sticky Navbar - Demo</title>
+
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* ============================================
+       CSS Reset & Base
+       ============================================ */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.5;
+            color: #1d1d1f;
+            background: #ffffff;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ============================================
+       Premium Sticky Navbar
+       ============================================ */
+        :root {
+            --navbar-height: 66px;
+            --navbar-padding-x: 48px;
+            --navbar-padding-y: 0;
+
+            /* Colors */
+            --nav-text: #1d1d1f;
+            --nav-text-muted: rgba(29, 29, 31, 0.65);
+            --nav-text-hover: rgba(29, 29, 31, 0.85);
+            --nav-bg-transparent: transparent;
+            --nav-bg-glass: rgba(255, 255, 255, 0.72);
+            --nav-border: rgba(0, 0, 0, 0.08);
+            --nav-cta-bg: #1d1d1f;
+            --nav-cta-text: #ffffff;
+            --nav-cta-hover-bg: #000000;
+            --nav-cta-shadow: rgba(0, 0, 0, 0.08);
+
+            /* Transitions */
+            --transition-smooth: 380ms cubic-bezier(0.25, 0.1, 0.25, 1);
+            --transition-fast: 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+
+        .sticky-navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: var(--navbar-height);
+            padding: var(--navbar-padding-y) var(--navbar-padding-x);
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            background: var(--nav-bg-transparent);
+            backdrop-filter: blur(0px) saturate(100%);
+            -webkit-backdrop-filter: blur(0px) saturate(100%);
+            border-bottom: 1px solid transparent;
+
+            transition:
+                background var(--transition-smooth),
+                backdrop-filter var(--transition-smooth),
+                -webkit-backdrop-filter var(--transition-smooth),
+                border-color var(--transition-smooth),
+                transform var(--transition-smooth);
+        }
+
+        .sticky-navbar.scrolled {
+            background: var(--nav-bg-glass);
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            border-bottom: 1px solid var(--nav-border);
+        }
+
+        .sticky-navbar.slide-in {
+            animation: navFadeIn 400ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+        }
+
+        @keyframes navFadeIn {
+            from {
+                opacity: 0.85;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Logo */
+        .navbar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--nav-text);
+        }
+
+        .navbar-logo-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .navbar-logo-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .navbar-logo-text {
+            font-size: 17px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--nav-text);
+        }
+
+        /* Navigation Links */
+        .navbar-nav {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar-nav-item {
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar-nav-link {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+            color: var(--nav-text-muted);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+            display: inline-block;
+        }
+
+        .navbar-nav-link:hover {
+            color: var(--nav-text-hover);
+        }
+
+        .navbar-nav-link.has-dropdown {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .navbar-nav-link.has-dropdown::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='rgba(29,29,31,0.5)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            transition: transform var(--transition-fast);
+        }
+
+        .navbar-nav-link.has-dropdown:hover::after {
+            transform: translateY(1px);
+        }
+
+        /* Actions */
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .navbar-login {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+            color: var(--nav-text-muted);
+            text-decoration: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            transition: color var(--transition-fast);
+        }
+
+        .navbar-login:hover {
+            color: var(--nav-text-hover);
+        }
+
+        /* CTA Button */
+        .navbar-cta {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--nav-cta-text);
+            background: var(--nav-cta-bg);
+
+            padding: 10px 18px;
+            border-radius: 11px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            transition:
+                background var(--transition-fast),
+                transform var(--transition-fast),
+                box-shadow var(--transition-fast);
+
+            will-change: transform;
+        }
+
+        .navbar-cta:hover {
+            background: var(--nav-cta-hover-bg);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--nav-cta-shadow);
+        }
+
+        .navbar-cta:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px var(--nav-cta-shadow);
+        }
+
+        /* Mobile Menu Toggle */
+        .navbar-mobile-toggle {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            width: 40px;
+            height: 40px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background var(--transition-fast);
+        }
+
+        .navbar-mobile-toggle:hover {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .navbar-mobile-toggle span {
+            width: 18px;
+            height: 1.5px;
+            background: var(--nav-text);
+            border-radius: 1px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            :root {
+                --navbar-padding-x: 32px;
+            }
+
+            .navbar-nav {
+                gap: 24px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --navbar-padding-x: 20px;
+                --navbar-height: 60px;
+            }
+
+            .navbar-nav {
+                display: none;
+            }
+
+            .navbar-login {
+                display: none;
+            }
+
+            .navbar-mobile-toggle {
+                display: flex;
+            }
+
+            .navbar-actions {
+                gap: 12px;
+            }
+
+            .navbar-cta {
+                padding: 9px 16px;
+                font-size: 13px;
+            }
+        }
+
+        /* ============================================
+       Demo Page Styles
+       ============================================ */
+        .demo-hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 120px 24px 80px;
+            background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+        }
+
+        .demo-hero h1 {
+            font-size: clamp(48px, 8vw, 80px);
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            color: #1d1d1f;
+        }
+
+        .demo-hero p {
+            font-size: 20px;
+            color: rgba(29, 29, 31, 0.6);
+            max-width: 540px;
+            line-height: 1.6;
+        }
+
+        .demo-section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 80px 24px;
+        }
+
+        .demo-section:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .demo-section h2 {
+            font-size: 36px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+        }
+
+        .demo-section p {
+            font-size: 18px;
+            color: rgba(29, 29, 31, 0.6);
+            max-width: 480px;
+        }
+
+        .demo-indicator {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            background: rgba(29, 29, 31, 0.9);
+            color: white;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+            z-index: 1001;
+        }
+
+        .demo-indicator code {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sticky Navbar -->
+    <nav class="sticky-navbar" role="navigation" aria-label="Main navigation">
+        <!-- Logo -->
+        <a href="/" class="navbar-logo" aria-label="Home">
+            <div class="navbar-logo-icon">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 2L28 9V23L16 30L4 23V9L16 2Z" stroke="currentColor" stroke-width="2"
+                        stroke-linejoin="round" />
+                    <path d="M16 12L22 8.5M16 12L10 8.5M16 12V19M22 15.5V22L16 26M10 15.5V22L16 26"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </div>
+            <span class="navbar-logo-text">Cubbbe</span>
+        </a>
+
+        <!-- Navigation Links -->
+        <ul class="navbar-nav">
+            <li class="navbar-nav-item">
+                <a href="#products" class="navbar-nav-link has-dropdown">Products</a>
+            </li>
+            <li class="navbar-nav-item">
+                <a href="#ai" class="navbar-nav-link">AI</a>
+            </li>
+            <li class="navbar-nav-item">
+                <a href="#blog" class="navbar-nav-link">Blog</a>
+            </li>
+            <li class="navbar-nav-item">
+                <a href="#pricing" class="navbar-nav-link">Pricing</a>
+            </li>
+        </ul>
+
+        <!-- Actions -->
+        <div class="navbar-actions">
+            <a href="/login" class="navbar-login">Log in</a>
+            <a href="/signup" class="navbar-cta">Get Started</a>
+
+            <!-- Mobile Menu Toggle -->
+            <button class="navbar-mobile-toggle" aria-label="Toggle menu" aria-expanded="false">
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Demo Content -->
+    <section class="demo-hero">
+        <h1>Premium Navbar</h1>
+        <p>Scroll down to see the glassmorphism effect. The transition is smooth, elegant, and inspired by Apple,
+            Linear, and Vercel.</p>
+    </section>
+
+    <section id="products" class="demo-section">
+        <h2>Products</h2>
+        <p>Notice how the navbar has a subtle blur and thin border when scrolled.</p>
+    </section>
+
+    <section id="ai" class="demo-section">
+        <h2>AI</h2>
+        <p>The transition timing uses a smooth cubic-bezier easing for a premium feel.</p>
+    </section>
+
+    <section id="blog" class="demo-section">
+        <h2>Blog</h2>
+        <p>All animations are subtle and refined—no flashy or bouncy movements.</p>
+    </section>
+
+    <section id="pricing" class="demo-section">
+        <h2>Pricing</h2>
+        <p>The CTA button has a soft lift effect and gentle shadow on hover.</p>
+    </section>
+
+    <!-- Scroll Indicator -->
+    <div class="demo-indicator">
+        State: <code id="navbar-state">transparent</code>
+    </div>
+
+    <!-- Minimal JavaScript -->
+    <script>
+        (function () {
+            const navbar = document.querySelector('.sticky-navbar');
+            const stateIndicator = document.getElementById('navbar-state');
+            const SCROLL_THRESHOLD = 12;
+            let isScrolled = false;
+            let hasScrolledOnce = false;
+
+            function handleScroll() {
+                const scrollY = window.scrollY;
+                const shouldBeScrolled = scrollY > SCROLL_THRESHOLD;
+
+                if (shouldBeScrolled !== isScrolled) {
+                    isScrolled = shouldBeScrolled;
+
+                    if (isScrolled) {
+                        navbar.classList.add('scrolled');
+                        stateIndicator.textContent = 'glassmorphism';
+
+                        // Trigger slide-in only on first scroll
+                        if (!hasScrolledOnce) {
+                            hasScrolledOnce = true;
+                            navbar.classList.add('slide-in');
+                            setTimeout(() => navbar.classList.remove('slide-in'), 400);
+                        }
+                    } else {
+                        navbar.classList.remove('scrolled');
+                        stateIndicator.textContent = 'transparent';
+                    }
+                }
+            }
+
+            // Initial check
+            handleScroll();
+
+            // Passive listener for performance
+            window.addEventListener('scroll', handleScroll, { passive: true });
+        })();
+    </script>
+</body>
+
+</html>

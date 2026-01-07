@@ -1,0 +1,323 @@
+/* ============================================
+   Premium Sticky Navbar - Apple/Linear/Vercel Style
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+/* CSS Custom Properties */
+:root {
+    --navbar-height: 66px;
+    --navbar-padding-x: 48px;
+    --navbar-padding-y: 0;
+
+    /* Colors */
+    --nav-text: #1d1d1f;
+    --nav-text-muted: rgba(29, 29, 31, 0.65);
+    --nav-text-hover: rgba(29, 29, 31, 0.85);
+    --nav-bg-transparent: transparent;
+    --nav-bg-glass: rgba(255, 255, 255, 0.72);
+    --nav-border: rgba(0, 0, 0, 0.08);
+    --nav-cta-bg: #1d1d1f;
+    --nav-cta-text: #ffffff;
+    --nav-cta-hover-bg: #000000;
+    --nav-cta-shadow: rgba(0, 0, 0, 0.08);
+
+    /* Transitions */
+    --transition-smooth: 380ms cubic-bezier(0.25, 0.1, 0.25, 1);
+    --transition-fast: 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* ============================================
+   Navbar Container
+   ============================================ */
+.sticky-navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    height: var(--navbar-height);
+    padding: var(--navbar-padding-y) var(--navbar-padding-x);
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    /* Initial transparent state */
+    background: var(--nav-bg-transparent);
+    backdrop-filter: blur(0px) saturate(100%);
+    -webkit-backdrop-filter: blur(0px) saturate(100%);
+    border-bottom: 1px solid transparent;
+
+    /* Smooth transitions */
+    transition:
+        background var(--transition-smooth),
+        backdrop-filter var(--transition-smooth),
+        -webkit-backdrop-filter var(--transition-smooth),
+        border-color var(--transition-smooth),
+        transform var(--transition-smooth);
+
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Scrolled state - glassmorphism */
+.sticky-navbar.scrolled {
+    background: var(--nav-bg-glass);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border-bottom: 1px solid var(--nav-border);
+}
+
+/* Optional: subtle fade-in on first scroll (no transform to avoid gap) */
+.sticky-navbar.slide-in {
+    animation: navFadeIn 400ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+@keyframes navFadeIn {
+    from {
+        opacity: 0.85;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* ============================================
+   Logo
+   ============================================ */
+.navbar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--nav-text);
+}
+
+.navbar-logo-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.navbar-logo-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.navbar-logo-text {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--nav-text);
+}
+
+/* ============================================
+   Navigation Links
+   ============================================ */
+.navbar-nav {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.navbar-nav-item {
+    margin: 0;
+    padding: 0;
+}
+
+.navbar-nav-link {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--nav-text-muted);
+    text-decoration: none;
+
+    transition: color var(--transition-fast);
+
+    /* Prevent layout shift on hover */
+    display: inline-block;
+}
+
+.navbar-nav-link:hover {
+    color: var(--nav-text-hover);
+}
+
+/* Dropdown indicator */
+.navbar-nav-link.has-dropdown {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.navbar-nav-link.has-dropdown::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='rgba(29,29,31,0.5)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    transition: transform var(--transition-fast);
+}
+
+.navbar-nav-link.has-dropdown:hover::after {
+    transform: translateY(1px);
+}
+
+/* ============================================
+   Actions (Login + CTA)
+   ============================================ */
+.navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.navbar-login {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--nav-text-muted);
+    text-decoration: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+
+    transition: color var(--transition-fast);
+}
+
+.navbar-login:hover {
+    color: var(--nav-text-hover);
+}
+
+/* CTA Button */
+.navbar-cta {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--nav-cta-text);
+    background: var(--nav-cta-bg);
+
+    padding: 10px 18px;
+    border-radius: 11px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    transition:
+        background var(--transition-fast),
+        transform var(--transition-fast),
+        box-shadow var(--transition-fast);
+
+    /* Prevent layout shift */
+    will-change: transform;
+}
+
+.navbar-cta:hover {
+    background: var(--nav-cta-hover-bg);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--nav-cta-shadow);
+}
+
+.navbar-cta:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px var(--nav-cta-shadow);
+}
+
+/* ============================================
+   Mobile Menu Toggle (hidden on desktop)
+   ============================================ */
+.navbar-mobile-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background var(--transition-fast);
+}
+
+.navbar-mobile-toggle:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.navbar-mobile-toggle span {
+    width: 18px;
+    height: 1.5px;
+    background: var(--nav-text);
+    border-radius: 1px;
+    transition: transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 1024px) {
+    :root {
+        --navbar-padding-x: 32px;
+    }
+
+    .navbar-nav {
+        gap: 24px;
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --navbar-padding-x: 20px;
+        --navbar-height: 60px;
+    }
+
+    .navbar-nav {
+        display: none;
+    }
+
+    .navbar-login {
+        display: none;
+    }
+
+    .navbar-mobile-toggle {
+        display: flex;
+    }
+
+    .navbar-actions {
+        gap: 12px;
+    }
+
+    .navbar-cta {
+        padding: 9px 16px;
+        font-size: 13px;
+    }
+}
+
+/* ============================================
+   Dark Mode Support (optional)
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+    .sticky-navbar.dark-mode {
+        --nav-text: #f5f5f7;
+        --nav-text-muted: rgba(245, 245, 247, 0.65);
+        --nav-text-hover: rgba(245, 245, 247, 0.85);
+        --nav-bg-glass: rgba(29, 29, 31, 0.72);
+        --nav-border: rgba(255, 255, 255, 0.08);
+        --nav-cta-bg: #f5f5f7;
+        --nav-cta-text: #1d1d1f;
+        --nav-cta-hover-bg: #ffffff;
+    }
+}

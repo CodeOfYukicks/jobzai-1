@@ -108,7 +108,7 @@ export default function Navbar() {
   const showPublicMenu = !currentUser || isPublicPage;
 
   return (
-    <nav className={`fixed top-2 left-0 right-0 z-50 transition-all duration-300 ${scrolled
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
       ? 'bg-white/80 backdrop-blur-lg shadow-sm border-b border-gray-100'
       : 'bg-transparent'
       }`}>
