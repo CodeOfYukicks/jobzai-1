@@ -290,26 +290,25 @@ function HeroFeatureCard() {
 
 // Secondary Card - CV Rewrite
 function SecondaryFeatureCard() {
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Load video URL from Firebase Storage
+  // Load image URL from Firebase Storage
   useEffect(() => {
-    const loadVideo = async () => {
+    const loadImage = async () => {
       try {
         const storage = getStorage();
-        const videoStorageRef = ref(storage, 'images/CVeditor.mp4');
-        const url = await getDownloadURL(videoStorageRef);
-        setVideoUrl(url);
+        const imageStorageRef = ref(storage, 'images/CVeditor.png');
+        const url = await getDownloadURL(imageStorageRef);
+        setImageUrl(url);
       } catch (error) {
-        console.log('CV Editor video not found:', error);
+        console.log('CV Editor image not found:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadVideo();
+    loadImage();
   }, []);
 
   return (
@@ -348,17 +347,12 @@ function SecondaryFeatureCard() {
               <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
                 <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
               </div>
-            ) : videoUrl ? (
-              <video
-                ref={videoRef}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="w-full h-full object-cover bg-gray-50"
-              >
-                <source src={videoUrl} type="video/mp4" />
-              </video>
+            ) : imageUrl ? (
+              <img
+                src={imageUrl}
+                alt="CV Rewrite feature preview"
+                className="w-full h-full object-contain bg-[#e8f4fd]"
+              />
             ) : (
               <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
                 <div className="text-center">
@@ -366,7 +360,7 @@ function SecondaryFeatureCard() {
                     <FileText className="w-8 h-8 text-[#2667ff]" />
                   </div>
                   <p className="text-sm text-gray-400">CV Rewrite Demo</p>
-                  <p className="text-xs text-gray-300 mt-1">Video coming soon</p>
+                  <p className="text-xs text-gray-300 mt-1">Image coming soon</p>
                 </div>
               </div>
             )}
@@ -908,28 +902,28 @@ function TryForFree() {
 
   const secondaryFeatures = [
     {
-      title: 'Job Tracker',
-      description: 'Track all your applications in one organized dashboard.',
+      title: 'Creative Studio',
+      description: 'Design resumes, capture ideas, and brainstorm visually.',
       icon: (
         <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
-          <rect x="3" y="3" width="26" height="26" rx="4" stroke="currentColor" strokeWidth="2" />
-          <path d="M3 11h26" stroke="currentColor" strokeWidth="2" />
-          <path d="M11 11v18" stroke="currentColor" strokeWidth="2" />
+          <rect x="4" y="2" width="24" height="28" rx="3" stroke="currentColor" strokeWidth="2" />
+          <path d="M9 8h14M9 13h14M9 18h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
       ),
-      imagePath: 'images/try-job-tracker.png',
+      imagePath: 'images/try-creative-studio.png',
     },
     {
-      title: 'Mock Interview',
-      description: 'Practice with AI and build unshakeable confidence.',
+      title: 'Dashboard',
+      description: 'Your command center for applications, interviews, and insights.',
       icon: (
         <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
-          <rect x="2" y="5" width="28" height="22" rx="3" stroke="currentColor" strokeWidth="2" />
-          <circle cx="16" cy="16" r="4" stroke="currentColor" strokeWidth="2" />
-          <path d="M16 5v3M16 24v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <rect x="3" y="3" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
+          <rect x="18" y="3" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
+          <rect x="3" y="18" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
+          <rect x="18" y="18" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
         </svg>
       ),
-      imagePath: 'images/try-mock-interview.png',
+      imagePath: 'images/try-dashboard.png',
     },
   ];
 
@@ -963,19 +957,20 @@ function TryForFree() {
 
       {/* Desktop Layout */}
       <div className="hidden lg:grid grid-cols-[1fr_1fr] grid-rows-[1fr_1fr] gap-4 auto-rows-fr">
-        {/* Main Card - AutoPilot - spans both rows */}
+        {/* Main Card - AI Assistant - spans both rows */}
         <div className="bg-white rounded-2xl overflow-hidden shadow-sm row-span-2 flex flex-col">
           <div className="p-8 pb-6">
             <svg viewBox="0 0 40 40" fill="none" className="w-12 h-12 mb-5">
-              <rect x="4" y="4" width="32" height="32" rx="6" stroke="#1a1a1a" strokeWidth="2.5" />
-              <path d="M12 20h16M20 12v16" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M20 4l2.5 7.5L30 14l-7.5 2.5L20 24l-2.5-7.5L10 14l7.5-2.5L20 4z" stroke="#1a1a1a" strokeWidth="2.5" strokeLinejoin="round" />
+              <path d="M32 22l1.5 4.5L38 28l-4.5 1.5L32 34l-1.5-4.5L26 28l4.5-1.5L32 22z" stroke="#1a1a1a" strokeWidth="2" strokeLinejoin="round" />
+              <path d="M10 26l1 3L14 30l-3 1L10 34l-1-3L6 30l3-1L10 26z" stroke="#1a1a1a" strokeWidth="1.5" strokeLinejoin="round" />
             </svg>
 
             <h3 className="text-2xl font-bold text-gray-900 mb-2">
-              Get started with AutoPilot
+              Meet your AI Assistant
             </h3>
             <p className="text-gray-500 text-base mb-5">
-              Your AI workspace for mass job applications.
+              Your personal job search copilot. Ask anything, get instant help.
             </p>
 
             <Link
@@ -989,18 +984,18 @@ function TryForFree() {
           <div className="px-8 pb-4">
             <div className="rounded-xl overflow-hidden bg-[#f5f0e8]">
               <FirebaseImage
-                path="images/try-autopilot.png"
-                alt="AutoPilot Screenshot"
+                path="images/try-ai-assistant.png"
+                alt="AI Assistant Screenshot"
                 className="w-full h-auto object-cover"
               />
             </div>
           </div>
 
           <div className="px-8 py-6 border-t border-gray-100 mt-auto">
-            <h4 className="text-xl font-bold text-gray-900 mb-2">Mass Applications</h4>
+            <h4 className="text-xl font-bold text-gray-900 mb-2">Always There to Help</h4>
             <p className="text-gray-500 text-sm leading-relaxed">
-              Send hundreds of personalized applications automatically.<br />
-              AI tailors each message to the company and role.
+              From writing cover letters to preparing for interviews.<br />
+              Your AI assistant knows your profile and goals.
             </p>
           </div>
         </div>
@@ -1020,7 +1015,7 @@ function TryForFree() {
               </Link>
             </div>
             <div className="absolute right-0 top-5 bottom-0 w-[52%] overflow-hidden">
-              <div className="rounded-tl-xl shadow-2xl overflow-hidden h-[120%]">
+              <div className="rounded-tl-xl shadow-2xl overflow-hidden h-[120%] bg-gray-100 border border-gray-200/50">
                 <FirebaseImage
                   path={feature.imagePath}
                   alt={`${feature.title} Screenshot`}
@@ -1034,23 +1029,23 @@ function TryForFree() {
 
       {/* Mobile Layout */}
       <div className="lg:hidden space-y-4">
-        {/* AutoPilot Card - Simplified for Mobile */}
+        {/* AI Assistant Card - Simplified for Mobile */}
         <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
           <div className="p-5">
             {/* Compact header with icon */}
             <div className="flex items-start gap-4 mb-4">
               <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
                 <svg viewBox="0 0 40 40" fill="none" className="w-6 h-6">
-                  <rect x="4" y="4" width="32" height="32" rx="6" stroke="#1a1a1a" strokeWidth="2.5" />
-                  <path d="M12 20h16M20 12v16" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" />
+                  <path d="M20 4l2.5 7.5L30 14l-7.5 2.5L20 24l-2.5-7.5L10 14l7.5-2.5L20 4z" stroke="#1a1a1a" strokeWidth="2.5" strokeLinejoin="round" />
+                  <path d="M32 22l1.5 4.5L38 28l-4.5 1.5L32 34l-1.5-4.5L26 28l4.5-1.5L32 22z" stroke="#1a1a1a" strokeWidth="2" strokeLinejoin="round" />
                 </svg>
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-gray-900 mb-1">
-                  AutoPilot
+                  AI Assistant
                 </h3>
                 <p className="text-gray-500 text-sm">
-                  Mass-apply to jobs with AI
+                  Your personal job search copilot
                 </p>
               </div>
             </div>
@@ -1058,8 +1053,7 @@ function TryForFree() {
             {/* Key benefit */}
             <div className="bg-gray-50 rounded-xl p-4 mb-4">
               <p className="text-sm text-gray-700 leading-relaxed">
-                <span className="font-semibold text-gray-900">Send 100+ applications</span> in minutes.
-                AI personalizes each one to the company and role.
+                <span className="font-semibold text-gray-900">Ask anything, get instant help.</span> From cover letters to interview prep, your AI knows your profile and goals.
               </p>
             </div>
 
@@ -1291,7 +1285,7 @@ export default function FeatureSection() {
           className="mb-6 md:mb-10"
         >
           <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
-            Introducing <span className="italic font-black">Cubbbe 3.0</span>
+            Job search, rebuilt from the ground up.
           </h2>
         </motion.div>
 

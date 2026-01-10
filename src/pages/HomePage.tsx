@@ -8,6 +8,7 @@ const FeatureSection = lazy(() => import('../components/landing/FeatureSection')
 const FinalCTA = lazy(() => import('../components/landing/FinalCTA'));
 const PricingSection = lazy(() => import('../components/landing/PricingSection'));
 const Footer = lazy(() => import('../components/Footer'));
+const LandingAssistantWidget = lazy(() => import('../components/landing/LandingAssistantWidget'));
 
 // Simple loading fallback for below-fold content
 const SectionLoader = () => (
@@ -42,6 +43,11 @@ export default function HomePage() {
 
       <Suspense fallback={<SectionLoader />}>
         <Footer />
+      </Suspense>
+
+      {/* Landing Assistant Widget - Floating chat bubble */}
+      <Suspense fallback={null}>
+        <LandingAssistantWidget />
       </Suspense>
     </div>
   );

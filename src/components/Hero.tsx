@@ -69,6 +69,20 @@ export default function Hero() {
   return (
     <div id="home" className="relative bg-white min-h-screen flex flex-col items-center pt-20 md:pt-24 pb-8 md:pb-16 overflow-x-hidden">
 
+      {/* Animated Hero Background SVG - Cuts off at video section */}
+      <div className="absolute inset-x-0 top-0 h-[75vh] md:h-[85vh] overflow-hidden">
+        <img
+          src="/images/hero-bg.svg"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover hero-bg-animate"
+          style={{ willChange: 'transform' }}
+        />
+        {/* No overlay - Full SVG visibility */}
+        {/* Gradient fade at bottom for smooth transition */}
+        <div className="absolute inset-x-0 bottom-0 h-32 md:h-48 bg-gradient-to-t from-white to-transparent" />
+      </div>
+
       {/* Decorative Grid Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
 
@@ -80,7 +94,7 @@ export default function Hero() {
 
           {/* Trust Badge - Rendered instantly (no animation delay) */}
           <div className="mt-6 md:mt-16 mb-3 md:mb-4 pointer-events-auto">
-            <span className="inline-flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-gray-100 text-gray-600 text-xs md:text-sm font-medium">
+            <span className="inline-flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-white/30 backdrop-blur-md border border-white/40 text-gray-800 text-xs md:text-sm font-medium shadow-sm">
               <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500"></span>
               Trusted by 20,000+ job seekers
             </span>
@@ -88,23 +102,23 @@ export default function Hero() {
 
           {/* Main Headline - LCP Element - NO ANIMATION for instant render */}
           <h1
-            className="text-[2.5rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-gray-900 mb-4 md:mb-6 pointer-events-auto"
+            className="text-[2.5rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-white mb-4 md:mb-6 pointer-events-auto drop-shadow-md"
             style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 900 }}
           >
-            Stop applying.
+            You deserve answers.
             <br />
-            <span className="text-gray-900">Start getting answers.</span>
+            <span className="text-white">We help you get them.</span>
           </h1>
 
           {/* Subtitle - Instant render */}
-          <p className="text-base md:text-lg lg:text-xl text-gray-600 max-w-xl md:max-w-2xl mx-auto mb-5 md:mb-8 leading-relaxed pointer-events-auto px-2">
+          <p className="text-base md:text-lg lg:text-xl text-white/90 max-w-xl md:max-w-2xl mx-auto mb-5 md:mb-8 leading-relaxed pointer-events-auto px-2 drop-shadow-sm">
             <span className="hidden md:inline">
-              <span className="font-semibold text-gray-900">Send</span> high-quality personalized spontaneous applications — at scale.
+              Send personalized applications at scale.
               <br />
-              <span className="font-semibold text-gray-900">Track</span> every lead. <span className="font-semibold text-gray-900">Prepare</span> smarter. <span className="font-semibold text-gray-900">Get</span> more interviews.
+              Track every lead. Prepare smarter. Get interviews.
             </span>
             <span className="md:hidden">
-              AI writes and sends personalized applications for you. Track. Prepare. Get hired.
+              Send personalized applications at scale. Track every lead. Prepare smarter. Get interviews.
             </span>
           </p>
 
@@ -131,8 +145,8 @@ export default function Hero() {
                 <Star key={i} className="w-3.5 h-3.5 md:w-4 md:h-4 text-yellow-400 fill-yellow-400" />
               ))}
             </div>
-            <span className="text-xs md:text-sm text-gray-500 ml-1">
-              <span className="font-semibold text-gray-700">4.9</span> · 20K+ users
+            <span className="text-xs md:text-sm text-white/80 ml-1">
+              <span className="font-semibold text-white">4.9</span> · 20K+ users
             </span>
           </div>
         </div>
@@ -238,7 +252,7 @@ export default function Hero() {
               </div>
             </div>
 
-            {/* CSS for marquee animation */}
+            {/* CSS for animations */}
             <style>{`
               @keyframes marquee {
                 0% { transform: translateX(0); }
@@ -256,6 +270,26 @@ export default function Hero() {
               }
               .animate-fade-in {
                 animation: fade-in 0.5s ease-out;
+              }
+              @keyframes hero-bg-pan {
+                0% {
+                  transform: scale(1.05) translate(0%, 0%);
+                }
+                50% {
+                  transform: scale(1.12) translate(-1%, -1%);
+                }
+                100% {
+                  transform: scale(1.05) translate(0%, 0%);
+                }
+              }
+              .hero-bg-animate {
+                animation: hero-bg-pan 25s ease-in-out infinite;
+              }
+              @media (prefers-reduced-motion: reduce) {
+                .hero-bg-animate {
+                  animation: none;
+                  transform: scale(1.05);
+                }
               }
             `}</style>
           </div>

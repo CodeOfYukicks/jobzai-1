@@ -109,22 +109,28 @@ export default function Navbar() {
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-      ? 'bg-white/80 backdrop-blur-lg shadow-sm border-b border-gray-100'
+      ? 'bg-white shadow-sm border-b border-gray-100'
       : 'bg-transparent'
       }`}>
-      <div className="w-full px-4 sm:px-6">
-        <div className="relative flex items-center justify-between h-14">
+      <div className="w-full px-4 sm:px-6 py-2">
+        <div className="relative flex items-center justify-between h-16">
           {/* Logo - Left */}
           <div className="flex-shrink-0">
             <a
               href="/"
               onClick={handleLogoClick}
-              className="flex items-center"
+              className="flex items-center gap-2"
             >
               <FirebaseImage
-                path={location.pathname.startsWith('/blog') ? "images/logo_blog.png" : "images/logo-only.png"}
+                path={
+                  location.pathname.startsWith('/blog')
+                    ? "images/logo_blog.png"
+                    : (!scrolled && isPublicPage)
+                      ? "images/logo-cubbbe-white.png"
+                      : "images/logo-cubbbe-black.png"
+                }
                 alt="Cubbbe"
-                className={location.pathname.startsWith('/blog') ? "h-14 w-auto" : "h-10 w-auto"}
+                className={location.pathname.startsWith('/blog') ? "h-14 w-auto" : "h-12 w-auto"}
               />
             </a>
           </div>
@@ -139,9 +145,9 @@ export default function Navbar() {
                     key={item.name}
                     onMouseEnter={() => handleMouseEnter(item.name)}
                     onMouseLeave={handleMouseLeave}
-                    className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || isPublicPage
+                    className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || !isPublicPage
                       ? 'text-gray-900 hover:text-gray-600'
-                      : 'text-white/90 hover:text-white'
+                      : 'text-white hover:text-white/80'
                       }`}
                   >
                     {item.name}
@@ -152,9 +158,9 @@ export default function Navbar() {
                   <a
                     key={item.name}
                     href={item.href}
-                    className={`px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || isPublicPage
+                    className={`px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || !isPublicPage
                       ? 'text-gray-900 hover:text-gray-600'
-                      : 'text-white/90 hover:text-white'
+                      : 'text-white hover:text-white/80'
                       }`}
                   >
                     {item.name}
@@ -185,9 +191,9 @@ export default function Navbar() {
             <div className="hidden md:flex items-center gap-3">
               <Link
                 to="/login"
-                className={`px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || isPublicPage
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || !isPublicPage
                   ? 'text-gray-900 hover:text-gray-600'
-                  : 'text-white/90 hover:text-white'
+                  : 'text-white hover:text-white/80'
                   }`}
               >
                 Log in
@@ -205,7 +211,7 @@ export default function Navbar() {
           <div className="flex md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className={`p-1.5 rounded-md transition-colors ${scrolled || isPublicPage
+              className={`p-1.5 rounded-md transition-colors ${scrolled || !isPublicPage
                 ? 'text-gray-600 hover:bg-gray-100'
                 : 'text-white hover:bg-white/10'
                 }`}
@@ -372,13 +378,19 @@ export default function Navbar() {
                     navigate('/');
                   }
                 }}
-                className="flex items-center"
+                className="flex items-center gap-2"
               >
                 <FirebaseImage
                   path="images/logo-only.png"
                   alt="Cubbbe"
-                  className="h-10 w-auto"
+                  className="h-9 w-auto"
                 />
+                <span
+                  className="text-xl font-bold text-gray-900 tracking-tight"
+                  style={{ fontFamily: "'League Spartan', sans-serif" }}
+                >
+                  Cubbbe
+                </span>
               </a>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
