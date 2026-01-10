@@ -287,10 +287,14 @@ export default function EmailVerificationPage() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.2 }}
         className="hidden lg:flex w-[55%] flex-col items-center justify-center p-12 relative overflow-hidden"
-        style={{
-          background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 30%, #2d1f4e 60%, #3b2a6b 100%)'
-        }}
       >
+        {/* SVG Background */}
+        <img
+          src="/images/hero-bg.svg"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
         {/* Animated glow effects */}
         <motion.div
           animate={{

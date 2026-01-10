@@ -319,18 +319,14 @@ export default function AuthRightPanel({ variant }: AuthRightPanelProps) {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="hidden lg:flex w-[55%] flex-col items-center justify-center p-12 relative overflow-hidden"
-            style={{
-                background: `linear-gradient(
-          145deg,
-          #0a0a0f 0%,
-          #0f0f1a 15%,
-          #1a1a2e 35%,
-          #251a3d 55%,
-          #2d1f4e 75%,
-          #3b2a6b 100%
-        )`,
-            }}
         >
+            {/* SVG Background */}
+            <img
+                src="/images/hero-bg.svg"
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover"
+            />
             {/* Film grain overlay */}
             <FilmGrain />
 

@@ -94,7 +94,7 @@ export default function Hero() {
 
           {/* Trust Badge - Rendered instantly (no animation delay) */}
           <div className="mt-6 md:mt-16 mb-3 md:mb-4 pointer-events-auto">
-            <span className="inline-flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-white/30 backdrop-blur-md border border-white/40 text-gray-800 text-xs md:text-sm font-medium shadow-sm">
+            <span className="inline-flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs md:text-sm font-medium shadow-sm">
               <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500"></span>
               Trusted by 20,000+ job seekers
             </span>
@@ -102,8 +102,8 @@ export default function Hero() {
 
           {/* Main Headline - LCP Element - NO ANIMATION for instant render */}
           <h1
-            className="text-[2.5rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-white mb-4 md:mb-6 pointer-events-auto drop-shadow-md"
-            style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 900 }}
+            className="text-[2.5rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-4 md:mb-6 pointer-events-auto drop-shadow-md"
+            style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}
           >
             You deserve answers.
             <br />
@@ -126,13 +126,13 @@ export default function Hero() {
           <div className="flex flex-row items-center justify-center gap-2 md:gap-3 mb-4 md:mb-6 pointer-events-auto">
             <Link
               to="/signup"
-              className="inline-flex items-center justify-center h-11 md:h-12 px-5 md:px-8 text-sm md:text-[16px] font-semibold text-white bg-[#000000] hover:bg-[#333333] rounded-xl md:rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+              className="inline-flex items-center justify-center h-11 md:h-12 px-5 md:px-8 text-sm md:text-[16px] font-semibold text-gray-900 bg-[#B3DE16] hover:bg-[#a1c814] rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
             >
               Get started free
             </Link>
             <button
               onClick={scrollToFeatures}
-              className="inline-flex items-center justify-center h-11 md:h-12 px-5 md:px-8 text-sm md:text-[16px] font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl md:rounded-lg transition-all duration-200"
+              className="inline-flex items-center justify-center h-11 md:h-12 px-5 md:px-8 text-sm md:text-[16px] font-medium text-gray-800 bg-white hover:bg-gray-50 rounded-lg transition-all duration-200 shadow-sm"
             >
               How it works
             </button>
