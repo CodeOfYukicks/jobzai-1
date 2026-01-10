@@ -192,7 +192,7 @@ export default function Navbar() {
               <Link
                 to="/login"
                 className={`px-5 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${scrolled || !isPublicPage
-                  ? 'text-[#B3DE16] border-[#B3DE16] hover:bg-[#B3DE16]/10'
+                  ? 'text-gray-900 border-gray-900 hover:bg-gray-100'
                   : 'text-[#B3DE16] border-[#B3DE16] hover:bg-[#B3DE16]/10'
                   }`}
               >
@@ -381,16 +381,11 @@ export default function Navbar() {
                 className="flex items-center gap-2"
               >
                 <FirebaseImage
-                  path="images/logo-only.png"
+                  path="images/logo-cubbbe-black.png"
                   alt="Cubbbe"
-                  className="h-9 w-auto"
+                  className="h-10 w-auto"
                 />
-                <span
-                  className="text-xl font-bold text-gray-900 tracking-tight"
-                  style={{ fontFamily: "'League Spartan', sans-serif" }}
-                >
-                  Cubbbe
-                </span>
+
               </a>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -443,7 +438,7 @@ export default function Navbar() {
               >
                 <Link
                   to="/signup"
-                  className="flex items-center justify-center w-full py-4 text-white bg-[#2667ff] rounded-2xl hover:bg-[#1a4fd9] transition-all duration-200 font-semibold text-lg shadow-lg shadow-[#2667ff]/25"
+                  className="flex items-center justify-center w-full py-4 text-gray-900 bg-[#B3DE16] rounded-2xl hover:bg-[#a1c814] transition-all duration-200 font-semibold text-lg shadow-lg shadow-[#B3DE16]/25"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Get Started

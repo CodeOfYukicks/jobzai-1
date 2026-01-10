@@ -15,20 +15,64 @@ const QUICK_ACTIONS = [
     { id: 'results', label: 'Does it actually work?' },
 ];
 
-// Spark icon SVG component
-const SparkIcon = ({ className = '' }: { className?: string }) => (
-    <svg
-        className={className}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" />
-        <circle cx="12" cy="12" r="4" />
-    </svg>
+// Animated chat bubble icon SVG component
+const ChatBubbleIcon = ({ isActive, className = '' }: { isActive?: boolean; className?: string }) => (
+    <div className={`chat-bubble-wrapper ${isActive ? 'active' : ''} ${className}`}>
+        <svg viewBox="0 0 100 100" height={56} width={56} className="chat-bubble-svg">
+            <g className="bubble">
+                <path
+                    d="M 30.7873,85.113394 30.7873,46.556405 C 30.7873,41.101961 36.826342,35.342 40.898074,35.342 H 59.113981 C 63.73287,35.342 69.29995,40.103201 69.29995,46.784744"
+                    className="line line1"
+                />
+                <path
+                    d="M 13.461999,65.039335 H 58.028684 C 63.483128,65.039335 69.243089,59.000293 69.243089,54.928561 V 45.605853 C 69.243089,40.986964 65.02087,35.419884 58.339327,35.419884"
+                    className="line line2"
+                />
+            </g>
+            <circle cx="42.5" cy="50.7" r="1.9" className="circle circle1" />
+            <circle r="1.9" cy="50.7" cx="49.9" className="circle circle2" />
+            <circle cx="57.3" cy="50.7" r="1.9" className="circle circle3" />
+        </svg>
+        <style>{`
+            .chat-bubble-wrapper .bubble {
+                transform-origin: 50%;
+                transition: transform 500ms cubic-bezier(0.17, 0.61, 0.54, 0.9);
+            }
+            .chat-bubble-wrapper .line {
+                fill: none;
+                stroke: #1a1a1a;
+                stroke-width: 2.75;
+                stroke-linecap: round;
+                transition: stroke-dashoffset 500ms cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .chat-bubble-wrapper .line1 {
+                stroke-dasharray: 60 90;
+                stroke-dashoffset: -20;
+            }
+            .chat-bubble-wrapper .line2 {
+                stroke-dasharray: 67 87;
+                stroke-dashoffset: -18;
+            }
+            .chat-bubble-wrapper .circle {
+                fill: #1a1a1a;
+                stroke: none;
+                transform-origin: 50%;
+                transition: transform 500ms cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .chat-bubble-wrapper.active .bubble {
+                transform: translateX(24px) translateY(4px) rotate(45deg);
+            }
+            .chat-bubble-wrapper.active .line1 {
+                stroke-dashoffset: 21;
+            }
+            .chat-bubble-wrapper.active .line2 {
+                stroke-dashoffset: 30;
+            }
+            .chat-bubble-wrapper.active .circle {
+                transform: scale(0);
+            }
+        `}</style>
+    </div>
 );
 
 // Simple markdown parser for chat messages
@@ -45,24 +89,28 @@ const parseMarkdown = (text: string): React.ReactNode => {
     });
 };
 
-// Message bubble component
+// Message bubble component - Premium SaaS style
 const MessageBubble = ({ message }: { message: LandingMessage }) => {
     const isUser = message.role === 'user';
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
             className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
         >
             <div
-                className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isUser
-                    ? 'bg-gray-900 text-white rounded-br-md'
-                    : 'bg-gray-100 text-gray-800 rounded-bl-md'
+                className={`max-w-[75%] px-4 py-3 text-[14px] leading-relaxed tracking-[-0.01em] ${isUser
+                    ? 'bg-gradient-to-br from-gray-800 to-gray-900 text-white rounded-[20px] rounded-br-[6px] shadow-md'
+                    : 'bg-gray-50/80 text-gray-700 rounded-[20px] rounded-bl-[6px] border border-gray-100/60'
                     }`}
+                style={{
+                    backdropFilter: isUser ? 'none' : 'blur(8px)',
+                }}
             >
                 {message.isStreaming ? (
-                    <span className="flex items-center gap-1.5">
+                    <span className="flex items-center gap-1.5 py-1">
                         <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                         <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                         <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -184,118 +232,148 @@ export default function LandingAssistantWidget() {
                         {/* Button */}
                         <motion.button
                             onClick={() => setIsOpen(true)}
-                            className="relative w-14 h-14 rounded-full bg-gray-900 text-white shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center group"
+                            className="relative w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center group"
+                            style={{ backgroundColor: '#B3DE16', boxShadow: '0 4px 20px rgba(179, 222, 22, 0.4)' }}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                         >
                             {/* Pulse animation */}
-                            <span className="absolute inset-0 rounded-full bg-gray-900 animate-landing-pulse" />
+                            <span
+                                className="absolute inset-0 rounded-full animate-landing-pulse"
+                                style={{ backgroundColor: '#B3DE16' }}
+                            />
 
                             {/* Icon */}
-                            <SparkIcon className="w-6 h-6 relative z-10" />
+                            <ChatBubbleIcon className="relative z-10" />
                         </motion.button>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Chat Panel */}
+            {/* Chat Panel - Premium Glassmorphism - Responsive */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        initial={{ opacity: 0, scale: 0.92, y: 24 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-48px)] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
-                        style={{ maxHeight: 'min(600px, calc(100vh - 100px))' }}
+                        exit={{ opacity: 0, scale: 0.92, y: 24 }}
+                        transition={{ type: 'spring', damping: 28, stiffness: 380 }}
+                        className="fixed z-50 overflow-hidden flex flex-col
+                            bottom-0 left-0 right-0 sm:bottom-6 sm:right-6 sm:left-auto
+                            w-full sm:w-[400px] sm:max-w-[calc(100vw-48px)]
+                            rounded-t-[20px] sm:rounded-[24px]"
+                        style={{
+                            maxHeight: 'min(85vh, 640px)',
+                            background: 'rgba(255, 255, 255, 0.95)',
+                            backdropFilter: 'blur(24px)',
+                            WebkitBackdropFilter: 'blur(24px)',
+                            border: '1px solid rgba(255, 255, 255, 0.6)',
+                            boxShadow: '0 -4px 32px rgba(0, 0, 0, 0.1), 0 8px 32px rgba(0, 0, 0, 0.08)',
+                        }}
                     >
-                        {/* Header */}
-                        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
+                        {/* Header - Minimal & Elegant */}
+                        <div className="px-6 py-5 flex items-center justify-between border-b border-gray-100/50">
                             <div>
-                                <h3 className="font-semibold text-gray-900">Cubbbe Assistant</h3>
-                                <p className="text-xs text-gray-500 mt-0.5">Ask me anything about the product</p>
+                                <h3 className="font-semibold text-gray-900 text-[15px] tracking-[-0.02em]">Cubbbe Assistant</h3>
+                                <p className="text-[12px] text-gray-400 mt-0.5 tracking-tight">Ask me anything about the product</p>
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-0.5">
                                 <button
                                     onClick={clearChat}
-                                    className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+                                    className="w-9 h-9 rounded-xl hover:bg-gray-100/70 flex items-center justify-center transition-all duration-200"
                                     title="Clear chat"
                                 >
                                     <RotateCcw className="w-4 h-4 text-gray-400" />
                                 </button>
                                 <button
                                     onClick={() => setIsOpen(false)}
-                                    className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+                                    className="w-9 h-9 rounded-xl hover:bg-gray-100/70 flex items-center justify-center transition-all duration-200"
                                 >
-                                    <X className="w-4 h-4 text-gray-500" />
+                                    <X className="w-4 h-4 text-gray-400" />
                                 </button>
                             </div>
                         </div>
 
-                        {/* Messages */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[200px]">
+                        {/* Messages - Airy layout */}
+                        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4 min-h-[200px]">
                             {messages.map((message) => (
                                 <MessageBubble key={message.id} message={message} />
                             ))}
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Quick Actions - only show if few messages */}
+                        {/* Quick Actions - Pill style with hover lift */}
                         {messages.length <= 2 && (
-                            <div className="px-4 pb-3 flex flex-wrap gap-2">
+                            <div className="px-5 pb-4 flex flex-wrap gap-2">
                                 {QUICK_ACTIONS.map((action) => (
-                                    <button
+                                    <motion.button
                                         key={action.id}
                                         onClick={() => handleQuickAction(action)}
                                         disabled={isLoading}
-                                        className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-colors disabled:opacity-50"
+                                        whileHover={{ y: -2, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)' }}
+                                        whileTap={{ scale: 0.97 }}
+                                        className="px-3.5 py-2 text-[12px] font-medium bg-white/80 hover:bg-white text-gray-600 hover:text-gray-900 rounded-full border border-gray-200/60 transition-all duration-200 disabled:opacity-40 tracking-tight"
                                     >
                                         {action.label}
-                                    </button>
+                                    </motion.button>
                                 ))}
                             </div>
                         )}
 
-                        {/* CTA Button */}
+                        {/* CTA Button - Gradient style */}
                         <AnimatePresence>
                             {showCTA && (
                                 <motion.div
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
                                     exit={{ opacity: 0, height: 0 }}
-                                    className="px-4 pb-3"
+                                    className="px-5 pb-4"
                                 >
-                                    <button
+                                    <motion.button
                                         onClick={handleCTAClick}
-                                        className="w-full py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 transition-colors"
+                                        whileHover={{ scale: 1.01, boxShadow: '0 4px 20px rgba(179, 222, 22, 0.3)' }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="w-full py-3 bg-[#B3DE16] hover:bg-[#a1c814] text-gray-900 text-[13px] font-semibold rounded-2xl flex items-center justify-center gap-2 transition-all duration-200 tracking-tight"
                                     >
                                         Get started free
                                         <ArrowRight className="w-4 h-4" />
-                                    </button>
+                                    </motion.button>
                                 </motion.div>
                             )}
                         </AnimatePresence>
 
-                        {/* Input */}
-                        <div className="p-4 border-t border-gray-100 bg-gray-50/50">
-                            <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 px-3 py-2 focus-within:border-gray-300 focus-within:ring-2 focus-within:ring-gray-100 transition-all">
+                        {/* Input - Premium minimal */}
+                        <div className="p-5 pt-3">
+                            <div
+                                className="flex items-center gap-3 bg-white/60 rounded-2xl px-4 py-3 transition-all duration-300 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(179,222,22,0.15)]"
+                                style={{
+                                    border: '1px solid rgba(0, 0, 0, 0.06)',
+                                    boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.04)',
+                                }}
+                            >
                                 <input
                                     ref={inputRef}
                                     type="text"
                                     value={inputValue}
                                     onChange={(e) => setInputValue(e.target.value)}
                                     onKeyPress={handleKeyPress}
-                                    placeholder="Type your question..."
+                                    placeholder="Ask anything..."
                                     disabled={isLoading}
-                                    className="flex-1 text-sm bg-transparent outline-none placeholder:text-gray-400 disabled:opacity-50"
+                                    className="flex-1 text-[14px] bg-transparent outline-none placeholder:text-gray-400 disabled:opacity-50 tracking-[-0.01em]"
                                 />
-                                <button
+                                <motion.button
                                     onClick={handleSend}
                                     disabled={!inputValue.trim() || isLoading}
-                                    className="w-8 h-8 rounded-lg bg-gray-900 text-white flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors"
+                                    whileHover={{ scale: 1.08 }}
+                                    whileTap={{ scale: 0.92 }}
+                                    className="w-10 h-10 rounded-full flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
+                                    style={{
+                                        background: inputValue.trim() ? 'linear-gradient(135deg, #B3DE16 0%, #9BC914 100%)' : '#e5e7eb',
+                                        boxShadow: inputValue.trim() ? '0 4px 12px rgba(179, 222, 22, 0.35)' : 'none',
+                                    }}
                                 >
-                                    <Send className="w-4 h-4" />
-                                </button>
+                                    <Send className="w-4 h-4 text-gray-900" />
+                                </motion.button>
                             </div>
                         </div>
                     </motion.div>
