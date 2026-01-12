@@ -33,20 +33,20 @@ interface EnrichedGap {
 interface EnrichedATSAnalysis {
   // Core data
   matchScore: number;
-  
+
   // Enriched strengths with context
   strengths: EnrichedStrength[];
-  
+
   // Enriched gaps with resolution strategies
   gaps: EnrichedGap[];
-  
+
   // Keywords with priority distinction
   keywords: {
     missing: string[];
     priority_missing?: string[];  // High-priority keywords to integrate first
     found?: string[];             // Already present, to reinforce
   };
-  
+
   // Pre-generated CV fixes from analysis
   cvFixes?: {
     high_impact_bullets_to_add?: string[];
@@ -55,14 +55,14 @@ interface EnrichedATSAnalysis {
     sections_to_reorder?: string[];
     estimated_score_gain?: number;
   };
-  
+
   // Job understanding from analysis
   jobSummary?: {
     hidden_expectations?: string[];
     core_requirements?: string[];
     mission?: string;
   };
-  
+
   // Strategic positioning guidance
   positioning?: string;
 }
@@ -118,25 +118,25 @@ function formatEnrichedGaps(gaps: EnrichedGap[]): string {
  */
 function formatCVFixes(cvFixes: EnrichedATSAnalysis['cvFixes']): string {
   if (!cvFixes) return 'No specific fixes provided.';
-  
+
   const sections: string[] = [];
-  
+
   if (cvFixes.high_impact_bullets_to_add?.length) {
     sections.push(`**High-Impact Bullets to Add (use these as inspiration):**\n${cvFixes.high_impact_bullets_to_add.map(b => `• ${b}`).join('\n')}`);
   }
-  
+
   if (cvFixes.keywords_to_insert?.length) {
     sections.push(`**Keywords to Insert Strategically:**\n${cvFixes.keywords_to_insert.join(', ')}`);
   }
-  
+
   if (cvFixes.bullets_to_rewrite?.length) {
     sections.push(`**Bullets That Need Rewriting:**\n${cvFixes.bullets_to_rewrite.map(b => `• ${b}`).join('\n')}`);
   }
-  
+
   if (cvFixes.estimated_score_gain) {
     sections.push(`**Estimated Score Gain if Implemented:** +${cvFixes.estimated_score_gain}%`);
   }
-  
+
   return sections.join('\n\n') || 'No specific fixes provided.';
 }
 
@@ -145,21 +145,21 @@ function formatCVFixes(cvFixes: EnrichedATSAnalysis['cvFixes']): string {
  */
 function formatJobSummaryInsights(jobSummary: EnrichedATSAnalysis['jobSummary']): string {
   if (!jobSummary) return '';
-  
+
   const sections: string[] = [];
-  
+
   if (jobSummary.mission) {
     sections.push(`**Mission of this Role:**\n${jobSummary.mission}`);
   }
-  
+
   if (jobSummary.core_requirements?.length) {
     sections.push(`**Core Requirements (must address):**\n${jobSummary.core_requirements.map((r, i) => `${i + 1}. ${r}`).join('\n')}`);
   }
-  
+
   if (jobSummary.hidden_expectations?.length) {
     sections.push(`**🎯 Hidden Expectations (what they REALLY want but don't say):**\n${jobSummary.hidden_expectations.map((e, i) => `${i + 1}. ${e}`).join('\n')}`);
   }
-  
+
   return sections.join('\n\n');
 }
 
@@ -221,13 +221,13 @@ function getLevelSpecificInstructions(level: AdaptationLevel): {
 - Keep the original tone and voice of the candidate
 - Preserve all original metrics and numbers exactly as written
 - Only replace weak verbs if they are very obvious (e.g., "did" → "completed")`,
-        
+
         summaryRules: `### Professional Summary (CONSERVATIVE)
 - Keep the original summary structure and length
 - Only fix grammar and improve clarity slightly
 - Add 1-2 keywords if they fit naturally into existing sentences
 - Do NOT rewrite entirely - just polish what's there`,
-        
+
         strictRules: `### Strict Rules (CONSERVATIVE MODE)
 - PRESERVE the original wording as much as possible (80%+ unchanged)
 - Use ONLY information from the original CV
@@ -236,7 +236,7 @@ function getLevelSpecificInstructions(level: AdaptationLevel): {
 - Never change job titles, company names, or dates
 - If a bullet is already good, LEAVE IT UNCHANGED
 - Only make changes that are absolutely necessary`,
-        
+
         examples: `### Before/After Examples (CONSERVATIVE)
 ORIGINAL: "Worked on improving the sales process"
 CONSERVATIVE: "Worked on improving the sales process using CRM tools"
@@ -250,7 +250,7 @@ ORIGINAL: "Was responsible for managing social media"
 CONSERVATIVE: "Responsible for managing social media accounts"
 (Fixed passive voice slightly, kept most of original)`
       };
-      
+
     case 'balanced':
       return {
         bulletPointRules: `### Bullet Points (BALANCED - Professional Enhancement)
@@ -261,7 +261,7 @@ CONSERVATIVE: "Responsible for managing social media accounts"
 - Keep existing metrics, add context where helpful (e.g., "team of 5" → "cross-functional team of 5")
 - Aim for 15-20 words per bullet point
 - Structure: [Action Verb] + [What] + [Result/Impact]`,
-        
+
         summaryRules: `### Professional Summary (BALANCED - Hook+Proof+Value)
 - REWRITE the summary using Hook+Proof+Value format (40-50 words total):
   * HOOK (10 words): Lead with years of experience + role match
@@ -269,7 +269,7 @@ CONSERVATIVE: "Responsible for managing social media accounts"
   * VALUE (15 words): What you bring to the target company
 - Integrate 3-4 priority keywords naturally
 - Make it compelling but authentic`,
-        
+
         strictRules: `### Strict Rules (BALANCED MODE)
 - Rewrite content professionally while preserving factual accuracy
 - Use ONLY information from the original CV
@@ -278,7 +278,7 @@ CONSERVATIVE: "Responsible for managing social media accounts"
 - Never change job titles, company names, or dates
 - Transform weak bullets into strong ones, but keep the core achievement
 - ALWAYS extract name, firstName, lastName, and professional title from the CV header`,
-        
+
         examples: `### Before/After Examples (BALANCED)
 ORIGINAL: "Worked on improving the sales process"
 BALANCED: "Optimized sales process workflows, contributing to improved team efficiency and revenue growth"
@@ -292,7 +292,7 @@ ORIGINAL: "Was responsible for managing social media"
 BALANCED: "Managed social media strategy across 4 platforms, driving engagement and brand visibility"
 (Action verb, quantification, clear results)`
       };
-      
+
     case 'optimized':
       return {
         bulletPointRules: `### Bullet Points (OPTIMIZED - MAXIMUM TRANSFORMATION)
@@ -306,7 +306,7 @@ BALANCED: "Managed social media strategy across 4 platforms, driving engagement 
 - Each bullet should demonstrate LEADERSHIP, STRATEGY, and MEASURABLE RESULTS
 - Front-load the most impressive achievements
 - Max 22 words per bullet, 4-6 bullets per experience`,
-        
+
         summaryRules: `### Professional Summary (OPTIMIZED - Executive Positioning)
 - COMPLETELY REWRITE as a powerful executive summary (50-60 words):
   * HOOK: Position as the ideal candidate with exact job title match
@@ -316,7 +316,7 @@ BALANCED: "Managed social media strategy across 4 platforms, driving engagement 
 - SATURATE with 5-6 priority keywords
 - Use confident, executive-level language
 - Make it impossible to ignore`,
-        
+
         strictRules: `### Strict Rules (OPTIMIZED MODE - Maximum Impact)
 - REWRITE EVERYTHING - No content should remain in its original form
 - Transform every bullet into a powerful achievement statement
@@ -326,7 +326,7 @@ BALANCED: "Managed social media strategy across 4 platforms, driving engagement 
 - Ensure 20+ keyword mentions across the entire CV
 - Every sentence should demonstrate value and impact
 - ALWAYS extract name, firstName, lastName, and professional title from the CV header`,
-        
+
         examples: `### Before/After Examples (OPTIMIZED)
 ORIGINAL: "Worked on improving the sales process"
 OPTIMIZED: "Spearheaded end-to-end sales process transformation leveraging CRM automation, accelerating pipeline velocity by ~30% and driving revenue growth across the organization"
@@ -340,7 +340,7 @@ ORIGINAL: "Was responsible for managing social media"
 OPTIMIZED: "Pioneered integrated digital marketing strategy spanning 5 social platforms, architecting content campaigns that amplified brand engagement by ~150% and generated ~$200K in attributed pipeline"
 (Executive language, multiple keywords, impressive metrics with estimates)`
       };
-      
+
     default:
       return getLevelSpecificInstructions('balanced');
   }
@@ -356,13 +356,13 @@ function generateCVRewritePrompt(input: CVRewriteInput): string {
   const adaptationLevel = input.adaptationLevel || 'balanced';
   const levelConfig = getLevelConfig(adaptationLevel);
   const levelInstructions = getLevelSpecificInstructions(adaptationLevel);
-  
+
   // Format strengths and gaps concisely
   const strengths = (input.atsAnalysis.strengths || []).map(s => s.name).filter(Boolean).join(', ') || 'None identified';
   const gaps = (input.atsAnalysis.gaps || []).map(g => g.name).filter(Boolean).join(', ') || 'None identified';
 
   // Level-specific keyword integration rules
-  const keywordRules = adaptationLevel === 'conservative' 
+  const keywordRules = adaptationLevel === 'conservative'
     ? `### Keyword Integration (CONSERVATIVE - Light Touch)
 1. SUMMARY: Add 1-2 keywords ONLY if they fit naturally into existing sentences
 2. EXPERIENCES: Add maximum 1 keyword per bullet WHERE IT FITS NATURALLY
@@ -370,14 +370,14 @@ function generateCVRewritePrompt(input: CVRewriteInput): string {
 4. DO NOT force keywords - if it sounds unnatural, skip it
 5. Preserve the candidate's original voice and wording`
     : adaptationLevel === 'balanced'
-    ? `### Keyword Integration (BALANCED - Natural Enhancement)
+      ? `### Keyword Integration (BALANCED - Natural Enhancement)
 1. SUMMARY: Integrate 3-4 priority keywords naturally
 2. EXPERIENCES: Include 2-3 keywords per experience in rewritten bullets
 3. SKILLS: List ALL priority keywords in skills section
 4. PLACEMENT: Front-load keywords in the first 2 experiences
 5. Rephrase bullets to include keywords while maintaining authenticity
    Example: "Managed team" → "Led cross-functional team using Agile methodologies"`
-    : `### Keyword Integration (OPTIMIZED - MAXIMUM SATURATION)
+      : `### Keyword Integration (OPTIMIZED - MAXIMUM SATURATION)
 1. SUMMARY: SATURATE with 5-6 priority keywords - make it keyword-rich
 2. EXPERIENCES: Include 3-4 keywords PER BULLET - maximize keyword density
 3. SKILLS: List ALL priority keywords + secondary keywords
@@ -516,25 +516,42 @@ async function callOpenAIForRewrite(prompt: string): Promise<any> {
   }
 
   const data = await response.json();
-  
+
   // The /api/chatgpt endpoint returns: { status: 'success', content: {...} }
   if (data.status === 'error') {
     throw new Error(data.message || 'CV generation failed');
   }
-  
+
   // Extract content
   let content = data.content;
-  
+
   // If content is a string, parse it as JSON
   if (typeof content === 'string') {
     try {
-      content = JSON.parse(content);
+      // Strip markdown code blocks if present (AI sometimes wraps JSON in ```json...```)
+      let cleanedContent = content.trim();
+
+      // Remove ```json or ``` at the start
+      if (cleanedContent.startsWith('```json')) {
+        cleanedContent = cleanedContent.slice(7);
+      } else if (cleanedContent.startsWith('```')) {
+        cleanedContent = cleanedContent.slice(3);
+      }
+
+      // Remove ``` at the end
+      if (cleanedContent.endsWith('```')) {
+        cleanedContent = cleanedContent.slice(0, -3);
+      }
+
+      cleanedContent = cleanedContent.trim();
+
+      content = JSON.parse(cleanedContent);
     } catch (e) {
       console.error('Failed to parse CV rewrite response:', content);
       throw new Error('Failed to parse CV rewrite response as JSON');
     }
   }
-  
+
   return content;
 }
 
@@ -543,28 +560,28 @@ async function callOpenAIForRewrite(prompt: string): Promise<any> {
  */
 function rebuildMarkdownFromStructured(structuredData: any): string {
   const { personalInfo, summary, experience, education, skills, certifications, languages, hobbies } = structuredData;
-  
+
   const lines: string[] = [];
-  
+
   // Header
   const name = personalInfo?.name || `${personalInfo?.firstName || ''} ${personalInfo?.lastName || ''}`.trim() || 'Your Name';
   lines.push(`# ${name}`);
-  
+
   if (personalInfo?.title) lines.push(`Professional Title: ${personalInfo.title}`);
   if (personalInfo?.location) lines.push(`Location: ${personalInfo.location}`);
   if (personalInfo?.email) lines.push(`Email: ${personalInfo.email}`);
   if (personalInfo?.phone) lines.push(`Phone: ${personalInfo.phone}`);
   if (personalInfo?.linkedin) lines.push(`LinkedIn: ${personalInfo.linkedin}`);
-  
+
   lines.push('');
-  
+
   // Summary
   if (summary) {
     lines.push('## Professional Summary');
     lines.push(summary);
     lines.push('');
   }
-  
+
   // Experiences
   if (experience && experience.length > 0) {
     lines.push('## Professional Experience');
@@ -574,7 +591,7 @@ function rebuildMarkdownFromStructured(structuredData: any): string {
       const companyDisplay = exp.client ? exp.client : (exp.company || 'Unknown');
       const companySuffix = exp.client && exp.company && exp.company !== exp.client ? ` (via ${exp.company})` : '';
       lines.push(`### ${exp.title} - ${companyDisplay}${companySuffix}`);
-      const period = exp.isCurrent 
+      const period = exp.isCurrent
         ? `${exp.startDate} – Present`
         : `${exp.startDate} – ${exp.endDate}`;
       lines.push(period);
@@ -586,7 +603,7 @@ function rebuildMarkdownFromStructured(structuredData: any): string {
       lines.push('');
     });
   }
-  
+
   // Education
   if (education && education.length > 0) {
     lines.push('## Education');
@@ -602,17 +619,17 @@ function rebuildMarkdownFromStructured(structuredData: any): string {
       lines.push('');
     });
   }
-  
+
   // Skills
   if (skills && skills.length > 0) {
     lines.push('## Skills');
-    const skillsList = Array.isArray(skills) 
+    const skillsList = Array.isArray(skills)
       ? skills.map((s: any) => typeof s === 'string' ? s : s.name).join(', ')
       : skills;
     lines.push(skillsList);
     lines.push('');
   }
-  
+
   // Certifications
   if (certifications && certifications.length > 0) {
     lines.push('## Certifications');
@@ -629,7 +646,7 @@ function rebuildMarkdownFromStructured(structuredData: any): string {
       lines.push('');
     });
   }
-  
+
   // Languages
   if (languages && languages.length > 0) {
     lines.push('## Languages');
@@ -640,14 +657,14 @@ function rebuildMarkdownFromStructured(structuredData: any): string {
     });
     lines.push('');
   }
-  
+
   // Hobbies
   if (hobbies && hobbies.length > 0) {
     lines.push('## Hobbies & Interests');
     const hobbiesList = Array.isArray(hobbies) ? hobbies.join(', ') : hobbies;
     lines.push(hobbiesList);
   }
-  
+
   return lines.join('\n').trim();
 }
 
@@ -659,11 +676,11 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
   const { parseCVData } = await import('./cvSectionAI');
   const { rewriteSingleExperience } = await import('./experienceRewriter');
   const { extractFullProfileFromText } = await import('./cvExperienceExtractor');
-  
+
   // Get adaptation level (default to balanced)
   const adaptationLevel = input.adaptationLevel || 'balanced';
   console.log(`🎚️ Adaptation Level: ${adaptationLevel.toUpperCase()}`);
-  
+
   // 1. STEP 1: Use AI to extract and structure the original CV properly
   // This is CRITICAL for accurate before/after comparison
   console.log('🔍 Step 1: Extracting original CV structure with AI...');
@@ -696,17 +713,17 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
       languages: parsed.languages || [],
     };
   }
-  
+
   // Map extracted experiences to the format used by the rest of the code
   // IMPORTANT: Store original bullets in a SEPARATE copy to avoid mutation issues
   const originalExperiences = (extractedOriginal.experiences || []).map((exp: any, idx: number) => {
     // Get bullets from multiple possible field names
     const rawBullets = exp.responsibilities || exp.bullets || exp.achievements || exp.description || [];
     // Create a defensive copy to prevent any potential mutation
-    const bulletsCopy = Array.isArray(rawBullets) 
-      ? [...rawBullets.map((b: string) => String(b))] 
+    const bulletsCopy = Array.isArray(rawBullets)
+      ? [...rawBullets.map((b: string) => String(b))]
       : [];
-    
+
     return {
       id: `exp-${idx}`,
       title: exp.title || '',
@@ -720,7 +737,7 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
       description: bulletsCopy,
     };
   });
-  
+
   console.log(`📊 CV Original: ${originalExperiences.length} expériences détectées`);
   originalExperiences.forEach((exp: any, idx: number) => {
     console.log(`   [${idx}] ${exp.title} at ${exp.company} - ${exp.bullets?.length || 0} bullets`);
@@ -728,15 +745,15 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
       console.log(`      First bullet: "${exp.bullets[0]?.substring(0, 60)}..."`);
     }
   });
-  
+
   // 2. STEP 2: Generate the AI-rewritten CV
   console.log('✍️ Step 2: Generating AI-rewritten CV...');
   const prompt = generateCVRewritePrompt(input);
   const result = await callOpenAIForRewrite(prompt);
-  
+
   // 3. Vérifier que toutes les expériences ont été réécrites
   let rewrittenExperiences: any[] = [];
-  
+
   // Try to get experiences from structured_data first
   if (result.structured_data?.experiences && Array.isArray(result.structured_data.experiences)) {
     rewrittenExperiences = result.structured_data.experiences;
@@ -745,12 +762,12 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
     const parsedRewritten = parseCVData(result);
     rewrittenExperiences = parsedRewritten.experience || [];
   }
-  
+
   // 4. Vérifier le nombre d'expériences
   console.log(`📊 CV Réécrit: ${rewrittenExperiences.length} expériences détectées`,
     rewrittenExperiences.map((exp: any) => `${exp.title} at ${exp.company}`)
   );
-  
+
   // Helper function for fuzzy company matching
   // Handles cases where AI enhances company name (e.g., "Silae" -> "Silae (B2B SaaS)")
   const normalizeCompany = (company: string) => {
@@ -758,101 +775,101 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
     // Remove parenthetical additions and normalize
     return company.toLowerCase().replace(/\s*\([^)]*\)\s*/g, '').trim();
   };
-  
+
   const fuzzyCompanyMatch = (company1: string, company2: string) => {
     const norm1 = normalizeCompany(company1);
     const norm2 = normalizeCompany(company2);
     // Exact match after normalization, or one contains the other
-    return norm1 === norm2 || 
-           norm1.includes(norm2) || 
-           norm2.includes(norm1) ||
-           // Handle "Unknown Company" or empty companies
-           !norm1 || !norm2;
+    return norm1 === norm2 ||
+      norm1.includes(norm2) ||
+      norm2.includes(norm1) ||
+      // Handle "Unknown Company" or empty companies
+      !norm1 || !norm2;
   };
-  
+
   if (originalExperiences.length !== rewrittenExperiences.length) {
     console.warn(
       `⚠️ Experience count mismatch: ${originalExperiences.length} original vs ${rewrittenExperiences.length} rewritten`
     );
     console.warn('Original experiences:', originalExperiences.map((e: any) => `${e.title} - ${e.company}`));
     console.warn('Rewritten experiences:', rewrittenExperiences.map((e: any) => `${e.title} - ${e.company}`));
-    
+
     // Only try to add missing experiences if rewritten count is LESS than original
     // If AI generated MORE experiences, it likely added relevant ones - don't create duplicates
     if (rewrittenExperiences.length < originalExperiences.length) {
       console.log(`📝 Rewritten has fewer experiences, checking for missing ones...`);
-    
-    // Réécrire les expériences manquantes une par une
-    for (const exp of originalExperiences) {
+
+      // Réécrire les expériences manquantes une par une
+      for (const exp of originalExperiences) {
         // Use fuzzy matching to handle enhanced company names
-      const exists = rewrittenExperiences.find(
-        (r: any) => 
+        const exists = rewrittenExperiences.find(
+          (r: any) =>
             r.title?.toLowerCase().includes(exp.title?.toLowerCase().split(' ')[0]) && // Match first word of title
             fuzzyCompanyMatch(r.company, exp.company)
-      );
-      
-      if (!exists) {
-        console.log(`Rewriting missing experience: ${exp.title} at ${exp.company}`);
-        try {
-          const rewritten = await rewriteSingleExperience({
-            experience: {
+        );
+
+        if (!exists) {
+          console.log(`Rewriting missing experience: ${exp.title} at ${exp.company}`);
+          try {
+            const rewritten = await rewriteSingleExperience({
+              experience: {
+                title: exp.title,
+                company: exp.company,
+                startDate: exp.startDate || '',
+                endDate: exp.endDate || '',
+                bullets: exp.bullets || exp.description || [],
+              },
+              jobContext: {
+                jobTitle: input.jobTitle,
+                company: input.company,
+                jobDescription: input.jobDescription,
+                keywords: [
+                  ...(input.atsAnalysis.keywords.priority_missing || []),
+                  ...input.atsAnalysis.keywords.missing.slice(0, 20)
+                ],
+              },
+              allExperiences: rewrittenExperiences,
+            });
+
+            rewrittenExperiences.push({
+              id: `exp-${rewrittenExperiences.length}`,
               title: exp.title,
               company: exp.company,
               startDate: exp.startDate || '',
               endDate: exp.endDate || '',
+              isCurrent: exp.isCurrent || /present|current/i.test(exp.endDate || ''),
+              bullets: rewritten.bullets,
+              order: rewrittenExperiences.length,
+            });
+          } catch (error) {
+            console.error(`Failed to rewrite experience ${exp.title}:`, error);
+            // Add original experience as fallback
+            rewrittenExperiences.push({
+              id: `exp-${rewrittenExperiences.length}`,
+              ...exp,
               bullets: exp.bullets || exp.description || [],
-            },
-            jobContext: {
-              jobTitle: input.jobTitle,
-              company: input.company,
-              jobDescription: input.jobDescription,
-              keywords: [
-                ...(input.atsAnalysis.keywords.priority_missing || []),
-                ...input.atsAnalysis.keywords.missing.slice(0, 20)
-              ],
-            },
-            allExperiences: rewrittenExperiences,
-          });
-          
-          rewrittenExperiences.push({
-            id: `exp-${rewrittenExperiences.length}`,
-            title: exp.title,
-            company: exp.company,
-            startDate: exp.startDate || '',
-            endDate: exp.endDate || '',
-            isCurrent: exp.isCurrent || /present|current/i.test(exp.endDate || ''),
-            bullets: rewritten.bullets,
-            order: rewrittenExperiences.length,
-          });
-        } catch (error) {
-          console.error(`Failed to rewrite experience ${exp.title}:`, error);
-          // Add original experience as fallback
-          rewrittenExperiences.push({
-            id: `exp-${rewrittenExperiences.length}`,
-            ...exp,
-            bullets: exp.bullets || exp.description || [],
-            order: rewrittenExperiences.length,
-          });
+              order: rewrittenExperiences.length,
+            });
+          }
         }
-      }
       }
     } else {
       console.log(`📝 Rewritten has ${rewrittenExperiences.length} experiences (>= original ${originalExperiences.length}), skipping missing check to avoid duplicates`);
     }
   }
-  
+
   // 5. Parse the rewritten result for building structured_data
   const parsedRewritten = parseCVData(result);
   // Note: finalMarkdown no longer used since we store original CV text directly
-  
+
   // 6. Construire structured_data complet et robuste
   // Utiliser structured_data du résultat si disponible, sinon construire depuis parsedRewritten
   let finalStructuredData = result.structured_data;
-  
+
   if (!finalStructuredData || !finalStructuredData.experiences || finalStructuredData.experiences.length !== rewrittenExperiences.length) {
     // Construire structured_data depuis les données parsées
     console.log('🔧 Construction de structured_data depuis les données parsées...');
-    
+
     finalStructuredData = {
       personalInfo: parsedRewritten.personalInfo || extractedOriginal.personalInfo || {},
       summary: parsedRewritten.summary || extractedOriginal.summary || '',
@@ -905,10 +922,10 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
       }),
       hobbies: parsedRewritten.hobbies || [],
     };
-    
+
     console.log(`✅ structured_data construit: ${finalStructuredData.experiences.length} expériences, ${finalStructuredData.educations.length} éducations`);
   }
-  
+
   // 7. Validation finale
   const validation = {
     original_experiences_count: originalExperiences.length,
@@ -916,29 +933,29 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
     original_educations_count: (extractedOriginal.educations || []).length,
     rewritten_educations_count: finalStructuredData.educations.length,
     match: originalExperiences.length === finalStructuredData.experiences.length &&
-           (extractedOriginal.educations || []).length === finalStructuredData.educations.length,
+      (extractedOriginal.educations || []).length === finalStructuredData.educations.length,
   };
-  
+
   if (!validation.match) {
     console.warn('⚠️ Validation échouée:', validation);
   } else {
     console.log('✅ Validation réussie:', validation);
   }
-  
+
   // Build original structured data from AI-extracted data for before/after comparison
   // CRITICAL: Use ORIGINAL bullets (not rewritten) for proper comparison
   // Use the SAME IDs as finalStructuredData for reliable matching in comparison
   // Note: Firestore doesn't accept undefined values, so we use empty strings or omit fields
-  
+
   console.log('🔧 Building original_structured_data for before/after comparison...');
-  
+
   const originalStructuredData = {
     personalInfo: extractedOriginal.personalInfo || {},
     summary: extractedOriginal.summary || '',
     experiences: originalExperiences.map((exp: any, idx: number) => {
       // Use the same ID as the corresponding rewritten experience for perfect matching
       const matchingRewrittenId = finalStructuredData.experiences[idx]?.id || `exp-${idx}`;
-      
+
       // CRITICAL: Use originalBullets (the clean copy) to ensure original data
       // This prevents any potential mutation issues where bullets could be overwritten
       const bulletsArray = Array.isArray(exp.originalBullets) && exp.originalBullets.length > 0
@@ -946,7 +963,7 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
         : Array.isArray(exp.bullets) && exp.bullets.length > 0
           ? [...exp.bullets]
           : [];
-      
+
       // DEBUG: Log what we're storing vs what's in rewritten
       const rewrittenBullets = finalStructuredData.experiences[idx]?.bullets || [];
       console.log(`   [${idx}] "${exp.title}" at "${exp.company}":`);
@@ -960,7 +977,7 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
           console.log(`      ✅ Bullets are different (original vs rewritten)`);
         }
       }
-      
+
       const experience: any = {
         id: matchingRewrittenId, // Same ID as rewritten for comparison matching
         title: exp.title || '',
@@ -974,7 +991,7 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
       // Only add optional fields if they have values
       if (exp.client) experience.client = exp.client;
       if (exp.location) experience.location = exp.location;
-      
+
       return experience;
     }),
     educations: (extractedOriginal.educations || []).map((edu: any, idx: number) => {
@@ -1003,7 +1020,7 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
     certifications: extractedOriginal.certifications || [],
     hobbies: extractedOriginal.hobbies || [], // Store hobbies separately from experiences
   };
-  
+
   console.log(`✅ Original structured data built: ${originalStructuredData.experiences.length} experiences, ${originalStructuredData.educations.length} educations`);
   // Debug: Log bullet counts for comparison debugging
   originalStructuredData.experiences.forEach((exp: any, idx: number) => {
@@ -1012,7 +1029,7 @@ export async function generateCVRewrite(input: CVRewriteInput): Promise<CVRewrit
   finalStructuredData.experiences.forEach((exp: any, idx: number) => {
     console.log(`   Rewritten[${idx}] ID: ${exp.id}, "${exp.title}" at "${exp.company}" - ${exp.bullets?.length || 0} bullets`);
   });
-  
+
   return {
     adaptationLevel, // Track which level was used for this rewrite
     analysis: result.analysis || {
@@ -1059,11 +1076,11 @@ ${cvContent}`;
   }
 
   const data = await response.json();
-  
+
   if (data.status === 'error') {
     throw new Error(data.message || 'Translation failed');
   }
-  
+
   // Extract the translated content
   let content = data.content;
   if (typeof content === 'string') {
@@ -1074,7 +1091,7 @@ ${cvContent}`;
       return content;
     }
   }
-  
+
   return content.translated_text || content.content || content || '';
 }
 

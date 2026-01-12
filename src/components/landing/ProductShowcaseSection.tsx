@@ -98,48 +98,51 @@ export default function ProductShowcaseSection() {
 
     return (
         <section
-            className="relative pt-10 md:pt-12 lg:pt-14 pb-12 md:pb-16 lg:pb-20 overflow-hidden"
-            style={{
-                background: 'linear-gradient(180deg, #0a0a0a 0%, #111111 50%, #0a0a0a 100%)',
-            }}
+            className="relative pt-10 md:pt-12 lg:pt-14 pb-12 md:pb-16 lg:pb-20 overflow-hidden bg-black"
         >
-            {/* Grain Texture Overlay */}
-            <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-                    opacity: 0.03,
-                }}
-            />
 
             {/* Content Container */}
             <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-8">
-                {/* Horizontal Tab Navigation */}
-                <div className="flex justify-center gap-2 md:gap-4 mb-10 md:mb-14">
-                    {showcaseFeatures.map((feature, index) => (
-                        <button
-                            key={feature.id}
-                            onClick={() => setActiveIndex(index)}
-                            className={`relative px-4 md:px-6 py-2.5 md:py-3 rounded-full text-sm md:text-base font-medium transition-all duration-300 ${activeIndex === index
-                                ? 'text-white'
-                                : 'text-white/40 hover:text-white/70'
-                                }`}
-                        >
-                            {/* Active background */}
-                            {activeIndex === index && (
-                                <motion.div
-                                    layoutId="activeTab"
-                                    className="absolute inset-0 rounded-full"
-                                    style={{
-                                        background: 'rgba(255, 255, 255, 0.1)',
-                                        border: '1px solid rgba(255, 255, 255, 0.15)',
-                                    }}
-                                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                                />
-                            )}
-                            <span className="relative z-10">{feature.label}</span>
-                        </button>
-                    ))}
+                {/* Premium Horizontal Tab Navigation - Scrollable on mobile */}
+                <div className="flex justify-center mb-10 md:mb-14 -mx-6 px-6 md:mx-0 md:px-0">
+                    <div
+                        className="inline-flex items-center gap-1 p-1.5 rounded-full overflow-x-auto scrollbar-hide max-w-full"
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            backdropFilter: 'blur(12px)',
+                            WebkitBackdropFilter: 'blur(12px)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none',
+                            WebkitOverflowScrolling: 'touch',
+                        }}
+                    >
+                        {showcaseFeatures.map((feature, index) => (
+                            <button
+                                key={feature.id}
+                                onClick={() => setActiveIndex(index)}
+                                className={`relative px-4 md:px-7 py-2.5 md:py-3 rounded-full text-[13px] md:text-[14px] font-medium transition-all duration-400 tracking-tight whitespace-nowrap flex-shrink-0 ${activeIndex === index
+                                    ? 'text-white'
+                                    : 'text-white/40 hover:text-white/60'
+                                    }`}
+                            >
+                                {/* Active background with subtle gradient */}
+                                {activeIndex === index && (
+                                    <motion.div
+                                        layoutId="activeShowcaseTab"
+                                        className="absolute inset-0 rounded-full"
+                                        style={{
+                                            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%)',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                                        }}
+                                        transition={{ type: 'spring', bounce: 0.15, duration: 0.5 }}
+                                    />
+                                )}
+                                <span className="relative z-10">{feature.label}</span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Feature Content with Animation */}

@@ -148,7 +148,7 @@ export default function PricingSection() {
     >
       {tier.popular && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="px-4 py-1.5 bg-[#2667ff] text-white text-[11px] font-medium rounded-full uppercase tracking-wider whitespace-nowrap">
+          <span className="px-4 py-1.5 text-white text-[11px] font-medium rounded-full uppercase tracking-wider whitespace-nowrap" style={{ backgroundColor: '#220041' }}>
             Most Popular
           </span>
         </div>
@@ -184,9 +184,10 @@ export default function PricingSection() {
       <Link
         to="/signup"
         className={`w-full py-3 rounded-xl text-sm font-semibold transition-all text-center mb-5 block ${tier.popular
-          ? 'bg-[#2667ff] text-white hover:bg-[#1a4fd9]'
+          ? 'text-white hover:opacity-90'
           : 'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50'
           }`}
+        style={tier.popular ? { backgroundColor: '#220041' } : undefined}
       >
         {tier.cta}
       </Link>
@@ -199,7 +200,7 @@ export default function PricingSection() {
         <ul className="space-y-2">
           {tier.features.slice(0, isMobile ? 5 : tier.features.length).map((feature) => (
             <li key={feature} className="group relative flex items-start gap-2 text-[13px] leading-tight text-gray-600">
-              <span className="mt-0.5 flex-shrink-0 text-[#3f8efc]">
+              <span className="mt-0.5 flex-shrink-0" style={{ color: '#220041' }}>
                 <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
@@ -246,7 +247,7 @@ export default function PricingSection() {
                   }`}
               >
                 <span>Pay every 2 months</span>
-                <span className="text-[#2667ff] font-medium">save ~10%</span>
+                <span className="font-medium" style={{ color: '#220041' }}>save ~10%</span>
               </button>
             </div>
           </div>

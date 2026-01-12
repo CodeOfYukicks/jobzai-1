@@ -115,7 +115,14 @@ function HeroFeatureCard() {
           {/* Label + Badge */}
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm font-medium text-gray-500">AI Campaigns</span>
-            <span className="px-2.5 py-1 text-xs font-semibold bg-[#add7f6] text-[#2667ff] rounded-full">
+            <span
+              className="px-2.5 py-0.5 text-[10px] font-medium tracking-wide uppercase rounded-full"
+              style={{
+                background: 'linear-gradient(135deg, rgba(34, 0, 65, 0.08) 0%, rgba(34, 0, 65, 0.04) 100%)',
+                color: '#220041',
+                border: '1px solid rgba(34, 0, 65, 0.1)'
+              }}
+            >
               New
             </span>
           </div>
@@ -166,9 +173,8 @@ function HeroFeatureCard() {
         </div>
 
         {/* Right Preview */}
-        <div className="relative bg-gradient-to-br from-[#add7f6]/30 to-[#87bfff]/40 min-h-[520px]">
-          <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-b from-[#87bfff]/40 via-[#3f8efc]/30 to-[#87bfff]/40"
-            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M0 30 Q15 20 30 30 T60 30\' fill=\'none\' stroke=\'%2310b981\' stroke-width=\'2\' opacity=\'0.3\'/%3E%3C/svg%3E")', backgroundRepeat: 'repeat-y' }} />
+        <div className="relative min-h-[520px]" style={{ background: 'linear-gradient(135deg, rgba(223, 189, 255, 0.3) 0%, rgba(223, 189, 255, 0.4) 100%)' }}>
+          <div className="absolute left-0 top-0 bottom-0 w-16" style={{ background: 'linear-gradient(180deg, rgba(223, 189, 255, 0.4) 0%, rgba(34, 0, 65, 0.15) 50%, rgba(223, 189, 255, 0.4) 100%)' }} />
           <div className="absolute top-6 bottom-6 left-10 right-0 bg-zinc-950 rounded-l-xl shadow-lg overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-2.5 bg-[#fafafa] border-b border-gray-100">
               <div className="flex gap-1.5">
@@ -204,7 +210,7 @@ function HeroFeatureCard() {
                 ) : (
                   <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
                     <div className="text-center">
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-emerald-100 flex items-center justify-center">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(223, 189, 255, 0.5)' }}>
                         <span className="text-2xl">??</span>
                       </div>
                       <p className="text-sm text-gray-400">{activeFeatureData?.title}</p>
@@ -224,7 +230,14 @@ function HeroFeatureCard() {
         <div className="p-5 pb-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-sm font-medium text-gray-500">AI Campaigns</span>
-            <span className="px-2 py-0.5 text-xs font-semibold bg-[#add7f6] text-[#2667ff] rounded-full">
+            <span
+              className="px-2.5 py-0.5 text-[10px] font-medium tracking-wide uppercase rounded-full"
+              style={{
+                background: 'linear-gradient(135deg, rgba(34, 0, 65, 0.08) 0%, rgba(34, 0, 65, 0.04) 100%)',
+                color: '#220041',
+                border: '1px solid rgba(34, 0, 65, 0.1)'
+              }}
+            >
               New
             </span>
           </div>
@@ -324,7 +337,14 @@ function SecondaryFeatureCard() {
         <div className="p-8 flex flex-col">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm font-medium text-gray-500">CV Rewrite</span>
-            <span className="px-2.5 py-1 text-xs font-semibold bg-[#add7f6] text-[#2667ff] rounded-full">
+            <span
+              className="px-2.5 py-0.5 text-[10px] font-medium tracking-wide uppercase rounded-full"
+              style={{
+                background: 'linear-gradient(135deg, rgba(34, 0, 65, 0.08) 0%, rgba(34, 0, 65, 0.04) 100%)',
+                color: '#220041',
+                border: '1px solid rgba(34, 0, 65, 0.1)'
+              }}
+            >
               New update
             </span>
           </div>
@@ -340,8 +360,8 @@ function SecondaryFeatureCard() {
           </Link>
         </div>
 
-        <div className="relative bg-gradient-to-br from-[#add7f6]/30 to-[#87bfff]/40 min-h-[380px]">
-          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-b from-[#87bfff]/50 via-[#3f8efc]/30 to-[#87bfff]/50" />
+        <div className="relative min-h-[380px]" style={{ background: 'linear-gradient(135deg, rgba(223, 189, 255, 0.3) 0%, rgba(223, 189, 255, 0.4) 100%)' }}>
+          <div className="absolute left-0 top-0 bottom-0 w-12" style={{ background: 'linear-gradient(180deg, rgba(223, 189, 255, 0.5) 0%, rgba(34, 0, 65, 0.15) 50%, rgba(223, 189, 255, 0.5) 100%)' }} />
           <div className="absolute top-6 bottom-6 left-8 right-6 rounded-xl shadow-lg overflow-hidden bg-white">
             {isLoading ? (
               <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
@@ -351,12 +371,12 @@ function SecondaryFeatureCard() {
               <img
                 src={imageUrl}
                 alt="CV Rewrite feature preview"
-                className="w-full h-full object-contain bg-[#e8f4fd]"
+                className="w-full h-full object-contain" style={{ backgroundColor: 'rgba(223, 189, 255, 0.15)' }}
               />
             ) : (
               <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
                 <div className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#add7f6] flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(223, 189, 255, 0.5)' }}>
                     <FileText className="w-8 h-8 text-[#2667ff]" />
                   </div>
                   <p className="text-sm text-gray-400">CV Rewrite Demo</p>
@@ -377,7 +397,14 @@ function SecondaryFeatureCard() {
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-sm font-medium text-gray-500">CV Rewrite</span>
-              <span className="px-2 py-0.5 text-xs font-semibold bg-[#add7f6] text-[#2667ff] rounded-full">
+              <span
+                className="px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase rounded-full"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(34, 0, 65, 0.08) 0%, rgba(34, 0, 65, 0.04) 100%)',
+                  color: '#220041',
+                  border: '1px solid rgba(34, 0, 65, 0.1)'
+                }}
+              >
                 New
               </span>
             </div>
@@ -439,7 +466,14 @@ function MockInterviewCard() {
         <div className="p-8 flex flex-col">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm font-medium text-gray-500">Mock Interview</span>
-            <span className="px-2.5 py-1 text-xs font-semibold bg-[#add7f6] text-[#2667ff] rounded-full">
+            <span
+              className="px-2.5 py-0.5 text-[10px] font-medium tracking-wide uppercase rounded-full"
+              style={{
+                background: 'linear-gradient(135deg, rgba(34, 0, 65, 0.08) 0%, rgba(34, 0, 65, 0.04) 100%)',
+                color: '#220041',
+                border: '1px solid rgba(34, 0, 65, 0.1)'
+              }}
+            >
               AI Powered
             </span>
           </div>
@@ -497,7 +531,14 @@ function MockInterviewCard() {
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-sm font-medium text-gray-500">Mock Interview</span>
-              <span className="px-2 py-0.5 text-xs font-semibold bg-[#add7f6] text-[#2667ff] rounded-full">
+              <span
+                className="px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase rounded-full"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(34, 0, 65, 0.08) 0%, rgba(34, 0, 65, 0.04) 100%)',
+                  color: '#220041',
+                  border: '1px solid rgba(34, 0, 65, 0.1)'
+                }}
+              >
                 AI
               </span>
             </div>
@@ -841,14 +882,18 @@ function SavingsCalculator() {
               key={tool.id}
               onClick={() => toggleTool(tool.id)}
               className={`flex items-center gap-3 p-3 md:p-3 rounded-xl border transition-all duration-200 text-left ${selectedTools.includes(tool.id)
-                ? 'border-[#3f8efc] bg-[#add7f6]/30'
+                ? 'bg-[#DFBDFF]/20'
                 : 'border-gray-200 hover:border-gray-300 bg-white'
                 }`}
+              style={selectedTools.includes(tool.id) ? { borderColor: '#DFBDFF' } : undefined}
             >
-              <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${selectedTools.includes(tool.id)
-                ? 'bg-[#2667ff]'
-                : 'border-2 border-gray-300'
-                }`}>
+              <div
+                className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${selectedTools.includes(tool.id)
+                  ? ''
+                  : 'border-2 border-gray-300'
+                  }`}
+                style={selectedTools.includes(tool.id) ? { backgroundColor: '#220041' } : undefined}
+              >
                 {selectedTools.includes(tool.id) && (
                   <Check className="w-3 h-3 text-white" />
                 )}
@@ -864,7 +909,7 @@ function SavingsCalculator() {
 
       {/* Savings Display - More compact on mobile */}
       <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-gray-200">
-        <div className="bg-gray-50 rounded-2xl p-4 md:p-6">
+        <div className="rounded-2xl p-4 md:p-6" style={{ backgroundColor: '#f6f5f4' }}>
           <div className="grid grid-cols-2 gap-4 md:gap-8">
             <div className="text-center md:text-left">
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Monthly savings</p>
@@ -1284,8 +1329,8 @@ export default function FeatureSection() {
           viewport={{ once: true }}
           className="mb-6 md:mb-10"
         >
-          <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
-            Job search, rebuilt from the ground up.
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
+            The future of job search.
           </h2>
         </motion.div>
 

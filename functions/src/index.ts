@@ -4408,18 +4408,27 @@ app.post('/api/perplexity', async (req: any, res: any) => {
 app.post('/api/chat-fast', async (req: any, res: any) => {
   console.log('⚡ Chat Fast API called');
   try {
-    const { prompt, systemMessage, temperature = 0.7, max_tokens = 1000 } = req.body;
+    const { prompt, systemMessage, messages: incomingMessages, temperature = 0.7, max_tokens = 1000 } = req.body;
 
     const apiKey = await getOpenAIApiKey();
     if (!apiKey) {
       return res.status(500).json({ error: 'OpenAI API key not configured' });
     }
 
-    const messages = [];
-    if (systemMessage) {
-      messages.push({ role: 'system', content: systemMessage });
+    // Support both formats: messages array (new) or prompt/systemMessage (legacy)
+    let messages = [];
+    if (incomingMessages && Array.isArray(incomingMessages) && incomingMessages.length > 0) {
+      // New format: messages array from landing assistant
+      messages = incomingMessages;
+    } else if (prompt) {
+      // Legacy format: prompt and optional systemMessage
+      if (systemMessage) {
+        messages.push({ role: 'system', content: systemMessage });
+      }
+      messages.push({ role: 'user', content: prompt });
+    } else {
+      return res.status(400).json({ error: 'Either messages array or prompt is required' });
     }
-    messages.push({ role: 'user', content: prompt });
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
