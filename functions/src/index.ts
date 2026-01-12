@@ -33,6 +33,7 @@ export { backfillJobsV5Manual, backfillUserEmbeddings } from './backfillJobsV5';
 // 🚀 NEW: Queue-based ATS job fetching architecture
 // Scalable, fault-tolerant system for fetching jobs from multiple ATS sources
 export { scheduleFetchJobs } from './schedulers/fetchJobsScheduler';
+export { refreshMonthlyCredits } from './schedulers/creditRefreshScheduler';
 export { fetchJobsWorker } from './workers/fetchJobsWorker';
 export { enrichSkillsWorker } from './workers/enrichSkillsWorker';
 
@@ -1771,7 +1772,7 @@ export const createCheckoutSession = onRequest({
   }
 
   try {
-    const { userId, planId, planName, price, credits, type, successUrl, cancelUrl } = req.body;
+    const { userId, planId, planName, price, credits, type, successUrl, cancelUrl, billingInterval } = req.body;
 
     // Validation
     if (!userId || !planId || !price) {
@@ -1802,7 +1803,7 @@ export const createCheckoutSession = onRequest({
         // Create product if it doesn't exist
         product = await stripe.products.create({
           name: `${planName} Plan`,
-          description: `JobzAI ${planName} Plan - ${credits} credits per month`,
+          description: `Cubbbe ${planName} Plan - ${credits} credits per month`,
           metadata: {
             planId,
             credits: credits.toString(),
@@ -1816,9 +1817,17 @@ export const createCheckoutSession = onRequest({
         limit: 100,
       });
 
+      // Determine billing interval (1 = monthly, 2 = bi-monthly)
+      const intervalCount = billingInterval === 2 ? 2 : 1;
+      console.log(`[Stripe] Looking for price: ${priceInCents} cents, interval_count: ${intervalCount}`);
+
       let existingPrice = prices.data.find(
-        p => p.unit_amount === priceInCents && p.recurring?.interval === 'month'
+        p => p.unit_amount === priceInCents &&
+          p.recurring?.interval === 'month' &&
+          (p.recurring?.interval_count || 1) === intervalCount
       );
+
+      console.log(`[Stripe] Found existing price: ${existingPrice ? existingPrice.id : 'none'}, creating new: ${!existingPrice}`);
 
       if (!existingPrice) {
         existingPrice = await stripe.prices.create({
@@ -1827,10 +1836,12 @@ export const createCheckoutSession = onRequest({
           currency: 'eur',
           recurring: {
             interval: 'month',
+            interval_count: intervalCount,
           },
           metadata: {
             planId,
             credits: credits.toString(),
+            billingInterval: intervalCount.toString(),
           },
         });
       }
@@ -1844,7 +1855,7 @@ export const createCheckoutSession = onRequest({
       if (!product) {
         product = await stripe.products.create({
           name: `${credits} Credits`,
-          description: `JobzAI Credit Package - ${credits} credits`,
+          description: `Cubbbe Credit Package - ${credits} credits`,
           metadata: {
             type: 'credit_package',
             packageId: planId,
@@ -2063,6 +2074,7 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
         stripeSubscriptionId: session.subscription as string || null,
         paymentStatus: 'active',
         lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
+        lastCreditRefresh: admin.firestore.FieldValue.serverTimestamp(),
       });
 
       // Record credit history

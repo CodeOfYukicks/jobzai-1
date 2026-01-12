@@ -399,6 +399,7 @@ export default function BillingPage() {
         credits: plan.creditsValue,
         type: 'plan',
         customerEmail: currentUser.email || undefined,
+        billingInterval: isBiMonthly ? 2 : 1,
       });
       toast.success('Redirecting to payment...', { id: 'checkout' });
     } catch (error: any) {

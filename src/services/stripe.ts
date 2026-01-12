@@ -11,6 +11,7 @@ interface CreateCheckoutSessionParams {
   credits: number;
   type: 'plan' | 'credits';
   customerEmail?: string;
+  billingInterval?: number; // 1 = monthly, 2 = bi-monthly
 }
 
 interface CreatePortalSessionParams {

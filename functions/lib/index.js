@@ -11,8 +11,8 @@ var __rest = (this && this.__rest) || function (s, e) {
     return t;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchAllEnterprise = exports.fetchCapgeminiJobs = exports.fetchDeloitteJobs = exports.fetchAccentureJobs = exports.fetchOracleJobs = exports.fetchSAPJobs = exports.fetchSalesforceJobs = exports.fetchAllGAFAM = exports.fetchMicrosoftJobs = exports.fetchAppleJobs = exports.fetchAmazonJobs = exports.fetchMetaCareers = exports.fetchGoogleCareers = exports.fetchAggregatorsManual = exports.fetchFromAggregators = exports.activateDiscoveredCompany = exports.getDiscoveredCompanies = exports.manualDiscovery = exports.scheduledDiscovery = exports.previewApolloSearch = exports.enrichApolloContact = exports.searchApolloContacts = exports.getDatabaseStats = exports.manualCleanup = exports.scheduledCleanup = exports.processDynamicBatch = exports.retryFailedTasks = exports.processTaskManual = exports.processFetchTask = exports.getQueueStatus = exports.createFetchTasksManual = exports.createFetchTasks = exports.enrichSkillsWorker = exports.fetchJobsWorker = exports.scheduleFetchJobs = exports.backfillUserEmbeddings = exports.backfillJobsV5Manual = exports.getUserInteractionStats = exports.getSavedJobs = exports.trackJobInteraction = exports.getMatchedJobs = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.updateJobEmbeddingOnEnrichment = exports.generateJobEmbedding = exports.fetchGAFAMEnterprise = exports.fetchJobsFromATS = exports.sendWelcomeEmail = exports.sendCustomPasswordResetEmail = exports.sendCustomVerificationEmail = void 0;
-exports.api = exports.generateQuestions = exports.createPortalSession = exports.downloadCV = exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.sitemap = exports.assistant = exports.reEnrichAllJobsV4 = exports.enrichSingleJob = exports.enrichJobsManual = exports.testNewFunction = exports.queueStatus = exports.testFetchTask = exports.fetchAggregators = exports.cleanupJobs = exports.dbStats = exports.runDynamicBatch = exports.fetchJobsBatch4 = exports.fetchJobsBatch3 = exports.fetchJobsBatch2 = exports.fetchJobsBatch1 = exports.masterTrigger = exports.fetchAllAdditionalATS = exports.fetchWorkable = exports.fetchPersonio = exports.fetchRecruitee = exports.fetchBreezyHR = exports.fetchTeamtailor = exports.fetchGAFAMManual = exports.fetchAllBigTechAndEnterprise = void 0;
+exports.fetchCapgeminiJobs = exports.fetchDeloitteJobs = exports.fetchAccentureJobs = exports.fetchOracleJobs = exports.fetchSAPJobs = exports.fetchSalesforceJobs = exports.fetchAllGAFAM = exports.fetchMicrosoftJobs = exports.fetchAppleJobs = exports.fetchAmazonJobs = exports.fetchMetaCareers = exports.fetchGoogleCareers = exports.fetchAggregatorsManual = exports.fetchFromAggregators = exports.activateDiscoveredCompany = exports.getDiscoveredCompanies = exports.manualDiscovery = exports.scheduledDiscovery = exports.previewApolloSearch = exports.enrichApolloContact = exports.searchApolloContacts = exports.getDatabaseStats = exports.manualCleanup = exports.scheduledCleanup = exports.processDynamicBatch = exports.retryFailedTasks = exports.processTaskManual = exports.processFetchTask = exports.getQueueStatus = exports.createFetchTasksManual = exports.createFetchTasks = exports.enrichSkillsWorker = exports.fetchJobsWorker = exports.refreshMonthlyCredits = exports.scheduleFetchJobs = exports.backfillUserEmbeddings = exports.backfillJobsV5Manual = exports.getUserInteractionStats = exports.getSavedJobs = exports.trackJobInteraction = exports.getMatchedJobs = exports.matchJobsForUsers = exports.generateUserEmbedding = exports.updateJobEmbeddingOnEnrichment = exports.generateJobEmbedding = exports.fetchGAFAMEnterprise = exports.fetchJobsFromATS = exports.sendWelcomeEmail = exports.sendCustomPasswordResetEmail = exports.sendCustomVerificationEmail = void 0;
+exports.api = exports.generateQuestions = exports.createPortalSession = exports.downloadCV = exports.searchJobs = exports.processStripeSession = exports.stripeWebhook = exports.createCheckoutSession = exports.sendHubSpotEventFunction = exports.syncUserToHubSpot = exports.syncUserToBrevo = exports.analyzeResumePremium = exports.analyzeCVVision = exports.updateCampaignEmails = exports.startCampaign = exports.sitemap = exports.assistant = exports.reEnrichAllJobsV4 = exports.enrichSingleJob = exports.enrichJobsManual = exports.testNewFunction = exports.queueStatus = exports.testFetchTask = exports.fetchAggregators = exports.cleanupJobs = exports.dbStats = exports.runDynamicBatch = exports.fetchJobsBatch4 = exports.fetchJobsBatch3 = exports.fetchJobsBatch2 = exports.fetchJobsBatch1 = exports.masterTrigger = exports.fetchAllAdditionalATS = exports.fetchWorkable = exports.fetchPersonio = exports.fetchRecruitee = exports.fetchBreezyHR = exports.fetchTeamtailor = exports.fetchGAFAMManual = exports.fetchAllBigTechAndEnterprise = exports.fetchAllEnterprise = void 0;
 // Version 3.0 - Scalable Queue-based Architecture (Dec 2025)
 // Supports 1000+ companies with distributed task processing
 const admin = require("firebase-admin");
@@ -53,6 +53,8 @@ Object.defineProperty(exports, "backfillUserEmbeddings", { enumerable: true, get
 // Scalable, fault-tolerant system for fetching jobs from multiple ATS sources
 var fetchJobsScheduler_1 = require("./schedulers/fetchJobsScheduler");
 Object.defineProperty(exports, "scheduleFetchJobs", { enumerable: true, get: function () { return fetchJobsScheduler_1.scheduleFetchJobs; } });
+var creditRefreshScheduler_1 = require("./schedulers/creditRefreshScheduler");
+Object.defineProperty(exports, "refreshMonthlyCredits", { enumerable: true, get: function () { return creditRefreshScheduler_1.refreshMonthlyCredits; } });
 var fetchJobsWorker_1 = require("./workers/fetchJobsWorker");
 Object.defineProperty(exports, "fetchJobsWorker", { enumerable: true, get: function () { return fetchJobsWorker_1.fetchJobsWorker; } });
 var enrichSkillsWorker_1 = require("./workers/enrichSkillsWorker");
@@ -1533,7 +1535,7 @@ exports.createCheckoutSession = (0, https_1.onRequest)({
         return;
     }
     try {
-        const { userId, planId, planName, price, credits, type, successUrl, cancelUrl } = req.body;
+        const { userId, planId, planName, price, credits, type, successUrl, cancelUrl, billingInterval } = req.body;
         // Validation
         if (!userId || !planId || !price) {
             res.status(400).json({
@@ -1558,7 +1560,7 @@ exports.createCheckoutSession = (0, https_1.onRequest)({
                 // Create product if it doesn't exist
                 product = await stripe.products.create({
                     name: `${planName} Plan`,
-                    description: `JobzAI ${planName} Plan - ${credits} credits per month`,
+                    description: `Cubbbe ${planName} Plan - ${credits} credits per month`,
                     metadata: {
                         planId,
                         credits: credits.toString(),
@@ -1570,7 +1572,16 @@ exports.createCheckoutSession = (0, https_1.onRequest)({
                 product: product.id,
                 limit: 100,
             });
-            let existingPrice = prices.data.find(p => { var _a; return p.unit_amount === priceInCents && ((_a = p.recurring) === null || _a === void 0 ? void 0 : _a.interval) === 'month'; });
+            // Determine billing interval (1 = monthly, 2 = bi-monthly)
+            const intervalCount = billingInterval === 2 ? 2 : 1;
+            console.log(`[Stripe] Looking for price: ${priceInCents} cents, interval_count: ${intervalCount}`);
+            let existingPrice = prices.data.find(p => {
+                var _a, _b;
+                return p.unit_amount === priceInCents &&
+                    ((_a = p.recurring) === null || _a === void 0 ? void 0 : _a.interval) === 'month' &&
+                    (((_b = p.recurring) === null || _b === void 0 ? void 0 : _b.interval_count) || 1) === intervalCount;
+            });
+            console.log(`[Stripe] Found existing price: ${existingPrice ? existingPrice.id : 'none'}, creating new: ${!existingPrice}`);
             if (!existingPrice) {
                 existingPrice = await stripe.prices.create({
                     product: product.id,
@@ -1578,10 +1589,12 @@ exports.createCheckoutSession = (0, https_1.onRequest)({
                     currency: 'eur',
                     recurring: {
                         interval: 'month',
+                        interval_count: intervalCount,
                     },
                     metadata: {
                         planId,
                         credits: credits.toString(),
+                        billingInterval: intervalCount.toString(),
                     },
                 });
             }
@@ -1594,7 +1607,7 @@ exports.createCheckoutSession = (0, https_1.onRequest)({
             if (!product) {
                 product = await stripe.products.create({
                     name: `${credits} Credits`,
-                    description: `JobzAI Credit Package - ${credits} credits`,
+                    description: `Cubbbe Credit Package - ${credits} credits`,
                     metadata: {
                         type: 'credit_package',
                         packageId: planId,
@@ -1782,6 +1795,7 @@ const handleCheckoutCompleted = async (session) => {
                 stripeSubscriptionId: session.subscription || null,
                 paymentStatus: 'active',
                 lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
+                lastCreditRefresh: admin.firestore.FieldValue.serverTimestamp(),
             });
             // Record credit history
             await admin.firestore().collection('users').doc(userId).collection('creditHistory').add({
