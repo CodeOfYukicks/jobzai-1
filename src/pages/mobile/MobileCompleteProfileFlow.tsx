@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { notify } from '@/lib/notify';
@@ -53,6 +53,17 @@ export default function MobileCompleteProfileFlow() {
         profileAvatarType: 'avatar' as const,
         plan: 'free',
     });
+
+    useEffect(() => {
+        // Trigger Google Ads conversion event
+        if (typeof (window as any).gtag === 'function') {
+            (window as any).gtag('event', 'conversion', {
+                'send_to': 'AW-944835023/xOooCP75y-EbEM-TxMID',
+                'value': 1.0,
+                'currency': 'EUR'
+            });
+        }
+    }, []);
 
     const currentStepIndex = STEPS.indexOf(currentStep);
     const canProceed = useCallback(() => {

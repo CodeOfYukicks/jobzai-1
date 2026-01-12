@@ -152,30 +152,39 @@
       font-display: swap;
     }
   </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-M2CG9CM4EJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-M2CG9CM4EJ');
+  </script>
+  <!-- Event snippet for Page vue conversion page -->
+  <script>
+    function gtag_report_conversion(url) {
+      var callback = function () {
+        if (typeof (url) != 'undefined') {
+          window.location = url;
+        }
+      };
+      gtag('event', 'conversion', {
+        'send_to': 'AW-944835023/xOooCP75y-EbEM-TxMID',
+        'value': 1.0,
+        'currency': 'EUR',
+        'event_callback': callback
+      });
+      return false;
+    }
+  </script>
 </head>
 
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 
-  <!-- Google Analytics - Deferred to not block render -->
-  <script>
-    window.addEventListener('load', function () {
-      setTimeout(function () {
-        var script = document.createElement('script');
-        script.src = 'https://www.googletagmanager.com/gtag/js?id=G-M2CG9CM4EJ';
-        script.async = true;
-        document.head.appendChild(script);
-        script.onload = function () {
-          window.dataLayer = window.dataLayer || [];
-          function gtag() { dataLayer.push(arguments); }
-          window.gtag = gtag;
-          gtag('js', new Date());
-          gtag('config', 'G-M2CG9CM4EJ');
-        };
-      }, 2000);
-    });
-  </script>
+
 
   <!-- Microsoft Clarity - Deferred to not block render -->
   <script>
