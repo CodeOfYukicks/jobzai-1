@@ -1485,15 +1485,7 @@ export default function ChatInput({ placeholder = 'Ask, search, or make anything
               </AnimatePresence>
             </div>
 
-            {/* All sources */}
-            <button className="flex items-center gap-1.5 px-2 py-1 rounded-md
-              text-gray-500 dark:text-gray-400 
-              hover:text-gray-700 dark:hover:text-gray-300
-              hover:bg-gray-100 dark:hover:bg-white/[0.04]
-              transition-colors duration-150 text-sm">
-              <Globe className="h-3.5 w-3.5" />
-              <span className="font-medium">All sources</span>
-            </button>
+
           </div>
 
           {/* Right side: Send/Stop button */}

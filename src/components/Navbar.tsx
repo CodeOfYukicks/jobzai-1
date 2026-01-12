@@ -39,7 +39,6 @@ const productFeatures = {
 
 const publicNavigation = [
   { name: 'Products', hasDropdown: true },
-  { name: 'AI', href: '#ai' },
   { name: 'Blog', href: '/blog' },
   { name: 'Pricing', href: '#pricing' },
 ];
@@ -297,7 +296,7 @@ export default function Navbar() {
                 <div className="w-[260px] flex-shrink-0">
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
                     <div className="text-sm font-medium text-gray-900 mb-2">
-                      Join 10,000+ job seekers
+                      Join 20,000+ job seekers
                     </div>
                     <p className="text-sm text-gray-500 mb-4">
                       Land your dream job faster with AI-powered tools.

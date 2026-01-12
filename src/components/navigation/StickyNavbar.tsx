@@ -23,7 +23,6 @@ interface StickyNavbarProps {
 
 const defaultNavItems: NavItem[] = [
     { label: 'Products', href: '#products', hasDropdown: true },
-    { label: 'AI', href: '#ai' },
     { label: 'Blog', href: '#blog' },
     { label: 'Pricing', href: '#pricing' },
 ];

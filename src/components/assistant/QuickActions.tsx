@@ -23,7 +23,7 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
   // Dashboard dynamic actions
   if (pathname === '/dashboard' && pageData.dashboardStats) {
     const stats = pageData.dashboardStats;
-    
+
     if (stats.insights?.actionItems?.length > 0) {
       dynamicActions.push({
         label: stats.insights.priority.substring(0, 45) + (stats.insights.priority.length > 45 ? '...' : ''),
@@ -32,7 +32,7 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
         priority: 1,
       });
     }
-    
+
     if (stats.interviewStats?.nextInterview) {
       dynamicActions.push({
         label: `Prep for ${stats.interviewStats.nextInterview.company} interview`,
@@ -47,19 +47,19 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
   if (pathname === '/applications') {
     const board = pageData.currentBoard;
     const apps = pageData.applications;
-    
+
     // Board-specific actions
     if (board && board.boardName && board.boardName !== 'All Boards Overview') {
       const boardName = board.boardName;
       const totalOnBoard = board.totalApplicationsOnBoard || 0;
       const statusCounts = board.applicationsByStatus || {};
       const recentApps = board.recentOnBoard || [];
-      
+
       // Show board-specific summary action
       if (totalOnBoard > 0) {
         const interviewCount = statusCounts['interview'] || statusCounts['Interview'] || 0;
         const appliedCount = statusCounts['applied'] || statusCounts['Applied'] || 0;
-        
+
         if (interviewCount > 0) {
           dynamicActions.push({
             label: `${interviewCount} interview${interviewCount > 1 ? 's' : ''} on "${boardName}"`,
@@ -68,7 +68,7 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
             priority: 1,
           });
         }
-        
+
         // Board health check
         dynamicActions.push({
           label: `Analyze "${boardName}" board`,
@@ -76,7 +76,7 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
           isDynamic: true,
           priority: 2,
         });
-        
+
         // Suggest action based on most recent application
         if (recentApps.length > 0) {
           const recent = recentApps[0];
@@ -105,7 +105,7 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
         priority: 1,
       });
     }
-    
+
     // Fallback to general applications insights if no board context
     if (dynamicActions.length === 0 && apps) {
       // Suggest follow-up for stale applications
@@ -118,7 +118,7 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
           priority: 1,
         });
       }
-      
+
       // Hot opportunities
       if (apps.insights?.hotOpportunities?.length > 0) {
         const hot = apps.insights.hotOpportunities[0];
@@ -129,7 +129,7 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
           priority: 2,
         });
       }
-      
+
       // Low response rate advice
       if (apps.insights?.responseRate < 20 && apps.total > 5) {
         dynamicActions.push({
@@ -153,7 +153,7 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
         isDynamic: true,
         priority: 1,
       });
-      
+
       if (job.salaryRange) {
         dynamicActions.push({
           label: `Salary analysis: ${job.salaryRange}`,
@@ -163,7 +163,7 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
         });
       }
     }
-    
+
     // Job listings insights
     if (pageData.jobListings?.insights?.topMatchingJobs?.length > 0) {
       const topMatch = pageData.jobListings.insights.topMatchingJobs[0];
@@ -179,7 +179,7 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
   // CV Analysis dynamic actions
   if (pathname.includes('/cv-analysis') && pageData.cvAnalysis) {
     const cv = pageData.cvAnalysis;
-    
+
     if (cv.performance?.averageScore) {
       dynamicActions.push({
         label: `Improve my ${cv.performance.averageScore}% CV score`,
@@ -188,7 +188,7 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
         priority: 1,
       });
     }
-    
+
     if (cv.insights?.quickWins?.length > 0) {
       dynamicActions.push({
         label: cv.insights.quickWins[0].substring(0, 40) + '...',
@@ -202,7 +202,7 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
   // Notes page dynamic actions
   if (pathname.includes('/notes') && pageData.currentNote) {
     const note = pageData.currentNote;
-    
+
     if (note.content && note.wordCount > 50) {
       dynamicActions.push({
         label: `Summarize "${note.title.substring(0, 20)}..."`,
@@ -210,7 +210,7 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
         isDynamic: true,
         priority: 1,
       });
-      
+
       dynamicActions.push({
         label: `Improve this note`,
         prompt: `Help me improve my note "${note.title}". Suggest better structure, clarity, and any missing points.`,
@@ -226,15 +226,15 @@ function generateDynamicActions(pathname: string, pageData: Record<string, any>)
 export default function QuickActions({ onActionClick }: QuickActionsProps) {
   const location = useLocation();
   const { setPendingMessage, pageData } = useAssistant();
-  
+
   // Get static quick actions for current page
   const staticActions = getQuickActionsForPage(location.pathname);
-  
+
   // Generate dynamic actions based on page data
   const dynamicActions = useMemo(() => {
     return generateDynamicActions(location.pathname, pageData);
   }, [location.pathname, pageData]);
-  
+
   // Combine dynamic (prioritized) and static actions
   const quickActions = useMemo(() => {
     // Take up to 2 dynamic actions, then fill with static actions
@@ -265,8 +265,8 @@ export default function QuickActions({ onActionClick }: QuickActionsProps) {
 
   const itemVariants = {
     hidden: { opacity: 0, y: 8 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       transition: {
         type: 'spring',
@@ -289,8 +289,8 @@ export default function QuickActions({ onActionClick }: QuickActionsProps) {
           variants={itemVariants}
           onClick={() => handleActionClick(action.prompt)}
           className={`w-full px-4 py-2.5 rounded-xl
-            ${action.isDynamic 
-              ? 'bg-gradient-to-r from-indigo-50/80 to-purple-50/60 dark:from-indigo-900/20 dark:to-purple-900/15 border-indigo-200/60 dark:border-indigo-500/20' 
+            ${action.isDynamic
+              ? 'bg-gradient-to-r from-indigo-50/80 to-purple-50/60 dark:from-indigo-900/20 dark:to-purple-900/15 border-indigo-200/60 dark:border-indigo-500/20'
               : 'bg-gray-50/60 dark:bg-white/[0.025] border-gray-200/60 dark:border-white/[0.05]'
             }
             border
@@ -309,23 +309,7 @@ export default function QuickActions({ onActionClick }: QuickActionsProps) {
         </motion.button>
       ))}
 
-      {/* Add Command button */}
-      <motion.button
-        variants={itemVariants}
-        className="w-full px-4 py-2.5 rounded-xl
-          bg-transparent
-          border border-dashed border-gray-200/50 dark:border-white/[0.06]
-          hover:bg-gray-50/40 dark:hover:bg-white/[0.015]
-          hover:border-gray-300/50 dark:hover:border-white/[0.08]
-          active:scale-[0.985]
-          transition-all duration-200
-          flex items-center justify-center gap-1.5"
-      >
-        <Plus className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
-        <span className="text-[13px] font-medium text-gray-400 dark:text-gray-500">
-          Add Command
-        </span>
-      </motion.button>
+
     </motion.div>
   );
 }

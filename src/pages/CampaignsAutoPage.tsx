@@ -242,6 +242,7 @@ export default function CampaignsAutoPage() {
   const [showBoardSelector, setShowBoardSelector] = useState(false);
   const [selectedRecipientForBoard, setSelectedRecipientForBoard] = useState<CampaignRecipient | null>(null);
   const [isAddingToBoard, setIsAddingToBoard] = useState(false);
+  const [showCreateBoardPrompt, setShowCreateBoardPrompt] = useState(false);
   const [openMenuRecipientId, setOpenMenuRecipientId] = useState<string | null>(null);
   const menuRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -1195,6 +1196,12 @@ export default function CampaignsAutoPage() {
       return;
     }
 
+    // If no campaigns board exists, show prompt to create one
+    if (boards.length === 0) {
+      setShowCreateBoardPrompt(true);
+      return;
+    }
+
     setSelectedRecipientForBoard(recipient);
 
     // If user has multiple campaign boards, show selection modal
@@ -1203,8 +1210,8 @@ export default function CampaignsAutoPage() {
       return;
     }
 
-    // If user has exactly one board or no boards, add directly
-    const targetBoardId = boards.length === 1 ? boards[0].id : undefined;
+    // If user has exactly one board, add directly
+    const targetBoardId = boards[0].id;
     addContactToBoard(recipient, targetBoardId);
   };
 
@@ -1246,9 +1253,14 @@ export default function CampaignsAutoPage() {
 
   // Handle swipe add
   const handleSwipeAdd = useCallback((recipient: CampaignRecipient) => {
+    // If no campaigns board exists, show prompt to create one
+    if (boards.length === 0) {
+      setShowCreateBoardPrompt(true);
+      return;
+    }
     setSwipeActionRecipient(recipient);
     setIsAddToBoardSheetOpen(true);
-  }, []);
+  }, [boards.length]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -3296,6 +3308,66 @@ export default function CampaignsAutoPage() {
         companyName={selectedRecipientForBoard?.company || ''}
         isLoading={isAddingToBoard}
       />
+
+      {/* Create Outreach Board Prompt Modal */}
+      <AnimatePresence>
+        {showCreateBoardPrompt && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowCreateBoardPrompt(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-200 dark:border-white/[0.08]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center">
+                    <FolderKanban className="w-5 h-5 text-gray-900 dark:text-white" />
+                  </div>
+                  <button
+                    onClick={() => setShowCreateBoardPrompt(false)}
+                    className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06] hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Create an Outreach Board</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-6">
+                  To add contacts to a board, you need an <strong>Outreach Campaigns</strong> board. This is a dedicated space to track your conversations and follow-ups.
+                </p>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowCreateBoardPrompt(false)}
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05] rounded-xl transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowCreateBoardPrompt(false);
+                      navigate('/applications?createBoard=campaigns');
+                    }}
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 rounded-xl transition-all flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create Board
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Credit Confirmation Modal */}
       <CreditConfirmModal

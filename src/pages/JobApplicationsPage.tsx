@@ -609,6 +609,18 @@ export default function JobApplicationsPage() {
       setSearchParams(searchParams, { replace: true });
     }
 
+    // Handle campaigns board creation trigger (from Campaigns page)
+    if (createBoard === 'campaigns') {
+      if (isMobile) {
+        setShowMobileBoardWizard(true);
+      } else {
+        setShowBoardSettingsModal(true);
+      }
+      // Clean URL
+      searchParams.delete('createBoard');
+      setSearchParams(searchParams, { replace: true });
+    }
+
     if (highlightId && applications.length > 0 && boards.length > 0 && !isLoading) {
       const app = applications.find(a => a.id === highlightId);
       if (app && (!selectedApplication || selectedApplication.id !== highlightId)) {
