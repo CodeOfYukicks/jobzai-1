@@ -67,235 +67,203 @@ export default function Hero() {
   };
 
   return (
-    <div id="home" className="relative bg-white min-h-screen flex flex-col items-center pt-20 md:pt-24 pb-8 md:pb-16 overflow-x-hidden">
+    <>
+      {/* Green Hero Section - Ends where video cuts off */}
+      <div id="home" className="relative overflow-hidden" style={{ backgroundColor: '#B3DE17' }}>
+        {/* Main Content Container */}
+        <div className="relative w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-24 md:pt-32 pb-8 md:pb-10 lg:pb-12 z-10">
 
-      {/* Animated Hero Background SVG - Cuts off at video section */}
-      <div className="absolute inset-x-0 top-0 h-[75vh] md:h-[85vh] overflow-hidden">
-        <img
-          src="/images/hero-bg.svg"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover hero-bg-animate"
-          style={{ willChange: 'transform' }}
-        />
-        {/* No overlay - Full SVG visibility */}
-        {/* Gradient fade at bottom for smooth transition */}
-        <div className="absolute inset-x-0 bottom-0 h-32 md:h-48 bg-gradient-to-t from-white to-transparent" />
-      </div>
+          {/* Two Column Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-6 lg:gap-8 items-center w-full">
 
-      {/* Decorative Grid Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+            {/* Left Column - Text Content */}
+            <div className="flex flex-col items-center text-center lg:items-start lg:text-left mt-4 lg:mt-6">
 
-      {/* Main Content Container */}
-      <div className="relative w-full max-w-7xl mx-auto px-4 md:px-6 flex flex-col items-center z-10">
+              {/* Main Headline - Two lines only */}
+              <h1
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-extrabold tracking-tight text-gray-900 mb-4 md:mb-6 whitespace-nowrap"
+                style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}
+              >
+                You deserve answers.
+                <br />
+                We help you get them.
+              </h1>
 
-        {/* Content Wrapper */}
-        <div className="relative max-w-4xl mx-auto text-center pointer-events-none">
+              {/* Subtitle */}
+              <p className="text-base md:text-lg lg:text-xl text-gray-800 max-w-xl mb-6 md:mb-8 leading-relaxed">
+                Send personalized applications at scale.
+                <br className="hidden md:block" />
+                Track every lead. Prepare smarter. Get interviews.
+              </p>
 
-          {/* Trust Badge - Rendered instantly (no animation delay) */}
-          <div className="mt-6 md:mt-16 mb-3 md:mb-4 pointer-events-auto">
-            <span className="inline-flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs md:text-sm font-medium shadow-sm">
-              <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500"></span>
-              Trusted by 20,000+ job seekers
-            </span>
-          </div>
+              {/* CTAs */}
+              <div className="flex flex-row items-center justify-center lg:justify-start gap-3 md:gap-4 mb-6 md:mb-8">
+                <Link
+                  to="/signup"
+                  className="inline-flex items-center justify-center h-12 md:h-14 px-6 md:px-8 text-sm md:text-base font-semibold text-white bg-gray-900 hover:bg-gray-800 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  Get started free
+                </Link>
+                <button
+                  onClick={scrollToFeatures}
+                  className="inline-flex items-center justify-center h-12 md:h-14 px-6 md:px-8 text-sm md:text-base font-medium text-gray-900 bg-white hover:bg-gray-50 rounded-xl transition-all duration-200 shadow-md"
+                >
+                  How it works
+                </button>
+              </div>
 
-          {/* Main Headline - LCP Element - NO ANIMATION for instant render */}
-          <h1
-            className="text-[2.5rem] leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-4 md:mb-6 pointer-events-auto drop-shadow-md"
-            style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}
-          >
-            You deserve answers.
-            <br />
-            <span className="text-white">We help you get them.</span>
-          </h1>
-
-          {/* Subtitle - Instant render */}
-          <p className="text-base md:text-lg lg:text-xl text-white/90 max-w-xl md:max-w-2xl mx-auto mb-5 md:mb-8 leading-relaxed pointer-events-auto px-2 drop-shadow-sm">
-            <span className="hidden md:inline">
-              Send personalized applications at scale.
-              <br />
-              Track every lead. Prepare smarter. Get interviews.
-            </span>
-            <span className="md:hidden">
-              Send personalized applications at scale. Track every lead. Prepare smarter. Get interviews.
-            </span>
-          </p>
-
-          {/* CTAs - Instant render */}
-          <div className="flex flex-row items-center justify-center gap-2 md:gap-3 mb-4 md:mb-6 pointer-events-auto">
-            <Link
-              to="/signup"
-              className="inline-flex items-center justify-center h-11 md:h-12 px-5 md:px-8 text-sm md:text-[16px] font-semibold text-gray-900 bg-[#B3DE16] hover:bg-[#a1c814] rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-            >
-              Get started free
-            </Link>
-            <button
-              onClick={scrollToFeatures}
-              className="inline-flex items-center justify-center h-11 md:h-12 px-5 md:px-8 text-sm md:text-[16px] font-medium text-gray-800 bg-white hover:bg-gray-50 rounded-lg transition-all duration-200 shadow-sm"
-            >
-              How it works
-            </button>
-          </div>
-
-          {/* Mini Social Proof - Instant render */}
-          <div className="flex items-center justify-center gap-1.5 mb-6 md:mb-10 pointer-events-auto">
-            <div className="flex">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Star key={i} className="w-3.5 h-3.5 md:w-4 md:h-4 text-yellow-400 fill-yellow-400" />
-              ))}
+              {/* Mini Social Proof */}
+              <div className="flex items-center justify-center lg:justify-start gap-2">
+                <div className="flex">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Star key={i} className="w-4 h-4 md:w-5 md:h-5 text-gray-900 fill-gray-900" />
+                  ))}
+                </div>
+                <span className="text-sm md:text-base text-gray-800 ml-1">
+                  <span className="font-semibold text-gray-900">4.9</span> · 20K+ users
+                </span>
+              </div>
             </div>
-            <span className="text-xs md:text-sm text-white/80 ml-1">
-              <span className="font-semibold text-white">4.9</span> · 20K+ users
-            </span>
+
+            {/* Right Column - Video Preview */}
+            <div className="relative video-hero-transform">
+              <motion.div
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.7, delay: 0.2 }}
+                className="relative"
+              >
+                {/* Video directly with rounded corners and shadow */}
+                <div className="relative rounded-md shadow-2xl overflow-hidden">
+                  {videoUrl ? (
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-auto block"
+                    >
+                      <source src={videoUrl} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                  ) : (
+                    <div className="aspect-[16/9] bg-gray-900/10 flex items-center justify-center">
+                      <div className="w-10 h-10 md:w-12 md:h-12 border-3 border-gray-900/20 border-t-gray-900 rounded-full animate-spin"></div>
+                    </div>
+                  )}
+
+                  {/* Play/Pause Button */}
+                  {videoUrl && (
+                    <button
+                      onClick={togglePlay}
+                      className="absolute bottom-3 md:bottom-4 left-3 md:left-4 w-8 h-8 md:w-9 md:h-9 flex items-center justify-center bg-white/30 backdrop-blur-sm hover:bg-white/50 rounded-full shadow-lg transition-all duration-200"
+                    >
+                      {isPlaying ? (
+                        <svg className="w-3 h-3 md:w-3.5 md:h-3.5 text-gray-900" viewBox="0 0 24 24" fill="currentColor">
+                          <rect x="6" y="4" width="4" height="16" rx="1" />
+                          <rect x="14" y="4" width="4" height="16" rx="1" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3 h-3 md:w-3.5 md:h-3.5 ml-0.5 text-gray-900" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M8 5.14v14l11-7-11-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                {/* Decorative shadow */}
+                <div className="absolute -inset-6 -z-10 bg-black/10 rounded-3xl blur-3xl"></div>
+              </motion.div>
+            </div>
+
           </div>
         </div>
-
-        {/* Video Preview */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.4 }}
-          className="relative w-full z-10"
-        >
-          <div className="relative rounded-xl md:rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden border border-gray-200/80 bg-white">
-            {/* Browser Chrome - Smaller on mobile */}
-            <div className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-1.5 md:py-2 bg-[#f8f8f8] border-b border-gray-100">
-              <div className="flex items-center gap-1 md:gap-[6px]">
-                <div className="w-2 h-2 md:w-[10px] md:h-[10px] rounded-full bg-[#FF5F56] border border-[#E0443E]"></div>
-                <div className="w-2 h-2 md:w-[10px] md:h-[10px] rounded-full bg-[#FFBD2E] border border-[#DEA123]"></div>
-                <div className="w-2 h-2 md:w-[10px] md:h-[10px] rounded-full bg-[#27C93F] border border-[#1AAB29]"></div>
-              </div>
-            </div>
-
-            {/* Video Content */}
-            <div className="relative bg-gray-50">
-              {videoUrl ? (
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="w-full h-auto"
-                >
-                  <source src={videoUrl} type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
-              ) : (
-                <div className="aspect-[16/9] bg-gray-50 flex items-center justify-center">
-                  <div className="w-6 h-6 md:w-8 md:h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
-                </div>
-              )}
-
-              {/* Play/Pause Button - Smaller on mobile */}
-              {videoUrl && (
-                <button
-                  onClick={togglePlay}
-                  className="absolute bottom-3 md:bottom-6 left-3 md:left-6 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-white/90 backdrop-blur hover:bg-white rounded-full shadow-lg border border-gray-200/50 transition-all duration-200"
-                >
-                  {isPlaying ? (
-                    <svg className="w-3 h-3 md:w-4 md:h-4 text-gray-800" viewBox="0 0 24 24" fill="currentColor">
-                      <rect x="6" y="4" width="4" height="16" rx="1" />
-                      <rect x="14" y="4" width="4" height="16" rx="1" />
-                    </svg>
-                  ) : (
-                    <svg className="w-3 h-3 md:w-4 md:h-4 ml-0.5 text-gray-800" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M8 5.14v14l11-7-11-7z" />
-                    </svg>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Subtle shadow underneath */}
-          <div className="absolute -inset-x-4 -bottom-4 h-24 -z-10 bg-gradient-to-b from-transparent to-gray-100/60 blur-2xl"></div>
-        </motion.div>
-
-        {/* Company Logos Section - Deferred loading */}
-        {showLogos && (
-          <div className="mt-12 md:mt-24 w-full animate-fade-in">
-            <p className="text-center text-xs md:text-sm text-gray-500 mb-4 md:mb-8 uppercase tracking-wider font-semibold">
-              Our users landed offers at
-            </p>
-
-            {/* Logo Marquee */}
-            <div className="relative overflow-hidden py-2 md:py-4">
-              {/* Fade gradients */}
-              <div className="absolute left-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
-              <div className="absolute right-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
-
-              {/* Marquee track */}
-              <div
-                className="flex items-center gap-10 md:gap-20 animate-marquee"
-                style={{
-                  width: 'max-content',
-                }}
-              >
-                {[...Array(2)].map((_, setIndex) => (
-                  <div key={setIndex} className="flex items-center gap-10 md:gap-20">
-                    <img src="https://img.logo.dev/google.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Google" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/apple.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Apple" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/microsoft.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Microsoft" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/amazon.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Amazon" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/netflix.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Netflix" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/jpmorgan.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="JPMorgan" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/spotify.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Spotify" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/tesla.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Tesla" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/adobe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Adobe" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/stripe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Stripe" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/uber.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Uber" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                    <img src="https://img.logo.dev/airbnb.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Airbnb" className="h-6 md:h-10 w-auto grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-300" loading="lazy" />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* CSS for animations */}
-            <style>{`
-              @keyframes marquee {
-                0% { transform: translateX(0); }
-                100% { transform: translateX(-50%); }
-              }
-              .animate-marquee {
-                animation: marquee 30s linear infinite;
-              }
-              .animate-marquee:hover {
-                animation-play-state: paused;
-              }
-              @keyframes fade-in {
-                from { opacity: 0; }
-                to { opacity: 1; }
-              }
-              .animate-fade-in {
-                animation: fade-in 0.5s ease-out;
-              }
-              @keyframes hero-bg-pan {
-                0% {
-                  transform: scale(1.05) translate(0%, 0%);
-                }
-                50% {
-                  transform: scale(1.12) translate(-1%, -1%);
-                }
-                100% {
-                  transform: scale(1.05) translate(0%, 0%);
-                }
-              }
-              .hero-bg-animate {
-                animation: hero-bg-pan 25s ease-in-out infinite;
-              }
-              @media (prefers-reduced-motion: reduce) {
-                .hero-bg-animate {
-                  animation: none;
-                  transform: scale(1.05);
-                }
-              }
-            `}</style>
-          </div>
-        )}
-
       </div>
-    </div>
+
+      {/* Company Logos Section - White background */}
+      {showLogos && (
+        <div className="bg-white py-8 md:py-12 w-full animate-fade-in border-t border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            {/* Flex layout: text left, logos marquee right */}
+            <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-12">
+
+              {/* Left: Text */}
+              <p className="text-sm md:text-base text-gray-900 font-medium whitespace-nowrap flex-shrink-0">
+                Our users landed offers at
+              </p>
+
+              {/* Right: Logo Marquee */}
+              <div className="relative overflow-hidden flex-1">
+                {/* Fade gradients */}
+                <div className="absolute left-0 top-0 bottom-0 w-12 md:w-24 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
+                <div className="absolute right-0 top-0 bottom-0 w-12 md:w-24 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+
+                {/* Marquee track */}
+                <div
+                  className="flex items-center gap-8 md:gap-14 animate-marquee"
+                  style={{ width: 'max-content' }}
+                >
+                  {[...Array(2)].map((_, setIndex) => (
+                    <div key={setIndex} className="flex items-center gap-8 md:gap-14">
+                      <img src="https://img.logo.dev/google.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Google" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/apple.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Apple" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/microsoft.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Microsoft" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/amazon.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Amazon" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/netflix.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Netflix" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/jpmorgan.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="JPMorgan" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/spotify.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Spotify" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/tesla.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Tesla" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/adobe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Adobe" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/stripe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Stripe" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/uber.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Uber" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/airbnb.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Airbnb" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSS for animations */}
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          animation: marquee 25s linear infinite;
+        }
+        .animate-marquee:hover {
+          animation-play-state: paused;
+        }
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.5s ease-out;
+        }
+        .video-hero-transform {
+          transform: none;
+        }
+        @media (min-width: 1024px) {
+          .video-hero-transform {
+            transform: translateX(60px) translateY(40px) scale(1.1);
+            transform-origin: top left;
+          }
+        }
+        @media (min-width: 1280px) {
+          .video-hero-transform {
+            transform: translateX(80px) translateY(40px) scale(1.15);
+            transform-origin: top left;
+          }
+        }
+      `}</style>
+    </>
   );
 }

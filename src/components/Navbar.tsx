@@ -124,12 +124,10 @@ export default function Navbar() {
                 path={
                   location.pathname.startsWith('/blog')
                     ? "images/logo_blog.png"
-                    : (!scrolled && isPublicPage)
-                      ? "images/logo-cubbbe-white.png"
-                      : "images/logo-cubbbe-black.png"
+                    : "images/logo-cubbbe-black.png"
                 }
                 alt="Cubbbe"
-                className={location.pathname.startsWith('/blog') ? "h-14 w-auto" : "h-12 w-auto"}
+                className={location.pathname.startsWith('/blog') ? "h-16 w-auto" : "h-14 w-auto"}
               />
             </a>
           </div>
@@ -144,10 +142,7 @@ export default function Navbar() {
                     key={item.name}
                     onMouseEnter={() => handleMouseEnter(item.name)}
                     onMouseLeave={handleMouseLeave}
-                    className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || !isPublicPage
-                      ? 'text-gray-900 hover:text-gray-600'
-                      : 'text-white hover:text-white/80'
-                      }`}
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors text-gray-900 hover:text-gray-600"
                   >
                     {item.name}
                     <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${openDropdown === item.name ? 'rotate-180' : ''}`} />
@@ -157,10 +152,7 @@ export default function Navbar() {
                   <a
                     key={item.name}
                     href={item.href}
-                    className={`px-3 py-1.5 text-sm font-medium transition-colors ${scrolled || !isPublicPage
-                      ? 'text-gray-900 hover:text-gray-600'
-                      : 'text-white hover:text-white/80'
-                      }`}
+                    className="px-3 py-1.5 text-sm font-medium transition-colors text-gray-900 hover:text-gray-600"
                   >
                     {item.name}
                   </a>
@@ -190,16 +182,13 @@ export default function Navbar() {
             <div className="hidden md:flex items-center gap-3">
               <Link
                 to="/login"
-                className={`px-5 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${scrolled || !isPublicPage
-                  ? 'text-gray-900 border-gray-900 hover:bg-gray-100'
-                  : 'text-[#B3DE16] border-[#B3DE16] hover:bg-[#B3DE16]/10'
-                  }`}
+                className="px-5 py-2 text-sm font-medium rounded-lg border transition-all duration-200 text-gray-900 border-gray-900 hover:bg-gray-900/5"
               >
                 Log in
               </Link>
               <Link
                 to="/signup"
-                className="px-5 py-2 text-sm font-semibold text-gray-900 bg-[#B3DE16] rounded-lg transition-all duration-200 hover:bg-[#a1c814] shadow-sm hover:shadow-md"
+                className="px-5 py-2 text-sm font-semibold text-white bg-gray-900 rounded-lg transition-all duration-200 hover:bg-gray-800 shadow-sm hover:shadow-md"
               >
                 Get started free
               </Link>
@@ -210,10 +199,7 @@ export default function Navbar() {
           <div className="flex md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className={`p-1.5 rounded-md transition-colors ${scrolled || !isPublicPage
-                ? 'text-gray-600 hover:bg-gray-100'
-                : 'text-white hover:bg-white/10'
-                }`}
+              className="p-1.5 rounded-md transition-colors text-gray-900 hover:bg-gray-900/5"
             >
               {isMobileMenuOpen ? (
                 <X className="h-6 w-6" />

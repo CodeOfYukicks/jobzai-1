@@ -40,7 +40,7 @@ const ChatBubbleIcon = ({ isActive, className = '' }: { isActive?: boolean; clas
             }
             .chat-bubble-wrapper .line {
                 fill: none;
-                stroke: #1a1a1a;
+                stroke: #ffffff;
                 stroke-width: 2.75;
                 stroke-linecap: round;
                 transition: stroke-dashoffset 500ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -54,7 +54,7 @@ const ChatBubbleIcon = ({ isActive, className = '' }: { isActive?: boolean; clas
                 stroke-dashoffset: -18;
             }
             .chat-bubble-wrapper .circle {
-                fill: #1a1a1a;
+                fill: #ffffff;
                 stroke: none;
                 transform-origin: 50%;
                 transition: transform 500ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -232,19 +232,19 @@ export default function LandingAssistantWidget() {
                         {/* Button */}
                         <motion.button
                             onClick={() => setIsOpen(true)}
-                            className="relative w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center group"
-                            style={{ backgroundColor: '#B3DE16', boxShadow: '0 4px 20px rgba(179, 222, 22, 0.4)' }}
+                            className="relative w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center group"
+                            style={{ backgroundColor: '#1a1a1a', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)' }}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                         >
                             {/* Pulse animation */}
                             <span
                                 className="absolute inset-0 rounded-full animate-landing-pulse"
-                                style={{ backgroundColor: '#B3DE16' }}
+                                style={{ backgroundColor: '#1a1a1a' }}
                             />
 
                             {/* Icon */}
-                            <ChatBubbleIcon className="relative z-10" />
+                            <ChatBubbleIcon className="relative z-10 scale-75" />
                         </motion.button>
                     </motion.div>
                 )}
