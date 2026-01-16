@@ -42,13 +42,49 @@ import MobileNavigation from './MobileNavigation';
 import PageTransition from '../PageTransition';
 import type { AppNotification } from '../../services/notificationCenterService';
 
-// Quick actions - lightweight, horizontal scroll
-const QUICK_ACTIONS = [
-    { id: 'jobs', name: 'Jobs', href: '/jobs', icon: LayoutGrid, color: '#635BFF' },
-    { id: 'applications', name: 'Applications', href: '/applications', icon: Briefcase, color: '#F59E0B' },
-    { id: 'cv', name: 'Resume', href: '/cv-analysis', icon: FileSearch, color: '#EC4899' },
-    { id: 'interview', name: 'Practice', href: '/mock-interview', icon: Mic, color: '#EF4444' },
-    { id: 'calendar', name: 'Calendar', href: '/calendar', icon: Calendar, color: '#10B981' },
+// Primary actions - clear, actionable CTAs
+const PRIMARY_ACTIONS = [
+    {
+        id: 'jobs',
+        label: 'Browse Jobs',
+        desc: 'Find opportunities that match you',
+        href: '/jobs',
+        icon: LayoutGrid,
+        color: '#635BFF',
+        isPrimary: true
+    },
+    {
+        id: 'analyze',
+        label: 'Analyze my CV',
+        desc: 'Get AI-powered feedback',
+        href: '/cv-analysis',
+        icon: FileSearch,
+        color: '#EC4899'
+    },
+    {
+        id: 'create',
+        label: 'Create my CV',
+        desc: 'Build a professional resume',
+        href: '/resume-builder?action=create',
+        icon: Briefcase,
+        color: '#10B981'
+    },
+    {
+        id: 'interview',
+        label: 'Practice Interview',
+        desc: 'Prepare with AI mock sessions',
+        href: '/mock-interview',
+        icon: Mic,
+        color: '#EF4444'
+    },
+    {
+        id: 'track',
+        label: 'Track Applications',
+        desc: 'Monitor your job applications',
+        href: '/applications',
+        icon: Calendar,
+        color: '#F59E0B'
+    },
 ];
 
 // Get time-based greeting
@@ -278,7 +314,7 @@ export default function HubPageMobile() {
     const recentNotifications = notifications.slice(0, 5);
 
     return (
-        <div className="min-h-screen bg-[#fafafa] dark:bg-[#0a0a0a] relative">
+        <div className="min-h-screen bg-[#fafafa] dark:bg-[#333234] relative">
             <PageTransition
                 {...transition}
                 onAnimationComplete={() => { }}
@@ -309,17 +345,16 @@ export default function HubPageMobile() {
 
                 {/* Main Content */}
                 <main className="flex-1 px-5 pb-32 overflow-y-auto">
-                    {/* Greeting Section - Large Typography, No Card */}
+                    {/* Greeting Section - Desktop Style */}
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="mt-2 mb-8"
                     >
-                        <h1 className="text-[32px] font-bold leading-tight text-gray-900 dark:text-white tracking-tight">
-                            {getGreeting()},
-                        </h1>
-                        <h1 className="text-[32px] font-bold leading-tight text-gray-900 dark:text-white tracking-tight">
-                            {firstName}.
+                        <h1 className="text-[32px] font-bold leading-tight tracking-tight">
+                            <span className="text-gray-900 dark:text-white">Hey </span>
+                            <span className="text-[#635BFF] dark:text-[#a5a0ff]">{firstName}</span>
+                            <span className="text-gray-900 dark:text-white"> 👋</span>
                         </h1>
 
                         {/* Tour prompt (visible for 24h after completion) */}
@@ -345,118 +380,46 @@ export default function HubPageMobile() {
                         )}
                     </motion.div>
 
-                    {/* Primary Focus Card - Premium Apple-Style */}
+                    {/* Quick Actions - Ultra Minimal Premium */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
                         className="mb-10"
                     >
-                        <button
-                            onClick={(e) => handleNavigate(e, primaryFocus.href, primaryFocus.color)}
-                            className="w-full text-left group"
-                        >
-                            {/* Card Container */}
-                            <div className={`relative overflow-hidden rounded-[24px] p-6
-                                bg-gradient-to-br ${primaryFocus.gradient}
-                                dark:bg-gradient-to-br dark:from-white/[0.08] dark:to-white/[0.02]
-                                backdrop-blur-xl
-                                border border-white/60 dark:border-white/[0.08]
-                                shadow-[0_8px_40px_-12px_rgba(0,0,0,0.12)]
-                                dark:shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)]
-                                active:scale-[0.98] transition-all duration-300`}
-                            >
-                                {/* Glassmorphism overlay */}
-                                <div className="absolute inset-0 bg-white/40 dark:bg-black/20 backdrop-blur-[2px]" />
+                        {/* Section Label */}
+                        <p className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
+                            Quick Actions
+                        </p>
 
-                                {/* Accent glow */}
-                                <div
-                                    className="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-20 blur-3xl"
-                                    style={{ backgroundColor: primaryFocus.color }}
-                                />
-
-                                {/* Content */}
-                                <div className="relative z-10">
-                                    {/* Top row: Badge + Time */}
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div
-                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full
-                                                bg-white/80 dark:bg-white/10
-                                                border border-white/60 dark:border-white/10"
-                                        >
-                                            <Sparkles
-                                                className="w-3.5 h-3.5"
-                                                style={{ color: primaryFocus.color }}
-                                            />
-                                            <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
-                                                Focus
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5">
-                                            <Clock className="w-3 h-3 text-gray-500 dark:text-gray-400" />
-                                            <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
-                                                {primaryFocus.time}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Title */}
-                                    <h2 className="text-[22px] font-bold text-gray-900 dark:text-white leading-tight mb-2 tracking-tight">
-                                        {primaryFocus.title}
-                                    </h2>
-
-                                    {/* Subtitle */}
-                                    <p className="text-[15px] text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
-                                        {primaryFocus.subtitle}
-                                    </p>
-
-                                    {/* CTA Button */}
-                                    <div className="flex items-center justify-between">
-                                        <div
-                                            className="flex items-center gap-2 px-5 py-2.5 rounded-full
-                                                transition-all duration-300 group-active:scale-95"
-                                            style={{ backgroundColor: primaryFocus.color }}
-                                        >
-                                            <span className="text-[14px] font-semibold text-white">
-                                                {primaryFocus.cta}
-                                            </span>
-                                            <ChevronRight className="w-4 h-4 text-white/80 group-active:translate-x-0.5 transition-transform" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </button>
-                    </motion.div>
-
-                    {/* Quick Actions - Horizontal Scroll, No Card Backgrounds */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15 }}
-                        className="mb-10"
-                    >
-                        <div className="flex gap-6 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">
-                            {QUICK_ACTIONS.map((action, index) => (
+                        {/* Clean Action List */}
+                        <div className="space-y-2">
+                            {PRIMARY_ACTIONS.map((action, index) => (
                                 <motion.button
                                     key={action.id}
                                     onClick={(e) => handleNavigate(e, action.href, action.color)}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.2 + index * 0.03 }}
-                                    className="flex flex-col items-center gap-2 flex-shrink-0 active:opacity-60 transition-opacity"
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 0.12 + index * 0.03 }}
+                                    className="w-full flex items-center gap-4 px-4 py-4 rounded-xl 
+                                        bg-white dark:bg-[#2b2a2c] 
+                                        border border-gray-100 dark:border-[#3d3c3e]
+                                        active:bg-gray-50 dark:active:bg-[#3d3c3e]
+                                        transition-colors duration-150"
                                 >
-                                    <div
-                                        className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                                        style={{ backgroundColor: `${action.color}12` }}
-                                    >
-                                        <action.icon
-                                            className="w-6 h-6"
-                                            style={{ color: action.color }}
-                                        />
-                                    </div>
-                                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                        {action.name}
+                                    {/* Simple Icon */}
+                                    <action.icon
+                                        className="w-5 h-5 text-gray-900 dark:text-white"
+                                        strokeWidth={1.5}
+                                    />
+
+                                    {/* Label Only */}
+                                    <span className="flex-1 text-left text-[15px] font-medium text-gray-900 dark:text-white">
+                                        {action.label}
                                     </span>
+
+                                    {/* Minimal Arrow */}
+                                    <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600" strokeWidth={1.5} />
                                 </motion.button>
                             ))}
                         </div>

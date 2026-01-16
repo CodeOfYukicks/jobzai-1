@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText, Search, Loader2, Sparkles, ChevronDown, X, Check, Info, Upload, StickyNote, Palette, Plus, FolderOpen
@@ -104,6 +104,7 @@ export default function ResumeBuilderPage() {
   const { currentUser } = useAuth();
   const { isOpen: isAssistantOpen } = useAssistant();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -352,6 +353,17 @@ export default function ResumeBuilderPage() {
       fetchViewPreferences();
     }
   }, [currentUser, fetchFolders, fetchResumes, fetchDocuments, fetchNotes, fetchWhiteboards, fetchViewPreferences]);
+
+  // Handle ?action=create URL parameter to open create sheet
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'create') {
+      setIsMobileCreateSheetOpen(true);
+      // Remove the param from URL to avoid reopening on refresh
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Auto-collapse sidebar when assistant opens to make more space (only once)
   const prevAssistantOpenRef = useRef(isAssistantOpen);

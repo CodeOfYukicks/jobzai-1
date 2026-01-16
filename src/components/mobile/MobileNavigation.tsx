@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -6,9 +6,16 @@ import {
   ChevronRight,
   Home,
   Menu,
-  Sparkles
+  Sparkles,
+  LogOut,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../lib/firebase';
 import { navigationGroups, type NavItem } from '../../config/navigationConfig';
+import { loadThemeFromStorage, applyTheme, type Theme } from '../../lib/theme';
 import MobileAIAssistantModal from './MobileAIAssistantModal';
 
 // Navigation sections for drawer - cleaner organization
@@ -20,6 +27,13 @@ const DRAWER_SECTIONS = [
   { id: 'account', label: 'Account', items: navigationGroups.account },
 ] as const;
 
+// Theme options
+const THEME_OPTIONS: { id: Theme; label: string; icon: typeof Sun }[] = [
+  { id: 'light', label: 'Light', icon: Sun },
+  { id: 'dark', label: 'Dark', icon: Moon },
+  { id: 'system', label: 'Auto', icon: Monitor },
+];
+
 export default function MobileNavigation() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -27,6 +41,14 @@ export default function MobileNavigation() {
   // Modal states
   const [isAIOpen, setIsAIOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Theme state
+  const [currentTheme, setCurrentTheme] = useState<Theme>(loadThemeFromStorage());
+
+  // Sync theme on mount
+  useEffect(() => {
+    setCurrentTheme(loadThemeFromStorage());
+  }, []);
 
   // Check if path is active
   const isActivePath = (path: string) => {
@@ -43,7 +65,24 @@ export default function MobileNavigation() {
   // Open AI from drawer
   const handleOpenAI = () => {
     setIsDrawerOpen(false);
-    setTimeout(() => setIsAIOpen(true), 150); // Small delay for smooth transition
+    setTimeout(() => setIsAIOpen(true), 150);
+  };
+
+  // Theme change handler
+  const handleThemeChange = (newTheme: Theme) => {
+    setCurrentTheme(newTheme);
+    applyTheme(newTheme);
+  };
+
+  // Sign out handler
+  const handleSignOut = async () => {
+    try {
+      setIsDrawerOpen(false);
+      await signOut(auth);
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   return (
@@ -156,7 +195,6 @@ export default function MobileNavigation() {
               {/* Scrollable Navigation Sections */}
               <div
                 className="flex-1 overflow-y-auto overscroll-contain"
-                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}
               >
                 <div className="py-4">
                   {DRAWER_SECTIONS.map((section, sectionIndex) => (
@@ -210,6 +248,51 @@ export default function MobileNavigation() {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                {/* Theme Switcher */}
+                <div className="px-4 py-4 border-t border-gray-100 dark:border-white/[0.06]">
+                  <h3 className="px-1 mb-3 text-[11px] font-medium text-gray-400 dark:text-white/40 uppercase tracking-[0.5px]">
+                    Theme
+                  </h3>
+                  <div className="flex gap-2 p-1 bg-gray-100 dark:bg-white/[0.06] rounded-xl">
+                    {THEME_OPTIONS.map((option) => {
+                      const isActive = currentTheme === option.id;
+                      const Icon = option.icon;
+                      return (
+                        <button
+                          key={option.id}
+                          onClick={() => handleThemeChange(option.id)}
+                          className={`
+                            flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[13px] font-medium transition-all
+                            ${isActive
+                              ? 'bg-white dark:bg-[#2c2c2e] text-gray-900 dark:text-white shadow-sm'
+                              : 'text-gray-500 dark:text-white/50 active:bg-white/50 dark:active:bg-white/[0.04]'
+                            }
+                          `}
+                        >
+                          <Icon className="w-4 h-4" strokeWidth={1.75} />
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Sign Out */}
+                <div
+                  className="px-4 pb-4"
+                  style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
+                >
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/[0.04] active:bg-gray-100 dark:active:bg-white/[0.08] transition-all"
+                  >
+                    <LogOut className="w-5 h-5 text-red-500" strokeWidth={1.75} />
+                    <span className="text-[15px] font-medium text-red-500">
+                      Sign Out
+                    </span>
+                  </button>
                 </div>
               </div>
             </motion.div>
