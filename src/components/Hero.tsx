@@ -207,18 +207,18 @@ export default function Hero() {
                 >
                   {[...Array(2)].map((_, setIndex) => (
                     <div key={setIndex} className="flex items-center gap-8 md:gap-14">
-                      <img src="https://img.logo.dev/google.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Google" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
-                      <img src="https://img.logo.dev/apple.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Apple" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
-                      <img src="https://img.logo.dev/microsoft.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Microsoft" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
-                      <img src="https://img.logo.dev/amazon.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Amazon" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
-                      <img src="https://img.logo.dev/netflix.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Netflix" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
-                      <img src="https://img.logo.dev/jpmorgan.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="JPMorgan" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
-                      <img src="https://img.logo.dev/spotify.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Spotify" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
-                      <img src="https://img.logo.dev/tesla.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Tesla" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
-                      <img src="https://img.logo.dev/adobe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Adobe" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
-                      <img src="https://img.logo.dev/stripe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Stripe" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
-                      <img src="https://img.logo.dev/uber.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Uber" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
-                      <img src="https://img.logo.dev/airbnb.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Airbnb" className="h-8 md:h-8 w-auto hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/google.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Google" className="h-8 w-auto grayscale hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/apple.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Apple" className="h-8 w-auto grayscale hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/microsoft.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Microsoft" className="h-8 w-auto grayscale hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/amazon.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Amazon" className="h-8 w-auto grayscale hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/netflix.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Netflix" className="h-8 w-auto grayscale hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/jpmorgan.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="JPMorgan" className="h-8 w-auto grayscale hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/spotify.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Spotify" className="h-8 w-auto grayscale hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/tesla.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Tesla" className="h-8 w-auto grayscale hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/adobe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Adobe" className="h-8 w-auto grayscale hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/stripe.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Stripe" className="h-8 w-auto grayscale hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/uber.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Uber" className="h-8 w-auto grayscale hover:scale-110 transition-transform duration-300" loading="lazy" />
+                      <img src="https://img.logo.dev/airbnb.com?token=pk_X4tX0jIHR9eTOuPeazGMYg" alt="Airbnb" className="h-8 w-auto grayscale hover:scale-110 transition-transform duration-300" loading="lazy" />
                     </div>
                   ))}
                 </div>
