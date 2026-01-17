@@ -68,8 +68,8 @@ export default function Hero() {
 
   return (
     <>
-      {/* Green Hero Section - Ends where video cuts off */}
-      <section id="home" className="relative pt-24 pb-16 md:pt-28 md:pb-20 lg:pt-32 lg:pb-24 overflow-hidden bg-[#B3DE16] rounded-b-[40px] md:rounded-b-[60px]">
+      {/* Green Hero Section - With visible contour on all sides */}
+      <section id="home" className="relative pt-24 pb-16 md:pt-28 md:pb-20 lg:pt-32 lg:pb-24 overflow-hidden bg-[#B3DE16] mx-3 md:mx-4 lg:mx-6 mt-3 rounded-[24px] md:rounded-[32px]" style={{ boxShadow: 'inset 0 0 80px rgba(0,0,0,0.04), 0 4px 30px rgba(0,0,0,0.06)' }}>
         {/* Main Content Container */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 

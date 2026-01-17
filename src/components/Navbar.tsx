@@ -117,11 +117,11 @@ export default function Navbar() {
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out will-change-transform ${scrolled
       ? 'py-2 px-4'
-      : 'py-0 px-0'
+      : 'py-0 px-0 mx-3 md:mx-4 lg:mx-6 mt-3'
       }`}>
       <div className={`transition-all duration-500 ease-out will-change-transform ${scrolled
         ? 'max-w-5xl mx-auto bg-white/80 backdrop-blur-xl shadow-lg shadow-black/5 rounded-full border border-gray-200/50 px-6'
-        : 'w-full px-4 sm:px-6 bg-transparent'
+        : 'w-full px-4 sm:px-6 bg-transparent rounded-t-[40px] md:rounded-t-[60px]'
         }`}>
         <div className={`relative flex items-center justify-between transition-all duration-500 ${scrolled ? 'h-14' : 'h-16'}`}>
           {/* Logo - Left */}
@@ -193,15 +193,15 @@ export default function Navbar() {
             <div className="hidden md:flex items-center gap-3">
               <Link
                 to="/login"
-                className="px-5 py-2 text-sm font-medium rounded-full border transition-all duration-200 text-gray-900 border-gray-900 hover:bg-gray-900/5"
+                className="px-6 py-3 text-sm font-medium rounded-full border-2 transition-all duration-200 text-gray-900 border-gray-900 hover:bg-gray-900/5"
               >
                 Log in
               </Link>
               <Link
                 to="/signup"
-                className="px-5 py-2 text-sm font-semibold text-white bg-gray-900 rounded-full transition-all duration-200 hover:bg-gray-800 shadow-sm hover:shadow-md"
+                className="px-7 py-3 text-sm font-semibold text-white bg-gray-900 rounded-full transition-all duration-200 hover:bg-gray-800 shadow-sm hover:shadow-md"
               >
-                Get started free
+                Sign up
               </Link>
             </div>
           )}
