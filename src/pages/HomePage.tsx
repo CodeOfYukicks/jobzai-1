@@ -7,6 +7,7 @@ import { forceLightMode } from '../lib/theme';
 const FeatureSection = lazy(() => import('../components/landing/FeatureSection'));
 const FinalCTA = lazy(() => import('../components/landing/FinalCTA'));
 const PricingSection = lazy(() => import('../components/landing/PricingSection'));
+const DevicesSection = lazy(() => import('../components/landing/DevicesSection'));
 const Footer = lazy(() => import('../components/Footer'));
 const LandingAssistantWidget = lazy(() => import('../components/landing/LandingAssistantWidget'));
 
@@ -35,6 +36,10 @@ export default function HomePage() {
 
       <Suspense fallback={<SectionLoader />}>
         <PricingSection />
+      </Suspense>
+
+      <Suspense fallback={<SectionLoader />}>
+        <DevicesSection />
       </Suspense>
 
       <Suspense fallback={<SectionLoader />}>

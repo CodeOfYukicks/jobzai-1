@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, ArrowRight, RotateCcw } from 'lucide-react';
+import { X, Send, ArrowRight, RotateCcw, MessageCircle } from 'lucide-react';
 import { useLandingAssistant, LandingMessage } from '../../hooks/useLandingAssistant';
 import { useNavigate } from 'react-router-dom';
 
 // LocalStorage key for first visit tracking
 const FIRST_VISIT_KEY = 'cubbbe_landing_assistant_visited';
+
+// AI Avatar image path - using chatbot image
+const AI_AVATAR_PATH = '/images/chatbot_image.png';
 
 // Quick action chips - common questions
 const QUICK_ACTIONS = [
@@ -89,7 +92,28 @@ const parseMarkdown = (text: string): React.ReactNode => {
     });
 };
 
-// Message bubble component - Premium SaaS style
+// AI Avatar component
+const AIAvatar = () => (
+    <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-[#B3DE16] to-[#8ab00d] flex items-center justify-center shadow-sm">
+        <img
+            src={AI_AVATAR_PATH}
+            alt="Cubbbe AI"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+                // Fallback to favicon if chatbot_image doesn't exist yet
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                target.parentElement!.innerHTML = `
+                    <svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                `;
+            }}
+        />
+    </div>
+);
+
+// Message bubble component - Premium SaaS style with avatar
 const MessageBubble = ({ message }: { message: LandingMessage }) => {
     const isUser = message.role === 'user';
 
@@ -98,12 +122,15 @@ const MessageBubble = ({ message }: { message: LandingMessage }) => {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-            className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+            className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
         >
+            {/* AI Avatar - only for assistant messages */}
+            {!isUser && <AIAvatar />}
+
             <div
-                className={`max-w-[75%] px-4 py-3 text-[14px] leading-relaxed tracking-[-0.01em] ${isUser
+                className={`max-w-[70%] px-4 py-3 text-[14px] leading-relaxed tracking-[-0.01em] ${isUser
                     ? 'bg-gradient-to-br from-gray-800 to-gray-900 text-white rounded-[20px] rounded-br-[6px] shadow-md'
-                    : 'bg-gray-50/80 text-gray-700 rounded-[20px] rounded-bl-[6px] border border-gray-100/60'
+                    : 'bg-gray-50/90 text-gray-700 rounded-[20px] rounded-bl-[6px] border border-gray-100/60'
                     }`}
                 style={{
                     backdropFilter: isUser ? 'none' : 'blur(8px)',
@@ -260,42 +287,74 @@ export default function LandingAssistantWidget() {
                         transition={{ type: 'spring', damping: 28, stiffness: 380 }}
                         className="fixed z-50 overflow-hidden flex flex-col
                             bottom-0 left-0 right-0 sm:bottom-6 sm:right-6 sm:left-auto
-                            w-full sm:w-[400px] sm:max-w-[calc(100vw-48px)]
-                            rounded-t-[20px] sm:rounded-[24px]"
+                            w-full sm:w-[360px] sm:max-w-[calc(100vw-48px)]
+                            rounded-t-[20px] sm:rounded-[20px]"
                         style={{
-                            maxHeight: 'min(85vh, 640px)',
-                            background: 'rgba(255, 255, 255, 0.95)',
+                            height: 'min(90vh, 700px)',
+                            background: 'rgba(255, 255, 255, 0.98)',
                             backdropFilter: 'blur(24px)',
                             WebkitBackdropFilter: 'blur(24px)',
-                            border: '1px solid rgba(255, 255, 255, 0.6)',
-                            boxShadow: '0 -4px 32px rgba(0, 0, 0, 0.1), 0 8px 32px rgba(0, 0, 0, 0.08)',
+                            boxShadow: '0 -4px 32px rgba(0, 0, 0, 0.15), 0 8px 32px rgba(0, 0, 0, 0.12)',
                         }}
                     >
-                        {/* Header - Minimal & Elegant */}
-                        <div className="px-6 py-5 flex items-center justify-between border-b border-gray-100/50">
-                            <div>
-                                <h3 className="font-semibold text-gray-900 text-[15px] tracking-[-0.02em]">Cubbbe Assistant</h3>
-                                <p className="text-[12px] text-gray-400 mt-0.5 tracking-tight">Ask me anything about the product</p>
-                            </div>
-                            <div className="flex items-center gap-0.5">
+                        {/* Dark Header - Chat Badge Style - Fixed */}
+                        <div
+                            className="relative overflow-hidden flex-shrink-0"
+                            style={{
+                                background: '#000000',
+                            }}
+                        >
+                            {/* Close button - positioned absolute */}
+                            <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
                                 <button
                                     onClick={clearChat}
-                                    className="w-9 h-9 rounded-xl hover:bg-gray-100/70 flex items-center justify-center transition-all duration-200"
+                                    className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-all duration-200"
                                     title="Clear chat"
                                 >
-                                    <RotateCcw className="w-4 h-4 text-gray-400" />
+                                    <RotateCcw className="w-4 h-4 text-white/60" />
                                 </button>
                                 <button
                                     onClick={() => setIsOpen(false)}
-                                    className="w-9 h-9 rounded-xl hover:bg-gray-100/70 flex items-center justify-center transition-all duration-200"
+                                    className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-all duration-200"
                                 >
-                                    <X className="w-4 h-4 text-gray-400" />
+                                    <X className="w-4 h-4 text-white/60" />
                                 </button>
+                            </div>
+
+                            {/* Content Container */}
+                            <div className="pt-4 pb-5 px-6 flex flex-col items-center">
+                                {/* Chat Badge */}
+                                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-700/80 mb-3">
+                                    <MessageCircle className="w-4 h-4 text-white" />
+                                    <span className="text-white text-[13px] font-medium">Chat</span>
+                                </div>
+
+                                {/* AI Avatar */}
+                                <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-[#B3DE16] to-[#8ab00d] flex items-center justify-center shadow-lg mb-3 ring-2 ring-white/20">
+                                    <img
+                                        src={AI_AVATAR_PATH}
+                                        alt="Cubbbe AI"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.style.display = 'none';
+                                            target.parentElement!.innerHTML = `
+                                                <svg viewBox="0 0 24 24" class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                                </svg>
+                                            `;
+                                        }}
+                                    />
+                                </div>
+
+                                {/* Welcome Text */}
+                                <h3 className="font-semibold text-white text-[15px] tracking-[-0.02em] mb-0.5">Questions? Chat with us!</h3>
+                                <p className="text-[11px] text-gray-400 tracking-tight">Instant answers about Cubbbe</p>
                             </div>
                         </div>
 
-                        {/* Messages - Airy layout */}
-                        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4 min-h-[200px]">
+                        {/* Messages - Scrollable area */}
+                        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0">
                             {messages.map((message) => (
                                 <MessageBubble key={message.id} message={message} />
                             ))}

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import FirebaseImage from '../FirebaseImage';
 import ProductShowcaseSection from './ProductShowcaseSection';
+import { Icon } from '@iconify/react';
 
 // Savings calculator data - tools replaced by Cubbbe with their market prices
 const savingsTools = [
@@ -41,263 +42,89 @@ const campaignFeatures = [
   },
 ];
 
-// Hero Feature Card - AI Campaigns with interactive items
+// Hero Feature Cards - Minimal 2-Column Design
 function HeroFeatureCard() {
-  const [activeFeature, setActiveFeature] = useState(campaignFeatures[0].id);
-  const [videoUrls, setVideoUrls] = useState<Record<string, string>>({});
-  const [loadingVideos, setLoadingVideos] = useState(true);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const mobileScrollRef = useRef<HTMLDivElement>(null);
-
-  const activeFeatureData = campaignFeatures.find(f => f.id === activeFeature);
-  const activeFeatureIndex = campaignFeatures.findIndex(f => f.id === activeFeature);
-
-  // Load video URLs from Firebase Storage
-  useEffect(() => {
-    const loadVideos = async () => {
-      const storage = getStorage();
-      const urls: Record<string, string> = {};
-
-      for (const feature of campaignFeatures) {
-        try {
-          const videoRef = ref(storage, feature.videoPath);
-          const url = await getDownloadURL(videoRef);
-          urls[feature.id] = url;
-        } catch {
-          // Video not uploaded yet, will show placeholder
-          console.log(`Video not found: ${feature.videoPath}`);
-        }
-      }
-
-      setVideoUrls(urls);
-      setLoadingVideos(false);
-    };
-
-    loadVideos();
-  }, []);
-
-  // Reset video when active feature changes
-  useEffect(() => {
-    if (videoRef.current && videoUrls[activeFeature]) {
-      videoRef.current.load();
-      videoRef.current.play();
-    }
-  }, [activeFeature, videoUrls]);
-
-  // Handle mobile scroll to update active feature
-  useEffect(() => {
-    const container = mobileScrollRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const scrollLeft = container.scrollLeft;
-      const cardWidth = container.offsetWidth;
-      const newIndex = Math.round(scrollLeft / cardWidth);
-      const newFeature = campaignFeatures[Math.min(Math.max(newIndex, 0), campaignFeatures.length - 1)];
-      if (newFeature) setActiveFeature(newFeature.id);
-    };
-
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      className="bg-white rounded-2xl overflow-hidden shadow-sm"
-    >
-      {/* Desktop Layout */}
-      <div className="hidden lg:grid grid-cols-[45%_55%]">
-        {/* Left Content */}
-        <div className="p-8 flex flex-col">
-          {/* Label + Badge */}
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-sm font-medium text-gray-500">AI Campaigns</span>
-            <span
-              className="px-2.5 py-0.5 text-[10px] font-medium tracking-wide uppercase rounded-full"
-              style={{
-                background: 'linear-gradient(135deg, rgba(34, 0, 65, 0.08) 0%, rgba(34, 0, 65, 0.04) 100%)',
-                color: '#220041',
-                border: '1px solid rgba(34, 0, 65, 0.1)'
-              }}
-            >
-              New
-            </span>
-          </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5">
+      {/* Card 1 - AI Campaigns */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="bg-[#f5f5f5] rounded-3xl p-6 lg:p-8 min-h-[450px] lg:min-h-[520px] flex flex-col"
+      >
+        {/* Pill Badge with Premium Icon */}
+        <div className="flex items-center gap-2 mb-4">
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-full text-sm font-medium text-gray-900 shadow-sm">
+            <Icon icon="solar:plain-bold" className="w-4 h-4 text-gray-700" />
+            Campaigns
+          </span>
+        </div>
 
-          {/* Title */}
-          <h2 className="text-4xl font-bold text-gray-900 mb-4 leading-tight">
-            You set the target.<br />
-            AI does the outreach.
-          </h2>
+        {/* Title */}
+        <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 leading-tight mb-6">
+          Automate your outreach.<br />
+          Land more interviews.
+        </h3>
 
-          {/* CTA Button */}
-          <Link
-            to="/signup"
-            className="inline-flex items-center justify-center w-9 h-9 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors mb-6"
-          >
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-
-          {/* Interactive Feature List */}
-          <div className="mt-auto -ml-2">
-            {campaignFeatures.map((feature, index) => (
-              <div key={feature.id}>
-                {index > 0 && <div className="h-px bg-gray-100 ml-2" />}
-                <button
-                  onClick={() => setActiveFeature(feature.id)}
-                  className={`w-full text-left py-3 transition-all duration-200 ${activeFeature === feature.id ? 'pl-4 border-l-2 border-gray-900' : 'pl-2 border-l-2 border-transparent hover:pl-3'}`}
-                >
-                  <h4 className={`font-semibold transition-colors ${activeFeature === feature.id ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'}`}>
-                    {feature.title}
-                  </h4>
-                  <AnimatePresence>
-                    {activeFeature === feature.id && (
-                      <motion.p
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="text-sm text-gray-500 mt-2 overflow-hidden"
-                      >
-                        {feature.description}
-                      </motion.p>
-                    )}
-                  </AnimatePresence>
-                </button>
-              </div>
-            ))}
+        <div className="flex-1 flex items-center justify-center rounded-2xl overflow-hidden min-h-[200px]">
+          {/* Placeholder - will be replaced by video */}
+          <div className="text-center p-4">
+            <Icon icon="solar:plain-bold" className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <p className="text-xs text-gray-400">Animation coming soon</p>
           </div>
         </div>
 
-        {/* Right Preview */}
-        <div className="relative min-h-[520px]" style={{ background: 'linear-gradient(135deg, rgba(223, 189, 255, 0.3) 0%, rgba(223, 189, 255, 0.4) 100%)' }}>
-          <div className="absolute left-0 top-0 bottom-0 w-16" style={{ background: 'linear-gradient(180deg, rgba(223, 189, 255, 0.4) 0%, rgba(34, 0, 65, 0.15) 50%, rgba(223, 189, 255, 0.4) 100%)' }} />
-          <div className="absolute top-6 bottom-6 left-10 right-0 bg-zinc-950 rounded-l-xl shadow-lg overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-[#fafafa] border-b border-gray-100">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-[#FF5F56]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#FFBD2E]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#27C93F]"></div>
-              </div>
-            </div>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeFeature}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="h-[calc(100%-41px)]"
-              >
-                {loadingVideos ? (
-                  <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-                    <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
-                  </div>
-                ) : videoUrls[activeFeature] ? (
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover bg-zinc-950"
-                  >
-                    <source src={videoUrls[activeFeature]} type="video/mp4" />
-                  </video>
-                ) : (
-                  <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-                    <div className="text-center">
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(223, 189, 255, 0.5)' }}>
-                        <span className="text-2xl">??</span>
-                      </div>
-                      <p className="text-sm text-gray-400">{activeFeatureData?.title}</p>
-                      <p className="text-xs text-gray-300 mt-1">Video coming soon</p>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Layout */}
-      <div className="lg:hidden">
-        {/* Header */}
-        <div className="p-5 pb-4">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-sm font-medium text-gray-500">AI Campaigns</span>
-            <span
-              className="px-2.5 py-0.5 text-[10px] font-medium tracking-wide uppercase rounded-full"
-              style={{
-                background: 'linear-gradient(135deg, rgba(34, 0, 65, 0.08) 0%, rgba(34, 0, 65, 0.04) 100%)',
-                color: '#220041',
-                border: '1px solid rgba(34, 0, 65, 0.1)'
-              }}
-            >
-              New
-            </span>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">
-            You set the target.<br />
-            AI does the outreach.
-          </h2>
-          <Link
-            to="/signup"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
-          >
-            Get started <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        {/* Feature Cards Carousel */}
-        <div
-          ref={mobileScrollRef}
-          className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            WebkitOverflowScrolling: 'touch',
-          }}
+        {/* Bottom Link - Pill Style */}
+        <Link
+          to="/signup"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-white shadow-sm rounded-full text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors mt-auto w-fit"
         >
-          {campaignFeatures.map((feature, index) => (
-            <div
-              key={feature.id}
-              className="flex-shrink-0 w-full snap-center px-5 pb-4"
-              style={{ scrollSnapAlign: 'center' }}
-            >
-              <div className="bg-gray-50 rounded-xl p-4">
-                <h4 className="font-semibold text-gray-900 mb-1">{feature.title}</h4>
-                <p className="text-sm text-gray-500 leading-relaxed">{feature.description}</p>
-              </div>
-            </div>
-          ))}
+          About Campaigns
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      </motion.div>
+
+      {/* Card 2 - CV Rewrite */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ delay: 0.1 }}
+        className="bg-[#f5f5f5] rounded-3xl p-6 lg:p-8 min-h-[450px] lg:min-h-[520px] flex flex-col"
+      >
+        {/* Pill Badge with Premium Icon */}
+        <div className="flex items-center gap-2 mb-4">
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-full text-sm font-medium text-gray-900 shadow-sm">
+            <Icon icon="solar:document-bold" className="w-4 h-4 text-gray-700" />
+            CV Rewrite
+          </span>
         </div>
 
-        {/* Indicators */}
-        <div className="flex justify-center gap-2 pb-4">
-          {campaignFeatures.map((feature, index) => (
-            <button
-              key={feature.id}
-              onClick={() => {
-                const container = mobileScrollRef.current;
-                if (container) {
-                  container.scrollTo({ left: container.offsetWidth * index, behavior: 'smooth' });
-                }
-              }}
-              className={`h-1.5 rounded-full transition-all duration-300 ${activeFeature === feature.id
-                ? 'w-6 bg-gray-900'
-                : 'w-1.5 bg-gray-300'
-                }`}
-              aria-label={`View ${feature.title}`}
-            />
-          ))}
+        {/* Title */}
+        <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 leading-tight mb-6">
+          Your CV, tailored<br />
+          for every application.
+        </h3>
+
+        <div className="flex-1 flex items-center justify-center rounded-2xl overflow-hidden min-h-[200px]">
+          {/* Placeholder - will be replaced by video */}
+          <div className="text-center p-4">
+            <Icon icon="solar:document-bold" className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <p className="text-xs text-gray-400">Animation coming soon</p>
+          </div>
         </div>
-      </div>
-    </motion.div>
+
+        {/* Bottom Link - Pill Style */}
+        <Link
+          to="/signup"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-white shadow-sm rounded-full text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors mt-auto w-fit"
+        >
+          About CV Rewrite
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      </motion.div>
+    </div>
   );
 }
 
@@ -810,7 +637,7 @@ function ApplicationTrackingCard() {
   );
 }
 
-// Savings Calculator Component
+// Savings Calculator Component - Premium Minimalist Design
 function SavingsCalculator() {
   const [selectedTools, setSelectedTools] = useState<string[]>(['jobsearch', 'autoapply', 'resume', 'tracking', 'interview']);
 
@@ -834,105 +661,79 @@ function SavingsCalculator() {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: 0.1 }}
-      className="py-8 md:py-12 lg:py-16"
+      className="py-16 md:py-20 lg:py-24"
     >
-      {/* Top Section */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 md:gap-8 mb-6 md:mb-8">
-        {/* Left Content */}
-        <div className="flex-shrink-0">
-          <h3 className="text-2xl md:text-3xl lg:text-[42px] font-extrabold text-gray-900 mb-2 md:mb-3 leading-[1.1] tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
-            More productivity.<br />
-            Fewer tools.
-          </h3>
-          <p className="text-gray-500 text-sm md:text-[15px]">
-            Bring all your tools under one roof. Calculate savings below.
-          </p>
-        </div>
-
-        {/* Right - Tool Icons - Hidden on mobile */}
-        <div className="hidden md:flex relative items-center">
-          {/* Strikethrough line */}
-          <div className="absolute left-0 right-0 top-1/2 h-[2px] bg-gray-900 -rotate-3 z-10" />
-          {/* Tool icons - grayscale brand-like icons */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center opacity-50">
-              <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" /></svg>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center opacity-50">
-              <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.94z" /></svg>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center opacity-50">
-              <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="currentColor"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z" /></svg>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center opacity-50">
-              <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center opacity-50">
-              <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
-            </div>
-          </div>
-        </div>
+      {/* Centered Header */}
+      <div className="text-center mb-10 md:mb-14">
+        <h3
+          className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 tracking-tight"
+          style={{ fontFamily: 'Outfit, sans-serif' }}
+        >
+          One platform.<br className="md:hidden" /> All your tools.
+        </h3>
+        <p className="text-gray-500 text-base md:text-lg max-w-xl mx-auto">
+          Replace multiple subscriptions with a single solution. See how much you could save.
+        </p>
       </div>
 
-      {/* Checkboxes Section - 1 column on mobile, 2-3 on larger */}
-      <div className="border-t border-gray-200 pt-6 md:pt-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
-          {savingsTools.map((tool) => (
-            <button
-              key={tool.id}
-              onClick={() => toggleTool(tool.id)}
-              className={`flex items-center gap-3 p-3 md:p-3 rounded-xl border transition-all duration-200 text-left ${selectedTools.includes(tool.id)
-                ? 'bg-[#DFBDFF]/20'
-                : 'border-gray-200 hover:border-gray-300 bg-white'
+      {/* Checkboxes in Cards - Cleaner Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-10 md:mb-14">
+        {savingsTools.map((tool) => (
+          <button
+            key={tool.id}
+            onClick={() => toggleTool(tool.id)}
+            className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 text-left ${selectedTools.includes(tool.id)
+              ? 'bg-gray-900 border-gray-900'
+              : 'border-gray-200 hover:border-gray-300 bg-white'
+              }`}
+          >
+            <div
+              className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 transition-colors ${selectedTools.includes(tool.id)
+                ? 'bg-white'
+                : 'border-2 border-gray-300'
                 }`}
-              style={selectedTools.includes(tool.id) ? { borderColor: '#DFBDFF' } : undefined}
             >
-              <div
-                className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${selectedTools.includes(tool.id)
-                  ? ''
-                  : 'border-2 border-gray-300'
-                  }`}
-                style={selectedTools.includes(tool.id) ? { backgroundColor: '#220041' } : undefined}
-              >
-                {selectedTools.includes(tool.id) && (
-                  <Check className="w-3 h-3 text-white" />
-                )}
-              </div>
-              <div className="flex-1 flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-gray-900">{tool.name}</span>
-                <span className="text-xs text-gray-400 flex-shrink-0">${tool.price}/mo</span>
-              </div>
-            </button>
-          ))}
-        </div>
+              {selectedTools.includes(tool.id) && (
+                <Check className="w-3.5 h-3.5 text-gray-900" />
+              )}
+            </div>
+            <div className="flex-1 flex items-center justify-between gap-2">
+              <span className={`text-sm font-medium transition-colors ${selectedTools.includes(tool.id) ? 'text-white' : 'text-gray-900'}`}>
+                {tool.name}
+              </span>
+              <span className={`text-xs font-medium flex-shrink-0 ${selectedTools.includes(tool.id) ? 'text-white/60' : 'text-gray-400'}`}>
+                ${tool.price}/mo
+              </span>
+            </div>
+          </button>
+        ))}
       </div>
 
-      {/* Savings Display - More compact on mobile */}
-      <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-gray-200">
-        <div className="rounded-2xl p-4 md:p-6" style={{ backgroundColor: '#f6f5f4' }}>
-          <div className="grid grid-cols-2 gap-4 md:gap-8">
-            <div className="text-center md:text-left">
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Monthly savings</p>
-              <motion.p
-                key={monthlySavings}
-                initial={{ scale: 1.1, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900"
-              >
-                ${monthlySavings}
-              </motion.p>
-            </div>
-            <div className="text-center md:text-left">
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Annual savings</p>
-              <motion.p
-                key={annualSavings}
-                initial={{ scale: 1.1, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="text-2xl md:text-3xl lg:text-4xl font-bold text-green-600"
-              >
-                ${annualSavings}
-              </motion.p>
-            </div>
+      {/* Savings Display - Centered, Clean */}
+      <div className="bg-[#f5f5f5] rounded-3xl p-8 md:p-10">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
+          <div className="text-center">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Monthly savings</p>
+            <motion.p
+              key={monthlySavings}
+              initial={{ scale: 1.05, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="text-4xl md:text-5xl font-bold text-gray-900"
+            >
+              ${monthlySavings}
+            </motion.p>
+          </div>
+          <div className="hidden md:block w-px h-16 bg-gray-300" />
+          <div className="text-center">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Annual savings</p>
+            <motion.p
+              key={annualSavings}
+              initial={{ scale: 1.05, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="text-4xl md:text-5xl font-bold text-gray-900"
+            >
+              ${annualSavings}
+            </motion.p>
           </div>
         </div>
       </div>
@@ -949,6 +750,7 @@ function TryForFree() {
     {
       title: 'Creative Studio',
       description: 'Design resumes, capture ideas, and brainstorm visually.',
+      cta: 'Open Studio',
       icon: (
         <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
           <rect x="4" y="2" width="24" height="28" rx="3" stroke="currentColor" strokeWidth="2" />
@@ -960,6 +762,7 @@ function TryForFree() {
     {
       title: 'Dashboard',
       description: 'Your command center for applications, interviews, and insights.',
+      cta: 'View Dashboard',
       icon: (
         <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
           <rect x="3" y="3" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
@@ -993,17 +796,25 @@ function TryForFree() {
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="pt-12 md:pt-16 pb-12 md:pb-16"
+      className="pt-16 md:pt-20 pb-16 md:pb-20"
     >
-      {/* Title - Responsive */}
-      <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-6 md:mb-10 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
-        Try for free.
-      </h2>
+      {/* Centered Title */}
+      <div className="text-center mb-10 md:mb-14">
+        <h2
+          className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 tracking-tight"
+          style={{ fontFamily: 'Outfit, sans-serif' }}
+        >
+          Everything you need.<br className="md:hidden" /> Nothing you don't.
+        </h2>
+        <p className="text-gray-500 text-base md:text-lg max-w-lg mx-auto">
+          Start for free. No credit card required.
+        </p>
+      </div>
 
       {/* Desktop Layout */}
       <div className="hidden lg:grid grid-cols-[1fr_1fr] grid-rows-[1fr_1fr] gap-4 auto-rows-fr">
         {/* Main Card - AI Assistant - spans both rows */}
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm row-span-2 flex flex-col">
+        <div className="bg-[#f5f5f5] rounded-3xl overflow-hidden row-span-2 flex flex-col">
           <div className="p-8 pb-6">
             <svg viewBox="0 0 40 40" fill="none" className="w-12 h-12 mb-5">
               <path d="M20 4l2.5 7.5L30 14l-7.5 2.5L20 24l-2.5-7.5L10 14l7.5-2.5L20 4z" stroke="#1a1a1a" strokeWidth="2.5" strokeLinejoin="round" />
@@ -1014,20 +825,20 @@ function TryForFree() {
             <h3 className="text-2xl font-bold text-gray-900 mb-2">
               Meet your AI Assistant
             </h3>
-            <p className="text-gray-500 text-base mb-5">
+            <p className="text-gray-500 text-base mb-6">
               Your personal job search copilot. Ask anything, get instant help.
             </p>
 
             <Link
               to="/signup"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors w-fit"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-full text-sm font-medium hover:bg-gray-800 transition-colors w-fit"
             >
               Start free trial
             </Link>
           </div>
 
           <div className="px-8 pb-4">
-            <div className="rounded-xl overflow-hidden bg-[#f5f0e8]">
+            <div className="rounded-2xl overflow-hidden bg-white">
               <FirebaseImage
                 path="images/try-ai-assistant.png"
                 alt="AI Assistant Screenshot"
@@ -1036,7 +847,7 @@ function TryForFree() {
             </div>
           </div>
 
-          <div className="px-8 py-6 border-t border-gray-100 mt-auto">
+          <div className="px-8 py-6 mt-auto">
             <h4 className="text-xl font-bold text-gray-900 mb-2">Always There to Help</h4>
             <p className="text-gray-500 text-sm leading-relaxed">
               From writing cover letters to preparing for interviews.<br />
@@ -1046,21 +857,21 @@ function TryForFree() {
         </div>
 
         {/* Secondary Cards - Desktop */}
-        {secondaryFeatures.map((feature, index) => (
-          <div key={feature.title} className="bg-white rounded-2xl overflow-hidden shadow-sm relative flex flex-col">
+        {secondaryFeatures.map((feature) => (
+          <div key={feature.title} className="bg-[#f5f5f5] rounded-3xl overflow-hidden relative flex flex-col">
             <div className="p-6 pr-[55%] flex-1">
               <div className="text-gray-900 mb-3">{feature.icon}</div>
               <h3 className="text-xl font-bold text-gray-900 mb-1">{feature.title}</h3>
               <p className="text-gray-500 text-sm mb-4">{feature.description}</p>
               <Link
                 to="/signup"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors w-fit"
+                className="inline-flex items-center px-5 py-2.5 border-2 border-gray-900 text-gray-900 rounded-full text-sm font-medium hover:bg-gray-900 hover:text-white transition-colors w-fit"
               >
-                Try free
+                {feature.cta}
               </Link>
             </div>
             <div className="absolute right-0 top-5 bottom-0 w-[52%] overflow-hidden">
-              <div className="rounded-tl-xl shadow-2xl overflow-hidden h-[120%] bg-gray-100 border border-gray-200/50">
+              <div className="rounded-tl-2xl shadow-xl overflow-hidden h-[120%] bg-white">
                 <FirebaseImage
                   path={feature.imagePath}
                   alt={`${feature.title} Screenshot`}
@@ -1075,11 +886,11 @@ function TryForFree() {
       {/* Mobile Layout */}
       <div className="lg:hidden space-y-4">
         {/* AI Assistant Card - Simplified for Mobile */}
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-[#f5f5f5] rounded-3xl overflow-hidden">
           <div className="p-5">
             {/* Compact header with icon */}
             <div className="flex items-start gap-4 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center flex-shrink-0">
                 <svg viewBox="0 0 40 40" fill="none" className="w-6 h-6">
                   <path d="M20 4l2.5 7.5L30 14l-7.5 2.5L20 24l-2.5-7.5L10 14l7.5-2.5L20 4z" stroke="#1a1a1a" strokeWidth="2.5" strokeLinejoin="round" />
                   <path d="M32 22l1.5 4.5L38 28l-4.5 1.5L32 34l-1.5-4.5L26 28l4.5-1.5L32 22z" stroke="#1a1a1a" strokeWidth="2" strokeLinejoin="round" />
@@ -1096,7 +907,7 @@ function TryForFree() {
             </div>
 
             {/* Key benefit */}
-            <div className="bg-gray-50 rounded-xl p-4 mb-4">
+            <div className="bg-white rounded-xl p-4 mb-4">
               <p className="text-sm text-gray-700 leading-relaxed">
                 <span className="font-semibold text-gray-900">Ask anything, get instant help.</span> From cover letters to interview prep, your AI knows your profile and goals.
               </p>
@@ -1105,7 +916,7 @@ function TryForFree() {
             {/* CTA - Full width for better touch */}
             <Link
               to="/signup"
-              className="flex items-center justify-center w-full py-3.5 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors"
+              className="flex items-center justify-center w-full py-3.5 bg-gray-900 text-white rounded-full text-sm font-semibold hover:bg-gray-800 transition-colors"
             >
               Start free trial
             </Link>
@@ -1123,16 +934,16 @@ function TryForFree() {
               WebkitOverflowScrolling: 'touch',
             }}
           >
-            {secondaryFeatures.map((feature, index) => (
+            {secondaryFeatures.map((feature) => (
               <div
                 key={feature.title}
                 className="flex-shrink-0 w-[85%] snap-center pr-3"
                 style={{ scrollSnapAlign: 'center' }}
               >
-                <div className="bg-white rounded-2xl p-5 shadow-sm h-full">
+                <div className="bg-[#f5f5f5] rounded-3xl p-5 h-full">
                   {/* Icon + Title */}
                   <div className="flex items-start gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 text-gray-700">
+                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center flex-shrink-0 text-gray-700">
                       {feature.icon}
                     </div>
                     <div>
@@ -1142,7 +953,7 @@ function TryForFree() {
                   </div>
 
                   {/* Mini Preview */}
-                  <div className="rounded-xl overflow-hidden bg-gray-100 mb-4 h-32">
+                  <div className="rounded-xl overflow-hidden bg-white mb-4 h-32">
                     <FirebaseImage
                       path={feature.imagePath}
                       alt={`${feature.title} Preview`}
@@ -1153,9 +964,9 @@ function TryForFree() {
                   {/* CTA */}
                   <Link
                     to="/signup"
-                    className="flex items-center justify-center w-full py-3 border border-gray-200 text-gray-900 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-center w-full py-3 border-2 border-gray-900 text-gray-900 rounded-full text-sm font-medium hover:bg-gray-900 hover:text-white transition-colors"
                   >
-                    Try free
+                    {feature.cta}
                   </Link>
                 </div>
               </div>
@@ -1320,27 +1131,22 @@ export default function FeatureSection() {
   ];
 
   return (
-    <section id="features" className="pt-12 pb-0 lg:pt-20 lg:pb-0">
+    <section id="features" className="pt-12 pb-16 lg:pt-20 lg:pb-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         {/* Section Title - Responsive */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mb-6 md:mb-10"
+          className="mb-10 md:mb-16 text-center"
         >
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
             The future of job search.
           </h2>
         </motion.div>
 
-        {/* Hero Feature Card - AI Campaigns */}
+        {/* Hero Feature Cards - 2 Column Layout */}
         <HeroFeatureCard />
-
-        {/* Secondary Card - CV Rewrite */}
-        <div className="mt-4 md:mt-6 mb-6 md:mb-8">
-          <SecondaryFeatureCard />
-        </div>
 
       </div>
 

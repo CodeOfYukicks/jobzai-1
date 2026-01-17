@@ -140,7 +140,10 @@ export default function PricingSection() {
   // Pricing card component to avoid duplication
   const PricingCard = ({ tier, index, isMobile = false }: { tier: typeof pricingTiers[0], index: number, isMobile?: boolean }) => (
     <div
-      className={`bg-[#f6f5f4] rounded-2xl p-6 md:p-8 relative transition-all duration-300 ${!isMobile ? 'hover:scale-[1.02]' : ''} grid h-full`}
+      className={`bg-white rounded-3xl p-7 md:p-8 relative transition-all duration-300 grid h-full ${tier.popular
+        ? 'shadow-2xl scale-[1.02]'
+        : 'shadow-xl'
+        } ${!isMobile && !tier.popular ? 'hover:shadow-2xl hover:scale-[1.01]' : ''}`}
       style={{
         gridTemplateRows: 'auto auto auto auto 1fr',
         minHeight: isMobile ? '420px' : undefined
@@ -148,33 +151,36 @@ export default function PricingSection() {
     >
       {tier.popular && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="px-4 py-1.5 text-white text-[11px] font-medium rounded-full uppercase tracking-wider whitespace-nowrap" style={{ backgroundColor: '#220041' }}>
+          <span className="px-5 py-2 bg-gray-900 text-white text-[11px] font-semibold rounded-full uppercase tracking-wider whitespace-nowrap shadow-lg">
             Most Popular
           </span>
         </div>
       )}
 
       {/* Row 1: Title + Description */}
-      <div className="mb-4">
-        <h3 className="text-xl font-bold mb-1 text-gray-900">
-          {tier.name} Cubbber
+      <div className="mb-5">
+        <h3 className="text-xl font-bold mb-2 text-gray-900">
+          {tier.name} Cubbbe
         </h3>
-        <p className="text-sm text-gray-500 line-clamp-2">
+        <p className="text-sm text-gray-500 leading-relaxed">
           {tier.description}
         </p>
       </div>
 
       {/* Row 2: Price + Credits */}
-      <div className="mb-5">
-        <div className="flex items-baseline gap-1 mb-2">
-          <span className="text-4xl md:text-5xl font-black text-gray-900">
-            €{isBiMonthly ? tier.price.biMonthly : tier.price.monthly}
+      <div className="mb-6">
+        <div className="flex items-baseline gap-1 mb-3">
+          <span className="text-[13px] text-gray-500 font-medium">€</span>
+          <span className="text-5xl md:text-6xl font-bold text-gray-900 tracking-tight">
+            {isBiMonthly ? tier.price.biMonthly : tier.price.monthly}
           </span>
-          <span className="text-sm font-medium text-gray-500">
+          <span className="text-sm font-medium text-gray-400 ml-1">
             {tier.price.monthly === 0 ? '/forever' : isBiMonthly ? '/2 months' : '/month'}
           </span>
         </div>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-200/80 text-gray-600">
+        <div
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#f5f5f5] text-gray-700"
+        >
           <CoinIcon className="w-3.5 h-3.5" />
           <span>{tier.credits}/month</span>
         </div>
@@ -183,25 +189,24 @@ export default function PricingSection() {
       {/* Row 3: CTA Button */}
       <Link
         to="/signup"
-        className={`w-full py-3 rounded-xl text-sm font-semibold transition-all text-center mb-5 block ${tier.popular
-          ? 'text-white hover:opacity-90'
-          : 'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50'
+        className={`w-full py-3.5 rounded-full text-sm font-semibold transition-all text-center mb-6 block ${tier.popular
+          ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg'
+          : 'bg-white text-gray-900 border-2 border-gray-900 hover:bg-gray-900 hover:text-white'
           }`}
-        style={tier.popular ? { backgroundColor: '#220041' } : undefined}
       >
         {tier.cta}
       </Link>
 
       {/* Row 4: Features list */}
-      <div className="space-y-3">
-        <p className="text-[13px] font-bold text-gray-900">
+      <div className="space-y-4">
+        <p className="text-sm font-bold text-gray-900">
           {index === 0 ? 'Includes:' : `Everything in ${pricingTiers[index - 1].name} +`}
         </p>
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {tier.features.slice(0, isMobile ? 5 : tier.features.length).map((feature) => (
-            <li key={feature} className="group relative flex items-start gap-2 text-[13px] leading-tight text-gray-600">
-              <span className="mt-0.5 flex-shrink-0" style={{ color: '#220041' }}>
-                <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+            <li key={feature} className="group relative flex items-start gap-2.5 text-[13px] leading-tight text-gray-600">
+              <span className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg className="w-2.5 h-2.5 text-gray-900" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </span>
@@ -209,7 +214,7 @@ export default function PricingSection() {
             </li>
           ))}
           {isMobile && tier.features.length > 5 && (
-            <li className="text-[13px] text-gray-400 pl-6">
+            <li className="text-[13px] text-gray-400 pl-7">
               +{tier.features.length - 5} more features
             </li>
           )}
@@ -219,95 +224,107 @@ export default function PricingSection() {
   );
 
   return (
-    <section id="pricing" className="py-16 md:py-20 bg-white">
+    <section id="pricing" className="py-12 md:py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
-        {/* Header */}
-        <div className="text-center mb-10 md:mb-12">
-          <h2 className="text-3xl md:text-4xl lg:text-6xl font-extrabold text-gray-900 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
-            One tool for your whole career.
-          </h2>
+        {/* Green rounded container */}
+        <div
+          className="rounded-3xl md:rounded-[40px] px-4 md:px-8 lg:px-12 py-12 md:py-16"
+          style={{ backgroundColor: '#B3DE17' }}
+        >
+          {/* Header */}
+          <div className="text-center mb-8 md:mb-10">
+            <h2
+              className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 tracking-tight mb-4"
+              style={{ fontFamily: 'Outfit, sans-serif' }}
+            >
+              Simple pricing, powerful tools.
+            </h2>
+            <p className="text-gray-700 text-base md:text-lg max-w-lg mx-auto">
+              Choose the plan that fits your job search goals.
+            </p>
 
-          {/* Toggle */}
-          <div className="flex items-center justify-center mt-8 md:mt-12">
-            <div className="inline-flex items-center bg-[#f0f0f0] p-1 rounded-full">
-              <button
-                onClick={() => setIsBiMonthly(false)}
-                className={`px-3 md:px-4 py-1.5 rounded-full text-[12px] md:text-[13px] font-bold transition-all duration-200 ${!isBiMonthly
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-                  }`}
-              >
-                Pay monthly
-              </button>
-              <button
-                onClick={() => setIsBiMonthly(true)}
-                className={`px-3 md:px-4 py-1.5 rounded-full text-[12px] md:text-[13px] font-bold transition-all duration-200 flex items-center gap-1 md:gap-2 ${isBiMonthly
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-                  }`}
-              >
-                <span>Pay every 2 months</span>
-                <span className="font-medium" style={{ color: '#220041' }}>save ~10%</span>
-              </button>
+            {/* Toggle */}
+            <div className="flex items-center justify-center mt-10 md:mt-12">
+              <div className="inline-flex items-center bg-white/80 backdrop-blur-sm p-1.5 rounded-full shadow-sm">
+                <button
+                  onClick={() => setIsBiMonthly(false)}
+                  className={`px-4 md:px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${!isBiMonthly
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  Pay monthly
+                </button>
+                <button
+                  onClick={() => setIsBiMonthly(true)}
+                  className={`px-4 md:px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2 ${isBiMonthly
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  <span>Pay every 2 months</span>
+                  <span className="text-gray-900 font-semibold">save ~10%</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Mobile Carousel */}
-        <div className="md:hidden">
-          <div
-            ref={carouselRef}
-            className="flex items-stretch overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4 pb-4"
-            style={{
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-              WebkitOverflowScrolling: 'touch',
-            }}
-          >
-            {pricingTiers.map((tier, index) => (
-              <div
-                key={tier.name}
-                className="flex-shrink-0 w-[85vw] snap-center pr-3 first:pl-0 flex"
-                style={{ scrollSnapAlign: 'center', height: '520px' }}
-              >
-                <div className={`pt-4 ${tier.popular ? 'pt-6' : ''} flex-1 flex`}>
-                  <div className="flex-1">
-                    <PricingCard tier={tier} index={index} isMobile={true} />
+          {/* Mobile Carousel */}
+          <div className="md:hidden">
+            <div
+              ref={carouselRef}
+              className="flex items-stretch overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4 pb-4"
+              style={{
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                WebkitOverflowScrolling: 'touch',
+              }}
+            >
+              {pricingTiers.map((tier, index) => (
+                <div
+                  key={tier.name}
+                  className="flex-shrink-0 w-[85vw] snap-center pr-3 first:pl-0 flex"
+                  style={{ scrollSnapAlign: 'center', height: '520px' }}
+                >
+                  <div className={`pt-4 ${tier.popular ? 'pt-6' : ''} flex-1 flex`}>
+                    <div className="flex-1">
+                      <PricingCard tier={tier} index={index} isMobile={true} />
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Slide Indicators */}
+            <div className="flex justify-center gap-2 mt-4">
+              {pricingTiers.map((tier, index) => (
+                <button
+                  key={tier.name}
+                  onClick={() => {
+                    const carousel = carouselRef.current;
+                    if (carousel) {
+                      const cardWidth = carousel.querySelector('div')?.offsetWidth || 0;
+                      carousel.scrollTo({ left: cardWidth * index, behavior: 'smooth' });
+                    }
+                  }}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${activeSlide === index
+                    ? 'w-6 bg-gray-900'
+                    : 'w-1.5 bg-white/50 hover:bg-white/70'
+                    }`}
+                  aria-label={`Go to ${tier.name} plan`}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop Grid */}
+          <div className="hidden md:grid grid-cols-3 gap-4 max-w-6xl mx-auto">
+            {pricingTiers.map((tier, index) => (
+              <div key={tier.name} className={`${tier.popular ? 'pt-3' : 'pt-6'}`}>
+                <PricingCard tier={tier} index={index} />
               </div>
             ))}
           </div>
-
-          {/* Slide Indicators */}
-          <div className="flex justify-center gap-2 mt-4">
-            {pricingTiers.map((tier, index) => (
-              <button
-                key={tier.name}
-                onClick={() => {
-                  const carousel = carouselRef.current;
-                  if (carousel) {
-                    const cardWidth = carousel.querySelector('div')?.offsetWidth || 0;
-                    carousel.scrollTo({ left: cardWidth * index, behavior: 'smooth' });
-                  }
-                }}
-                className={`h-1.5 rounded-full transition-all duration-300 ${activeSlide === index
-                  ? 'w-6 bg-gray-900'
-                  : 'w-1.5 bg-gray-300 hover:bg-gray-400'
-                  }`}
-                aria-label={`Go to ${tier.name} plan`}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Desktop Grid */}
-        <div className="hidden md:grid grid-cols-3 gap-4 max-w-6xl mx-auto">
-          {pricingTiers.map((tier, index) => (
-            <div key={tier.name} className={`${tier.popular ? 'pt-3' : 'pt-6'}`}>
-              <PricingCard tier={tier} index={index} />
-            </div>
-          ))}
         </div>
       </div>
     </section>

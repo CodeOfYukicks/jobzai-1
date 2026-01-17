@@ -267,7 +267,7 @@ export default function SubscriptionStep({ onComplete, onBack, profileData }: Su
                             {/* Title + Description */}
                             <div className="mb-4">
                                 <h3 className="text-xl font-bold mb-1 text-gray-900 dark:text-white">
-                                    {plan.name} Cubbber
+                                    {plan.name} Cubbbe
                                 </h3>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
                                     {plan.description}

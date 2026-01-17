@@ -61,12 +61,20 @@ export default function Navbar() {
   const { currentUser } = useAuth();
 
   useEffect(() => {
+    let ticking = false;
+
     const handleScroll = () => {
-      const isScrolled = window.scrollY > 10;
-      setScrolled(isScrolled);
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const isScrolled = window.scrollY > 50;
+          setScrolled(isScrolled);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -107,12 +115,15 @@ export default function Navbar() {
   const showPublicMenu = !currentUser || isPublicPage;
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-      ? 'bg-white shadow-sm border-b border-gray-100'
-      : 'bg-transparent'
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out will-change-transform ${scrolled
+      ? 'py-2 px-4'
+      : 'py-0 px-0'
       }`}>
-      <div className="w-full px-4 sm:px-6 py-2">
-        <div className="relative flex items-center justify-between h-16">
+      <div className={`transition-all duration-500 ease-out will-change-transform ${scrolled
+        ? 'max-w-5xl mx-auto bg-white/80 backdrop-blur-xl shadow-lg shadow-black/5 rounded-full border border-gray-200/50 px-6'
+        : 'w-full px-4 sm:px-6 bg-transparent'
+        }`}>
+        <div className={`relative flex items-center justify-between transition-all duration-500 ${scrolled ? 'h-14' : 'h-16'}`}>
           {/* Logo - Left */}
           <div className="flex-shrink-0">
             <a
