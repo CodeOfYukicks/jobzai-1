@@ -69,12 +69,12 @@ export default function Hero() {
   return (
     <>
       {/* Green Hero Section - Ends where video cuts off */}
-      <section id="home" className="relative pt-24 pb-12 md:pt-32 md:pb-20 overflow-hidden bg-[#B3DE16] rounded-b-[40px] md:rounded-b-[60px]">
+      <section id="home" className="relative pt-24 pb-16 md:pt-28 md:pb-20 lg:pt-32 lg:pb-24 overflow-hidden bg-[#B3DE16] rounded-b-[40px] md:rounded-b-[60px]">
         {/* Main Content Container */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
-          {/* Two Column Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+          {/* Two Column Grid - Stack on mobile/tablet, side by side on lg+ */}
+          <div className="flex flex-col lg:grid lg:grid-cols-[1fr_1.2fr] lg:gap-8 lg:items-center">
 
             {/* Left Column - Text Content */}
             <div className="flex flex-col items-center text-center lg:items-start lg:text-left mt-4 lg:mt-6">
@@ -84,9 +84,9 @@ export default function Hero() {
                 className="text-3xl sm:text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-extrabold tracking-tight text-gray-900 mb-4 md:mb-6 whitespace-nowrap"
                 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}
               >
-                You deserve answers.
+                Stop being ignored.
                 <br />
-                We help you get them.
+                Land more interviews.
               </h1>
 
               {/* Subtitle */}
@@ -126,15 +126,15 @@ export default function Hero() {
             </div>
 
             {/* Right Column - Video Preview */}
-            <div className="relative video-hero-transform flex items-end justify-center lg:justify-end h-full mt-6 lg:mt-0">
+            <div className="relative video-hero-transform flex items-end justify-center w-full mt-8 md:mt-10 lg:mt-0">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
-                className="relative w-full lg:w-[120%] lg:-mr-[10%] lg:translate-y-12"
+                className="relative w-full max-w-3xl lg:max-w-none lg:w-[120%] lg:-mr-[10%] translate-y-8 md:translate-y-16 lg:translate-y-20"
               >
                 {/* Video directly with rounded corners and shadow */}
-                <div className="relative rounded-2xl lg:rounded-t-xl lg:rounded-b-none shadow-2xl overflow-hidden mx-4 lg:mx-0">
+                <div className="relative rounded-2xl md:rounded-xl lg:rounded-t-xl lg:rounded-b-none shadow-2xl overflow-hidden mx-4 md:mx-auto lg:mx-0">
                   {videoUrl ? (
                     <video
                       ref={videoRef}

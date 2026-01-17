@@ -38,9 +38,9 @@ const productFeatures = {
 };
 
 const publicNavigation = [
-  { name: 'Products', hasDropdown: true },
+  { name: 'How it Works', href: '/#features' },
   { name: 'Blog', href: '/blog' },
-  { name: 'Pricing', href: '#pricing' },
+  { name: 'Pricing', href: '/#pricing' },
 ];
 
 const authenticatedNavigation = [
@@ -163,7 +163,7 @@ export default function Navbar() {
                   <a
                     key={item.name}
                     href={item.href}
-                    className="px-3 py-1.5 text-sm font-medium transition-colors text-gray-900 hover:text-gray-600"
+                    className="px-3 py-1.5 text-sm font-semibold transition-colors text-gray-900 hover:text-gray-600"
                   >
                     {item.name}
                   </a>
