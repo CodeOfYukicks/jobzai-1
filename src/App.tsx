@@ -6,6 +6,7 @@ import { useAuth } from './contexts/AuthContext';
 import { AssistantProvider } from './contexts/AssistantContext';
 import { TourProvider } from './contexts/TourContext';
 import { OnboardingProvider } from './contexts/OnboardingContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import BackgroundLoadingNotification from './components/recommendations/BackgroundLoadingNotification';
 import LoadingStartModal from './components/recommendations/LoadingStartModal';
 import PageLoader from './components/PageLoader';
@@ -291,23 +292,25 @@ function AppContent() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <ToastInitializer />
-        <NotificationProvider>
-          <AssistantProvider>
-            <TourProvider>
-              <OnboardingProvider>
-                <AppContent />
-                <AIAssistantModal />
-                <TourOverlay />
-                <MicroFeedback />
-                <CookieConsent />
-              </OnboardingProvider>
-            </TourProvider>
-          </AssistantProvider>
-        </NotificationProvider>
-      </ToastProvider>
-    </QueryClientProvider>
+    <LanguageProvider>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <ToastInitializer />
+          <NotificationProvider>
+            <AssistantProvider>
+              <TourProvider>
+                <OnboardingProvider>
+                  <AppContent />
+                  <AIAssistantModal />
+                  <TourOverlay />
+                  <MicroFeedback />
+                  <CookieConsent />
+                </OnboardingProvider>
+              </TourProvider>
+            </AssistantProvider>
+          </NotificationProvider>
+        </ToastProvider>
+      </QueryClientProvider>
+    </LanguageProvider>
   );
 }

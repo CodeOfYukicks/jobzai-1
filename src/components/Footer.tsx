@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom';
 import { Instagram } from 'lucide-react';
+import { useTranslation } from '../hooks/useTranslation';
 
 // Logo URL
 const LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/jobzai.firebasestorage.app/o/images%2Fjobzai-logo-footer.png?alt=media';
 
 export default function Footer() {
+  const { t } = useTranslation();
+
   return (
     <footer className="bg-white border-t border-gray-200">
       {/* Mobile Footer */}
@@ -41,24 +44,24 @@ export default function Footer() {
         {/* Links - Single Row Each Category */}
         <div className="border-t border-gray-100 pt-6 space-y-4">
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-            <a href="/#features" className="text-sm text-gray-600 hover:text-gray-900">Features</a>
-            <Link to="/signup" className="text-sm text-gray-600 hover:text-gray-900">Get Started</Link>
-            <Link to="/blog" className="text-sm text-gray-600 hover:text-gray-900">Blog</Link>
-            <a href="/#pricing" className="text-sm text-gray-600 hover:text-gray-900">Pricing</a>
+            <a href="/#features" className="text-sm text-gray-600 hover:text-gray-900">{t('footer.features')}</a>
+            <Link to="/signup" className="text-sm text-gray-600 hover:text-gray-900">{t('footer.getStarted')}</Link>
+            <Link to="/blog" className="text-sm text-gray-600 hover:text-gray-900">{t('footer.blog')}</Link>
+            <a href="/#pricing" className="text-sm text-gray-600 hover:text-gray-900">{t('footer.pricing')}</a>
           </div>
         </div>
 
         {/* Bottom Bar */}
         <div className="border-t border-gray-100 mt-6 pt-6 text-center">
           <p className="text-xs text-gray-400 mb-2">
-            © {new Date().getFullYear()} Cubbbe. All rights reserved.
+            © {new Date().getFullYear()} Cubbbe. {t('footer.allRightsReserved')}
           </p>
           <div className="flex items-center justify-center gap-4">
-            <Link to="/privacy" className="text-xs text-gray-400 hover:text-gray-600">Privacy</Link>
+            <Link to="/privacy" className="text-xs text-gray-400 hover:text-gray-600">{t('footer.privacy')}</Link>
             <span className="text-gray-300">·</span>
-            <Link to="/terms" className="text-xs text-gray-400 hover:text-gray-600">Terms</Link>
+            <Link to="/terms" className="text-xs text-gray-400 hover:text-gray-600">{t('footer.terms')}</Link>
             <span className="text-gray-300">·</span>
-            <Link to="/cookies" className="text-xs text-gray-400 hover:text-gray-600">Cookies</Link>
+            <Link to="/cookies" className="text-xs text-gray-400 hover:text-gray-600">{t('footer.cookies')}</Link>
           </div>
         </div>
       </div>
@@ -96,21 +99,21 @@ export default function Footer() {
 
           {/* Product */}
           <div className="col-span-2">
-            <h4 className="font-semibold text-gray-900 mb-4">Product</h4>
+            <h4 className="font-semibold text-gray-900 mb-4">{t('footer.product')}</h4>
             <ul className="space-y-3">
               <li>
                 <a href="/#features" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
-                  Features
+                  {t('footer.features')}
                 </a>
               </li>
               <li>
                 <a href="/#pricing" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
-                  Pricing
+                  {t('footer.pricing')}
                 </a>
               </li>
               <li>
                 <Link to="/signup" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
-                  Get Started
+                  {t('footer.getStarted')}
                 </Link>
               </li>
             </ul>
@@ -118,11 +121,11 @@ export default function Footer() {
 
           {/* Resources */}
           <div className="col-span-2">
-            <h4 className="font-semibold text-gray-900 mb-4">Resources</h4>
+            <h4 className="font-semibold text-gray-900 mb-4">{t('footer.resources')}</h4>
             <ul className="space-y-3">
               <li>
                 <Link to="/blog" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
-                  Blog
+                  {t('footer.blog')}
                 </Link>
               </li>
             </ul>
@@ -130,21 +133,21 @@ export default function Footer() {
 
           {/* Legal */}
           <div className="col-span-3">
-            <h4 className="font-semibold text-gray-900 mb-4">Legal</h4>
+            <h4 className="font-semibold text-gray-900 mb-4">{t('footer.legal')}</h4>
             <ul className="space-y-3">
               <li>
                 <Link to="/privacy" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
-                  Privacy Policy
+                  {t('footer.privacyPolicy')}
                 </Link>
               </li>
               <li>
                 <Link to="/terms" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
-                  Terms of Service
+                  {t('footer.termsOfService')}
                 </Link>
               </li>
               <li>
                 <Link to="/cookies" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
-                  Cookie Policy
+                  {t('footer.cookiePolicy')}
                 </Link>
               </li>
             </ul>
@@ -154,14 +157,14 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-gray-100 flex justify-between items-center">
           <p className="text-gray-500 text-sm">
-            © {new Date().getFullYear()} Cubbbe. All rights reserved.
+            © {new Date().getFullYear()} Cubbbe. {t('footer.allRightsReserved')}
           </p>
           <div className="flex items-center gap-6">
             <Link to="/privacy" className="text-gray-500 hover:text-gray-700 text-sm transition-colors">
-              Privacy Policy
+              {t('footer.privacyPolicy')}
             </Link>
             <Link to="/terms" className="text-gray-500 hover:text-gray-700 text-sm transition-colors">
-              Terms of Service
+              {t('footer.termsOfService')}
             </Link>
           </div>
         </div>

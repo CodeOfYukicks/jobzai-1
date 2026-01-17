@@ -1,0 +1,235 @@
+{
+    "nav": {
+        "howItWorks": "Comment ça marche",
+        "blog": "Blog",
+        "pricing": "Tarifs",
+        "login": "Connexion",
+        "signup": "S'inscrire",
+        "getStarted": "Commencer",
+        "alreadyHaveAccount": "Déjà un compte ? Connectez-vous",
+        "joinUsers": "Rejoignez 20 000+ chercheurs d'emploi",
+        "joinUsersDesc": "Décrochez votre job de rêve plus vite grâce à l'IA."
+    },
+    "hero": {
+        "headline1": "Fini d'être ignoré.",
+        "headline2": "Décrochez plus d'entretiens.",
+        "subtitle1": "Envoyez des candidatures personnalisées à grande échelle.",
+        "subtitle2": "Suivez chaque lead. Préparez-vous mieux. Obtenez des entretiens.",
+        "ctaPrimary": "Commencer gratuitement",
+        "ctaSecondary": "Comment ça marche",
+        "socialProof": "20K+ utilisateurs",
+        "logoSection": "Nos utilisateurs ont été recrutés chez"
+    },
+    "features": {
+        "sectionTitle": "Le futur de la recherche d'emploi.",
+        "onePlatform": {
+            "title": "Une plateforme. Tous vos outils.",
+            "subtitle": "Remplacez vos multiples abonnements par une seule solution. Calculez vos économies.",
+            "monthlySavings": "Économies mensuelles",
+            "annualSavings": "Économies annuelles"
+        },
+        "tryForFree": {
+            "title": "Tout ce qu'il vous faut. Rien de superflu.",
+            "subtitle": "Commencez gratuitement. Sans carte bancaire."
+        },
+        "campaigns": {
+            "badge": "Campagnes",
+            "title1": "Automatisez votre prospection.",
+            "title2": "Décrochez plus d'entretiens.",
+            "link": "En savoir plus",
+            "animationPlaceholder": "Animation à venir"
+        },
+        "cvRewrite": {
+            "badge": "Réécriture CV",
+            "title1": "Votre CV, adapté",
+            "title2": "à chaque candidature.",
+            "link": "En savoir plus",
+            "newUpdate": "Nouveau",
+            "desktopTitle1": "Votre CV adapté à chaque poste.",
+            "desktopTitle2": "Optimisé pour les recruteurs.",
+            "mobileTitle": "CV adapté à chaque poste",
+            "mobileDesc": "L'IA optimise votre CV pour les ATS et les recruteurs. Démarquez-vous à chaque candidature.",
+            "cta": "Essayer"
+        },
+        "mockInterview": {
+            "badge": "Simulation d'entretien",
+            "aiPowered": "Propulsé par l'IA",
+            "desktopTitle1": "Entraînez-vous comme",
+            "desktopTitle2": "en conditions réelles.",
+            "mobileTitle": "Comme en conditions réelles",
+            "mobileDesc": "Pratiquez avec des entretiens IA adaptés à vos postes cibles. Feedback instantané inclus.",
+            "cta": "Essayer"
+        },
+        "applicationTracking": {
+            "label": "Suivi des candidatures",
+            "title": "Sachez exactement ce qui fonctionne — et ce qui ne fonctionne pas.",
+            "jobApplications": "Candidatures",
+            "outreachCampaigns": "Campagnes d'approche"
+        },
+        "interviewPrep": {
+            "label": "Préparation entretien",
+            "title": "Pratiquez avec l'IA. Arrivez confiant."
+        },
+        "aiAssistant": {
+            "title": "Rencontrez votre Assistant IA",
+            "description": "Votre copilote personnel pour la recherche d'emploi. Posez vos questions, obtenez de l'aide instantanément.",
+            "cta": "Essai gratuit",
+            "alwaysThereTitle": "Toujours là pour vous aider",
+            "alwaysThereDesc1": "De la rédaction de lettres de motivation à la préparation d'entretiens.",
+            "alwaysThereDesc2": "Votre assistant IA connaît votre profil et vos objectifs.",
+            "mobileTitle": "Assistant IA",
+            "mobileDesc": "Votre copilote pour la recherche d'emploi",
+            "mobileBenefit": "Posez vos questions, obtenez de l'aide instantanément.",
+            "mobileBenefitSuffix": " Des lettres de motivation à la préparation d'entretien, votre IA connaît votre profil."
+        },
+        "creativeStudio": {
+            "title": "Studio Créatif",
+            "description": "Créez vos CV, capturez vos idées et brainstormez visuellement.",
+            "cta": "Ouvrir le Studio"
+        },
+        "dashboard": {
+            "title": "Tableau de bord",
+            "description": "Votre centre de commande pour candidatures, entretiens et insights.",
+            "cta": "Voir le Dashboard"
+        },
+        "pressQuote": "\"L'avantage décisif dont chaque chercheur d'emploi a besoin.\"",
+        "stats": {
+            "marketInsights": {
+                "label": "Insights Marché",
+                "title": "Accès au marché caché",
+                "description": "Utilisez l'IA pour découvrir et postuler à des opportunités jamais publiées.",
+                "stat": "85%",
+                "statLabel": "des opportunités ne sont jamais publiées"
+            },
+            "caseStudy": {
+                "label": "Étude de cas",
+                "title": "Réponses ultra-rapides",
+                "description": "L'approche IA permet d'obtenir des premiers entretiens en",
+                "stat": "24h"
+            },
+            "automation": {
+                "label": "Automatisation",
+                "title": "Candidatures sans effort",
+                "description": "Générez des candidatures personnalisées en quelques clics. Laissez l'IA faire le travail."
+            },
+            "analytics": {
+                "label": "Analytics",
+                "title": "Gestion intelligente",
+                "description": "Suivez vos candidatures en temps réel avec notre tableau de bord intuitif."
+            }
+        }
+    },
+    "savingsTools": {
+        "jobsearch": "Recherche d'emploi IA",
+        "autoapply": "Candidature Auto IA",
+        "resume": "Générateur CV IA",
+        "tracking": "Suivi candidatures",
+        "calendar": "Planification intelligente",
+        "interview": "Coach entretien IA",
+        "mock": "Simulations d'entretien IA",
+        "cover": "Lettres de motivation IA",
+        "insights": "Insights carrière"
+    },
+    "showcase": {
+        "applicationTracking": {
+            "label": "Suivi des candidatures",
+            "headline": "Sachez exactement ce qui fonctionne.",
+            "subheadline": "Suivez vos candidatures, analysez les réponses et optimisez votre stratégie avec des insights en temps réel."
+        },
+        "interviewPrep": {
+            "label": "Préparation entretien",
+            "headline": "Pratiquez avec l'IA. Arrivez confiant.",
+            "subheadline": "Questions adaptées au poste, feedback instantané et préparation structurée qui fonctionne vraiment."
+        },
+        "mockInterview": {
+            "label": "Simulation d'entretien",
+            "headline": "Entraînez-vous comme en conditions réelles.",
+            "subheadline": "Entretiens IA en direct avec questions adaptatives. Développez vos réflexes pour les moments clés."
+        },
+        "videoComingSoon": "Vidéo à venir"
+    },
+    "pricing": {
+        "title": "Tarifs simples, outils puissants.",
+        "subtitle": "Choisissez le forfait adapté à vos objectifs.",
+        "payMonthly": "Mensuel",
+        "payBiMonthly": "Tous les 2 mois",
+        "save": "économisez ~10%",
+        "mostPopular": "Le plus populaire",
+        "forever": "/à vie",
+        "perMonth": "/mois",
+        "per2Months": "/2 mois",
+        "creditsPerMonth": "/mois",
+        "includes": "Inclut :",
+        "everythingIn": "Tout ce qu'offre",
+        "plus": "+",
+        "more": "de plus",
+        "plans": {
+            "free": {
+                "name": "Cubbbe Gratuit",
+                "description": "Commencez votre recherche d'emploi avec les outils essentiels",
+                "cta": "S'inscrire"
+            },
+            "premium": {
+                "name": "Cubbbe Premium",
+                "description": "Boostez vos candidatures avec la puissance de l'IA",
+                "cta": "Commencer"
+            },
+            "pro": {
+                "name": "Cubbbe Pro",
+                "description": "La boîte à outils ultime pour les professionnels ambitieux",
+                "cta": "Commencer"
+            }
+        },
+        "features": {
+            "basicPageAccess": "Accès aux pages de base",
+            "resumeAnalysis1": "1 Analyse CV / mois",
+            "personalizedJobBoard": "Job Board personnalisé",
+            "trackApplicationsOutreach": "Suivi candidatures + prospection",
+            "calendarFollowUp": "Vue calendrier des relances",
+            "fullInterviewPrep": "Préparation entretien complète",
+            "mockInterviews2": "2 Simulations d'entretien / mois",
+            "resumeAnalyses10": "10 Analyses CV / mois",
+            "premiumResumeTemplates": "Templates CV Premium",
+            "campaigns2": "2 Campagnes (200 contacts)",
+            "aiRecommendations": "Recommandations IA",
+            "prioritySupport": "Support prioritaire",
+            "aiInterviewCoaching": "Coaching entretien IA",
+            "mockInterviews5": "5 Simulations d'entretien / mois",
+            "resumeAnalyses20": "20 Analyses CV / mois",
+            "campaigns5": "5 Campagnes (500 contacts)"
+        }
+    },
+    "devices": {
+        "titleLine1": "Cubbbe fonctionne parfaitement",
+        "titleLine2": "sur tous vos appareils",
+        "description": "Lancez des campagnes dans le métro ou préparez vos entretiens depuis votre canapé. Que vous soyez sur",
+        "phoneOrLaptop": "mobile ou ordi",
+        "descriptionEnd": ", votre progression se synchronise instantanément — vous ne ratez jamais une opportunité.",
+        "cta": "S'inscrire gratuitement"
+    },
+    "finalCta": {
+        "badge": "Vous en avez assez fait",
+        "headline1": "Il est temps d'arrêter",
+        "headline2": "de galérer seul.",
+        "subheadline": "Le bon job est là, quelque part. Laissez-nous vous aider à l'atteindre — sans l'épuisement qui vous a mené ici.",
+        "ctaPrimary": "Commencer l'essai gratuit",
+        "ctaSecondary": "Se connecter",
+        "reassurance": "Sans engagement. Sans pression. Que du progrès."
+    },
+    "footer": {
+        "product": "Produit",
+        "resources": "Ressources",
+        "legal": "Mentions légales",
+        "features": "Fonctionnalités",
+        "getStarted": "Commencer",
+        "blog": "Blog",
+        "pricing": "Tarifs",
+        "privacyPolicy": "Politique de confidentialité",
+        "termsOfService": "Conditions d'utilisation",
+        "cookiePolicy": "Politique des cookies",
+        "privacy": "Confidentialité",
+        "terms": "CGU",
+        "cookies": "Cookies",
+        "allRightsReserved": "Tous droits réservés."
+    }
+}

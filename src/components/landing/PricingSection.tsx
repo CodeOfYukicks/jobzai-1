@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Minimalist coin icon component
 const CoinIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -9,42 +10,17 @@ const CoinIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   </svg>
 );
 
-// Feature descriptions for tooltips
-const featureDescriptions: Record<string, string> = {
-  'Basic page access': 'Access core features to explore the platform and start your job search.',
-  'Access to Job Board': 'Browse thousands of job listings from top companies, updated daily.',
-  'Application Tracking': 'Keep track of all your applications in one organized dashboard.',
-  'Calendar Follow-up View': 'Never miss a follow-up with integrated calendar reminders.',
-  'Full Interview Prep': 'Access comprehensive interview preparation materials and tips.',
-  '1 Resume Analysis / month': 'Get AI-powered feedback to improve your resume.',
-  '4 Resume Templates': 'Choose from professionally designed resume templates.',
-  'Professional Profile': 'Build a compelling professional profile to showcase your skills.',
-  'Analytics Dashboard': 'Track your job search performance with detailed analytics.',
-  'Personalized Job Board': 'Get job recommendations tailored to your skills and preferences.',
-  'Track Applications + Outreach': 'Manage both job applications and networking outreach in one place.',
-  '2 Mock Interviews / month': 'Practice with AI-powered mock interviews to build confidence.',
-  '10 Resume Analyses / month': 'Get unlimited AI feedback to perfect your resume.',
-  'Premium Resume Templates': 'Access exclusive premium resume designs.',
-  '2 Campaigns (200 contacts)': 'Launch targeted outreach campaigns to hiring managers.',
-  'AI Recommendations': 'Receive smart suggestions to optimize your job search strategy.',
-  'Priority Support': 'Get faster responses from our dedicated support team.',
-  'AI Interview Coaching': 'Personalized AI coaching to ace any interview question.',
-  '5 Mock Interviews / month': 'More practice sessions to master your interview skills.',
-  '20 Resume Analyses / month': 'Comprehensive resume optimization for every application.',
-  '5 Campaigns (500 contacts)': 'Scale your outreach with larger campaign capacity.',
-};
-
 const pricingTiers = [
   {
-    name: 'Free',
+    nameKey: 'pricing.plans.free.name',
     price: { monthly: 0, biMonthly: 0 },
-    credits: '10 credits',
-    description: 'Start your job search journey with essential tools',
+    credits: '10',
+    descriptionKey: 'pricing.plans.free.description',
     features: [
-      'Basic page access',
-      '1 Resume Analysis / month',
+      'pricing.features.basicPageAccess',
+      'pricing.features.resumeAnalysis1',
     ],
-    cta: 'Sign up',
+    ctaKey: 'pricing.plans.free.cta',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
         <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -52,23 +28,23 @@ const pricingTiers = [
     ),
   },
   {
-    name: 'Premium',
+    nameKey: 'pricing.plans.premium.name',
     price: { monthly: 39, biMonthly: 75 },
-    credits: '250 credits',
-    description: 'Supercharge your applications with AI power',
+    credits: '250',
+    descriptionKey: 'pricing.plans.premium.description',
     features: [
-      'Personalized Job Board',
-      'Track Applications + Outreach',
-      'Calendar Follow-up View',
-      'Full Interview Prep',
-      '2 Mock Interviews / month',
-      '10 Resume Analyses / month',
-      'Premium Resume Templates',
-      '2 Campaigns (200 contacts)',
-      'AI Recommendations',
-      'Priority Support',
+      'pricing.features.personalizedJobBoard',
+      'pricing.features.trackApplicationsOutreach',
+      'pricing.features.calendarFollowUp',
+      'pricing.features.fullInterviewPrep',
+      'pricing.features.mockInterviews2',
+      'pricing.features.resumeAnalyses10',
+      'pricing.features.premiumResumeTemplates',
+      'pricing.features.campaigns2',
+      'pricing.features.aiRecommendations',
+      'pricing.features.prioritySupport',
     ],
-    cta: 'Get started',
+    ctaKey: 'pricing.plans.premium.cta',
     popular: true,
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
@@ -77,23 +53,23 @@ const pricingTiers = [
     ),
   },
   {
-    name: 'Pro',
+    nameKey: 'pricing.plans.pro.name',
     price: { monthly: 79, biMonthly: 139 },
-    credits: '500 credits',
-    description: 'The ultimate toolkit for ambitious professionals',
+    credits: '500',
+    descriptionKey: 'pricing.plans.pro.description',
     features: [
-      'Personalized Job Board',
-      'Track Applications + Outreach',
-      'Calendar Follow-up View',
-      'AI Interview Coaching',
-      '5 Mock Interviews / month',
-      '20 Resume Analyses / month',
-      'Premium Resume Templates',
-      '5 Campaigns (500 contacts)',
-      'AI Recommendations',
-      'Priority Support',
+      'pricing.features.personalizedJobBoard',
+      'pricing.features.trackApplicationsOutreach',
+      'pricing.features.calendarFollowUp',
+      'pricing.features.aiInterviewCoaching',
+      'pricing.features.mockInterviews5',
+      'pricing.features.resumeAnalyses20',
+      'pricing.features.premiumResumeTemplates',
+      'pricing.features.campaigns5',
+      'pricing.features.aiRecommendations',
+      'pricing.features.prioritySupport',
     ],
-    cta: 'Get started',
+    ctaKey: 'pricing.plans.pro.cta',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
         <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -106,6 +82,7 @@ export default function PricingSection() {
   const [isBiMonthly, setIsBiMonthly] = useState(false);
   const [activeSlide, setActiveSlide] = useState(1); // Start with Premium (index 1)
   const carouselRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   // Handle scroll to update active indicator
   useEffect(() => {
@@ -152,7 +129,7 @@ export default function PricingSection() {
       {tier.popular && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
           <span className="px-5 py-2 bg-gray-900 text-white text-[11px] font-semibold rounded-full uppercase tracking-wider whitespace-nowrap shadow-lg">
-            Most Popular
+            {t('pricing.mostPopular')}
           </span>
         </div>
       )}
@@ -160,10 +137,10 @@ export default function PricingSection() {
       {/* Row 1: Title + Description */}
       <div className="mb-5">
         <h3 className="text-xl font-bold mb-2 text-gray-900">
-          {tier.name} Cubbbe
+          {t(tier.nameKey)}
         </h3>
         <p className="text-sm text-gray-500 leading-relaxed">
-          {tier.description}
+          {t(tier.descriptionKey)}
         </p>
       </div>
 
@@ -175,14 +152,14 @@ export default function PricingSection() {
             {isBiMonthly ? tier.price.biMonthly : tier.price.monthly}
           </span>
           <span className="text-sm font-medium text-gray-400 ml-1">
-            {tier.price.monthly === 0 ? '/forever' : isBiMonthly ? '/2 months' : '/month'}
+            {tier.price.monthly === 0 ? t('pricing.forever') : isBiMonthly ? t('pricing.per2Months') : t('pricing.perMonth')}
           </span>
         </div>
         <div
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#f5f5f5] text-gray-700"
         >
           <CoinIcon className="w-3.5 h-3.5" />
-          <span>{tier.credits}/month</span>
+          <span>{tier.credits} {t('pricing.creditsPerMonth')}</span>
         </div>
       </div>
 
@@ -194,28 +171,28 @@ export default function PricingSection() {
           : 'bg-white text-gray-900 border-2 border-gray-900 hover:bg-gray-900 hover:text-white'
           }`}
       >
-        {tier.cta}
+        {t(tier.ctaKey)}
       </Link>
 
       {/* Row 4: Features list */}
       <div className="space-y-4">
         <p className="text-sm font-bold text-gray-900">
-          {index === 0 ? 'Includes:' : `Everything in ${pricingTiers[index - 1].name} +`}
+          {index === 0 ? t('pricing.includes') : `${t('pricing.everythingIn')} ${t(pricingTiers[index - 1].nameKey)} ${t('pricing.plus')}`}
         </p>
         <ul className="space-y-2">
-          {tier.features.slice(0, isMobile ? 7 : tier.features.length).map((feature) => (
-            <li key={feature} className="group relative flex items-start gap-2 text-[12px] leading-tight text-gray-600">
+          {tier.features.slice(0, isMobile ? 7 : tier.features.length).map((featureKey) => (
+            <li key={featureKey} className="group relative flex items-start gap-2 text-[12px] leading-tight text-gray-600">
               <span className="w-3.5 h-3.5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <svg className="w-2 h-2 text-gray-900" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </span>
-              <span>{feature}</span>
+              <span>{t(featureKey)}</span>
             </li>
           ))}
           {isMobile && tier.features.length > 7 && (
             <li className="text-[11px] text-gray-400 pl-5">
-              +{tier.features.length - 7} more
+              +{tier.features.length - 7} {t('pricing.more')}
             </li>
           )}
         </ul>
@@ -237,10 +214,10 @@ export default function PricingSection() {
               className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 tracking-tight mb-4"
               style={{ fontFamily: 'Outfit, sans-serif' }}
             >
-              Simple pricing, powerful tools.
+              {t('pricing.title')}
             </h2>
             <p className="text-gray-700 text-base md:text-lg max-w-lg mx-auto">
-              Choose the plan that fits your job search goals.
+              {t('pricing.subtitle')}
             </p>
 
             {/* Toggle */}
@@ -253,7 +230,7 @@ export default function PricingSection() {
                     : 'text-gray-600 hover:text-gray-900'
                     }`}
                 >
-                  Pay monthly
+                  {t('pricing.payMonthly')}
                 </button>
                 <button
                   onClick={() => setIsBiMonthly(true)}
@@ -262,8 +239,8 @@ export default function PricingSection() {
                     : 'text-gray-600 hover:text-gray-900'
                     }`}
                 >
-                  <span>Pay every 2 months</span>
-                  <span className="text-gray-900 font-semibold">save ~10%</span>
+                  <span>{t('pricing.payBiMonthly')}</span>
+                  <span className="text-gray-900 font-semibold">{t('pricing.save')}</span>
                 </button>
               </div>
             </div>
@@ -282,7 +259,7 @@ export default function PricingSection() {
             >
               {pricingTiers.map((tier, index) => (
                 <div
-                  key={tier.name}
+                  key={tier.nameKey}
                   className="flex-shrink-0 w-[85vw] snap-center pr-3 first:pl-0 flex"
                   style={{ scrollSnapAlign: 'center', minHeight: 'auto' }}
                 >
@@ -299,7 +276,7 @@ export default function PricingSection() {
             <div className="flex justify-center gap-2 mt-4">
               {pricingTiers.map((tier, index) => (
                 <button
-                  key={tier.name}
+                  key={tier.nameKey}
                   onClick={() => {
                     const carousel = carouselRef.current;
                     if (carousel) {
@@ -311,7 +288,7 @@ export default function PricingSection() {
                     ? 'w-6 bg-gray-900'
                     : 'w-1.5 bg-white/50 hover:bg-white/70'
                     }`}
-                  aria-label={`Go to ${tier.name} plan`}
+                  aria-label={`Go to ${t(tier.nameKey)} plan`}
                 />
               ))}
             </div>
@@ -320,7 +297,7 @@ export default function PricingSection() {
           {/* Desktop Grid */}
           <div className="hidden md:grid grid-cols-3 gap-4 max-w-6xl mx-auto">
             {pricingTiers.map((tier, index) => (
-              <div key={tier.name} className={`${tier.popular ? 'pt-3' : 'pt-6'}`}>
+              <div key={tier.nameKey} className={`${tier.popular ? 'pt-3' : 'pt-6'}`}>
                 <PricingCard tier={tier} index={index} />
               </div>
             ))}

@@ -6,6 +6,7 @@ import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import FirebaseImage from '../FirebaseImage';
 import ProductShowcaseSection from './ProductShowcaseSection';
 import { Icon } from '@iconify/react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Savings calculator data - tools replaced by Cubbbe with their market prices
 const savingsTools = [
@@ -44,6 +45,8 @@ const campaignFeatures = [
 
 // Hero Feature Cards - Minimal 2-Column Design
 function HeroFeatureCard() {
+  const { t } = useTranslation();
+
   return (
     <div className="relative">
       {/* Desktop: Grid layout, Mobile: Horizontal scroll */}
@@ -59,21 +62,21 @@ function HeroFeatureCard() {
           <div className="flex items-center gap-2 mb-4">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-full text-sm font-medium text-gray-900 shadow-sm">
               <Icon icon="solar:plain-bold" className="w-4 h-4 text-gray-700" />
-              Campaigns
+              {t('features.campaigns.badge')}
             </span>
           </div>
 
           {/* Title */}
           <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 leading-tight mb-6">
-            Automate your outreach.<br />
-            Land more interviews.
+            {t('features.campaigns.title1')}<br />
+            {t('features.campaigns.title2')}
           </h3>
 
           <div className="flex-1 flex items-center justify-center rounded-2xl overflow-hidden min-h-[200px]">
             {/* Placeholder - will be replaced by video */}
             <div className="text-center p-4">
               <Icon icon="solar:plain-bold" className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p className="text-xs text-gray-400">Animation coming soon</p>
+              <p className="text-xs text-gray-400">{t('features.campaigns.animationPlaceholder')}</p>
             </div>
           </div>
 
@@ -82,7 +85,7 @@ function HeroFeatureCard() {
             to="/signup"
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white shadow-sm rounded-full text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors mt-auto w-fit"
           >
-            About Campaigns
+            {t('features.campaigns.link')}
             <ArrowRight className="w-4 h-4" />
           </Link>
         </motion.div>
@@ -99,21 +102,21 @@ function HeroFeatureCard() {
           <div className="flex items-center gap-2 mb-4">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-full text-sm font-medium text-gray-900 shadow-sm">
               <Icon icon="solar:document-bold" className="w-4 h-4 text-gray-700" />
-              CV Rewrite
+              {t('features.cvRewrite.badge')}
             </span>
           </div>
 
           {/* Title */}
           <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 leading-tight mb-6">
-            Your CV, tailored<br />
-            for every application.
+            {t('features.cvRewrite.title1')}<br />
+            {t('features.cvRewrite.title2')}
           </h3>
 
           <div className="flex-1 flex items-center justify-center rounded-2xl overflow-hidden min-h-[200px]">
             {/* Placeholder - will be replaced by video */}
             <div className="text-center p-4">
               <Icon icon="solar:document-bold" className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p className="text-xs text-gray-400">Animation coming soon</p>
+              <p className="text-xs text-gray-400">{t('features.campaigns.animationPlaceholder')}</p>
             </div>
           </div>
 
@@ -122,7 +125,7 @@ function HeroFeatureCard() {
             to="/signup"
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white shadow-sm rounded-full text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors mt-auto w-fit"
           >
-            About CV Rewrite
+            {t('features.cvRewrite.link')}
             <ArrowRight className="w-4 h-4" />
           </Link>
         </motion.div>
@@ -643,6 +646,7 @@ function ApplicationTrackingCard() {
 // Savings Calculator Component - Premium Minimalist Design
 function SavingsCalculator() {
   const [selectedTools, setSelectedTools] = useState<string[]>(['jobsearch', 'autoapply', 'resume', 'tracking', 'interview']);
+  const { t } = useTranslation();
 
   const toggleTool = (toolId: string) => {
     setSelectedTools(prev =>
@@ -672,10 +676,10 @@ function SavingsCalculator() {
           className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 tracking-tight"
           style={{ fontFamily: 'Outfit, sans-serif' }}
         >
-          One platform.<br className="md:hidden" /> All your tools.
+          {t('features.onePlatform.title')}
         </h3>
         <p className="text-gray-500 text-base md:text-lg max-w-xl mx-auto">
-          Replace multiple subscriptions with a single solution. See how much you could save.
+          {t('features.onePlatform.subtitle')}
         </p>
       </div>
 
@@ -702,7 +706,7 @@ function SavingsCalculator() {
             </div>
             <div className="flex-1 flex items-center justify-between gap-2">
               <span className={`text-sm font-medium transition-colors ${selectedTools.includes(tool.id) ? 'text-white' : 'text-gray-900'}`}>
-                {tool.name}
+                {t(`savingsTools.${tool.id}`)}
               </span>
               <span className={`text-xs font-medium flex-shrink-0 ${selectedTools.includes(tool.id) ? 'text-white/60' : 'text-gray-400'}`}>
                 ${tool.price}/mo
@@ -716,7 +720,7 @@ function SavingsCalculator() {
       <div className="bg-[#f5f5f5] rounded-3xl p-8 md:p-10">
         <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
           <div className="text-center">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Monthly savings</p>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">{t('features.onePlatform.monthlySavings')}</p>
             <motion.p
               key={monthlySavings}
               initial={{ scale: 1.05, opacity: 0 }}
@@ -728,7 +732,7 @@ function SavingsCalculator() {
           </div>
           <div className="hidden md:block w-px h-16 bg-gray-300" />
           <div className="text-center">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Annual savings</p>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">{t('features.onePlatform.annualSavings')}</p>
             <motion.p
               key={annualSavings}
               initial={{ scale: 1.05, opacity: 0 }}
@@ -748,12 +752,13 @@ function SavingsCalculator() {
 function TryForFree() {
   const [activeFeature, setActiveFeature] = useState(0);
   const featureScrollRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   const secondaryFeatures = [
     {
-      title: 'Creative Studio',
-      description: 'Design resumes, capture ideas, and brainstorm visually.',
-      cta: 'Open Studio',
+      titleKey: 'features.creativeStudio.title',
+      descriptionKey: 'features.creativeStudio.description',
+      ctaKey: 'features.creativeStudio.cta',
       icon: (
         <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
           <rect x="4" y="2" width="24" height="28" rx="3" stroke="currentColor" strokeWidth="2" />
@@ -763,9 +768,9 @@ function TryForFree() {
       imagePath: 'images/try-creative-studio.png',
     },
     {
-      title: 'Dashboard',
-      description: 'Your command center for applications, interviews, and insights.',
-      cta: 'View Dashboard',
+      titleKey: 'features.dashboard.title',
+      descriptionKey: 'features.dashboard.description',
+      ctaKey: 'features.dashboard.cta',
       icon: (
         <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
           <rect x="3" y="3" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
@@ -807,10 +812,10 @@ function TryForFree() {
           className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 tracking-tight"
           style={{ fontFamily: 'Outfit, sans-serif' }}
         >
-          Everything you need.<br className="md:hidden" /> Nothing you don't.
+          {t('features.tryForFree.title')}
         </h2>
         <p className="text-gray-500 text-base md:text-lg max-w-lg mx-auto">
-          Start for free. No credit card required.
+          {t('features.tryForFree.subtitle')}
         </p>
       </div>
 
@@ -826,17 +831,17 @@ function TryForFree() {
             </svg>
 
             <h3 className="text-2xl font-bold text-gray-900 mb-2">
-              Meet your AI Assistant
+              {t('features.aiAssistant.title')}
             </h3>
             <p className="text-gray-500 text-base mb-6">
-              Your personal job search copilot. Ask anything, get instant help.
+              {t('features.aiAssistant.description')}
             </p>
 
             <Link
               to="/signup"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-full text-sm font-medium hover:bg-gray-800 transition-colors w-fit"
             >
-              Start free trial
+              {t('features.aiAssistant.cta')}
             </Link>
           </div>
 
@@ -851,33 +856,33 @@ function TryForFree() {
           </div>
 
           <div className="px-8 py-6 mt-auto">
-            <h4 className="text-xl font-bold text-gray-900 mb-2">Always There to Help</h4>
+            <h4 className="text-xl font-bold text-gray-900 mb-2">{t('features.aiAssistant.alwaysThereTitle')}</h4>
             <p className="text-gray-500 text-sm leading-relaxed">
-              From writing cover letters to preparing for interviews.<br />
-              Your AI assistant knows your profile and goals.
+              {t('features.aiAssistant.alwaysThereDesc1')}<br />
+              {t('features.aiAssistant.alwaysThereDesc2')}
             </p>
           </div>
         </div>
 
         {/* Secondary Cards - Desktop */}
         {secondaryFeatures.map((feature) => (
-          <div key={feature.title} className="bg-[#f5f5f5] rounded-3xl overflow-hidden relative flex flex-col">
+          <div key={feature.titleKey} className="bg-[#f5f5f5] rounded-3xl overflow-hidden relative flex flex-col">
             <div className="p-6 pr-[55%] flex-1">
               <div className="text-gray-900 mb-3">{feature.icon}</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-1">{feature.title}</h3>
-              <p className="text-gray-500 text-sm mb-4">{feature.description}</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-1">{t(feature.titleKey)}</h3>
+              <p className="text-gray-500 text-sm mb-4">{t(feature.descriptionKey)}</p>
               <Link
                 to="/signup"
                 className="inline-flex items-center px-5 py-2.5 border-2 border-gray-900 text-gray-900 rounded-full text-sm font-medium hover:bg-gray-900 hover:text-white transition-colors w-fit"
               >
-                {feature.cta}
+                {t(feature.ctaKey)}
               </Link>
             </div>
             <div className="absolute right-0 top-5 bottom-0 w-[52%] overflow-hidden">
               <div className="rounded-tl-2xl shadow-xl overflow-hidden h-[120%] bg-white">
                 <FirebaseImage
                   path={feature.imagePath}
-                  alt={`${feature.title} Screenshot`}
+                  alt={`${t(feature.titleKey)} Screenshot`}
                   className="w-full h-full object-cover object-left-top"
                 />
               </div>
@@ -901,10 +906,10 @@ function TryForFree() {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-gray-900 mb-1">
-                  AI Assistant
+                  {t('features.aiAssistant.mobileTitle')}
                 </h3>
                 <p className="text-gray-500 text-sm">
-                  Your personal job search copilot
+                  {t('features.aiAssistant.mobileDesc')}
                 </p>
               </div>
             </div>
@@ -912,7 +917,7 @@ function TryForFree() {
             {/* Key benefit */}
             <div className="bg-white rounded-xl p-4 mb-4">
               <p className="text-sm text-gray-700 leading-relaxed">
-                <span className="font-semibold text-gray-900">Ask anything, get instant help.</span> From cover letters to interview prep, your AI knows your profile and goals.
+                <span className="font-semibold text-gray-900">{t('features.aiAssistant.mobileBenefit')}</span>{t('features.aiAssistant.mobileBenefitSuffix')}
               </p>
             </div>
 
@@ -921,7 +926,7 @@ function TryForFree() {
               to="/signup"
               className="flex items-center justify-center w-full py-3.5 bg-gray-900 text-white rounded-full text-sm font-semibold hover:bg-gray-800 transition-colors"
             >
-              Start free trial
+              {t('features.aiAssistant.cta')}
             </Link>
           </div>
         </div>
@@ -939,7 +944,7 @@ function TryForFree() {
           >
             {secondaryFeatures.map((feature) => (
               <div
-                key={feature.title}
+                key={feature.titleKey}
                 className="flex-shrink-0 w-[85%] snap-center pr-3"
                 style={{ scrollSnapAlign: 'center' }}
               >
@@ -950,8 +955,8 @@ function TryForFree() {
                       {feature.icon}
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900">{feature.title}</h3>
-                      <p className="text-gray-500 text-sm mt-0.5">{feature.description}</p>
+                      <h3 className="text-lg font-bold text-gray-900">{t(feature.titleKey)}</h3>
+                      <p className="text-gray-500 text-sm mt-0.5">{t(feature.descriptionKey)}</p>
                     </div>
                   </div>
 
@@ -959,7 +964,7 @@ function TryForFree() {
                   <div className="rounded-xl overflow-hidden bg-white mb-4 h-32">
                     <FirebaseImage
                       path={feature.imagePath}
-                      alt={`${feature.title} Preview`}
+                      alt={`${t(feature.titleKey)} Preview`}
                       className="w-full h-full object-cover object-top"
                     />
                   </div>
@@ -969,7 +974,7 @@ function TryForFree() {
                     to="/signup"
                     className="flex items-center justify-center w-full py-3 border-2 border-gray-900 text-gray-900 rounded-full text-sm font-medium hover:bg-gray-900 hover:text-white transition-colors"
                   >
-                    {feature.cta}
+                    {t(feature.ctaKey)}
                   </Link>
                 </div>
               </div>
@@ -992,7 +997,7 @@ function TryForFree() {
                   ? 'w-6 bg-gray-900'
                   : 'w-1.5 bg-gray-300'
                   }`}
-                aria-label={`View ${secondaryFeatures[index].title}`}
+                aria-label={`View ${t(secondaryFeatures[index].titleKey)}`}
               />
             ))}
           </div>
@@ -1120,6 +1125,8 @@ function MarketingStats() {
 }
 
 export default function FeatureSection() {
+  const { t } = useTranslation();
+
   const gridFeatures = [
     {
       label: 'Interview Prep',
@@ -1144,7 +1151,7 @@ export default function FeatureSection() {
           className="mb-10 md:mb-16 text-center"
         >
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}>
-            The future of job search.
+            {t('features.sectionTitle')}
           </h2>
         </motion.div>
 

@@ -1,0 +1,235 @@
+{
+    "nav": {
+        "howItWorks": "How it Works",
+        "blog": "Blog",
+        "pricing": "Pricing",
+        "login": "Log in",
+        "signup": "Sign up",
+        "getStarted": "Get Started",
+        "alreadyHaveAccount": "Already have an account? Log in",
+        "joinUsers": "Join 20,000+ job seekers",
+        "joinUsersDesc": "Land your dream job faster with AI-powered tools."
+    },
+    "hero": {
+        "headline1": "Stop being ignored.",
+        "headline2": "Land more interviews.",
+        "subtitle1": "Send personalized applications at scale.",
+        "subtitle2": "Track every lead. Prepare smarter. Get interviews.",
+        "ctaPrimary": "Get started free",
+        "ctaSecondary": "How it works",
+        "socialProof": "20K+ users",
+        "logoSection": "Our users landed offers at"
+    },
+    "features": {
+        "sectionTitle": "The future of job search.",
+        "onePlatform": {
+            "title": "One platform. All your tools.",
+            "subtitle": "Replace multiple subscriptions with a single solution. See how much you could save.",
+            "monthlySavings": "Monthly savings",
+            "annualSavings": "Annual savings"
+        },
+        "tryForFree": {
+            "title": "Everything you need. Nothing you don't.",
+            "subtitle": "Start for free. No credit card required."
+        },
+        "campaigns": {
+            "badge": "Campaigns",
+            "title1": "Automate your outreach.",
+            "title2": "Land more interviews.",
+            "link": "About Campaigns",
+            "animationPlaceholder": "Animation coming soon"
+        },
+        "cvRewrite": {
+            "badge": "CV Rewrite",
+            "title1": "Your CV, tailored",
+            "title2": "for every application.",
+            "link": "About CV Rewrite",
+            "newUpdate": "New update",
+            "desktopTitle1": "Your CV tailored to each role.",
+            "desktopTitle2": "Optimized for recruiters.",
+            "mobileTitle": "CV tailored to each role",
+            "mobileDesc": "AI optimizes your resume for ATS systems and recruiters. Stand out in every application.",
+            "cta": "Try CV Rewrite"
+        },
+        "mockInterview": {
+            "badge": "Mock Interview",
+            "aiPowered": "AI Powered",
+            "desktopTitle1": "Train like it's",
+            "desktopTitle2": "the real interview.",
+            "mobileTitle": "Train like the real thing",
+            "mobileDesc": "Practice with AI interviews tailored to your target roles. Get instant feedback and improve.",
+            "cta": "Try Mock Interview"
+        },
+        "applicationTracking": {
+            "label": "Application Tracking",
+            "title": "Know exactly what's working — and what isn't.",
+            "jobApplications": "Job Applications",
+            "outreachCampaigns": "Outreach Campaigns"
+        },
+        "interviewPrep": {
+            "label": "Interview Prep",
+            "title": "Practice with AI. Show up confident."
+        },
+        "aiAssistant": {
+            "title": "Meet your AI Assistant",
+            "description": "Your personal job search copilot. Ask anything, get instant help.",
+            "cta": "Start free trial",
+            "alwaysThereTitle": "Always There to Help",
+            "alwaysThereDesc1": "From writing cover letters to preparing for interviews.",
+            "alwaysThereDesc2": "Your AI assistant knows your profile and goals.",
+            "mobileTitle": "AI Assistant",
+            "mobileDesc": "Your personal job search copilot",
+            "mobileBenefit": "Ask anything, get instant help.",
+            "mobileBenefitSuffix": " From cover letters to interview prep, your AI knows your profile and goals."
+        },
+        "creativeStudio": {
+            "title": "Creative Studio",
+            "description": "Design resumes, capture ideas, and brainstorm visually.",
+            "cta": "Open Studio"
+        },
+        "dashboard": {
+            "title": "Dashboard",
+            "description": "Your command center for applications, interviews, and insights.",
+            "cta": "View Dashboard"
+        },
+        "pressQuote": "\"The unfair advantage every job seeker needs.\"",
+        "stats": {
+            "marketInsights": {
+                "label": "Market Insights",
+                "title": "Hidden Market Access",
+                "description": "Use AI to discover and apply to job opportunities that are never posted publicly.",
+                "stat": "85%",
+                "statLabel": "of opportunities never reach job boards"
+            },
+            "caseStudy": {
+                "label": "Case Study",
+                "title": "Response Time Revolution",
+                "description": "AI-powered outreach achieves first interviews within",
+                "stat": "24h"
+            },
+            "automation": {
+                "label": "Automation",
+                "title": "Effortless Applications",
+                "description": "Generate personalized applications with just a few clicks. Let AI handle the heavy lifting."
+            },
+            "analytics": {
+                "label": "Analytics",
+                "title": "Smart Campaign Management",
+                "description": "Track your applications in real-time with our intuitive dashboard."
+            }
+        }
+    },
+    "savingsTools": {
+        "jobsearch": "AI Job Search",
+        "autoapply": "Auto-Apply AI",
+        "resume": "AI Resume Builder",
+        "tracking": "Application Tracker",
+        "calendar": "Smart Scheduling",
+        "interview": "Interview Coach AI",
+        "mock": "AI Mock Interviews",
+        "cover": "Cover Letter AI",
+        "insights": "Career Insights"
+    },
+    "showcase": {
+        "applicationTracking": {
+            "label": "Application Tracking",
+            "headline": "Know exactly what's working.",
+            "subheadline": "Track applications, monitor responses, and optimize your job search strategy with real-time insights."
+        },
+        "interviewPrep": {
+            "label": "Interview Prep",
+            "headline": "Practice with AI. Show up confident.",
+            "subheadline": "Get role-specific questions, instant feedback, and structured preparation that actually works."
+        },
+        "mockInterview": {
+            "label": "Mock Interview",
+            "headline": "Train like it's the real thing.",
+            "subheadline": "Live AI interviews with adaptive questions. Build muscle memory for high-stakes conversations."
+        },
+        "videoComingSoon": "Video coming soon"
+    },
+    "pricing": {
+        "title": "Simple pricing, powerful tools.",
+        "subtitle": "Choose the plan that fits your job search goals.",
+        "payMonthly": "Pay monthly",
+        "payBiMonthly": "Pay every 2 months",
+        "save": "save ~10%",
+        "mostPopular": "Most Popular",
+        "forever": "/forever",
+        "perMonth": "/month",
+        "per2Months": "/2 months",
+        "creditsPerMonth": "/month",
+        "includes": "Includes:",
+        "everythingIn": "Everything in",
+        "plus": "+",
+        "more": "more",
+        "plans": {
+            "free": {
+                "name": "Free Cubbbe",
+                "description": "Start your job search journey with essential tools",
+                "cta": "Sign up"
+            },
+            "premium": {
+                "name": "Premium Cubbbe",
+                "description": "Supercharge your applications with AI power",
+                "cta": "Get started"
+            },
+            "pro": {
+                "name": "Pro Cubbbe",
+                "description": "The ultimate toolkit for ambitious professionals",
+                "cta": "Get started"
+            }
+        },
+        "features": {
+            "basicPageAccess": "Basic page access",
+            "resumeAnalysis1": "1 Resume Analysis / month",
+            "personalizedJobBoard": "Personalized Job Board",
+            "trackApplicationsOutreach": "Track Applications + Outreach",
+            "calendarFollowUp": "Calendar Follow-up View",
+            "fullInterviewPrep": "Full Interview Prep",
+            "mockInterviews2": "2 Mock Interviews / month",
+            "resumeAnalyses10": "10 Resume Analyses / month",
+            "premiumResumeTemplates": "Premium Resume Templates",
+            "campaigns2": "2 Campaigns (200 contacts)",
+            "aiRecommendations": "AI Recommendations",
+            "prioritySupport": "Priority Support",
+            "aiInterviewCoaching": "AI Interview Coaching",
+            "mockInterviews5": "5 Mock Interviews / month",
+            "resumeAnalyses20": "20 Resume Analyses / month",
+            "campaigns5": "5 Campaigns (500 contacts)"
+        }
+    },
+    "devices": {
+        "titleLine1": "Cubbbe works seamlessly across",
+        "titleLine2": "all your devices",
+        "description": "Launch campaigns during your commute or prep for interviews from your couch. Whether you're on your",
+        "phoneOrLaptop": "phone or laptop",
+        "descriptionEnd": ", your progress syncs instantly—so you never miss an opportunity.",
+        "cta": "Sign up for free"
+    },
+    "finalCta": {
+        "badge": "You've done enough",
+        "headline1": "It's time to stop",
+        "headline2": "struggling alone.",
+        "subheadline": "The right job is out there. Let us help you reach it—without the exhausting grind that got you here.",
+        "ctaPrimary": "Start your free trial",
+        "ctaSecondary": "Sign in",
+        "reassurance": "No commitment. No pressure. Just progress."
+    },
+    "footer": {
+        "product": "Product",
+        "resources": "Resources",
+        "legal": "Legal",
+        "features": "Features",
+        "getStarted": "Get Started",
+        "blog": "Blog",
+        "pricing": "Pricing",
+        "privacyPolicy": "Privacy Policy",
+        "termsOfService": "Terms of Service",
+        "cookiePolicy": "Cookie Policy",
+        "privacy": "Privacy",
+        "terms": "Terms",
+        "cookies": "Cookies",
+        "allRightsReserved": "All rights reserved."
+    }
+}

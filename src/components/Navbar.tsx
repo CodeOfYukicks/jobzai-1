@@ -12,6 +12,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import FirebaseImage from './FirebaseImage';
+import LanguageSwitcher from './LanguageSwitcher';
+import { useTranslation } from '../hooks/useTranslation';
 
 // Products dropdown content - 4 columns structure (matching AuthLayout)
 const productFeatures = {
@@ -37,10 +39,11 @@ const productFeatures = {
   ],
 };
 
-const publicNavigation = [
-  { name: 'How it Works', href: '/#features' },
-  { name: 'Blog', href: '/blog' },
-  { name: 'Pricing', href: '/#pricing' },
+// Navigation items will use translation keys
+const publicNavigationKeys = [
+  { key: 'nav.howItWorks', href: '/#features' },
+  { key: 'nav.blog', href: '/blog' },
+  { key: 'nav.pricing', href: '/#pricing' },
 ];
 
 const authenticatedNavigation = [
@@ -59,6 +62,7 @@ export default function Navbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { currentUser } = useAuth();
+  const { t } = useTranslation();
 
   useEffect(() => {
     let ticking = false;
@@ -146,28 +150,14 @@ export default function Navbar() {
           {/* Desktop Navigation - Centered */}
           {showPublicMenu && (
             <div className="hidden md:flex items-center gap-0.5 absolute left-1/2 -translate-x-1/2" ref={dropdownRef}>
-              {publicNavigation.map((item) => (
-                'hasDropdown' in item ? (
-                  // Dropdown trigger
-                  <button
-                    key={item.name}
-                    onMouseEnter={() => handleMouseEnter(item.name)}
-                    onMouseLeave={handleMouseLeave}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-colors text-gray-900 hover:text-gray-600"
-                  >
-                    {item.name}
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${openDropdown === item.name ? 'rotate-180' : ''}`} />
-                  </button>
-                ) : (
-                  // Regular link
-                  <a
-                    key={item.name}
-                    href={item.href}
-                    className="px-3 py-1.5 text-sm font-semibold transition-colors text-gray-900 hover:text-gray-600"
-                  >
-                    {item.name}
-                  </a>
-                )
+              {publicNavigationKeys.map((item) => (
+                <a
+                  key={item.key}
+                  href={item.href}
+                  className="px-3 py-1.5 text-sm font-semibold transition-colors text-gray-900 hover:text-gray-600"
+                >
+                  {t(item.key)}
+                </a>
               ))}
             </div>
           )}
@@ -190,18 +180,24 @@ export default function Navbar() {
 
           {/* Desktop Right Side Actions - Public menu sur landing page ou si pas connecté */}
           {showPublicMenu && (
-            <div className="hidden md:flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-4">
+              {!scrolled && (
+                <>
+                  <LanguageSwitcher />
+                  <div className="w-px h-5 bg-gray-200" /> {/* Separator */}
+                </>
+              )}
               <Link
                 to="/login"
                 className="px-6 py-3 text-sm font-medium rounded-full border-2 transition-all duration-200 text-gray-900 border-gray-900 hover:bg-gray-900/5"
               >
-                Log in
+                {t('nav.login')}
               </Link>
               <Link
                 to="/signup"
                 className="px-7 py-3 text-sm font-semibold text-white bg-gray-900 rounded-full transition-all duration-200 hover:bg-gray-800 shadow-sm hover:shadow-md"
               >
-                Sign up
+                {t('nav.signup')}
               </Link>
             </div>
           )}
@@ -293,16 +289,16 @@ export default function Navbar() {
                 <div className="w-[260px] flex-shrink-0">
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
                     <div className="text-sm font-medium text-gray-900 mb-2">
-                      Join 20,000+ job seekers
+                      {t('nav.joinUsers')}
                     </div>
                     <p className="text-sm text-gray-500 mb-4">
-                      Land your dream job faster with AI-powered tools.
+                      {t('nav.joinUsersDesc')}
                     </p>
                     <Link
                       to="/signup"
                       className="inline-flex items-center justify-center w-full px-4 py-2.5 text-sm font-medium text-white bg-[#2667ff] rounded-lg hover:bg-[#1a4fd9] transition-colors"
                     >
-                      Get Started
+                      {t('nav.getStarted')}
                     </Link>
                     {/* DiceBear Avatars */}
                     <div className="mt-5 flex items-center justify-center">
@@ -393,14 +389,18 @@ export default function Navbar() {
 
             {/* Navigation centrale - prend l'espace restant */}
             <div className="flex-1 flex flex-col items-center justify-center px-8 bg-white">
+              {/* Language switcher in mobile menu */}
+              <div className="mb-8">
+                <LanguageSwitcher />
+              </div>
               <nav className="flex flex-col items-center space-y-8">
                 {[
-                  { name: 'How it Works', href: '#features' },
-                  { name: 'Pricing', href: '#pricing' },
-                  { name: 'Blog', href: '/blog' },
+                  { key: 'nav.howItWorks', href: '#features' },
+                  { key: 'nav.pricing', href: '#pricing' },
+                  { key: 'nav.blog', href: '/blog' },
                 ].map((item, index) => (
                   <motion.a
-                    key={item.name}
+                    key={item.key}
                     href={item.href}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -419,7 +419,7 @@ export default function Navbar() {
                       }
                     }}
                   >
-                    {item.name}
+                    {t(item.key)}
                   </motion.a>
                 ))}
               </nav>
@@ -437,14 +437,14 @@ export default function Navbar() {
                   className="flex items-center justify-center w-full py-4 text-gray-900 bg-[#B3DE16] rounded-2xl hover:bg-[#a1c814] transition-all duration-200 font-semibold text-lg shadow-lg shadow-[#B3DE16]/25"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  Get Started
+                  {t('nav.getStarted')}
                 </Link>
                 <Link
                   to="/login"
                   className="flex items-center justify-center w-full py-3 mt-3 text-gray-600 hover:text-gray-900 transition-colors font-medium text-base"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  Already have an account? Log in
+                  {t('nav.alreadyHaveAccount')}
                 </Link>
               </motion.div>
             </div>

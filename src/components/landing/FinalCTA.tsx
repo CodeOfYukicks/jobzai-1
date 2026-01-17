@@ -1,8 +1,11 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Heart } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export default function FinalCTA() {
+  const { t } = useTranslation();
+
   return (
     <section className="py-12 md:py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
@@ -19,7 +22,7 @@ export default function FinalCTA() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-900/10 text-gray-700 text-sm font-medium mb-8"
             >
               <Heart className="w-4 h-4" />
-              You've done enough
+              {t('finalCta.badge')}
             </motion.div>
 
             {/* Emotional Headline */}
@@ -31,9 +34,9 @@ export default function FinalCTA() {
               className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-6 leading-tight"
               style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700 }}
             >
-              It's time to stop
+              {t('finalCta.headline1')}
               <br />
-              struggling alone.
+              {t('finalCta.headline2')}
             </motion.h2>
 
             {/* Reassuring Subheadline */}
@@ -44,7 +47,7 @@ export default function FinalCTA() {
               transition={{ delay: 0.2 }}
               className="text-lg md:text-xl text-gray-600 mb-10 max-w-xl mx-auto leading-relaxed"
             >
-              The right job is out there. Let us help you reach it—without the exhausting grind that got you here.
+              {t('finalCta.subheadline')}
             </motion.p>
 
             {/* CTAs */}
@@ -59,14 +62,14 @@ export default function FinalCTA() {
                 to="/signup"
                 className="inline-flex items-center justify-center h-12 md:h-14 px-8 text-base md:text-lg font-semibold text-white bg-gray-900 hover:bg-gray-800 rounded-full transition-colors duration-200 shadow-lg"
               >
-                Start your free trial
+                {t('finalCta.ctaPrimary')}
                 <ArrowRight className="ml-2 w-4 h-4 md:w-5 md:h-5" />
               </Link>
               <Link
                 to="/login"
                 className="inline-flex items-center justify-center h-12 md:h-14 px-8 text-base md:text-lg font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200 rounded-full"
               >
-                Sign in
+                {t('finalCta.ctaSecondary')}
               </Link>
             </motion.div>
 
@@ -78,7 +81,7 @@ export default function FinalCTA() {
               transition={{ delay: 0.4 }}
               className="mt-8 text-sm text-gray-500"
             >
-              No commitment. No pressure. Just progress.
+              {t('finalCta.reassurance')}
             </motion.p>
           </div>
         </div>

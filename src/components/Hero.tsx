@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { useEffect, useState, useRef } from 'react';
 import { Star } from 'lucide-react';
+import { useTranslation } from '../hooks/useTranslation';
 
 export default function Hero() {
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [isPlaying, setIsPlaying] = useState(true);
   const [showLogos, setShowLogos] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { t } = useTranslation();
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -84,16 +86,16 @@ export default function Hero() {
                 className="text-3xl sm:text-4xl md:text-5xl lg:text-4xl xl:text-5xl font-extrabold tracking-tight text-gray-900 mb-4 md:mb-6 whitespace-nowrap"
                 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800 }}
               >
-                Stop being ignored.
+                {t('hero.headline1')}
                 <br />
-                Land more interviews.
+                {t('hero.headline2')}
               </h1>
 
               {/* Subtitle */}
               <p className="text-base md:text-lg lg:text-xl text-gray-800 max-w-xl mb-6 md:mb-8 leading-relaxed">
-                Send personalized applications at scale.
+                {t('hero.subtitle1')}
                 <br className="hidden md:block" />
-                Track every lead. Prepare smarter. Get interviews.
+                {t('hero.subtitle2')}
               </p>
 
               {/* CTAs */}
@@ -102,13 +104,13 @@ export default function Hero() {
                   to="/signup"
                   className="inline-flex items-center justify-center h-12 md:h-14 px-6 md:px-8 text-sm md:text-base font-semibold text-white bg-gray-900 hover:bg-gray-800 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
-                  Get started free
+                  {t('hero.ctaPrimary')}
                 </Link>
                 <button
                   onClick={scrollToFeatures}
                   className="inline-flex items-center justify-center h-12 md:h-14 px-6 md:px-8 text-sm md:text-base font-medium text-gray-900 bg-white hover:bg-gray-50 rounded-full transition-all duration-200 shadow-md"
                 >
-                  How it works
+                  {t('hero.ctaSecondary')}
                 </button>
               </div>
 
@@ -120,7 +122,7 @@ export default function Hero() {
                   ))}
                 </div>
                 <span className="text-sm md:text-base text-gray-800 ml-1">
-                  <span className="font-semibold text-gray-900">4.9</span> · 20K+ users
+                  <span className="font-semibold text-gray-900">4.9</span> · {t('hero.socialProof')}
                 </span>
               </div>
             </div>
@@ -191,7 +193,7 @@ export default function Hero() {
 
               {/* Left: Text */}
               <p className="text-sm md:text-base text-gray-900 font-medium whitespace-nowrap flex-shrink-0">
-                Our users landed offers at
+                {t('hero.logoSection')}
               </p>
 
               {/* Right: Logo Marquee */}
