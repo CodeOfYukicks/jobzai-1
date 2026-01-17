@@ -193,13 +193,13 @@ export default function Navbar() {
             <div className="hidden md:flex items-center gap-3">
               <Link
                 to="/login"
-                className="px-5 py-2 text-sm font-medium rounded-lg border transition-all duration-200 text-gray-900 border-gray-900 hover:bg-gray-900/5"
+                className="px-5 py-2 text-sm font-medium rounded-full border transition-all duration-200 text-gray-900 border-gray-900 hover:bg-gray-900/5"
               >
                 Log in
               </Link>
               <Link
                 to="/signup"
-                className="px-5 py-2 text-sm font-semibold text-white bg-gray-900 rounded-lg transition-all duration-200 hover:bg-gray-800 shadow-sm hover:shadow-md"
+                className="px-5 py-2 text-sm font-semibold text-white bg-gray-900 rounded-full transition-all duration-200 hover:bg-gray-800 shadow-sm hover:shadow-md"
               >
                 Get started free
               </Link>

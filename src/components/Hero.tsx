@@ -69,12 +69,12 @@ export default function Hero() {
   return (
     <>
       {/* Green Hero Section - Ends where video cuts off */}
-      <div id="home" className="relative overflow-hidden" style={{ backgroundColor: '#B3DE17' }}>
+      <section id="home" className="relative pt-24 pb-12 md:pt-32 md:pb-20 overflow-hidden bg-[#B3DE16] rounded-b-[40px] md:rounded-b-[60px]">
         {/* Main Content Container */}
-        <div className="relative w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-24 md:pt-32 pb-8 md:pb-10 lg:pb-12 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
           {/* Two Column Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-6 lg:gap-8 items-center w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
 
             {/* Left Column - Text Content */}
             <div className="flex flex-col items-center text-center lg:items-start lg:text-left mt-4 lg:mt-6">
@@ -100,13 +100,13 @@ export default function Hero() {
               <div className="flex flex-row items-center justify-center lg:justify-start gap-3 md:gap-4 mb-6 md:mb-8">
                 <Link
                   to="/signup"
-                  className="inline-flex items-center justify-center h-12 md:h-14 px-6 md:px-8 text-sm md:text-base font-semibold text-white bg-gray-900 hover:bg-gray-800 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="inline-flex items-center justify-center h-12 md:h-14 px-6 md:px-8 text-sm md:text-base font-semibold text-white bg-gray-900 hover:bg-gray-800 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   Get started free
                 </Link>
                 <button
                   onClick={scrollToFeatures}
-                  className="inline-flex items-center justify-center h-12 md:h-14 px-6 md:px-8 text-sm md:text-base font-medium text-gray-900 bg-white hover:bg-gray-50 rounded-xl transition-all duration-200 shadow-md"
+                  className="inline-flex items-center justify-center h-12 md:h-14 px-6 md:px-8 text-sm md:text-base font-medium text-gray-900 bg-white hover:bg-gray-50 rounded-full transition-all duration-200 shadow-md"
                 >
                   How it works
                 </button>
@@ -126,15 +126,15 @@ export default function Hero() {
             </div>
 
             {/* Right Column - Video Preview */}
-            <div className="relative video-hero-transform">
+            <div className="relative video-hero-transform flex items-end justify-center lg:justify-end h-full mt-6 lg:mt-0">
               <motion.div
-                initial={{ opacity: 0, x: 40 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
-                className="relative"
+                className="relative w-full lg:w-[120%] lg:-mr-[10%] lg:translate-y-12"
               >
                 {/* Video directly with rounded corners and shadow */}
-                <div className="relative rounded-md shadow-2xl overflow-hidden">
+                <div className="relative rounded-2xl lg:rounded-t-xl lg:rounded-b-none shadow-2xl overflow-hidden mx-4 lg:mx-0">
                   {videoUrl ? (
                     <video
                       ref={videoRef}
@@ -180,7 +180,7 @@ export default function Hero() {
 
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Company Logos Section - White background */}
       {showLogos && (

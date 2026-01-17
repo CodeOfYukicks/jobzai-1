@@ -45,85 +45,88 @@ const campaignFeatures = [
 // Hero Feature Cards - Minimal 2-Column Design
 function HeroFeatureCard() {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5">
-      {/* Card 1 - AI Campaigns */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="bg-[#f5f5f5] rounded-3xl p-6 lg:p-8 min-h-[450px] lg:min-h-[520px] flex flex-col"
-      >
-        {/* Pill Badge with Premium Icon */}
-        <div className="flex items-center gap-2 mb-4">
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-full text-sm font-medium text-gray-900 shadow-sm">
-            <Icon icon="solar:plain-bold" className="w-4 h-4 text-gray-700" />
-            Campaigns
-          </span>
-        </div>
-
-        {/* Title */}
-        <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 leading-tight mb-6">
-          Automate your outreach.<br />
-          Land more interviews.
-        </h3>
-
-        <div className="flex-1 flex items-center justify-center rounded-2xl overflow-hidden min-h-[200px]">
-          {/* Placeholder - will be replaced by video */}
-          <div className="text-center p-4">
-            <Icon icon="solar:plain-bold" className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p className="text-xs text-gray-400">Animation coming soon</p>
-          </div>
-        </div>
-
-        {/* Bottom Link - Pill Style */}
-        <Link
-          to="/signup"
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-white shadow-sm rounded-full text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors mt-auto w-fit"
+    <div className="relative">
+      {/* Desktop: Grid layout, Mobile: Horizontal scroll */}
+      <div className="flex lg:grid lg:grid-cols-2 gap-4 lg:gap-5 overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory scrollbar-hide">
+        {/* Card 1 - AI Campaigns */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="bg-[#f5f5f5] rounded-3xl p-6 lg:p-8 min-h-[400px] lg:min-h-[520px] flex flex-col flex-shrink-0 w-[85vw] sm:w-[75vw] lg:w-auto snap-center"
         >
-          About Campaigns
-          <ArrowRight className="w-4 h-4" />
-        </Link>
-      </motion.div>
-
-      {/* Card 2 - CV Rewrite */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ delay: 0.1 }}
-        className="bg-[#f5f5f5] rounded-3xl p-6 lg:p-8 min-h-[450px] lg:min-h-[520px] flex flex-col"
-      >
-        {/* Pill Badge with Premium Icon */}
-        <div className="flex items-center gap-2 mb-4">
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-full text-sm font-medium text-gray-900 shadow-sm">
-            <Icon icon="solar:document-bold" className="w-4 h-4 text-gray-700" />
-            CV Rewrite
-          </span>
-        </div>
-
-        {/* Title */}
-        <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 leading-tight mb-6">
-          Your CV, tailored<br />
-          for every application.
-        </h3>
-
-        <div className="flex-1 flex items-center justify-center rounded-2xl overflow-hidden min-h-[200px]">
-          {/* Placeholder - will be replaced by video */}
-          <div className="text-center p-4">
-            <Icon icon="solar:document-bold" className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p className="text-xs text-gray-400">Animation coming soon</p>
+          {/* Pill Badge with Premium Icon */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-full text-sm font-medium text-gray-900 shadow-sm">
+              <Icon icon="solar:plain-bold" className="w-4 h-4 text-gray-700" />
+              Campaigns
+            </span>
           </div>
-        </div>
 
-        {/* Bottom Link - Pill Style */}
-        <Link
-          to="/signup"
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-white shadow-sm rounded-full text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors mt-auto w-fit"
+          {/* Title */}
+          <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 leading-tight mb-6">
+            Automate your outreach.<br />
+            Land more interviews.
+          </h3>
+
+          <div className="flex-1 flex items-center justify-center rounded-2xl overflow-hidden min-h-[200px]">
+            {/* Placeholder - will be replaced by video */}
+            <div className="text-center p-4">
+              <Icon icon="solar:plain-bold" className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p className="text-xs text-gray-400">Animation coming soon</p>
+            </div>
+          </div>
+
+          {/* Bottom Link - Pill Style */}
+          <Link
+            to="/signup"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white shadow-sm rounded-full text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors mt-auto w-fit"
+          >
+            About Campaigns
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </motion.div>
+
+        {/* Card 2 - CV Rewrite */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.1 }}
+          className="bg-[#f5f5f5] rounded-3xl p-6 lg:p-8 min-h-[400px] lg:min-h-[520px] flex flex-col flex-shrink-0 w-[85vw] sm:w-[75vw] lg:w-auto snap-center"
         >
-          About CV Rewrite
-          <ArrowRight className="w-4 h-4" />
-        </Link>
-      </motion.div>
+          {/* Pill Badge with Premium Icon */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-full text-sm font-medium text-gray-900 shadow-sm">
+              <Icon icon="solar:document-bold" className="w-4 h-4 text-gray-700" />
+              CV Rewrite
+            </span>
+          </div>
+
+          {/* Title */}
+          <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 leading-tight mb-6">
+            Your CV, tailored<br />
+            for every application.
+          </h3>
+
+          <div className="flex-1 flex items-center justify-center rounded-2xl overflow-hidden min-h-[200px]">
+            {/* Placeholder - will be replaced by video */}
+            <div className="text-center p-4">
+              <Icon icon="solar:document-bold" className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p className="text-xs text-gray-400">Animation coming soon</p>
+            </div>
+          </div>
+
+          {/* Bottom Link - Pill Style */}
+          <Link
+            to="/signup"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white shadow-sm rounded-full text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors mt-auto w-fit"
+          >
+            About CV Rewrite
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </motion.div>
+      </div>
     </div>
   );
 }
@@ -683,7 +686,7 @@ function SavingsCalculator() {
             key={tool.id}
             onClick={() => toggleTool(tool.id)}
             className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 text-left ${selectedTools.includes(tool.id)
-              ? 'bg-gray-900 border-gray-900'
+              ? 'bg-black border-black'
               : 'border-gray-200 hover:border-gray-300 bg-white'
               }`}
           >

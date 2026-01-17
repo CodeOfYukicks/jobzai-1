@@ -25,7 +25,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="bg-[#f6f5f4] overflow-x-hidden">
+    <div className="bg-white overflow-x-hidden">
       {/* Hero Section - Critical, renders immediately */}
       <Hero />
 
