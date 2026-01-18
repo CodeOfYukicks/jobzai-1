@@ -81,7 +81,7 @@ export default function Hero() {
               <div className="flex flex-row items-center justify-center lg:justify-start gap-4 mb-6 md:mb-8">
                 <Link
                   to="/signup"
-                  className="group inline-flex items-center gap-2 h-11 md:h-12 px-5 md:px-6 text-sm font-medium text-gray-900 bg-white hover:bg-gray-100 rounded-full transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="group inline-flex items-center gap-2 h-11 md:h-12 px-5 md:px-6 text-sm font-bold text-[#004b23] bg-[#9EF01A] hover:bg-[#8BE009] rounded-full transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105"
                 >
                   {t('hero.ctaPrimary')}
                   <svg

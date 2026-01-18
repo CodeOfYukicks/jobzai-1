@@ -43,6 +43,7 @@ const productFeatures = {
 const publicNavigationKeys = [
   { key: 'nav.howItWorks', href: '/#features' },
   { key: 'nav.blog', href: '/blog' },
+  { key: 'nav.faq', href: '/faq' },
   { key: 'nav.pricing', href: '/#pricing' },
 ];
 
@@ -396,6 +397,7 @@ export default function Navbar() {
                   { key: 'nav.howItWorks', href: '#features' },
                   { key: 'nav.pricing', href: '#pricing' },
                   { key: 'nav.blog', href: '/blog' },
+                  { key: 'nav.faq', href: '/faq' },
                 ].map((item, index) => (
                   <motion.a
                     key={item.key}

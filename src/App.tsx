@@ -73,6 +73,7 @@ const BlogPage = lazy(() => import('./pages/BlogPage'));
 const BlogPostPage = lazy(() => import('./pages/BlogPostPage'));
 const AdminBlogPage = lazy(() => import('./pages/admin/AdminBlogPage'));
 const BlogEditorPage = lazy(() => import('./pages/admin/BlogEditorPage'));
+const FAQPage = lazy(() => import('./pages/FAQPage'));
 
 import { initNotificationService } from './services/notificationService';
 import { useBackgroundTasks } from './hooks/useBackgroundTasks';
@@ -268,6 +269,11 @@ function AppContent() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/cookies" element={<CookiesPage />} />
           <Route path="/calendar" element={<CalendarView />} />
+          <Route path="/faq" element={
+            <PublicRoute>
+              <><Navbar /><FAQPage /></>
+            </PublicRoute>
+          } />
         </Routes>
       </Suspense>
 

@@ -74,39 +74,45 @@ export default function BlogPage() {
             {/* Decorative Grid Background */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
 
-            <main className="pt-40 pb-20 relative z-10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <main className="relative z-10">
 
-                    {/* Header Title */}
+                {/* Header Title */}
 
-                    {/* Featured Section - Qonto Style (Split Layout) */}
-                    {activeCategory === 'All' && (
-                        <section className="mb-20">
+                {/* Featured Section - Qonto Style (Split Layout) */}
+                {activeCategory === 'All' && (
+                    <section
+                        className="mb-8 mx-3 md:mx-4 lg:mx-6 mt-3 rounded-[24px] md:rounded-[32px] pt-32 pb-12 relative overflow-hidden"
+                        style={{
+                            backgroundColor: '#004b23',
+                            boxShadow: 'inset 0 0 80px rgba(0,0,0,0.2), 0 4px 30px rgba(0,0,0,0.1)'
+                        }}
+                    >
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                             <div className="grid md:grid-cols-2 gap-8 md:gap-16 items-center">
                                 {/* Left Content */}
                                 <div className="order-2 md:order-1 flex flex-col justify-center">
                                     <div className="flex items-center gap-3 mb-6">
-                                        <span className="px-3 py-1 bg-[#E8E5FF] text-[#7066fd] text-xs font-bold uppercase tracking-wider rounded-sm">
+                                        <span className="px-3 py-1 bg-[#9EF01A] text-[#004b23] text-xs font-bold uppercase tracking-wider rounded-sm">
                                             {featuredPost.category}
                                         </span>
-                                        <span className="text-gray-400 text-sm font-medium">|</span>
-                                        <span className="text-gray-500 text-sm font-medium">
+                                        <span className="text-white/40 text-sm font-medium">|</span>
+                                        <span className="text-white/60 text-sm font-medium">
                                             {featuredPost.readTime}
                                         </span>
                                     </div>
 
-                                    <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6 leading-[1.15] tracking-tight">
+                                    <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-[1.15] tracking-tight">
                                         {featuredPost.title}
                                     </h2>
 
-                                    <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                                    <p className="text-lg text-white/80 mb-8 leading-relaxed">
                                         {featuredPost.excerpt}
                                     </p>
 
                                     <div className="flex items-center gap-6">
                                         <button
                                             onClick={() => window.location.href = `/blog/${featuredPost.slug}`}
-                                            className="group inline-flex items-center text-lg font-medium text-gray-900 border-b border-gray-900 pb-0.5 hover:text-[#7066fd] hover:border-[#7066fd] transition-all"
+                                            className="group inline-flex items-center text-lg font-medium text-white border-b border-white pb-0.5 hover:text-[#9EF01A] hover:border-[#9EF01A] transition-all"
                                         >
                                             Read article
                                             <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
@@ -116,13 +122,13 @@ export default function BlogPage() {
                                         <div className="flex items-center gap-3">
                                             <button
                                                 onClick={handlePrevious}
-                                                className="w-10 h-10 bg-black text-white flex items-center justify-center hover:bg-gray-800 transition-colors"
+                                                className="w-10 h-10 bg-white text-[#004b23] flex items-center justify-center rounded-full hover:bg-[#9EF01A] transition-colors"
                                             >
                                                 <ArrowLeft className="w-5 h-5" />
                                             </button>
                                             <button
                                                 onClick={handleNext}
-                                                className="w-10 h-10 bg-black text-white flex items-center justify-center hover:bg-gray-800 transition-colors"
+                                                className="w-10 h-10 bg-white text-[#004b23] flex items-center justify-center rounded-full hover:bg-[#9EF01A] transition-colors"
                                             >
                                                 <ArrowRight className="w-5 h-5" />
                                             </button>
@@ -133,7 +139,7 @@ export default function BlogPage() {
                                                     <button
                                                         key={idx}
                                                         onClick={() => setCarouselIndex(idx)}
-                                                        className={`w-2 h-2 rounded-full transition-all ${idx === carouselIndex ? 'bg-black w-6' : 'bg-gray-300 hover:bg-gray-400'
+                                                        className={`w-2 h-2 rounded-full transition-all ${idx === carouselIndex ? 'bg-[#9EF01A] w-6' : 'bg-white/30 hover:bg-white/50'
                                                             }`}
                                                     />
                                                 ))}
@@ -150,7 +156,7 @@ export default function BlogPage() {
                                         animate={{ opacity: 1, x: 0 }}
                                         exit={{ opacity: 0, x: -20 }}
                                         transition={{ duration: 0.3 }}
-                                        className="aspect-[4/3] rounded-lg overflow-hidden relative bg-gray-100"
+                                        className="aspect-[4/3] rounded-2xl overflow-hidden relative bg-white/5 border border-white/10 shadow-2xl"
                                     >
                                         <img
                                             src={featuredPost.image}
@@ -160,11 +166,14 @@ export default function BlogPage() {
                                     </motion.div>
                                 </div>
                             </div>
-                        </section>
-                    )}
+                        </div>
 
+                    </section>
+                )}
+
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     {/* Recent Articles Section - Qonto Style */}
-                    <div className="grid lg:grid-cols-12 gap-12 border-t border-gray-200 pt-16">
+                    <div className="grid lg:grid-cols-12 gap-12 border-t border-gray-200 pt-10">
 
                         {/* Column 1: Sticky Sidebar (Title & Intro) */}
                         <div className="lg:col-span-3">
@@ -310,6 +319,6 @@ export default function BlogPage() {
             </section>
 
             <Footer />
-        </div>
+        </div >
     );
 }

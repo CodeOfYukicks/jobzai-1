@@ -685,26 +685,26 @@ function SavingsCalculator() {
           <button
             key={tool.id}
             onClick={() => toggleTool(tool.id)}
-            className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 text-left ${selectedTools.includes(tool.id)
-              ? 'bg-black border-black'
-              : 'border-gray-200 hover:border-gray-300 bg-white'
+            className={`flex items-center gap-3 p-4 rounded-2xl transition-all duration-200 text-left bg-white ${selectedTools.includes(tool.id)
+              ? 'border-2 border-[#004B23] shadow-md'
+              : 'border border-gray-200 hover:border-gray-300'
               }`}
           >
             <div
-              className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 transition-colors ${selectedTools.includes(tool.id)
-                ? 'bg-white'
-                : 'border-2 border-gray-300'
+              className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 transition-colors border-2 ${selectedTools.includes(tool.id)
+                ? 'bg-[#007200] border-[#007200] text-white'
+                : 'border-gray-300 bg-white'
                 }`}
             >
               {selectedTools.includes(tool.id) && (
-                <Check className="w-3.5 h-3.5 text-gray-900" />
+                <Check className="w-3.5 h-3.5 text-white" />
               )}
             </div>
             <div className="flex-1 flex items-center justify-between gap-2">
-              <span className={`text-sm font-medium transition-colors ${selectedTools.includes(tool.id) ? 'text-white' : 'text-gray-900'}`}>
+              <span className={`text-sm font-semibold transition-colors ${selectedTools.includes(tool.id) ? 'text-[#004B23]' : 'text-gray-700'}`}>
                 {tool.name}
               </span>
-              <span className={`text-xs font-medium flex-shrink-0 ${selectedTools.includes(tool.id) ? 'text-white/60' : 'text-gray-400'}`}>
+              <span className={`text-xs font-medium flex-shrink-0 ${selectedTools.includes(tool.id) ? 'text-[#004B23]/70' : 'text-gray-400'}`}>
                 ${tool.price}/mo
               </span>
             </div>
@@ -713,27 +713,27 @@ function SavingsCalculator() {
       </div>
 
       {/* Savings Display - Centered, Clean */}
-      <div className="bg-[#f5f5f5] rounded-3xl p-8 md:p-10">
+      <div className="bg-gray-50 rounded-3xl p-8 md:p-10 border border-gray-100">
         <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
           <div className="text-center">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Monthly savings</p>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Monthly savings</p>
             <motion.p
               key={monthlySavings}
               initial={{ scale: 1.05, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="text-4xl md:text-5xl font-bold text-gray-900"
+              className="text-4xl md:text-5xl font-bold text-[#004B23]"
             >
               ${monthlySavings}
             </motion.p>
           </div>
-          <div className="hidden md:block w-px h-16 bg-gray-300" />
+          <div className="hidden md:block w-px h-16 bg-gray-200" />
           <div className="text-center">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Annual savings</p>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Annual savings</p>
             <motion.p
               key={annualSavings}
               initial={{ scale: 1.05, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="text-4xl md:text-5xl font-bold text-gray-900"
+              className="text-4xl md:text-5xl font-bold text-[#004B23]"
             >
               ${annualSavings}
             </motion.p>

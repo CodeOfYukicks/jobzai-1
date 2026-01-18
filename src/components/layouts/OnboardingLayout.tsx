@@ -97,12 +97,12 @@ export default function OnboardingLayout({
       </main>
 
       {/* Right Side Banner - Desktop only */}
-      <div className="hidden lg:block w-[35%] bg-gray-900 dark:bg-black fixed right-0 top-0 bottom-0">
+      <div className="hidden lg:block w-[35%] bg-[#004b23] fixed right-0 top-0 bottom-0">
         <div className="h-full flex flex-col justify-center px-12 text-white">
           <h2 className="text-4xl font-bold mb-6">
             LET'S SET UP YOUR
             <br />
-            <span className="italic text-[#635bff]">SHINY</span> NEW ACCOUNT
+            <span className="italic text-[#B3DE16]">SHINY</span> NEW ACCOUNT
           </h2>
           <p className="text-lg opacity-80">
             Complete your profile to get started with personalized job recommendations and connect with top companies.
@@ -120,7 +120,7 @@ export default function OnboardingLayout({
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${(currentStep / totalSteps) * 100}%` }}
-                className="bg-[#635bff] rounded-full h-2"
+                className="bg-[#B3DE16] rounded-full h-2"
                 transition={{ duration: 0.5 }}
               />
             </div>

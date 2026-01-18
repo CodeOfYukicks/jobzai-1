@@ -118,9 +118,9 @@ export default function PricingSection() {
   const PricingCard = ({ tier, index, isMobile = false }: { tier: typeof pricingTiers[0], index: number, isMobile?: boolean }) => (
     <div
       className={`bg-white rounded-3xl p-7 md:p-8 relative transition-all duration-300 grid h-full ${tier.popular
-        ? 'shadow-2xl scale-[1.02]'
-        : 'shadow-xl'
-        } ${!isMobile && !tier.popular ? 'hover:shadow-2xl hover:scale-[1.01]' : ''}`}
+        ? 'shadow-[0_0_40px_-10px_rgba(158,240,26,0.3)] scale-[1.02] border-2 border-[#9EF01A] z-10'
+        : 'shadow-xl border border-[#004B23]/5'
+        } ${!isMobile && !tier.popular ? 'hover:shadow-2xl hover:scale-[1.01] hover:border-[#004B23]/10' : ''}`}
       style={{
         gridTemplateRows: 'auto auto auto auto 1fr',
         minHeight: isMobile ? '420px' : undefined
@@ -128,7 +128,7 @@ export default function PricingSection() {
     >
       {tier.popular && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="px-5 py-2 bg-gray-900 text-white text-[11px] font-semibold rounded-full uppercase tracking-wider whitespace-nowrap shadow-lg">
+          <span className="px-5 py-2 bg-[#9EF01A] text-[#004B23] text-[11px] font-bold rounded-full uppercase tracking-wider whitespace-nowrap shadow-lg">
             {t('pricing.mostPopular')}
           </span>
         </div>
@@ -136,10 +136,10 @@ export default function PricingSection() {
 
       {/* Row 1: Title + Description */}
       <div className="mb-5">
-        <h3 className="text-xl font-bold mb-2 text-gray-900">
+        <h3 className="text-xl font-bold mb-2 text-[#004B23]">
           {t(tier.nameKey)}
         </h3>
-        <p className="text-sm text-gray-500 leading-relaxed">
+        <p className="text-sm text-[#004B23]/70 leading-relaxed">
           {t(tier.descriptionKey)}
         </p>
       </div>
@@ -147,16 +147,16 @@ export default function PricingSection() {
       {/* Row 2: Price + Credits */}
       <div className="mb-6">
         <div className="flex items-baseline gap-1 mb-3">
-          <span className="text-[13px] text-gray-500 font-medium">€</span>
-          <span className="text-5xl md:text-6xl font-bold text-gray-900 tracking-tight">
+          <span className="text-[13px] text-[#004B23]/60 font-medium">€</span>
+          <span className="text-5xl md:text-6xl font-bold text-[#004B23] tracking-tight">
             {isBiMonthly ? tier.price.biMonthly : tier.price.monthly}
           </span>
-          <span className="text-sm font-medium text-gray-400 ml-1">
+          <span className="text-sm font-medium text-[#004B23]/50 ml-1">
             {tier.price.monthly === 0 ? t('pricing.forever') : isBiMonthly ? t('pricing.per2Months') : t('pricing.perMonth')}
           </span>
         </div>
         <div
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#f5f5f5] text-gray-700"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#004B23]/5 text-[#004B23]"
         >
           <CoinIcon className="w-3.5 h-3.5" />
           <span>{tier.credits} {t('pricing.creditsPerMonth')}</span>
@@ -166,9 +166,9 @@ export default function PricingSection() {
       {/* Row 3: CTA Button */}
       <Link
         to="/signup"
-        className={`w-full py-3.5 rounded-full text-sm font-semibold transition-all text-center mb-6 block ${tier.popular
-          ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg'
-          : 'bg-white text-gray-900 border-2 border-gray-900 hover:bg-gray-900 hover:text-white'
+        className={`w-full py-3.5 rounded-full text-sm font-bold transition-all text-center mb-6 block ${tier.popular
+          ? 'bg-[#007200] text-white hover:bg-[#004B23] shadow-lg shadow-[#007200]/20'
+          : 'bg-white text-[#004B23] border-2 border-[#004B23]/10 hover:border-[#004B23] hover:bg-[#004B23]/5'
           }`}
       >
         {t(tier.ctaKey)}
@@ -176,14 +176,14 @@ export default function PricingSection() {
 
       {/* Row 4: Features list */}
       <div className="space-y-4">
-        <p className="text-sm font-bold text-gray-900">
+        <p className="text-sm font-bold text-[#004B23]">
           {index === 0 ? t('pricing.includes') : `${t('pricing.everythingIn')} ${t(pricingTiers[index - 1].nameKey)} ${t('pricing.plus')}`}
         </p>
         <ul className="space-y-2">
           {tier.features.slice(0, isMobile ? 7 : tier.features.length).map((featureKey) => (
-            <li key={featureKey} className="group relative flex items-start gap-2 text-[12px] leading-tight text-gray-600">
-              <span className="w-3.5 h-3.5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <svg className="w-2 h-2 text-gray-900" viewBox="0 0 20 20" fill="currentColor">
+            <li key={featureKey} className="group relative flex items-start gap-2 text-[12px] leading-tight text-[#004B23]/80">
+              <span className="w-3.5 h-3.5 rounded-full bg-[#38B000]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg className="w-2 h-2 text-[#38B000]" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </span>
@@ -226,8 +226,8 @@ export default function PricingSection() {
                 <button
                   onClick={() => setIsBiMonthly(false)}
                   className={`px-4 md:px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${!isBiMonthly
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-[#007200] text-white shadow-sm'
+                    : 'text-[#004B23]/70 hover:text-[#004B23]'
                     }`}
                 >
                   {t('pricing.payMonthly')}
@@ -235,12 +235,12 @@ export default function PricingSection() {
                 <button
                   onClick={() => setIsBiMonthly(true)}
                   className={`px-4 md:px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2 ${isBiMonthly
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-[#007200] text-white shadow-sm'
+                    : 'text-[#004B23]/70 hover:text-[#004B23]'
                     }`}
                 >
                   <span>{t('pricing.payBiMonthly')}</span>
-                  <span className="text-gray-900 font-semibold">{t('pricing.save')}</span>
+                  <span className={`${isBiMonthly ? 'text-[#9EF01A]' : 'text-[#007200]'} font-bold`}>{t('pricing.save')}</span>
                 </button>
               </div>
             </div>
