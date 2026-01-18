@@ -206,17 +206,17 @@ export default function PricingSection() {
         {/* Green rounded container */}
         <div
           className="rounded-3xl md:rounded-[40px] px-4 md:px-8 lg:px-12 py-12 md:py-16"
-          style={{ backgroundColor: '#B3DE17' }}
+          style={{ backgroundColor: '#004b23' }}
         >
           {/* Header */}
           <div className="text-center mb-8 md:mb-10">
             <h2
-              className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 tracking-tight mb-4"
+              className="text-3xl md:text-4xl lg:text-5xl font-bold text-white tracking-tight mb-4"
               style={{ fontFamily: 'Outfit, sans-serif' }}
             >
               {t('pricing.title')}
             </h2>
-            <p className="text-gray-700 text-base md:text-lg max-w-lg mx-auto">
+            <p className="text-white/80 text-base md:text-lg max-w-lg mx-auto">
               {t('pricing.subtitle')}
             </p>
 
@@ -285,7 +285,7 @@ export default function PricingSection() {
                     }
                   }}
                   className={`h-1.5 rounded-full transition-all duration-300 ${activeSlide === index
-                    ? 'w-6 bg-gray-900'
+                    ? 'w-6 bg-white'
                     : 'w-1.5 bg-white/50 hover:bg-white/70'
                     }`}
                   aria-label={`Go to ${t(tier.nameKey)} plan`}

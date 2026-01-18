@@ -5,6 +5,7 @@ import { forceLightMode } from '../lib/theme';
 // Lazy-load below-fold sections to reduce initial bundle
 // Note: These all use default exports
 const FeatureSection = lazy(() => import('../components/landing/FeatureSection'));
+const ProductBoardShowcase = lazy(() => import('../components/landing/ProductBoardShowcase'));
 const FinalCTA = lazy(() => import('../components/landing/FinalCTA'));
 const PricingSection = lazy(() => import('../components/landing/PricingSection'));
 const DevicesSection = lazy(() => import('../components/landing/DevicesSection'));

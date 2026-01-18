@@ -139,7 +139,7 @@ export default function Navbar() {
                 path={
                   location.pathname.startsWith('/blog')
                     ? "images/logo_blog.png"
-                    : "images/logo-cubbbe-black.png"
+                    : (scrolled ? "images/logo-cubbbe-black.png" : "images/logo-cubbbe-white.png")
                 }
                 alt="Cubbbe"
                 className={location.pathname.startsWith('/blog') ? "h-16 w-auto" : "h-14 w-auto"}
@@ -154,7 +154,7 @@ export default function Navbar() {
                 <a
                   key={item.key}
                   href={item.href}
-                  className="px-3 py-1.5 text-sm font-semibold transition-colors text-gray-900 hover:text-gray-600"
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${scrolled ? 'text-gray-900 hover:text-gray-600' : 'text-white hover:text-white/80'}`}
                 >
                   {t(item.key)}
                 </a>
@@ -180,22 +180,20 @@ export default function Navbar() {
 
           {/* Desktop Right Side Actions - Public menu sur landing page ou si pas connecté */}
           {showPublicMenu && (
-            <div className="hidden md:flex items-center gap-4">
-              {!scrolled && (
-                <>
-                  <LanguageSwitcher />
-                  <div className="w-px h-5 bg-gray-200" /> {/* Separator */}
-                </>
-              )}
+            <div className="hidden md:flex items-center gap-3">
+              <LanguageSwitcher scrolled={scrolled} />
               <Link
                 to="/login"
-                className="px-6 py-3 text-sm font-medium rounded-full border-2 transition-all duration-200 text-gray-900 border-gray-900 hover:bg-gray-900/5"
+                className={`px-4 py-2 text-sm font-medium transition-colors ${scrolled ? 'text-gray-700 hover:text-gray-900' : 'text-white hover:text-white/80'}`}
               >
                 {t('nav.login')}
               </Link>
               <Link
                 to="/signup"
-                className="px-7 py-3 text-sm font-semibold text-white bg-gray-900 rounded-full transition-all duration-200 hover:bg-gray-800 shadow-sm hover:shadow-md"
+                className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 shadow-sm hover:shadow ${scrolled
+                  ? 'text-gray-900 bg-white/80 hover:bg-white border border-gray-200 hover:border-gray-300'
+                  : 'text-gray-900 bg-white hover:bg-gray-100 border border-transparent'
+                  }`}
               >
                 {t('nav.signup')}
               </Link>
@@ -206,7 +204,7 @@ export default function Navbar() {
           <div className="flex md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-1.5 rounded-md transition-colors text-gray-900 hover:bg-gray-900/5"
+              className={`p-1.5 rounded-md transition-colors ${scrolled ? 'text-gray-900 hover:bg-gray-900/5' : 'text-white hover:bg-white/10'}`}
             >
               {isMobileMenuOpen ? (
                 <X className="h-6 w-6" />
@@ -434,7 +432,7 @@ export default function Navbar() {
               >
                 <Link
                   to="/signup"
-                  className="flex items-center justify-center w-full py-4 text-gray-900 bg-[#B3DE16] rounded-2xl hover:bg-[#a1c814] transition-all duration-200 font-semibold text-lg shadow-lg shadow-[#B3DE16]/25"
+                  className="flex items-center justify-center w-full py-4 text-white bg-[#2949e5] rounded-2xl hover:bg-[#2340c0] transition-all duration-200 font-semibold text-lg shadow-lg shadow-[#2949e5]/25"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {t('nav.getStarted')}

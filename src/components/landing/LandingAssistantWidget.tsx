@@ -18,63 +18,39 @@ const QUICK_ACTIONS = [
     { id: 'results', label: 'Does it actually work?' },
 ];
 
-// Animated chat bubble icon SVG component
-const ChatBubbleIcon = ({ isActive, className = '' }: { isActive?: boolean; className?: string }) => (
-    <div className={`chat-bubble-wrapper ${isActive ? 'active' : ''} ${className}`}>
-        <svg viewBox="0 0 100 100" height={56} width={56} className="chat-bubble-svg">
-            <g className="bubble">
-                <path
-                    d="M 30.7873,85.113394 30.7873,46.556405 C 30.7873,41.101961 36.826342,35.342 40.898074,35.342 H 59.113981 C 63.73287,35.342 69.29995,40.103201 69.29995,46.784744"
-                    className="line line1"
-                />
-                <path
-                    d="M 13.461999,65.039335 H 58.028684 C 63.483128,65.039335 69.243089,59.000293 69.243089,54.928561 V 45.605853 C 69.243089,40.986964 65.02087,35.419884 58.339327,35.419884"
-                    className="line line2"
-                />
-            </g>
-            <circle cx="42.5" cy="50.7" r="1.9" className="circle circle1" />
-            <circle r="1.9" cy="50.7" cx="49.9" className="circle circle2" />
-            <circle cx="57.3" cy="50.7" r="1.9" className="circle circle3" />
+// Premium Chat Icon SVG component
+const ChatBubbleIcon = ({ className = '' }: { className?: string }) => (
+    <div className={`flex items-center justify-center ${className}`}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+                d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 13.5997 2.37562 15.1116 3.04346 16.4525C3.22094 16.8088 3.28001 17.2161 3.17712 17.6006L2.58151 19.8267C2.32295 20.793 3.20701 21.677 4.17335 21.4185L6.39939 20.8229C6.78393 20.72 7.19121 20.7791 7.54753 20.9565C8.88837 21.6244 10.4003 22 12 22Z"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            <path
+                d="M8 12H8.01"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            <path
+                d="M12 12H12.01"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            <path
+                d="M16 12H16.01"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
         </svg>
-        <style>{`
-            .chat-bubble-wrapper .bubble {
-                transform-origin: 50%;
-                transition: transform 500ms cubic-bezier(0.17, 0.61, 0.54, 0.9);
-            }
-            .chat-bubble-wrapper .line {
-                fill: none;
-                stroke: #ffffff;
-                stroke-width: 2.75;
-                stroke-linecap: round;
-                transition: stroke-dashoffset 500ms cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            .chat-bubble-wrapper .line1 {
-                stroke-dasharray: 60 90;
-                stroke-dashoffset: -20;
-            }
-            .chat-bubble-wrapper .line2 {
-                stroke-dasharray: 67 87;
-                stroke-dashoffset: -18;
-            }
-            .chat-bubble-wrapper .circle {
-                fill: #ffffff;
-                stroke: none;
-                transform-origin: 50%;
-                transition: transform 500ms cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            .chat-bubble-wrapper.active .bubble {
-                transform: translateX(24px) translateY(4px) rotate(45deg);
-            }
-            .chat-bubble-wrapper.active .line1 {
-                stroke-dashoffset: 21;
-            }
-            .chat-bubble-wrapper.active .line2 {
-                stroke-dashoffset: 30;
-            }
-            .chat-bubble-wrapper.active .circle {
-                transform: scale(0);
-            }
-        `}</style>
     </div>
 );
 

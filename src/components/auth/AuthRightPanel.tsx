@@ -109,7 +109,7 @@ function HeadlineGlow() {
         <div
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] pointer-events-none"
             style={{
-                background: 'radial-gradient(ellipse at center, rgba(139, 92, 246, 0.12) 0%, transparent 70%)',
+                background: 'radial-gradient(ellipse at center, rgba(179, 222, 22, 0.12) 0%, transparent 70%)',
             }}
         />
     );
@@ -129,7 +129,7 @@ function FeatureCardComponent({ card, index }: { card: FeatureCard; index: numbe
             className={`
         relative rounded-2xl px-5 py-4 
         ${card.isHero
-                    ? 'bg-white/[0.07] border border-white/[0.15] shadow-lg shadow-purple-500/5'
+                    ? 'bg-white/[0.07] border border-white/[0.15] shadow-lg shadow-[#B3DE16]/5'
                     : 'bg-white/[0.04] border border-white/[0.08]'
                 }
         backdrop-blur-xl
@@ -141,11 +141,11 @@ function FeatureCardComponent({ card, index }: { card: FeatureCard; index: numbe
                 <div className={`
           w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
           ${card.isHero
-                        ? 'bg-purple-500/25 shadow-inner shadow-purple-400/20'
-                        : 'bg-purple-500/15'
+                        ? 'bg-[#B3DE16]/25 shadow-inner shadow-[#B3DE16]/20'
+                        : 'bg-[#B3DE16]/15'
                     }
         `}>
-                    <Icon className={`w-5 h-5 ${card.isHero ? 'text-purple-200' : 'text-purple-300/90'}`} />
+                    <Icon className={`w-5 h-5 ${card.isHero ? 'text-[#B3DE16]' : 'text-[#B3DE16]/90'}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                     <p className={`font-medium text-sm mb-0.5 ${card.isHero ? 'text-white' : 'text-white/90'}`}>
@@ -186,8 +186,8 @@ function StatCardComponent({ stat, index }: { stat: StatCard; index: number }) {
       "
         >
             <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-purple-300/90" />
+                <div className="w-10 h-10 rounded-xl bg-[#B3DE16]/15 flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-[#B3DE16]/90" />
                 </div>
                 <span className="text-white/70 text-sm">{stat.text}</span>
             </div>
@@ -228,13 +228,13 @@ function SocialProof({ applicationCount }: { applicationCount: number }) {
                             alt={name}
                             className={`
                 w-10 h-10 rounded-full bg-white
-                border-2 border-[#1a1a2e]
-                ${i === activeIndex ? 'ring-2 ring-purple-400/50 ring-offset-2 ring-offset-[#1a1a2e]' : ''}
+                border-2 border-[#004b23]
+                ${i === activeIndex ? 'ring-2 ring-[#B3DE16]/50 ring-offset-2 ring-offset-[#004b23]' : ''}
               `}
                         />
                         {/* Active indicator glow */}
                         {i === activeIndex && (
-                            <div className="absolute inset-0 rounded-full bg-purple-400/20 blur-sm animate-pulse" />
+                            <div className="absolute inset-0 rounded-full bg-[#B3DE16]/20 blur-sm animate-pulse" />
                         )}
                     </div>
                 ))}
@@ -243,7 +243,7 @@ function SocialProof({ applicationCount }: { applicationCount: number }) {
             {/* Text */}
             <div>
                 <p className="text-white font-semibold text-sm">
-                    Join <span className="text-purple-200">20,000+</span> job seekers
+                    Join <span className="text-[#B3DE16]">20,000+</span> job seekers
                 </p>
                 <p className="text-white/50 text-xs">
                     who found their competitive edge
@@ -318,15 +318,9 @@ export default function AuthRightPanel({ variant }: AuthRightPanelProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="hidden lg:flex w-[55%] flex-col items-center justify-center p-12 relative overflow-hidden"
+            className="hidden lg:flex w-[55%] flex-col items-center justify-center p-12 relative overflow-hidden bg-[#004b23]"
         >
-            {/* SVG Background */}
-            <img
-                src="/images/hero-bg.svg"
-                alt=""
-                aria-hidden="true"
-                className="absolute inset-0 w-full h-full object-cover"
-            />
+
             {/* Film grain overlay */}
             <FilmGrain />
 
@@ -337,7 +331,7 @@ export default function AuthRightPanel({ variant }: AuthRightPanelProps) {
                     opacity: [0.15, 0.2, 0.15],
                 }}
                 transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-purple-600/15 rounded-full blur-[150px]"
+                className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#B3DE16]/10 rounded-full blur-[150px]"
             />
             <motion.div
                 animate={{
@@ -345,7 +339,7 @@ export default function AuthRightPanel({ variant }: AuthRightPanelProps) {
                     opacity: [0.12, 0.16, 0.12],
                 }}
                 transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-violet-700/12 rounded-full blur-[130px]"
+                className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-[#B3DE16]/5 rounded-full blur-[130px]"
             />
 
             {/* Main Content */}
@@ -363,7 +357,7 @@ export default function AuthRightPanel({ variant }: AuthRightPanelProps) {
                     <h2 className="text-4xl lg:text-[2.75rem] font-bold text-white leading-[1.15] mb-4 relative">
                         {content.headline.main}
                         <br />
-                        <span className="text-purple-200/90">
+                        <span className="text-[#B3DE16]/90">
                             {content.headline.accent}
                         </span>
                     </h2>

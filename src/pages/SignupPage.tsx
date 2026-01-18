@@ -137,7 +137,7 @@ export default function SignupPage() {
 
             <Link
               to="/login"
-              className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-all"
+              className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white bg-[#004b23] rounded-xl hover:bg-[#00381a] transition-all"
             >
               Continue to login
             </Link>
@@ -352,7 +352,7 @@ export default function SignupPage() {
               type="submit"
               disabled={isLoading || !isPasswordValid || !passwordsMatch || !firstName || !lastName || !email}
               className="w-full flex justify-center items-center gap-2 px-4 py-3.5
-                bg-gray-900 hover:bg-gray-800
+                bg-[#004b23] hover:bg-[#00381a]
                 text-white font-medium rounded-xl
                 transition-all text-sm
                 disabled:opacity-40 disabled:cursor-not-allowed"

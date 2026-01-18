@@ -1,73 +1,69 @@
+import { useState, useRef, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { motion } from 'framer-motion';
 
-// Stylized flag components
-const UKFlag = () => (
-    <svg viewBox="0 0 60 30" className="w-5 h-3.5 rounded-sm overflow-hidden">
-        <clipPath id="uk">
-            <rect width="60" height="30" rx="2" />
-        </clipPath>
-        <g clipPath="url(#uk)">
-            <rect width="60" height="30" fill="#012169" />
-            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6" />
-            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" strokeWidth="4" />
-            <path d="M30,0 V30 M0,15 H60" stroke="#fff" strokeWidth="10" />
-            <path d="M30,0 V30 M0,15 H60" stroke="#C8102E" strokeWidth="6" />
-        </g>
-    </svg>
-);
+interface LanguageSwitcherProps {
+    scrolled?: boolean;
+}
 
-const FRFlag = () => (
-    <svg viewBox="0 0 60 40" className="w-5 h-3.5 rounded-sm overflow-hidden">
-        <rect width="20" height="40" fill="#002654" />
-        <rect x="20" width="20" height="40" fill="#fff" />
-        <rect x="40" width="20" height="40" fill="#CE1126" />
-    </svg>
-);
-
-export default function LanguageSwitcher() {
+export default function LanguageSwitcher({ scrolled = false }: LanguageSwitcherProps) {
     const { language, setLanguage } = useLanguage();
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleSelect = (lang: 'en' | 'fr') => {
+        setLanguage(lang);
+        setIsOpen(false);
+    };
 
     return (
-        <div className="flex items-center bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-sm border border-gray-200/60">
+        <div className="relative" ref={dropdownRef}>
             <button
-                onClick={() => setLanguage('en')}
-                className={`relative flex items-center justify-center w-8 h-7 rounded-full transition-all duration-200 ${language === 'en'
-                    ? ''
-                    : 'opacity-50 hover:opacity-75'
+                onClick={() => setIsOpen(!isOpen)}
+                className={`flex items-center gap-1 px-2 py-1.5 text-sm font-medium transition-colors ${scrolled ? 'text-gray-900 hover:text-gray-600' : 'text-white hover:text-white/80'
                     }`}
-                aria-label="Switch to English"
+                aria-label="Change language"
             >
-                {language === 'en' && (
-                    <motion.div
-                        layoutId="langIndicator"
-                        className="absolute inset-0 bg-gray-100 rounded-full shadow-sm"
-                        transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
-                    />
-                )}
-                <span className="relative z-10">
-                    <UKFlag />
-                </span>
+                <span className="uppercase">{language}</span>
+                <svg
+                    className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
             </button>
-            <button
-                onClick={() => setLanguage('fr')}
-                className={`relative flex items-center justify-center w-8 h-7 rounded-full transition-all duration-200 ${language === 'fr'
-                    ? ''
-                    : 'opacity-50 hover:opacity-75'
-                    }`}
-                aria-label="Switch to French"
-            >
-                {language === 'fr' && (
-                    <motion.div
-                        layoutId="langIndicator"
-                        className="absolute inset-0 bg-gray-100 rounded-full shadow-sm"
-                        transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
-                    />
-                )}
-                <span className="relative z-10">
-                    <FRFlag />
-                </span>
-            </button>
+
+            {/* Dropdown */}
+            {isOpen && (
+                <div className="absolute top-full right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[60px] z-50">
+                    <button
+                        onClick={() => handleSelect('en')}
+                        className={`w-full px-3 py-1.5 text-sm text-left hover:bg-gray-100 transition-colors ${language === 'en' ? 'font-semibold text-gray-900' : 'text-gray-600'
+                            }`}
+                    >
+                        EN
+                    </button>
+                    <button
+                        onClick={() => handleSelect('fr')}
+                        className={`w-full px-3 py-1.5 text-sm text-left hover:bg-gray-100 transition-colors ${language === 'fr' ? 'font-semibold text-gray-900' : 'text-gray-600'
+                            }`}
+                    >
+                        FR
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

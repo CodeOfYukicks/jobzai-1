@@ -236,7 +236,7 @@ export default function EmailVerificationPage() {
               font-medium rounded-xl transition-all text-sm
               ${timeLeft > 0 || isResending || !currentUser
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-gray-900 hover:bg-gray-800 text-white'
+                : 'bg-[#004b23] hover:bg-[#00381a] text-white'
               }`}
           >
             {isResending ? (
@@ -286,15 +286,9 @@ export default function EmailVerificationPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.2 }}
-        className="hidden lg:flex w-[55%] flex-col items-center justify-center p-12 relative overflow-hidden"
+        className="hidden lg:flex w-[55%] flex-col items-center justify-center p-12 relative overflow-hidden bg-[#004b23]"
       >
-        {/* SVG Background */}
-        <img
-          src="/images/hero-bg.svg"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+
         {/* Animated glow effects */}
         <motion.div
           animate={{
@@ -303,7 +297,7 @@ export default function EmailVerificationPage() {
             scale: [1, 1.15, 1]
           }}
           transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-0 left-0 w-[500px] h-[500px] bg-purple-500/15 rounded-full blur-[120px]"
+          className="absolute top-0 left-0 w-[500px] h-[500px] bg-[#B3DE16]/15 rounded-full blur-[120px]"
         />
         <motion.div
           animate={{
@@ -312,7 +306,7 @@ export default function EmailVerificationPage() {
             scale: [1, 1.2, 1]
           }}
           transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-0 right-0 w-[450px] h-[450px] bg-violet-600/20 rounded-full blur-[100px]"
+          className="absolute bottom-0 right-0 w-[450px] h-[450px] bg-[#B3DE16]/10 rounded-full blur-[100px]"
         />
 
         {/* Content */}
@@ -327,7 +321,7 @@ export default function EmailVerificationPage() {
             <h2 className="text-4xl lg:text-5xl font-bold text-white leading-tight mb-4">
               Almost there!
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-violet-200">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#B3DE16] to-[#d4f54e]">
                 One step away
               </span>
             </h2>
@@ -353,8 +347,8 @@ export default function EmailVerificationPage() {
                 className="flex items-center justify-between bg-white/5 backdrop-blur-sm rounded-xl px-5 py-4 border border-white/10"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                    <item.icon className="w-5 h-5 text-purple-300" />
+                  <div className="w-10 h-10 rounded-lg bg-[#B3DE16]/20 flex items-center justify-center">
+                    <item.icon className="w-5 h-5 text-[#B3DE16]" />
                   </div>
                   <span className="text-white/80 text-sm">{item.text}</span>
                 </div>

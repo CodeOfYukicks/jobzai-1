@@ -2,29 +2,28 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play } from 'lucide-react';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
-import { useTranslation } from '../../hooks/useTranslation';
 
-// Feature data for the showcase - using translation keys
-const showcaseFeatureKeys = [
+// Feature data for the showcase
+const showcaseFeatures = [
     {
         id: 'application-tracking',
-        labelKey: 'showcase.applicationTracking.label',
-        headlineKey: 'showcase.applicationTracking.headline',
-        subheadlineKey: 'showcase.applicationTracking.subheadline',
+        label: 'Application Tracking',
+        headline: "Know exactly what's working.",
+        subheadline: 'Track applications, monitor responses, and optimize your job search strategy with real-time insights.',
         videoPath: 'images/jobapplication.mp4',
     },
     {
         id: 'interview-prep',
-        labelKey: 'showcase.interviewPrep.label',
-        headlineKey: 'showcase.interviewPrep.headline',
-        subheadlineKey: 'showcase.interviewPrep.subheadline',
+        label: 'Interview Prep',
+        headline: 'Practice with AI. Show up confident.',
+        subheadline: 'Get role-specific questions, instant feedback, and structured preparation that actually works.',
         videoPath: 'images/interviewprep.mp4',
     },
     {
         id: 'mock-interview',
-        labelKey: 'showcase.mockInterview.label',
-        headlineKey: 'showcase.mockInterview.headline',
-        subheadlineKey: 'showcase.mockInterview.subheadline',
+        label: 'Mock Interview',
+        headline: "Train like it's the real thing.",
+        subheadline: 'Live AI interviews with adaptive questions. Build muscle memory for high-stakes conversations.',
         videoPath: 'images/mockinterview.mp4',
     },
 ];
@@ -39,9 +38,8 @@ export default function ProductShowcaseSection() {
     const videoRef = useRef<HTMLVideoElement>(null);
     const touchStartX = useRef<number>(0);
     const touchEndX = useRef<number>(0);
-    const { t } = useTranslation();
 
-    const activeFeature = showcaseFeatureKeys[activeIndex];
+    const activeFeature = showcaseFeatures[activeIndex];
 
     // Load all video URLs from Firebase Storage
     useEffect(() => {
@@ -49,7 +47,7 @@ export default function ProductShowcaseSection() {
             const storage = getStorage();
             const urls: Record<string, string> = {};
 
-            for (const feature of showcaseFeatureKeys) {
+            for (const feature of showcaseFeatures) {
                 try {
                     const videoStorageRef = ref(storage, feature.videoPath);
                     const url = await getDownloadURL(videoStorageRef);
@@ -116,7 +114,7 @@ export default function ProductShowcaseSection() {
         if (Math.abs(diff) > swipeThreshold) {
             if (diff > 0) {
                 // Swipe left - go to next
-                setActiveIndex((prev) => Math.min(prev + 1, showcaseFeatureKeys.length - 1));
+                setActiveIndex((prev) => Math.min(prev + 1, showcaseFeatures.length - 1));
             } else {
                 // Swipe right - go to previous
                 setActiveIndex((prev) => Math.max(prev - 1, 0));
@@ -129,7 +127,7 @@ export default function ProductShowcaseSection() {
             <div className="max-w-7xl mx-auto px-4 md:px-6">
                 {/* Dark rounded container */}
                 <div
-                    className="rounded-3xl md:rounded-[40px] px-4 md:px-8 lg:px-12 pt-12 md:pt-16 pb-12 md:pb-16"
+                    className="rounded-3xl md:rounded-[40px] px-4 md:px-8 lg:px-12 pt-8 md:pt-10 pb-12 md:pb-16"
                     style={{
                         background: 'linear-gradient(180deg, #0a0a0a 0%, #141414 100%)',
                     }}
@@ -139,7 +137,7 @@ export default function ProductShowcaseSection() {
                         {/* Simplified Tab Navigation - Scrollable on mobile */}
                         <div className="flex justify-center mb-8 md:mb-16 -mx-4 px-4 md:mx-0 md:px-0">
                             <div className="inline-flex items-center gap-4 md:gap-12 overflow-x-auto scrollbar-hide pb-2">
-                                {showcaseFeatureKeys.map((feature, index) => (
+                                {showcaseFeatures.map((feature, index) => (
                                     <button
                                         key={feature.id}
                                         onClick={() => setActiveIndex(index)}
@@ -149,7 +147,7 @@ export default function ProductShowcaseSection() {
                                             ? 'text-white'
                                             : 'text-white/40 hover:text-white/70'
                                             }`}>
-                                            {t(feature.labelKey)}
+                                            {feature.label}
                                         </span>
                                         {/* Animated Underline */}
                                         {activeIndex === index && (
@@ -182,12 +180,12 @@ export default function ProductShowcaseSection() {
                                     className="text-2xl md:text-5xl lg:text-6xl font-bold text-white mb-3 md:mb-6 leading-[1.1] tracking-tight px-2"
                                     style={{ fontFamily: 'Outfit, Inter, system-ui, sans-serif' }}
                                 >
-                                    {t(activeFeature.headlineKey)}
+                                    {activeFeature.headline}
                                 </h3>
 
                                 {/* Subheadline */}
                                 <p className="text-sm md:text-lg text-white/60 max-w-2xl mb-6 md:mb-14 leading-relaxed px-2">
-                                    {t(activeFeature.subheadlineKey)}
+                                    {activeFeature.subheadline}
                                 </p>
 
                                 {/* Video Container */}
@@ -261,7 +259,7 @@ export default function ProductShowcaseSection() {
                                                     >
                                                         <Play className="w-8 h-8 text-zinc-600" />
                                                     </div>
-                                                    <p className="text-zinc-600 text-sm">{t('showcase.videoComingSoon')}</p>
+                                                    <p className="text-zinc-600 text-sm">Video coming soon</p>
                                                 </div>
                                             </div>
                                         )}
@@ -272,12 +270,12 @@ export default function ProductShowcaseSection() {
 
                         {/* Navigation Dots */}
                         <div className="flex justify-center gap-2 mt-8 md:mt-10">
-                            {showcaseFeatureKeys.map((_, index) => (
+                            {showcaseFeatures.map((_, index) => (
                                 <button
                                     key={index}
                                     onClick={() => setActiveIndex(index)}
                                     className="p-1"
-                                    aria-label={`Go to ${t(showcaseFeatureKeys[index].labelKey)}`}
+                                    aria-label={`Go to ${showcaseFeatures[index].label}`}
                                 >
                                     <motion.div
                                         className="w-2 h-2 rounded-full transition-colors duration-300"
