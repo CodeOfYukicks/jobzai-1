@@ -73,10 +73,13 @@ function HeroFeatureCard() {
 
           <div className="flex-1 flex items-center justify-center rounded-2xl overflow-hidden min-h-[200px]">
             {/* Placeholder - will be replaced by video */}
-            <div className="text-center p-4">
-              <Icon icon="solar:plain-bold" className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p className="text-xs text-gray-400">{t('features.campaigns.animationPlaceholder')}</p>
-            </div>
+            {/* @ts-ignore */}
+            <dotlottie-wc
+              src="https://lottie.host/7475e3cb-535f-49d2-a542-f9325ac537ac/c6VYRTAoIq.lottie"
+              style={{ width: '300px', height: '300px' }}
+              autoplay
+              loop
+            ></dotlottie-wc>
           </div>
 
           {/* Bottom Link - Pill Style */}
@@ -113,10 +116,13 @@ function HeroFeatureCard() {
 
           <div className="flex-1 flex items-center justify-center rounded-2xl overflow-hidden min-h-[200px]">
             {/* Placeholder - will be replaced by video */}
-            <div className="text-center p-4">
-              <Icon icon="solar:document-bold" className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p className="text-xs text-gray-400">{t('features.campaigns.animationPlaceholder')}</p>
-            </div>
+            {/* @ts-ignore */}
+            <dotlottie-wc
+              src="https://lottie.host/5a96743b-c132-448b-927c-9a16a7c0f44c/WXkbRgvhgo.lottie"
+              style={{ width: '300px', height: '300px' }}
+              autoplay
+              loop
+            ></dotlottie-wc>
           </div>
 
           {/* Bottom Link - Pill Style */}

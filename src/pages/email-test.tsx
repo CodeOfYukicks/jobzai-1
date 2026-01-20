@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 
 export default function EmailTest() {
   const [email, setEmail] = useState('');
+  const [type, setType] = useState('verification');
   const [isSending, setIsSending] = useState(false);
   const [logs, setLogs] = useState<any[]>([]);
 
@@ -15,15 +16,16 @@ export default function EmailTest() {
 
     setIsSending(true);
     try {
-      const functions = getFunctions(undefined, 'europe-west1');
+      // Use us-central1 to match backend configuration
+      const functions = getFunctions(undefined, 'us-central1');
       const sendTestEmail = httpsCallable(functions, 'sendTestEmail');
-      
-      const result = await sendTestEmail({ to: email });
-      
+
+      const result = await sendTestEmail({ to: email, email: email, type });
+
       setLogs(prev => [{
         timestamp: new Date(),
         status: 'success',
-        message: 'Email envoy├® avec succ├¿s',
+        message: `Email (${type}) envoyé avec succès`,
         to: email,
         details: result.data
       }, ...prev]);
@@ -44,7 +46,7 @@ export default function EmailTest() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Test Email</h1>
-      
+
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="space-y-4">
           <div>
@@ -58,6 +60,21 @@ export default function EmailTest() {
               className="w-full px-4 py-2 border rounded-lg"
               placeholder="votre@email.com"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Type d'email
+            </label>
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg"
+            >
+              <option value="verification">Vérification (Inscription)</option>
+              <option value="welcome">Bienvenue (Après validation)</option>
+              <option value="reset">Mot de passe oublié</option>
+            </select>
           </div>
 
           <button
@@ -82,15 +99,14 @@ export default function EmailTest() {
         <h2 className="text-lg font-medium mb-4">Logs des tests</h2>
         <div className="space-y-2">
           {logs.map((log, index) => (
-            <div 
+            <div
               key={index}
-              className={`p-3 rounded-lg ${
-                log.status === 'success' ? 'bg-green-50' : 'bg-red-50'
-              }`}
+              className={`p-3 rounded-lg ${log.status === 'success' ? 'bg-green-50' : 'bg-red-50'
+                }`}
             >
               <div className="flex justify-between">
                 <span className="font-medium">
-                  {log.status === 'success' ? 'Ô£à ' : 'ÔØî '}
+                  {log.status === 'success' ? '✅ ' : '❌ '}
                   {log.message}
                 </span>
                 <span className="text-sm text-gray-500">
@@ -98,7 +114,7 @@ export default function EmailTest() {
                 </span>
               </div>
               <div className="text-sm mt-1">
-                Envoy├® ├á : {log.to}
+                Envoyé à : {log.to}
               </div>
               {log.details && (
                 <pre className="text-xs bg-gray-50 p-2 mt-2 rounded overflow-auto">

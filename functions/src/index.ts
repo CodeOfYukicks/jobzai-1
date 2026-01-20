@@ -11,7 +11,8 @@ if (!admin.apps.length) {
 export {
   sendCustomVerificationEmail,
   sendCustomPasswordResetEmail,
-  sendWelcomeEmail
+  sendWelcomeEmail,
+  sendTestEmail
 } from './customAuthEmails';
 
 

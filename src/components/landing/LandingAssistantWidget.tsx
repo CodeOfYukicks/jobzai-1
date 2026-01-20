@@ -1,8 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, ArrowRight, RotateCcw, MessageCircle } from 'lucide-react';
+import { X, Send, ArrowRight, RotateCcw, MessageCircle, Mic } from 'lucide-react';
 import { useLandingAssistant, LandingMessage } from '../../hooks/useLandingAssistant';
 import { useNavigate } from 'react-router-dom';
+
+// Speech Recognition Interface
+interface IWindow extends Window {
+    webkitSpeechRecognition: any;
+    SpeechRecognition: any;
+}
 
 // LocalStorage key for first visit tracking
 const FIRST_VISIT_KEY = 'cubbbe_landing_assistant_visited';
@@ -105,7 +111,7 @@ const MessageBubble = ({ message }: { message: LandingMessage }) => {
 
             <div
                 className={`max-w-[70%] px-4 py-3 text-[14px] leading-relaxed tracking-[-0.01em] ${isUser
-                    ? 'bg-gradient-to-br from-gray-800 to-gray-900 text-white rounded-[20px] rounded-br-[6px] shadow-md'
+                    ? 'bg-gradient-to-br from-[#004B23] to-[#006400] text-white rounded-[20px] rounded-br-[6px] shadow-md'
                     : 'bg-gray-50/90 text-gray-700 rounded-[20px] rounded-bl-[6px] border border-gray-100/60'
                     }`}
                 style={{
@@ -130,6 +136,8 @@ export default function LandingAssistantWidget() {
     const [isOpen, setIsOpen] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
     const [inputValue, setInputValue] = useState('');
+    const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef<any>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const navigate = useNavigate();
@@ -206,6 +214,49 @@ export default function LandingAssistantWidget() {
         setIsOpen(false);
     };
 
+    // Handle voice input
+    const toggleVoiceInput = () => {
+        if (isListening) {
+            recognitionRef.current?.stop();
+            setIsListening(false);
+            return;
+        }
+
+        const windowObj = window as unknown as IWindow;
+        const SpeechRecognition = windowObj.SpeechRecognition || windowObj.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            alert('Voice input is not supported in this browser.');
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = () => {
+            setIsListening(true);
+        };
+
+        recognition.onresult = (event: any) => {
+            const transcript = event.results[0][0].transcript;
+            setInputValue((prev) => (prev ? `${prev} ${transcript}` : transcript));
+        };
+
+        recognition.onerror = (event: any) => {
+            console.error('Speech recognition error', event.error);
+            setIsListening(false);
+        };
+
+        recognition.onend = () => {
+            setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+    };
+
     return (
         <>
             {/* Floating Bubble */}
@@ -266,7 +317,7 @@ export default function LandingAssistantWidget() {
                             w-full sm:w-[360px] sm:max-w-[calc(100vw-48px)]
                             rounded-t-[20px] sm:rounded-[20px]"
                         style={{
-                            height: 'min(90vh, 700px)',
+                            height: 'min(80vh, 600px)',
                             background: 'rgba(255, 255, 255, 0.98)',
                             backdropFilter: 'blur(24px)',
                             WebkitBackdropFilter: 'blur(24px)',
@@ -277,7 +328,7 @@ export default function LandingAssistantWidget() {
                         <div
                             className="relative overflow-hidden flex-shrink-0"
                             style={{
-                                background: '#000000',
+                                background: '#004B23',
                             }}
                         >
                             {/* Close button - positioned absolute */}
@@ -396,6 +447,14 @@ export default function LandingAssistantWidget() {
                                     disabled={isLoading}
                                     className="flex-1 text-[14px] bg-transparent outline-none placeholder:text-gray-400 disabled:opacity-50 tracking-[-0.01em]"
                                 />
+                                <motion.button
+                                    onClick={toggleVoiceInput}
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    className={`p-2 rounded-full transition-colors ${isListening ? 'bg-red-100 text-red-600' : 'hover:bg-gray-100 text-gray-400'}`}
+                                >
+                                    <Mic className={`w-4 h-4 ${isListening ? 'animate-pulse' : ''}`} />
+                                </motion.button>
                                 <motion.button
                                     onClick={handleSend}
                                     disabled={!inputValue.trim() || isLoading}

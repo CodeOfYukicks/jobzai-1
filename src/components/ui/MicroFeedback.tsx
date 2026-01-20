@@ -22,15 +22,15 @@ interface FeedbackState {
   message: string;
 }
 
-const feedbackConfig: Record<FeedbackType, { 
-  icon: typeof Check; 
-  bgColor: string; 
+const feedbackConfig: Record<FeedbackType, {
+  icon: typeof Check;
+  bgColor: string;
   iconColor: string;
   textColor: string;
 }> = {
   success: {
     icon: Check,
-    bgColor: 'bg-emerald-500/95',
+    bgColor: 'bg-[#004b23]/95',
     iconColor: 'text-white',
     textColor: 'text-white',
   },
@@ -83,9 +83,9 @@ export function MicroFeedback() {
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            transition={{ 
-              type: 'spring', 
-              stiffness: 500, 
+            transition={{
+              type: 'spring',
+              stiffness: 500,
               damping: 30,
               mass: 0.8
             }}
@@ -104,14 +104,14 @@ export function MicroFeedback() {
               {(() => {
                 const Icon = feedbackConfig[feedback.type].icon;
                 return (
-                  <Icon 
+                  <Icon
                     className={`w-4 h-4 ${feedbackConfig[feedback.type].iconColor}`}
                     strokeWidth={2.5}
                   />
                 );
               })()}
             </motion.div>
-            
+
             {/* Message */}
             <span className={`text-[13px] font-medium ${feedbackConfig[feedback.type].textColor}`}>
               {feedback.message}

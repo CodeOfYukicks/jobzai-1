@@ -337,3 +337,94 @@ export const sendWelcomeEmail = onRequest({
         });
     }
 });
+
+/**
+ * Send test email
+ * Use this to verify Brevo configuration and template rendering
+ */
+export const sendTestEmail = onRequest({
+    region: 'us-central1',
+    cors: true,
+    maxInstances: 10,
+    invoker: 'public',
+}, async (req, res) => {
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+
+    if (req.method !== 'POST') {
+        res.status(405).json({ success: false, message: 'Method not allowed' });
+        return;
+    }
+
+    try {
+        const { email, type = 'verification' } = req.body;
+
+        if (!email) {
+            res.status(400).json({ success: false, message: 'Email is required' });
+            return;
+        }
+
+        console.log(`🧪 Sending test email (${type}) to:`, email);
+
+        // Get Brevo API key
+        const apiKey = await getBrevoApiKey();
+        if (!apiKey) {
+            res.status(500).json({ success: false, message: 'Email service not configured' });
+            return;
+        }
+
+        let htmlContent = '';
+        let subject = '';
+
+        const templateData: EmailTemplateData = {
+            recipientEmail: email,
+            recipientName: 'Test User',
+            verificationLink: 'https://cubbbe.com/verify-test',
+            resetLink: 'https://cubbbe.com/reset-test',
+            appName: 'Cubbbe',
+        };
+
+        switch (type) {
+            case 'welcome':
+                htmlContent = getWelcomeEmailTemplate(templateData);
+                subject = 'Test: Welcome Email';
+                break;
+            case 'reset':
+                htmlContent = getPasswordResetTemplate(templateData);
+                subject = 'Test: Password Reset';
+                break;
+            case 'verification':
+            default:
+                htmlContent = getEmailVerificationTemplate(templateData);
+                subject = 'Test: Email Verification';
+                break;
+        }
+
+        // Send email via Brevo
+        const success = await sendBrevoEmail(
+            apiKey,
+            { email, name: 'Test User' },
+            subject,
+            htmlContent
+        );
+
+        if (success) {
+            res.status(200).json({ success: true, message: `Test email (${type}) sent` });
+        } else {
+            res.status(500).json({ success: false, message: 'Failed to send email' });
+        }
+    } catch (error: any) {
+        console.error('Error in sendTestEmail:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Internal server error'
+        });
+    }
+});

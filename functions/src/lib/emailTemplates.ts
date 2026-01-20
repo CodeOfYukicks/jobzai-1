@@ -10,12 +10,12 @@ export interface EmailTemplateData {
 }
 
 const BRAND_COLORS = {
-  primary: '#7C3AED', // Violet
-  primaryDark: '#5B21B6',
-  dark: '#0f0f0f',
-  darkGradient1: '#1a1a2e',
-  darkGradient2: '#2d1f4e',
-  darkGradient3: '#3b2a6b',
+  primary: '#38B000', // Lime Green
+  primaryDark: '#007200', // Light Green
+  dark: '#004B23', // Dark Green
+  darkGradient1: '#006400',
+  darkGradient2: '#007200',
+  darkGradient3: '#008000',
   white: '#ffffff',
   gray: '#6b7280',
   lightGray: '#f3f4f6',
@@ -187,7 +187,7 @@ export const getEmailVerificationTemplate = (data: EmailTemplateData): string =>
   <div style="padding: 40px 20px; background-color: #f3f4f6;">
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
       <!-- Header with Gmail dark mode fix -->
-      <div style="background-color: #2d1f4e !important; background-image: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 30%, #2d1f4e 60%, #3b2a6b 100%); padding: 48px 40px; text-align: center;">
+      <div style="background-color: #007200 !important; background-image: linear-gradient(135deg, #004B23 0%, #006400 30%, #007200 60%, #008000 100%); padding: 48px 40px; text-align: center;">
         <img src="https://cubbbe.com/images/logo-only.png" alt="${appName}" style="width: 48px; height: 48px; margin-bottom: 24px;">
         <h1 style="color: #ffffff !important; font-size: 28px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; -webkit-text-fill-color: #ffffff !important;">Welcome to ${appName}! 🎉</h1>
         <p style="color: #cccccc !important; font-size: 16px; margin: 0; font-weight: 400; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; -webkit-text-fill-color: #cccccc !important;">Your AI-powered job search starts now</p>
@@ -203,7 +203,7 @@ export const getEmailVerificationTemplate = (data: EmailTemplateData): string =>
         </p>
         
         <div style="text-align: center; margin: 32px 0;">
-          <a href="${data.verificationLink}" style="display: inline-block; background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%); color: #ffffff !important; text-decoration: none; padding: 16px 48px; border-radius: 12px; font-size: 16px; font-weight: 600; letter-spacing: -0.2px; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">Verify my email →</a>
+          <a href="${data.verificationLink}" style="display: inline-block; background: linear-gradient(135deg, #38B000 0%, #007200 100%); color: #ffffff !important; text-decoration: none; padding: 16px 48px; border-radius: 12px; font-size: 16px; font-weight: 600; letter-spacing: -0.2px; box-shadow: 0 4px 14px rgba(56, 176, 0, 0.3); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">Verify my email →</a>
         </div>
         
         <div style="height: 1px; background-color: #e5e7eb; margin: 32px 0;"></div>
@@ -212,15 +212,15 @@ export const getEmailVerificationTemplate = (data: EmailTemplateData): string =>
         <table width="100%" cellpadding="0" cellspacing="0" style="text-align: center; background-color: #ffffff;">
           <tr>
             <td style="padding: 16px;">
-              <p style="font-size: 24px; font-weight: 700; color: #7C3AED; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">20K+</p>
+              <p style="font-size: 24px; font-weight: 700; color: #38B000; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">20K+</p>
               <p style="font-size: 12px; color: #6b7280; margin: 4px 0 0 0; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">Active Users</p>
             </td>
             <td style="padding: 16px;">
-              <p style="font-size: 24px; font-weight: 700; color: #7C3AED; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">93%</p>
+              <p style="font-size: 24px; font-weight: 700; color: #38B000; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">93%</p>
               <p style="font-size: 12px; color: #6b7280; margin: 4px 0 0 0; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">Success Rate</p>
             </td>
             <td style="padding: 16px;">
-              <p style="font-size: 24px; font-weight: 700; color: #7C3AED; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">50K+</p>
+              <p style="font-size: 24px; font-weight: 700; color: #38B000; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">50K+</p>
               <p style="font-size: 12px; color: #6b7280; margin: 4px 0 0 0; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">Jobs Applied</p>
             </td>
           </tr>
@@ -232,7 +232,7 @@ export const getEmailVerificationTemplate = (data: EmailTemplateData): string =>
         
         <p style="font-size: 12px; color: #6b7280; word-break: break-all; margin-top: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">
           If the button doesn't work, copy and paste this link into your browser:<br>
-          <a href="${data.verificationLink}" style="color: #7C3AED;">${data.verificationLink}</a>
+          <a href="${data.verificationLink}" style="color: #38B000;">${data.verificationLink}</a>
         </p>
       </div>
       
@@ -284,7 +284,7 @@ export const getPasswordResetTemplate = (data: EmailTemplateData): string => {
   <div style="padding: 40px 20px; background-color: #f3f4f6;">
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
       <!-- Header with Gmail dark mode fix -->
-      <div style="background-color: #2d1f4e !important; background-image: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 30%, #2d1f4e 60%, #3b2a6b 100%); padding: 48px 40px; text-align: center;">
+      <div style="background-color: #007200 !important; background-image: linear-gradient(135deg, #004B23 0%, #006400 30%, #007200 60%, #008000 100%); padding: 48px 40px; text-align: center;">
         <img src="https://cubbbe.com/images/logo-only.png" alt="${appName}" style="width: 48px; height: 48px; margin-bottom: 24px;">
         <h1 style="color: #ffffff !important; font-size: 28px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; -webkit-text-fill-color: #ffffff !important;">Password Reset 🔐</h1>
         <p style="color: #cccccc !important; font-size: 16px; margin: 0; font-weight: 400; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; -webkit-text-fill-color: #cccccc !important;">Let's get you back into your account</p>
@@ -300,7 +300,7 @@ export const getPasswordResetTemplate = (data: EmailTemplateData): string => {
         </p>
         
         <div style="text-align: center; margin: 32px 0;">
-          <a href="${data.resetLink}" style="display: inline-block; background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%); color: #ffffff !important; text-decoration: none; padding: 16px 48px; border-radius: 12px; font-size: 16px; font-weight: 600; letter-spacing: -0.2px; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">Reset my password →</a>
+          <a href="${data.resetLink}" style="display: inline-block; background: linear-gradient(135deg, #38B000 0%, #007200 100%); color: #ffffff !important; text-decoration: none; padding: 16px 48px; border-radius: 12px; font-size: 16px; font-weight: 600; letter-spacing: -0.2px; box-shadow: 0 4px 14px rgba(56, 176, 0, 0.3); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">Reset my password →</a>
         </div>
         
         <p style="font-size: 13px; color: #4b5563; margin: 24px 0 0 0; padding: 16px; background-color: #f9fafb; border-radius: 8px; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">
@@ -309,7 +309,7 @@ export const getPasswordResetTemplate = (data: EmailTemplateData): string => {
         
         <p style="font-size: 12px; color: #6b7280; word-break: break-all; margin-top: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">
           If the button doesn't work, copy and paste this link into your browser:<br>
-          <a href="${data.resetLink}" style="color: #7C3AED;">${data.resetLink}</a>
+          <a href="${data.resetLink}" style="color: #38B000;">${data.resetLink}</a>
         </p>
       </div>
       
@@ -361,7 +361,7 @@ export const getWelcomeEmailTemplate = (data: EmailTemplateData): string => {
   <div style="padding: 40px 20px; background-color: #f3f4f6;">
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
       <!-- Header with Gmail dark mode fix -->
-      <div style="background-color: #2d1f4e !important; background-image: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 30%, #2d1f4e 60%, #3b2a6b 100%); padding: 48px 40px; text-align: center;">
+      <div style="background-color: #007200 !important; background-image: linear-gradient(135deg, #004B23 0%, #006400 30%, #007200 60%, #008000 100%); padding: 48px 40px; text-align: center;">
         <img src="https://cubbbe.com/images/logo-only.png" alt="${appName}" style="width: 48px; height: 48px; margin-bottom: 24px;">
         <h1 style="color: #ffffff !important; font-size: 28px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; -webkit-text-fill-color: #ffffff !important;">You're all set! 🚀</h1>
         <p style="color: #cccccc !important; font-size: 16px; margin: 0; font-weight: 400; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; -webkit-text-fill-color: #cccccc !important;">Your journey to your dream job begins</p>
@@ -381,7 +381,7 @@ export const getWelcomeEmailTemplate = (data: EmailTemplateData): string => {
                 <table cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="width: 40px; vertical-align: top;">
-                      <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #7C3AED, #5B21B6); border-radius: 8px; text-align: center; line-height: 32px; color: #ffffff; font-weight: bold; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">1</div>
+                      <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #38B000, #007200); border-radius: 8px; text-align: center; line-height: 32px; color: #ffffff; font-weight: bold; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">1</div>
                     </td>
                     <td style="padding-left: 16px;">
                       <p style="margin: 0; font-weight: 600; color: #1f2937; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">Complete your profile</p>
@@ -396,7 +396,7 @@ export const getWelcomeEmailTemplate = (data: EmailTemplateData): string => {
                 <table cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="width: 40px; vertical-align: top;">
-                      <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #7C3AED, #5B21B6); border-radius: 8px; text-align: center; line-height: 32px; color: #ffffff; font-weight: bold; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">2</div>
+                      <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #38B000, #007200); border-radius: 8px; text-align: center; line-height: 32px; color: #ffffff; font-weight: bold; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">2</div>
                     </td>
                     <td style="padding-left: 16px;">
                       <p style="margin: 0; font-weight: 600; color: #1f2937; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">Upload your resume</p>
@@ -411,7 +411,7 @@ export const getWelcomeEmailTemplate = (data: EmailTemplateData): string => {
                 <table cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="width: 40px; vertical-align: top;">
-                      <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #7C3AED, #5B21B6); border-radius: 8px; text-align: center; line-height: 32px; color: #ffffff; font-weight: bold; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">3</div>
+                      <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #38B000, #007200); border-radius: 8px; text-align: center; line-height: 32px; color: #ffffff; font-weight: bold; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">3</div>
                     </td>
                     <td style="padding-left: 16px;">
                       <p style="margin: 0; font-weight: 600; color: #1f2937; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">Start applying</p>
@@ -425,7 +425,7 @@ export const getWelcomeEmailTemplate = (data: EmailTemplateData): string => {
         </div>
         
         <div style="text-align: center; margin: 32px 0;">
-          <a href="https://cubbbe.com/hub" style="display: inline-block; background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%); color: #ffffff !important; text-decoration: none; padding: 16px 48px; border-radius: 12px; font-size: 16px; font-weight: 600; letter-spacing: -0.2px; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">Go to my dashboard →</a>
+          <a href="https://cubbbe.com/hub" style="display: inline-block; background: linear-gradient(135deg, #38B000 0%, #007200 100%); color: #ffffff !important; text-decoration: none; padding: 16px 48px; border-radius: 12px; font-size: 16px; font-weight: 600; letter-spacing: -0.2px; box-shadow: 0 4px 14px rgba(56, 176, 0, 0.3); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">Go to my dashboard →</a>
         </div>
         
         <p style="font-size: 13px; color: #4b5563; margin: 24px 0 0 0; padding: 16px; background-color: #f9fafb; border-radius: 8px; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">
