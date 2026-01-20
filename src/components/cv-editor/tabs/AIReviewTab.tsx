@@ -822,7 +822,7 @@ export default function AIReviewTab({
 
       {/* Scrollable Content */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-        <div className="px-4 py-4">
+        <div className="px-4 py-4 pb-24 lg:pb-4">
           {/* Show warning if CV is minimal even with results */}
           {isCVEmptyOrMinimal && (
             <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800/50">

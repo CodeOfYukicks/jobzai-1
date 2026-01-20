@@ -132,15 +132,15 @@ export default function Hero() {
                   <div className="relative bg-gray-900">
                     <style dangerouslySetInnerHTML={{
                       __html: `
-                      wistia-player[media-id='vrx34hsq5n']:not(:defined) { 
-                        background: center / contain no-repeat url('https://fast.wistia.com/embed/medias/vrx34hsq5n/swatch'); 
+                      wistia-player[media-id='jepmag5p6q']:not(:defined) { 
+                        background: center / contain no-repeat url('https://fast.wistia.com/embed/medias/jepmag5p6q/swatch'); 
                         display: block; 
                         filter: blur(5px); 
                         padding-top: 56.25%; 
                       }
                     `}} />
                     {/* @ts-ignore - Wistia custom element */}
-                    <wistia-player media-id="vrx34hsq5n" aspect="1.7777777777777777"></wistia-player>
+                    <wistia-player media-id="jepmag5p6q" aspect="1.7777777777777777"></wistia-player>
                   </div>
                 </div>
 

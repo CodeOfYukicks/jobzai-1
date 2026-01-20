@@ -4,11 +4,8 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 
 // Gmail API scopes needed for sending emails
-const GMAIL_SCOPES = [
-  'https://www.googleapis.com/auth/gmail.send',
-  'https://www.googleapis.com/auth/gmail.readonly',
-  'https://www.googleapis.com/auth/userinfo.email'
-].join(' ');
+// Only requesting gmail.send scope for Google verification video
+const GMAIL_SCOPES = 'https://www.googleapis.com/auth/gmail.send';
 
 interface GmailTokens {
   accessToken: string;
@@ -115,13 +112,13 @@ export function useGmailOAuth(): UseGmailOAuthReturn {
 
     try {
       const tokenDoc = await getDoc(doc(db, 'gmailTokens', currentUser.uid));
-      
+
       if (tokenDoc.exists()) {
         const data = tokenDoc.data() as GmailTokens;
-        
+
         // Check if token is still valid (with 5 min buffer)
         const isValid = data.expiresAt > Date.now() + 5 * 60 * 1000;
-        
+
         if (isValid || data.refreshToken) {
           setIsConnected(true);
           setEmail(data.email);
@@ -133,7 +130,7 @@ export function useGmailOAuth(): UseGmailOAuthReturn {
           return false;
         }
       }
-      
+
       setIsConnected(false);
       setEmail(null);
       return false;

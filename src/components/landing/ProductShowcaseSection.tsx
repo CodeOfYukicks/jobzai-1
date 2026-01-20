@@ -2,34 +2,36 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play } from 'lucide-react';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Feature data for the showcase
 const showcaseFeatures = [
     {
         id: 'application-tracking',
-        label: 'Application Tracking',
-        headline: "Know exactly what's working.",
-        subheadline: 'Track applications, monitor responses, and optimize your job search strategy with real-time insights.',
+        labelKey: 'showcase.applicationTracking.label',
+        headlineKey: 'showcase.applicationTracking.headline',
+        subheadlineKey: 'showcase.applicationTracking.subheadline',
         videoPath: 'images/jobapplication.mp4',
     },
     {
         id: 'interview-prep',
-        label: 'Interview Prep',
-        headline: 'Practice with AI. Show up confident.',
-        subheadline: 'Get role-specific questions, instant feedback, and structured preparation that actually works.',
+        labelKey: 'showcase.interviewPrep.label',
+        headlineKey: 'showcase.interviewPrep.headline',
+        subheadlineKey: 'showcase.interviewPrep.subheadline',
         videoPath: 'images/interviewprep.mp4',
     },
     {
         id: 'mock-interview',
-        label: 'Mock Interview',
-        headline: "Train like it's the real thing.",
-        subheadline: 'Live AI interviews with adaptive questions. Build muscle memory for high-stakes conversations.',
+        labelKey: 'showcase.mockInterview.label',
+        headlineKey: 'showcase.mockInterview.headline',
+        subheadlineKey: 'showcase.mockInterview.subheadline',
         videoPath: 'images/mockinterview.mp4',
     },
 ];
 
 // Main Component with Horizontal Tabs
 export default function ProductShowcaseSection() {
+    const { t } = useTranslation();
     const [activeIndex, setActiveIndex] = useState(0);
     const [videoUrls, setVideoUrls] = useState<Record<string, string>>({});
     const [loadingVideos, setLoadingVideos] = useState(true);
@@ -147,7 +149,7 @@ export default function ProductShowcaseSection() {
                                             ? 'text-white'
                                             : 'text-white/40 hover:text-white/70'
                                             }`}>
-                                            {feature.label}
+                                            {t(feature.labelKey)}
                                         </span>
                                         {/* Animated Underline */}
                                         {activeIndex === index && (
@@ -180,12 +182,12 @@ export default function ProductShowcaseSection() {
                                     className="text-2xl md:text-5xl lg:text-6xl font-bold text-white mb-3 md:mb-6 leading-[1.1] tracking-tight px-2"
                                     style={{ fontFamily: 'Outfit, Inter, system-ui, sans-serif' }}
                                 >
-                                    {activeFeature.headline}
+                                    {t(activeFeature.headlineKey)}
                                 </h3>
 
                                 {/* Subheadline */}
                                 <p className="text-sm md:text-lg text-white/60 max-w-2xl mb-6 md:mb-14 leading-relaxed px-2">
-                                    {activeFeature.subheadline}
+                                    {t(activeFeature.subheadlineKey)}
                                 </p>
 
                                 {/* Video Container */}
@@ -259,7 +261,7 @@ export default function ProductShowcaseSection() {
                                                     >
                                                         <Play className="w-8 h-8 text-zinc-600" />
                                                     </div>
-                                                    <p className="text-zinc-600 text-sm">Video coming soon</p>
+                                                    <p className="text-zinc-600 text-sm">{t('showcase.videoComingSoon')}</p>
                                                 </div>
                                             </div>
                                         )}
@@ -275,7 +277,7 @@ export default function ProductShowcaseSection() {
                                     key={index}
                                     onClick={() => setActiveIndex(index)}
                                     className="p-1"
-                                    aria-label={`Go to ${showcaseFeatures[index].label}`}
+                                    aria-label={`Go to ${t(showcaseFeatures[index].labelKey)}`}
                                 >
                                     <motion.div
                                         className="w-2 h-2 rounded-full transition-colors duration-300"

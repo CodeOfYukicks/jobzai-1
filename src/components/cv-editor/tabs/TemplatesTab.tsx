@@ -20,7 +20,7 @@ export default function TemplatesTab({
   };
 
   return (
-    <div className="h-full flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-2">
+    <div className="h-full flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-2 pb-24 lg:pb-2">
       <div className="max-w-md mx-auto">
         {/* Header - Compact */}
         <div className="mb-2">

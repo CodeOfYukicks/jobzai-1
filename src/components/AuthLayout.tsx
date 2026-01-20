@@ -888,7 +888,7 @@ transition-all duration-200 relative overflow-hidden
             {needsFullWidth ? (
               // Full width mode for Applications, Jobs, Professional Profile, etc.
               // Mobile: overflow-y-auto for scroll, Desktop: overflow-hidden
-              <div className={needsFullHeight ? "h-full flex flex-col flex-1 min-h-0 overflow-y-auto md:overflow-hidden" : "overflow-y-auto md:overflow-visible"}>{children}</div>
+              <div className={needsFullHeight ? "h-full flex flex-col flex-1 min-h-0" : "overflow-y-auto md:overflow-visible"}>{children}</div>
             ) : (
               // Normal mode with max-width for other pages
               // Mobile: no padding (edge-to-edge), Desktop: padded with max-width

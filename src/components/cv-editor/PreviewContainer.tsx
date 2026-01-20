@@ -255,7 +255,7 @@ export default function PreviewContainer({
       )}
 
       {/* Preview Area - Less padding on mobile */}
-      <div className={`flex-1 min-h-0 overflow-auto ${isMobile ? 'p-4' : 'p-8'} flex flex-col`}>
+      <div className={`flex-1 min-h-0 overflow-auto ${isMobile ? 'p-4 pb-24' : 'p-8 pb-16'} flex flex-col`}>
         <div
           className="mx-auto transition-all duration-200"
           style={{
@@ -359,7 +359,6 @@ export default function PreviewContainer({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
             className="fixed bottom-24 lg:absolute lg:bottom-8 left-0 right-0 z-50 px-4 flex justify-center pointer-events-none"
           >

@@ -634,7 +634,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
         </p>
       </div>
 
-      <div className="px-5 pb-6 space-y-4">
+      <div className="px-5 pb-24 lg:pb-6 space-y-4">
         {/* Section Order - Collapsible */}
         <CollapsibleSection
           title="Section Order"

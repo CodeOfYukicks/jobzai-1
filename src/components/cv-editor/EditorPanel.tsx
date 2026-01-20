@@ -239,7 +239,7 @@ export default function EditorPanel({
         </div>
 
         {/* Collapsed Sections - Icon only */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain py-3 px-2 space-y-2">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain py-3 px-2 pb-24 lg:pb-3 space-y-2">
           {sortSections(cvData.sections).map((section) => (
             <motion.button
               key={section.id}
@@ -435,7 +435,7 @@ export default function EditorPanel({
             </div>
 
             {/* Sections List */}
-            <div ref={sectionsContainerRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-5 pb-6">
+            <div ref={sectionsContainerRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-5 pb-24 lg:pb-6">
               <DragDropContext onDragEnd={handleDragEnd}>
                 <Droppable droppableId="cv-sections">
                   {(provided, droppableSnapshot) => (
