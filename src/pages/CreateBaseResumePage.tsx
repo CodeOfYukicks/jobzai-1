@@ -1,0 +1,501 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { ChevronRight, FileText, Upload, Linkedin, User, ArrowLeft, Check, Loader2, X, Clock } from 'lucide-react';
+import AuthLayout from '../components/AuthLayout';
+import { useAuth } from '../contexts/AuthContext';
+import { db, storage } from '../lib/firebase';
+import { doc, setDoc, serverTimestamp, collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { notify } from '@/lib/notify';
+import { generateId } from '../lib/cvEditorUtils';
+
+// Initial empty CV data structure
+const initialCVData = {
+    personalInfo: {
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        location: '',
+        linkedin: '',
+        portfolio: '',
+        github: '',
+        title: '',
+        photoUrl: ''
+    },
+    summary: '',
+    experiences: [],
+    education: [],
+    skills: [],
+    certifications: [],
+    projects: [],
+    languages: [],
+    sections: [
+        { id: 'personal', type: 'personal', title: 'Personal Information', enabled: true, order: 0 },
+        { id: 'summary', type: 'summary', title: 'Professional Summary', enabled: true, order: 1 },
+        { id: 'experience', type: 'experience', title: 'Work Experience', enabled: true, order: 2 },
+        { id: 'education', type: 'education', title: 'Education', enabled: true, order: 3 },
+        { id: 'skills', type: 'skills', title: 'Skills', enabled: true, order: 4 },
+        { id: 'certifications', type: 'certifications', title: 'Certifications', enabled: false, order: 5 },
+        { id: 'projects', type: 'projects', title: 'Projects', enabled: false, order: 6 },
+        { id: 'languages', type: 'languages', title: 'Languages', enabled: false, order: 7 }
+    ]
+};
+
+// Helper to safely format dates
+function formatDate(dateInput: any): string {
+    if (!dateInput) return 'Unknown date';
+    try {
+        if (dateInput.toDate && typeof dateInput.toDate === 'function') {
+            return dateInput.toDate().toLocaleDateString();
+        } else if (dateInput instanceof Date) {
+            return dateInput.toLocaleDateString();
+        } else if (typeof dateInput === 'string') {
+            return new Date(dateInput).toLocaleDateString();
+        }
+        return 'Unknown date';
+    } catch (e) {
+        return 'Unknown date';
+    }
+}
+
+export default function CreateBaseResumePage() {
+    const { currentUser } = useAuth();
+    const navigate = useNavigate();
+    const [isCreating, setIsCreating] = useState(false);
+
+    // Form State
+    const [jobTitle, setJobTitle] = useState('');
+    const [experienceLevel, setExperienceLevel] = useState('mid');
+    const [documentTitle, setDocumentTitle] = useState('');
+    const [dataSource, setDataSource] = useState<'profile' | 'upload' | 'linkedin'>('profile');
+    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+
+    // Existing Resumes State
+    const [existingResumes, setExistingResumes] = useState<any[]>([]);
+    const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
+    const [isLoadingResumes, setIsLoadingResumes] = useState(false);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        const fetchResumes = async () => {
+            if (!currentUser) return;
+            setIsLoadingResumes(true);
+            try {
+                const resumesRef = collection(db, 'users', currentUser.uid, 'cvs');
+                const q = query(resumesRef, orderBy('updatedAt', 'desc'));
+                const querySnapshot = await getDocs(q);
+                const resumes = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                setExistingResumes(resumes);
+            } catch (error) {
+                console.error('Error fetching resumes:', error);
+            } finally {
+                setIsLoadingResumes(false);
+            }
+        };
+
+        fetchResumes();
+    }, [currentUser]);
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (file.type !== 'application/pdf') {
+                notify.error('Please upload a PDF file');
+                return;
+            }
+            setUploadedFile(file);
+            // Auto-fill document title if empty
+            if (!documentTitle) {
+                setDocumentTitle(file.name.replace('.pdf', ''));
+            }
+        }
+    };
+
+    const handleCreate = async () => {
+        if (!currentUser) return;
+
+        if (!jobTitle.trim()) {
+            notify.error('Please enter a target job title');
+            return;
+        }
+
+        if (!documentTitle.trim()) {
+            notify.error('Please enter a document title');
+            return;
+        }
+
+        if (dataSource === 'upload' && !uploadedFile) {
+            notify.error('Please upload a resume PDF');
+            return;
+        }
+
+        setIsCreating(true);
+
+        try {
+            const resumeId = generateId();
+            let cvData = { ...initialCVData };
+
+            // If selecting an existing resume, use its data
+            if (dataSource === 'profile' && selectedResumeId) {
+                const selectedResume = existingResumes.find(r => r.id === selectedResumeId);
+                if (selectedResume && selectedResume.cvData) {
+                    cvData = { ...selectedResume.cvData };
+                }
+            }
+
+            // Update title in personal info with the new target job title
+            cvData.personalInfo.title = jobTitle;
+
+            // Handle file upload if selected
+            let fileUrl = null;
+            if (dataSource === 'upload' && uploadedFile) {
+                const fileName = `${resumeId}_${uploadedFile.name}`;
+                const fileRef = ref(storage, `cvs/${currentUser.uid}/${fileName}`);
+                await uploadBytes(fileRef, uploadedFile);
+                fileUrl = await getDownloadURL(fileRef);
+                // Here you would typically trigger a parsing function
+                // For now we just store the file URL reference
+            }
+
+            const newResume = {
+                id: resumeId,
+                name: documentTitle.trim(),
+                cvData: cvData,
+                targetJobTitle: jobTitle,
+                experienceLevel: experienceLevel,
+                dataSource: dataSource,
+                sourceFileUrl: fileUrl,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                template: 'modern-professional', // Default template
+                tags: []
+            };
+
+            // Save to Firestore
+            const docRef = doc(db, 'users', currentUser.uid, 'cvs', resumeId);
+            await setDoc(docRef, newResume);
+
+            notify.success('Resume created successfully!');
+            navigate(`/resume-builder/${resumeId}/cv-editor`);
+
+        } catch (error) {
+            console.error('Error creating resume:', error);
+            notify.error('Failed to create resume');
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    return (
+        <AuthLayout>
+            <div className="min-h-screen bg-white dark:bg-[#1a191b] flex flex-col relative">
+                {/* Close Button - Minimalist */}
+                <button
+                    onClick={() => navigate('/cv-analysis')}
+                    className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-[#2b2a2c] z-10"
+                >
+                    <X className="w-6 h-6" />
+                </button>
+
+                <div className="flex-1 flex flex-col md:flex-row max-w-6xl mx-auto w-full p-6 md:px-12 md:pb-12 md:pt-6 gap-8 lg:gap-16 items-start justify-center">
+                    {/* Left Column - Info */}
+                    <div className="w-full md:w-1/3 pt-4 md:sticky md:top-12">
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                            Create a new
+                            <span className="block text-[#70E000]">Base Resume</span>
+                        </h1>
+
+                        <p className="text-gray-600 dark:text-gray-400 mt-4 leading-relaxed text-sm">
+                            Just a few quick questions to help us customize your resume for the perfect job title and experience level. You can always change these settings later.
+                        </p>
+
+                        <div className="mt-8 hidden md:block">
+                            <button
+                                onClick={handleCreate}
+                                disabled={isCreating}
+                                className="px-8 py-2.5 bg-[#70E000] hover:bg-[#60c000] text-black font-bold rounded-lg shadow-lg shadow-[#70E000]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                                {isCreating ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        Creating...
+                                    </>
+                                ) : (
+                                    'Continue'
+                                )}
+                            </button>
+                            <p className="text-xs text-gray-400 mt-2">
+                                Fill out all required fields
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Right Column - Form */}
+                    <div className="w-full md:w-2/3 max-w-xl space-y-6">
+
+                        {/* Target Job Title */}
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-baseline">
+                                <label className="text-sm font-bold text-gray-900 dark:text-white">Target Job Title</label>
+                                <span className="text-xs text-gray-400">Required</span>
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">What job title are your targeting with this resume?</p>
+                            <input
+                                type="text"
+                                value={jobTitle}
+                                onChange={(e) => {
+                                    const newTitle = e.target.value;
+                                    setJobTitle(newTitle);
+
+                                    // Auto-update document title if user hasn't manually edited it
+                                    // Or if it's empty/default
+                                    const currentYear = new Date().getFullYear();
+                                    const userName = currentUser?.displayName?.split(' ')[0] || '';
+                                    const autoTitle = `${newTitle} - Resume - ${currentYear}${userName ? ` - ${userName}` : ''}`;
+
+                                    // Simple heuristic: if document title is empty or looks like a previous auto-generated title (contains "Resume - 20"), update it
+                                    if (!documentTitle || documentTitle.includes('Resume - 20')) {
+                                        setDocumentTitle(autoTitle);
+                                    }
+                                }}
+                                placeholder="e.g. Senior Product Designer"
+                                className="w-full px-4 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#70E000]/20 focus:border-[#70E000] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
+                            />
+                        </div>
+
+                        {/* Experience Level */}
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-baseline">
+                                <label className="text-sm font-bold text-gray-900 dark:text-white">Experience Level</label>
+                                <span className="text-xs text-gray-400">Required</span>
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">What experience level are your targeting?</p>
+
+                            <div className="space-y-2 mt-1">
+                                {[
+                                    { id: 'entry', label: 'Entry - 0-2 years of exp.' },
+                                    { id: 'mid', label: 'Mid Level - 2-5 years of exp.' },
+                                    { id: 'senior', label: 'Senior - 5+ years of exp.' }
+                                ].map((level) => (
+                                    <label
+                                        key={level.id}
+                                        className={`flex items-center p-2.5 rounded-lg border cursor-pointer transition-all ${experienceLevel === level.id
+                                            ? 'border-[#70E000] bg-[#70E000]/5 dark:bg-[#70E000]/10'
+                                            : 'border-transparent hover:bg-gray-50 dark:hover:bg-[#2b2a2c]'
+                                            }`}
+                                    >
+                                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${experienceLevel === level.id
+                                            ? 'border-[#70E000]'
+                                            : 'border-gray-300 dark:border-gray-600'
+                                            }`}>
+                                            {experienceLevel === level.id && (
+                                                <div className="w-2 h-2 rounded-full bg-[#70E000]" />
+                                            )}
+                                        </div>
+                                        <input
+                                            type="radio"
+                                            name="experienceLevel"
+                                            value={level.id}
+                                            checked={experienceLevel === level.id}
+                                            onChange={(e) => setExperienceLevel(e.target.value)}
+                                            className="hidden"
+                                        />
+                                        <span className={`ml-3 text-sm ${experienceLevel === level.id ? 'font-medium text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                                            }`}>
+                                            {level.label}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Document Title */}
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-baseline">
+                                <label className="text-sm font-bold text-gray-900 dark:text-white">Document Title</label>
+                                <span className="text-xs text-gray-400">Required</span>
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">This is used to find your resume in Cubbbe, it is not the file name.</p>
+                            <input
+                                type="text"
+                                value={documentTitle}
+                                onChange={(e) => setDocumentTitle(e.target.value)}
+                                placeholder="e.g. My Resume 2024"
+                                className="w-full px-4 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#70E000]/20 focus:border-[#70E000] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
+                            />
+                        </div>
+
+                        {/* Resume Data Source */}
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-baseline">
+                                <label className="text-sm font-bold text-gray-900 dark:text-white">Resume Data Source</label>
+                                <span className="text-xs text-gray-400">Required</span>
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Looks like you have data in your Cubbbe Profile, so we've pre-selected it as a source for this resume.
+                            </p>
+
+                            <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-xl p-1 mt-3">
+                                <div className="grid grid-cols-3 gap-1">
+                                    <button
+                                        onClick={() => setDataSource('profile')}
+                                        className={`py-2 px-4 rounded-lg text-xs font-bold transition-all ${dataSource === 'profile'
+                                            ? 'bg-[#70E000]/10 text-[#007200] dark:text-[#70E000] shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                            }`}
+                                    >
+                                        Cubbbe Profile
+                                    </button>
+                                    <button
+                                        onClick={() => setDataSource('upload')}
+                                        className={`py-2 px-4 rounded-lg text-xs font-bold transition-all ${dataSource === 'upload'
+                                            ? 'bg-[#70E000]/10 text-[#007200] dark:text-[#70E000] shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                            }`}
+                                    >
+                                        Resume Upload
+                                    </button>
+                                    <button
+                                        onClick={() => setDataSource('linkedin')}
+                                        className={`py-2 px-4 rounded-lg text-xs font-bold transition-all ${dataSource === 'linkedin'
+                                            ? 'bg-[#70E000]/10 text-[#007200] dark:text-[#70E000] shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                            }`}
+                                    >
+                                        LinkedIn
+                                    </button>
+                                </div>
+
+                                <div className="p-4 mt-1 border-t border-gray-100 dark:border-[#3d3c3e]">
+                                    {dataSource === 'profile' && (
+                                        <div className="space-y-4">
+                                            {/* Default Profile Option */}
+                                            <div
+                                                onClick={() => setSelectedResumeId(null)}
+                                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border ${selectedResumeId === null
+                                                    ? 'bg-[#70E000]/5 border-[#70E000] dark:bg-[#70E000]/10'
+                                                    : 'border-transparent hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
+                                                    }`}
+                                            >
+                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedResumeId === null ? 'border-[#70E000]' : 'border-gray-300 dark:border-gray-600'
+                                                    }`}>
+                                                    {selectedResumeId === null && <div className="w-2 h-2 rounded-full bg-[#70E000]" />}
+                                                </div>
+                                                <User className={`w-5 h-5 flex-shrink-0 ${selectedResumeId === null ? 'text-[#70E000]' : 'text-gray-400'}`} />
+                                                <div>
+                                                    <p className={`font-medium text-sm ${selectedResumeId === null ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                                                        Cubbbe Profile Summary
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-0.5">Using your saved professional profile data</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Existing Resumes List */}
+                                            {isLoadingResumes ? (
+                                                <div className="flex justify-center py-4">
+                                                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                                                </div>
+                                            ) : existingResumes.length > 0 && (
+                                                <div className="space-y-2">
+                                                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider px-1">Or copy from existing resume</p>
+                                                    <div className="max-h-48 overflow-y-auto pr-1 space-y-1 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
+                                                        {existingResumes.map(resume => (
+                                                            <div
+                                                                key={resume.id}
+                                                                onClick={() => setSelectedResumeId(resume.id)}
+                                                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border ${selectedResumeId === resume.id
+                                                                    ? 'bg-[#70E000]/5 border-[#70E000] dark:bg-[#70E000]/10'
+                                                                    : 'border-transparent hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
+                                                                    }`}
+                                                            >
+                                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedResumeId === resume.id ? 'border-[#70E000]' : 'border-gray-300 dark:border-gray-600'
+                                                                    }`}>
+                                                                    {selectedResumeId === resume.id && <div className="w-2 h-2 rounded-full bg-[#70E000]" />}
+                                                                </div>
+                                                                <FileText className={`w-5 h-5 flex-shrink-0 ${selectedResumeId === resume.id ? 'text-[#70E000]' : 'text-gray-400'}`} />
+                                                                <div className="min-w-0">
+                                                                    <p className={`font-medium text-sm truncate ${selectedResumeId === resume.id ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                                                                        {resume.name}
+                                                                    </p>
+                                                                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                                                        <Clock className="w-3 h-3" />
+                                                                        <span>Updated {formatDate(resume.updatedAt)}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {dataSource === 'upload' && (
+                                        <div className="space-y-3">
+                                            <div
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="border-2 border-dashed border-gray-200 dark:border-[#3d3c3e] hover:border-[#70E000] dark:hover:border-[#70E000] rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors"
+                                            >
+                                                <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Click to upload PDF</p>
+                                                <p className="text-xs text-gray-500">PDF only, max 10MB</p>
+                                            </div>
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                onChange={handleFileUpload}
+                                                accept=".pdf"
+                                                className="hidden"
+                                            />
+                                            {uploadedFile && (
+                                                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-900/10 p-2 rounded border border-green-100 dark:border-green-900/20">
+                                                    <Check className="w-4 h-4" />
+                                                    <span className="truncate">{uploadedFile.name}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {dataSource === 'linkedin' && (
+                                        <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300 opacity-60">
+                                            <Linkedin className="w-5 h-5 text-[#0077b5]" />
+                                            <div>
+                                                <p className="font-medium text-sm">LinkedIn Import</p>
+                                                <p className="text-xs text-gray-500 mt-0.5">Coming soon</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Mobile Continue Button */}
+                        <div className="md:hidden pt-4">
+                            <button
+                                onClick={handleCreate}
+                                disabled={isCreating}
+                                className="w-full px-8 py-3 bg-[#70E000] hover:bg-[#60c000] text-black font-bold rounded-lg shadow-lg shadow-[#70E000]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {isCreating ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        Creating...
+                                    </>
+                                ) : (
+                                    'Continue'
+                                )}
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </AuthLayout>
+    );
+}

@@ -154,6 +154,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname.startsWith('/ats-analysis/') ||
     location.pathname.startsWith('/meeting-prep/') ||
     location.pathname === '/resume-builder' ||
+    location.pathname === '/resume-builder/new' ||
     (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
     location.pathname.startsWith('/notes/') ||
     location.pathname.startsWith('/whiteboard/')
@@ -175,6 +176,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       location.pathname.startsWith('/ats-analysis/') ||
       location.pathname.startsWith('/meeting-prep/') ||
       location.pathname === '/resume-builder' ||
+      location.pathname === '/resume-builder/new' ||
       (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
       location.pathname.startsWith('/notes/') ||
       location.pathname.startsWith('/whiteboard/')) {
@@ -377,6 +379,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname.startsWith('/interview-prep/') ||
     location.pathname.startsWith('/meeting-prep/') ||
     location.pathname === '/resume-builder' ||
+    location.pathname === '/resume-builder/new' ||
     location.pathname === '/cv-analysis' ||
     location.pathname === '/recommendations' ||
     location.pathname === '/dashboard' ||
@@ -423,7 +426,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/recommendations' ||
     location.pathname === '/dashboard' ||
     location.pathname === '/professional-profile' ||
+    location.pathname === '/professional-profile' ||
     location.pathname === '/resume-builder' ||
+    location.pathname === '/resume-builder/new' ||
     location.pathname === '/jobs' ||
     location.pathname === '/settings' ||
     location.pathname === '/billing';

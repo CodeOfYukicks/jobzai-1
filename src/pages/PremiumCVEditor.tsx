@@ -101,7 +101,7 @@ export default function PremiumCVEditor() {
   const [zoom, setZoom] = useState(100);
   const [showPreview, setShowPreview] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  // isSaving is now managed by useCVEditor
   const [isExporting, setIsExporting] = useState(false);
   const [resumeName, setResumeName] = useState<string>('');
   const [isEditingName, setIsEditingName] = useState(false);
@@ -175,10 +175,24 @@ export default function PremiumCVEditor() {
   const {
     loadCVData,
     saveCVData,
+    debouncedSave,
+    isSaving,
     updateSection,
     reorderSections,
     toggleSection
   } = useCVEditor(cvData, setCvData, setIsDirty);
+
+  // Auto-save effect
+  useEffect(() => {
+    if (isDirty && id) {
+      const editorStateToSave = {
+        template,
+        layoutSettings,
+        zoom
+      };
+      debouncedSave(id, editorStateToSave, isResumeBuilder);
+    }
+  }, [cvData, template, layoutSettings, zoom, isDirty, id, isResumeBuilder, debouncedSave]);
 
   // Before/After comparison hook
   const hasComparison = useHasComparison(initialCVMarkdown, cvData, originalStructuredData);
@@ -924,7 +938,6 @@ export default function PremiumCVEditor() {
 
   // Handle save
   const handleSave = async () => {
-    setIsSaving(true);
     try {
       // Prepare editor state to save
       const editorStateToSave = {
@@ -934,13 +947,11 @@ export default function PremiumCVEditor() {
       };
 
       await saveCVData(id, editorStateToSave, isResumeBuilder);
-      setIsDirty(false);
+      // setIsDirty(false) is handled by saveCVData
       notify.success('CV saved successfully');
     } catch (error) {
       console.error('Error saving CV:', error);
       notify.error('Failed to save CV');
-    } finally {
-      setIsSaving(false);
     }
   };
 

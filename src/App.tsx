@@ -63,6 +63,7 @@ const CVOptimizerPage = lazy(() => import('./pages/CVOptimizerPage'));
 const OptimizedCVEditPage = lazy(() => import('./pages/OptimizedCVEditPage'));
 const CVCreatorPage = lazy(() => import('./pages/CVCreatorPage'));
 const ResumeBuilderPage = lazy(() => import('./pages/ResumeBuilderPage'));
+const CreateBaseResumePage = lazy(() => import('./pages/CreateBaseResumePage'));
 const NotionEditorPage = lazy(() => import('./pages/NotionEditorPage'));
 const WhiteboardEditorPage = lazy(() => import('./pages/WhiteboardEditorPage'));
 const MockInterviewPage = lazy(() => import('./pages/MockInterviewPage'));
@@ -246,6 +247,7 @@ function AppContent() {
             <Route path="/cv-editor" element={<PremiumCVEditor />} />
             <Route path="/ats-analysis/:id/cv-editor" element={<PremiumCVEditor />} />
             <Route path="/resume-builder" element={<ResumeBuilderPage />} />
+            <Route path="/resume-builder/new" element={<CreateBaseResumePage />} />
             <Route path="/resume-builder/:id/cv-editor" element={<PremiumCVEditor />} />
             <Route path="/notes/:noteId" element={<NotionEditorPage />} />
             <Route path="/whiteboard/:whiteboardId" element={<WhiteboardEditorPage />} />

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { CVData, CVSection, CVEditorSavedState } from '../types/cvEditor';
 import { db } from '../lib/firebase';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
@@ -11,16 +11,24 @@ export function useCVEditor(
 ) {
   const { currentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const latestCvDataRef = useRef(cvData);
+
+  // Keep latestCvDataRef updated
+  useEffect(() => {
+    latestCvDataRef.current = cvData;
+  }, [cvData]);
 
   // Load CV data from Firestore
   const loadCVData = useCallback(async (cvId?: string) => {
     if (!currentUser) return null;
-    
+
     setIsLoading(true);
     try {
       const docRef = doc(db, 'users', currentUser.uid, 'cvs', cvId || 'default');
       const docSnap = await getDoc(docRef);
-      
+
       if (docSnap.exists()) {
         const data = docSnap.data() as CVData;
         setCvData(data);
@@ -38,8 +46,11 @@ export function useCVEditor(
   // Save CV data to Firestore
   const saveCVData = useCallback(async (cvId?: string, editorState?: CVEditorSavedState, isResume?: boolean) => {
     if (!currentUser) throw new Error('User not authenticated');
-    
-    setIsLoading(true);
+
+    // Use the latest data from ref to avoid stale closures in debounced calls
+    const currentCvData = latestCvDataRef.current;
+
+    setIsSaving(true);
     try {
       if (cvId) {
         if (isResume) {
@@ -48,10 +59,10 @@ export function useCVEditor(
           // Get existing resume data to preserve name
           const existingDoc = await getDoc(resumeRef);
           const existingData = existingDoc.exists() ? existingDoc.data() : {};
-          
+
           await setDoc(resumeRef, {
             ...existingData, // Preserve existing fields like name
-            cvData,
+            cvData: currentCvData,
             updatedAt: new Date().toISOString(),
             userId: currentUser.uid,
             template: editorState?.template || existingData.template,
@@ -63,29 +74,29 @@ export function useCVEditor(
           }, { merge: true });
           console.log('CV data and editor state saved to resume:', cvId);
         } else {
-        // When analysisId is provided, save to the analyses collection
-        const analysisRef = doc(db, 'users', currentUser.uid, 'analyses', cvId);
-        const updateData: any = {
-          'cv_rewrite.structured_data': cvData,
-          'cv_rewrite.updatedAt': new Date().toISOString()
-        };
-        
-        // Save editor state if provided
-        if (editorState) {
-          updateData['cv_rewrite.editor_state'] = {
-            ...editorState,
-            lastModified: new Date().toISOString()
+          // When analysisId is provided, save to the analyses collection
+          const analysisRef = doc(db, 'users', currentUser.uid, 'analyses', cvId);
+          const updateData: any = {
+            'cv_rewrite.structured_data': currentCvData,
+            'cv_rewrite.updatedAt': new Date().toISOString()
           };
-        }
-        
-        await updateDoc(analysisRef, updateData);
-        console.log('CV data and editor state saved to analysis:', cvId);
+
+          // Save editor state if provided
+          if (editorState) {
+            updateData['cv_rewrite.editor_state'] = {
+              ...editorState,
+              lastModified: new Date().toISOString()
+            };
+          }
+
+          await updateDoc(analysisRef, updateData);
+          console.log('CV data and editor state saved to analysis:', cvId);
         }
       } else {
         // Standalone mode - save to cvs collection
         const docRef = doc(db, 'users', currentUser.uid, 'cvs', 'default');
         await setDoc(docRef, {
-          ...cvData,
+          ...currentCvData,
           updatedAt: new Date().toISOString(),
           userId: currentUser.uid,
           editorState: editorState ? {
@@ -100,15 +111,34 @@ export function useCVEditor(
       console.error('Error saving CV data:', error);
       throw error;
     } finally {
+      setIsSaving(false);
       setIsLoading(false);
+      setIsDirty(false);
     }
-  }, [currentUser, cvData]);
+  }, [currentUser, setIsDirty]);
+
+  // Debounced save function
+  const debouncedSave = useCallback((cvId?: string, editorState?: CVEditorSavedState, isResume?: boolean) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    setIsSaving(true);
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await saveCVData(cvId, editorState, isResume);
+      } catch (error) {
+        console.error("Auto-save failed:", error);
+        setIsSaving(false);
+      }
+    }, 2000); // 2 seconds delay
+  }, [saveCVData]);
 
   // Update a specific section
   const updateSection = useCallback((sectionId: string, updates: Partial<any>) => {
     setCvData(prev => {
       const newData = { ...prev };
-      
+
       switch (sectionId) {
         case 'personal':
           newData.personalInfo = { ...newData.personalInfo, ...updates };
@@ -155,14 +185,14 @@ export function useCVEditor(
             };
           }
       }
-      
+
       // Auto-enable/disable sections for certifications and projects
       // Find the section in the sections array
       const sectionIndex = newData.sections.findIndex(s => s.type === sectionId);
-      
+
       if (sectionIndex !== -1) {
         const section = newData.sections[sectionIndex];
-        
+
         // Handle certifications section
         if (sectionId === 'certifications' && updates.certifications !== undefined) {
           // Check the final array after update
@@ -174,7 +204,7 @@ export function useCVEditor(
             newData.sections[sectionIndex] = { ...section, enabled: false };
           }
         }
-        
+
         // Handle projects section
         if (sectionId === 'projects' && updates.projects !== undefined) {
           // Check the final array after update
@@ -187,7 +217,7 @@ export function useCVEditor(
           }
         }
       }
-      
+
       return newData;
     });
     setIsDirty(true);
@@ -197,7 +227,7 @@ export function useCVEditor(
   const addSectionItem = useCallback((sectionId: string, item: any) => {
     setCvData(prev => {
       const newData = { ...prev };
-      
+
       switch (sectionId) {
         case 'experience':
           newData.experiences = [...newData.experiences, item];
@@ -218,7 +248,7 @@ export function useCVEditor(
           newData.languages = [...newData.languages, item];
           break;
       }
-      
+
       // Auto-enable sections for certifications and projects
       const sectionIndex = newData.sections.findIndex(s => s.type === sectionId);
       if (sectionIndex !== -1) {
@@ -227,7 +257,7 @@ export function useCVEditor(
           newData.sections[sectionIndex] = { ...section, enabled: true };
         }
       }
-      
+
       return newData;
     });
     setIsDirty(true);
@@ -237,7 +267,7 @@ export function useCVEditor(
   const removeSectionItem = useCallback((sectionId: string, itemId: string) => {
     setCvData(prev => {
       const newData = { ...prev };
-      
+
       switch (sectionId) {
         case 'experience':
           newData.experiences = newData.experiences.filter(e => e.id !== itemId);
@@ -258,7 +288,7 @@ export function useCVEditor(
           newData.languages = newData.languages.filter(l => l.id !== itemId);
           break;
       }
-      
+
       // Auto-disable sections for certifications and projects if they become empty
       const sectionIndex = newData.sections.findIndex(s => s.type === sectionId);
       if (sectionIndex !== -1) {
@@ -275,7 +305,7 @@ export function useCVEditor(
           }
         }
       }
-      
+
       return newData;
     });
     setIsDirty(true);
@@ -285,40 +315,40 @@ export function useCVEditor(
   const updateSectionItem = useCallback((sectionId: string, itemId: string, updates: any) => {
     setCvData(prev => {
       const newData = { ...prev };
-      
+
       switch (sectionId) {
         case 'experience':
-          newData.experiences = newData.experiences.map(e => 
+          newData.experiences = newData.experiences.map(e =>
             e.id === itemId ? { ...e, ...updates } : e
           );
           break;
         case 'education':
-          newData.education = newData.education.map(e => 
+          newData.education = newData.education.map(e =>
             e.id === itemId ? { ...e, ...updates } : e
           );
           break;
         case 'skills':
-          newData.skills = newData.skills.map(s => 
+          newData.skills = newData.skills.map(s =>
             s.id === itemId ? { ...s, ...updates } : s
           );
           break;
         case 'certifications':
-          newData.certifications = newData.certifications.map(c => 
+          newData.certifications = newData.certifications.map(c =>
             c.id === itemId ? { ...c, ...updates } : c
           );
           break;
         case 'projects':
-          newData.projects = newData.projects.map(p => 
+          newData.projects = newData.projects.map(p =>
             p.id === itemId ? { ...p, ...updates } : p
           );
           break;
         case 'languages':
-          newData.languages = newData.languages.map(l => 
+          newData.languages = newData.languages.map(l =>
             l.id === itemId ? { ...l, ...updates } : l
           );
           break;
       }
-      
+
       return newData;
     });
     setIsDirty(true);
@@ -337,7 +367,7 @@ export function useCVEditor(
   const toggleSection = useCallback((sectionId: string) => {
     setCvData(prev => ({
       ...prev,
-      sections: prev.sections.map(s => 
+      sections: prev.sections.map(s =>
         s.id === sectionId ? { ...s, enabled: !s.enabled } : s
       )
     }));
@@ -384,8 +414,10 @@ export function useCVEditor(
   return {
     cvData,
     isLoading,
+    isSaving,
     loadCVData,
     saveCVData,
+    debouncedSave,
     updateSection,
     addSectionItem,
     removeSectionItem,

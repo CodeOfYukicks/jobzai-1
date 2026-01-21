@@ -13,6 +13,12 @@ export default function FinalCTA() {
           className="relative overflow-hidden rounded-3xl md:rounded-[40px] py-20 md:py-24 text-center"
           style={{ backgroundColor: '#F5F5F5' }}
         >
+          {/* Sticker 3: Handshake - Bottom Right of Final CTA */}
+          <img
+            src="/images/stickers/3.png"
+            alt=""
+            className="absolute bottom-0 right-0 w-32 md:w-48 lg:w-64 opacity-10 md:opacity-100 translate-y-1/4 translate-x-1/4 rotate-[-10deg] pointer-events-none"
+          />
           <div className="max-w-3xl mx-auto px-6 relative z-10">
             {/* Emotional Badge */}
             <motion.div

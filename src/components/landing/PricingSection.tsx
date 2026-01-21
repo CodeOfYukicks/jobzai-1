@@ -205,9 +205,15 @@ export default function PricingSection() {
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         {/* Green rounded container */}
         <div
-          className="rounded-3xl md:rounded-[40px] px-4 md:px-8 lg:px-12 py-12 md:py-16"
+          className="rounded-3xl md:rounded-[40px] px-4 md:px-8 lg:px-12 py-12 md:py-16 relative"
           style={{ backgroundColor: '#004b23' }}
         >
+          {/* Sticker 5: OK Hand - Top Right of Pricing Container */}
+          <img
+            src="/images/stickers/5.png"
+            alt=""
+            className="absolute -top-6 -right-4 md:-right-8 w-20 md:w-28 lg:w-36 rotate-[15deg] z-20 pointer-events-none hidden md:block"
+          />
           {/* Header */}
           <div className="text-center mb-8 md:mb-10">
             <h2

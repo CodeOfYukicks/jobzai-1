@@ -48,6 +48,7 @@ function HeroFeatureCard() {
   const { t } = useTranslation();
   return (
     <div className="relative">
+
       {/* Desktop: Grid layout, Mobile: Horizontal scroll */}
       <div className="flex lg:grid lg:grid-cols-2 gap-4 lg:gap-5 overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory scrollbar-hide">
         {/* Card 1 - AI Campaigns */}
@@ -673,8 +674,14 @@ function SavingsCalculator() {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: 0.1 }}
-      className="py-16 md:py-20 lg:py-24"
+      className="py-16 md:py-20 lg:py-24 relative"
     >
+      {/* Sticker 2: Goal Met - Near Savings Calculator Title */}
+      <img
+        src="/images/stickers/2.png"
+        alt=""
+        className="absolute top-0 right-0 md:right-10 lg:right-20 w-24 md:w-32 lg:w-40 rotate-[12deg] pointer-events-none hidden md:block"
+      />
       {/* Centered Header */}
       <div className="text-center mb-10 md:mb-14">
         <h3
@@ -1146,7 +1153,13 @@ export default function FeatureSection() {
 
   return (
     <section id="features" className="pt-12 pb-16 lg:pt-20 lg:pb-24 bg-white">
-      <div className="max-w-7xl mx-auto px-4 md:px-6">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 relative">
+        {/* Sticker 1: You Got This - In the white margin */}
+        <img
+          src="/images/stickers/1.png"
+          alt=""
+          className="absolute top-0 -left-4 lg:-left-20 w-24 md:w-32 lg:w-40 rotate-[-12deg] z-10 pointer-events-none hidden xl:block"
+        />
         {/* Section Title - Responsive */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

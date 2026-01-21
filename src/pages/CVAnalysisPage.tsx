@@ -25,7 +25,7 @@ import BottomSheet, { FilterBottomSheet } from '../components/common/BottomSheet
 import { getDoc, doc, setDoc, collection, query, where, getDocs, orderBy, addDoc, serverTimestamp, deleteDoc, onSnapshot, updateDoc, Unsubscribe } from 'firebase/firestore';
 import { JobApplication } from '../types/job';
 import { getDownloadURL, ref, getStorage, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
-import { notify } from '@/lib/notify';
+import { notify } from '../lib/notify';
 import { db, storage, auth } from '../lib/firebase';
 import { useAssistantPageData } from '../hooks/useAssistantPageData';
 import PrivateRoute from '../components/PrivateRoute';
@@ -58,6 +58,8 @@ import CVSelectionModal from '../components/CVSelectionModal';
 import PremiumPDFViewer from '../components/resume-builder/PremiumPDFViewer';
 import { ImportedDocument } from '../components/resume-builder/PDFPreviewCard';
 import { Resume } from './ResumeBuilderPage';
+import CVPreviewCard from '../components/resume-builder/CVPreviewCard';
+import HuntrCVCard from '../components/resume-builder/HuntrCVCard';
 import jsPDF from 'jspdf';
 // Import Perplexity for job extraction
 import { queryPerplexityForJobExtraction } from '../lib/perplexity';
@@ -2498,6 +2500,100 @@ export default function CVAnalysisPage() {
   const [showJobDropdown, setShowJobDropdown] = useState(false);
   const [isLoadingSavedJobs, setIsLoadingSavedJobs] = useState(false);
   const [isExtractingJob, setIsExtractingJob] = useState(false);
+
+  // New State for Dashboard Redesign
+  const [resumes, setResumes] = useState<Resume[]>([]);
+  const [activeTab, setActiveTab] = useState<'base' | 'tailored'>('base');
+  const [isLoadingResumes, setIsLoadingResumes] = useState(true);
+
+  // Fetch resumes from Firestore
+  const fetchResumes = useCallback(async () => {
+    if (!currentUser) {
+      setIsLoadingResumes(false);
+      return;
+    }
+
+    try {
+      const resumesRef = collection(db, 'users', currentUser.uid, 'cvs');
+      const q = query(resumesRef, orderBy('updatedAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+
+      const resumesList: Resume[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        // Skip the 'default' document if it exists
+        if (doc.id !== 'default' && data.cvData) {
+          resumesList.push({
+            id: doc.id,
+            name: data.name || 'Untitled Resume',
+            cvData: data.cvData,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            template: data.template,
+            layoutSettings: data.layoutSettings,
+            folderId: data.folderId,
+            tags: data.tags || []
+          });
+        }
+      });
+
+      setResumes(resumesList);
+    } catch (error) {
+      console.error('Error fetching resumes:', error);
+      notify.error('Failed to load resumes');
+    } finally {
+      setIsLoadingResumes(false);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    fetchResumes();
+  }, [fetchResumes]);
+
+  // Handlers for Resume actions
+  const handleDeleteResume = async (id: string) => {
+    if (!currentUser) return;
+    try {
+      await deleteDoc(doc(db, 'users', currentUser.uid, 'cvs', id));
+      setResumes(prev => prev.filter(r => r.id !== id));
+      notify.success('Resume deleted');
+    } catch (error) {
+      console.error('Error deleting resume:', error);
+      notify.error('Failed to delete resume');
+    }
+  };
+
+  const handleRenameResume = async (id: string, newName: string) => {
+    if (!currentUser) return;
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid, 'cvs', id), {
+        name: newName,
+        updatedAt: serverTimestamp()
+      });
+      setResumes(prev => prev.map(r => r.id === id ? { ...r, name: newName } : r));
+    } catch (error) {
+      console.error('Error renaming resume:', error);
+      notify.error('Failed to rename resume');
+    }
+  };
+
+  const handleEditResume = (id: string) => {
+    navigate(`/resume-builder?id=${id}`);
+  };
+
+  const handleUpdateTags = async (id: string, tags: string[]) => {
+    if (!currentUser) return;
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid, 'cvs', id), {
+        tags,
+        updatedAt: serverTimestamp()
+      });
+      setResumes(prev => prev.map(r => r.id === id ? { ...r, tags } : r));
+    } catch (error) {
+      console.error('Error updating tags:', error);
+      notify.error('Failed to update tags');
+    }
+  };
   const [analyses, setAnalyses] = useState<ATSAnalysis[]>([]);
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -2681,7 +2777,7 @@ export default function CVAnalysisPage() {
           // Inclure tous les jobs, même ceux sans fullJobDescription
           // L'utilisateur pourra toujours utiliser description si disponible
           // Exclude campaign/outreach records - only include regular job applications
-          if (data.position && data.companyName && data.boardType !== 'campaigns') {
+          if (data.position && data.companyName && (data as any).boardType !== 'campaigns') {
             jobs.push(data);
           }
         });
@@ -8093,717 +8189,391 @@ URL to visit: ${jobUrl}
           }}
         />
 
-        {/* Cover Photo Section with all header elements (Desktop only) */}
-        <div
-          className="relative group/cover flex-shrink-0 hidden md:block"
-          onMouseEnter={() => setIsHoveringCover(true)}
-          onMouseLeave={() => setIsHoveringCover(false)}
-        >
-          {/* Cover Photo Area - Height adjusted to contain all header elements */}
-          <div className={`relative w-full transition-all duration-300 ease-in-out ${coverPhoto ? 'h-auto min-h-[160px] sm:min-h-[180px]' : 'h-auto min-h-[120px] sm:min-h-[140px]'}`}>
-            {/* Cover Background */}
-            {coverPhoto ? (
-              <div className="absolute inset-0 w-full h-full overflow-hidden">
-                <img
-                  key={coverPhoto}
-                  src={coverPhoto}
-                  alt="CV Analysis cover"
-                  className="w-full h-full object-cover animate-in fade-in duration-500"
-                />
-                <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
+        {/* Main Content Area - Redesigned */}
+        <div className="px-4 pt-6 pb-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col max-w-5xl mx-auto w-full">
+
+
+
+
+          {/* Top Section: Create New Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            {/* Create Base Resume Card */}
+            <motion.div
+              className="bg-white dark:bg-[#2b2a2c] rounded-xl p-4 border border-gray-100 dark:border-[#3d3c3e] shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-[#004b23] dark:hover:border-[#004b23] hover:border-2 transition-all duration-300 cursor-pointer group relative overflow-hidden"
+              onClick={() => navigate('/resume-builder/new')}
+            >
+              <div className="absolute top-0 right-0 p-3 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-300">
+                <FileText className="w-20 h-20 text-[#007200] transform rotate-12" />
               </div>
-            ) : (
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-[#3d3c3e]/20">
-                <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]"
-                  style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }}
-                />
-                {/* Subtle animated gradient orbs */}
-                <div className="absolute top-10 right-20 w-64 h-64 bg-purple-200/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-blob" />
-                <div className="absolute bottom-10 left-20 w-64 h-64 bg-indigo-200/20 dark:bg-indigo-600/10 rounded-full blur-3xl animate-blob animation-delay-2000" />
-              </div>
-            )}
-
-            {/* Cover Controls - Visible on hover - Centered */}
-            <div className="absolute top-4 left-0 right-0 flex justify-center z-30 pointer-events-none">
-              <AnimatePresence>
-                {(isHoveringCover || !coverPhoto) && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex items-center gap-2 pointer-events-auto"
-                  >
-                    {!coverPhoto ? (
-                      <button
-                        onClick={() => setIsCoverGalleryOpen(true)}
-                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 
-                          bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm hover:bg-white dark:hover:bg-[#3d3c3e]
-                          border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-sm transition-all duration-200
-                          hover:shadow-md group"
-                      >
-                        <ImageIcon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
-                        <span>Add cover</span>
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-[#242325]/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
-                        <button
-                          onClick={() => setIsCoverGalleryOpen(true)}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                            hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
-                        >
-                          <ImageIcon className="w-3.5 h-3.5" />
-                          Change cover
-                        </button>
-
-                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
-
-                        <button
-                          onClick={() => coverFileInputRef.current?.click()}
-                          disabled={isUpdatingCover}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                            hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
-                        >
-                          {isUpdatingCover ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Camera className="w-3.5 h-3.5" />
-                          )}
-                          Upload
-                        </button>
-
-                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
-
-                        <button
-                          onClick={handleRemoveCover}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 
-                            hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
-                          title="Remove cover"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-            {/* Mobile Header Overlay Controls - Absolute Bottom of Cover */}
-            <div className="md:hidden absolute bottom-0 left-0 right-0 p-4 z-40 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-12 pointer-events-none">
-              <div className="flex items-center justify-end gap-3 pointer-events-auto">
-                {/* New Analysis Button (Mobile FAB) */}
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    setFormData({
-                      jobTitle: '',
-                      company: '',
-                      jobDescription: '',
-                      jobUrl: '',
-                    });
-                    setCvFile(null);
-                    setCurrentStep(1);
-                    setJobInputMode('ai');
-                    setSelectedSavedJob(null);
-                    setJobSearchQuery('');
-                    setShowJobDropdown(false);
-                    setIsModalOpen(true);
-                  }}
-                  className="flex-shrink-0 flex items-center justify-center w-[52px] h-[52px] bg-[#b7e219] rounded-xl shadow-lg border border-[#9fc015] active:bg-[#a5cb17] ring-1 ring-white/10"
-                >
-                  <Plus className="w-6 h-6 text-gray-900" />
-                </motion.button>
-              </div>
-            </div>
-
-            {/* All Header Content - Positioned directly on cover - Hidden on Mobile */}
-            <div className="hidden md:flex relative z-10 px-4 sm:px-6 pt-3 sm:pt-6 pb-2 sm:pb-3 flex-col gap-1 sm:gap-2">
-              {/* Title and New Analysis Button Row */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="flex items-start justify-between"
-              >
-                {/* Title left */}
+              <div className="relative z-10 flex flex-col h-full justify-between">
                 <div>
-                  <h1 className={`text-xl sm:text-2xl font-bold ${coverPhoto
-                    ? 'text-white drop-shadow-2xl'
-                    : 'text-gray-900 dark:text-white'
-                    }`}>Resume Lab</h1>
-                  <p className={`text-xs sm:text-sm mt-0.5 hidden sm:block ${coverPhoto
-                    ? 'text-white/90 drop-shadow-lg'
-                    : 'text-gray-500 dark:text-gray-400'
-                    }`}>
-                    AI-powered resume analysis for smarter applications
-                  </p>
-
-                </div>
-
-
-
-                {/* Right Side: Credits Icon + Button */}
-                <div className="flex items-center gap-3">
-                  {/* Info Icon for Credits */}
-                  {!isLoadingLimits && (
-                    <div className="group relative flex items-center justify-center w-9 h-9 rounded-full bg-gray-100/50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 cursor-help transition-all border border-transparent hover:border-gray-200 dark:hover:border-white/10">
-                      <Info className={`w-5 h-5 ${coverPhoto ? 'text-white/90' : 'text-gray-500 dark:text-gray-400'}`} />
-
-                      {/* Tooltip */}
-                      <div className="absolute top-full right-0 mt-2 w-64 p-3 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Analysis Credits</div>
-                        {(() => {
-                          const stats = getUsageStats('resumeAnalyses');
-                          if (!stats) return null;
-                          return (
-                            <div className="space-y-2">
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-900 dark:text-white">{stats.used} / {stats.limit}</span>
-                                <span className="text-gray-500">{Math.round(stats.percentage)}%</span>
-                              </div>
-                              <div className="h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-gray-900 dark:bg-white rounded-full" style={{ width: `${Math.min(100, stats.percentage)}%` }} />
-                              </div>
-                              <div className="text-[10px] text-gray-400 mt-1">
-                                25 credits per analysis
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-[#f4f4f5] dark:bg-[#3d3c3e] flex items-center justify-center text-[#007200] group-hover:bg-[#007200]/10 transition-colors duration-300">
+                      <FileText className="w-5 h-5" />
                     </div>
-                  )}
-
-                  {/* New Analysis Button right */}
-                  <motion.button
-                    data-tour="start-analysis-button"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      setFormData({
-                        jobTitle: '',
-                        company: '',
-                        jobDescription: '',
-                        jobUrl: '',
-                      });
-                      setCvFile(null);
-                      setCurrentStep(1);
-                      setJobInputMode('ai');
-                      setSelectedSavedJob(null);
-                      setJobSearchQuery('');
-                      setShowJobDropdown(false);
-                      setIsModalOpen(true);
-                    }}
-                    className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200
-                      text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015]"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span>New Analysis</span>
-                  </motion.button>
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Hidden File Input */}
-            <input
-              type="file"
-              ref={coverFileInputRef}
-              className="hidden"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleCoverFileSelect}
-            />
-          </div>
-        </div>
-
-        {/* Main Content Area */}
-        <div className="px-4 pt-6 pb-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
-
-          {/* Minimal Search and Filters - Mobile: Search + FAB, Desktop: Full inline */}
-          {analyses.length > 0 && (
-            <div className="flex items-center gap-3 mb-6">
-              {/* Search Input - Always full width */}
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search..."
-                  className="w-full pl-9 pr-4 py-2 
-                  bg-transparent
-                  border border-gray-200 dark:border-[#3d3c3e] rounded-lg
-                  focus:border-gray-300 dark:focus:border-gray-600
-                  focus:ring-0 focus:outline-none
-                  text-sm text-gray-900 dark:text-white placeholder-gray-400
-                  transition-colors duration-200"
-                />
-              </div>
-
-              {/* Mobile: Filter FAB button */}
-              <button
-                onClick={() => setIsFilterSheetOpen(true)}
-                className="sm:hidden flex items-center justify-center w-10 h-10 rounded-lg
-                  border border-gray-200 dark:border-[#3d3c3e]
-                  bg-white dark:bg-[#2b2a2c]
-                  hover:bg-gray-50 dark:hover:bg-[#3d3c3e]
-                  text-gray-500 dark:text-gray-400
-                  transition-colors relative"
-                aria-label="Filter options"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-                {/* Active filter indicator */}
-                {(filterScore !== 'all' || sortBy !== 'date') && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#635BFF] rounded-full border-2 border-white dark:border-[#2b2a2c]" />
-                )}
-              </button>
-
-              {/* Desktop: Inline Filters (hidden on mobile) */}
-              <div className="hidden sm:flex items-center gap-3">
-                {/* Score Filter */}
-                <div className="relative">
-                  <select
-                    value={filterScore}
-                    onChange={(e) => setFilterScore(e.target.value as any)}
-                    className="appearance-none bg-transparent border border-gray-200 dark:border-[#3d3c3e] rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
-                  >
-                    <option value="all">All</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
-                </div>
-
-                {/* Sort By */}
-                <div className="relative">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as any)}
-                    className="appearance-none bg-transparent border border-gray-200 dark:border-[#3d3c3e] rounded-lg px-3 py-2 pr-8 text-sm text-gray-600 dark:text-gray-300 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer transition-colors duration-200"
-                  >
-                    <option value="date">Date</option>
-                    <option value="score">Score</option>
-                    <option value="company">Company</option>
-                  </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
-                </div>
-
-                {/* View Toggle */}
-                <div className="flex items-center border border-gray-200 dark:border-[#3d3c3e] rounded-lg p-0.5">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'grid'
-                      ? 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-900 dark:text-white'
-                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                      }`}
-                    aria-label="Grid View"
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-1.5 rounded-md transition-all duration-200 ${viewMode === 'list'
-                      ? 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-900 dark:text-white'
-                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                      }`}
-                    aria-label="List View"
-                  >
-                    <List className="h-4 w-4" />
-                  </button>
+                    <div className="flex items-center text-xs font-medium text-gray-400 group-hover:text-[#007200] transition-colors duration-300">
+                      Create New <ChevronRight className="w-3 h-3 ml-1" />
+                    </div>
+                  </div>
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">Base Resume</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed line-clamp-2">
+                    A main resume targeted to a specific role/title and seniority.
+                  </p>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Mobile Filter Bottom Sheet */}
-          <FilterBottomSheet
-            isOpen={isFilterSheetOpen}
-            onClose={() => setIsFilterSheetOpen(false)}
-            onReset={() => {
-              setFilterScore('all');
-              setSortBy('date');
-              setViewMode('grid');
-            }}
-            hasActiveFilters={filterScore !== 'all' || sortBy !== 'date' || viewMode !== 'grid'}
-          >
-            <div className="space-y-6">
-              {/* Score Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Score Filter
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {(['all', 'high', 'medium', 'low'] as const).map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => setFilterScore(option)}
-                      className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${filterScore === option
-                        ? 'bg-[#635BFF] text-white shadow-lg shadow-[#635BFF]/20'
-                        : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
-                        }`}
-                    >
-                      {option.charAt(0).toUpperCase() + option.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sort By */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Sort By
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['date', 'score', 'company'] as const).map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => setSortBy(option)}
-                      className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${sortBy === option
-                        ? 'bg-[#635BFF] text-white shadow-lg shadow-[#635BFF]/20'
-                        : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
-                        }`}
-                    >
-                      {option.charAt(0).toUpperCase() + option.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* View Mode */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  View Mode
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${viewMode === 'grid'
-                      ? 'bg-[#635BFF] text-white shadow-lg shadow-[#635BFF]/20'
-                      : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
-                      }`}
-                  >
-                    <LayoutGrid className="w-4 h-4" />
-                    Grid
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${viewMode === 'list'
-                      ? 'bg-[#635BFF] text-white shadow-lg shadow-[#635BFF]/20'
-                      : 'bg-gray-100 dark:bg-[#3d3c3e] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#4a494b]'
-                      }`}
-                  >
-                    <List className="w-4 h-4" />
-                    List
-                  </button>
-                </div>
-              </div>
-            </div>
-          </FilterBottomSheet>
-
-          {/* Analyses Grid/List */}
-          {filteredAnalyses.length > 0 ? (
-            <div className={viewMode === 'grid'
-              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-              : 'space-y-3'
-            }>
-              {filteredAnalyses.map((analysis) => (
-                <AnalysisCard
-                  key={analysis.id}
-                  analysis={analysis}
-                  onDelete={deleteAnalysis}
-                  viewMode={viewMode}
-                  onSelect={() => navigate(`/ats-analysis/${analysis.id}`)}
-                />
-              ))}
-            </div>
-          ) : analyses.length === 0 ? (
-            /* Minimal Empty State - First Time */
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="py-24 text-center"
-            >
-              <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-[#2b2a2c] 
-              flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-              </div>
-
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1.5">
-                No analyses yet
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto mb-6">
-                Upload your resume and a job description to get started.
-              </p>
-
-              <button
-                onClick={() => {
-                  setFormData({
-                    jobTitle: '',
-                    company: '',
-                    jobDescription: '',
-                    jobUrl: '',
-                  });
-                  setCvFile(null);
-                  setUsingSavedCV(false);
-                  setCurrentStep(1);
-                  setJobInputMode('ai');
-                  setSelectedSavedJob(null);
-                  setJobSearchQuery('');
-                  setShowJobDropdown(false);
-                  setIsModalOpen(true);
-                }}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold
-                text-gray-900 
-                bg-[#b7e219] 
-                border border-[#9fc015] rounded-lg
-                hover:bg-[#a5cb17] 
-                shadow-sm hover:shadow-md transition-all duration-200"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>New Analysis</span>
-              </button>
             </motion.div>
-          ) : (
-            /* Minimal Empty State - No Search Results */
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="py-20 text-center"
-            >
-              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] 
-              flex items-center justify-center mx-auto mb-3">
-                <Search className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-              </div>
-              <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
-                No results
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Try adjusting your filters
-              </p>
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setFilterScore('all');
-                }}
-                className="text-sm text-gray-600 dark:text-gray-400 
-                hover:text-gray-900 dark:hover:text-white 
-                underline underline-offset-2 transition-colors"
-              >
-                Clear filters
-              </button>
-            </motion.div>
-          )}
-        </div>
-      </div >
 
-      {/* Premium Modal */}
-      <AnimatePresence>
-        {
-          isModalOpen && (
+            {/* Create Job Tailored Resume Card */}
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              className="bg-white dark:bg-[#2b2a2c] rounded-xl p-4 border border-gray-100 dark:border-[#3d3c3e] shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-[#004b23] dark:hover:border-[#004b23] hover:border-2 transition-all duration-300 cursor-pointer group relative overflow-hidden"
               onClick={() => {
-                setIsModalOpen(false);
+                setFormData({
+                  jobTitle: '',
+                  company: '',
+                  jobDescription: '',
+                  jobUrl: '',
+                });
+                setCvFile(null);
+                setCurrentStep(1);
+                setJobInputMode('ai');
                 setSelectedSavedJob(null);
                 setJobSearchQuery('');
                 setShowJobDropdown(false);
+                setIsModalOpen(true);
               }}
-              className="fixed inset-0 bg-black/70 backdrop-blur-md z-[10002] flex items-end sm:items-center justify-center p-0 sm:p-4"
             >
-              <motion.div
-                data-tour="analysis-modal"
-                initial={{ opacity: 0, scale: 0.96, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 20 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                onClick={(e) => e.stopPropagation()}
-                className="bg-white dark:bg-[#2b2a2c] w-full sm:rounded-2xl rounded-t-2xl max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/5"
-              >
-                {/* Header */}
-                <div className="px-5 py-4 border-b border-gray-100 dark:border-[#3d3c3e]/50 flex items-center justify-between bg-white/95 dark:bg-[#2b2a2c]/95 backdrop-blur-xl z-10 sticky top-0">
-                  <div>
-                    <h2 className="font-semibold text-lg text-gray-900 dark:text-white tracking-tight">
-                      {steps[currentStep - 1].title}
-                    </h2>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      {steps[currentStep - 1].description}
-                    </p>
+              <div className="absolute top-0 right-0 p-3 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-300">
+                <Target className="w-20 h-20 text-[#70E000] transform -rotate-12" />
+              </div>
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-[#f4f4f5] dark:bg-[#3d3c3e] flex items-center justify-center text-[#70E000] group-hover:bg-[#70E000]/10 transition-colors duration-300">
+                      <Target className="w-5 h-5" />
+                    </div>
+                    <div className="flex items-center text-xs font-medium text-gray-400 group-hover:text-[#70E000] transition-colors duration-300">
+                      Create New <ChevronRight className="w-3 h-3 ml-1" />
+                    </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      setIsModalOpen(false);
-                      setSelectedSavedJob(null);
-                      setJobSearchQuery('');
-                      setShowJobDropdown(false);
-                    }}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">Job Tailored Resume</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed line-clamp-2">
+                    A resume targeted to a specific job description.
+                  </p>
                 </div>
-
-                {/* Scrollable content */}
-                <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 overflow-x-visible">
-                  <div className="relative">
-                    {steps[currentStep - 1].content}
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="px-5 py-4 border-t border-gray-100 dark:border-[#3d3c3e]/50 bg-white dark:bg-[#2b2a2c] flex justify-between items-center z-10">
-                  <button
-                    onClick={() => {
-                      if (currentStep > 1) {
-                        setCurrentStep(currentStep - 1);
-                      }
-                    }}
-                    disabled={currentStep === 1}
-                    className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${currentStep === 1
-                      ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A]'
-                      }`}
-                  >
-                    <ChevronRight className="h-4 w-4 rotate-180" />
-                    Back
-                  </button>
-
-                  <button
-                    data-tour={currentStep === steps.length ? "analyze-button" : "continue-button"}
-                    onClick={() => {
-                      if (currentStep < steps.length) {
-                        if (currentStep === 2) {
-                          if (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim()) {
-                            notify.error('Please fill in all job information fields');
-                            return;
-                          }
-                        }
-                        setCurrentStep(currentStep + 1);
-                      } else {
-                        handleAnalysis();
-                      }
-                    }}
-                    disabled={
-                      (currentStep === 1 && !cvFile && !usingSavedCV && !selectedBuilderItem) ||
-                      (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
-                      isDownloadingCV
-                    }
-                    className="px-5 py-2 bg-gradient-to-r from-[#635BFF] to-[#7c75ff] dark:from-[#635BFF] dark:to-[#5249e6] text-white rounded-lg hover:from-[#5249e6] hover:to-[#635BFF] dark:hover:from-[#5249e6] dark:hover:to-[#635BFF] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-[#635BFF]/20 dark:shadow-[#635BFF]/30 flex items-center gap-2"
-                  >
-                    {currentStep === steps.length ? (
-                      <>
-                        <Sparkles className="h-4 w-4" />
-                        <span>Analyze Resume</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Continue</span>
-                        <ChevronRight className="h-4 w-4" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </motion.div>
+              </div>
             </motion.div>
+          </div>
+          {/* Tabs */}
+          < div className="flex items-center gap-8 border-b border-gray-200 dark:border-[#3d3c3e] mb-8" >
+            <button
+              onClick={() => setActiveTab('base')}
+              className={`pb-4 text-sm font-medium transition-all relative ${activeTab === 'base'
+                ? 'text-[#007200] dark:text-[#008000]'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Base Resumes
+              </div>
+              {activeTab === 'base' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#007200] dark:bg-[#008000]"
+                />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('tailored')}
+              className={`pb-4 text-sm font-medium transition-all relative ${activeTab === 'tailored'
+                ? 'text-[#70E000] dark:text-[#9EF01A]'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+            >
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4" />
+                Job Tailored Resumes
+              </div>
+              {activeTab === 'tailored' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#70E000] dark:bg-[#9EF01A]"
+                />
+              )}
+            </button>
+          </div >
+
+
+
+          {/* Content Grid */}
+          {
+            activeTab === 'base' ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {resumes
+                  .filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map(resume => (
+                    <HuntrCVCard
+                      key={resume.id}
+                      resume={resume}
+                      onDelete={handleDeleteResume}
+                      onRename={handleRenameResume}
+                      onEdit={handleEditResume}
+                      onDuplicate={async (resume) => {
+                        try {
+                          const newId = v4();
+                          const newResume = {
+                            ...resume,
+                            id: newId,
+                            name: `${resume.name} (Copy)`,
+                            createdAt: serverTimestamp(),
+                            updatedAt: serverTimestamp()
+                          };
+                          await setDoc(doc(db, 'users', currentUser!.uid, 'cvs', newId), newResume);
+                          notify.success('Resume duplicated successfully');
+                        } catch (error) {
+                          console.error('Error duplicating resume:', error);
+                          notify.error('Failed to duplicate resume');
+                        }
+                      }}
+                      onDownload={(resume) => {
+                        // Simple redirect to editor for download for now, or implement direct download logic if available
+                        navigate(`/resume-builder/${resume.id}/cv-editor`);
+                        notify.info('Opening editor to download PDF...');
+                      }}
+                    />
+                  ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredAnalyses.map((analysis) => (
+                  <AnalysisCard
+                    key={analysis.id}
+                    analysis={analysis}
+                    onDelete={deleteAnalysis}
+                    viewMode="grid"
+                    onSelect={() => navigate(`/ats-analysis/${analysis.id}`)}
+                  />
+                ))}
+                {filteredAnalyses.length === 0 && (
+                  <div className="col-span-full py-12 text-center">
+                    <p className="text-gray-500 dark:text-gray-400">No tailored resumes found.</p>
+                  </div>
+                )}
+              </div>
+            )
+          }
+        </div >
+
+
+        {/* Premium Modal */}
+        <AnimatePresence>
+          {
+            isModalOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setSelectedSavedJob(null);
+                  setJobSearchQuery('');
+                  setShowJobDropdown(false);
+                }}
+                className="fixed inset-0 bg-black/70 backdrop-blur-md z-[10002] flex items-end sm:items-center justify-center p-0 sm:p-4"
+              >
+                <motion.div
+                  data-tour="analysis-modal"
+                  initial={{ opacity: 0, scale: 0.96, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96, y: 20 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-white dark:bg-[#2b2a2c] w-full sm:rounded-2xl rounded-t-2xl max-w-lg max-h-[85vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/5"
+                >
+                  {/* Header */}
+                  <div className="px-5 py-4 border-b border-gray-100 dark:border-[#3d3c3e]/50 flex items-center justify-between bg-white/95 dark:bg-[#2b2a2c]/95 backdrop-blur-xl z-10 sticky top-0">
+                    <div>
+                      <h2 className="font-semibold text-lg text-gray-900 dark:text-white tracking-tight">
+                        {steps[currentStep - 1].title}
+                      </h2>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {steps[currentStep - 1].description}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsModalOpen(false);
+                        setSelectedSavedJob(null);
+                        setJobSearchQuery('');
+                        setShowJobDropdown(false);
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Scrollable content */}
+                  <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 overflow-x-visible">
+                    <div className="relative">
+                      {steps[currentStep - 1].content}
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="px-5 py-4 border-t border-gray-100 dark:border-[#3d3c3e]/50 bg-white dark:bg-[#2b2a2c] flex justify-between items-center z-10">
+                    <button
+                      onClick={() => {
+                        if (currentStep > 1) {
+                          setCurrentStep(currentStep - 1);
+                        }
+                      }}
+                      disabled={currentStep === 1}
+                      className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${currentStep === 1
+                        ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1A1A]'
+                        }`}
+                    >
+                      <ChevronRight className="h-4 w-4 rotate-180" />
+                      Back
+                    </button>
+
+                    <button
+                      data-tour={currentStep === steps.length ? "analyze-button" : "continue-button"}
+                      onClick={() => {
+                        if (currentStep < steps.length) {
+                          if (currentStep === 2) {
+                            if (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim()) {
+                              notify.error('Please fill in all job information fields');
+                              return;
+                            }
+                          }
+                          setCurrentStep(currentStep + 1);
+                        } else {
+                          handleAnalysis();
+                        }
+                      }}
+                      disabled={
+                        (currentStep === 1 && !cvFile && !usingSavedCV && !selectedBuilderItem) ||
+                        (currentStep === 2 && (!formData.jobTitle.trim() || !formData.company.trim() || !formData.jobDescription.trim())) ||
+                        isDownloadingCV
+                      }
+                      className="px-5 py-2 bg-gradient-to-r from-[#635BFF] to-[#7c75ff] dark:from-[#635BFF] dark:to-[#5249e6] text-white rounded-lg hover:from-[#5249e6] hover:to-[#635BFF] dark:hover:from-[#5249e6] dark:hover:to-[#635BFF] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-[#635BFF]/20 dark:shadow-[#635BFF]/30 flex items-center gap-2"
+                    >
+                      {currentStep === steps.length ? (
+                        <>
+                          <Sparkles className="h-4 w-4" />
+                          <span>Analyze Resume</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Continue</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )
+          }
+        </AnimatePresence >
+
+        {/* Loading Overlay removed - analyses now load in background */}
+
+
+        {/* CV Selection Modal */}
+        {
+          cvModalOpen && false && (
+            <CVSelectionModal
+              isOpen={cvModalOpen}
+              onClose={() => setCvModalOpen(false)}
+              onCVSelected={(file) => {
+                if (file instanceof File) {
+                  setCvFile(file);
+                  setSelectedCV(null);
+                } else {
+                  setSelectedCV(file);
+                  setCvFile(null);
+                }
+                setCvModalOpen(false);
+              }}
+              enableContentValidation={enableContentValidation}
+              setEnableContentValidation={setEnableContentValidation}
+            />
           )
         }
-      </AnimatePresence >
 
-      {/* Loading Overlay removed - analyses now load in background */}
+        {/* CV Preview Modal - Using Premium PDF Viewer */}
+        <PremiumPDFViewer
+          pdfDocument={userCV ? {
+            id: 'preview-cv',
+            name: userCV.name,
+            fileUrl: userCV.url,
+            fileSize: 0,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          } : null}
+          isOpen={showCVPreview && !!userCV}
+          onClose={() => setShowCVPreview(false)}
+        />
 
+        {/* Input file global pour s'assurer qu'il est toujours accessible */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileUpload}
+          className="hidden"
+          accept=".pdf"
+        />
 
-      {/* CV Selection Modal */}
-      {
-        cvModalOpen && false && (
-          <CVSelectionModal
-            isOpen={cvModalOpen}
-            onClose={() => setCvModalOpen(false)}
-            onCVSelected={(file) => {
-              if (file instanceof File) {
-                setCvFile(file);
-                setSelectedCV(null);
-              } else {
-                setSelectedCV(file);
-                setCvFile(null);
-              }
-              setCvModalOpen(false);
-            }}
-            enableContentValidation={enableContentValidation}
-            setEnableContentValidation={setEnableContentValidation}
-          />
-        )
-      }
+        {/* Cover Photo Modals */}
+        <CoverPhotoCropper
+          isOpen={isCoverCropperOpen}
+          file={selectedCoverFile}
+          onClose={() => {
+            setIsCoverCropperOpen(false);
+            setSelectedCoverFile(null);
+          }}
+          onCropped={handleCroppedCover}
+          exportWidth={1584}
+          exportHeight={396}
+        />
 
-      {/* CV Preview Modal - Using Premium PDF Viewer */}
-      <PremiumPDFViewer
-        pdfDocument={userCV ? {
-          id: 'preview-cv',
-          name: userCV.name,
-          fileUrl: userCV.url,
-          fileSize: 0,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        } : null}
-        isOpen={showCVPreview && !!userCV}
-        onClose={() => setShowCVPreview(false)}
-      />
+        <CoverPhotoGallery
+          isOpen={isCoverGalleryOpen}
+          onClose={() => setIsCoverGalleryOpen(false)}
+          onDirectApply={handleDirectApplyCover}
+          onRemove={coverPhoto ? handleRemoveCover : undefined}
+          currentCover={coverPhoto || undefined}
+        />
 
-      {/* Input file global pour s'assurer qu'il est toujours accessible */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileUpload}
-        className="hidden"
-        accept=".pdf"
-      />
+        {/* Credit Confirmation Modal */}
+        <CreditConfirmModal
+          isOpen={showCreditModal}
+          onClose={() => {
+            setShowCreditModal(false);
+            setPendingAnalysis(false);
+          }}
+          onConfirm={() => handleAnalysis(true)}
+          featureName="Resume Analysis"
+          creditCost={CREDIT_COSTS.resumeAnalysis}
+          userCredits={userCredits}
+          remainingQuota={getUsageStats('resumeAnalyses').remaining}
+          planLimit={getUsageStats('resumeAnalyses').limit}
+          isLoading={pendingAnalysis && !showCreditModal}
+        />
 
-      {/* Cover Photo Modals */}
-      <CoverPhotoCropper
-        isOpen={isCoverCropperOpen}
-        file={selectedCoverFile}
-        onClose={() => {
-          setIsCoverCropperOpen(false);
-          setSelectedCoverFile(null);
-        }}
-        onCropped={handleCroppedCover}
-        exportWidth={1584}
-        exportHeight={396}
-      />
-
-      <CoverPhotoGallery
-        isOpen={isCoverGalleryOpen}
-        onClose={() => setIsCoverGalleryOpen(false)}
-        onDirectApply={handleDirectApplyCover}
-        onRemove={coverPhoto ? handleRemoveCover : undefined}
-        currentCover={coverPhoto || undefined}
-      />
-
-      {/* Credit Confirmation Modal */}
-      <CreditConfirmModal
-        isOpen={showCreditModal}
-        onClose={() => {
-          setShowCreditModal(false);
-          setPendingAnalysis(false);
-        }}
-        onConfirm={() => handleAnalysis(true)}
-        featureName="Resume Analysis"
-        creditCost={CREDIT_COSTS.resumeAnalysis}
-        userCredits={userCredits}
-        remainingQuota={getUsageStats('resumeAnalyses').remaining}
-        planLimit={getUsageStats('resumeAnalyses').limit}
-        isLoading={pendingAnalysis && !showCreditModal}
-      />
-
-      {/* Onboarding Spotlight */}
-      <OnboardingSpotlight
-        pageKey="cv-analysis"
-        icon={<SearchCheck className="w-6 h-6 text-violet-600 dark:text-violet-400" />}
-        title="Optimize your resume for this role"
-        description="Upload your CV and paste the job listing. AI calculates your ATS compatibility score and gives actionable recommendations."
-        secondaryDescription="Aim for 70%+ to maximize your chances of getting past automated screening."
-        position="center"
-      />
+        {/* Onboarding Spotlight */}
+        <OnboardingSpotlight
+          pageKey="cv-analysis"
+          icon={<SearchCheck className="w-6 h-6 text-violet-600 dark:text-violet-400" />}
+          title="Optimize your resume for this role"
+          description="Upload your CV and paste the job listing. AI calculates your ATS compatibility score and gives actionable recommendations."
+          secondaryDescription="Aim for 70%+ to maximize your chances of getting past automated screening."
+          position="center"
+        />
+      </div >
     </AuthLayout >
   );
 }

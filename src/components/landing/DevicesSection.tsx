@@ -6,7 +6,13 @@ export default function DevicesSection() {
     const { t } = useTranslation();
 
     return (
-        <section className="py-12 md:py-16 bg-white overflow-hidden">
+        <section className="py-12 md:py-16 bg-white overflow-hidden relative">
+            {/* Sticker 4: Keep It Up - Bottom Left of Devices Section */}
+            <img
+                src="/images/stickers/4.png"
+                alt=""
+                className="absolute bottom-10 left-0 md:left-10 w-28 md:w-36 lg:w-48 rotate-[-8deg] opacity-20 md:opacity-100 pointer-events-none z-0"
+            />
             <div className="max-w-6xl mx-auto px-4 md:px-6">
                 {/* Header */}
                 <div className="text-center mb-0 relative z-10">
