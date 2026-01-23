@@ -380,6 +380,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname.startsWith('/meeting-prep/') ||
     location.pathname === '/resume-builder' ||
     location.pathname === '/resume-builder/new' ||
+    location.pathname === '/resume-builder/tailor' ||
     location.pathname === '/cv-analysis' ||
     location.pathname === '/recommendations' ||
     location.pathname === '/dashboard' ||
@@ -429,6 +430,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname === '/professional-profile' ||
     location.pathname === '/resume-builder' ||
     location.pathname === '/resume-builder/new' ||
+    location.pathname === '/resume-builder/tailor' ||
     location.pathname === '/jobs' ||
     location.pathname === '/settings' ||
     location.pathname === '/billing';

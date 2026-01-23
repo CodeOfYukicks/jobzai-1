@@ -8189,6 +8189,21 @@ URL to visit: ${jobUrl}
           }}
         />
 
+        {/* Breadcrumb Navigation - Desktop Only */}
+        <div className="hidden md:block w-full border-b border-gray-100 dark:border-[#3d3c3e] bg-white/80 dark:bg-[#1a191b]/80 backdrop-blur-sm">
+          <div className="max-w-5xl mx-auto px-4 py-3">
+            <nav className="flex items-center gap-2 text-sm">
+              <span className={`font-medium ${activeTab === 'base' ? 'text-violet-600 dark:text-violet-400' : 'text-teal-600 dark:text-teal-400'}`}>
+                Resume Builder
+              </span>
+              <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600" />
+              <span className="font-semibold text-gray-900 dark:text-white">
+                {activeTab === 'base' ? 'Base Resumes' : 'Job Tailored Resumes'}
+              </span>
+            </nav>
+          </div>
+        </div>
+
         {/* Main Content Area - Redesigned */}
         <div className="px-4 pt-6 pb-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col max-w-5xl mx-auto w-full">
 
@@ -8199,150 +8214,163 @@ URL to visit: ${jobUrl}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             {/* Create Base Resume Card */}
             <motion.div
-              className="bg-white dark:bg-[#2b2a2c] rounded-xl p-4 border border-gray-100 dark:border-[#3d3c3e] shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-[#004b23] dark:hover:border-[#004b23] hover:border-2 transition-all duration-300 cursor-pointer group relative overflow-hidden"
+              className="bg-white dark:bg-[#2b2a2c] rounded-xl p-5 border border-gray-100 dark:border-[#3d3c3e] shadow-sm hover:shadow-md hover:border-violet-200 dark:hover:border-violet-600 transition-all duration-300 cursor-pointer group"
               onClick={() => navigate('/resume-builder/new')}
             >
-              <div className="absolute top-0 right-0 p-3 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-300">
-                <FileText className="w-20 h-20 text-[#007200] transform rotate-12" />
-              </div>
-              <div className="relative z-10 flex flex-col h-full justify-between">
-                <div>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#f4f4f5] dark:bg-[#3d3c3e] flex items-center justify-center text-[#007200] group-hover:bg-[#007200]/10 transition-colors duration-300">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div className="flex items-center text-xs font-medium text-gray-400 group-hover:text-[#007200] transition-colors duration-300">
-                      Create New <ChevronRight className="w-3 h-3 ml-1" />
-                    </div>
-                  </div>
-                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">Base Resume</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed line-clamp-2">
-                    A main resume targeted to a specific role/title and seniority.
+              <div className="flex items-start gap-3">
+                {/* Icon */}
+                <div className="w-11 h-11 rounded-full bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center flex-shrink-0">
+                  <svg viewBox="0 0 24 24" className="w-5 h-5 text-violet-600 dark:text-violet-400">
+                    <path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zm-2 5.5c0 .83-.67 1.5-1.5 1.5S8 15.33 8 14.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5zm4.5-1.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5z" />
+                  </svg>
+                </div>
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-0.5">Base Resume</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3 line-clamp-3">
+                    A main resume targeted to a specific role/title and seniority. We suggest you create one or two of these at most, one for each role you are targeting.
                   </p>
+                  <div className="flex items-center text-xs font-semibold text-violet-600 dark:text-violet-400 group-hover:text-violet-700 dark:group-hover:text-violet-300 transition-colors">
+                    Create New <ChevronRight className="w-3.5 h-3.5 ml-0.5 transition-transform group-hover:translate-x-1" />
+                  </div>
                 </div>
               </div>
             </motion.div>
 
             {/* Create Job Tailored Resume Card */}
             <motion.div
-              className="bg-white dark:bg-[#2b2a2c] rounded-xl p-4 border border-gray-100 dark:border-[#3d3c3e] shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-[#004b23] dark:hover:border-[#004b23] hover:border-2 transition-all duration-300 cursor-pointer group relative overflow-hidden"
-              onClick={() => {
-                setFormData({
-                  jobTitle: '',
-                  company: '',
-                  jobDescription: '',
-                  jobUrl: '',
-                });
-                setCvFile(null);
-                setCurrentStep(1);
-                setJobInputMode('ai');
-                setSelectedSavedJob(null);
-                setJobSearchQuery('');
-                setShowJobDropdown(false);
-                setIsModalOpen(true);
-              }}
+              className="bg-white dark:bg-[#2b2a2c] rounded-xl p-5 border border-gray-100 dark:border-[#3d3c3e] shadow-sm hover:shadow-md hover:border-teal-200 dark:hover:border-teal-600 transition-all duration-300 cursor-pointer group"
+              onClick={() => navigate('/resume-builder/tailor')}
             >
-              <div className="absolute top-0 right-0 p-3 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-300">
-                <Target className="w-20 h-20 text-[#70E000] transform -rotate-12" />
-              </div>
-              <div className="relative z-10 flex flex-col h-full justify-between">
-                <div>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#f4f4f5] dark:bg-[#3d3c3e] flex items-center justify-center text-[#70E000] group-hover:bg-[#70E000]/10 transition-colors duration-300">
-                      <Target className="w-5 h-5" />
-                    </div>
-                    <div className="flex items-center text-xs font-medium text-gray-400 group-hover:text-[#70E000] transition-colors duration-300">
-                      Create New <ChevronRight className="w-3 h-3 ml-1" />
-                    </div>
-                  </div>
-                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">Job Tailored Resume</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed line-clamp-2">
-                    A resume targeted to a specific job description.
+              <div className="flex items-start gap-3">
+                {/* Icon */}
+                <div className="w-11 h-11 rounded-full bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center flex-shrink-0">
+                  <svg viewBox="0 0 24 24" className="w-5 h-5 text-teal-600 dark:text-teal-400">
+                    <path fill="currentColor" d="M17.81 4.47c-.08 0-.16-.02-.23-.06C15.66 3.42 14 3 12.01 3c-1.98 0-3.86.47-5.57 1.41-.24.13-.54.04-.68-.2a.506.506 0 0 1 .2-.68C7.82 2.52 9.86 2 12.01 2c2.13 0 3.99.47 6.03 1.52.25.13.34.43.21.67a.49.49 0 0 1-.44.28zM3.5 9.72a.499.499 0 0 1-.41-.79c.99-1.4 2.25-2.5 3.75-3.27C9.98 4.04 14 4.03 17.15 5.65c1.5.77 2.76 1.86 3.75 3.25a.5.5 0 0 1-.12.7.5.5 0 0 1-.7-.12 9.388 9.388 0 0 0-3.39-2.94c-2.87-1.47-6.54-1.47-9.4.01-1.36.7-2.5 1.7-3.4 2.96-.08.14-.23.21-.39.21zm6.25 12.07a.47.47 0 0 1-.35-.15c-.87-.87-1.34-1.43-2.01-2.64-.69-1.23-1.05-2.73-1.05-4.34 0-2.97 2.54-5.39 5.66-5.39s5.66 2.42 5.66 5.39c0 .28-.22.5-.5.5s-.5-.22-.5-.5c0-2.42-2.09-4.39-4.66-4.39-2.57 0-4.66 1.97-4.66 4.39 0 1.44.32 2.77.93 3.85.64 1.15 1.08 1.64 1.85 2.42.19.2.19.51 0 .71-.11.1-.24.15-.37.15zm7.17-1.85c-1.19 0-2.24-.3-3.1-.89-1.49-1.01-2.38-2.65-2.38-4.39 0-.28.22-.5.5-.5s.5.22.5.5c0 1.41.72 2.74 1.94 3.56.71.48 1.54.71 2.54.71.24 0 .64-.03 1.04-.1.27-.05.53.13.58.41.05.27-.13.53-.41.58-.57.11-1.07.12-1.21.12zM14.91 22c-.04 0-.09-.01-.13-.02-1.59-.44-2.63-1.03-3.72-2.1a7.297 7.297 0 0 1-2.17-5.22c0-1.62 1.38-2.94 3.08-2.94 1.7 0 3.08 1.32 3.08 2.94 0 1.07.93 1.94 2.08 1.94s2.08-.87 2.08-1.94c0-3.77-3.25-6.83-7.25-6.83-2.84 0-5.44 1.58-6.61 4.03-.39.81-.59 1.76-.59 2.8 0 .78.07 2.01.67 3.61.1.26-.03.55-.29.64-.26.1-.55-.04-.64-.29a11.73 11.73 0 0 1-.73-3.96c0-1.2.23-2.29.68-3.24 1.33-2.79 4.28-4.6 7.51-4.6 4.55 0 8.25 3.51 8.25 7.83 0 1.62-1.38 2.94-3.08 2.94s-3.08-1.32-3.08-2.94c0-1.07-.93-1.94-2.08-1.94s-2.08.87-2.08 1.94c0 1.71.66 3.31 1.87 4.51.95.94 1.86 1.46 3.27 1.85.27.07.42.35.35.61-.05.23-.26.38-.47.38z" />
+                  </svg>
+                </div>
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-0.5">Job Tailored Resume</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
+                    A resume targeted to a specific job description and built off-of a Base Resume.
                   </p>
+                  <div className="flex items-center text-xs font-semibold text-teal-600 dark:text-teal-400 group-hover:text-teal-700 dark:group-hover:text-teal-300 transition-colors">
+                    Create New <ChevronRight className="w-3.5 h-3.5 ml-0.5 transition-transform group-hover:translate-x-1" />
+                  </div>
                 </div>
               </div>
             </motion.div>
           </div>
           {/* Tabs */}
-          < div className="flex items-center gap-8 border-b border-gray-200 dark:border-[#3d3c3e] mb-8" >
+          <div className="flex items-center gap-6 border-b border-gray-200 dark:border-[#3d3c3e] mb-6">
             <button
               onClick={() => setActiveTab('base')}
-              className={`pb-4 text-sm font-medium transition-all relative ${activeTab === 'base'
-                ? 'text-[#007200] dark:text-[#008000]'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              className={`pb-3 text-sm font-medium transition-all relative ${activeTab === 'base'
+                ? 'text-gray-900 dark:text-white'
+                : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
                 }`}
             >
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4" />
+              <div className="flex items-center gap-1.5">
+                <svg viewBox="0 0 24 24" className={`w-4 h-4 ${activeTab === 'base' ? 'text-violet-600 dark:text-violet-400' : ''}`}>
+                  <path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zm-2 5.5c0 .83-.67 1.5-1.5 1.5S8 15.33 8 14.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5zm4.5-1.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5z" />
+                </svg>
                 Base Resumes
               </div>
               {activeTab === 'base' && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#007200] dark:bg-[#008000]"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-600 dark:bg-violet-400"
                 />
               )}
             </button>
             <button
               onClick={() => setActiveTab('tailored')}
-              className={`pb-4 text-sm font-medium transition-all relative ${activeTab === 'tailored'
-                ? 'text-[#70E000] dark:text-[#9EF01A]'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              className={`pb-3 text-sm font-medium transition-all relative ${activeTab === 'tailored'
+                ? 'text-gray-900 dark:text-white'
+                : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
                 }`}
             >
-              <div className="flex items-center gap-2">
-                <Target className="w-4 h-4" />
+              <div className="flex items-center gap-1.5">
+                <svg viewBox="0 0 24 24" className={`w-4 h-4 ${activeTab === 'tailored' ? 'text-teal-600 dark:text-teal-400' : ''}`}>
+                  <path fill="currentColor" d="M17.81 4.47c-.08 0-.16-.02-.23-.06C15.66 3.42 14 3 12.01 3c-1.98 0-3.86.47-5.57 1.41-.24.13-.54.04-.68-.2a.506.506 0 0 1 .2-.68C7.82 2.52 9.86 2 12.01 2c2.13 0 3.99.47 6.03 1.52.25.13.34.43.21.67a.49.49 0 0 1-.44.28zM3.5 9.72a.499.499 0 0 1-.41-.79c.99-1.4 2.25-2.5 3.75-3.27C9.98 4.04 14 4.03 17.15 5.65c1.5.77 2.76 1.86 3.75 3.25a.5.5 0 0 1-.12.7.5.5 0 0 1-.7-.12 9.388 9.388 0 0 0-3.39-2.94c-2.87-1.47-6.54-1.47-9.4.01-1.36.7-2.5 1.7-3.4 2.96-.08.14-.23.21-.39.21zm6.25 12.07a.47.47 0 0 1-.35-.15c-.87-.87-1.34-1.43-2.01-2.64-.69-1.23-1.05-2.73-1.05-4.34 0-2.97 2.54-5.39 5.66-5.39s5.66 2.42 5.66 5.39c0 .28-.22.5-.5.5s-.5-.22-.5-.5c0-2.42-2.09-4.39-4.66-4.39-2.57 0-4.66 1.97-4.66 4.39 0 1.44.32 2.77.93 3.85.64 1.15 1.08 1.64 1.85 2.42.19.2.19.51 0 .71-.11.1-.24.15-.37.15zm7.17-1.85c-1.19 0-2.24-.3-3.1-.89-1.49-1.01-2.38-2.65-2.38-4.39 0-.28.22-.5.5-.5s.5.22.5.5c0 1.41.72 2.74 1.94 3.56.71.48 1.54.71 2.54.71.24 0 .64-.03 1.04-.1.27-.05.53.13.58.41.05.27-.13.53-.41.58-.57.11-1.07.12-1.21.12zM14.91 22c-.04 0-.09-.01-.13-.02-1.59-.44-2.63-1.03-3.72-2.1a7.297 7.297 0 0 1-2.17-5.22c0-1.62 1.38-2.94 3.08-2.94 1.7 0 3.08 1.32 3.08 2.94 0 1.07.93 1.94 2.08 1.94s2.08-.87 2.08-1.94c0-3.77-3.25-6.83-7.25-6.83-2.84 0-5.44 1.58-6.61 4.03-.39.81-.59 1.76-.59 2.8 0 .78.07 2.01.67 3.61.1.26-.03.55-.29.64-.26.1-.55-.04-.64-.29a11.73 11.73 0 0 1-.73-3.96c0-1.2.23-2.29.68-3.24 1.33-2.79 4.28-4.6 7.51-4.6 4.55 0 8.25 3.51 8.25 7.83 0 1.62-1.38 2.94-3.08 2.94s-3.08-1.32-3.08-2.94c0-1.07-.93-1.94-2.08-1.94s-2.08.87-2.08 1.94c0 1.71.66 3.31 1.87 4.51.95.94 1.86 1.46 3.27 1.85.27.07.42.35.35.61-.05.23-.26.38-.47.38z" />
+                </svg>
                 Job Tailored Resumes
               </div>
               {activeTab === 'tailored' && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#70E000] dark:bg-[#9EF01A]"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-500 dark:bg-teal-400"
                 />
               )}
             </button>
-          </div >
+          </div>
 
 
 
           {/* Content Grid */}
           {
             activeTab === 'base' ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {resumes
-                  .filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                  .map(resume => (
-                    <HuntrCVCard
-                      key={resume.id}
-                      resume={resume}
-                      onDelete={handleDeleteResume}
-                      onRename={handleRenameResume}
-                      onEdit={handleEditResume}
-                      onDuplicate={async (resume) => {
-                        try {
-                          const newId = v4();
-                          const newResume = {
-                            ...resume,
-                            id: newId,
-                            name: `${resume.name} (Copy)`,
-                            createdAt: serverTimestamp(),
-                            updatedAt: serverTimestamp()
-                          };
-                          await setDoc(doc(db, 'users', currentUser!.uid, 'cvs', newId), newResume);
-                          notify.success('Resume duplicated successfully');
-                        } catch (error) {
-                          console.error('Error duplicating resume:', error);
-                          notify.error('Failed to duplicate resume');
-                        }
-                      }}
-                      onDownload={(resume) => {
-                        // Simple redirect to editor for download for now, or implement direct download logic if available
-                        navigate(`/resume-builder/${resume.id}/cv-editor`);
-                        notify.info('Opening editor to download PDF...');
-                      }}
-                    />
-                  ))}
-              </div>
+              resumes.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center py-20 px-4">
+                  <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center mb-4">
+                    <FileText className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    No base resumes yet
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm mb-6">
+                    Create your first base resume to start tailoring it for specific job opportunities and land your dream job.
+                  </p>
+                  <button
+                    onClick={() => navigate('/resume-builder/new')}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Build Your Resume</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {resumes
+                    .filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map(resume => (
+                      <HuntrCVCard
+                        key={resume.id}
+                        resume={resume}
+                        onDelete={handleDeleteResume}
+                        onRename={handleRenameResume}
+                        onEdit={handleEditResume}
+                        onDuplicate={async (resume) => {
+                          try {
+                            const newId = v4();
+                            const newResume = {
+                              ...resume,
+                              id: newId,
+                              name: `${resume.name} (Copy)`,
+                              createdAt: serverTimestamp(),
+                              updatedAt: serverTimestamp()
+                            };
+                            await setDoc(doc(db, 'users', currentUser!.uid, 'cvs', newId), newResume);
+                            notify.success('Resume duplicated successfully');
+                          } catch (error) {
+                            console.error('Error duplicating resume:', error);
+                            notify.error('Failed to duplicate resume');
+                          }
+                        }}
+                        onDownload={(resume) => {
+                          navigate(`/resume-builder/${resume.id}/cv-editor`);
+                          notify.info('Opening editor to download PDF...');
+                        }}
+                      />
+                    ))}
+                  {resumes.filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                    <div className="col-span-full py-12 text-center">
+                      <p className="text-gray-500 dark:text-gray-400">No resumes found matching "{searchQuery}"</p>
+                    </div>
+                  )}
+                </div>
+              )
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredAnalyses.map((analysis) => (
@@ -8355,8 +8383,23 @@ URL to visit: ${jobUrl}
                   />
                 ))}
                 {filteredAnalyses.length === 0 && (
-                  <div className="col-span-full py-12 text-center">
-                    <p className="text-gray-500 dark:text-gray-400">No tailored resumes found.</p>
+                  <div className="col-span-full flex flex-col items-center justify-center py-20 px-4">
+                    <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center mb-4">
+                      <Target className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      No tailored resumes yet
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm mb-6">
+                      Tailor your base resume to a specific job description to increase your chances of landing an interview.
+                    </p>
+                    <button
+                      onClick={() => navigate('/resume-builder/tailor')}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Tailor a Resume</span>
+                    </button>
                   </div>
                 )}
               </div>

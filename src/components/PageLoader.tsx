@@ -16,13 +16,13 @@ export default function PageLoader() {
     const checkDarkMode = () => {
       setIsDarkMode(document.documentElement.classList.contains('dark'));
     };
-    
+
     checkDarkMode();
-    
+
     // Observer les changements de classe sur le document
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    
+
     return () => observer.disconnect();
   }, []);
 
@@ -31,12 +31,12 @@ export default function PageLoader() {
     const loadLogos = async () => {
       try {
         const storage = getStorage();
-        
+
         // Logo normal (light mode)
         const logoRef = ref(storage, 'images/logo-only.png');
         const url = await getDownloadURL(logoRef);
         setLogoUrl(url);
-        
+
         // Logo dark mode
         try {
           const darkLogoRef = ref(storage, 'images/logo-only-dark.png');
@@ -56,12 +56,28 @@ export default function PageLoader() {
 
   // Utiliser useLayoutEffect pour déclencher l'animation de manière synchrone (avant le paint)
   useLayoutEffect(() => {
+    // Routes à exclure de l'animation de chargement
+    const EXCLUDED_PATHS = [
+      '/resume-builder/new',
+      '/resume-builder/tailor',
+      '/cv-analysis'
+    ];
+
     // Vérifier si le pathname a changé
     if (prevPathnameRef.current !== location.pathname) {
+      // Si la nouvelle route OU l'ancienne route est dans les exclus, ne pas afficher le loader
+      const isExcluded = EXCLUDED_PATHS.some(path => location.pathname === path) ||
+        EXCLUDED_PATHS.some(path => prevPathnameRef.current === path);
+
+      if (isExcluded) {
+        prevPathnameRef.current = location.pathname;
+        return;
+      }
+
       // Démarrer l'animation immédiatement, de manière synchrone
       setIsLoading(true);
       prevPathnameRef.current = location.pathname;
-      
+
       // Arrêter l'animation après la durée complète
       const timer = setTimeout(() => {
         setIsLoading(false);
@@ -72,7 +88,7 @@ export default function PageLoader() {
   }, [location.pathname]);
 
   const currentLogo = isDarkMode ? (darkLogoUrl || logoUrl) : logoUrl;
-  
+
   if (!currentLogo) return null;
 
   return (
@@ -85,7 +101,7 @@ export default function PageLoader() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
           className="fixed inset-0 z-[99999] flex items-center justify-center bg-white dark:bg-[#333234]"
-          style={{ 
+          style={{
             pointerEvents: 'auto',
             willChange: 'opacity',
             position: 'fixed',

@@ -157,22 +157,7 @@ export default function MobileGmailStep({ data, onUpdate, onNext, onBack }: Mobi
                 {!isConnected && (
                     <div className="mb-4 space-y-3">
                         {/* Google Verification Notice */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex items-start gap-2.5 p-3 rounded-xl 
-                              bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20"
-                        >
-                            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                            <div className="space-y-1">
-                                <p className="text-[12px] font-medium text-amber-800 dark:text-amber-300">
-                                    Google verification in progress
-                                </p>
-                                <p className="text-[11px] text-amber-700 dark:text-amber-400/80 leading-relaxed">
-                                    You may see a security warning. Click <strong>"Advanced"</strong> then <strong>"Go to Cubbbe"</strong> to continue safely.
-                                </p>
-                            </div>
-                        </motion.div>
+
 
                         <button
                             onClick={connect}
