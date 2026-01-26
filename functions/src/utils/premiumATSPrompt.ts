@@ -129,6 +129,11 @@ Use this EXACT structure:
       "industry_fit_score": <integer_0-100>,
       "ats_keywords_score": <integer_0-100>
     },
+
+    "tags": {
+      "positive": ["<Tag 1 (max 3 words)>", "<Tag 2 (max 3 words)>"],
+      "negative": ["<Tag 1 (max 3 words)>", "<Tag 2 (max 3 words)>"]
+    },
     
     "match_breakdown": {
       "skills": { 

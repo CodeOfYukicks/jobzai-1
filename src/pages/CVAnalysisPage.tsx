@@ -214,6 +214,10 @@ interface ATSAnalysis {
       estimatedInterviewProbability: number;
     };
   };
+  tags?: {
+    positive: string[];
+    negative: string[];
+  };
 }
 
 interface CVOption {
@@ -5244,7 +5248,7 @@ URL to visit: ${jobUrl}
           border transition-all duration-300
           ${isHighlighted
             ? 'border-teal-500 ring-2 ring-teal-500/20 shadow-lg shadow-teal-500/10'
-            : 'border-gray-200/60 dark:border-[#3d3c3e]/50 hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.3)] hover:border-[#004b23] dark:hover:border-[#004b23] hover:border-2'}
+            : 'border-gray-200/60 dark:border-[#3d3c3e]/50 hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.3)] hover:border-[#70E000] dark:hover:border-[#70E000] hover:border-2'}
           cursor-pointer ${isGrid ? 'h-[220px] flex flex-col' : ''}`}
         onClick={() => {
           if (onSelect) {
@@ -5319,49 +5323,78 @@ URL to visit: ${jobUrl}
             </div>
           </div>
 
-          {/* Skills preview - minimal */}
+          {/* Tags preview */}
           {!isExpanded && (() => {
-            const matchingSkills = Array.isArray(analysis.skillsMatch?.matching)
-              ? analysis.skillsMatch.matching
-              : [];
+            // Get tags from analysis or derive them as fallback
+            // Check length to ensure we don't use empty arrays from AI response
+            let positiveTags = (analysis.tags?.positive && analysis.tags.positive.length > 0)
+              ? analysis.tags.positive
+              : (analysis.skillsMatch?.matching?.slice(0, 2).map((s: any) => typeof s === 'string' ? s : s.name) || []);
 
-            const skillsToShow = matchingSkills.length > 0
-              ? matchingSkills
-              : (analysis.keyFindings && Array.isArray(analysis.keyFindings) && analysis.keyFindings.length > 0
-                ? analysis.keyFindings.slice(0, 5).map((finding: string) => ({ name: finding, relevance: 70 }))
-                : []);
+            let negativeTags = (analysis.tags?.negative && analysis.tags.negative.length > 0)
+              ? analysis.tags.negative
+              : (analysis.skillsMatch?.missing?.slice(0, 2).map((s: any) => typeof s === 'string' ? s : s.name) || []);
 
-            if (skillsToShow.length > 0) {
-              return (
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                  {skillsToShow
-                    .filter((skill: any) => skill && (typeof skill === 'string' ? skill : skill.name))
-                    .map((skill: any, idx: number) => {
-                      const skillName = typeof skill === 'string' ? skill : (skill.name || '');
-                      return skillName ? (
-                        <span
-                          key={idx}
-                          className="text-xs px-2 py-0.5 rounded-md 
-                            bg-gray-100/80 dark:bg-[#3d3c3e]/60 
-                            text-gray-600 dark:text-gray-400
-                            font-normal"
-                        >
-                          {skillName}
-                        </span>
-                      ) : null;
-                    })
-                    .filter(Boolean)
-                    .slice(0, 3)}
-                  {skillsToShow.length > 3 && (
-                    <span className="text-xs px-2 py-0.5 rounded-md 
-                      text-gray-400 dark:text-gray-500">
-                      +{skillsToShow.length - 3}
-                    </span>
-                  )}
-                </div>
-              );
+            // Filter out any undefined/null/empty tags
+            positiveTags = positiveTags.filter(t => t && typeof t === 'string' && t.trim().length > 0);
+            negativeTags = negativeTags.filter(t => t && typeof t === 'string' && t.trim().length > 0);
+
+            // If we still don't have enough tags, try other sources
+            if (positiveTags.length < 2 && analysis.keyFindings) {
+              const remaining = 2 - positiveTags.length;
+              // Try to find short positive findings (increased length limit to 60)
+              const shortFindings = analysis.keyFindings
+                .filter(f => f.length < 60 && !f.toLowerCase().includes('missing') && !f.toLowerCase().includes('lack'))
+                .slice(0, remaining);
+              positiveTags = [...positiveTags, ...shortFindings];
             }
-            return null;
+
+            if (negativeTags.length < 2 && analysis.recommendations) {
+              const remaining = 2 - negativeTags.length;
+              // Use recommendation titles as negative tags (areas to improve)
+              const shortRecs = analysis.recommendations
+                .map(r => r.title)
+                .filter(t => t.length < 60)
+                .slice(0, remaining);
+              negativeTags = [...negativeTags, ...shortRecs];
+            }
+
+            // Limit to 2 of each
+            const finalPositiveTags = positiveTags.slice(0, 2);
+            const finalNegativeTags = negativeTags.slice(0, 2);
+
+            if (finalPositiveTags.length === 0 && finalNegativeTags.length === 0) return null;
+
+            return (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {finalPositiveTags.map((tag, idx) => (
+                  <span
+                    key={`pos-${idx}`}
+                    className="text-[10px] px-2 py-0.5 rounded-md 
+                      bg-green-50 dark:bg-green-500/10 
+                      text-green-700 dark:text-green-400
+                      border border-green-100 dark:border-green-500/20
+                      font-medium truncate max-w-[120px]"
+                    title={tag}
+                  >
+                    {tag}
+                  </span>
+                ))}
+                {finalNegativeTags.map((tag, idx) => (
+                  <span
+                    key={`neg-${idx}`}
+                    className="text-[10px] px-2 py-0.5 rounded-md 
+                      bg-red-50 dark:bg-red-500/10 
+                      text-red-700 dark:text-red-400
+                      border border-red-100 dark:border-red-500/20
+                      font-medium truncate max-w-[120px]"
+                    title={tag}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            );
           })()}
 
           {/* Footer - minimal */}
@@ -8234,7 +8267,7 @@ URL to visit: ${jobUrl}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             {/* Create Base Resume Card */}
             <motion.div
-              className="bg-white dark:bg-[#2b2a2c] rounded-xl p-5 border border-gray-100 dark:border-[#3d3c3e] shadow-sm hover:shadow-md hover:border-violet-200 dark:hover:border-violet-600 transition-all duration-300 cursor-pointer group"
+              className="bg-white dark:bg-[#2b2a2c] rounded-xl p-5 border border-gray-100 dark:border-[#3d3c3e] shadow-sm hover:shadow-md hover:border-[#70E000] dark:hover:border-[#70E000] transition-all duration-300 cursor-pointer group"
               onClick={() => navigate('/resume-builder/new')}
             >
               <div className="flex items-start gap-3">
@@ -8250,7 +8283,7 @@ URL to visit: ${jobUrl}
                   <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3 line-clamp-3">
                     A main resume targeted to a specific role/title and seniority. We suggest you create one or two of these at most, one for each role you are targeting.
                   </p>
-                  <div className="flex items-center text-xs font-semibold text-violet-600 dark:text-violet-400 group-hover:text-violet-700 dark:group-hover:text-violet-300 transition-colors">
+                  <div className="flex items-center text-xs font-semibold text-violet-600 dark:text-violet-400 group-hover:text-[#70E000] dark:group-hover:text-[#70E000] transition-colors">
                     Create New <ChevronRight className="w-3.5 h-3.5 ml-0.5 transition-transform group-hover:translate-x-1" />
                   </div>
                 </div>
@@ -8259,7 +8292,7 @@ URL to visit: ${jobUrl}
 
             {/* Create Job Tailored Resume Card */}
             <motion.div
-              className="bg-white dark:bg-[#2b2a2c] rounded-xl p-5 border border-gray-100 dark:border-[#3d3c3e] shadow-sm hover:shadow-md hover:border-teal-200 dark:hover:border-teal-600 transition-all duration-300 cursor-pointer group"
+              className="bg-white dark:bg-[#2b2a2c] rounded-xl p-5 border border-gray-100 dark:border-[#3d3c3e] shadow-sm hover:shadow-md hover:border-[#70E000] dark:hover:border-[#70E000] transition-all duration-300 cursor-pointer group"
               onClick={() => navigate('/resume-builder/tailor')}
             >
               <div className="flex items-start gap-3">
@@ -8275,7 +8308,7 @@ URL to visit: ${jobUrl}
                   <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
                     A resume targeted to a specific job description and built off-of a Base Resume.
                   </p>
-                  <div className="flex items-center text-xs font-semibold text-teal-600 dark:text-teal-400 group-hover:text-teal-700 dark:group-hover:text-teal-300 transition-colors">
+                  <div className="flex items-center text-xs font-semibold text-teal-600 dark:text-teal-400 group-hover:text-[#70E000] dark:group-hover:text-[#70E000] transition-colors">
                     Create New <ChevronRight className="w-3.5 h-3.5 ml-0.5 transition-transform group-hover:translate-x-1" />
                   </div>
                 </div>
@@ -8288,7 +8321,7 @@ URL to visit: ${jobUrl}
               onClick={() => setActiveTab('base')}
               className={`pb-3 text-sm font-medium transition-all relative ${activeTab === 'base'
                 ? 'text-gray-900 dark:text-white'
-                : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                : 'text-gray-400 dark:text-gray-500 hover:text-[#70E000] dark:hover:text-[#70E000]'
                 }`}
             >
               <div className="flex items-center gap-1.5">
@@ -8308,7 +8341,7 @@ URL to visit: ${jobUrl}
               onClick={() => setActiveTab('tailored')}
               className={`pb-3 text-sm font-medium transition-all relative ${activeTab === 'tailored'
                 ? 'text-gray-900 dark:text-white'
-                : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                : 'text-gray-400 dark:text-gray-500 hover:text-[#70E000] dark:hover:text-[#70E000]'
                 }`}
             >
               <div className="flex items-center gap-1.5">

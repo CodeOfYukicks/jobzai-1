@@ -14,7 +14,7 @@ function getApiBaseUrl(): string {
     // For analyzeCVVision: https://analyzecvvision-pyozgz4rbq-uc.a.run.app
     return 'https://analyzecvvision-pyozgz4rbq-uc.a.run.app';
   }
-  
+
   // Development: Use relative URL with proxy
   return '/api';
 }
@@ -743,6 +743,10 @@ Return ONLY this JSON structure (no other text):
     "education": <0-100, PRECISE based on education matching>,
     "industryFit": <0-100, PRECISE based on industry/domain alignment>
   },
+  "tags": {
+    "positive": ["<Tag 1 (max 3 words)>", "<Tag 2 (max 3 words)>"],
+    "negative": ["<Tag 1 (max 3 words)>", "<Tag 2 (max 3 words)>"]
+  },
   "executiveSummary": "<concise_2-3_sentence_assessment_with_specific_evidence>",
   "experienceAnalysis": [
     {
@@ -1063,17 +1067,17 @@ export async function analyzeCVWithGPT4Vision(
     console.log('🔍 Starting CV analysis with GPT-4o Vision...');
     console.log(`   Images: ${images.length} page(s)`);
     console.log(`   Job: ${jobDetails.jobTitle} at ${jobDetails.company}`);
-    
+
     const baseApiUrl = getApiBaseUrl();
     // For direct Cloud Run URL, use it directly (no /api/analyze-cv-vision path)
     // For relative URL (/api), append the endpoint path
-    const apiUrl = baseApiUrl.startsWith('http') 
+    const apiUrl = baseApiUrl.startsWith('http')
       ? baseApiUrl  // Direct Cloud Run URL - use as is
       : `${baseApiUrl}/analyze-cv-vision`;  // Relative URL - append path
-    
+
     // Build the prompt
     const prompt = buildATSAnalysisPrompt(jobDetails);
-    
+
     // Build content array with text prompt and images
     const content: any[] = [
       {
@@ -1081,7 +1085,7 @@ export async function analyzeCVWithGPT4Vision(
         text: prompt
       }
     ];
-    
+
     // Add each image with optimized settings for comprehensive analysis
     images.forEach((image, index) => {
       content.push({
@@ -1095,9 +1099,9 @@ export async function analyzeCVWithGPT4Vision(
       });
       console.log(`   ✓ Added image ${index + 1} (${(image.length / 1024).toFixed(1)} KB) with high detail for comprehensive analysis`);
     });
-    
+
     console.log('📡 Sending request to GPT-4o Vision API...');
-    
+
     // Send request to API endpoint
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -1122,7 +1126,7 @@ export async function analyzeCVWithGPT4Vision(
         reasoning_effort: "high" // GPT-5.1 feature for comprehensive ATS analysis
       })
     });
-    
+
     if (!response.ok) {
       let errorMessage = `API error: ${response.status} ${response.statusText}`;
       try {
@@ -1134,15 +1138,15 @@ export async function analyzeCVWithGPT4Vision(
       }
       throw new Error(errorMessage);
     }
-    
+
     const data = await response.json();
     console.log('✅ GPT-4o Vision analysis completed successfully');
-    
+
     // Parse the response
     try {
       if (data.status === 'success' && data.content) {
         let parsedAnalysis;
-        
+
         // The API should return JSON directly due to response_format: "json_object"
         if (typeof data.content === 'string') {
           // Try to parse as JSON
@@ -1153,7 +1157,7 @@ export async function analyzeCVWithGPT4Vision(
         } else {
           throw new Error('Invalid response format from GPT-4o Vision API');
         }
-        
+
         return {
           ...parsedAnalysis,
           date: new Date().toISOString(),

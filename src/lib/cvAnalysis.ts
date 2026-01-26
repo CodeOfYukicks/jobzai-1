@@ -53,7 +53,7 @@ export async function fetchCVContent(cvUrl: string) {
 
   try {
     console.log('Starting CV fetch process...', cvUrl);
-    
+
     // Vérifier l'authentification
     if (!auth.currentUser) {
       throw new Error('User must be authenticated');
@@ -72,10 +72,10 @@ export async function fetchCVContent(cvUrl: string) {
 
     // Créer une référence au fichier
     const cvRef = ref(storage, cvUrl);
-    
+
     // Obtenir une URL signée avec une expiration courte
     const downloadURL = await getDownloadURL(cvRef);
-    
+
     console.log('Got signed URL, attempting fetch...');
 
     // Faire la requête avec les bons headers
@@ -112,7 +112,7 @@ export async function fetchCVContent(cvUrl: string) {
       notify.error('CV not found. Please upload your CV first');
       throw new Error('CV not found');
     }
-    
+
     if (error.code === 'storage/unauthorized') {
       notify.error('Access denied. Please check your permissions');
       throw new Error('Unauthorized access');
@@ -174,10 +174,10 @@ export function validateCVContent(content: string): ValidationResult {
     'formulaire', 'impots.gouv', 'direction générale des finances',
     'avis d\'imposition', 'numéro fiscal', 'numéro d\'accès'
   ];
-  
+
   // Compter combien de mots-clés fiscaux sont présents
   const taxKeywordsFound = taxDocumentKeywords.filter(keyword => contentLower.includes(keyword));
-  
+
   if (taxKeywordsFound.length >= 2) {
     console.log('Document appears to be a tax document:', taxKeywordsFound);
     return {
@@ -186,7 +186,7 @@ export function validateCVContent(content: string): ValidationResult {
       confidence: 'high'
     };
   }
-  
+
   // Vérifier pour d'autres types de documents non-CV
   const otherDocumentTypes = [
     { type: 'facture', keywords: ['facture', 'invoice', 'total ttc', 'total ht', 'montant'] },
@@ -194,7 +194,7 @@ export function validateCVContent(content: string): ValidationResult {
     { type: 'contrat', keywords: ['contrat', 'contract', 'conditions générales', 'terms', 'conditions', 'clause'] },
     { type: 'bulletin de paie', keywords: ['bulletin de paie', 'bulletin de salaire', 'payslip', 'pay slip', 'salaire brut'] }
   ];
-  
+
   for (const docType of otherDocumentTypes) {
     const keywordsFound = docType.keywords.filter(keyword => contentLower.includes(keyword));
     if (keywordsFound.length >= 2) {
@@ -218,7 +218,7 @@ export function validateCVContent(content: string): ValidationResult {
     // Mots-clés supplémentaires
     'project', 'projet', 'achievement', 'réalisation', 'reference', 'référence',
     'language', 'langue', 'contact', 'email', 'phone', 'téléphone', 'address', 'adresse',
-    'university', 'université', 'school', 'école', 'college', 'collège', 'bac', 
+    'university', 'université', 'school', 'école', 'college', 'collège', 'bac',
     'master', 'bachelor', 'licence', 'diplome', 'certification', 'cours',
     'linkedin', 'github', 'portfolio', 'site', 'web', 'technologie', 'technology',
     'software', 'logiciel', 'développement', 'development', 'programmation', 'programming',
@@ -228,12 +228,12 @@ export function validateCVContent(content: string): ValidationResult {
 
   // Vérifier si au moins quelques mots-clés sont présents
   const keywordsFound = cvKeywords.filter(keyword => contentLower.includes(keyword));
-  
+
   console.log('CV keywords found:', {
     count: keywordsFound.length,
     keywords: keywordsFound
   });
-  
+
   // Utiliser le seuil configuré (maintenant 2 au lieu de 1)
   if (keywordsFound.length < VALIDATION_CONFIG.minCvKeywords) {
     if (VALIDATION_CONFIG.logLevel >= 1) {
@@ -250,16 +250,16 @@ export function validateCVContent(content: string): ValidationResult {
   const hasDatePatterns = /\b(19|20)\d{2}\b/.test(content) || /\b\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{2,4}\b/.test(content);
   const hasBulletPoints = content.includes('•') || content.includes('-') || content.includes('*') || content.includes(':');
   const hasEmailPattern = /\S+@\S+\.\S+/.test(content);
-  
+
   // Vérifier des sections typiques de CV
   const hasExperienceSection = /\b(expérience|experience|emploi|employment)\b/i.test(contentLower);
   const hasEducationSection = /\b(education|formation|diplôme|studies|études)\b/i.test(contentLower);
   const hasSkillsSection = /\b(compétences|skills|technical|technique)\b/i.test(contentLower);
-  
-  const structuralFeatures = [hasDatePatterns, hasBulletPoints, hasEmailPattern, 
-                            hasExperienceSection, hasEducationSection, hasSkillsSection];
+
+  const structuralFeatures = [hasDatePatterns, hasBulletPoints, hasEmailPattern,
+    hasExperienceSection, hasEducationSection, hasSkillsSection];
   const structuralScore = structuralFeatures.filter(Boolean).length;
-  
+
   console.log('CV structure check:', {
     hasDatePatterns,
     hasBulletPoints,
@@ -269,7 +269,7 @@ export function validateCVContent(content: string): ValidationResult {
     hasSkillsSection,
     structuralScore
   });
-  
+
   // Exiger au moins 3 caractéristiques structurelles
   if (structuralScore < 3) {
     console.log('CV validation failed: missing structure elements');
@@ -334,12 +334,12 @@ export function validateJobDescription(content: string): ValidationResult {
   // Vérifier si au moins quelques mots-clés sont présents
   const contentLower = content.toLowerCase();
   const keywordsFound = jobKeywords.filter(keyword => contentLower.includes(keyword));
-  
+
   console.log('Job description keywords found:', {
     count: keywordsFound.length,
     keywords: keywordsFound
   });
-  
+
   // Utiliser le seuil configuré
   if (keywordsFound.length < VALIDATION_CONFIG.minJobKeywords) {
     if (VALIDATION_CONFIG.logLevel >= 1) {
@@ -360,15 +360,15 @@ export function validateJobDescription(content: string): ValidationResult {
   };
 }
 
-export async function analyzeCVWithGPT(cvUrl: string, jobDetails: { 
-  jobTitle: string; 
-  company: string; 
-  jobDescription: string; 
+export async function analyzeCVWithGPT(cvUrl: string, jobDetails: {
+  jobTitle: string;
+  company: string;
+  jobDescription: string;
 }) {
   try {
     console.log('Starting advanced CV analysis with GPT Vision...');
     const cvContent = await fetchCVContent(cvUrl);
-    
+
     if (!cvContent) {
       throw new Error('No CV content available for analysis');
     }
@@ -383,13 +383,13 @@ export async function analyzeCVWithGPT(cvUrl: string, jobDetails: {
 
     // Convertir le blob en base64 pour l'API Vision
     const base64CV = await blobToBase64(cvContent);
-    
+
     // Appel à l'API GPT Vision avec notre prompt expert
     const analysis = await callGptVisionApi(base64CV, jobDetails);
-    
+
     console.log('GPT Vision analysis completed successfully');
     notify.success('CV analysis completed with advanced AI');
-    
+
     return analysis;
   } catch (error: any) {
     console.error('Advanced CV analysis error:', error);
@@ -414,17 +414,17 @@ async function blobToBase64(blob: Blob): Promise<string> {
 }
 
 // Fonction pour appeler l'API GPT Vision avec notre prompt expert
-async function callGptVisionApi(base64Image: string, jobDetails: { 
-  jobTitle: string; 
-  company: string; 
-  jobDescription: string; 
+async function callGptVisionApi(base64Image: string, jobDetails: {
+  jobTitle: string;
+  company: string;
+  jobDescription: string;
 }) {
   // URL de l'API GPT Vision (à adapter selon votre configuration)
   const apiUrl = process.env.NEXT_PUBLIC_OPENAI_API_URL || 'https://api.openai.com/v1/chat/completions';
-  
+
   // Construire le prompt expert pour l'analyse ATS
   const prompt = buildATSAnalysisPrompt(jobDetails);
-  
+
   try {
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -466,18 +466,18 @@ async function callGptVisionApi(base64Image: string, jobDetails: {
     }
 
     const data = await response.json();
-    
+
     // Parser la réponse JSON de l'API
     const analysisText = data.choices[0].message.content;
-    
+
     try {
       // Tenter d'extraire la partie JSON de la réponse
-      const jsonMatch = analysisText.match(/```json\n([\s\S]*?)\n```/) || 
-                        analysisText.match(/{[\s\S]*}/);
-                        
+      const jsonMatch = analysisText.match(/```json\n([\s\S]*?)\n```/) ||
+        analysisText.match(/{[\s\S]*}/);
+
       const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : analysisText;
       const parsedAnalysis = JSON.parse(jsonStr);
-      
+
       return {
         ...parsedAnalysis,
         // Ajouter des métadonnées
@@ -495,10 +495,10 @@ async function callGptVisionApi(base64Image: string, jobDetails: {
 }
 
 // Fonction pour construire le prompt expert pour l'analyse ATS
-function buildATSAnalysisPrompt(jobDetails: { 
-  jobTitle: string; 
-  company: string; 
-  jobDescription: string; 
+function buildATSAnalysisPrompt(jobDetails: {
+  jobTitle: string;
+  company: string;
+  jobDescription: string;
 }): string {
   return `
 # ATS Resume Analysis Task
@@ -552,6 +552,11 @@ Return ONLY a JSON object with the following structure:
     },
     ...
   ]
+  ],
+  "tags": {
+    "positive": [<array_of_2_short_positive_tags_max_3_words>],
+    "negative": [<array_of_2_short_negative_tags_max_3_words>]
+  }
 }
 \`\`\`
 
@@ -570,13 +575,13 @@ Return ONLY a JSON object with the following structure:
 export async function testCVAnalysis(cvUrl: string) {
   try {
     console.log('Testing CV analysis system...');
-    
+
     const result = await analyzeCVWithGPT(cvUrl, {
       jobTitle: "Test Position",
       company: "Test Company",
       jobDescription: "This is a test job description for API verification."
     });
-    
+
     return {
       success: true,
       message: 'CV analysis system is working correctly',

@@ -172,7 +172,7 @@ const HuntrCVCard = memo(({
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="group bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-200 dark:border-[#3d3c3e] overflow-hidden hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.3)] hover:border-[#004b23] dark:hover:border-[#004b23] hover:border-2 transition-all duration-300 flex h-[220px] relative"
+            className="group bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-200 dark:border-[#3d3c3e] overflow-hidden hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.3)] hover:border-[#70E000] dark:hover:border-[#70E000] hover:border-2 transition-all duration-300 flex h-[220px] relative"
         >
             {/* Left Side - Preview */}
             <div
@@ -260,26 +260,26 @@ const HuntrCVCard = memo(({
                 <div className="flex-1 flex flex-col justify-center space-y-0.5">
                     <button
                         onClick={() => onEdit(resume.id)}
-                        className="w-full flex items-center gap-2 px-2 py-0.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 hover:text-[#007200] dark:hover:text-[#70E000] transition-colors group/btn text-left rounded-md hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50"
+                        className="w-full flex items-center gap-2 px-2 py-0.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 hover:text-[#70E000] dark:hover:text-[#70E000] transition-colors group/btn text-left rounded-md hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50"
                     >
-                        <Edit2 className="w-3.5 h-3.5 text-gray-400 group-hover/btn:text-[#007200] dark:group-hover/btn:text-[#70E000] transition-colors" />
+                        <Edit2 className="w-3.5 h-3.5 text-gray-400 group-hover/btn:text-[#70E000] dark:group-hover/btn:text-[#70E000] transition-colors" />
                         Edit Resume
                     </button>
 
                     <button
                         onClick={() => onEdit(resume.id)}
-                        className="w-full flex items-center gap-2 px-2 py-0.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 hover:text-[#007200] dark:hover:text-[#70E000] transition-colors group/btn text-left rounded-md hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50"
+                        className="w-full flex items-center gap-2 px-2 py-0.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 hover:text-[#70E000] dark:hover:text-[#70E000] transition-colors group/btn text-left rounded-md hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50"
                     >
-                        <Target className="w-3.5 h-3.5 text-gray-400 group-hover/btn:text-[#007200] dark:group-hover/btn:text-[#70E000] transition-colors" />
+                        <Target className="w-3.5 h-3.5 text-gray-400 group-hover/btn:text-[#70E000] dark:group-hover/btn:text-[#70E000] transition-colors" />
                         Tailor to Job
                     </button>
 
                     {onDownload && (
                         <button
                             onClick={() => onDownload(resume)}
-                            className="w-full flex items-center gap-2 px-2 py-0.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 hover:text-[#007200] dark:hover:text-[#70E000] transition-colors group/btn text-left rounded-md hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50"
+                            className="w-full flex items-center gap-2 px-2 py-0.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 hover:text-[#70E000] dark:hover:text-[#70E000] transition-colors group/btn text-left rounded-md hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50"
                         >
-                            <Download className="w-3.5 h-3.5 text-gray-400 group-hover/btn:text-[#007200] dark:group-hover/btn:text-[#70E000] transition-colors" />
+                            <Download className="w-3.5 h-3.5 text-gray-400 group-hover/btn:text-[#70E000] dark:group-hover/btn:text-[#70E000] transition-colors" />
                             Download
                         </button>
                     )}
@@ -287,9 +287,9 @@ const HuntrCVCard = memo(({
                     {onDuplicate && (
                         <button
                             onClick={() => onDuplicate(resume)}
-                            className="w-full flex items-center gap-2 px-2 py-0.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 hover:text-[#007200] dark:hover:text-[#70E000] transition-colors group/btn text-left rounded-md hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50"
+                            className="w-full flex items-center gap-2 px-2 py-0.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 hover:text-[#70E000] dark:hover:text-[#70E000] transition-colors group/btn text-left rounded-md hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50"
                         >
-                            <Copy className="w-3.5 h-3.5 text-gray-400 group-hover/btn:text-[#007200] dark:group-hover/btn:text-[#70E000] transition-colors" />
+                            <Copy className="w-3.5 h-3.5 text-gray-400 group-hover/btn:text-[#70E000] dark:group-hover/btn:text-[#70E000] transition-colors" />
                             Duplicate
                         </button>
                     )}
