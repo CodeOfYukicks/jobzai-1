@@ -5238,15 +5238,14 @@ URL to visit: ${jobUrl}
         key={analysis.id}
         initial={false}
         animate={{ opacity: 1, y: 0 }}
-        whileHover={{ y: -2 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
         layout={false}
         className={`group relative bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-xl p-4 sm:p-5 
-          border transition-all duration-500
+          border transition-all duration-300
           ${isHighlighted
             ? 'border-teal-500 ring-2 ring-teal-500/20 shadow-lg shadow-teal-500/10'
-            : 'border-gray-200/60 dark:border-[#3d3c3e]/50 hover:border-gray-300/80 dark:hover:border-gray-600/60 shadow-sm hover:shadow-md'}
-          cursor-pointer`}
+            : 'border-gray-200/60 dark:border-[#3d3c3e]/50 hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.3)] hover:border-[#004b23] dark:hover:border-[#004b23] hover:border-2'}
+          cursor-pointer ${isGrid ? 'h-[220px] flex flex-col' : ''}`}
         onClick={() => {
           if (onSelect) {
             onSelect();
@@ -5255,7 +5254,7 @@ URL to visit: ${jobUrl}
           }
         }}
       >
-        <div className="relative">
+        <div className={`relative ${isGrid ? 'flex flex-col h-full' : ''}`}>
           {/* Header */}
           <div className="flex items-start gap-3">
             {/* Company Logo */}
@@ -5297,7 +5296,7 @@ URL to visit: ${jobUrl}
                       className="text-gray-100 dark:text-gray-700"
                     />
                     {/* Progress circle */}
-                    <motion.circle
+                    <circle
                       cx={20}
                       cy={20}
                       r={16}
@@ -5306,9 +5305,7 @@ URL to visit: ${jobUrl}
                       strokeWidth={3}
                       strokeLinecap="round"
                       strokeDasharray={100.53}
-                      initial={{ strokeDashoffset: 100.53 }}
-                      animate={{ strokeDashoffset: 100.53 - (analysis.matchScore / 100) * 100.53 }}
-                      transition={{ duration: 0.8, ease: 'easeOut' }}
+                      strokeDashoffset={100.53 - (analysis.matchScore / 100) * 100.53}
                     />
                   </svg>
                   {/* Score value in center */}
@@ -5368,7 +5365,7 @@ URL to visit: ${jobUrl}
           })()}
 
           {/* Footer - minimal */}
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50">
+          <div className={`flex items-center justify-between pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50 ${isGrid ? 'mt-auto' : 'mt-3'}`}>
             <span className="text-xs text-gray-400 dark:text-gray-500">
               {formatDateString(analysis.date)}
             </span>
