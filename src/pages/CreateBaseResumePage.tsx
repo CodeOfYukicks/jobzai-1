@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ChevronRight, FileText, Upload, Linkedin, User, ArrowLeft, Check, Loader2, X, Clock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronRight, FileText, Upload, Linkedin, User, ArrowLeft, Check, Loader2, X, Clock, Sparkles } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { db, storage } from '../lib/firebase';
@@ -9,6 +9,10 @@ import { doc, setDoc, serverTimestamp, collection, query, orderBy, getDocs } fro
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { notify } from '@/lib/notify';
 import { generateId } from '../lib/cvEditorUtils';
+import { pdfToImages } from '../lib/pdfToImages';
+import { extractCVTextAndTags } from '../lib/cvTextExtraction';
+import { extractFullProfileFromText } from '../lib/cvExperienceExtractor';
+import { mapExtractedProfileToCVData, mapFirestoreProfileToCVData, cloneCVData, createEmptyCVData } from '../lib/profileToCVData';
 
 // Initial empty CV data structure
 const initialCVData = {
@@ -64,6 +68,10 @@ export default function CreateBaseResumePage() {
     const { currentUser } = useAuth();
     const navigate = useNavigate();
     const [isCreating, setIsCreating] = useState(false);
+
+    // Parsing state for PDF upload
+    const [isParsing, setIsParsing] = useState(false);
+    const [parsingStep, setParsingStep] = useState('');
 
     // Form State
     const [jobTitle, setJobTitle] = useState('');
@@ -135,32 +143,79 @@ export default function CreateBaseResumePage() {
             return;
         }
 
+        if (dataSource === 'linkedin') {
+            notify.info('LinkedIn import is coming soon!');
+            return;
+        }
+
         setIsCreating(true);
 
         try {
             const resumeId = generateId();
-            let cvData = { ...initialCVData };
+            let cvData: any = createEmptyCVData(jobTitle);
+            let fileUrl = null;
 
-            // If selecting an existing resume, use its data
-            if (dataSource === 'profile' && selectedResumeId) {
-                const selectedResume = existingResumes.find(r => r.id === selectedResumeId);
-                if (selectedResume && selectedResume.cvData) {
-                    cvData = { ...selectedResume.cvData };
+            // Handle data source: Profile (Summary or existing CV)
+            if (dataSource === 'profile') {
+                if (selectedResumeId) {
+                    // Clone existing CV
+                    const selectedResume = existingResumes.find(r => r.id === selectedResumeId);
+                    if (selectedResume && selectedResume.cvData) {
+                        cvData = cloneCVData(selectedResume.cvData, jobTitle);
+                        notify.info('Copying from existing resume...');
+                    }
+                } else {
+                    // Use Cubbbe Profile Summary
+                    notify.info('Importing from your profile...');
+                    cvData = await mapFirestoreProfileToCVData(currentUser.uid, jobTitle);
                 }
             }
 
-            // Update title in personal info with the new target job title
-            cvData.personalInfo.title = jobTitle;
-
-            // Handle file upload if selected
-            let fileUrl = null;
+            // Handle data source: PDF Upload with parsing
             if (dataSource === 'upload' && uploadedFile) {
-                const fileName = `${resumeId}_${uploadedFile.name}`;
-                const fileRef = ref(storage, `cvs/${currentUser.uid}/${fileName}`);
-                await uploadBytes(fileRef, uploadedFile);
-                fileUrl = await getDownloadURL(fileRef);
-                // Here you would typically trigger a parsing function
-                // For now we just store the file URL reference
+                setIsParsing(true);
+
+                try {
+                    // Step 1: Upload file to storage
+                    setParsingStep('Uploading your resume...');
+                    const fileName = `${resumeId}_${uploadedFile.name}`;
+                    const fileRef = ref(storage, `cvs/${currentUser.uid}/${fileName}`);
+                    await uploadBytes(fileRef, uploadedFile);
+                    fileUrl = await getDownloadURL(fileRef);
+
+                    // Step 2: Convert PDF to images
+                    setParsingStep('Converting PDF to images...');
+                    const images = await pdfToImages(uploadedFile, 3, 1.5);
+
+                    // Step 3: Extract text from images
+                    setParsingStep('Reading your resume content...');
+                    const { text } = await extractCVTextAndTags(images);
+
+                    if (!text || text.length < 50) {
+                        throw new Error('Could not extract text from PDF. Please try a different file.');
+                    }
+
+                    // Step 4: Parse with AI to extract structured data
+                    setParsingStep('Analyzing your experience...');
+                    const extractedProfile = await extractFullProfileFromText(text);
+
+                    // Step 5: Map to CV data format
+                    setParsingStep('Creating your resume...');
+                    cvData = mapExtractedProfileToCVData(extractedProfile, jobTitle);
+
+                } catch (parseError: any) {
+                    console.error('PDF parsing error:', parseError);
+                    notify.error(parseError.message || 'Failed to parse resume. Creating empty resume instead.');
+                    // Fall back to empty CV data
+                    cvData = createEmptyCVData(jobTitle);
+                } finally {
+                    setIsParsing(false);
+                }
+            }
+
+            // Ensure title is set
+            if (cvData.personalInfo) {
+                cvData.personalInfo.title = jobTitle;
             }
 
             const newResume = {
@@ -173,7 +228,7 @@ export default function CreateBaseResumePage() {
                 sourceFileUrl: fileUrl,
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
-                template: 'modern-professional', // Default template
+                template: 'modern-professional',
                 tags: []
             };
 
@@ -184,16 +239,59 @@ export default function CreateBaseResumePage() {
             notify.success('Resume created successfully!');
             navigate(`/resume-builder/${resumeId}/cv-editor`);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating resume:', error);
-            notify.error('Failed to create resume');
+            notify.error(error.message || 'Failed to create resume');
         } finally {
             setIsCreating(false);
+            setIsParsing(false);
         }
     };
 
     return (
         <AuthLayout>
+            {/* Parsing Overlay */}
+            <AnimatePresence>
+                {isParsing && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="bg-white dark:bg-[#2b2a2c] rounded-2xl p-8 shadow-2xl max-w-sm mx-4 text-center"
+                        >
+                            <div className="relative mb-6">
+                                <div className="w-16 h-16 mx-auto rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                                    <Sparkles className="w-8 h-8 text-violet-600 dark:text-violet-400" />
+                                </div>
+                                <div className="absolute inset-0 w-16 h-16 mx-auto">
+                                    <Loader2 className="w-16 h-16 text-violet-600/30 dark:text-violet-400/30 animate-spin" />
+                                </div>
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                                Analyzing Your Resume
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                {parsingStep || 'Processing...'}
+                            </p>
+                            <div className="h-1 w-full bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
+                                <motion.div
+                                    className="h-full bg-gradient-to-r from-violet-500 to-violet-600"
+                                    initial={{ width: '0%' }}
+                                    animate={{ width: '100%' }}
+                                    transition={{ duration: 15, ease: 'linear' }}
+                                />
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <div className="min-h-screen bg-white dark:bg-[#2b2a2c] flex flex-col relative">
                 {/* Breadcrumb Navigation */}
                 <div className="w-full border-b border-gray-100 dark:border-[#3d3c3e] bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm">

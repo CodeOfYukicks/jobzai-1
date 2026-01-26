@@ -3417,7 +3417,7 @@ END:VCALENDAR`;
                         setEditingBoard(null);
                         setShowBoardSettingsModal(true);
                       }}
-                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-md border border-[#9fc015] transition-all duration-200"
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-md transition-all duration-200"
                     >
                       <Plus className="w-4 h-4" />
                       <span>New Board</span>
@@ -3467,7 +3467,7 @@ END:VCALENDAR`;
                           setShowLookupDropdown(false);
                           setNewApplicationModal(true);
                         }}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-md border border-[#9fc015] transition-all duration-200"
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-md transition-all duration-200"
                       >
                         <Plus className="w-4 h-4" />
                         <span>{currentBoardType === 'campaigns' ? 'Add Contact' : 'Add Application'}</span>

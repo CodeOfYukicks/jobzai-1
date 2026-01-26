@@ -154,7 +154,6 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     location.pathname.startsWith('/ats-analysis/') ||
     location.pathname.startsWith('/meeting-prep/') ||
     location.pathname === '/resume-builder' ||
-    location.pathname === '/resume-builder/new' ||
     (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
     location.pathname.startsWith('/notes/') ||
     location.pathname.startsWith('/whiteboard/')
@@ -176,7 +175,6 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       location.pathname.startsWith('/ats-analysis/') ||
       location.pathname.startsWith('/meeting-prep/') ||
       location.pathname === '/resume-builder' ||
-      location.pathname === '/resume-builder/new' ||
       (location.pathname.startsWith('/resume-builder/') && location.pathname.endsWith('/cv-editor')) ||
       location.pathname.startsWith('/notes/') ||
       location.pathname.startsWith('/whiteboard/')) {

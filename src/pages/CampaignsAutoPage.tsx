@@ -2882,7 +2882,7 @@ export default function CampaignsAutoPage() {
               </p>
               <button
                 onClick={() => handleNewCampaignClick()}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
               >
                 <Sparkles className="w-4 h-4" />
                 <span>New Campaign</span>

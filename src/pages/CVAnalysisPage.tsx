@@ -2578,7 +2578,7 @@ export default function CVAnalysisPage() {
   };
 
   const handleEditResume = (id: string) => {
-    navigate(`/resume-builder?id=${id}`);
+    navigate(`/resume-builder/${id}/cv-editor`);
   };
 
   const handleUpdateTags = async (id: string, tags: string[]) => {
@@ -8324,7 +8324,7 @@ URL to visit: ${jobUrl}
                   </p>
                   <button
                     onClick={() => navigate('/resume-builder/new')}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Build Your Resume</span>
@@ -8395,7 +8395,7 @@ URL to visit: ${jobUrl}
                     </p>
                     <button
                       onClick={() => navigate('/resume-builder/tailor')}
-                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
                     >
                       <Sparkles className="w-4 h-4" />
                       <span>Tailor a Resume</span>
