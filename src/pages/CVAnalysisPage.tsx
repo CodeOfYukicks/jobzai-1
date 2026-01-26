@@ -2550,6 +2550,23 @@ export default function CVAnalysisPage() {
     fetchResumes();
   }, [fetchResumes]);
 
+  // Handle navigation state for active tab and highlighting
+  const [highlightedAnalysisId, setHighlightedAnalysisId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+    if (location.state?.highlightedAnalysisId) {
+      setHighlightedAnalysisId(location.state.highlightedAnalysisId);
+      // Clear highlight after 5 seconds
+      const timer = setTimeout(() => {
+        setHighlightedAnalysisId(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
+
   // Handlers for Resume actions
   const handleDeleteResume = async (id: string) => {
     if (!currentUser) return;
@@ -5105,12 +5122,14 @@ URL to visit: ${jobUrl}
     analysis,
     onDelete,
     viewMode = 'list',
-    onSelect
+    onSelect,
+    isHighlighted = false
   }: {
     analysis: ATSAnalysis,
     onDelete: (id: string) => void,
     viewMode?: 'grid' | 'list',
-    onSelect?: () => void
+    onSelect?: () => void,
+    isHighlighted?: boolean
   }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -5154,8 +5173,11 @@ URL to visit: ${jobUrl}
           key={analysis.id}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="relative bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-xl p-5 
-            border border-dashed border-gray-300 dark:border-[#4a494b]"
+          className={`relative bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-xl p-5 
+            border transition-all duration-500
+            ${isHighlighted
+              ? 'border-teal-500 ring-2 ring-teal-500/20 shadow-lg shadow-teal-500/10'
+              : 'border-dashed border-gray-300 dark:border-[#4a494b]'}`}
         >
           <div className="flex items-start gap-3">
             {/* Logo placeholder */}
@@ -5219,11 +5241,12 @@ URL to visit: ${jobUrl}
         whileHover={{ y: -2 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
         layout={false}
-        className="group relative bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-xl p-4 sm:p-5 
-          border border-gray-200/60 dark:border-[#3d3c3e]/50
-          hover:border-gray-300/80 dark:hover:border-gray-600/60
-          shadow-sm hover:shadow-md
-          cursor-pointer transition-all duration-200"
+        className={`group relative bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-xl p-4 sm:p-5 
+          border transition-all duration-500
+          ${isHighlighted
+            ? 'border-teal-500 ring-2 ring-teal-500/20 shadow-lg shadow-teal-500/10'
+            : 'border-gray-200/60 dark:border-[#3d3c3e]/50 hover:border-gray-300/80 dark:hover:border-gray-600/60 shadow-sm hover:shadow-md'}
+          cursor-pointer`}
         onClick={() => {
           if (onSelect) {
             onSelect();
@@ -8380,6 +8403,7 @@ URL to visit: ${jobUrl}
                     onDelete={deleteAnalysis}
                     viewMode="grid"
                     onSelect={() => navigate(`/ats-analysis/${analysis.id}`)}
+                    isHighlighted={analysis.id === highlightedAnalysisId}
                   />
                 ))}
                 {filteredAnalyses.length === 0 && (

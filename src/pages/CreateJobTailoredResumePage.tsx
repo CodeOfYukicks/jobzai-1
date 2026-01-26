@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronUp, FileText, Briefcase, ArrowLeft, Check, Loader2, X, Clock, Sparkles, Building2, AlignLeft, Search } from 'lucide-react';
+import { ChevronRight, ChevronUp, FileText, Briefcase, ArrowLeft, Check, Loader2, X, Clock, Sparkles, Building2, AlignLeft, Search, Upload, User, Linkedin } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../lib/firebase';
+import { db, storage } from '../lib/firebase';
 import { collection, query, orderBy, getDocs, doc, setDoc, serverTimestamp, deleteDoc, getDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { notify } from '@/lib/notify';
 import { generateId } from '../lib/cvEditorUtils';
 import { analyzePDFWithPremiumATS } from '../lib/premiumATSAnalysis';
 import { extractJobInfoWithGPT } from '../lib/jobExtractor';
 import { getCompanyDomain, getLogoDevUrl, getCompanyInitials, getCompanyGradient } from '../utils/logo';
+import { pdfToImages } from '../lib/pdfToImages';
+import { extractCVTextAndTags } from '../lib/cvTextExtraction';
+import { extractFullProfileFromText } from '../lib/cvExperienceExtractor';
+import { mapExtractedProfileToCVData } from '../lib/profileToCVData';
 import jsPDF from 'jspdf';
 
 // Helper to safely format dates
@@ -40,6 +45,13 @@ export default function CreateJobTailoredResumePage() {
     const [company, setCompany] = useState('');
     const [jobDescription, setJobDescription] = useState('');
 
+    // Resume Source Mode: 'profile' | 'upload' | 'linkedin'
+    const [dataSource, setDataSource] = useState<'profile' | 'upload' | 'linkedin'>('profile');
+    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+    const [isParsing, setIsParsing] = useState(false);
+    const [parsingStep, setParsingStep] = useState('');
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     // Existing Resumes State
     const [existingResumes, setExistingResumes] = useState<any[]>([]);
     const [isLoadingResumes, setIsLoadingResumes] = useState(false);
@@ -55,10 +67,7 @@ export default function CreateJobTailoredResumePage() {
     const [jobSearchQuery, setJobSearchQuery] = useState('');
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Resume Dropdown State
-    const [isResumeDropdownOpen, setIsResumeDropdownOpen] = useState(false);
-    const [resumeSearchQuery, setResumeSearchQuery] = useState('');
-    const resumeDropdownRef = useRef<HTMLDivElement>(null);
+
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -66,9 +75,7 @@ export default function CreateJobTailoredResumePage() {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsDropdownOpen(false);
             }
-            if (resumeDropdownRef.current && !resumeDropdownRef.current.contains(event.target as Node)) {
-                setIsResumeDropdownOpen(false);
-            }
+
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -83,12 +90,7 @@ export default function CreateJobTailoredResumePage() {
         );
     });
 
-    // Filter resumes based on search (exclude profile resume)
-    const filteredResumes = existingResumes.filter(resume => {
-        if (resume.isProfile) return false;
-        const searchLower = resumeSearchQuery.toLowerCase();
-        return resume.name?.toLowerCase().includes(searchLower);
-    });
+
 
     useEffect(() => {
         const fetchResumes = async () => {
@@ -194,11 +196,34 @@ export default function CreateJobTailoredResumePage() {
         }
     };
 
+    // Handle PDF file upload
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (file.type !== 'application/pdf') {
+                notify.error('Please upload a PDF file');
+                return;
+            }
+            setUploadedFile(file);
+            setSelectedResumeId(null); // Clear existing selection when uploading
+        }
+    };
+
     const handleCreate = async () => {
         if (!currentUser) return;
 
-        if (!selectedResumeId) {
+        // Validate resume source
+        if (dataSource === 'profile' && !selectedResumeId) {
             notify.error('Please select a source resume');
+            return;
+        }
+        if (dataSource === 'upload' && !uploadedFile) {
+            notify.error('Please upload a resume PDF');
+            return;
+        }
+
+        if (dataSource === 'linkedin') {
+            notify.info('LinkedIn import is coming soon!');
             return;
         }
 
@@ -253,87 +278,156 @@ export default function CreateJobTailoredResumePage() {
         }
 
         try {
-            const selectedResume = existingResumes.find(r => r.id === selectedResumeId);
-            if (!selectedResume) {
-                throw new Error('Selected resume not found');
-            }
-
             let effectiveCvFile: File | null = null;
+            let effectiveResumeId = selectedResumeId;
+            let effectiveResumeName = '';
 
-            // 1. Get the File object (either fetch from URL or generate from data)
-            if (selectedResume.sourceFileUrl) {
+            // Handle PDF Upload Mode
+            if (dataSource === 'upload' && uploadedFile) {
+                setIsParsing(true);
+                const resumeId = generateId();
+
                 try {
-                    console.log('📥 Fetching PDF from URL:', selectedResume.sourceFileUrl);
-                    const response = await fetch(selectedResume.sourceFileUrl);
-                    const blob = await response.blob();
-                    effectiveCvFile = new File([blob], `${selectedResume.name}.pdf`, { type: 'application/pdf' });
-                } catch (error) {
-                    console.error('Error fetching PDF:', error);
-                    notify.error('Failed to fetch the selected resume file');
+                    // Step 1: Upload file to storage
+                    setParsingStep('Uploading your resume...');
+                    const fileName = `${resumeId}_${uploadedFile.name}`;
+                    const fileRef = ref(storage, `cvs/${currentUser.uid}/${fileName}`);
+                    await uploadBytes(fileRef, uploadedFile);
+                    const fileUrl = await getDownloadURL(fileRef);
+
+                    // Step 2: Convert PDF to images
+                    setParsingStep('Converting PDF to images...');
+                    const images = await pdfToImages(uploadedFile, 3, 1.5);
+
+                    // Step 3: Extract text from images
+                    setParsingStep('Reading your resume content...');
+                    const { text } = await extractCVTextAndTags(images);
+
+                    if (!text || text.length < 50) {
+                        throw new Error('Could not extract text from PDF. Please try a different file.');
+                    }
+
+                    // Step 4: Parse with AI to extract structured data
+                    setParsingStep('Analyzing your experience...');
+                    const extractedProfile = await extractFullProfileFromText(text);
+
+                    // Step 5: Map to CV data format
+                    setParsingStep('Creating your resume...');
+                    const cvData = mapExtractedProfileToCVData(extractedProfile, effectiveJobTitle);
+
+                    // Step 6: Save resume to Firestore
+                    const newResume = {
+                        id: resumeId,
+                        name: uploadedFile.name.replace('.pdf', ''),
+                        cvData: cvData,
+                        targetJobTitle: effectiveJobTitle,
+                        dataSource: 'upload',
+                        sourceFileUrl: fileUrl,
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp(),
+                        template: 'modern-professional',
+                        tags: []
+                    };
+
+                    const docRef = doc(db, 'users', currentUser.uid, 'cvs', resumeId);
+                    await setDoc(docRef, newResume);
+
+                    // Use the uploaded file directly for analysis
+                    effectiveCvFile = uploadedFile;
+                    effectiveResumeId = resumeId;
+                    effectiveResumeName = uploadedFile.name.replace('.pdf', '');
+
+                } catch (parseError: any) {
+                    console.error('PDF parsing error:', parseError);
+                    notify.error(parseError.message || 'Failed to parse resume.');
+                    setIsParsing(false);
                     setIsCreating(false);
                     return;
-                }
-            } else if (selectedResume.cvData) {
-                try {
-                    console.log('📝 Generating PDF from CV Data');
-                    // Simple PDF generation for analysis purposes
-                    // We construct a text representation and put it in a PDF
-                    // This mirrors the logic in CVAnalysisPage but simplified
-                    const cvData = selectedResume.cvData;
-                    let textContent = '';
-
-                    // Personal Info
-                    if (cvData.personalInfo) {
-                        const p = cvData.personalInfo;
-                        textContent += `${p.firstName || ''} ${p.lastName || ''}\n`;
-                        if (p.title) textContent += `${p.title}\n`;
-                        textContent += '\n';
-                    }
-
-                    // Summary
-                    if (cvData.summary) textContent += `SUMMARY\n${cvData.summary}\n\n`;
-
-                    // Experience
-                    if (cvData.experiences?.length) {
-                        textContent += 'EXPERIENCE\n';
-                        cvData.experiences.forEach((exp: any) => {
-                            textContent += `${exp.title} at ${exp.company}\n${exp.description || ''}\n\n`;
-                        });
-                    }
-
-                    // Education
-                    if (cvData.education?.length) {
-                        textContent += 'EDUCATION\n';
-                        cvData.education.forEach((edu: any) => {
-                            textContent += `${edu.degree} at ${edu.institution}\n\n`;
-                        });
-                    }
-
-                    // Skills
-                    if (cvData.skills?.length) {
-                        textContent += 'SKILLS\n';
-                        cvData.skills.forEach((skill: any) => {
-                            textContent += `${skill.name}\n`;
-                        });
-                        textContent += '\n';
-                    }
-
-                    const pdf = new jsPDF();
-                    const splitText = pdf.splitTextToSize(textContent, 180);
-                    pdf.text(splitText, 10, 10);
-                    const pdfBlob = pdf.output('blob');
-                    effectiveCvFile = new File([pdfBlob], `${selectedResume.name}.pdf`, { type: 'application/pdf' });
-
-                } catch (error) {
-                    console.error('Error generating PDF:', error);
-                    notify.error('Failed to process resume data');
-                    setIsCreating(false);
-                    return;
+                } finally {
+                    setIsParsing(false);
                 }
             } else {
-                notify.error('Selected resume has no file or data');
-                setIsCreating(false);
-                return;
+                // Existing resume mode
+                const selectedResume = existingResumes.find(r => r.id === selectedResumeId);
+                if (!selectedResume) {
+                    throw new Error('Selected resume not found');
+                }
+
+                effectiveResumeName = selectedResume.name;
+
+                // Get the File object (either fetch from URL or generate from data)
+                if (selectedResume.sourceFileUrl) {
+                    try {
+                        console.log('📥 Fetching PDF from URL:', selectedResume.sourceFileUrl);
+                        const response = await fetch(selectedResume.sourceFileUrl);
+                        const blob = await response.blob();
+                        effectiveCvFile = new File([blob], `${selectedResume.name}.pdf`, { type: 'application/pdf' });
+                    } catch (error) {
+                        console.error('Error fetching PDF:', error);
+                        notify.error('Failed to fetch the selected resume file');
+                        setIsCreating(false);
+                        return;
+                    }
+                } else if (selectedResume.cvData) {
+                    try {
+                        console.log('📝 Generating PDF from CV Data');
+                        // Simple PDF generation for analysis purposes
+                        const cvData = selectedResume.cvData;
+                        let textContent = '';
+
+                        // Personal Info
+                        if (cvData.personalInfo) {
+                            const p = cvData.personalInfo;
+                            textContent += `${p.firstName || ''} ${p.lastName || ''}\n`;
+                            if (p.title) textContent += `${p.title}\n`;
+                            textContent += '\n';
+                        }
+
+                        // Summary
+                        if (cvData.summary) textContent += `SUMMARY\n${cvData.summary}\n\n`;
+
+                        // Experience
+                        if (cvData.experiences?.length) {
+                            textContent += 'EXPERIENCE\n';
+                            cvData.experiences.forEach((exp: any) => {
+                                textContent += `${exp.title} at ${exp.company}\n${exp.description || ''}\n\n`;
+                            });
+                        }
+
+                        // Education
+                        if (cvData.education?.length) {
+                            textContent += 'EDUCATION\n';
+                            cvData.education.forEach((edu: any) => {
+                                textContent += `${edu.degree} at ${edu.institution}\n\n`;
+                            });
+                        }
+
+                        // Skills
+                        if (cvData.skills?.length) {
+                            textContent += 'SKILLS\n';
+                            cvData.skills.forEach((skill: any) => {
+                                textContent += `${skill.name}\n`;
+                            });
+                            textContent += '\n';
+                        }
+
+                        const pdf = new jsPDF();
+                        const splitText = pdf.splitTextToSize(textContent, 180);
+                        pdf.text(splitText, 10, 10);
+                        const pdfBlob = pdf.output('blob');
+                        effectiveCvFile = new File([pdfBlob], `${selectedResume.name}.pdf`, { type: 'application/pdf' });
+
+                    } catch (error) {
+                        console.error('Error generating PDF:', error);
+                        notify.error('Failed to process resume data');
+                        setIsCreating(false);
+                        return;
+                    }
+                } else {
+                    notify.error('Selected resume has no file or data');
+                    setIsCreating(false);
+                    return;
+                }
             }
 
             if (!effectiveCvFile) {
@@ -359,16 +453,25 @@ export default function CreateJobTailoredResumePage() {
                 recommendations: [],
                 _isLoading: true,
                 createdAt: serverTimestamp(),
-                originalCvId: selectedResumeId,
-                originalCvName: selectedResume.name
+                originalCvId: effectiveResumeId,
+                originalCvName: effectiveResumeName
             };
 
             const analysisRef = doc(db, 'users', currentUser.uid, 'analyses', analysisId);
             await setDoc(analysisRef, placeholderAnalysis);
 
-            notify.info('Analysis started in background...');
+            // 3. Navigate immediately
+            notify.info('Analysis started. You can continue browsing, we\'ll notify you when it\'s ready.', { duration: 5000 });
+            navigate('/cv-analysis', {
+                state: {
+                    activeTab: 'tailored',
+                    highlightedAnalysisId: analysisId
+                }
+            });
 
-            const result = await analyzePDFWithPremiumATS(
+            // 4. Run Analysis in Background (Fire and Forget)
+            // We don't await this because we want the user to be able to navigate away
+            analyzePDFWithPremiumATS(
                 effectiveCvFile,
                 {
                     jobTitle: effectiveJobTitle,
@@ -378,37 +481,41 @@ export default function CreateJobTailoredResumePage() {
                 },
                 currentUser.uid,
                 analysisId
-            );
-
-            if (result.status === 'error') {
-                // Update doc with error
+            ).then(async (result) => {
+                if (result.status === 'error') {
+                    // Update doc with error
+                    await setDoc(analysisRef, {
+                        _isLoading: false,
+                        status: 'failed',
+                        error: result.message || 'Analysis failed'
+                    }, { merge: true });
+                    // Note: We don't show toast here because user might be elsewhere
+                    // The CVAnalysisPage listener will handle error display if active
+                } else {
+                    // Update doc with success
+                    await setDoc(analysisRef, {
+                        ...result.analysis,
+                        _isLoading: false,
+                        status: 'completed',
+                        updatedAt: serverTimestamp()
+                    }, { merge: true });
+                    // Success toast is handled by CVAnalysisPage listener
+                }
+            }).catch(async (error) => {
+                console.error('Background analysis error:', error);
                 await setDoc(analysisRef, {
                     _isLoading: false,
                     status: 'failed',
-                    error: result.message || 'Analysis failed'
+                    error: 'Unexpected error during analysis'
                 }, { merge: true });
-                notify.error('Analysis failed: ' + result.message);
-                setIsCreating(false);
-                return;
-            }
-
-            // Update doc with success
-            await setDoc(analysisRef, {
-                ...result.analysis,
-                _isLoading: false,
-                status: 'completed',
-                updatedAt: serverTimestamp()
-            }, { merge: true });
-
-            notify.success('Resume tailored successfully!');
-            navigate(`/ats-analysis/${analysisId}`);
+            });
 
         } catch (error) {
             console.error('Error creating tailored resume:', error);
-            notify.error('Failed to create tailored resume');
-        } finally {
+            notify.error('Failed to start analysis');
             setIsCreating(false);
         }
+        // Note: We don't call setIsCreating(false) in finally because we navigated away
     };
 
     return (
@@ -472,170 +579,165 @@ export default function CreateJobTailoredResumePage() {
                     <div className="w-full md:w-2/3 max-w-lg space-y-5">
 
                         {/* Source Resume Selection */}
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                             <div className="flex justify-between items-baseline">
                                 <label className="text-sm font-semibold text-gray-900 dark:text-white">Source Resume</label>
                                 <span className="text-xs text-gray-400">Required</span>
                             </div>
+                            <p className="text-xs text-gray-400 dark:text-gray-500">
+                                Select a base resume to tailor for this job application. You can use an existing resume from your profile or upload a new one.
+                            </p>
 
-                            {isLoadingResumes ? (
-                                <div className="flex items-center gap-2 px-4 py-3 border border-gray-200 dark:border-[#3d3c3e] rounded-xl bg-gray-50 dark:bg-[#2b2a2c] text-gray-400 text-sm">
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                    Loading resumes...
-                                </div>
-                            ) : existingResumes.length > 0 ? (
-                                <div className="space-y-4">
-                                    {/* Primary Option: Profile Resume (Only if it exists) */}
-                                    {existingResumes[0]?.isProfile && (
-                                        <>
-                                            <div
-                                                onClick={() => setSelectedResumeId(existingResumes[0].id)}
-                                                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedResumeId === existingResumes[0].id
-                                                    ? 'bg-teal-50 border-teal-200 ring-1 ring-teal-200/50 dark:bg-teal-900/10 dark:border-teal-800'
-                                                    : 'bg-white dark:bg-[#2b2a2c] border-gray-200 dark:border-[#3d3c3e] hover:border-gray-300 dark:hover:border-gray-600'
-                                                    }`}
-                                            >
-                                                <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${selectedResumeId === existingResumes[0].id
-                                                    ? 'border-teal-600 dark:border-teal-400'
-                                                    : 'border-gray-300 dark:border-gray-600'
-                                                    }`}>
-                                                    {selectedResumeId === existingResumes[0].id && (
-                                                        <div className="w-2 h-2 rounded-full bg-teal-600 dark:bg-teal-400" />
-                                                    )}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <p className="font-semibold text-gray-900 dark:text-white text-sm">
-                                                        {existingResumes[0].name}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                                        Base Resume from Professional Profile
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {/* Divider */}
-                                            <div className="relative flex items-center py-2">
-                                                <div className="flex-grow border-t border-gray-200 dark:border-[#3d3c3e]"></div>
-                                                <span className="flex-shrink-0 mx-4 text-xs font-medium text-gray-400 uppercase tracking-wider">Or select another</span>
-                                                <div className="flex-grow border-t border-gray-200 dark:border-[#3d3c3e]"></div>
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {/* Secondary Option: Custom Dropdown */}
-                                    <div className="relative" ref={resumeDropdownRef}>
-                                        {/* Dropdown Trigger */}
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsResumeDropdownOpen(!isResumeDropdownOpen)}
-                                            className={`w-full px-3 py-2.5 bg-white dark:bg-[#2b2a2c] border rounded-lg text-left flex items-center justify-between transition-all text-sm ${isResumeDropdownOpen
-                                                ? 'border-teal-500 ring-2 ring-teal-500/20'
-                                                : selectedResumeId && (!existingResumes[0]?.isProfile || selectedResumeId !== existingResumes[0].id)
-                                                    ? 'border-teal-500 ring-1 ring-teal-500/20'
-                                                    : 'border-gray-200 dark:border-[#3d3c3e] hover:border-gray-300 dark:hover:border-gray-600'
-                                                }`}
-                                        >
-                                            {selectedResumeId && (!existingResumes[0]?.isProfile || selectedResumeId !== existingResumes[0].id) ? (() => {
-                                                const selectedResume = existingResumes.find(r => r.id === selectedResumeId);
-                                                return (
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                        <FileText className="w-4 h-4 text-teal-600 dark:text-teal-400 flex-shrink-0" />
-                                                        <span className="truncate text-gray-900 dark:text-white text-sm">
-                                                            {selectedResume?.name}
-                                                        </span>
-                                                        <span className="text-gray-400 text-xs flex-shrink-0">
-                                                            ({formatDate(selectedResume?.updatedAt)})
-                                                        </span>
-                                                    </div>
-                                                );
-                                            })() : (
-                                                <div className="flex items-center gap-2">
-                                                    <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                                    <span className="text-gray-400 text-sm">
-                                                        {existingResumes[0]?.isProfile ? "Select another resume..." : "Select a base resume"}
-                                                    </span>
-                                                </div>
-                                            )}
-                                            <ChevronUp className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${isResumeDropdownOpen ? '' : 'rotate-180'}`} />
-                                        </button>
-
-                                        {/* Dropdown Panel */}
-                                        {isResumeDropdownOpen && (
-                                            <div className="absolute z-50 w-full mt-1 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-lg overflow-hidden">
-                                                {/* Search Input */}
-                                                <div className="p-2 border-b border-gray-100 dark:border-[#3d3c3e]">
-                                                    <div className="relative">
-                                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                                                        <input
-                                                            type="text"
-                                                            value={resumeSearchQuery}
-                                                            onChange={(e) => setResumeSearchQuery(e.target.value)}
-                                                            placeholder="Search resumes..."
-                                                            className="w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-[#2b2a2c] border-0 rounded-md text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-teal-500/30"
-                                                            autoFocus
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                {/* Resume List */}
-                                                <div className="max-h-52 overflow-y-auto">
-                                                    {filteredResumes.length === 0 ? (
-                                                        <div className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                                                            No resumes found
-                                                        </div>
-                                                    ) : (
-                                                        filteredResumes.map((resume, index) => (
-                                                            <button
-                                                                key={resume.id}
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setSelectedResumeId(resume.id);
-                                                                    setIsResumeDropdownOpen(false);
-                                                                    setResumeSearchQuery('');
-                                                                }}
-                                                                className={`w-full px-3 py-2.5 flex items-center gap-2.5 text-left hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors ${selectedResumeId === resume.id ? 'bg-teal-50/50 dark:bg-teal-900/10' : ''
-                                                                    } ${index !== 0 ? 'border-t border-gray-100 dark:border-[#3d3c3e]' : ''}`}
-                                                            >
-                                                                {/* Resume Icon */}
-                                                                <FileText className={`w-4 h-4 flex-shrink-0 ${selectedResumeId === resume.id ? 'text-teal-600 dark:text-teal-400' : 'text-gray-400'}`} />
-                                                                {/* Resume Info */}
-                                                                <div className="min-w-0 flex-1">
-                                                                    <p className="text-sm text-gray-900 dark:text-white truncate">
-                                                                        {resume.name}
-                                                                    </p>
-                                                                    <p className="text-xs text-gray-400 truncate">
-                                                                        Updated {formatDate(resume.updatedAt)}
-                                                                    </p>
-                                                                </div>
-                                                                {/* Checkmark if selected */}
-                                                                {selectedResumeId === resume.id && (
-                                                                    <Check className="w-4 h-4 text-teal-600 dark:text-teal-400 flex-shrink-0" />
-                                                                )}
-                                                            </button>
-                                                        ))
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                            ) : (
-                                <div className="text-center py-8 border border-dashed border-gray-200 dark:border-[#3d3c3e] rounded-xl bg-gray-50 dark:bg-[#2b2a2c]">
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">No base resumes found.</p>
+                            <div className="bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-xl p-1 mt-3">
+                                <div className="grid grid-cols-3 gap-1">
                                     <button
-                                        onClick={() => navigate('/resume-builder/new')}
-                                        className="mt-2 text-sm font-medium text-teal-600 hover:underline"
+                                        onClick={() => setDataSource('profile')}
+                                        className={`py-2 px-4 rounded-full text-xs font-semibold transition-all ${dataSource === 'profile'
+                                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                            }`}
                                     >
-                                        Create a base resume first
+                                        Cubbbe Profile
+                                    </button>
+                                    <button
+                                        onClick={() => setDataSource('upload')}
+                                        className={`py-2 px-4 rounded-full text-xs font-semibold transition-all ${dataSource === 'upload'
+                                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                            }`}
+                                    >
+                                        Resume Upload
+                                    </button>
+                                    <button
+                                        onClick={() => setDataSource('linkedin')}
+                                        className={`py-2 px-4 rounded-full text-xs font-semibold transition-all ${dataSource === 'linkedin'
+                                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                            }`}
+                                    >
+                                        LinkedIn
                                     </button>
                                 </div>
-                            )}
-                            {existingResumes.length > 0 && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    Select the base resume you want to tailor for this job application.
-                                </p>
-                            )}
+
+                                <div className="p-4 mt-1 border-t border-gray-100 dark:border-[#3d3c3e]">
+                                    {dataSource === 'profile' && (
+                                        <div className="space-y-4">
+                                            {isLoadingResumes ? (
+                                                <div className="flex justify-center py-4">
+                                                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                                                </div>
+                                            ) : existingResumes.length > 0 ? (
+                                                <div className="max-h-60 overflow-y-auto pr-1 space-y-2 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
+                                                    {existingResumes.map(resume => (
+                                                        <div
+                                                            key={resume.id}
+                                                            onClick={() => setSelectedResumeId(resume.id)}
+                                                            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border ${selectedResumeId === resume.id
+                                                                ? 'bg-[#70E000]/5 border-[#70E000] dark:bg-[#70E000]/10'
+                                                                : 'border-transparent hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
+                                                                }`}
+                                                        >
+                                                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedResumeId === resume.id ? 'border-[#70E000]' : 'border-gray-300 dark:border-gray-600'
+                                                                }`}>
+                                                                {selectedResumeId === resume.id && <div className="w-2 h-2 rounded-full bg-[#70E000]" />}
+                                                            </div>
+                                                            <FileText className={`w-5 h-5 flex-shrink-0 ${selectedResumeId === resume.id ? 'text-teal-600 dark:text-teal-400' : 'text-gray-400'}`} />
+                                                            <div className="min-w-0">
+                                                                <div className="flex items-center gap-2">
+                                                                    <p className={`font-medium text-sm truncate ${selectedResumeId === resume.id ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                                                                        {resume.name}
+                                                                    </p>
+                                                                    {resume.isProfile && (
+                                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400 border border-violet-200 dark:border-violet-800">
+                                                                            PROFILE
+                                                                        </span>
+                                                                    )}
+                                                                    {resume.sourceFileUrl && (
+                                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800">
+                                                                            PDF
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                                                    <Clock className="w-3 h-3" />
+                                                                    <span>Updated {formatDate(resume.updatedAt)}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center py-8">
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">No base resumes found.</p>
+                                                    <button
+                                                        onClick={() => navigate('/resume-builder/new')}
+                                                        className="mt-2 text-sm font-medium text-teal-600 hover:underline"
+                                                    >
+                                                        Create a base resume first
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {dataSource === 'upload' && (
+                                        <div className="space-y-3">
+                                            <div
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors ${uploadedFile
+                                                    ? 'border-teal-400 bg-teal-50/50 dark:bg-teal-900/10'
+                                                    : 'border-gray-200 dark:border-[#3d3c3e] hover:border-teal-400 dark:hover:border-teal-500'
+                                                    }`}
+                                            >
+                                                {uploadedFile ? (
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+                                                            <Check className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[200px]">
+                                                                {uploadedFile.name}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">Click to change file</p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Click to upload PDF</p>
+                                                        <p className="text-xs text-gray-500">PDF only, max 10MB</p>
+                                                    </>
+                                                )}
+                                            </div>
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                onChange={handleFileUpload}
+                                                accept=".pdf"
+                                                className="hidden"
+                                            />
+
+                                            {/* Parsing Progress */}
+                                            {isParsing && (
+                                                <div className="flex items-center gap-3 p-3 bg-teal-50 dark:bg-teal-900/10 rounded-lg border border-teal-100 dark:border-teal-800">
+                                                    <Loader2 className="w-4 h-4 animate-spin text-teal-600" />
+                                                    <span className="text-sm text-teal-700 dark:text-teal-300">{parsingStep}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {dataSource === 'linkedin' && (
+                                        <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300 opacity-60">
+                                            <Linkedin className="w-5 h-5 text-[#0077b5]" />
+                                            <div>
+                                                <p className="font-medium text-sm">LinkedIn Import</p>
+                                                <p className="text-xs text-gray-500 mt-0.5">Coming soon</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
                         <div className="border-t border-gray-100 dark:border-[#3d3c3e] pt-5 space-y-4">
