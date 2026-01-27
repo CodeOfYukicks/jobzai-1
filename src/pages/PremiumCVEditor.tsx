@@ -1428,7 +1428,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
         </header>
 
         {/* Desktop Header - Hidden on mobile */}
-        <header className="hidden lg:block h-16 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e] flex-shrink-0 z-20">
+        <header className="hidden lg:block h-12 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e] flex-shrink-0 z-20">
           <div className="h-full max-w-[1920px] mx-auto px-4 lg:px-6">
             <div className="flex items-center justify-between h-full">
               {/* Left: Title & Company */}
@@ -1527,7 +1527,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                 <div className="hidden md:block h-6 w-px bg-gray-200 dark:bg-[#3d3c3e]" />
 
                 {/* Group 1: Document Actions (Save / Save As) */}
-                <div className="flex items-center gap-1 px-1 py-0.5 bg-gray-50/80 dark:bg-[#2b2a2c]/50 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-[#3d3c3e]/50">
+                <div className="flex items-center gap-1">
                   {/* Save Button */}
                   <button
                     onClick={handleSave}
@@ -1574,7 +1574,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                 </div>
 
                 {/* Group 2: AI/Transform Actions (Translate / Compare) */}
-                <div className="flex items-center gap-1 px-1 py-0.5 bg-purple-50/50 dark:bg-purple-900/10 backdrop-blur-sm rounded-xl border border-purple-200/40 dark:border-purple-700/30">
+                <div className="flex items-center gap-1">
                   {/* Translate Button */}
                   <button
                     onClick={() => setIsTranslationModalOpen(true)}
@@ -1636,12 +1636,11 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                 <button
                   onClick={handleExport}
                   disabled={isExporting}
-                  className="group relative flex items-center gap-1.5 px-4 py-2 
+                  className="group relative flex items-center gap-1.5 px-4 py-1.5 
                     bg-[#b7e219] 
                     hover:bg-[#a5cb17] 
                     active:bg-[#9fc015]
                     text-gray-900 
-                    border border-[#9fc015]
                     rounded-xl 
                     shadow-sm 
                     hover:shadow-md 

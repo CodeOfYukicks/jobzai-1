@@ -152,107 +152,30 @@ export default function PreviewContainer({
 
   return (
     <div ref={containerRef} className="h-full flex flex-col bg-gray-100 dark:bg-[#333234] relative">
-      {/* Zoom Controls Bar - Hidden on mobile */}
-      {!isMobile && (
-        <div className="relative z-30 flex-shrink-0 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e]">
-          <div className="px-4 py-3 flex items-center justify-between">
-            {/* Zoom Controls */}
-            <div className="flex items-center gap-2">
-              {/* Zoom Out */}
-              <button
-                onClick={onZoomOut}
-                disabled={zoom <= 50}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Zoom out (Ctrl -)"
-              >
-                <ZoomOut className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </button>
 
-              {/* Zoom Percentage */}
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[50px] text-center">
-                  {zoom}%
-                </span>
-              </div>
 
-              {/* Zoom In */}
-              <button
-                onClick={onZoomIn}
-                disabled={zoom >= 150}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Zoom in (Ctrl +)"
-              >
-                <ZoomIn className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </button>
+      {/* Floating Zoom Controls - Desktop & Mobile */}
+      <div className="absolute top-4 right-4 z-[100] flex items-center gap-0.5 bg-[#2e2344] text-white rounded-lg px-1 py-1 shadow-xl border border-white/10">
+        <button
+          onClick={isMobile ? () => setMobileZoom(prev => Math.max(prev - 10, 30)) : onZoomOut}
+          disabled={isMobile ? mobileZoom <= 30 : zoom <= 50}
+          className="p-1 hover:bg-white/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Zoom out"
+        >
+          <ZoomOut className="w-3.5 h-3.5" />
+        </button>
 
-              {/* Divider */}
-              <div className="w-px h-6 bg-gray-200 dark:bg-[#3d3c3e] mx-2" />
+        <div className="w-px h-3 bg-white/20 mx-0.5" />
 
-              {/* Zoom Presets */}
-              <div className="flex items-center gap-1">
-                {ZOOM_PRESETS.map(preset => (
-                  <button
-                    key={preset}
-                    onClick={() => handleZoomPreset(preset)}
-                    className={`
-                    px-3 py-1 text-xs font-medium rounded-md transition-colors
-                    ${zoom === preset
-                        ? 'bg-[#635BFF]/10 dark:bg-[#5249e6]/30 text-[#635BFF] dark:text-[#a5a0ff]'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                      }
-                  `}
-                  >
-                    {preset}%
-                  </button>
-                ))}
-              </div>
-
-              {/* Reset */}
-              <button
-                onClick={onZoomReset}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                title="Reset zoom"
-              >
-                <RefreshCw className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </button>
-            </div>
-
-            {/* Right side actions */}
-            <div className="flex items-center gap-2">
-              {onToggleFullscreen && (
-                <button
-                  onClick={onToggleFullscreen}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                  title="Fullscreen"
-                >
-                  <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mobile Zoom Controls - Simple floating buttons */}
-      {isMobile && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-md rounded-full px-3 py-2 shadow-lg border border-gray-200 dark:border-[#3d3c3e]">
-          <button
-            onClick={() => setMobileZoom(prev => Math.max(prev - 10, 30))}
-            className="p-1.5 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
-          >
-            <ZoomOut className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-          </button>
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-400 min-w-[40px] text-center">
-            {mobileZoom}%
-          </span>
-          <button
-            onClick={() => setMobileZoom(prev => Math.min(prev + 10, 100))}
-            className="p-1.5 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-full transition-colors"
-          >
-            <ZoomIn className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-          </button>
-        </div>
-      )}
+        <button
+          onClick={isMobile ? () => setMobileZoom(prev => Math.min(prev + 10, 100)) : onZoomIn}
+          disabled={isMobile ? mobileZoom >= 100 : zoom >= 150}
+          className="p-1 hover:bg-white/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Zoom in"
+        >
+          <ZoomIn className="w-3.5 h-3.5" />
+        </button>
+      </div>
 
       {/* Preview Area - Less padding on mobile */}
       <div className={`flex-1 min-h-0 overflow-auto ${isMobile ? 'p-4 pb-24' : 'p-8 pb-16'} flex flex-col`}>
