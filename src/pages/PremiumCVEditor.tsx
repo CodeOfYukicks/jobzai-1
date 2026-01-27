@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import PDFExportButton from '../components/cv-editor/PDFExportButton';
 import {
   Download, Save, Eye, X, ZoomIn, ZoomOut, RefreshCw, FolderOpen, Languages, Loader2, GitCompare, MoreHorizontal, ChevronLeft, Sparkles, Palette, Settings, FileText
 } from 'lucide-react';
@@ -1633,6 +1634,14 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                 </div>
 
                 {/* Group 3: Primary Export Action */}
+                {/* New Beta Export Button */}
+                <PDFExportButton
+                  cvData={cvData}
+                  template={template}
+                  settings={layoutSettings}
+                />
+
+                {/* Legacy Export Button */}
                 <button
                   onClick={handleExport}
                   disabled={isExporting}
