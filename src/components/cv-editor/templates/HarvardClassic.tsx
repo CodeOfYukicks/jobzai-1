@@ -349,12 +349,14 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
                   </h2>
                   {cvData.languages?.length > 0 ? (
                     <div className="text-gray-700" style={{ fontSize: '0.95em' }}>
-                      {cvData.languages.map((lang, idx) => (
-                        <span key={lang.id}>
-                          {lang.name} ({lang.proficiency})
-                          {idx < cvData.languages.length - 1 && ' • '}
-                        </span>
-                      ))}
+                      <p className="text-justify">
+                        {cvData.languages.map((lang, idx) => (
+                          <span key={lang.id}>
+                            {lang.name} ({lang.proficiency})
+                            {idx < cvData.languages.length - 1 && ' • '}
+                          </span>
+                        ))}
+                      </p>
                     </div>
                   ) : (
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">

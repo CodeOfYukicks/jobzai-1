@@ -287,14 +287,14 @@ const HarvardClassicPDF: React.FC<HarvardClassicPDFProps> = ({ data, settings })
                 return languages.length > 0 && (
                     <View style={dynamicStyles.section} key="languages">
                         <Text style={dynamicStyles.sectionTitle}>Languages</Text>
-                        <View style={dynamicStyles.inlineList}>
+                        <Text style={{ ...dynamicStyles.description, textAlign: 'justify' }}>
                             {languages.map((lang, index) => (
-                                <Text key={lang.id} style={dynamicStyles.inlineItem}>
+                                <Text key={lang.id}>
                                     {lang.name} {lang.proficiency ? `(${lang.proficiency})` : ''}
                                     {index < languages.length - 1 ? ' • ' : ''}
                                 </Text>
                             ))}
-                        </View>
+                        </Text>
                     </View>
                 );
             default:
