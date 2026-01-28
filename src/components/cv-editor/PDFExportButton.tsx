@@ -3,7 +3,7 @@ import { PDFDownloadLink } from '@react-pdf/renderer';
 import { Download, Loader2 } from 'lucide-react';
 import { CVData, CVLayoutSettings, CVTemplate } from '../../types/cvEditor';
 import ModernProfessionalPDF from './pdf-templates/ModernProfessionalPDF';
-import ExecutiveClassicPDF from './pdf-templates/ExecutiveClassicPDF';
+import { ExecutiveClassicPDF } from './pdf-templates/ExecutiveClassicPDF';
 
 interface PDFExportButtonProps {
     cvData: CVData;
@@ -51,7 +51,7 @@ const PDFExportButton: React.FC<PDFExportButtonProps> = ({ cvData, template, set
         ${className || ''}
       `}
         >
-            {({ blob, url, loading, error }) => {
+            {({ loading, error }) => {
                 if (error) {
                     console.error('PDF Generation Error:', error);
                     return <span>Error</span>;

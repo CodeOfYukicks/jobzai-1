@@ -19,7 +19,7 @@ const styles = StyleSheet.create({
         color: '#111827',
     },
     header: {
-        marginBottom: 32,
+        marginBottom: 20, // Reduced from 32
         borderBottomWidth: 1,
         borderBottomColor: '#1F2937', // gray-800
         paddingBottom: 16,
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
         width: '28%', // Slightly less than 30 to account for gap
     },
     section: {
-        marginBottom: 24,
+        marginBottom: 16, // Reduced from 24
     },
     sectionTitle: {
         fontSize: 11,
@@ -151,14 +151,15 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
     const fontSize = settings?.fontSize || 10;
     const lineHeight = settings?.lineHeight || 1.4;
     const fontFamily = settings?.fontFamily || 'Times-Roman';
-    // Web uses (value * 4)px. 1px approx 0.75pt. So value * 3pt is a good approximation.
-    const spacing = (settings?.experienceSpacing || 6) * 3;
+    // Web uses (value * 4)px. 1px approx 0.75pt. So value * 2.5pt is a good approximation for tighter PDF.
+    const spacing = (settings?.experienceSpacing || 4) * 2.5;
 
     const dynamicStyles = StyleSheet.create({
         page: {
             fontFamily: fontFamily,
             fontSize: fontSize,
             lineHeight: lineHeight,
+            padding: 30, // Reduced padding to fit more content
         },
         experienceItem: {
             marginBottom: spacing,
@@ -166,7 +167,7 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
         sectionTitle: {
             fontSize: fontSize + 1,
             letterSpacing: 1,
-            marginBottom: 12,
+            marginBottom: 8, // Reduced from 12
             fontWeight: 'bold',
             textTransform: 'uppercase',
             color: '#1F2937',
@@ -174,7 +175,7 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
         name: {
             fontSize: fontSize * 2.4,
             fontWeight: 'bold',
-            marginBottom: 8,
+            marginBottom: 12, // Increased from 8 to separate from title
             textTransform: 'uppercase',
             letterSpacing: 1,
             textAlign: 'center',
@@ -384,4 +385,4 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
     );
 };
 
-export default ExecutiveClassicPDF;
+export { ExecutiveClassicPDF };
