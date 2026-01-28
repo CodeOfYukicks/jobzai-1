@@ -35,6 +35,7 @@ const PDFExportButton: React.FC<PDFExportButtonProps> = ({ cvData, template, set
 
     return (
         <PDFDownloadLink
+            key={`${JSON.stringify(cvData.sections)}-${JSON.stringify(settings)}`}
             document={renderDocument()}
             fileName={fileName}
             className={`

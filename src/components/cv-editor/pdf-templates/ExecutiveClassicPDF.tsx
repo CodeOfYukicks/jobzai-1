@@ -19,33 +19,17 @@ const styles = StyleSheet.create({
         color: '#111827',
     },
     header: {
-        marginBottom: 20, // Reduced from 32
+        marginBottom: 20,
         borderBottomWidth: 1,
         borderBottomColor: '#1F2937', // gray-800
         paddingBottom: 16,
         alignItems: 'center',
-    },
-    name: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 8,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-        textAlign: 'center',
-    },
-    title: {
-        fontSize: 14,
-        color: '#374151', // gray-700
-        marginBottom: 12,
-        fontStyle: 'italic',
-        textAlign: 'center',
     },
     contactRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'center',
         gap: 12,
-        fontSize: 9,
         color: '#4B5563', // gray-600
         marginBottom: 4,
     },
@@ -58,7 +42,6 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
         justifyContent: 'center',
         gap: 12,
-        fontSize: 9,
         color: '#4B5563', // gray-600
         marginTop: 2,
     },
@@ -73,18 +56,7 @@ const styles = StyleSheet.create({
         width: '28%', // Slightly less than 30 to account for gap
     },
     section: {
-        marginBottom: 16, // Reduced from 24
-    },
-    sectionTitle: {
-        fontSize: 11,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-        marginBottom: 12,
-        color: '#1F2937', // gray-800
-    },
-    experienceItem: {
-        marginBottom: 12,
+        marginBottom: 16,
     },
     experienceHeader: {
         flexDirection: 'row',
@@ -93,23 +65,19 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     companyName: {
-        fontSize: 10,
         fontStyle: 'italic',
         color: '#374151',
     },
     jobTitle: {
         fontWeight: 'bold',
-        fontSize: 11,
         color: '#111827',
     },
     dateLocation: {
-        fontSize: 9,
         color: '#4B5563',
         fontStyle: 'italic',
     },
     description: {
         marginBottom: 4,
-        fontSize: 10,
         color: '#374151',
         textAlign: 'justify',
     },
@@ -120,12 +88,10 @@ const styles = StyleSheet.create({
     },
     bullet: {
         width: 10,
-        fontSize: 10,
         color: '#374151',
     },
     bulletText: {
         flex: 1,
-        fontSize: 10,
         color: '#374151',
         textAlign: 'justify',
     },
@@ -133,7 +99,6 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     skillItem: {
-        fontSize: 10,
         marginBottom: 2,
         color: '#374151',
     },
@@ -151,43 +116,57 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
     const fontSize = settings?.fontSize || 10;
     const lineHeight = settings?.lineHeight || 1.4;
     const fontFamily = settings?.fontFamily || 'Times-Roman';
-    // Web uses (value * 4)px. 1px approx 0.75pt. So value * 2.5pt is a good approximation for tighter PDF.
-    const spacing = (settings?.experienceSpacing || 4) * 2.5;
+
+    // Match Preview logic: (value * 4)px. 
+    // Converting to points: 1px approx 0.75pt. 
+    // So (value * 4) * 0.75 = value * 3.
+    const spacingValue = settings?.experienceSpacing ?? 6;
+    const spacing = spacingValue * 3;
 
     const dynamicStyles = StyleSheet.create({
         page: {
             fontFamily: fontFamily,
             fontSize: fontSize,
             lineHeight: lineHeight,
-            padding: 30, // Reduced padding to fit more content
+            padding: 30,
         },
         experienceItem: {
             marginBottom: spacing,
         },
         sectionTitle: {
-            fontSize: fontSize + 1,
+            fontSize: fontSize, // 1em
             letterSpacing: 1,
-            marginBottom: 8, // Reduced from 12
+            marginBottom: 8,
             fontWeight: 'bold',
             textTransform: 'uppercase',
             color: '#1F2937',
         },
         name: {
-            fontSize: fontSize * 2.4,
+            fontSize: fontSize * 2.25, // 2.25em
             fontWeight: 'bold',
-            marginBottom: 12, // Increased from 8 to separate from title
+            marginBottom: 16, // Increased to 16 to fix title spacing
             textTransform: 'uppercase',
             letterSpacing: 1,
             textAlign: 'center',
         },
         title: {
-            fontSize: fontSize * 1.4,
+            fontSize: fontSize * 1.25, // 1.25em
             color: '#374151',
             marginBottom: 12,
             fontStyle: 'italic',
             textAlign: 'center',
         },
+        // Font size helpers matching Preview em values
+        text09: { fontSize: fontSize * 0.9 },
+        text095: { fontSize: fontSize * 0.95 },
+        text10: { fontSize: fontSize },
     });
+
+    const LEFT_COLUMN_TYPES = ['summary', 'experience', 'projects'];
+    const RIGHT_COLUMN_TYPES = ['education', 'skills', 'certifications', 'languages'];
+
+    const leftSections = enabledSections.filter(s => LEFT_COLUMN_TYPES.includes(s.type));
+    const rightSections = enabledSections.filter(s => RIGHT_COLUMN_TYPES.includes(s.type));
 
     const renderSection = (type: string) => {
         switch (type) {
@@ -195,7 +174,7 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
                 return summary && (
                     <View style={styles.section} key="summary">
                         <Text style={dynamicStyles.sectionTitle}>Executive Summary</Text>
-                        <Text style={{ fontSize: fontSize, color: '#374151', textAlign: 'justify', lineHeight: lineHeight }}>{summary}</Text>
+                        <Text style={{ ...dynamicStyles.text10, color: '#374151', textAlign: 'justify', lineHeight: lineHeight }}>{summary}</Text>
                     </View>
                 );
             case 'experience':
@@ -206,21 +185,21 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
                             <View key={exp.id} style={dynamicStyles.experienceItem}>
                                 <View style={{ marginBottom: 4 }}>
                                     <View style={styles.experienceHeader}>
-                                        <Text style={{ ...styles.jobTitle, fontSize: fontSize + 1 }}>{exp.title}</Text>
-                                        <Text style={{ ...styles.dateLocation, fontSize: fontSize - 1 }}>
+                                        <Text style={{ ...styles.jobTitle, ...dynamicStyles.text10 }}>{exp.title}</Text>
+                                        <Text style={{ ...styles.dateLocation, ...dynamicStyles.text09 }}>
                                             {formatDateRange(exp.startDate, exp.endDate, exp.current)}
                                         </Text>
                                     </View>
-                                    <Text style={{ ...styles.companyName, fontSize: fontSize }}>
+                                    <Text style={{ ...styles.companyName, ...dynamicStyles.text095 }}>
                                         {exp.company}
                                         {exp.location && ` — ${exp.location}`}
                                     </Text>
                                 </View>
-                                {exp.description && <Text style={{ ...styles.description, fontSize: fontSize }}>{exp.description}</Text>}
+                                {exp.description && <Text style={{ ...styles.description, ...dynamicStyles.text095 }}>{exp.description}</Text>}
                                 {exp.bullets.map((bullet, index) => (
                                     <View key={index} style={styles.bulletPoint}>
-                                        <Text style={{ ...styles.bullet, fontSize: fontSize }}>•</Text>
-                                        <Text style={{ ...styles.bulletText, fontSize: fontSize }}>{bullet}</Text>
+                                        <Text style={{ ...styles.bullet, ...dynamicStyles.text095 }}>•</Text>
+                                        <Text style={{ ...styles.bulletText, ...dynamicStyles.text095 }}>{bullet}</Text>
                                     </View>
                                 ))}
                             </View>
@@ -234,18 +213,18 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
                         {projects.map((project) => (
                             <View key={project.id} style={dynamicStyles.experienceItem}>
                                 <View style={styles.experienceHeader}>
-                                    <Text style={{ ...styles.jobTitle, fontSize: fontSize + 1 }}>{project.name}</Text>
+                                    <Text style={{ ...styles.jobTitle, ...dynamicStyles.text10 }}>{project.name}</Text>
                                     {project.startDate && (
-                                        <Text style={{ ...styles.dateLocation, fontSize: fontSize - 1 }}>
+                                        <Text style={{ ...styles.dateLocation, ...dynamicStyles.text09 }}>
                                             {formatDateRange(project.startDate, project.endDate || '', !project.endDate)}
                                         </Text>
                                     )}
                                 </View>
-                                <Text style={{ ...styles.description, fontSize: fontSize }}>{project.description}</Text>
+                                <Text style={{ ...styles.description, ...dynamicStyles.text095 }}>{project.description}</Text>
                                 {project.highlights.map((highlight, index) => (
                                     <View key={index} style={styles.bulletPoint}>
-                                        <Text style={{ ...styles.bullet, fontSize: fontSize }}>•</Text>
-                                        <Text style={{ ...styles.bulletText, fontSize: fontSize }}>{highlight}</Text>
+                                        <Text style={{ ...styles.bullet, ...dynamicStyles.text095 }}>•</Text>
+                                        <Text style={{ ...styles.bulletText, ...dynamicStyles.text095 }}>{highlight}</Text>
                                     </View>
                                 ))}
                             </View>
@@ -258,13 +237,13 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
                         <Text style={dynamicStyles.sectionTitle}>Education</Text>
                         {education.map((edu) => (
                             <View key={edu.id} style={styles.educationItem}>
-                                <Text style={{ fontWeight: 'bold', fontSize: fontSize + 1, color: '#111827' }}>{edu.degree}</Text>
-                                {edu.field && <Text style={{ fontSize: fontSize, fontStyle: 'italic', color: '#374151' }}>{edu.field}</Text>}
-                                <Text style={{ fontSize: fontSize, color: '#374151' }}>{edu.institution}</Text>
-                                <Text style={{ fontSize: fontSize - 1, fontStyle: 'italic', color: '#4B5563' }}>{formatDate(edu.endDate)}</Text>
-                                {edu.gpa && <Text style={{ fontSize: fontSize - 1, color: '#4B5563' }}>GPA: {edu.gpa}</Text>}
+                                <Text style={{ fontWeight: 'bold', ...dynamicStyles.text10, color: '#111827' }}>{edu.degree}</Text>
+                                {edu.field && <Text style={{ ...dynamicStyles.text095, fontStyle: 'italic', color: '#374151' }}>{edu.field}</Text>}
+                                <Text style={{ ...dynamicStyles.text095, color: '#374151' }}>{edu.institution}</Text>
+                                <Text style={{ ...dynamicStyles.text09, fontStyle: 'italic', color: '#4B5563' }}>{formatDate(edu.endDate)}</Text>
+                                {edu.gpa && <Text style={{ ...dynamicStyles.text09, color: '#4B5563' }}>GPA: {edu.gpa}</Text>}
                                 {edu.honors && edu.honors.length > 0 && (
-                                    <Text style={{ fontSize: fontSize - 1, fontStyle: 'italic', color: '#4B5563', marginTop: 2 }}>
+                                    <Text style={{ ...dynamicStyles.text09, fontStyle: 'italic', color: '#4B5563', marginTop: 2 }}>
                                         {edu.honors.join(', ')}
                                     </Text>
                                 )}
@@ -278,6 +257,7 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
                         <Text style={dynamicStyles.sectionTitle}>Core Competencies</Text>
                         <View>
                             {skills.map((skill) => {
+                                const shouldShowLevel = settings?.showSkillLevel !== false;
                                 const levelLabels: Record<string, string> = {
                                     'beginner': 'Beginner',
                                     'intermediate': 'Intermediate',
@@ -285,9 +265,9 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
                                     'expert': 'Expert'
                                 };
                                 return (
-                                    <Text key={skill.id} style={{ ...styles.skillItem, fontSize: fontSize }}>
+                                    <Text key={skill.id} style={{ ...styles.skillItem, ...dynamicStyles.text095 }}>
                                         • {skill.name}
-                                        {skill.level && (
+                                        {shouldShowLevel && skill.level && (
                                             <Text style={styles.skillLevel}> ({levelLabels[skill.level] || skill.level})</Text>
                                         )}
                                     </Text>
@@ -302,8 +282,8 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
                         <Text style={dynamicStyles.sectionTitle}>Certifications</Text>
                         {certifications.map((cert) => (
                             <View key={cert.id} style={{ marginBottom: 8 }}>
-                                <Text style={{ fontWeight: 'bold', fontSize: fontSize, color: '#111827' }}>{cert.name}</Text>
-                                <Text style={{ fontSize: fontSize - 1, fontStyle: 'italic', color: '#4B5563' }}>
+                                <Text style={{ fontWeight: 'bold', ...dynamicStyles.text095, color: '#111827' }}>{cert.name}</Text>
+                                <Text style={{ ...dynamicStyles.text09, fontStyle: 'italic', color: '#4B5563' }}>
                                     {cert.issuer}, {formatDate(cert.date)}
                                 </Text>
                             </View>
@@ -316,7 +296,7 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
                         <Text style={dynamicStyles.sectionTitle}>Languages</Text>
                         {languages.map((lang) => (
                             <View key={lang.id} style={{ marginBottom: 4 }}>
-                                <Text style={{ fontSize: fontSize, color: '#374151' }}>
+                                <Text style={{ ...dynamicStyles.text095, color: '#374151' }}>
                                     <Text style={{ fontWeight: 'bold' }}>{lang.name}</Text>
                                     <Text style={{ fontStyle: 'italic', color: '#4B5563' }}> — {lang.proficiency}</Text>
                                 </Text>
@@ -338,21 +318,21 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
                     {personalInfo.title && <Text style={dynamicStyles.title}>{personalInfo.title}</Text>}
 
                     <View style={styles.contactRow}>
-                        {personalInfo.email && <Text style={{ ...styles.contactItem, fontSize: fontSize - 1 }}>{personalInfo.email}</Text>}
+                        {personalInfo.email && <Text style={{ ...styles.contactItem, ...dynamicStyles.text09 }}>{personalInfo.email}</Text>}
                         {personalInfo.email && personalInfo.phone && <Text> • </Text>}
-                        {personalInfo.phone && <Text style={{ ...styles.contactItem, fontSize: fontSize - 1 }}>{personalInfo.phone}</Text>}
+                        {personalInfo.phone && <Text style={{ ...styles.contactItem, ...dynamicStyles.text09 }}>{personalInfo.phone}</Text>}
                         {(personalInfo.email || personalInfo.phone) && personalInfo.location && <Text> • </Text>}
-                        {personalInfo.location && <Text style={{ ...styles.contactItem, fontSize: fontSize - 1 }}>{personalInfo.location}</Text>}
+                        {personalInfo.location && <Text style={{ ...styles.contactItem, ...dynamicStyles.text09 }}>{personalInfo.location}</Text>}
                     </View>
 
                     {(personalInfo.linkedin || personalInfo.portfolio) && (
                         <View style={styles.linksRow}>
                             {personalInfo.linkedin && (
-                                <Text style={{ ...styles.contactItem, fontSize: fontSize - 1 }}>{personalInfo.linkedin.replace(/^https?:\/\//, '')}</Text>
+                                <Text style={{ ...styles.contactItem, ...dynamicStyles.text09 }}>{personalInfo.linkedin.replace(/^https?:\/\//, '')}</Text>
                             )}
                             {personalInfo.linkedin && personalInfo.portfolio && <Text> • </Text>}
                             {personalInfo.portfolio && (
-                                <Text style={{ ...styles.contactItem, fontSize: fontSize - 1 }}>{personalInfo.portfolio.replace(/^https?:\/\//, '')}</Text>
+                                <Text style={{ ...styles.contactItem, ...dynamicStyles.text09 }}>{personalInfo.portfolio.replace(/^https?:\/\//, '')}</Text>
                             )}
                         </View>
                     )}
@@ -362,22 +342,12 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
                 <View style={styles.mainContainer}>
                     {/* Left Column */}
                     <View style={styles.leftColumn}>
-                        {enabledSections.map(section => {
-                            if (['summary', 'experience', 'projects'].includes(section.type)) {
-                                return renderSection(section.type);
-                            }
-                            return null;
-                        })}
+                        {leftSections.map(section => renderSection(section.type))}
                     </View>
 
                     {/* Right Column */}
                     <View style={styles.rightColumn}>
-                        {enabledSections.map(section => {
-                            if (['education', 'skills', 'certifications', 'languages'].includes(section.type)) {
-                                return renderSection(section.type);
-                            }
-                            return null;
-                        })}
+                        {rightSections.map(section => renderSection(section.type))}
                     </View>
                 </View>
             </Page>
