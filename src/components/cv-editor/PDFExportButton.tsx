@@ -4,6 +4,7 @@ import { Download, Loader2 } from 'lucide-react';
 import { CVData, CVLayoutSettings, CVTemplate } from '../../types/cvEditor';
 import ModernProfessionalPDF from './pdf-templates/ModernProfessionalPDF';
 import { ExecutiveClassicPDF } from './pdf-templates/ExecutiveClassicPDF';
+import HarvardClassicPDF from './pdf-templates/HarvardClassicPDF';
 
 interface PDFExportButtonProps {
     cvData: CVData;
@@ -27,6 +28,8 @@ const PDFExportButton: React.FC<PDFExportButtonProps> = ({ cvData, template, set
         switch (template) {
             case 'executive-classic':
                 return <ExecutiveClassicPDF data={cvData} settings={settings} />;
+            case 'harvard-classic':
+                return <HarvardClassicPDF data={cvData} settings={settings} />;
             case 'modern-professional':
             default:
                 return <ModernProfessionalPDF data={cvData} settings={settings} />;

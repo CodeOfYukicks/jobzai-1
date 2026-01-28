@@ -25,10 +25,10 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
   const baseFontSize = layoutSettings.fontSize;
 
   return (
-    <div 
-      className="text-gray-900" 
-      style={{ 
-        fontSize: `${baseFontSize}pt`, 
+    <div
+      className="text-gray-900"
+      style={{
+        fontSize: `${baseFontSize}pt`,
         lineHeight: layoutSettings.lineHeight,
         fontFamily: layoutSettings.fontFamily || 'Georgia, serif'
       }}
@@ -36,13 +36,20 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
       {/* Header - Harvard Style: Centered, Name in caps */}
       <ClickableSection sectionType="personal" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
         <header className="text-center mb-4 pb-3 border-b border-gray-400">
-          <h1 
-            className="font-bold text-gray-900 tracking-wider mb-1" 
+          <h1
+            className="font-bold text-gray-900 tracking-wider mb-1"
             style={{ fontSize: '1.75em', letterSpacing: '0.15em' }}
           >
             {cvData.personalInfo.firstName?.toUpperCase()} {cvData.personalInfo.lastName?.toUpperCase()}
           </h1>
-          
+
+          {/* Professional Title */}
+          {cvData.personalInfo.title && (
+            <div className="text-gray-600 mb-2 uppercase tracking-widest" style={{ fontSize: '1em' }}>
+              {cvData.personalInfo.title}
+            </div>
+          )}
+
           {/* Contact Info - Single line with pipes */}
           <div className="flex justify-center flex-wrap gap-1 text-gray-700" style={{ fontSize: '0.85em' }}>
             {cvData.personalInfo.location && (
@@ -61,7 +68,7 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
               <span>{cvData.personalInfo.email}</span>
             )}
           </div>
-          
+
           {/* Links on second line if present */}
           {(cvData.personalInfo.linkedin || cvData.personalInfo.portfolio || cvData.personalInfo.github) && (
             <div className="flex justify-center flex-wrap gap-1 text-gray-600 mt-1" style={{ fontSize: '0.85em' }}>
@@ -92,8 +99,8 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
             return (
               <ClickableSection key={section.id} sectionType="summary" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <section className="mb-4">
-                  <h2 
-                    className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2" 
+                  <h2
+                    className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2"
                     style={{ fontSize: '0.9em', letterSpacing: '0.1em' }}
                   >
                     Summary
@@ -115,14 +122,14 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
             return (
               <ClickableSection key={section.id} sectionType="education" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <section className="mb-4">
-                  <h2 
-                    className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2" 
+                  <h2
+                    className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2"
                     style={{ fontSize: '0.9em', letterSpacing: '0.1em' }}
                   >
                     Education
                   </h2>
                   {cvData.education?.length > 0 ? (
-                    <div className="space-y-3">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: `${(layoutSettings.experienceSpacing ?? 6) * 4}px` }}>
                       {cvData.education.map(edu => (
                         <ClickableSection key={edu.id} sectionType="education" itemId={edu.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                           <div className="flex justify-between items-start">
@@ -164,8 +171,8 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
             return (
               <ClickableSection key={section.id} sectionType="experience" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <section className="mb-4">
-                  <h2 
-                    className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2" 
+                  <h2
+                    className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2"
                     style={{ fontSize: '0.9em', letterSpacing: '0.1em' }}
                   >
                     Experience
@@ -195,7 +202,7 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
                                 {exp.bullets.map((bullet, idx) => (
                                   <li key={idx} className="text-gray-700 flex" style={{ fontSize: '0.95em' }}>
                                     <span className="mr-2">•</span>
-                                    <span className="flex-1">{bullet}</span>
+                                    <span className="flex-1 text-justify">{bullet}</span>
                                   </li>
                                 ))}
                               </ul>
@@ -217,15 +224,15 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
             return (
               <ClickableSection key={section.id} sectionType="skills" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <section className="mb-4">
-                  <h2 
-                    className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2" 
+                  <h2
+                    className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2"
                     style={{ fontSize: '0.9em', letterSpacing: '0.1em' }}
                   >
                     Skills
                   </h2>
                   {cvData.skills?.length > 0 ? (
                     <div className="text-gray-700" style={{ fontSize: '0.95em' }}>
-                      <p>
+                      <p className="text-justify">
                         {cvData.skills.map((skill, idx) => (
                           <span key={skill.id}>
                             {skill.name}
@@ -247,8 +254,8 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
             return (
               <ClickableSection key={section.id} sectionType="certifications" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <section className="mb-4">
-                  <h2 
-                    className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2" 
+                  <h2
+                    className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2"
                     style={{ fontSize: '0.9em', letterSpacing: '0.1em' }}
                   >
                     Certifications
@@ -280,8 +287,8 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
             return (
               <ClickableSection key={section.id} sectionType="projects" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <section className="mb-4">
-                  <h2 
-                    className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2" 
+                  <h2
+                    className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2"
                     style={{ fontSize: '0.9em', letterSpacing: '0.1em' }}
                   >
                     Projects
@@ -334,8 +341,8 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
             return (
               <ClickableSection key={section.id} sectionType="languages" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                 <section className="mb-4">
-                  <h2 
-                    className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2" 
+                  <h2
+                    className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2"
                     style={{ fontSize: '0.9em', letterSpacing: '0.1em' }}
                   >
                     Languages
