@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import PDFExportButton from '../components/cv-editor/PDFExportButton';
 import {
-  Download, Save, Eye, X, ZoomIn, ZoomOut, RefreshCw, FolderOpen, Languages, Loader2, GitCompare, MoreHorizontal, ChevronLeft, Sparkles, Palette, Settings, FileText
+  Download, Save, Eye, X, ZoomIn, ZoomOut, RefreshCw, FolderOpen, Languages, Loader2, GitCompare, MoreHorizontal, ChevronLeft, Sparkles, Palette, Settings, FileText, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { notify } from '@/lib/notify';
@@ -1053,14 +1053,15 @@ export default function PremiumCVEditor() {
       setIsExportModalOpen(false);
 
       notify.success(
-        <div className="flex flex-col gap-1">
-          <span>PDF saved to library!</span>
-          <button
-            onClick={() => navigate('/resume-builder')}
-            className="text-xs text-purple-600 dark:text-purple-400 hover:underline text-left"
-          >
-            View in Resume Builder →
-          </button>
+        <div
+          className="flex flex-col gap-1 cursor-pointer pointer-events-auto"
+          onClick={() => navigate('/resume-builder')}
+        >
+          <span className="font-semibold text-white">PDF saved to library!</span>
+          <div className="flex items-center gap-1.5 text-xs text-purple-200 hover:text-white transition-colors font-medium group">
+            <span>View in Resume Builder</span>
+            <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+          </div>
         </div>,
         { duration: 5000 }
       );
@@ -1429,7 +1430,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
         </header>
 
         {/* Desktop Header - Hidden on mobile */}
-        <header className="hidden lg:block h-12 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e] flex-shrink-0 z-20">
+        <header className="hidden lg:block h-12 bg-white dark:bg-[#242325] border-b border-gray-200 dark:border-[#3d3c3e] flex-shrink-0 relative z-[110]">
           <div className="h-full max-w-[1920px] mx-auto px-4 lg:px-6">
             <div className="flex items-center justify-between h-full">
               {/* Left: Title & Company */}
@@ -1639,31 +1640,10 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                   cvData={cvData}
                   template={template}
                   settings={layoutSettings}
+                  onSaveToLibrary={(blob, fileName) => handleExportToLibrary(fileName, null, blob)}
                 />
 
-                {/* Legacy Export Button */}
-                <button
-                  onClick={handleExport}
-                  disabled={isExporting}
-                  className="group relative flex items-center gap-1.5 px-4 py-1.5 
-                    bg-[#b7e219] 
-                    hover:bg-[#a5cb17] 
-                    active:bg-[#9fc015]
-                    text-gray-900 
-                    rounded-xl 
-                    shadow-sm 
-                    hover:shadow-md 
-                    active:scale-[0.98] 
-                    transition-all duration-200 
-                    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#b7e219] disabled:hover:shadow-sm disabled:active:scale-100
-                    font-semibold text-xs"
-                  title="Export as PDF"
-                >
-                  <Download className="w-3.5 h-3.5 group-hover:animate-bounce" style={{ animationDuration: '0.6s', animationIterationCount: '1' }} />
-                  <span className="hidden md:inline">
-                    {isExporting ? 'Exporting...' : 'Export PDF'}
-                  </span>
-                </button>
+
               </div>
             </div>
           </div>

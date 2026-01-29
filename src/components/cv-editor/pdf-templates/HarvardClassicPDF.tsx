@@ -44,8 +44,6 @@ const HarvardClassicPDF: React.FC<HarvardClassicPDFProps> = ({ data, settings })
         header: {
             alignItems: 'center',
             marginBottom: 8, // Reduced margin
-            borderBottomWidth: 1,
-            borderBottomColor: '#9CA3AF', // gray-400
             paddingBottom: 12,
         },
         name: {

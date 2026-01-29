@@ -35,7 +35,7 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
     >
       {/* Header - Harvard Style: Centered, Name in caps */}
       <ClickableSection sectionType="personal" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-        <header className="text-center mb-4 pb-3 border-b border-gray-400">
+        <header className="text-center mb-4 pb-3">
           <h1
             className="font-bold text-gray-900 tracking-wider mb-1"
             style={{ fontSize: '1.75em', letterSpacing: '0.15em' }}

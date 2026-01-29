@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { 
+import {
   Plus, Trash2, Calendar, Edit3,
   Wand2, TrendingUp, Target, Hash, FileText, Zap,
-  X, Check, Loader2, Sparkles, GripVertical, Star, Upload, User, Image, ZoomIn, ZoomOut
+  X, Check, Loader2, Sparkles, GripVertical, Star, Upload, User, Image, ZoomIn, ZoomOut,
+  Linkedin, Github, Globe, Twitter, Dribbble
 } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import type { Area, Point } from 'react-easy-crop';
@@ -113,11 +114,11 @@ const AI_ACTIONS = [
   { id: 'shorten', label: 'Shorten', icon: <Zap className="w-3.5 h-3.5" /> }
 ];
 
-export default function SectionEditor({ 
-  section, 
-  data, 
-  onChange, 
-  jobContext, 
+export default function SectionEditor({
+  section,
+  data,
+  onChange,
+  jobContext,
   fullCV,
   externalEditItemId,
   onExternalEditProcessed,
@@ -132,7 +133,7 @@ export default function SectionEditor({
   const [currentAction, setCurrentAction] = useState<string>('');
   const [showDiff, setShowDiff] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  
+
   // Photo crop modal states
   const [showCropModal, setShowCropModal] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
@@ -140,7 +141,17 @@ export default function SectionEditor({
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
-  
+  const summaryTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize summary textarea
+  useEffect(() => {
+    if (section.type === 'summary' && summaryTextareaRef.current) {
+      const textarea = summaryTextareaRef.current;
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  }, [data.summary, section.type]);
+
   // Inline editing state
   const [inlineEditingId, setInlineEditingId] = useState<string | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
@@ -204,16 +215,16 @@ export default function SectionEditor({
     try {
       // Create cropped blob
       const croppedBlob = await getCroppedImg(imageToCrop, croppedAreaPixels);
-      
+
       // Upload to Firebase
       const fileName = `cv-photo-${Date.now()}.jpg`;
       const photoRef = ref(storage, `profile-photos/${currentUser.uid}/${fileName}`);
       await uploadBytes(photoRef, croppedBlob, { contentType: 'image/jpeg' });
       const photoUrl = await getDownloadURL(photoRef);
-      
+
       onChange({ photoUrl });
       notify.success('Photo uploaded successfully');
-      
+
       // Close modal and reset
       setShowCropModal(false);
       setImageToCrop(null);
@@ -243,7 +254,7 @@ export default function SectionEditor({
 
     setIsProcessingAI(true);
     setCurrentAction(action);
-    
+
     try {
       // Get current content based on section type
       let currentContent = '';
@@ -252,12 +263,12 @@ export default function SectionEditor({
           currentContent = data.summary || '';
           break;
         case 'experience':
-          currentContent = data.experiences?.map((exp: CVExperience) => 
+          currentContent = data.experiences?.map((exp: CVExperience) =>
             `${exp.title} at ${exp.company}\n${exp.description}\n${exp.bullets.join('\n')}`
           ).join('\n\n') || '';
           break;
         case 'education':
-          currentContent = data.education?.map((edu: CVEducation) => 
+          currentContent = data.education?.map((edu: CVEducation) =>
             `${edu.degree} ${edu.field ? `in ${edu.field}` : ''} at ${edu.institution}`
           ).join('\n') || '';
           break;
@@ -265,17 +276,17 @@ export default function SectionEditor({
           currentContent = data.skills?.map((s: CVSkill) => s.name).join(', ') || '';
           break;
         case 'certifications':
-          currentContent = data.certifications?.map((c: CVCertification) => 
+          currentContent = data.certifications?.map((c: CVCertification) =>
             `${c.name} by ${c.issuer}`
           ).join('\n') || '';
           break;
         case 'projects':
-          currentContent = data.projects?.map((p: CVProject) => 
+          currentContent = data.projects?.map((p: CVProject) =>
             `${p.name}: ${p.description}`
           ).join('\n') || '';
           break;
         case 'languages':
-          currentContent = data.languages?.map((l: CVLanguage) => 
+          currentContent = data.languages?.map((l: CVLanguage) =>
             `${l.name} (${l.proficiency})`
           ).join(', ') || '';
           break;
@@ -285,7 +296,7 @@ export default function SectionEditor({
 
       // Store original content for diff view
       setOriginalContent(currentContent);
-      
+
       // Call the AI rewrite service
       const improvedContent = await rewriteSection({
         action: action as any,
@@ -366,7 +377,7 @@ export default function SectionEditor({
         default:
           onChange({ [section.type]: aiSuggestion });
       }
-      
+
       setAiSuggestion(null);
       setShowDiff(false);
       notify.success('AI suggestion applied!');
@@ -448,236 +459,316 @@ export default function SectionEditor({
     case 'personal':
       return (
         <>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  value={data.firstName || ''}
+                  onChange={(e) => onChange({ firstName: e.target.value })}
+                  className="w-full px-3 py-2 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-[13px] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-medium focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
+                  placeholder="John"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  value={data.lastName || ''}
+                  onChange={(e) => onChange({ lastName: e.target.value })}
+                  className="w-full px-3 py-2 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-[13px] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-medium focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
+                  placeholder="Doe"
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
-                First Name
+              <label className="block text-[11px] font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
+                Professional Title
               </label>
               <input
                 type="text"
-                value={data.firstName || ''}
-                onChange={(e) => onChange({ firstName: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
-                placeholder="John"
+                value={data.title || ''}
+                onChange={(e) => onChange({ title: e.target.value })}
+                className="w-full px-3 py-2 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-[13px] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-medium focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
+                placeholder="Software Engineer"
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={data.email || ''}
+                  onChange={(e) => onChange({ email: e.target.value })}
+                  className="w-full px-3 py-2 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-[13px] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-medium focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
+                  placeholder="john@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  value={data.phone || ''}
+                  onChange={(e) => onChange({ phone: e.target.value })}
+                  className="w-full px-3 py-2 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-[13px] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-medium focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
+                  placeholder="+1 (555) 000-0000"
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
-                Last Name
+              <label className="block text-[11px] font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
+                Location
               </label>
               <input
                 type="text"
-                value={data.lastName || ''}
-                onChange={(e) => onChange({ lastName: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
-                placeholder="Doe"
+                value={data.location || ''}
+                onChange={(e) => onChange({ location: e.target.value })}
+                className="w-full px-3 py-2 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-[13px] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-medium focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
+                placeholder="New York, NY"
               />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
-              Professional Title
-            </label>
-            <input
-              type="text"
-              value={data.title || ''}
-              onChange={(e) => onChange({ title: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
-              placeholder="Senior Software Engineer"
-            />
-          </div>
+            {/* Profile Photo Section - Only for photo templates */}
+            {supportsPhoto && (
+              <div className="p-4 bg-gradient-to-r from-[#635BFF]/5 to-[#635BFF]/10 dark:from-[#635BFF]/10 dark:to-[#635BFF]/20 rounded-xl border border-[#635BFF]/20 dark:border-[#635BFF]/30">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3 tracking-wide uppercase flex items-center gap-2">
+                  <Image className="w-4 h-4 text-[#635BFF] dark:text-[#a5a0ff]" />
+                  Profile Photo
+                </label>
+                <div className="flex items-start gap-4">
+                  {/* Photo Preview */}
+                  <div className="relative flex-shrink-0">
+                    {data.photoUrl ? (
+                      <div className="relative group">
+                        <img
+                          src={data.photoUrl}
+                          alt="Profile"
+                          className="w-20 h-20 rounded-xl object-cover border-2 border-white dark:border-gray-700 shadow-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => onChange({ photoUrl: '' })}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold transition-colors shadow-md opacity-0 group-hover:opacity-100"
+                          title="Remove photo"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-20 h-20 rounded-xl bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center shadow-sm">
+                        <User className="w-8 h-8 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
 
-          <div className="grid grid-cols-2 gap-3">
+                  {/* Upload Button */}
+                  <div className="flex-1">
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoSelect}
+                      className="hidden"
+                      id="cv-photo-upload"
+                    />
+                    <label
+                      htmlFor="cv-photo-upload"
+                      className={`
+                      inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm cursor-pointer transition-all
+                      ${isUploadingPhoto
+                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                          : 'bg-[#635BFF] hover:bg-[#5249e6] text-white shadow-sm hover:shadow-md'
+                        }
+                    `}
+                    >
+                      {isUploadingPhoto ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          Upload Photo
+                        </>
+                      )}
+                    </label>
+                    <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      JPG, PNG or GIF. Max 5MB.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Social Media Section */}
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
-                Email
+              <label className="block text-[11px] font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wider">
+                Social Media
               </label>
-              <input
-                type="email"
-                value={data.email || ''}
-                onChange={(e) => onChange({ email: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
-                placeholder="john.doe@example.com"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
-                Phone
-              </label>
-              <input
-                type="tel"
-                value={data.phone || ''}
-                onChange={(e) => onChange({ phone: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
-                placeholder="+1 (555) 123-4567"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
-              Location
-            </label>
-            <input
-              type="text"
-              value={data.location || ''}
-              onChange={(e) => onChange({ location: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
-              placeholder="San Francisco, CA"
-            />
-          </div>
-
-          {/* Profile Photo Section - Only for photo templates */}
-          {supportsPhoto && (
-            <div className="p-4 bg-gradient-to-r from-[#635BFF]/5 to-[#635BFF]/10 dark:from-[#635BFF]/10 dark:to-[#635BFF]/20 rounded-xl border border-[#635BFF]/20 dark:border-[#635BFF]/30">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3 tracking-wide uppercase flex items-center gap-2">
-                <Image className="w-4 h-4 text-[#635BFF] dark:text-[#a5a0ff]" />
-                Profile Photo
-              </label>
-              <div className="flex items-start gap-4">
-                {/* Photo Preview */}
-                <div className="relative flex-shrink-0">
-                  {data.photoUrl ? (
-                    <div className="relative group">
-                      <img 
-                        src={data.photoUrl} 
-                        alt="Profile" 
-                        className="w-20 h-20 rounded-xl object-cover border-2 border-white dark:border-gray-700 shadow-lg"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => onChange({ photoUrl: '' })}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold transition-colors shadow-md opacity-0 group-hover:opacity-100"
-                        title="Remove photo"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="w-20 h-20 rounded-xl bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center shadow-sm">
-                      <User className="w-8 h-8 text-gray-400" />
-                    </div>
-                  )}
+              <div className="space-y-3">
+                {/* LinkedIn */}
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Linkedin className="w-4 h-4 text-gray-400 group-focus-within:text-[#0077b5] transition-colors" />
+                  </div>
+                  <input
+                    type="url"
+                    value={data.linkedin || ''}
+                    onChange={(e) => onChange({ linkedin: e.target.value })}
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-[13px] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-medium focus:outline-none focus:border-[#0077b5] dark:focus:border-[#0077b5] focus:ring-1 focus:ring-[#0077b5] transition-all duration-200"
+                    placeholder="linkedin.com/in/username"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span className="text-xs text-gray-400 font-medium">LinkedIn</span>
+                  </div>
                 </div>
 
-                {/* Upload Button */}
-                <div className="flex-1">
+                {/* GitHub */}
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Github className="w-4 h-4 text-gray-400 group-focus-within:text-gray-900 dark:group-focus-within:text-white transition-colors" />
+                  </div>
                   <input
-                    ref={photoInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoSelect}
-                    className="hidden"
-                    id="cv-photo-upload"
+                    type="url"
+                    value={data.github || ''}
+                    onChange={(e) => onChange({ github: e.target.value })}
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-[13px] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-medium focus:outline-none focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white transition-all duration-200"
+                    placeholder="github.com/username"
                   />
-                  <label
-                    htmlFor="cv-photo-upload"
-                    className={`
-                      inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm cursor-pointer transition-all
-                      ${isUploadingPhoto 
-                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' 
-                        : 'bg-[#635BFF] hover:bg-[#5249e6] text-white shadow-sm hover:shadow-md'
-                      }
-                    `}
-                  >
-                    {isUploadingPhoto ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-4 h-4" />
-                        Upload Photo
-                      </>
-                    )}
-                  </label>
-                  <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    JPG, PNG or GIF. Max 5MB.
-                  </p>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span className="text-xs text-gray-400 font-medium">GitHub</span>
+                  </div>
+                </div>
+
+                {/* Twitter */}
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Twitter className="w-4 h-4 text-gray-400 group-focus-within:text-[#1DA1F2] transition-colors" />
+                  </div>
+                  <input
+                    type="url"
+                    value={data.twitter || ''}
+                    onChange={(e) => onChange({ twitter: e.target.value })}
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-[13px] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-medium focus:outline-none focus:border-[#1DA1F2] dark:focus:border-[#1DA1F2] focus:ring-1 focus:ring-[#1DA1F2] transition-all duration-200"
+                    placeholder="twitter.com/username"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span className="text-xs text-gray-400 font-medium">Twitter</span>
+                  </div>
+                </div>
+
+                {/* Dribbble */}
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Dribbble className="w-4 h-4 text-gray-400 group-focus-within:text-[#EA4C89] transition-colors" />
+                  </div>
+                  <input
+                    type="url"
+                    value={data.dribbble || ''}
+                    onChange={(e) => onChange({ dribbble: e.target.value })}
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-[13px] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-medium focus:outline-none focus:border-[#EA4C89] dark:focus:border-[#EA4C89] focus:ring-1 focus:ring-[#EA4C89] transition-all duration-200"
+                    placeholder="dribbble.com/username"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span className="text-xs text-gray-400 font-medium">Dribbble</span>
+                  </div>
+                </div>
+
+                {/* Portfolio / Website */}
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Globe className="w-4 h-4 text-gray-400 group-focus-within:text-[#635BFF] transition-colors" />
+                  </div>
+                  <input
+                    type="url"
+                    value={data.portfolio || ''}
+                    onChange={(e) => onChange({ portfolio: e.target.value })}
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-[13px] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-medium focus:outline-none focus:border-[#635BFF] dark:focus:border-[#635BFF] focus:ring-1 focus:ring-[#635BFF] transition-all duration-200"
+                    placeholder="yourwebsite.com"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span className="text-xs text-gray-400 font-medium">Website</span>
+                  </div>
                 </div>
               </div>
             </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
-              LinkedIn
-            </label>
-            <input
-              type="url"
-              value={data.linkedin || ''}
-              onChange={(e) => onChange({ linkedin: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200"
-              placeholder="linkedin.com/in/johndoe"
-            />
           </div>
-        </div>
 
-        {/* Photo Crop Modal */}
-        <AnimatePresence>
-          {showCropModal && imageToCrop && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
-              onClick={handleCropCancel}
-            >
+          {/* Photo Crop Modal */}
+          <AnimatePresence>
+            {showCropModal && imageToCrop && (
               <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                className="relative w-full max-w-lg mx-4 bg-white dark:bg-[#2b2a2c] rounded-2xl shadow-2xl overflow-hidden"
-                onClick={(e) => e.stopPropagation()}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                onClick={handleCropCancel}
               >
-                {/* Header */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-[#3d3c3e]">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Crop Your Photo
-                  </h3>
-                  <button
-                    onClick={handleCropCancel}
-                    className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  className="relative w-full max-w-lg mx-4 bg-white dark:bg-[#2b2a2c] rounded-2xl shadow-2xl overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-[#3d3c3e]">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Crop Your Photo
+                    </h3>
+                    <button
+                      onClick={handleCropCancel}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
 
-                {/* Crop Area */}
-                <div className="relative h-80 bg-gray-900">
-                  <Cropper
-                    image={imageToCrop}
-                    crop={crop}
-                    zoom={zoom}
-                    aspect={1}
-                    onCropChange={setCrop}
-                    onCropComplete={onCropComplete}
-                    onZoomChange={setZoom}
-                    cropShape="round"
-                    showGrid={false}
-                    style={{
-                      containerStyle: {
-                        backgroundColor: '#1a1a1a',
-                      },
-                    }}
-                  />
-                </div>
+                  {/* Crop Area */}
+                  <div className="relative h-80 bg-gray-900">
+                    <Cropper
+                      image={imageToCrop}
+                      crop={crop}
+                      zoom={zoom}
+                      aspect={1}
+                      onCropChange={setCrop}
+                      onCropComplete={onCropComplete}
+                      onZoomChange={setZoom}
+                      cropShape="round"
+                      showGrid={false}
+                      style={{
+                        containerStyle: {
+                          backgroundColor: '#1a1a1a',
+                        },
+                      }}
+                    />
+                  </div>
 
-                {/* Zoom Control */}
-                <div className="px-5 py-4 border-t border-gray-200 dark:border-[#3d3c3e]">
-                  <div className="flex items-center gap-3">
-                    <ZoomOut className="w-4 h-4 text-gray-400" />
-                    <input
-                      type="range"
-                      min={1}
-                      max={3}
-                      step={0.1}
-                      value={zoom}
-                      onChange={(e) => setZoom(Number(e.target.value))}
-                      className="flex-1 h-2 bg-gray-200 dark:bg-[#3d3c3e] rounded-full appearance-none cursor-pointer
+                  {/* Zoom Control */}
+                  <div className="px-5 py-4 border-t border-gray-200 dark:border-[#3d3c3e]">
+                    <div className="flex items-center gap-3">
+                      <ZoomOut className="w-4 h-4 text-gray-400" />
+                      <input
+                        type="range"
+                        min={1}
+                        max={3}
+                        step={0.1}
+                        value={zoom}
+                        onChange={(e) => setZoom(Number(e.target.value))}
+                        className="flex-1 h-2 bg-gray-200 dark:bg-[#3d3c3e] rounded-full appearance-none cursor-pointer
                         [&::-webkit-slider-thumb]:appearance-none
                         [&::-webkit-slider-thumb]:w-4
                         [&::-webkit-slider-thumb]:h-4
@@ -691,94 +782,98 @@ export default function SectionEditor({
                         [&::-moz-range-thumb]:bg-[#635BFF]
                         [&::-moz-range-thumb]:border-0
                         [&::-moz-range-thumb]:cursor-pointer"
-                    />
-                    <ZoomIn className="w-4 h-4 text-gray-400" />
+                      />
+                      <ZoomIn className="w-4 h-4 text-gray-400" />
+                    </div>
                   </div>
-                </div>
 
-                {/* Actions */}
-                <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325]">
-                  <button
-                    onClick={handleCropCancel}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleCropSave}
-                    disabled={isUploadingPhoto}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#635BFF] hover:bg-[#5249e6] disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-colors"
-                  >
-                    {isUploadingPhoto ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-4 h-4" />
-                        Save Photo
-                      </>
-                    )}
-                  </button>
-                </div>
+                  {/* Actions */}
+                  <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#242325]">
+                    <button
+                      onClick={handleCropCancel}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleCropSave}
+                      disabled={isUploadingPhoto}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#635BFF] hover:bg-[#5249e6] disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-colors"
+                    >
+                      {isUploadingPhoto ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4" />
+                          Save Photo
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+          </AnimatePresence>
         </>
       );
 
     case 'summary':
       return (
         <div className="space-y-4">
-          {/* AI Enhancement Panel - Always show, works with or without job context */}
-            <AIEnhancePanel
-              sectionType="summary"
-              currentContent={data.summary || ''}
-              onApply={(enhancedContent) => {
-                onChange({ summary: enhancedContent });
-                // Don't reset history - keep it for iterative refinement
-              }}
-              jobContext={jobContext}
-              fullCV={fullCV}
-              conversationHistory={conversationHistory['summary'] || []}
-              onAddToHistory={(message) => {
-                setConversationHistory(prev => ({
-                  ...prev,
-                  summary: [...(prev.summary || []).slice(-3), message] // Keep last 3-4 messages
-                }));
-              }}
-              onResetHistory={() => {
-                setConversationHistory(prev => ({ ...prev, summary: [] }));
-              }}
-            />
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 tracking-wide uppercase">
               Professional Summary
             </label>
             <textarea
+              ref={summaryTextareaRef}
               value={data.summary || ''}
               onChange={(e) => onChange({ summary: e.target.value })}
-              rows={4}
-              className="w-full px-3.5 py-2.5 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200 resize-none"
+              rows={6}
+              className="w-full px-4 py-3 bg-white dark:bg-[#242325]/50 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-normal focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200/50 dark:focus:ring-gray-700/50 transition-all duration-200 resize-none leading-relaxed overflow-hidden"
               placeholder="Write a compelling summary that highlights your key strengths and career objectives..."
             />
-            <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-              {data.summary?.length || 0} characters
-            </p>
+            <div className="flex justify-end mt-1.5">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                {data.summary?.length || 0} characters
+              </p>
+            </div>
           </div>
+
+          {/* AI Enhancement Panel - Moved to bottom */}
+          <AIEnhancePanel
+            sectionType="summary"
+            currentContent={data.summary || ''}
+            onApply={(enhancedContent) => {
+              onChange({ summary: enhancedContent });
+              // Don't reset history - keep it for iterative refinement
+            }}
+            jobContext={jobContext}
+            fullCV={fullCV}
+            conversationHistory={conversationHistory['summary'] || []}
+            onAddToHistory={(message) => {
+              setConversationHistory(prev => ({
+                ...prev,
+                summary: [...(prev.summary || []).slice(-3), message] // Keep last 3-4 messages
+              }));
+            }}
+            onResetHistory={() => {
+              setConversationHistory(prev => ({ ...prev, summary: [] }));
+            }}
+          />
         </div>
       );
 
     case 'experience':
       const handleExperienceDragEnd = (result: DropResult) => {
         if (!result.destination) return;
-        
+
         const experiences = [...(data.experiences || [])];
         const [reorderedExperience] = experiences.splice(result.source.index, 1);
         experiences.splice(result.destination.index, 0, reorderedExperience);
-        
+
         onChange({ experiences });
       };
 
@@ -866,9 +961,9 @@ export default function SectionEditor({
               <DragDropContext onDragEnd={handleExperienceDragEnd}>
                 <Droppable droppableId="experiences">
                   {(provided) => (
-                    <div 
-                      {...provided.droppableProps} 
-                      ref={provided.innerRef} 
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
                       className="space-y-3"
                     >
                       {(data.experiences || []).map((exp: CVExperience, index: number) => (
@@ -882,8 +977,8 @@ export default function SectionEditor({
                                 transition-all duration-200 cursor-pointer 
                                 border border-gray-200/60 dark:border-[#3d3c3e]/60 
                                 shadow-sm
-                                ${snapshot.isDragging 
-                                  ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rotate-[0.5deg] scale-[1.01]' 
+                                ${snapshot.isDragging
+                                  ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rotate-[0.5deg] scale-[1.01]'
                                   : 'hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/60 hover:border-gray-300/80 dark:hover:border-gray-600/80 hover:shadow-md'
                                 }
                               `}
@@ -895,14 +990,14 @@ export default function SectionEditor({
                             >
                               <div className="flex items-start gap-3">
                                 {/* Drag handle */}
-                                <div 
+                                <div
                                   {...provided.dragHandleProps}
                                   className="mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <GripVertical className="w-4 h-4" />
                                 </div>
-                                
+
                                 <div className="flex-1 min-w-0">
                                   <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
                                     {exp.title || 'Untitled Position'}
@@ -944,7 +1039,7 @@ export default function SectionEditor({
                   )}
                 </Droppable>
               </DragDropContext>
-              
+
               <button
                 onClick={() => setIsAddingNew(true)}
                 className="w-full py-3 px-4 bg-white dark:bg-[#2b2a2c] text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
@@ -960,11 +1055,11 @@ export default function SectionEditor({
     case 'education':
       const handleEducationDragEnd = (result: DropResult) => {
         if (!result.destination) return;
-        
+
         const education = [...(data.education || [])];
         const [reorderedEducation] = education.splice(result.source.index, 1);
         education.splice(result.destination.index, 0, reorderedEducation);
-        
+
         onChange({ education });
       };
 
@@ -1025,9 +1120,9 @@ export default function SectionEditor({
               <DragDropContext onDragEnd={handleEducationDragEnd}>
                 <Droppable droppableId="education">
                   {(provided) => (
-                    <div 
-                      {...provided.droppableProps} 
-                      ref={provided.innerRef} 
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
                       className="space-y-3"
                     >
                       {(data.education || []).map((edu: CVEducation, index: number) => (
@@ -1041,8 +1136,8 @@ export default function SectionEditor({
                                 transition-all cursor-pointer 
                                 border border-gray-300 dark:border-[#4a494b] 
                                 shadow-sm
-                                ${snapshot.isDragging 
-                                  ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rotate-[0.5deg] scale-[1.01]' 
+                                ${snapshot.isDragging
+                                  ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rotate-[0.5deg] scale-[1.01]'
                                   : 'hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] hover:shadow-md'
                                 }
                               `}
@@ -1054,14 +1149,14 @@ export default function SectionEditor({
                             >
                               <div className="flex items-start gap-3">
                                 {/* Drag handle */}
-                                <div 
+                                <div
                                   {...provided.dragHandleProps}
                                   className="mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <GripVertical className="w-4 h-4" />
                                 </div>
-                                
+
                                 <div className="flex-1 min-w-0">
                                   <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
                                     {edu.degree || 'Untitled Degree'}
@@ -1103,7 +1198,7 @@ export default function SectionEditor({
                   )}
                 </Droppable>
               </DragDropContext>
-              
+
               <button
                 onClick={() => setIsAddingNew(true)}
                 className="w-full py-3 px-4 bg-white dark:bg-[#2b2a2c] text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
@@ -1119,11 +1214,11 @@ export default function SectionEditor({
     case 'skills':
       const handleSkillDragEnd = (result: DropResult) => {
         if (!result.destination) return;
-        
+
         const skills = [...(data.skills || [])];
         const [reorderedSkill] = skills.splice(result.source.index, 1);
         skills.splice(result.destination.index, 0, reorderedSkill);
-        
+
         onChange({ skills });
       };
 
@@ -1182,9 +1277,9 @@ export default function SectionEditor({
           <DragDropContext onDragEnd={handleSkillDragEnd}>
             <Droppable droppableId="skills">
               {(provided) => (
-                <div 
-                  {...provided.droppableProps} 
-                  ref={provided.innerRef} 
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
                   className="space-y-2"
                 >
                   {(data.skills || []).map((skill: CVSkill, index: number) => (
@@ -1240,11 +1335,11 @@ export default function SectionEditor({
     case 'certifications':
       const handleCertificationsDragEnd = (result: DropResult) => {
         if (!result.destination) return;
-        
+
         const certifications = [...(data.certifications || [])];
         const [reorderedCertification] = certifications.splice(result.source.index, 1);
         certifications.splice(result.destination.index, 0, reorderedCertification);
-        
+
         onChange({ certifications });
       };
 
@@ -1305,9 +1400,9 @@ export default function SectionEditor({
               <DragDropContext onDragEnd={handleCertificationsDragEnd}>
                 <Droppable droppableId="certifications">
                   {(provided) => (
-                    <div 
-                      {...provided.droppableProps} 
-                      ref={provided.innerRef} 
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
                       className="space-y-3"
                     >
                       {(data.certifications || []).map((cert: CVCertification, index: number) => (
@@ -1321,8 +1416,8 @@ export default function SectionEditor({
                                 transition-all cursor-pointer 
                                 border border-gray-300 dark:border-[#4a494b] 
                                 shadow-sm
-                                ${snapshot.isDragging 
-                                  ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rotate-[0.5deg] scale-[1.01]' 
+                                ${snapshot.isDragging
+                                  ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rotate-[0.5deg] scale-[1.01]'
                                   : 'hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] hover:shadow-md'
                                 }
                               `}
@@ -1334,14 +1429,14 @@ export default function SectionEditor({
                             >
                               <div className="flex items-start gap-3">
                                 {/* Drag handle */}
-                                <div 
+                                <div
                                   {...provided.dragHandleProps}
                                   className="mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <GripVertical className="w-4 h-4" />
                                 </div>
-                                
+
                                 <div className="flex-1 min-w-0">
                                   <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
                                     {cert.name || 'Untitled Certification'}
@@ -1383,7 +1478,7 @@ export default function SectionEditor({
                   )}
                 </Droppable>
               </DragDropContext>
-              
+
               <button
                 onClick={() => setIsAddingNew(true)}
                 className="w-full py-3 px-4 bg-white dark:bg-[#2b2a2c] text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
@@ -1399,11 +1494,11 @@ export default function SectionEditor({
     case 'projects':
       const handleProjectsDragEnd = (result: DropResult) => {
         if (!result.destination) return;
-        
+
         const projects = [...(data.projects || [])];
         const [reorderedProject] = projects.splice(result.source.index, 1);
         projects.splice(result.destination.index, 0, reorderedProject);
-        
+
         onChange({ projects });
       };
 
@@ -1488,9 +1583,9 @@ export default function SectionEditor({
               <DragDropContext onDragEnd={handleProjectsDragEnd}>
                 <Droppable droppableId="projects">
                   {(provided) => (
-                    <div 
-                      {...provided.droppableProps} 
-                      ref={provided.innerRef} 
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
                       className="space-y-3"
                     >
                       {(data.projects || []).map((project: CVProject, index: number) => (
@@ -1504,8 +1599,8 @@ export default function SectionEditor({
                                 transition-all cursor-pointer 
                                 border border-gray-300 dark:border-[#4a494b] 
                                 shadow-sm
-                                ${snapshot.isDragging 
-                                  ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rotate-[0.5deg] scale-[1.01]' 
+                                ${snapshot.isDragging
+                                  ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rotate-[0.5deg] scale-[1.01]'
                                   : 'hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] hover:shadow-md'
                                 }
                               `}
@@ -1517,14 +1612,14 @@ export default function SectionEditor({
                             >
                               <div className="flex items-start gap-3">
                                 {/* Drag handle */}
-                                <div 
+                                <div
                                   {...provided.dragHandleProps}
                                   className="mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <GripVertical className="w-4 h-4" />
                                 </div>
-                                
+
                                 <div className="flex-1 min-w-0">
                                   <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
                                     {project.name || 'Untitled Project'}
@@ -1593,11 +1688,11 @@ export default function SectionEditor({
     case 'languages':
       const handleLanguagesDragEnd = (result: DropResult) => {
         if (!result.destination) return;
-        
+
         const languages = [...(data.languages || [])];
         const [reorderedLanguage] = languages.splice(result.source.index, 1);
         languages.splice(result.destination.index, 0, reorderedLanguage);
-        
+
         onChange({ languages });
       };
 
@@ -1658,9 +1753,9 @@ export default function SectionEditor({
               <DragDropContext onDragEnd={handleLanguagesDragEnd}>
                 <Droppable droppableId="languages">
                   {(provided) => (
-                    <div 
-                      {...provided.droppableProps} 
-                      ref={provided.innerRef} 
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
                       className="space-y-3"
                     >
                       {(data.languages || []).map((language: CVLanguage, index: number) => (
@@ -1674,8 +1769,8 @@ export default function SectionEditor({
                                 transition-all cursor-pointer 
                                 border border-gray-300 dark:border-[#4a494b] 
                                 shadow-sm
-                                ${snapshot.isDragging 
-                                  ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rotate-[0.5deg] scale-[1.01]' 
+                                ${snapshot.isDragging
+                                  ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rotate-[0.5deg] scale-[1.01]'
                                   : 'hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] hover:shadow-md'
                                 }
                               `}
@@ -1687,14 +1782,14 @@ export default function SectionEditor({
                             >
                               <div className="flex items-center gap-3">
                                 {/* Drag handle */}
-                                <div 
+                                <div
                                   {...provided.dragHandleProps}
                                   className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <GripVertical className="w-4 h-4" />
                                 </div>
-                                
+
                                 <div className="flex-1">
                                   <h4 className="text-sm font-bold text-gray-900 dark:text-white">
                                     {language.name || 'Untitled Language'}
@@ -1733,7 +1828,7 @@ export default function SectionEditor({
                   )}
                 </Droppable>
               </DragDropContext>
-              
+
               <button
                 onClick={() => setIsAddingNew(true)}
                 className="w-full py-3 px-4 bg-white dark:bg-[#2b2a2c] text-[#5249e6] dark:text-[#a5a0ff] border-2 border-dashed border-[#635BFF]/30 dark:border-[#a5a0ff]/50 rounded-xl hover:bg-[#635BFF]/5 dark:hover:bg-[#5249e6]/10 hover:border-[#7c75ff] dark:hover:border-[#a5a0ff] transition-all flex items-center justify-center gap-2 group"
@@ -1803,14 +1898,14 @@ function SkillRow({ skill, provided, snapshot, onUpdate, onDelete }: SkillRowPro
         border border-gray-200 dark:border-[#3d3c3e] 
         rounded-lg 
         transition-all duration-200
-        ${snapshot.isDragging 
-          ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10' 
+        ${snapshot.isDragging
+          ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10'
           : 'hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm'
         }
       `}
     >
       {/* Drag handle */}
-      <div 
+      <div
         {...provided.dragHandleProps}
         className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
       >

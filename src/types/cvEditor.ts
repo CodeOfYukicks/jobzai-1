@@ -100,10 +100,10 @@ export interface CVData {
   };
 }
 
-export type CVTemplate = 
-  | 'modern-professional' 
-  | 'executive-classic' 
-  | 'tech-minimalist' 
+export type CVTemplate =
+  | 'modern-professional'
+  | 'executive-classic'
+  | 'tech-minimalist'
   | 'creative-balance'
   | 'harvard-classic'    // Academic style, no photo
   | 'swiss-photo'        // Swiss/German bi-column with round photo
@@ -111,7 +111,7 @@ export type CVTemplate =
   | 'elegant-simple';    // Ultra-minimalist ATS-friendly
 
 // Color scheme types for template customization
-export type CVColorScheme = 
+export type CVColorScheme =
   | 'slate'      // Professional dark gray
   | 'charcoal'   // Deep black
   | 'blue'       // Classic blue
@@ -133,6 +133,7 @@ export interface CVTemplateInfo {
   description: string;
   styleDescriptor: string; // e.g., "simple · classic"
   availableColors: CVColorScheme[];
+  comingSoon?: boolean;
 }
 
 export interface CVEditorState {

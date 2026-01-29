@@ -33,10 +33,10 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
   const sidebarEnabledSections = enabledSections.filter(s => sidebarSections.includes(s.type));
 
   return (
-    <div 
-      className="text-gray-900" 
-      style={{ 
-        fontSize: `${baseFontSize}pt`, 
+    <div
+      className="text-gray-900"
+      style={{
+        fontSize: `${baseFontSize}pt`,
         lineHeight: layoutSettings.lineHeight,
         fontFamily: layoutSettings.fontFamily || 'Helvetica Neue, Arial, sans-serif'
       }}
@@ -51,8 +51,8 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
               {/* Profile Photo - Round */}
               <div className="flex justify-center mb-4">
                 {cvData.personalInfo.photoUrl ? (
-                  <img 
-                    src={cvData.personalInfo.photoUrl} 
+                  <img
+                    src={cvData.personalInfo.photoUrl}
                     alt={`${cvData.personalInfo.firstName} ${cvData.personalInfo.lastName}`}
                     className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
                   />
@@ -69,7 +69,7 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
                 <br />
                 {cvData.personalInfo.lastName}
               </h1>
-              
+
               {cvData.personalInfo.title && (
                 <p className="text-gray-600 text-center mb-4" style={{ fontSize: '0.9em' }}>
                   {cvData.personalInfo.title}
@@ -244,11 +244,11 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
                 return (
                   <ClickableSection key={section.id} sectionType="summary" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <section className="mb-5">
-                      <h2 className="font-bold text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-1 mb-2" style={{ fontSize: '0.85em' }}>
+                      <h2 className="font-bold text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-1 mb-3" style={{ fontSize: '0.85em' }}>
                         Profile
                       </h2>
                       {cvData.summary ? (
-                        <p className="text-gray-700" style={{ fontSize: '0.95em' }}>
+                        <p className="text-gray-700" style={{ fontSize: '0.95em', textAlign: 'justify' }}>
                           {cvData.summary}
                         </p>
                       ) : (
@@ -265,11 +265,11 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
                 return (
                   <ClickableSection key={section.id} sectionType="experience" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <section className="mb-5">
-                      <h2 className="font-bold text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-1 mb-2" style={{ fontSize: '0.85em' }}>
+                      <h2 className="font-bold text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-1 mb-3" style={{ fontSize: '0.85em' }}>
                         Experience
                       </h2>
                       {cvData.experiences?.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: `${experienceSpacing * 4}px` }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: `${experienceSpacing * 1.5}px` }}>
                           {cvData.experiences.map(exp => (
                             <ClickableSection key={exp.id} sectionType="experience" itemId={exp.id} onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                               <div>
@@ -285,14 +285,14 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
                                   </span>
                                 </div>
                                 {exp.description && (
-                                  <p className="text-gray-700 mb-1" style={{ fontSize: '0.9em' }}>{exp.description}</p>
+                                  <p className="text-gray-700 mb-1" style={{ fontSize: '0.9em', textAlign: 'justify' }}>{exp.description}</p>
                                 )}
                                 {exp.bullets.length > 0 && (
                                   <ul className="space-y-0.5 ml-3">
                                     {exp.bullets.map((bullet, idx) => (
                                       <li key={idx} className="text-gray-700 flex" style={{ fontSize: '0.9em' }}>
                                         <span className="mr-2">–</span>
-                                        <span className="flex-1">{bullet}</span>
+                                        <span className="flex-1" style={{ textAlign: 'justify' }}>{bullet}</span>
                                       </li>
                                     ))}
                                   </ul>
@@ -314,7 +314,7 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
                 return (
                   <ClickableSection key={section.id} sectionType="projects" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
                     <section className="mb-5">
-                      <h2 className="font-bold text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-1 mb-2" style={{ fontSize: '0.85em' }}>
+                      <h2 className="font-bold text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-1 mb-3" style={{ fontSize: '0.85em' }}>
                         Projects
                       </h2>
                       {cvData.projects?.length > 0 ? (
@@ -330,7 +330,7 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-gray-700" style={{ fontSize: '0.9em' }}>{project.description}</p>
+                                <p className="text-gray-700" style={{ fontSize: '0.9em', textAlign: 'justify' }}>{project.description}</p>
                                 {project.technologies.length > 0 && (
                                   <p className="text-gray-500 mt-1" style={{ fontSize: '0.85em' }}>
                                     {project.technologies.join(' • ')}

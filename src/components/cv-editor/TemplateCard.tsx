@@ -25,61 +25,65 @@ export const COLOR_HEX_MAP: Record<CVColorScheme, string> = {
 // Template definitions with metadata
 // Only Modern, Creative, and Corporate support accent colors
 export const TEMPLATE_INFO: CVTemplateInfo[] = [
-  { 
-    value: 'modern-professional', 
-    label: 'Modern', 
-    description: 'Clean and ATS-optimized',
-    styleDescriptor: 'clean · professional',
-    availableColors: ['emerald', 'teal', 'blue', 'charcoal', 'orange'] // Emerald first
-  },
-  { 
-    value: 'executive-classic', 
-    label: 'Classic', 
-    description: 'Traditional and elegant',
-    styleDescriptor: 'black & white',
-    availableColors: [] // No colors - pure black & white
-  },
-  { 
-    value: 'tech-minimalist', 
-    label: 'Minimalist', 
-    description: 'Google/Linear inspired',
-    styleDescriptor: 'monochrome',
-    availableColors: [] // No colors - grayscale only
-  },
-  { 
-    value: 'creative-balance', 
-    label: 'Creative', 
-    description: 'Modern with personality',
-    styleDescriptor: 'colorful · bold',
-    availableColors: ['emerald', 'teal', 'blue', 'orange'] // Emerald first
-  },
-  { 
-    value: 'harvard-classic', 
-    label: 'Harvard', 
+  {
+    value: 'harvard-classic',
+    label: 'Harvard',
     description: 'Academic & ATS-perfect',
     styleDescriptor: 'academic · serif',
     availableColors: [] // No colors - traditional academic style
   },
-  { 
-    value: 'swiss-photo', 
-    label: 'Swiss', 
+  {
+    value: 'swiss-photo',
+    label: 'Swiss',
     description: 'Clean bi-column with photo',
     styleDescriptor: 'photo · minimal',
     availableColors: [] // No colors - Swiss minimalist with photo
   },
-  { 
-    value: 'corporate-photo', 
-    label: 'Corporate', 
+  {
+    value: 'modern-professional',
+    label: 'Modern',
+    description: 'Clean and ATS-optimized',
+    styleDescriptor: 'clean · professional',
+    availableColors: ['emerald', 'teal', 'blue', 'charcoal', 'orange'] // Emerald first
+  },
+  {
+    value: 'executive-classic',
+    label: 'Classic',
+    description: 'Traditional and elegant',
+    styleDescriptor: 'black & white',
+    availableColors: [] // No colors - pure black & white
+  },
+  {
+    value: 'tech-minimalist',
+    label: 'Minimalist',
+    description: 'Google/Linear inspired',
+    styleDescriptor: 'monochrome',
+    availableColors: [], // No colors - grayscale only
+    comingSoon: true
+  },
+  {
+    value: 'creative-balance',
+    label: 'Creative',
+    description: 'Modern with personality',
+    styleDescriptor: 'colorful · bold',
+    availableColors: ['emerald', 'teal', 'blue', 'orange'], // Emerald first
+    comingSoon: true
+  },
+  {
+    value: 'corporate-photo',
+    label: 'Corporate',
     description: 'Professional header with photo',
     styleDescriptor: 'photo · colorful',
-    availableColors: ['blue', 'emerald', 'teal', 'orange', 'charcoal'] // Blue first for corporate
+    availableColors: ['blue', 'emerald', 'teal', 'orange', 'charcoal'], // Blue first for corporate
+    comingSoon: true
   },
-  { 
-    value: 'elegant-simple', 
-    label: 'Elegant', 
+  {
+    value: 'elegant-simple',
+    label: 'Elegant',
     description: 'Ultra-minimal single column',
     styleDescriptor: 'simple · spacious',
-    availableColors: [] // No colors - pure elegant simplicity
+    availableColors: [], // No colors - pure elegant simplicity
+    comingSoon: true
   },
 ];
 
@@ -120,7 +124,7 @@ function TemplatePreview({ template, accentColor }: { template: CVTemplate; acce
                 </div>
               </div>
             </div>
-            
+
             {/* Summary */}
             <div className="mb-2">
               <div className="h-1.5 w-10 rounded-sm mb-1" style={{ backgroundColor: accentColor }} />
@@ -192,7 +196,7 @@ function TemplatePreview({ template, accentColor }: { template: CVTemplate; acce
                   </div>
                 </div>
               </div>
-              
+
               {/* Right column */}
               <div className="space-y-1.5" style={{ flex: '0 0 32%' }}>
                 <div>
@@ -239,7 +243,7 @@ function TemplatePreview({ template, accentColor }: { template: CVTemplate; acce
                   <div className="h-0.5 bg-gray-200 rounded-sm w-11/12" />
                 </div>
               </div>
-              
+
               <div>
                 <div className="h-1 w-10 rounded-sm mb-0.5 bg-gray-600" />
                 <div className="h-1 bg-gray-400 rounded-sm w-12 mb-0.5" />
@@ -581,13 +585,13 @@ function TemplatePreview({ template, accentColor }: { template: CVTemplate; acce
 }
 
 // Color Swatch Component - Very Compact
-function ColorSwatch({ 
-  color, 
-  isSelected, 
-  onClick 
-}: { 
-  color: CVColorOption; 
-  isSelected: boolean; 
+function ColorSwatch({
+  color,
+  isSelected,
+  onClick
+}: {
+  color: CVColorOption;
+  isSelected: boolean;
   onClick: () => void;
 }) {
   return (
@@ -600,12 +604,12 @@ function ColorSwatch({
       }}
       className={`
         relative w-4 h-4 rounded-full transition-all duration-150
-        ${isSelected 
-          ? 'ring-2 ring-offset-1 ring-offset-white dark:ring-offset-gray-800' 
+        ${isSelected
+          ? 'ring-2 ring-offset-1 ring-offset-white dark:ring-offset-gray-800'
           : 'hover:ring-1 hover:ring-offset-1 hover:ring-gray-300'
         }
       `}
-      style={{ 
+      style={{
         backgroundColor: color.hex,
         ['--tw-ring-color' as string]: color.hex
       }}
@@ -633,20 +637,22 @@ export default function TemplateCard({
   onColorChange
 }: TemplateCardProps) {
   const hasColors = template.availableColors.length > 0;
-  const accentColorHex = hasColors 
+  const accentColorHex = hasColors
     ? (COLOR_OPTIONS.find(c => c.id === selectedColor)?.hex || COLOR_OPTIONS.find(c => c.id === template.availableColors[0])?.hex || '#10b981')
     : '#374151'; // Gray for no-color templates
   const availableColorOptions = COLOR_OPTIONS.filter(c => template.availableColors.includes(c.id));
 
   return (
     <motion.div
-      whileHover={{ y: -1 }}
-      onClick={onSelect}
+      whileHover={template.comingSoon ? {} : { y: -1 }}
+      onClick={() => !template.comingSoon && onSelect()}
       className={`
-        relative cursor-pointer rounded-lg overflow-hidden transition-all duration-200
-        ${isSelected 
-          ? 'ring-2 ring-[#635BFF] shadow-md' 
-          : 'ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-gray-300 dark:hover:ring-gray-600 hover:shadow-sm'
+        relative rounded-lg overflow-hidden transition-all duration-200
+        ${isSelected
+          ? 'ring-2 ring-[#635BFF] shadow-md'
+          : template.comingSoon
+            ? 'ring-1 ring-gray-100 dark:ring-gray-800 opacity-60 cursor-not-allowed'
+            : 'ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-gray-300 dark:hover:ring-gray-600 hover:shadow-sm cursor-pointer'
         }
         bg-white dark:bg-[#2b2a2c]
       `}
@@ -663,7 +669,17 @@ export default function TemplateCard({
       )}
 
       {/* Preview area - very compact */}
-      <div className="p-0.5 bg-gray-50 dark:bg-[#242325]/50">
+      <div className={`relative p-0.5 bg-gray-50 dark:bg-[#242325]/50 ${template.comingSoon ? 'grayscale' : ''}`}>
+        {/* Coming Soon Overlay */}
+        {template.comingSoon && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/50 dark:bg-black/50 backdrop-blur-[1px]">
+            <div className="px-2 py-1 bg-white dark:bg-gray-800 rounded-full shadow-sm border border-gray-100 dark:border-gray-700">
+              <span className="text-[9px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                Coming Soon
+              </span>
+            </div>
+          </div>
+        )}
         <TemplatePreview template={template.value} accentColor={accentColorHex} />
       </div>
 
@@ -687,7 +703,7 @@ export default function TemplateCard({
                 key={color.id}
                 color={color}
                 isSelected={selectedColor === color.id}
-                onClick={() => onColorChange(color.id)}
+                onClick={() => !template.comingSoon && onColorChange(color.id)}
               />
             ))}
           </div>

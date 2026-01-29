@@ -153,7 +153,7 @@ const lockedSections = ['personal', 'contact', 'links'];
 function CollapsibleSection({
   title,
   icon: Icon,
-  defaultOpen = true,
+  defaultOpen = false,
   children,
   badge
 }: {
@@ -166,29 +166,46 @@ function CollapsibleSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border border-gray-100 dark:border-[#3d3c3e]/60 rounded-xl bg-white/50 dark:bg-[#242325]/30 backdrop-blur-sm overflow-hidden">
+    <div className={`
+      transition-all duration-200
+      ${isOpen
+        ? 'bg-gray-50/50 dark:bg-[#2b2a2c]/30 rounded-xl border border-gray-100 dark:border-[#3d3c3e]/60'
+        : 'hover:bg-gray-50 dark:hover:bg-[#2b2a2c]/30 rounded-lg'
+      }
+    `}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors"
+        className="w-full flex items-center gap-3 px-3 py-2.5 cursor-pointer"
       >
-        <div className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-[#2b2a2c]/60">
-          <Icon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+        <div className={`
+          flex items-center justify-center p-1.5 rounded-lg transition-colors
+          ${isOpen
+            ? 'bg-[#635BFF]/10 text-[#635BFF] dark:text-[#a5a0ff]'
+            : 'bg-gray-100 dark:bg-[#2b2a2c] text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300'
+          }
+        `}>
+          <Icon className="w-4 h-4" />
         </div>
-        <span className="flex-1 text-left text-sm font-medium text-gray-900 dark:text-white">
+
+        <span className={`
+          flex-1 text-left text-[14px] font-medium transition-colors
+          ${isOpen ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}
+        `}>
           {title}
         </span>
+
         {badge && (
-          <span className="px-2 py-0.5 text-[10px] font-medium bg-[#635BFF]/10 text-[#635BFF] dark:bg-[#635BFF]/20 dark:text-[#a5a0ff] rounded-full">
+          <span className="px-2 py-0.5 text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-full border border-gray-200 dark:border-gray-700">
             {badge}
           </span>
         )}
-        <motion.div
-          animate={{ rotate: isOpen ? 0 : -90 }}
-          transition={{ duration: 0.2 }}
-        >
-          <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-        </motion.div>
+
+        <ChevronRight className={`
+          w-4 h-4 text-gray-400 transition-transform duration-200
+          ${isOpen ? 'rotate-90' : ''}
+        `} />
       </button>
+
       <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
@@ -196,8 +213,9 @@ function CollapsibleSection({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            className="overflow-hidden"
           >
-            <div className="px-4 pb-4 pt-1">
+            <div className="px-3 pb-4 pt-1">
               {children}
             </div>
           </motion.div>
@@ -623,23 +641,13 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
     : sortedSections.filter(s => !lockedSections.includes(s.type));
 
   return (
-    <div className="h-full flex-1 min-h-0 overflow-y-auto overscroll-contain">
-      {/* Subtle gradient header */}
-      <div className="sticky top-0 z-10 px-5 py-4 bg-gradient-to-b from-gray-50 via-gray-50/95 to-gray-50/0 dark:from-[#242325] dark:via-[#242325]/95 dark:to-[#242325]/0">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Style & Layout
-        </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-          Customize the appearance of your CV
-        </p>
-      </div>
-
-      <div className="px-5 pb-24 lg:pb-6 space-y-4">
+    <div className="h-full flex-1 min-h-0 overflow-y-auto overscroll-contain pt-3">
+      <div className="px-3 pb-24 lg:pb-6 space-y-2">
         {/* Section Order - Collapsible */}
         <CollapsibleSection
-          title="Section Order"
+          title="Section Order & Titles"
           icon={Layers}
-          badge={`${sortedSections.length} sections`}
+          badge={`${sortedSections.length}`}
         >
           <DragDropContext onDragEnd={handleDragEnd}>
             {templateLayout.hasSidebar ? (
@@ -677,7 +685,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                   group flex items-center gap-2.5 px-3 py-2.5 rounded-xl
                                   ${snapshot.isDragging
                                     ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50'
-                                    : 'bg-gray-50/80 dark:bg-[#2b2a2c]/40 hover:bg-gray-100 dark:hover:bg-gray-800/60'
+                                    : 'bg-white dark:bg-[#2b2a2c] border border-gray-100 dark:border-[#3d3c3e]/60'
                                   }
                                 `}
                                 style={provided.draggableProps.style}
@@ -686,7 +694,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                   {...provided.dragHandleProps}
                                   className={`
                                     flex-shrink-0 p-1.5 rounded-lg transition-all duration-200
-                                    text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-200/60 dark:group-hover:bg-gray-700/60
+                                    text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-gray-800
                                     ${snapshot.isDragging ? 'text-[#635BFF] bg-[#635BFF]/10' : ''}
                                   `}
                                   title="Drag to reorder"
@@ -749,7 +757,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                   group flex items-center gap-2.5 px-3 py-2.5 rounded-xl
                                   ${snapshot.isDragging
                                     ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50'
-                                    : 'bg-gray-50/80 dark:bg-[#2b2a2c]/40 hover:bg-gray-100 dark:hover:bg-gray-800/60'
+                                    : 'bg-white dark:bg-[#2b2a2c] border border-gray-100 dark:border-[#3d3c3e]/60'
                                   }
                                 `}
                                 style={provided.draggableProps.style}
@@ -758,7 +766,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                   {...provided.dragHandleProps}
                                   className={`
                                     flex-shrink-0 p-1.5 rounded-lg transition-all duration-200
-                                    text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-200/60 dark:group-hover:bg-gray-700/60
+                                    text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-gray-800
                                     ${snapshot.isDragging ? 'text-[#635BFF] bg-[#635BFF]/10' : ''}
                                   `}
                                   title="Drag to reorder"
@@ -816,16 +824,16 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                           return (
                             <div
                               key={section.id}
-                              className="group flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gray-50/80 dark:bg-[#2b2a2c]/40 opacity-50"
+                              className="group flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gray-50/50 dark:bg-[#2b2a2c]/20 border border-transparent"
                             >
                               <div className="flex-shrink-0 p-1.5 rounded-lg text-gray-300 dark:text-gray-600 cursor-not-allowed">
                                 <Lock className="w-3.5 h-3.5" />
                               </div>
-                              <div className="flex-shrink-0 text-gray-500 dark:text-gray-400">
+                              <div className="flex-shrink-0 text-gray-400 dark:text-gray-500">
                                 {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <span className="block text-sm font-medium text-gray-900 dark:text-white truncate">
+                                <span className="block text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
                                   {section.title}
                                 </span>
                               </div>
@@ -852,7 +860,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                   group flex items-center gap-2.5 px-3 py-2.5 rounded-xl
                                   ${snapshot.isDragging
                                     ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50'
-                                    : 'bg-gray-50/80 dark:bg-[#2b2a2c]/40 hover:bg-gray-100 dark:hover:bg-gray-800/60'
+                                    : 'bg-white dark:bg-[#2b2a2c] border border-gray-100 dark:border-[#3d3c3e]/60 hover:border-gray-200 dark:hover:border-[#3d3c3e]'
                                   }
                                 `}
                                 style={provided.draggableProps.style}
@@ -861,7 +869,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                                   {...provided.dragHandleProps}
                                   className={`
                                     flex-shrink-0 p-1.5 rounded-lg transition-all duration-200
-                                    text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-200/60 dark:group-hover:bg-gray-700/60
+                                    text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-gray-800
                                     ${snapshot.isDragging ? 'text-[#635BFF] bg-[#635BFF]/10' : ''}
                                   `}
                                   title="Drag to reorder"
@@ -923,7 +931,7 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
         </CollapsibleSection>
 
         {/* Typography - Collapsible */}
-        <CollapsibleSection title="Typography" icon={Type}>
+        <CollapsibleSection title="Text & Font Style" icon={Type}>
           <div className="space-y-5">
             {/* Font Family - Visual Picker */}
             <FontPicker
@@ -967,22 +975,24 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
           </CollapsibleSection>
         )}
 
-        {/* Formatting - Collapsible */}
-        <CollapsibleSection title="Formatting" icon={Calendar} defaultOpen={false}>
-          <div className="space-y-5">
-            {/* Date Format - Option Selector */}
-            <OptionSelector
-              label="Date Format"
-              value={layoutSettings.dateFormat}
-              onChange={(v) => onSettingsChange({ dateFormat: String(v) })}
-              options={[
-                { value: 'jan-24', label: 'Short', preview: "Jan '24" },
-                { value: 'january-2024', label: 'Full', preview: 'January 2024' },
-                { value: '01-2024', label: 'Numeric', preview: '01/2024' },
-                { value: '2024-01', label: 'ISO', preview: '2024-01' },
-              ]}
-            />
+        {/* Date Format - Collapsible */}
+        <CollapsibleSection title="Date Format" icon={Calendar}>
+          <OptionSelector
+            label="Date Format"
+            value={layoutSettings.dateFormat}
+            onChange={(v) => onSettingsChange({ dateFormat: String(v) })}
+            options={[
+              { value: 'jan-24', label: 'Short', preview: "Jan '24" },
+              { value: 'january-2024', label: 'Full', preview: 'January 2024' },
+              { value: '01-2024', label: 'Numeric', preview: '01/2024' },
+              { value: '2024-01', label: 'ISO', preview: '2024-01' },
+            ]}
+          />
+        </CollapsibleSection>
 
+        {/* Layout & Spacing - Collapsible */}
+        <CollapsibleSection title="Layout & Spacing" icon={LayoutList}>
+          <div className="space-y-5">
             {/* Experience Spacing - Premium Slider */}
             <PremiumSlider
               value={layoutSettings.experienceSpacing ?? 6}
