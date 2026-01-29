@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   GripVertical, User, FileText, Briefcase, GraduationCap,
   Code, Award, FolderOpen, Globe, Lock, Minus, Plus,
-  ChevronDown, ChevronRight, Edit3, Type, Check, Palette,
-  Calendar, AlignLeft, Layers, LayoutPanelLeft, LayoutList
+  ChevronDown, ChevronLeft, ChevronRight, Edit3, Type, Check, Palette,
+  Calendar, Layers, LayoutPanelLeft, LayoutList, ArrowUpDown, Camera
 } from 'lucide-react';
 import { CVSection, CVLayoutSettings, CVColorScheme, CVTemplate } from '../../../types/cvEditor';
 import { sortSections } from '../../../lib/cvEditorUtils';
@@ -147,80 +147,68 @@ const sectionIcons: Record<string, React.ReactNode> = {
   languages: <Globe className="w-4 h-4" />
 };
 
+const categoryIcons: Record<string, any> = {
+  order: ArrowUpDown,
+  typography: Type,
+  'date-format': Calendar,
+  spacing: FileText,
+  colors: Palette,
+};
+
+const categoryTitles: Record<string, string> = {
+  order: 'Section Order & Titles',
+  typography: 'Text & Font Style',
+  'date-format': 'Date Format',
+  spacing: 'Page Size, Margins & Layouts',
+  colors: 'Colors',
+};
+
 const lockedSections = ['personal', 'contact', 'links'];
 
-// Collapsible Section Component
-function CollapsibleSection({
-  title,
-  icon: Icon,
-  defaultOpen = false,
-  children,
-  badge
+
+
+// Premium Stepper Component for Font Size
+function PremiumStepper({
+  value,
+  onChange,
+  min,
+  max,
+  label,
+  valueSuffix = '',
 }: {
-  title: string;
-  icon: React.ComponentType<{ className?: string }>;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-  badge?: string;
+  value: number;
+  onChange: (value: number) => void;
+  min: number;
+  max: number;
+  label: string;
+  valueSuffix?: string;
 }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
   return (
-    <div className={`
-      transition-all duration-200
-      ${isOpen
-        ? 'bg-gray-50/50 dark:bg-[#2b2a2c]/30 rounded-xl border border-gray-100 dark:border-[#3d3c3e]/60'
-        : 'hover:bg-gray-50 dark:hover:bg-[#2b2a2c]/30 rounded-lg'
-      }
-    `}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-3 px-3 py-2.5 cursor-pointer"
-      >
-        <div className={`
-          flex items-center justify-center p-1.5 rounded-lg transition-colors
-          ${isOpen
-            ? 'bg-[#635BFF]/10 text-[#635BFF] dark:text-[#a5a0ff]'
-            : 'bg-gray-100 dark:bg-[#2b2a2c] text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300'
-          }
-        `}>
-          <Icon className="w-4 h-4" />
-        </div>
-
-        <span className={`
-          flex-1 text-left text-[14px] font-medium transition-colors
-          ${isOpen ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}
-        `}>
-          {title}
-        </span>
-
-        {badge && (
-          <span className="px-2 py-0.5 text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-full border border-gray-200 dark:border-gray-700">
-            {badge}
+    <div className="flex items-center justify-between">
+      <span className="text-[13px] font-medium text-gray-700 dark:text-gray-300">
+        {label}
+      </span>
+      <div className="flex items-center bg-white dark:bg-[#2b2a2c]/40 border border-gray-200 dark:border-[#3d3c3e]/60 rounded-xl overflow-hidden shadow-sm">
+        <button
+          onClick={() => onChange(Math.max(min, value - 1))}
+          disabled={value <= min}
+          className="p-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-500 dark:text-gray-400 disabled:opacity-30 transition-colors"
+        >
+          <Minus className="w-4 h-4" />
+        </button>
+        <div className="w-12 text-center border-x border-gray-100 dark:border-[#3d3c3e]/60 py-2">
+          <span className="text-sm font-semibold text-gray-900 dark:text-white tabular-nums">
+            {value}{valueSuffix}
           </span>
-        )}
-
-        <ChevronRight className={`
-          w-4 h-4 text-gray-400 transition-transform duration-200
-          ${isOpen ? 'rotate-90' : ''}
-        `} />
-      </button>
-
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden"
-          >
-            <div className="px-3 pb-4 pt-1">
-              {children}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </div>
+        <button
+          onClick={() => onChange(Math.min(max, value + 1))}
+          disabled={value >= max}
+          className="p-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-500 dark:text-gray-400 disabled:opacity-30 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -477,8 +465,8 @@ function ColorSwatchPicker({
   );
 }
 
-// Option Selector Component (for Date Format, Line Height)
-function OptionSelector({
+// Premium Select Component
+function PremiumSelect({
   options,
   value,
   onChange,
@@ -489,38 +477,80 @@ function OptionSelector({
   onChange: (value: string | number) => void;
   label: string;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find(o => o.value === value);
+
   return (
     <div className="space-y-3">
       <span className="text-[13px] font-medium text-gray-700 dark:text-gray-300">
         {label}
       </span>
-      <div className="grid grid-cols-2 gap-2">
-        {options.map(option => (
-          <button
-            key={option.value}
-            onClick={() => onChange(option.value)}
-            className={`flex flex-col items-start px-3 py-2.5 rounded-xl border transition-all text-left ${value === option.value
-              ? 'border-[#635BFF] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
-              : 'border-gray-200 dark:border-[#3d3c3e]/60 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-[#2b2a2c]/40'
-              }`}
-          >
-            <span className={`text-sm font-medium ${value === option.value
-              ? 'text-[#635BFF] dark:text-[#a5a0ff]'
-              : 'text-gray-900 dark:text-white'
-              }`}>
-              {option.preview || option.label}
+      <div className="relative">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-white dark:bg-[#2b2a2c]/40 border border-gray-200 dark:border-[#3d3c3e]/60 rounded-xl hover:border-[#635BFF]/50 dark:hover:border-[#635BFF]/30 transition-all group"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+              {selectedOption?.preview || selectedOption?.value}
             </span>
-            <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
-              {option.label}
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {selectedOption?.label}
             </span>
-          </button>
-        ))}
+          </div>
+          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        <AnimatePresence>
+          {isOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-10"
+                onClick={() => setIsOpen(false)}
+              />
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                transition={{ duration: 0.15 }}
+                className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#242325] border border-gray-200 dark:border-[#3d3c3e] rounded-xl shadow-xl z-20 overflow-hidden"
+              >
+                {options.map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => { onChange(option.value); setIsOpen(false); }}
+                    className={`w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${value === option.value ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
+                      }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`text-sm font-medium ${value === option.value ? 'text-[#635BFF] dark:text-[#a5a0ff]' : 'text-gray-900 dark:text-white'}`}>
+                        {option.preview || option.value}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {option.label}
+                      </span>
+                    </div>
+                    {value === option.value && (
+                      <Check className="w-4 h-4 text-[#635BFF]" />
+                    )}
+                  </button>
+                ))}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
 }
 
+
+
 export default function LayoutStyleTab({ sections, onReorder, layoutSettings, onSettingsChange, template }: LayoutStyleTabProps) {
+  const [activeSection, setActiveSection] = useState<string | null>(null);
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [tempTitle, setTempTitle] = useState('');
 
@@ -641,370 +671,341 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
     : sortedSections.filter(s => !lockedSections.includes(s.type));
 
   return (
-    <div className="h-full flex-1 min-h-0 overflow-y-auto overscroll-contain pt-3">
-      <div className="px-3 pb-24 lg:pb-6 space-y-2">
-        {/* Section Order - Collapsible */}
-        <CollapsibleSection
-          title="Section Order & Titles"
-          icon={Layers}
-          badge={`${sortedSections.length}`}
-        >
-          <DragDropContext onDragEnd={handleDragEnd}>
-            {templateLayout.hasSidebar ? (
-              /* Two-column layout for templates with sidebar */
-              <div className="space-y-4">
-                {/* Main Content Sections */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <LayoutList className="w-4 h-4 text-gray-500" />
-                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                      Main Content
-                    </span>
-                  </div>
-                  <Droppable droppableId="main-sections">
-                    {(provided, droppableSnapshot) => (
-                      <div
-                        {...provided.droppableProps}
-                        ref={provided.innerRef}
-                        className={`space-y-1.5 rounded-lg p-2 border-2 border-dashed transition-colors ${droppableSnapshot.isDraggingOver
-                          ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10 border-[#635BFF]/30'
-                          : 'border-gray-200 dark:border-[#3d3c3e]/60'
-                          }`}
-                      >
-                        {mainSectionsList.map((section, index) => (
-                          <Draggable
-                            key={section.id}
-                            draggableId={section.id}
-                            index={index}
-                          >
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                className={`
-                                  group flex items-center gap-2.5 px-3 py-2.5 rounded-xl
-                                  ${snapshot.isDragging
-                                    ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50'
-                                    : 'bg-white dark:bg-[#2b2a2c] border border-gray-100 dark:border-[#3d3c3e]/60'
-                                  }
-                                `}
-                                style={provided.draggableProps.style}
-                              >
-                                <div
-                                  {...provided.dragHandleProps}
-                                  className={`
-                                    flex-shrink-0 p-1.5 rounded-lg transition-all duration-200
-                                    text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-gray-800
-                                    ${snapshot.isDragging ? 'text-[#635BFF] bg-[#635BFF]/10' : ''}
-                                  `}
-                                  title="Drag to reorder"
-                                >
-                                  <GripVertical className="w-3.5 h-3.5" />
-                                </div>
-                                <div className={`flex-shrink-0 transition-colors duration-200 ${snapshot.isDragging ? 'text-[#635BFF]' : 'text-gray-500 dark:text-gray-400'
-                                  }`}>
-                                  {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <span className="block text-sm font-medium text-gray-900 dark:text-white truncate">
-                                    {section.title}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                        {mainSectionsList.length === 0 && (
-                          <div className="text-center py-3 text-xs text-gray-400">
-                            No main sections enabled
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </Droppable>
-                </div>
+    <div className="h-full flex flex-col overflow-hidden">
+      <AnimatePresence mode="wait">
+        {!activeSection ? (
+          /* List View */
+          <motion.div
+            key="list"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+            className="flex-1 overflow-y-auto bg-white dark:bg-[#1f1e20]"
+          >
+            <div className="divide-y divide-gray-100 dark:divide-[#3d3c3e]/60">
+              {Object.entries(categoryTitles).map(([id, title]) => {
+                if (id === 'colors' && !hasColors) return null;
+                const Icon = categoryIcons[id];
 
-                {/* Sidebar Sections */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <LayoutPanelLeft className="w-4 h-4 text-gray-500" />
-                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                      Sidebar
-                    </span>
-                  </div>
-                  <Droppable droppableId="sidebar-sections">
-                    {(provided, droppableSnapshot) => (
-                      <div
-                        {...provided.droppableProps}
-                        ref={provided.innerRef}
-                        className={`space-y-1.5 rounded-lg p-2 border-2 border-dashed transition-colors ${droppableSnapshot.isDraggingOver
-                          ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10 border-[#635BFF]/30'
-                          : 'border-gray-200 dark:border-[#3d3c3e]/60'
-                          }`}
-                      >
-                        {sidebarSectionsList.map((section, index) => (
-                          <Draggable
-                            key={section.id}
-                            draggableId={section.id}
-                            index={index}
-                          >
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                className={`
-                                  group flex items-center gap-2.5 px-3 py-2.5 rounded-xl
-                                  ${snapshot.isDragging
-                                    ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50'
-                                    : 'bg-white dark:bg-[#2b2a2c] border border-gray-100 dark:border-[#3d3c3e]/60'
-                                  }
-                                `}
-                                style={provided.draggableProps.style}
-                              >
-                                <div
-                                  {...provided.dragHandleProps}
-                                  className={`
-                                    flex-shrink-0 p-1.5 rounded-lg transition-all duration-200
-                                    text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-gray-800
-                                    ${snapshot.isDragging ? 'text-[#635BFF] bg-[#635BFF]/10' : ''}
-                                  `}
-                                  title="Drag to reorder"
-                                >
-                                  <GripVertical className="w-3.5 h-3.5" />
-                                </div>
-                                <div className={`flex-shrink-0 transition-colors duration-200 ${snapshot.isDragging ? 'text-[#635BFF]' : 'text-gray-500 dark:text-gray-400'
-                                  }`}>
-                                  {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <span className="block text-sm font-medium text-gray-900 dark:text-white truncate">
-                                    {section.title}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                        {sidebarSectionsList.length === 0 && (
-                          <div className="text-center py-3 text-xs text-gray-400">
-                            No sidebar sections enabled
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </Droppable>
-                </div>
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setActiveSection(id)}
+                    className="w-full group flex items-center gap-3 px-4 py-3 hover:bg-gray-50/50 dark:hover:bg-[#2b2a2c]/20 transition-all text-left"
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-400 group-hover:text-[#635BFF] group-hover:border-[#635BFF]/30 transition-all">
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[14px] font-bold text-[#1a154b] dark:text-gray-200 group-hover:text-[#635BFF] transition-colors">
+                        {title}
+                      </h3>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        ) : (
+          /* Detail View */
+          <motion.div
+            key="detail"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+            className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-[#1f1e20]"
+          >
+            {/* Detail Header */}
+            <div className="flex items-center gap-3 px-3 py-3 border-b border-gray-100 dark:border-[#3d3c3e]/60">
+              <button
+                onClick={() => setActiveSection(null)}
+                className="p-1.5 -ml-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-lg transition-all"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
 
-                {/* Info notice for two-column layouts */}
-                <div className="flex items-start gap-2 px-3 py-2 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-200/50 dark:border-blue-800/30">
-                  <LayoutPanelLeft className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-blue-700 dark:text-blue-300">
-                    This template has a two-column layout. Sections can only be reordered within their own column (Main or Sidebar).
-                  </p>
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-[#635BFF]/10 text-[#635BFF] dark:text-[#a5a0ff]">
+                  {(() => {
+                    const Icon = categoryIcons[activeSection];
+                    return <Icon className="w-4 h-4" />;
+                  })()}
                 </div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {categoryTitles[activeSection]}
+                </h3>
               </div>
-            ) : (
-              /* Single column layout */
-              <>
-                <Droppable droppableId="layout-sections">
-                  {(provided, droppableSnapshot) => (
-                    <div
-                      {...provided.droppableProps}
-                      ref={provided.innerRef}
-                      className={`space-y-1.5 rounded-lg ${droppableSnapshot.isDraggingOver ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
-                        }`}
-                    >
-                      {sortedSections.map((section, index) => {
-                        const isLocked = lockedSections.includes(section.type);
+            </div>
 
-                        // For single column, only render non-locked sections in the droppable
-                        if (isLocked) {
-                          return (
+            {/* Detail Content */}
+            <div className="flex-1 overflow-y-auto px-4 py-6">
+              {activeSection === 'order' && (
+                <DragDropContext onDragEnd={handleDragEnd}>
+                  {templateLayout.hasSidebar ? (
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <LayoutList className="w-4 h-4 text-gray-500" />
+                          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                            Main Content
+                          </span>
+                        </div>
+                        <Droppable droppableId="main-sections">
+                          {(provided, droppableSnapshot) => (
                             <div
-                              key={section.id}
-                              className="group flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gray-50/50 dark:bg-[#2b2a2c]/20 border border-transparent"
+                              {...provided.droppableProps}
+                              ref={provided.innerRef}
+                              className={`space-y-1.5 rounded-lg p-2 border-2 border-dashed transition-colors ${droppableSnapshot.isDraggingOver
+                                ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10 border-[#635BFF]/30'
+                                : 'border-gray-200 dark:border-[#3d3c3e]/60'
+                                }`}
                             >
-                              <div className="flex-shrink-0 p-1.5 rounded-lg text-gray-300 dark:text-gray-600 cursor-not-allowed">
-                                <Lock className="w-3.5 h-3.5" />
-                              </div>
-                              <div className="flex-shrink-0 text-gray-400 dark:text-gray-500">
-                                {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <span className="block text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                                  {section.title}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        // Find the index within non-locked sections
-                        const nonLockedIndex = sortedSections
-                          .filter(s => !lockedSections.includes(s.type))
-                          .findIndex(s => s.id === section.id);
-
-                        return (
-                          <Draggable
-                            key={section.id}
-                            draggableId={section.id}
-                            index={nonLockedIndex}
-                          >
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                className={`
-                                  group flex items-center gap-2.5 px-3 py-2.5 rounded-xl
-                                  ${snapshot.isDragging
-                                    ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50'
-                                    : 'bg-white dark:bg-[#2b2a2c] border border-gray-100 dark:border-[#3d3c3e]/60 hover:border-gray-200 dark:hover:border-[#3d3c3e]'
-                                  }
-                                `}
-                                style={provided.draggableProps.style}
-                              >
-                                <div
-                                  {...provided.dragHandleProps}
-                                  className={`
-                                    flex-shrink-0 p-1.5 rounded-lg transition-all duration-200
-                                    text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-gray-800
-                                    ${snapshot.isDragging ? 'text-[#635BFF] bg-[#635BFF]/10' : ''}
-                                  `}
-                                  title="Drag to reorder"
-                                >
-                                  <GripVertical className="w-3.5 h-3.5" />
-                                </div>
-                                <div className={`flex-shrink-0 transition-colors duration-200 ${snapshot.isDragging ? 'text-[#635BFF]' : 'text-gray-500 dark:text-gray-400'
-                                  }`}>
-                                  {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  {editingSection === section.id ? (
-                                    <input
-                                      type="text"
-                                      value={tempTitle}
-                                      onChange={(e) => setTempTitle(e.target.value)}
-                                      onBlur={saveTitle}
-                                      onKeyPress={(e) => e.key === 'Enter' && saveTitle()}
-                                      autoFocus
-                                      className="w-full px-2 py-1 text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-[#3d3c3e] border border-[#635BFF] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#635BFF]/30"
-                                    />
-                                  ) : (
-                                    <span
-                                      onClick={() => startEditingTitle(section.id, section.title)}
-                                      className="block text-sm font-medium text-gray-900 dark:text-white truncate cursor-text hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors"
+                              {mainSectionsList.map((section, index) => (
+                                <Draggable key={section.id} draggableId={section.id} index={index}>
+                                  {(provided, snapshot) => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      className={`group flex items-center gap-2.5 px-3 py-2.5 rounded-xl ${snapshot.isDragging
+                                        ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50'
+                                        : 'bg-white dark:bg-[#2b2a2c] border border-gray-100 dark:border-[#3d3c3e]/60'
+                                        }`}
+                                      style={provided.draggableProps.style}
                                     >
+                                      <div
+                                        {...provided.dragHandleProps}
+                                        className="flex-shrink-0 p-1.5 rounded-lg text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-gray-800"
+                                      >
+                                        <GripVertical className="w-3.5 h-3.5" />
+                                      </div>
+                                      <div className="flex-shrink-0 text-gray-500 dark:text-gray-400">
+                                        {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <span className="block text-sm font-medium text-gray-900 dark:text-white truncate">
+                                          {section.title}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </Draggable>
+                              ))}
+                              {provided.placeholder}
+                            </div>
+                          )}
+                        </Droppable>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <LayoutPanelLeft className="w-4 h-4 text-gray-500" />
+                          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                            Sidebar
+                          </span>
+                        </div>
+                        <Droppable droppableId="sidebar-sections">
+                          {(provided, droppableSnapshot) => (
+                            <div
+                              {...provided.droppableProps}
+                              ref={provided.innerRef}
+                              className={`space-y-1.5 rounded-lg p-2 border-2 border-dashed transition-colors ${droppableSnapshot.isDraggingOver
+                                ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10 border-[#635BFF]/30'
+                                : 'border-gray-200 dark:border-[#3d3c3e]/60'
+                                }`}
+                            >
+                              {sidebarSectionsList.map((section, index) => (
+                                <Draggable key={section.id} draggableId={section.id} index={index}>
+                                  {(provided, snapshot) => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      className={`group flex items-center gap-2.5 px-3 py-2.5 rounded-xl ${snapshot.isDragging
+                                        ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50'
+                                        : 'bg-white dark:bg-[#2b2a2c] border border-gray-100 dark:border-[#3d3c3e]/60'
+                                        }`}
+                                      style={provided.draggableProps.style}
+                                    >
+                                      <div
+                                        {...provided.dragHandleProps}
+                                        className="flex-shrink-0 p-1.5 rounded-lg text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-gray-800"
+                                      >
+                                        <GripVertical className="w-3.5 h-3.5" />
+                                      </div>
+                                      <div className="flex-shrink-0 text-gray-500 dark:text-gray-400">
+                                        {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <span className="block text-sm font-medium text-gray-900 dark:text-white truncate">
+                                          {section.title}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </Draggable>
+                              ))}
+                              {provided.placeholder}
+                            </div>
+                          )}
+                        </Droppable>
+                      </div>
+                    </div>
+                  ) : (
+                    <Droppable droppableId="layout-sections">
+                      {(provided, droppableSnapshot) => (
+                        <div
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                          className={`space-y-1.5 rounded-lg ${droppableSnapshot.isDraggingOver ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''}`}
+                        >
+                          {sortedSections.map((section) => {
+                            const isLocked = lockedSections.includes(section.type);
+                            if (isLocked) {
+                              return (
+                                <div key={section.id} className="group flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gray-50/50 dark:bg-[#2b2a2c]/20 border border-transparent">
+                                  <div className="flex-shrink-0 p-1.5 rounded-lg text-gray-300 dark:text-gray-600 cursor-not-allowed">
+                                    <Lock className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div className="flex-shrink-0 text-gray-400 dark:text-gray-500">
+                                    {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <span className="block text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
                                       {section.title}
                                     </span>
-                                  )}
+                                  </div>
                                 </div>
-                                {editingSection !== section.id && (
-                                  <button
-                                    onClick={() => startEditingTitle(section.id, section.title)}
-                                    className="p-1.5 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 rounded-lg transition-all duration-200 flex-shrink-0 opacity-0 group-hover:opacity-100"
+                              );
+                            }
+
+                            const nonLockedIndex = sortedSections.filter(s => !lockedSections.includes(s.type)).findIndex(s => s.id === section.id);
+
+                            return (
+                              <Draggable key={section.id} draggableId={section.id} index={nonLockedIndex}>
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    className={`group flex items-center gap-2.5 px-3 py-2.5 rounded-xl ${snapshot.isDragging
+                                      ? 'bg-white dark:bg-[#2b2a2c] shadow-2xl ring-2 ring-[#635BFF] z-50'
+                                      : 'bg-white dark:bg-[#2b2a2c] border border-gray-100 dark:border-[#3d3c3e]/60 hover:border-gray-200 dark:hover:border-[#3d3c3e]'
+                                      }`}
+                                    style={provided.draggableProps.style}
                                   >
-                                    <Edit3 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                                  </button>
+                                    <div
+                                      {...provided.dragHandleProps}
+                                      className="flex-shrink-0 p-1.5 rounded-lg text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-gray-800"
+                                    >
+                                      <GripVertical className="w-3.5 h-3.5" />
+                                    </div>
+                                    <div className="flex-shrink-0 text-gray-500 dark:text-gray-400">
+                                      {sectionIcons[section.type] || <FileText className="w-4 h-4" />}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      {editingSection === section.id ? (
+                                        <input
+                                          type="text"
+                                          value={tempTitle}
+                                          onChange={(e) => setTempTitle(e.target.value)}
+                                          onBlur={saveTitle}
+                                          onKeyPress={(e) => e.key === 'Enter' && saveTitle()}
+                                          autoFocus
+                                          className="w-full px-2 py-1 text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-[#3d3c3e] border border-[#635BFF] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#635BFF]/30"
+                                        />
+                                      ) : (
+                                        <span
+                                          onClick={() => startEditingTitle(section.id, section.title)}
+                                          className="block text-sm font-medium text-gray-900 dark:text-white truncate cursor-text hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors"
+                                        >
+                                          {section.title}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {editingSection !== section.id && (
+                                      <button
+                                        onClick={() => startEditingTitle(section.id, section.title)}
+                                        className="p-1.5 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 rounded-lg transition-all duration-200 flex-shrink-0 opacity-0 group-hover:opacity-100"
+                                      >
+                                        <Edit3 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                                      </button>
+                                    )}
+                                  </div>
                                 )}
-                              </div>
-                            )}
-                          </Draggable>
-                        );
-                      })}
-                      {provided.placeholder}
-                    </div>
+                              </Draggable>
+                            );
+                          })}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
                   )}
-                </Droppable>
+                </DragDropContext>
+              )}
 
-                {/* Locked sections notice */}
-                <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-amber-50/50 dark:bg-amber-900/10 rounded-lg border border-amber-200/50 dark:border-amber-800/30">
-                  <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-500 flex-shrink-0" />
-                  <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                    Header sections are locked to maintain template consistency
-                  </p>
+              {activeSection === 'typography' && (
+                <div className="space-y-6">
+                  <FontPicker
+                    selectedFont={layoutSettings.fontFamily}
+                    onSelect={(font) => onSettingsChange({ fontFamily: font })}
+                  />
+                  <PremiumStepper
+                    value={layoutSettings.fontSize}
+                    onChange={(v) => onSettingsChange({ fontSize: v })}
+                    min={8}
+                    max={14}
+                    label="Font Size"
+                    valueSuffix="pt"
+                  />
+                  <PremiumSelect
+                    label="Line Height"
+                    value={layoutSettings.lineHeight}
+                    onChange={(v) => onSettingsChange({ lineHeight: Number(v) })}
+                    options={[
+                      { value: 1.0, label: 'Compact', preview: '1.0×' },
+                      { value: 1.3, label: 'Standard', preview: '1.3×' },
+                      { value: 1.5, label: 'Comfortable', preview: '1.5×' },
+                      { value: 2.0, label: 'Spacious', preview: '2.0×' },
+                    ]}
+                  />
                 </div>
-              </>
-            )}
-          </DragDropContext>
-        </CollapsibleSection>
+              )}
 
-        {/* Typography - Collapsible */}
-        <CollapsibleSection title="Text & Font Style" icon={Type}>
-          <div className="space-y-5">
-            {/* Font Family - Visual Picker */}
-            <FontPicker
-              selectedFont={layoutSettings.fontFamily}
-              onSelect={(font) => onSettingsChange({ fontFamily: font })}
-            />
+              {activeSection === 'colors' && hasColors && (
+                <ColorSwatchPicker
+                  selectedColor={layoutSettings.accentColor || 'blue'}
+                  onSelect={(color) => onSettingsChange({ accentColor: color })}
+                />
+              )}
 
-            {/* Font Size - Premium Slider */}
-            <PremiumSlider
-              value={layoutSettings.fontSize}
-              onChange={(v) => onSettingsChange({ fontSize: v })}
-              min={8}
-              max={14}
-              label="Font Size"
-              valueSuffix="pt"
-              tickLabels={['8', '10', '12', '14']}
-            />
+              {activeSection === 'date-format' && (
+                <PremiumSelect
+                  label="Date Format"
+                  value={layoutSettings.dateFormat}
+                  onChange={(v) => onSettingsChange({ dateFormat: String(v) })}
+                  options={[
+                    { value: 'jan-24', label: 'Short', preview: "Jan '24" },
+                    { value: 'january-2024', label: 'Full', preview: 'January 2024' },
+                    { value: '01-2024', label: 'Numeric', preview: '01/2024' },
+                    { value: '2024-01', label: 'ISO', preview: '2024-01' },
+                  ]}
+                />
+              )}
 
-            {/* Line Height - Option Selector */}
-            <OptionSelector
-              label="Line Height"
-              value={layoutSettings.lineHeight}
-              onChange={(v) => onSettingsChange({ lineHeight: Number(v) })}
-              options={[
-                { value: 1.0, label: 'Compact', preview: '1.0×' },
-                { value: 1.3, label: 'Standard', preview: '1.3×' },
-                { value: 1.5, label: 'Comfortable', preview: '1.5×' },
-                { value: 2.0, label: 'Spacious', preview: '2.0×' },
-              ]}
-            />
-          </div>
-        </CollapsibleSection>
-
-        {/* Colors - Collapsible - Only show if template supports colors */}
-        {hasColors && (
-          <CollapsibleSection title="Colors" icon={Palette}>
-            <ColorSwatchPicker
-              selectedColor={layoutSettings.accentColor || 'blue'}
-              onSelect={(color) => onSettingsChange({ accentColor: color })}
-            />
-          </CollapsibleSection>
+              {activeSection === 'spacing' && (
+                <PremiumSlider
+                  value={layoutSettings.experienceSpacing ?? 6}
+                  onChange={(v) => onSettingsChange({ experienceSpacing: v })}
+                  min={0}
+                  max={12}
+                  label="Section Spacing"
+                  tickLabels={['Tight', '', 'Normal', '', 'Loose']}
+                />
+              )}
+            </div>
+          </motion.div>
         )}
-
-        {/* Date Format - Collapsible */}
-        <CollapsibleSection title="Date Format" icon={Calendar}>
-          <OptionSelector
-            label="Date Format"
-            value={layoutSettings.dateFormat}
-            onChange={(v) => onSettingsChange({ dateFormat: String(v) })}
-            options={[
-              { value: 'jan-24', label: 'Short', preview: "Jan '24" },
-              { value: 'january-2024', label: 'Full', preview: 'January 2024' },
-              { value: '01-2024', label: 'Numeric', preview: '01/2024' },
-              { value: '2024-01', label: 'ISO', preview: '2024-01' },
-            ]}
-          />
-        </CollapsibleSection>
-
-        {/* Layout & Spacing - Collapsible */}
-        <CollapsibleSection title="Layout & Spacing" icon={LayoutList}>
-          <div className="space-y-5">
-            {/* Experience Spacing - Premium Slider */}
-            <PremiumSlider
-              value={layoutSettings.experienceSpacing ?? 6}
-              onChange={(v) => onSettingsChange({ experienceSpacing: v })}
-              min={0}
-              max={12}
-              label="Section Spacing"
-              tickLabels={['Tight', '', 'Normal', '', 'Loose']}
-            />
-          </div>
-        </CollapsibleSection>
-      </div>
+      </AnimatePresence>
     </div>
   );
 }

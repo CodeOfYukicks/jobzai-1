@@ -71,14 +71,14 @@ const sectionIcons: Record<string, React.ReactNode> = {
 };
 
 const sectionIconsSmall: Record<string, React.ReactNode> = {
-  personal: <User className="w-5 h-5" />,
-  summary: <FileText className="w-5 h-5" />,
-  experience: <Briefcase className="w-5 h-5" />,
-  education: <GraduationCap className="w-5 h-5" />,
-  skills: <Code className="w-5 h-5" />,
-  certifications: <Award className="w-5 h-5" />,
-  projects: <FolderOpen className="w-5 h-5" />,
-  languages: <Globe className="w-5 h-5" />
+  personal: <User className="w-4 h-4" />,
+  summary: <FileText className="w-4 h-4" />,
+  experience: <Briefcase className="w-4 h-4" />,
+  education: <GraduationCap className="w-4 h-4" />,
+  skills: <Code className="w-4 h-4" />,
+  certifications: <Award className="w-4 h-4" />,
+  projects: <FolderOpen className="w-4 h-4" />,
+  languages: <Globe className="w-4 h-4" />
 };
 
 export default function EditorPanel({
@@ -512,14 +512,14 @@ export default function EditorPanel({
                 transition={{ duration: 0.2 }}
                 className="h-full flex flex-col"
               >
-                <div ref={sectionsContainerRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-3 pb-24 lg:pb-6 pt-3">
+                <div ref={sectionsContainerRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain pb-24 lg:pb-6 bg-white dark:bg-[#1f1e20]">
                   <DragDropContext onDragEnd={handleDragEnd}>
                     <Droppable droppableId="cv-sections">
                       {(provided, droppableSnapshot) => (
                         <div
                           {...provided.droppableProps}
                           ref={provided.innerRef}
-                          className={`space-y-2 rounded-xl ${droppableSnapshot.isDraggingOver ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
+                          className={`divide-y divide-gray-100 dark:divide-[#3d3c3e]/60 ${droppableSnapshot.isDraggingOver ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
                             }`}
                         >
                           {filteredSections.map((section, index) => {
@@ -538,17 +538,17 @@ export default function EditorPanel({
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
                                     className={`
-                                      group rounded-lg border transition-all duration-200
+                                      group transition-all duration-200
                                       ${snapshot.isDragging
-                                        ? 'shadow-xl ring-1 ring-[#635BFF] bg-white dark:bg-[#2b2a2c] border-[#635BFF] z-50'
-                                        : 'bg-white dark:bg-[#242325] border-transparent hover:border-gray-200 dark:hover:border-[#3d3c3e] hover:shadow-sm'
+                                        ? 'shadow-xl ring-1 ring-[#635BFF] bg-white dark:bg-[#2b2a2c] border-[#635BFF] z-50 rounded-lg'
+                                        : 'bg-white dark:bg-[#1f1e20] border-transparent'
                                       }
                                     `}
                                     style={provided.draggableProps.style}
                                   >
                                     {/* Section Header */}
                                     <div
-                                      className="w-full flex items-center gap-3 px-3 py-2.5 cursor-pointer"
+                                      className="w-full flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-[#2b2a2c]/20 transition-all"
                                       onClick={() => setExpandedSection(section.id)}
                                     >
                                       {/* Drag Handle */}
@@ -566,17 +566,14 @@ export default function EditorPanel({
                                         <GripVertical className="w-4 h-4" />
                                       </div>
 
-                                      {/* Section Icon */}
-                                      <div className={`
-                                        flex items-center justify-center
-                                        text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300
-                                      `}>
+                                      {/* Section Icon Box */}
+                                      <div className="flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-400 group-hover:text-[#635BFF] group-hover:border-[#635BFF]/30 transition-all">
                                         {sectionIconsSmall[section.type] || <FileText className="w-4 h-4" />}
                                       </div>
 
                                       {/* Section Title */}
-                                      <div className="flex-1 flex items-center gap-2 text-left min-w-0">
-                                        <h3 className="text-[14px] font-medium truncate transition-colors text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                                      <div className="flex-1 min-w-0">
+                                        <h3 className="text-[14px] font-bold text-[#1a154b] dark:text-gray-200 group-hover:text-[#635BFF] transition-colors truncate">
                                           {section.title}
                                         </h3>
                                       </div>
