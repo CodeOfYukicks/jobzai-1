@@ -2,10 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import {
-  Plus, Trash2, Calendar, Edit3,
+  Plus, Trash2, Edit3,
   Wand2, TrendingUp, Target, Hash, FileText, Zap,
-  X, Check, Loader2, Sparkles, GripVertical, Star, Upload, User, Image, ZoomIn, ZoomOut,
-  Linkedin, Github, Globe, Twitter, Dribbble
+  X, Check, Loader2, Sparkles, GripVertical, Upload, User, Image, ZoomIn, ZoomOut,
+  Linkedin, Github, Globe, Twitter, Dribbble, Search, SortAsc
 } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import type { Area, Point } from 'react-easy-crop';
@@ -157,7 +157,8 @@ export default function SectionEditor({
   const [isAddingNew, setIsAddingNew] = useState(false);
 
   // Conversation history for AI interactions (per section type)
-  const [conversationHistory, setConversationHistory] = useState<Record<string, string[]>>({});
+  const [conversationHistory, setConversationHistory] = useState<Record<string, any[]>>({});
+  const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
 
   // Check if current template supports photos
   const supportsPhoto = template && PHOTO_TEMPLATES.includes(template);
@@ -1215,11 +1216,31 @@ export default function SectionEditor({
       const handleSkillDragEnd = (result: DropResult) => {
         if (!result.destination) return;
 
+        const { destination, draggableId } = result;
         const skills = [...(data.skills || [])];
-        const [reorderedSkill] = skills.splice(result.source.index, 1);
-        skills.splice(result.destination.index, 0, reorderedSkill);
 
-        onChange({ skills });
+        // Move skill between categories
+        const destCategory = destination.droppableId;
+
+        const updatedSkills = skills.map(skill => {
+          if (skill.id === draggableId) {
+            return { ...skill, category: destCategory === 'other' ? undefined : destCategory };
+          }
+          return skill;
+        });
+
+        // Reorder within the main array to reflect the new position
+        const movedSkillIndex = updatedSkills.findIndex(s => s.id === draggableId);
+        const [movedSkill] = updatedSkills.splice(movedSkillIndex, 1);
+
+        // Find insertion point
+        const destCategorySkills = updatedSkills.filter(s => (s.category || 'other') === destCategory);
+        const targetSkill = destCategorySkills[destination.index];
+        const targetIndex = targetSkill ? updatedSkills.indexOf(targetSkill) : updatedSkills.length;
+
+        updatedSkills.splice(targetIndex, 0, movedSkill);
+
+        onChange({ skills: updatedSkills });
       };
 
       const updateSkill = (skillId: string, updates: Partial<CVSkill>) => {
@@ -1234,101 +1255,185 @@ export default function SectionEditor({
         onChange({ skills: newSkills });
       };
 
-      const addSkill = (skillName: string) => {
+      const addSkill = (skillName: string, category?: string) => {
+        if (!skillName.trim()) return;
         const newSkill: CVSkill = {
           id: generateId(),
           name: skillName.trim(),
-          category: 'technical',
+          category: category === 'other' ? undefined : category,
           level: 'intermediate'
         };
         onChange({ skills: [...(data.skills || []), newSkill] });
       };
 
+      const categories = Array.from(new Set((data.skills || []).map((s: CVSkill) => s.category || 'other'))) as string[];
+      if (!categories.includes('other')) categories.push('other');
+
       return (
-        <div className="space-y-4">
-          {/* Show Skill Levels Toggle */}
-          {layoutSettings && onLayoutSettingsChange && (
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#2b2a2c]/40 rounded-xl border border-gray-200 dark:border-[#3d3c3e]/60">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 rounded-lg bg-[#635BFF]/10 dark:bg-[#635BFF]/20">
-                  <Star className="w-4 h-4 text-[#635BFF] dark:text-[#a5a0ff]" />
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
-                    Show Skill Levels on CV
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    Display proficiency levels on your CV
-                  </div>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={layoutSettings.showSkillLevel !== false}
-                  onChange={(e) => onLayoutSettingsChange({ showSkillLevel: e.target.checked })}
-                  className="sr-only peer"
-                />
-                <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#635BFF]/30 dark:peer-focus:ring-[#635BFF]/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#635BFF] dark:peer-checked:bg-[#635BFF]"></div>
-              </label>
-            </div>
-          )}
+        <div className="space-y-6">
 
-          <DragDropContext onDragEnd={handleSkillDragEnd}>
-            <Droppable droppableId="skills">
-              {(provided) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className="space-y-2"
-                >
-                  {(data.skills || []).map((skill: CVSkill, index: number) => (
-                    <Draggable key={skill.id} draggableId={skill.id} index={index}>
-                      {(provided, snapshot) => (
-                        <SkillRow
-                          skill={skill}
-                          provided={provided}
-                          snapshot={snapshot}
-                          onUpdate={(updates) => updateSkill(skill.id, updates)}
-                          onDelete={() => deleteSkill(skill.id)}
-                        />
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
 
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Add a skill..."
-              className="flex-1 px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-300 dark:border-[#4a494b] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 font-medium focus:ring-2 focus:ring-[#635BFF] focus:border-[#635BFF]"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  const input = e.currentTarget;
-                  if (input.value.trim()) {
-                    addSkill(input.value);
-                    input.value = '';
+          {/* Header Actions */}
+          <div className="flex flex-wrap gap-2">
+            <div className="flex-1 min-w-[200px] relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Add a skill..."
+                className="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-sm focus:ring-2 focus:ring-[#635BFF]/30 outline-none dark:text-white"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    addSkill(e.currentTarget.value);
+                    e.currentTarget.value = '';
                   }
-                }
-              }}
-            />
+                }}
+              />
+            </div>
             <button
-              onClick={(e) => {
-                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                if (input && input.value.trim()) {
-                  addSkill(input.value);
-                  input.value = '';
-                }
+              onClick={() => {
+                const name = prompt('Category name?');
+                if (name) addSkill('New Skill', name);
               }}
-              className="px-3 py-2 bg-[#635BFF] text-white rounded-lg hover:bg-[#5249e6] transition-colors"
+              className="px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 transition-colors dark:text-white"
             >
               <Plus className="w-4 h-4" />
+              Add Category
+            </button>
+            <button className="px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 transition-colors text-[#635BFF]">
+              <Sparkles className="w-4 h-4" />
+              AI Categorize
+            </button>
+            <button
+              onClick={() => {
+                const sorted = [...(data.skills || [])].sort((a, b) => a.name.localeCompare(b.name));
+                onChange({ skills: sorted });
+              }}
+              className="px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 transition-colors dark:text-white"
+            >
+              <SortAsc className="w-4 h-4" />
+              Sort
             </button>
           </div>
+
+          <DragDropContext onDragEnd={handleSkillDragEnd}>
+            <div className="space-y-8">
+              {categories.map((cat: string) => {
+                const catSkills = (data.skills || []).filter((s: CVSkill) => (s.category || 'other') === cat);
+                if (catSkills.length === 0 && cat !== 'other') return null;
+
+                return (
+                  <div key={cat} className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                        {cat === 'other' ? 'Other Skills' : cat}
+                      </span>
+                      <div className="flex-1 border-b border-dashed border-gray-200 dark:border-[#3d3c3e]" />
+                    </div>
+
+                    <Droppable droppableId={cat} direction="horizontal">
+                      {(provided, snapshot) => (
+                        <div
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                          className={`flex flex-wrap gap-2 min-h-[40px] p-2 rounded-lg transition-colors ${snapshot.isDraggingOver ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
+                            }`}
+                        >
+                          {catSkills.map((skill: CVSkill, index: number) => (
+                            <Draggable key={skill.id} draggableId={skill.id} index={index}>
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                  className={`group relative flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#2b2a2c] border rounded-full text-sm font-medium transition-all ${snapshot.isDragging
+                                    ? 'border-[#635BFF] shadow-lg scale-105 z-50'
+                                    : 'border-[#635BFF]/30 dark:border-[#a5a0ff]/30 text-[#635BFF] dark:text-[#a5a0ff] hover:border-[#635BFF]'
+                                    }`}
+                                >
+                                  <Edit3
+                                    className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                    onClick={() => setEditingSkillId(editingSkillId === skill.id ? null : skill.id)}
+                                  />
+                                  <span>{skill.name}</span>
+                                  <div className="w-4 h-4 rounded border border-[#635BFF]/30 flex items-center justify-center bg-[#635BFF]/5">
+                                    <Check className="w-2.5 h-2.5" />
+                                  </div>
+                                  <X
+                                    className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-gray-400 hover:text-red-500"
+                                    onClick={() => deleteSkill(skill.id)}
+                                  />
+
+                                  <AnimatePresence>
+                                    {editingSkillId === skill.id && (
+                                      <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 10 }}
+                                        className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-[#1e1d1f] border border-gray-200 dark:border-[#3d3c3e] rounded-xl shadow-xl z-[100] min-w-[200px]"
+                                      >
+                                        <div className="space-y-3">
+                                          <input
+                                            autoFocus
+                                            type="text"
+                                            defaultValue={skill.name}
+                                            className="w-full px-2 py-1 text-sm bg-transparent border-b border-gray-200 dark:border-[#3d3c3e] focus:border-[#635BFF] outline-none dark:text-white"
+                                            onBlur={(e) => {
+                                              updateSkill(skill.id, { name: e.target.value });
+                                              setEditingSkillId(null);
+                                            }}
+                                            onKeyPress={(e) => {
+                                              if (e.key === 'Enter') e.currentTarget.blur();
+                                            }}
+                                          />
+
+                                        </div>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </div>
+                );
+              })}
+            </div>
+          </DragDropContext>
+
+          {/* Job Description Skills */}
+          {jobContext?.keywords && jobContext.keywords.length > 0 && (
+            <div className="mt-10 pt-8 border-t border-gray-100 dark:border-[#3d3c3e]/60">
+              <div className="flex items-center gap-2 mb-4 text-[#635BFF] dark:text-[#a5a0ff]">
+                <Sparkles className="w-4 h-4" />
+                <h4 className="text-sm font-semibold">Skills found in job description</h4>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {jobContext.keywords.map((keyword, idx) => {
+                  const isAdded = data.skills?.some((s: CVSkill) => s.name.toLowerCase() === keyword.toLowerCase());
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => !isAdded && addSkill(keyword)}
+                      className={`px-3 py-1.5 rounded-full text-sm transition-all flex items-center gap-2 border ${isAdded
+                        ? 'bg-gray-50 dark:bg-[#2b2a2c] border-gray-200 dark:border-[#3d3c3e] text-gray-400 cursor-default'
+                        : 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10 border-[#635BFF]/20 dark:border-[#a5a0ff]/20 text-[#635BFF] dark:text-[#a5a0ff] hover:bg-[#635BFF]/10'
+                        }`}
+                    >
+                      {keyword}
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center ${isAdded ? 'border-gray-300 bg-gray-100' : 'border-[#635BFF]/30'
+                        }`}>
+                        {isAdded && <Check className="w-3 h-3" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       );
 
@@ -1850,121 +1955,4 @@ export default function SectionEditor({
   }
 }
 
-// SkillRow component - Line-by-line skill editor with level selection and drag & drop
-interface SkillRowProps {
-  skill: CVSkill;
-  provided: any;
-  snapshot: any;
-  onUpdate: (updates: Partial<CVSkill>) => void;
-  onDelete: () => void;
-}
 
-function SkillRow({ skill, provided, snapshot, onUpdate, onDelete }: SkillRowProps) {
-  const [skillName, setSkillName] = useState(skill.name);
-
-  // Sync with external changes
-  useEffect(() => {
-    setSkillName(skill.name);
-  }, [skill.name]);
-
-  const handleNameBlur = () => {
-    if (skillName.trim() && skillName !== skill.name) {
-      onUpdate({ name: skillName.trim() });
-    } else if (!skillName.trim()) {
-      setSkillName(skill.name); // Revert if empty
-    }
-  };
-
-  const handleNameKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.currentTarget.blur();
-    }
-  };
-
-  const levelOptions = [
-    { value: 'beginner', label: 'Beginner' },
-    { value: 'intermediate', label: 'Intermediate' },
-    { value: 'advanced', label: 'Advanced' },
-    { value: 'expert', label: 'Expert' }
-  ] as const;
-
-  return (
-    <div
-      ref={provided.innerRef}
-      {...provided.draggableProps}
-      className={`
-        flex items-center gap-2 p-2.5 
-        bg-white dark:bg-[#2b2a2c] 
-        border border-gray-200 dark:border-[#3d3c3e] 
-        rounded-lg 
-        transition-all duration-200
-        ${snapshot.isDragging
-          ? 'shadow-lg border-[#635BFF] dark:border-[#5249e6] bg-[#635BFF]/5 dark:bg-[#5249e6]/10'
-          : 'hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm'
-        }
-      `}
-    >
-      {/* Drag handle */}
-      <div
-        {...provided.dragHandleProps}
-        className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-      >
-        <GripVertical className="w-4 h-4" />
-      </div>
-
-      {/* Skill name input */}
-      <input
-        type="text"
-        value={skillName}
-        onChange={(e) => setSkillName(e.target.value)}
-        onBlur={handleNameBlur}
-        onKeyPress={handleNameKeyPress}
-        className="flex-1 px-2.5 py-1.5 
-          bg-transparent 
-          border border-transparent 
-          rounded 
-          text-sm text-gray-900 dark:text-white 
-          font-medium
-          focus:outline-none focus:ring-2 focus:ring-[#635BFF]/30 focus:border-[#635BFF]/50
-          hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50
-          transition-colors"
-        placeholder="Skill name"
-      />
-
-      {/* Level selector */}
-      <select
-        value={skill.level || 'intermediate'}
-        onChange={(e) => onUpdate({ level: e.target.value as CVSkill['level'] })}
-        className="px-2.5 py-1.5 
-          bg-white dark:bg-[#2b2a2c] 
-          border border-gray-200 dark:border-[#3d3c3e] 
-          rounded 
-          text-xs text-gray-700 dark:text-gray-300 
-          font-medium
-          focus:outline-none focus:ring-2 focus:ring-[#635BFF]/30 focus:border-[#635BFF]/50
-          hover:border-gray-300 dark:hover:border-gray-600
-          transition-colors
-          cursor-pointer"
-      >
-        {levelOptions.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-
-      {/* Delete button */}
-      <button
-        onClick={onDelete}
-        className="p-1.5 
-          text-gray-400 hover:text-red-600 dark:hover:text-red-400 
-          hover:bg-red-50 dark:hover:bg-red-900/20 
-          rounded 
-          transition-colors"
-        title="Delete skill"
-      >
-        <X className="w-4 h-4" />
-      </button>
-    </div>
-  );
-}

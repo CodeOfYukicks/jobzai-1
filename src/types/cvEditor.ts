@@ -42,7 +42,7 @@ export interface CVEducation {
 export interface CVSkill {
   id: string;
   name: string;
-  category?: 'technical' | 'soft' | 'language' | 'tool';
+  category?: string;
   level?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
 }
 
