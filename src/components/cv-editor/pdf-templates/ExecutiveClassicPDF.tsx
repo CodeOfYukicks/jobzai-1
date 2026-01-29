@@ -1,7 +1,8 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
 import { CVData, CVLayoutSettings } from '../../../types/cvEditor';
-import { formatDate, formatDateRange, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
+import { sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
+import { formatCVDate, formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
 
 interface ExecutiveClassicPDFProps {
     data: CVData;
@@ -122,6 +123,14 @@ const ExecutiveClassicPDF: React.FC<ExecutiveClassicPDFProps> = ({ data, setting
     // So (value * 4) * 0.75 = value * 3.
     const spacingValue = settings?.experienceSpacing ?? 6;
     const spacing = spacingValue * 3;
+
+    const formatDate = (date: string) => {
+        return formatCVDate(date, settings?.dateFormat as any);
+    };
+
+    const formatDateRange = (start: string, end: string, isCurrent: boolean) => {
+        return formatDateRangeUtil(start, end, isCurrent, settings?.dateFormat as any);
+    };
 
     const dynamicStyles = StyleSheet.create({
         page: {

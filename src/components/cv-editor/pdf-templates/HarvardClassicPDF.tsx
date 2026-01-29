@@ -1,7 +1,8 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
 import { CVData, CVLayoutSettings } from '../../../types/cvEditor';
-import { formatDate, formatDateRange, getEnabledSections, sortSections } from '../../../lib/cvEditorUtils';
+import { getEnabledSections, sortSections } from '../../../lib/cvEditorUtils';
+import { formatCVDate, formatDateRange as formatDateRangeUtil } from '../../../lib/dateFormatters';
 
 interface HarvardClassicPDFProps {
     data: CVData;
@@ -21,6 +22,14 @@ const HarvardClassicPDF: React.FC<HarvardClassicPDFProps> = ({ data, settings })
     // Spacing
     const spacingValue = settings?.experienceSpacing ?? 6;
     const itemSpacing = spacingValue * 1.75;
+
+    const formatDate = (date: string) => {
+        return formatCVDate(date, settings?.dateFormat as any);
+    };
+
+    const formatDateRange = (start: string, end: string, isCurrent: boolean) => {
+        return formatDateRangeUtil(start, end, isCurrent, settings?.dateFormat as any);
+    };
 
     const dynamicStyles = StyleSheet.create({
         page: {

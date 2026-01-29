@@ -29,7 +29,6 @@ export default function CertificationInlineForm({
   });
 
   const [noExpiry, setNoExpiry] = useState(false);
-  const [yearOnly, setYearOnly] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -76,12 +75,10 @@ export default function CertificationInlineForm({
             Issue Date
           </label>
           <input
-            type={yearOnly ? 'number' : 'month'}
-            value={yearOnly ? formData.date?.split('-')[0] || '' : formData.date}
+            type="month"
+            value={formData.date}
             onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
             placeholder="+ issue date"
-            min={yearOnly ? 1990 : undefined}
-            max={yearOnly ? 2030 : undefined}
             className="w-full px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500"
           />
         </div>
@@ -90,12 +87,10 @@ export default function CertificationInlineForm({
             Expiry Date
           </label>
           <input
-            type={yearOnly ? 'number' : 'month'}
-            value={noExpiry ? '' : (yearOnly ? formData.expiryDate?.split('-')[0] || '' : formData.expiryDate || '')}
+            type="month"
+            value={noExpiry ? '' : (formData.expiryDate || '')}
             onChange={(e) => setFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
             placeholder="+ expiry"
-            min={yearOnly ? 1990 : undefined}
-            max={yearOnly ? 2040 : undefined}
             disabled={noExpiry}
             className="w-full px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 disabled:opacity-50"
           />
@@ -113,11 +108,7 @@ export default function CertificationInlineForm({
               if (checked) setFormData(prev => ({ ...prev, expiryDate: '' }));
             }}
           />
-          <ToggleSwitch
-            label="Year only"
-            checked={yearOnly}
-            onChange={setYearOnly}
-          />
+
         </div>
       </div>
 

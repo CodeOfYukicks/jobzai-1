@@ -49,7 +49,6 @@ export default function ExperienceInlineForm({
     bullets: []
   });
 
-  const [yearOnly, setYearOnly] = useState(false);
   const [hideSection, setHideSection] = useState(false);
 
   useEffect(() => {
@@ -159,12 +158,10 @@ export default function ExperienceInlineForm({
             Start Date
           </label>
           <input
-            type={yearOnly ? 'number' : 'month'}
-            value={yearOnly ? formData.startDate?.split('-')[0] || '' : formData.startDate}
+            type="month"
+            value={formData.startDate}
             onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
             placeholder="+ start date"
-            min={yearOnly ? 1950 : undefined}
-            max={yearOnly ? 2030 : undefined}
             disabled={hideSection}
             className="w-full px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all disabled:opacity-50"
           />
@@ -174,12 +171,10 @@ export default function ExperienceInlineForm({
             End Date
           </label>
           <input
-            type={yearOnly ? 'number' : 'month'}
-            value={formData.current ? '' : (yearOnly ? formData.endDate?.split('-')[0] || '' : formData.endDate)}
+            type="month"
+            value={formData.current ? '' : formData.endDate}
             onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
             placeholder="+ end date"
-            min={yearOnly ? 1950 : undefined}
-            max={yearOnly ? 2030 : undefined}
             disabled={formData.current || hideSection}
             className="w-full px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all disabled:opacity-50"
           />
@@ -194,11 +189,7 @@ export default function ExperienceInlineForm({
             checked={formData.current}
             onChange={(checked) => setFormData(prev => ({ ...prev, current: checked, endDate: checked ? '' : prev.endDate }))}
           />
-          <ToggleSwitch
-            label="Year only"
-            checked={yearOnly}
-            onChange={setYearOnly}
-          />
+
           <ToggleSwitch
             label="Hide"
             checked={hideSection}
@@ -216,16 +207,16 @@ export default function ExperienceInlineForm({
       />
 
       {/* AI Enhancement Panel - Always show, works with or without job context */}
-        <AIEnhancePanel
-          sectionType="experience"
-          currentContent={getCurrentContent()}
-          onApply={handleAIEnhance}
-          jobContext={jobContext}
-          fullCV={fullCV}
-          conversationHistory={conversationHistory}
-          onAddToHistory={onAddToHistory}
-          onResetHistory={onResetHistory}
-        />
+      <AIEnhancePanel
+        sectionType="experience"
+        currentContent={getCurrentContent()}
+        onApply={handleAIEnhance}
+        jobContext={jobContext}
+        fullCV={fullCV}
+        conversationHistory={conversationHistory}
+        onAddToHistory={onAddToHistory}
+        onResetHistory={onResetHistory}
+      />
 
       {/* Achievements Section - Compact */}
       <div>

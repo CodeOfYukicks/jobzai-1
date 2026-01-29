@@ -31,7 +31,6 @@ export default function EducationInlineForm({
     coursework: []
   });
 
-  const [yearOnly, setYearOnly] = useState(true);
   const [hideSection, setHideSection] = useState(false);
   const [inProgress, setInProgress] = useState(false);
 
@@ -92,12 +91,10 @@ export default function EducationInlineForm({
             Start Date
           </label>
           <input
-            type={yearOnly ? 'number' : 'month'}
-            value={yearOnly ? formData.startDate?.split('-')[0] || '' : formData.startDate || ''}
+            type="month"
+            value={formData.startDate || ''}
             onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
             placeholder="+ start"
-            min={yearOnly ? 1950 : undefined}
-            max={yearOnly ? 2030 : undefined}
             disabled={hideSection}
             className="w-full px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all disabled:opacity-50"
           />
@@ -107,12 +104,10 @@ export default function EducationInlineForm({
             Graduation
           </label>
           <input
-            type={yearOnly ? 'number' : 'month'}
-            value={inProgress ? '' : (yearOnly ? formData.endDate?.split('-')[0] || '' : formData.endDate)}
+            type="month"
+            value={inProgress ? '' : formData.endDate}
             onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
             placeholder="+ grad"
-            min={yearOnly ? 1950 : undefined}
-            max={yearOnly ? 2030 : undefined}
             disabled={inProgress || hideSection}
             className="w-full px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 transition-all disabled:opacity-50"
           />
@@ -136,11 +131,7 @@ export default function EducationInlineForm({
               if (checked) setFormData(prev => ({ ...prev, endDate: '' }));
             }}
           />
-          <ToggleSwitch
-            label="Year only"
-            checked={yearOnly}
-            onChange={setYearOnly}
-          />
+
           <ToggleSwitch
             label="Hide"
             checked={hideSection}
