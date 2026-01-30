@@ -1655,7 +1655,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
             <div
               className={`h-full relative border-r border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325] overflow-hidden flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${isLeftPanelCollapsed
                 ? 'w-16'
-                : 'w-full lg:w-[480px]'
+                : 'w-full lg:w-[380px]'
                 }`}
             >
               <div className="h-full w-full overflow-hidden">

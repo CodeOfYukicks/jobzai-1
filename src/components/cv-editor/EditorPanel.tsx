@@ -304,24 +304,24 @@ export default function EditorPanel({
       <div className="hidden lg:block flex-shrink-0 border-b border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325]">
         <div className="flex items-center overflow-x-auto scrollbar-hide snap-x snap-mandatory">
           {/* Tabs Container */}
-          <div className="flex items-center px-2 sm:px-4 py-2 gap-1 sm:gap-0">
+          <div className="flex items-center px-3 py-1.5 gap-0.5">
             {/* AI Review Tab */}
             <button
               onClick={() => setActiveTab('ai-review')}
               className={`
-                relative flex items-center gap-1.5 px-3 sm:px-2.5 py-2.5 sm:py-2 text-[13px] font-medium transition-all whitespace-nowrap rounded-lg snap-start
+                relative flex items-center gap-1 px-2 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded snap-start
                 ${activeTab === 'ai-review'
-                  ? 'text-[#635BFF] dark:text-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
+                  ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                 }
               `}
             >
-              <Sparkles className="w-4 h-4" />
-              <span>AI Review</span>
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>AI Tailor</span>
               {activeTab === 'ai-review' && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute -bottom-2 left-2 right-2 h-0.5 bg-[#635BFF] rounded-full"
+                  className="absolute -bottom-1.5 left-1 right-1 h-0.5 bg-[#635BFF] rounded-full"
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 />
               )}
@@ -331,19 +331,19 @@ export default function EditorPanel({
             <button
               onClick={() => setActiveTab('editor')}
               className={`
-                relative flex items-center gap-1.5 px-3 sm:px-2.5 py-2.5 sm:py-2 text-[13px] font-medium transition-all whitespace-nowrap rounded-lg snap-start
+                relative flex items-center gap-1 px-2 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded snap-start
                 ${activeTab === 'editor'
-                  ? 'text-[#635BFF] dark:text-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
+                  ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                 }
               `}
             >
-              <Edit3 className="w-4 h-4" />
+              <Edit3 className="w-3.5 h-3.5" />
               <span>Editor</span>
               {activeTab === 'editor' && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute -bottom-2 left-2 right-2 h-0.5 bg-[#635BFF] rounded-full"
+                  className="absolute -bottom-1.5 left-1 right-1 h-0.5 bg-[#635BFF] rounded-full"
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 />
               )}
@@ -353,19 +353,19 @@ export default function EditorPanel({
             <button
               onClick={() => setActiveTab('templates')}
               className={`
-                relative flex items-center gap-1.5 px-3 sm:px-2.5 py-2.5 sm:py-2 text-[13px] font-medium transition-all whitespace-nowrap rounded-lg snap-start
+                relative flex items-center gap-1 px-2 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded snap-start
                 ${activeTab === 'templates'
-                  ? 'text-[#635BFF] dark:text-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
+                  ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                 }
               `}
             >
-              <Palette className="w-4 h-4" />
+              <Palette className="w-3.5 h-3.5" />
               <span>Templates</span>
               {activeTab === 'templates' && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute -bottom-2 left-2 right-2 h-0.5 bg-[#635BFF] rounded-full"
+                  className="absolute -bottom-1.5 left-1 right-1 h-0.5 bg-[#635BFF] rounded-full"
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 />
               )}
@@ -375,19 +375,19 @@ export default function EditorPanel({
             <button
               onClick={() => setActiveTab('layout-style')}
               className={`
-                relative flex items-center gap-1.5 px-3 sm:px-2.5 py-2.5 sm:py-2 text-[13px] font-medium transition-all whitespace-nowrap rounded-lg snap-start
+                relative flex items-center gap-1 px-2 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded snap-start
                 ${activeTab === 'layout-style'
-                  ? 'text-[#635BFF] dark:text-[#a5a0ff] bg-[#635BFF]/5 dark:bg-[#635BFF]/10'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50'
+                  ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                 }
               `}
             >
-              <Layout className="w-4 h-4" />
-              <span>Style</span>
+              <Layout className="w-3.5 h-3.5" />
+              <span>Layout & Style</span>
               {activeTab === 'layout-style' && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute -bottom-2 left-2 right-2 h-0.5 bg-[#635BFF] rounded-full"
+                  className="absolute -bottom-1.5 left-1 right-1 h-0.5 bg-[#635BFF] rounded-full"
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 />
               )}
@@ -548,7 +548,7 @@ export default function EditorPanel({
                                   >
                                     {/* Section Header */}
                                     <div
-                                      className="w-full flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-[#2b2a2c]/20 transition-all"
+                                      className="w-full flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-[#2b2a2c]/20 transition-all"
                                       onClick={() => setExpandedSection(section.id)}
                                     >
                                       {/* Drag Handle */}
@@ -556,33 +556,28 @@ export default function EditorPanel({
                                         {...provided.dragHandleProps}
                                         onClick={(e) => e.stopPropagation()}
                                         className={`
-                                          flex items-center justify-center w-6 h-6 rounded cursor-grab active:cursor-grabbing transition-colors
+                                          flex items-center justify-center w-5 h-5 rounded cursor-grab active:cursor-grabbing transition-colors
                                           ${snapshot.isDragging
                                             ? 'text-[#635BFF]'
                                             : 'text-gray-300 dark:text-gray-600 group-hover:text-gray-400 dark:group-hover:text-gray-500'
                                           }
                                         `}
                                       >
-                                        <GripVertical className="w-4 h-4" />
-                                      </div>
-
-                                      {/* Section Icon Box */}
-                                      <div className="flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-400 group-hover:text-[#635BFF] group-hover:border-[#635BFF]/30 transition-all">
-                                        {sectionIconsSmall[section.type] || <FileText className="w-4 h-4" />}
+                                        <Plus className="w-3.5 h-3.5" />
                                       </div>
 
                                       {/* Section Title */}
                                       <div className="flex-1 min-w-0">
-                                        <h3 className="text-[14px] font-bold text-[#1a154b] dark:text-gray-200 group-hover:text-[#635BFF] transition-colors truncate">
+                                        <h3 className="text-[13px] font-semibold text-[#1a154b] dark:text-gray-200 group-hover:text-[#635BFF] transition-colors truncate">
                                           {section.title}
                                         </h3>
                                       </div>
 
                                       {/* Right Side Actions/Badges */}
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-1.5">
                                         {/* AI Badge */}
                                         {isAiEnhanced && (
-                                          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-500/20">
+                                          <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">
                                             <Sparkles className="w-2.5 h-2.5" />
                                             AI
                                           </span>
@@ -590,13 +585,11 @@ export default function EditorPanel({
 
                                         {/* Empty Badge */}
                                         {isEmpty && (
-                                          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-700">
+                                          <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
                                             <Inbox className="w-2.5 h-2.5" />
                                             Empty
                                           </span>
                                         )}
-
-                                        <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-400 dark:group-hover:text-gray-500" />
                                       </div>
                                     </div>
                                   </div>

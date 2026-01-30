@@ -692,13 +692,13 @@ export default function LayoutStyleTab({ sections, onReorder, layoutSettings, on
                   <button
                     key={id}
                     onClick={() => setActiveSection(id)}
-                    className="w-full group flex items-center gap-3 px-4 py-3 hover:bg-gray-50/50 dark:hover:bg-[#2b2a2c]/20 transition-all text-left"
+                    className="w-full group flex items-center gap-2 px-3 py-2.5 hover:bg-gray-50/50 dark:hover:bg-[#2b2a2c]/20 transition-all text-left"
                   >
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-400 group-hover:text-[#635BFF] group-hover:border-[#635BFF]/30 transition-all">
-                      <Icon className="w-4 h-4" />
+                    <div className="flex items-center justify-center w-5 h-5 rounded text-gray-400 dark:text-gray-500 group-hover:text-[#635BFF] transition-all">
+                      <Icon className="w-3.5 h-3.5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-[14px] font-bold text-[#1a154b] dark:text-gray-200 group-hover:text-[#635BFF] transition-colors">
+                      <h3 className="text-[13px] font-semibold text-[#1a154b] dark:text-gray-200 group-hover:text-[#635BFF] transition-colors">
                         {title}
                       </h3>
                     </div>
