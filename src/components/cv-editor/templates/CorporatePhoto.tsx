@@ -1,6 +1,6 @@
 import { CVData, CVLayoutSettings, SectionClickTarget } from '../../../types/cvEditor';
 import { HighlightTarget } from '../../../types/cvReview';
-import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
+import { formatURL, sortSections, getEnabledSections, getEnabledSkills } from '../../../lib/cvEditorUtils';
 import { formatDateRange as formatDateRangeUtil, formatCVDate as formatCVDateUtil } from '../../../lib/dateFormatters';
 import { Mail, Phone, MapPin, Linkedin, Globe, Github, User } from 'lucide-react';
 import ClickableSection from '../ClickableSection';
@@ -17,8 +17,8 @@ export default function CorporatePhoto({ cvData, layoutSettings, onSectionClick,
   const enabledSections = getEnabledSections(sortSections(cvData.sections));
 
   // Dynamic accent color from layoutSettings
-  const accentColor = layoutSettings.accentColor 
-    ? COLOR_HEX_MAP[layoutSettings.accentColor] 
+  const accentColor = layoutSettings.accentColor
+    ? COLOR_HEX_MAP[layoutSettings.accentColor]
     : '#2563eb'; // Default blue for Corporate
 
   const formatDateRange = (start: string, end: string, isCurrent: boolean) => {
@@ -37,10 +37,10 @@ export default function CorporatePhoto({ cvData, layoutSettings, onSectionClick,
   const sidebarEnabledSections = enabledSections.filter(s => sidebarSections.includes(s.type));
 
   return (
-    <div 
-      className="text-gray-900" 
-      style={{ 
-        fontSize: `${baseFontSize}pt`, 
+    <div
+      className="text-gray-900"
+      style={{
+        fontSize: `${baseFontSize}pt`,
         lineHeight: layoutSettings.lineHeight,
         fontFamily: layoutSettings.fontFamily || 'system-ui, -apple-system, sans-serif'
       }}
@@ -51,8 +51,8 @@ export default function CorporatePhoto({ cvData, layoutSettings, onSectionClick,
           <div className="flex items-center gap-5">
             {/* Profile Photo - Square with rounded corners */}
             {cvData.personalInfo.photoUrl ? (
-              <img 
-                src={cvData.personalInfo.photoUrl} 
+              <img
+                src={cvData.personalInfo.photoUrl}
                 alt={`${cvData.personalInfo.firstName} ${cvData.personalInfo.lastName}`}
                 className="w-20 h-20 rounded-lg object-cover shadow-sm"
               />
@@ -72,7 +72,7 @@ export default function CorporatePhoto({ cvData, layoutSettings, onSectionClick,
                   {cvData.personalInfo.title}
                 </p>
               )}
-              
+
               {/* Contact Info Row */}
               <div className="flex flex-wrap gap-3 mt-2 text-gray-600" style={{ fontSize: '0.85em' }}>
                 {cvData.personalInfo.email && (
@@ -226,8 +226,8 @@ export default function CorporatePhoto({ cvData, layoutSettings, onSectionClick,
                                 {project.technologies.length > 0 && (
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {project.technologies.map((tech, idx) => (
-                                      <span 
-                                        key={idx} 
+                                      <span
+                                        key={idx}
                                         className="px-2 py-0.5 rounded text-xs"
                                         style={{ backgroundColor: `${accentColor}15`, color: accentColor }}
                                       >
@@ -268,8 +268,8 @@ export default function CorporatePhoto({ cvData, layoutSettings, onSectionClick,
                       </h2>
                       {cvData.skills?.length > 0 ? (
                         <div className="flex flex-wrap gap-1.5">
-                          {cvData.skills.map(skill => (
-                            <span 
+                          {getEnabledSkills(cvData.skills).map(skill => (
+                            <span
                               key={skill.id}
                               className="px-2 py-1 rounded text-sm font-medium"
                               style={{ backgroundColor: `${accentColor}12`, color: accentColor }}

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import {
   Plus, Trash2, Edit3,
-  Wand2, TrendingUp, Target, Hash, FileText, Zap,
+
   X, Check, Loader2, Sparkles, GripVertical, Upload, User, Image, ZoomIn, ZoomOut,
   Linkedin, Github, Globe, Twitter, Dribbble, Search, SortAsc
 } from 'lucide-react';
@@ -11,9 +11,9 @@ import Cropper from 'react-easy-crop';
 import type { Area, Point } from 'react-easy-crop';
 import { CVSection, CVExperience, CVEducation, CVSkill, CVCertification, CVProject, CVLanguage, CVLayoutSettings, CVTemplate } from '../../types/cvEditor';
 import { generateId } from '../../lib/cvEditorUtils';
-import { rewriteSection } from '../../lib/cvSectionAI';
+
 import { notify } from '@/lib/notify';
-import DiffView from './DiffView';
+
 import {
   ExperienceInlineForm,
   EducationInlineForm,
@@ -104,15 +104,7 @@ interface SectionEditorProps {
 // Templates that support profile photos
 const PHOTO_TEMPLATES: CVTemplate[] = ['swiss-photo', 'corporate-photo'];
 
-// AI action buttons for each section
-const AI_ACTIONS = [
-  { id: 'improve', label: 'Improve with AI', icon: <Wand2 className="w-3.5 h-3.5" /> },
-  { id: 'rewrite', label: 'Rewrite', icon: <FileText className="w-3.5 h-3.5" /> },
-  { id: 'suggest', label: 'Suggest', icon: <TrendingUp className="w-3.5 h-3.5" /> },
-  { id: 'metrics', label: 'Add Metrics', icon: <Hash className="w-3.5 h-3.5" /> },
-  { id: 'keywords', label: 'Keywords', icon: <Target className="w-3.5 h-3.5" /> },
-  { id: 'shorten', label: 'Shorten', icon: <Zap className="w-3.5 h-3.5" /> }
-];
+
 
 export default function SectionEditor({
   section,
@@ -122,16 +114,10 @@ export default function SectionEditor({
   fullCV,
   externalEditItemId,
   onExternalEditProcessed,
-  layoutSettings,
-  onLayoutSettingsChange,
   template
 }: SectionEditorProps) {
   const { currentUser } = useAuth();
-  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
-  const [originalContent, setOriginalContent] = useState<string>('');
-  const [isProcessingAI, setIsProcessingAI] = useState(false);
-  const [currentAction, setCurrentAction] = useState<string>('');
-  const [showDiff, setShowDiff] = useState(false);
+
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   // Photo crop modal states
@@ -159,6 +145,8 @@ export default function SectionEditor({
   // Conversation history for AI interactions (per section type)
   const [conversationHistory, setConversationHistory] = useState<Record<string, any[]>>({});
   const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
+  const [showAddCategoryForm, setShowAddCategoryForm] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   // Check if current template supports photos
   const supportsPhoto = template && PHOTO_TEMPLATES.includes(template);
@@ -197,7 +185,7 @@ export default function SectionEditor({
   };
 
   // Handle crop complete callback
-  const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
+  const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
@@ -326,128 +314,9 @@ export default function SectionEditor({
     }
   };
 
-  const renderAIActions = () => (
-    <div className="flex flex-wrap gap-2 mt-4">
-      {AI_ACTIONS.map(action => (
-        <button
-          key={action.id}
-          onClick={() => handleAIAction(action.id)}
-          disabled={isProcessingAI}
-          className="group flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-[#2b2a2c]/60 border border-gray-200/60 dark:border-[#3d3c3e]/60 rounded-lg hover:bg-gray-50 dark:hover:bg-[#3d3c3e] hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-900 dark:hover:text-gray-200 hover:shadow-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {isProcessingAI && currentAction === action.id ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <span className="text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
-              {action.icon}
-            </span>
-          )}
-          <span>{action.label}</span>
-        </button>
-      ))}
-    </div>
-  );
 
-  const renderAISuggestion = () => {
-    if (!aiSuggestion) return null;
 
-    const acceptSuggestion = () => {
-      switch (section.type) {
-        case 'summary':
-          onChange({ summary: aiSuggestion });
-          break;
-        case 'experience':
-          if (data.experiences?.length > 0) {
-            const updatedExperiences = [...data.experiences];
-            const lines = aiSuggestion.split('\n').filter(line => line.trim());
-            updatedExperiences[0] = {
-              ...updatedExperiences[0],
-              description: lines[0] || updatedExperiences[0].description,
-              bullets: lines.slice(1).map(line => line.replace(/^[•\-]\s*/, ''))
-            };
-            onChange({ experiences: updatedExperiences });
-          }
-          break;
-        case 'skills':
-          const skills = aiSuggestion.split(/[,\n]/)
-            .map(s => s.trim())
-            .filter(s => s)
-            .map(name => ({ id: generateId(), name, category: 'technical' }));
-          onChange({ skills });
-          break;
-        default:
-          onChange({ [section.type]: aiSuggestion });
-      }
 
-      setAiSuggestion(null);
-      setShowDiff(false);
-      notify.success('AI suggestion applied!');
-    };
-
-    if (showDiff && originalContent && aiSuggestion) {
-      return (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-3"
-        >
-          <DiffView
-            original={originalContent}
-            modified={aiSuggestion}
-            sectionName={section.title}
-            onAccept={acceptSuggestion}
-            onReject={() => {
-              setAiSuggestion(null);
-              setShowDiff(false);
-              setOriginalContent('');
-            }}
-          />
-        </motion.div>
-      );
-    }
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mt-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-800/40 dark:to-gray-900/20 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-xl shadow-sm"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-              <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wide">
-                AI Suggestion
-              </span>
-            </div>
-            <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-              {aiSuggestion}
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={acceptSuggestion}
-              className="p-2.5 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-[#4a494b] text-white dark:text-gray-900 rounded-lg transition-all duration-200 shadow-sm hover:shadow"
-              title="Accept suggestion"
-            >
-              <Check className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => {
-                setAiSuggestion(null);
-                setShowDiff(false);
-                setOriginalContent('');
-              }}
-              className="p-2.5 bg-white dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e] text-gray-600 dark:text-gray-400 border border-gray-200/80 dark:border-[#3d3c3e]/60 rounded-lg transition-all duration-200"
-              title="Reject suggestion"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    );
-  };
 
   // Close inline form helper
   const closeInlineForm = () => {
@@ -1261,7 +1130,8 @@ export default function SectionEditor({
           id: generateId(),
           name: skillName.trim(),
           category: category === 'other' ? undefined : category,
-          level: 'intermediate'
+          level: 'intermediate',
+          enabled: true
         };
         onChange({ skills: [...(data.skills || []), newSkill] });
       };
@@ -1270,64 +1140,122 @@ export default function SectionEditor({
       if (!categories.includes('other')) categories.push('other');
 
       return (
-        <div className="space-y-6">
-
-
+        <div className="space-y-5">
           {/* Header Actions */}
-          <div className="flex flex-wrap gap-2">
-            <div className="flex-1 min-w-[200px] relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <div className="space-y-3">
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 group-focus-within:text-[#635BFF] transition-colors" />
               <input
                 type="text"
                 placeholder="Add a skill..."
-                className="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-sm focus:ring-2 focus:ring-[#635BFF]/30 outline-none dark:text-white"
+                className="w-full pl-9 pr-4 py-1.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-xs focus:ring-2 focus:ring-[#635BFF]/20 focus:border-[#635BFF] outline-none dark:text-white transition-all shadow-sm"
                 onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    addSkill(e.currentTarget.value);
+                  if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                    addSkill(e.currentTarget.value.trim());
                     e.currentTarget.value = '';
                   }
                 }}
               />
             </div>
-            <button
-              onClick={() => {
-                const name = prompt('Category name?');
-                if (name) addSkill('New Skill', name);
-              }}
-              className="px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 transition-colors dark:text-white"
-            >
-              <Plus className="w-4 h-4" />
-              Add Category
-            </button>
-            <button className="px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 transition-colors text-[#635BFF]">
-              <Sparkles className="w-4 h-4" />
-              AI Categorize
-            </button>
-            <button
-              onClick={() => {
-                const sorted = [...(data.skills || [])].sort((a, b) => a.name.localeCompare(b.name));
-                onChange({ skills: sorted });
-              }}
-              className="px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 transition-colors dark:text-white"
-            >
-              <SortAsc className="w-4 h-4" />
-              Sort
-            </button>
+
+            <div className="h-px bg-gray-100 dark:bg-[#3d3c3e]/60" />
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowAddCategoryForm(!showAddCategoryForm)}
+                  className={`px-3 py-1.5 bg-white dark:bg-[#2b2a2c] border rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-sm ${showAddCategoryForm
+                    ? 'border-[#635BFF] text-[#635BFF] ring-2 ring-[#635BFF]/10'
+                    : 'border-[#635BFF] text-[#635BFF] hover:bg-[#635BFF]/5'
+                    }`}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add Category
+                </button>
+                <button className="px-3 py-1.5 bg-white dark:bg-[#2b2a2c] border border-[#635BFF] rounded-lg text-[11px] font-bold flex items-center gap-1.5 hover:bg-[#635BFF]/5 transition-all shadow-sm text-[#635BFF]">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  AI Categorize
+                </button>
+              </div>
+              <button
+                onClick={() => {
+                  const sorted = [...(data.skills || [])].sort((a, b) => a.name.localeCompare(b.name));
+                  onChange({ skills: sorted });
+                }}
+                className="px-3 py-1.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-[11px] font-bold flex items-center gap-1.5 hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 transition-all shadow-sm dark:text-gray-600"
+              >
+                <SortAsc className="w-3.5 h-3.5" />
+                Sort
+              </button>
+            </div>
+
+            <AnimatePresence>
+              {showAddCategoryForm && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="p-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-xl shadow-sm space-y-2"
+                >
+                  <div className="relative group">
+                    <input
+                      autoFocus
+                      type="text"
+                      placeholder="e.g. Languages, Soft Skills, Technical Skills"
+                      className="w-full px-2.5 py-1.5 bg-white dark:bg-[#2b2a2c] border-2 border-[#635BFF] rounded-lg text-xs outline-none dark:text-white transition-all"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && newCategoryName.trim()) {
+                          addSkill('New Skill', newCategoryName.trim());
+                          setNewCategoryName('');
+                          setShowAddCategoryForm(false);
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => {
+                        setShowAddCategoryForm(false);
+                        setNewCategoryName('');
+                      }}
+                      className="px-3 py-1 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-[10px] font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (newCategoryName.trim()) {
+                          addSkill('New Skill', newCategoryName.trim());
+                          setNewCategoryName('');
+                          setShowAddCategoryForm(false);
+                        }
+                      }}
+                      disabled={!newCategoryName.trim()}
+                      className="px-5 py-1 bg-[#635BFF] text-white rounded-lg text-[10px] font-bold hover:bg-[#5249e6] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-[#635BFF]/20"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <DragDropContext onDragEnd={handleSkillDragEnd}>
-            <div className="space-y-8">
+            <div className="space-y-6">
               {categories.map((cat: string) => {
                 const catSkills = (data.skills || []).filter((s: CVSkill) => (s.category || 'other') === cat);
                 if (catSkills.length === 0 && cat !== 'other') return null;
 
                 return (
-                  <div key={cat} className="space-y-3">
+                  <div key={cat} className="space-y-2.5">
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 whitespace-nowrap">
                         {cat === 'other' ? 'Other Skills' : cat}
                       </span>
-                      <div className="flex-1 border-b border-dashed border-gray-200 dark:border-[#3d3c3e]" />
+                      <div className="flex-1 border-b border-gray-100 dark:border-[#3d3c3e]/40" />
                     </div>
 
                     <Droppable droppableId={cat} direction="horizontal">
@@ -1335,7 +1263,7 @@ export default function SectionEditor({
                         <div
                           {...provided.droppableProps}
                           ref={provided.innerRef}
-                          className={`flex flex-wrap gap-2 min-h-[40px] p-2 rounded-lg transition-colors ${snapshot.isDraggingOver ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
+                          className={`flex flex-wrap gap-2 min-h-[36px] p-1 rounded-lg transition-colors ${snapshot.isDraggingOver ? 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10' : ''
                             }`}
                         >
                           {catSkills.map((skill: CVSkill, index: number) => (
@@ -1345,21 +1273,29 @@ export default function SectionEditor({
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
                                   {...provided.dragHandleProps}
-                                  className={`group relative flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#2b2a2c] border rounded-full text-sm font-medium transition-all ${snapshot.isDragging
+                                  className={`group relative flex items-center gap-2 px-2 py-1 bg-[#f8faff] dark:bg-[#2b2a2c] border rounded-md text-xs font-medium transition-all ${snapshot.isDragging
                                     ? 'border-[#635BFF] shadow-lg scale-105 z-50'
-                                    : 'border-[#635BFF]/30 dark:border-[#a5a0ff]/30 text-[#635BFF] dark:text-[#a5a0ff] hover:border-[#635BFF]'
+                                    : skill.enabled === false
+                                      ? 'border-gray-200 dark:border-[#3d3c3e] text-gray-400 dark:text-gray-500 opacity-60'
+                                      : 'border-[#635BFF]/20 dark:border-[#a5a0ff]/20 text-gray-700 dark:text-gray-200 hover:border-[#635BFF]/50 hover:shadow-sm'
                                     }`}
                                 >
                                   <Edit3
-                                    className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                    className="w-3 h-3 text-gray-400 hover:text-[#635BFF] transition-colors cursor-pointer"
                                     onClick={() => setEditingSkillId(editingSkillId === skill.id ? null : skill.id)}
                                   />
-                                  <span>{skill.name}</span>
-                                  <div className="w-4 h-4 rounded border border-[#635BFF]/30 flex items-center justify-center bg-[#635BFF]/5">
-                                    <Check className="w-2.5 h-2.5" />
-                                  </div>
+                                  <span className="truncate max-w-[150px]">{skill.name}</span>
+                                  <button
+                                    onClick={() => updateSkill(skill.id, { enabled: skill.enabled === false })}
+                                    className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${skill.enabled !== false
+                                      ? 'bg-[#635BFF] border-[#635BFF] text-white shadow-[0_1px_2px_rgba(99,91,255,0.4)]'
+                                      : 'border-gray-300 dark:border-[#4a494b] bg-white dark:bg-[#1e1d1f]'
+                                      }`}
+                                  >
+                                    {skill.enabled !== false && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                  </button>
                                   <X
-                                    className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-gray-400 hover:text-red-500"
+                                    className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-gray-400 hover:text-red-500 ml-0.5"
                                     onClick={() => deleteSkill(skill.id)}
                                   />
 
@@ -1406,10 +1342,10 @@ export default function SectionEditor({
 
           {/* Job Description Skills */}
           {jobContext?.keywords && jobContext.keywords.length > 0 && (
-            <div className="mt-10 pt-8 border-t border-gray-100 dark:border-[#3d3c3e]/60">
+            <div className="mt-8 pt-6 border-t border-gray-100 dark:border-[#3d3c3e]/40">
               <div className="flex items-center gap-2 mb-4 text-[#635BFF] dark:text-[#a5a0ff]">
-                <Sparkles className="w-4 h-4" />
-                <h4 className="text-sm font-semibold">Skills found in job description</h4>
+                <Sparkles className="w-3.5 h-3.5" />
+                <h4 className="text-xs font-bold uppercase tracking-wider">Skills found in job description</h4>
               </div>
               <div className="flex flex-wrap gap-2">
                 {jobContext.keywords.map((keyword, idx) => {
@@ -1418,15 +1354,17 @@ export default function SectionEditor({
                     <button
                       key={idx}
                       onClick={() => !isAdded && addSkill(keyword)}
-                      className={`px-3 py-1.5 rounded-full text-sm transition-all flex items-center gap-2 border ${isAdded
+                      className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-2 border ${isAdded
                         ? 'bg-gray-50 dark:bg-[#2b2a2c] border-gray-200 dark:border-[#3d3c3e] text-gray-400 cursor-default'
-                        : 'bg-[#635BFF]/5 dark:bg-[#635BFF]/10 border-[#635BFF]/20 dark:border-[#a5a0ff]/20 text-[#635BFF] dark:text-[#a5a0ff] hover:bg-[#635BFF]/10'
+                        : 'bg-white dark:bg-[#2b2a2c] border-gray-200 dark:border-[#3d3c3e] text-gray-600 dark:text-gray-300 hover:border-[#635BFF] hover:text-[#635BFF] shadow-sm'
                         }`}
                     >
                       {keyword}
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center ${isAdded ? 'border-gray-300 bg-gray-100' : 'border-[#635BFF]/30'
+                      <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isAdded
+                        ? 'bg-gray-100 border-gray-300 text-gray-400'
+                        : 'border-gray-300 group-hover:border-[#635BFF]/30'
                         }`}>
-                        {isAdded && <Check className="w-3 h-3" />}
+                        {isAdded && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                       </div>
                     </button>
                   );

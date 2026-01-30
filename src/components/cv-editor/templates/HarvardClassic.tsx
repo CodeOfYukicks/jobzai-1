@@ -1,6 +1,6 @@
 import { CVData, CVLayoutSettings, SectionClickTarget } from '../../../types/cvEditor';
 import { HighlightTarget } from '../../../types/cvReview';
-import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
+import { formatURL, sortSections, getEnabledSections, getEnabledSkills } from '../../../lib/cvEditorUtils';
 import { formatDateRange as formatDateRangeUtil, formatCVDate as formatCVDateUtil } from '../../../lib/dateFormatters';
 import ClickableSection from '../ClickableSection';
 
@@ -233,10 +233,10 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
                   {cvData.skills?.length > 0 ? (
                     <div className="text-gray-700" style={{ fontSize: '0.95em' }}>
                       <p className="text-justify">
-                        {cvData.skills.map((skill, idx) => (
+                        {getEnabledSkills(cvData.skills).map((skill, idx, filtered) => (
                           <span key={skill.id}>
                             {skill.name}
-                            {idx < cvData.skills.length - 1 && ' • '}
+                            {idx < filtered.length - 1 && ' • '}
                           </span>
                         ))}
                       </p>

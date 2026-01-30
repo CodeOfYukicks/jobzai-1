@@ -1,6 +1,6 @@
 import { CVData, CVLayoutSettings, SectionClickTarget } from '../../../types/cvEditor';
 import { HighlightTarget } from '../../../types/cvReview';
-import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
+import { formatURL, sortSections, getEnabledSections, getEnabledSkills } from '../../../lib/cvEditorUtils';
 import { formatDateRange as formatDateRangeUtil, formatCVDate as formatCVDateUtil } from '../../../lib/dateFormatters';
 import ClickableSection from '../ClickableSection';
 
@@ -206,7 +206,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
               </h2>
               {cvData.skills?.length > 0 ? (
                 <div className="space-y-1">
-                  {cvData.skills.map(skill => {
+                  {getEnabledSkills(cvData.skills).map(skill => {
                     const shouldShowLevel = layoutSettings?.showSkillLevel !== false;
                     const level = skill.level || 'intermediate';
                     const showLevel = shouldShowLevel && level;

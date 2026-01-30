@@ -133,6 +133,11 @@ export function getEnabledSections<T extends { enabled: boolean }>(sections: T[]
   return sections.filter(s => s.enabled);
 }
 
+// Get enabled skills
+export function getEnabledSkills<T extends { enabled?: boolean }>(skills: T[]): T[] {
+  return skills.filter(s => s.enabled !== false);
+}
+
 // Export CV to PDF using canvas method for pixel-perfect rendering
 export async function exportToPDF(
   cvData: CVData,
@@ -368,9 +373,12 @@ function formatCVAsText(cvData: CVData): string {
 
   // Skills
   if (cvData.skills.length > 0) {
-    lines.push('SKILLS');
-    lines.push(cvData.skills.map(s => s.name).join(', '));
-    lines.push('');
+    const enabledSkills = getEnabledSkills(cvData.skills);
+    if (enabledSkills.length > 0) {
+      lines.push('SKILLS');
+      lines.push(enabledSkills.map(s => s.name).join(', '));
+      lines.push('');
+    }
   }
 
   // Certifications

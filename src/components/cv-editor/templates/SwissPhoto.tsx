@@ -1,6 +1,6 @@
 import { CVData, CVLayoutSettings, SectionClickTarget } from '../../../types/cvEditor';
 import { HighlightTarget } from '../../../types/cvReview';
-import { formatURL, sortSections, getEnabledSections } from '../../../lib/cvEditorUtils';
+import { formatURL, sortSections, getEnabledSections, getEnabledSkills } from '../../../lib/cvEditorUtils';
 import { formatDateRange as formatDateRangeUtil, formatCVDate as formatCVDateUtil } from '../../../lib/dateFormatters';
 import { Mail, Phone, MapPin, Linkedin, Globe, Github, User } from 'lucide-react';
 import ClickableSection from '../ClickableSection';
@@ -130,7 +130,7 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
                       </h2>
                       {cvData.skills?.length > 0 ? (
                         <div className="space-y-1">
-                          {cvData.skills.map(skill => (
+                          {getEnabledSkills(cvData.skills).map(skill => (
                             <div key={skill.id} className="text-gray-700" style={{ fontSize: '0.9em' }}>
                               {skill.name}
                             </div>

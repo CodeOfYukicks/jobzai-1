@@ -44,6 +44,7 @@ export interface CVSkill {
   name: string;
   category?: string;
   level?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  enabled?: boolean;
 }
 
 export interface CVCertification {
