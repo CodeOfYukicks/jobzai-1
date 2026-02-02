@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import PDFExportButton from '../components/cv-editor/PDFExportButton';
 import {
-  Download, Save, Eye, X, ZoomIn, ZoomOut, RefreshCw, FolderOpen, Languages, Loader2, GitCompare, MoreHorizontal, ChevronLeft, ChevronRight, Sparkles, Palette, Settings, FileText, ArrowRight
+  Download, Save, Eye, X, ZoomIn, ZoomOut, RefreshCw, FolderOpen, Languages, Loader2, GitCompare, MoreHorizontal, ChevronLeft, ChevronRight, Sparkles, Palette, Settings, FileText, ArrowRight, Target, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { notify } from '@/lib/notify';
@@ -119,6 +119,7 @@ export default function PremiumCVEditor() {
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<'templates' | 'job-match' | 'assistant'>('templates');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Save As modal state
@@ -1763,18 +1764,60 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                         <div className="flex items-center px-2 py-1.5 gap-0.5">
                           {/* Templates Tab */}
                           <button
-                            className="relative flex items-center gap-1 px-2 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded snap-start text-[#635BFF] dark:text-[#a5a0ff]"
+                            onClick={() => setRightPanelTab('templates')}
+                            className={`relative flex items-center gap-1 px-2 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded snap-start ${rightPanelTab === 'templates'
+                              ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                              }`}
                           >
                             <Palette className="w-3.5 h-3.5" />
                             <span>Templates</span>
-                            <motion.div
-                              layoutId="rightPanelActiveTab"
-                              className="absolute -bottom-1.5 left-1 right-1 h-0.5 bg-[#635BFF] rounded-full"
-                              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                            />
+                            {rightPanelTab === 'templates' && (
+                              <motion.div
+                                layoutId="rightPanelActiveTab"
+                                className="absolute -bottom-1.5 left-1 right-1 h-0.5 bg-[#635BFF] rounded-full"
+                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                              />
+                            )}
                           </button>
 
-                          {/* Future tabs can be added here */}
+                          {/* Job Match Tab */}
+                          <button
+                            onClick={() => setRightPanelTab('job-match')}
+                            className={`relative flex items-center gap-1 px-2 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded snap-start ${rightPanelTab === 'job-match'
+                              ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                              }`}
+                          >
+                            <Target className="w-3.5 h-3.5" />
+                            <span>Job Match</span>
+                            {rightPanelTab === 'job-match' && (
+                              <motion.div
+                                layoutId="rightPanelActiveTab"
+                                className="absolute -bottom-1.5 left-1 right-1 h-0.5 bg-[#635BFF] rounded-full"
+                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                              />
+                            )}
+                          </button>
+
+                          {/* Assistant Tab */}
+                          <button
+                            onClick={() => setRightPanelTab('assistant')}
+                            className={`relative flex items-center gap-1 px-2 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded snap-start ${rightPanelTab === 'assistant'
+                              ? 'text-[#635BFF] dark:text-[#a5a0ff]'
+                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                              }`}
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>Assistant</span>
+                            {rightPanelTab === 'assistant' && (
+                              <motion.div
+                                layoutId="rightPanelActiveTab"
+                                className="absolute -bottom-1.5 left-1 right-1 h-0.5 bg-[#635BFF] rounded-full"
+                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                              />
+                            )}
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -1782,12 +1825,63 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
 
                   {/* Tab Content */}
                   <div className="flex-1 min-h-0 overflow-hidden">
-                    <TemplatesTab
-                      template={template}
-                      onTemplateChange={setTemplate}
-                      layoutSettings={layoutSettings}
-                      onSettingsChange={handleLayoutSettingsChange}
-                    />
+                    <AnimatePresence mode="wait">
+                      {rightPanelTab === 'templates' && (
+                        <motion.div
+                          key="templates"
+                          initial={{ opacity: 0, x: 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          transition={{ duration: 0.15 }}
+                          className="h-full"
+                        >
+                          <TemplatesTab
+                            template={template}
+                            onTemplateChange={setTemplate}
+                            layoutSettings={layoutSettings}
+                            onSettingsChange={handleLayoutSettingsChange}
+                          />
+                        </motion.div>
+                      )}
+
+                      {rightPanelTab === 'job-match' && (
+                        <motion.div
+                          key="job-match"
+                          initial={{ opacity: 0, x: 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          transition={{ duration: 0.15 }}
+                          className="h-full flex flex-col items-center justify-center p-6 text-center"
+                        >
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 flex items-center justify-center mb-4">
+                            <Target className="w-6 h-6 text-[#635BFF]" />
+                          </div>
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Job Match Analysis</h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[200px]">
+                            Compare your CV against job descriptions to optimize your match score.
+                          </p>
+                        </motion.div>
+                      )}
+
+                      {rightPanelTab === 'assistant' && (
+                        <motion.div
+                          key="assistant"
+                          initial={{ opacity: 0, x: 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          transition={{ duration: 0.15 }}
+                          className="h-full flex flex-col items-center justify-center p-6 text-center"
+                        >
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 flex items-center justify-center mb-4">
+                            <MessageSquare className="w-6 h-6 text-[#635BFF]" />
+                          </div>
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">AI Assistant</h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[200px]">
+                            Get AI-powered suggestions to improve your CV content and structure.
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               </div>

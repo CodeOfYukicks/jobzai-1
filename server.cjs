@@ -1,4 +1,5 @@
 const express = require('express');
+const fs = require('fs');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
@@ -559,6 +560,7 @@ app.post('/api/chatgpt', async (req, res) => {
     try {
       apiKey = await getOpenAIApiKey();
     } catch (keyError) {
+      try { fs.appendFileSync('server-error.log', `${new Date().toISOString()} - Error retrieving API key in /api/chatgpt: ${keyError.message}\n`); } catch (e) { }
       console.error('❌ Error retrieving API key:', keyError);
       return res.status(500).json({
         status: 'error',
@@ -568,6 +570,7 @@ app.post('/api/chatgpt', async (req, res) => {
     }
 
     if (!apiKey) {
+      try { fs.appendFileSync('server-error.log', `${new Date().toISOString()} - Missing OpenAI API Key in /api/chatgpt: Key is null/empty\n`); } catch (e) { }
       console.error('❌ ERREUR: Clé API OpenAI manquante');
       console.error('   Checking environment variables:');
       console.error('   - OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 'defined' : 'not defined');
@@ -661,6 +664,7 @@ app.post('/api/chatgpt', async (req, res) => {
       console.log("Response received, length:", responseText.length);
 
       if (!openaiResponse.ok) {
+        try { fs.appendFileSync('server-error.log', `${new Date().toISOString()} - OpenAI API Non-200: Status ${openaiResponse.status}\n`); } catch (e) { }
         console.error("❌ Non-200 response from OpenAI API");
         console.error("Response status:", openaiResponse.status);
         console.error("Response text (first 500 chars):", responseText.substring(0, 500));

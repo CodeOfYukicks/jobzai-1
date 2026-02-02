@@ -511,8 +511,17 @@ async function callOpenAIForRewrite(prompt: string): Promise<any> {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'Server error' }));
-    throw new Error(errorData.message || 'Failed to generate CV rewrite');
+    const errorText = await response.text();
+    console.error('❌ Server error response:', errorText);
+    let errorMessage = 'Server error';
+    try {
+      const errorData = JSON.parse(errorText);
+      errorMessage = errorData.message || errorMessage;
+    } catch (e) {
+      // If parsing fails, use the raw text (truncated if too long)
+      errorMessage = `Server error: ${errorText.substring(0, 100)}`;
+    }
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();

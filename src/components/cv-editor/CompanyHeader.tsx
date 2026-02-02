@@ -46,25 +46,27 @@ export default function CompanyHeader({ companyName, jobTitle, appliedDate }: Co
       )}
 
       {/* Company & Job Info */}
-      <div className="flex flex-col">
-        <div className="flex items-center gap-2">
-          <h1 className="text-base font-bold text-gray-900 dark:text-white">
-            {companyName || 'Company Name'}
-          </h1>
-          {appliedDate && (
-            <span className="hidden sm:inline-flex text-xs text-gray-400 dark:text-gray-500">
-              •
-            </span>
-          )}
-          {appliedDate && (
-            <span className="hidden sm:inline-flex text-xs text-gray-500 dark:text-gray-400">
-              Applied {new Date(appliedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-            </span>
-          )}
-        </div>
+      <div className="flex items-center gap-2">
+        <h1 className="text-base font-bold text-gray-900 dark:text-white">
+          {companyName || 'Company Name'}
+        </h1>
+
+        <span className="text-gray-300 dark:text-gray-600">|</span>
+
         <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
           {jobTitle || 'Job Title'}
         </p>
+
+        {appliedDate && (
+          <>
+            <span className="hidden sm:inline-flex text-xs text-gray-400 dark:text-gray-500 ml-2">
+              •
+            </span>
+            <span className="hidden sm:inline-flex text-xs text-gray-500 dark:text-gray-400">
+              Applied {new Date(appliedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+          </>
+        )}
       </div>
     </div>
   );
