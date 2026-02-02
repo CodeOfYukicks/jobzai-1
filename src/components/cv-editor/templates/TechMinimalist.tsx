@@ -96,7 +96,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick,
       {/* Summary - Code block style */}
       {enabledSections.find(s => s.type === 'summary') && (
         <ClickableSection sectionType="summary" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-          <section className="mb-6">
+          <section data-cv-section="section" className="mb-6">
             {cvData.summary ? (
               <div className="bg-gray-50 border-l-4 border-gray-400 p-3">
                 <p className="text-gray-700 font-sans leading-relaxed" style={{ fontSize: '1em' }}>
@@ -117,7 +117,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick,
       {/* Skills - Grid layout */}
       {enabledSections.find(s => s.type === 'skills') && (
         <ClickableSection sectionType="skills" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-          <section className="mb-6">
+          <section data-cv-section="section" className="mb-6">
             <h2 className="font-bold uppercase tracking-wider text-gray-500 mb-3" style={{ fontSize: '0.9em' }}>
               TECHNICAL STACK
             </h2>
@@ -168,7 +168,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick,
       {/* Experience - Clean blocks */}
       {enabledSections.find(s => s.type === 'experience') && (
         <ClickableSection sectionType="experience" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-          <section className="mb-6">
+          <section data-cv-section="section" className="mb-6">
             <h2 className="font-bold uppercase tracking-wider text-gray-500 mb-3" style={{ fontSize: '0.9em' }}>
               EXPERIENCE
             </h2>
@@ -221,7 +221,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick,
       {/* Projects - Tech focus */}
       {enabledSections.find(s => s.type === 'projects') && (
         <ClickableSection sectionType="projects" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-          <section className="mb-6">
+          <section data-cv-section="section" className="mb-6">
             <h2 className="font-bold uppercase tracking-wider text-gray-500 mb-3" style={{ fontSize: '0.9em' }}>
               PROJECTS
             </h2>
@@ -286,7 +286,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick,
       {/* Education - Compact */}
       {enabledSections.find(s => s.type === 'education') && (
         <ClickableSection sectionType="education" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-          <section className="mb-6">
+          <section data-cv-section="section" className="mb-6">
             <h2 className="font-bold uppercase tracking-wider text-gray-500 mb-3" style={{ fontSize: '0.9em' }}>
               EDUCATION
             </h2>
@@ -326,7 +326,7 @@ export default function TechMinimalist({ cvData, layoutSettings, onSectionClick,
       {/* Certifications - List style */}
       {enabledSections.find(s => s.type === 'certifications') && (
         <ClickableSection sectionType="certifications" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-          <section className="mb-6">
+          <section data-cv-section="section" className="mb-6">
             <h2 className="font-bold uppercase tracking-wider text-gray-500 mb-3" style={{ fontSize: '0.9em' }}>
               CERTIFICATIONS
             </h2>

@@ -99,7 +99,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
           case 'summary':
             return (
               <ClickableSection key={section.id} sectionType="summary" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                <section className="mb-6">
+                <section data-cv-section="section" className="mb-6">
                   <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                     Professional Summary
                   </h2>
@@ -122,7 +122,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
             const experienceSpacing = layoutSettings.experienceSpacing ?? 6;
             return (
               <ClickableSection key={section.id} sectionType="experience" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                <section className="mb-6">
+                <section data-cv-section="section" className="mb-6">
                   <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                     Work Experience
                   </h2>
@@ -174,7 +174,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
           case 'education':
             return (
               <ClickableSection key={section.id} sectionType="education" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                <section className="mb-6">
+                <section data-cv-section="section" className="mb-6">
                   <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                     Education
                   </h2>
@@ -224,7 +224,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
           case 'skills':
             return (
               <ClickableSection key={section.id} sectionType="skills" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                <section className="mb-6">
+                <section data-cv-section="section" className="mb-6">
                   <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                     Skills
                   </h2>
@@ -270,7 +270,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
           case 'certifications':
             return (
               <ClickableSection key={section.id} sectionType="certifications" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                <section className="mb-6">
+                <section data-cv-section="section" className="mb-6">
                   <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                     Certifications
                   </h2>
@@ -301,7 +301,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
           case 'projects':
             return (
               <ClickableSection key={section.id} sectionType="projects" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                <section className="mb-6">
+                <section data-cv-section="section" className="mb-6">
                   <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                     Projects
                   </h2>
@@ -358,7 +358,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
           case 'languages':
             return (
               <ClickableSection key={section.id} sectionType="languages" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                <section className="mb-6">
+                <section data-cv-section="section" className="mb-6">
                   <h2 className="font-bold uppercase tracking-wider text-gray-700 border-b-2 pb-1 mb-3" style={{ fontSize: '1em', borderColor: accentColor }}>
                     Languages
                   </h2>

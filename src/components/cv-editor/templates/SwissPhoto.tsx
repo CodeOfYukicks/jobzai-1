@@ -124,7 +124,7 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
               case 'skills':
                 return (
                   <ClickableSection key={section.id} sectionType="skills" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                    <section className="mb-5">
+                    <section data-cv-section="section" className="mb-5">
                       <h2 className="font-bold text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-1 mb-2" style={{ fontSize: '0.8em' }}>
                         Skills
                       </h2>
@@ -148,7 +148,7 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
               case 'languages':
                 return (
                   <ClickableSection key={section.id} sectionType="languages" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                    <section className="mb-5">
+                    <section data-cv-section="section" className="mb-5">
                       <h2 className="font-bold text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-1 mb-2" style={{ fontSize: '0.8em' }}>
                         Languages
                       </h2>
@@ -175,7 +175,7 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
               case 'certifications':
                 return (
                   <ClickableSection key={section.id} sectionType="certifications" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                    <section className="mb-5">
+                    <section data-cv-section="section" className="mb-5">
                       <h2 className="font-bold text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-1 mb-2" style={{ fontSize: '0.8em' }}>
                         Certifications
                       </h2>
@@ -203,7 +203,7 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
               case 'education':
                 return (
                   <ClickableSection key={section.id} sectionType="education" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                    <section className="mb-5">
+                    <section data-cv-section="section" className="mb-5">
                       <h2 className="font-bold text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-1 mb-2" style={{ fontSize: '0.8em' }}>
                         Education
                       </h2>
@@ -243,7 +243,7 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
               case 'summary':
                 return (
                   <ClickableSection key={section.id} sectionType="summary" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                    <section className="mb-5">
+                    <section data-cv-section="section" className="mb-5">
                       <h2 className="font-bold text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-1 mb-3" style={{ fontSize: '0.85em' }}>
                         Profile
                       </h2>
@@ -264,7 +264,7 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
                 const experienceSpacing = layoutSettings.experienceSpacing ?? 6;
                 return (
                   <ClickableSection key={section.id} sectionType="experience" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                    <section className="mb-5">
+                    <section data-cv-section="section" className="mb-5">
                       <h2 className="font-bold text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-1 mb-3" style={{ fontSize: '0.85em' }}>
                         Experience
                       </h2>
@@ -313,7 +313,7 @@ export default function SwissPhoto({ cvData, layoutSettings, onSectionClick, hig
               case 'projects':
                 return (
                   <ClickableSection key={section.id} sectionType="projects" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                    <section className="mb-5">
+                    <section data-cv-section="section" className="mb-5">
                       <h2 className="font-bold text-gray-800 uppercase tracking-wider border-b border-gray-300 pb-1 mb-3" style={{ fontSize: '0.85em' }}>
                         Projects
                       </h2>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  GripVertical, Plus, Eye, EyeOff, ChevronDown, ChevronLeft, ChevronRight,
+  Plus, ChevronLeft, ChevronRight,
   User, FileText, Briefcase, GraduationCap, Code, Award,
   FolderOpen, Globe, Sparkles, Edit3, Layout, Inbox
 } from 'lucide-react';
@@ -11,11 +11,9 @@ import { CVSuggestion, CVReviewResult, HighlightTarget } from '../../types/cvRev
 import SectionEditor from './SectionEditor';
 import { sortSections } from '../../lib/cvEditorUtils';
 import LayoutStyleTab from './tabs/LayoutStyleTab';
-import TemplatesTab from './tabs/TemplatesTab';
 import AIReviewTab from './tabs/AIReviewTab';
-import { Palette } from 'lucide-react';
 
-export type TabType = 'ai-review' | 'editor' | 'templates' | 'layout-style';
+export type TabType = 'ai-review' | 'editor' | 'layout-style';
 
 interface EditorPanelProps {
   cvData: CVData;
@@ -241,56 +239,36 @@ export default function EditorPanel({
   // Collapsed version - just icons
   if (isCollapsed) {
     return (
-      <div className="h-full flex flex-col overflow-hidden bg-white dark:bg-[#242325]">
+      <div
+        className="h-full flex flex-col overflow-hidden bg-white dark:bg-[#242325] cursor-pointer group/panel hover:bg-gray-50 dark:hover:bg-[#2b2a2c] transition-colors duration-200"
+        onClick={onToggleCollapse}
+        title="Ouvrir le panneau"
+      >
         {/* Collapsed Header with expand button */}
-        <div className="flex-shrink-0 border-b border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325]">
-          <div className="px-3 py-3 flex items-center justify-center">
-            {onToggleCollapse && (
-              <motion.button
-                onClick={onToggleCollapse}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] hover:bg-gray-200 dark:hover:bg-[#3d3c3e] border border-gray-200 dark:border-[#3d3c3e] transition-all duration-200 group"
-                aria-label="Expand panel"
-                title="Ouvrir le panneau"
-              >
-                <ChevronRight className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200 transition-colors" />
-              </motion.button>
-            )}
+        <div className="flex-shrink-0 border-b border-gray-200 dark:border-[#3d3c3e] group-hover/panel:bg-gray-50 dark:group-hover/panel:bg-[#2b2a2c] transition-colors">
+          <div className="flex items-center justify-center py-2">
+            <div className="flex items-center justify-center w-6 h-6 rounded-md text-gray-400 group-hover/panel:text-[#635BFF] transition-all duration-200">
+              <ChevronLeft className="w-4 h-4 rotate-180" />
+            </div>
           </div>
         </div>
 
         {/* Collapsed Sections - Icon only */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain py-3 px-2 pb-24 lg:pb-3 space-y-2">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain py-4 px-1.5 pb-24 lg:pb-4 flex flex-col items-center gap-1">
           {sortSections(cvData.sections).map((section) => (
-            <motion.button
+            <div
               key={section.id}
-              onClick={() => {
-                onToggleCollapse?.();
-                setTimeout(() => {
-                  setExpandedSection(section.id);
-                  setActiveTab('editor');
-                }, 300);
-              }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
               className={`
-                relative w-full flex items-center justify-center p-2.5 rounded-lg transition-all
+                p-2 rounded-lg transition-all
                 ${section.enabled
-                  ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e]'
-                  : 'text-gray-400 dark:text-gray-600 opacity-50'
+                  ? 'text-gray-400 group-hover/panel:text-[#635BFF]'
+                  : 'text-gray-300 dark:text-gray-600 opacity-50'
                 }
               `}
               title={section.title}
             >
               {sectionIcons[section.type] || <FileText className="w-5 h-5" />}
-              {/* AI indicator for sections with AI enhancement */}
-              {(section.type === 'summary' || section.type === 'experience' || section.type === 'projects') && (
-                <span className="absolute -top-1 -right-1 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 border border-white dark:border-[#242325]">
-                  <Sparkles className="w-2 h-2 text-white" />
-                </span>
-              )}
-            </motion.button>
+            </div>
           ))}
         </div>
       </div>
@@ -349,27 +327,7 @@ export default function EditorPanel({
               )}
             </button>
 
-            {/* Templates Tab */}
-            <button
-              onClick={() => setActiveTab('templates')}
-              className={`
-                relative flex items-center gap-1 px-2 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded snap-start
-                ${activeTab === 'templates'
-                  ? 'text-[#635BFF] dark:text-[#a5a0ff]'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                }
-              `}
-            >
-              <Palette className="w-3.5 h-3.5" />
-              <span>Templates</span>
-              {activeTab === 'templates' && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute -bottom-1.5 left-1 right-1 h-0.5 bg-[#635BFF] rounded-full"
-                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                />
-              )}
-            </button>
+
 
             {/* Layout & Style Tab */}
             <button
@@ -399,16 +357,14 @@ export default function EditorPanel({
 
           {/* Collapse Panel Button - Hidden on mobile */}
           {onToggleCollapse && (
-            <motion.button
+            <button
               onClick={onToggleCollapse}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="hidden lg:flex items-center justify-center w-8 h-8 mr-4 rounded-lg bg-gray-100 dark:bg-[#2b2a2c] hover:bg-gray-200 dark:hover:bg-[#3d3c3e] border border-gray-200 dark:border-[#3d3c3e] transition-all duration-200 group"
+              className="hidden lg:flex items-center justify-center w-6 h-6 mr-3 rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50 transition-all duration-200"
               aria-label={isCollapsed ? 'Expand panel' : 'Collapse panel'}
               title="Réduire le panneau"
             >
-              <ChevronLeft className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200 transition-colors" />
-            </motion.button>
+              <ChevronLeft className="w-4 h-4" />
+            </button>
           )}
         </div>
       </div>
@@ -629,23 +585,7 @@ export default function EditorPanel({
           </motion.div>
         )}
 
-        {activeTab === 'templates' && (
-          <motion.div
-            key="templates"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-            className="h-full flex-1 min-h-0 overflow-hidden flex flex-col"
-          >
-            <TemplatesTab
-              template={template}
-              onTemplateChange={onTemplateChange}
-              layoutSettings={layoutSettings}
-              onSettingsChange={onLayoutSettingsChange}
-            />
-          </motion.div>
-        )}
+
 
         {activeTab === 'layout-style' && (
           <motion.div

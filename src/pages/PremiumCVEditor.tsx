@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import PDFExportButton from '../components/cv-editor/PDFExportButton';
 import {
-  Download, Save, Eye, X, ZoomIn, ZoomOut, RefreshCw, FolderOpen, Languages, Loader2, GitCompare, MoreHorizontal, ChevronLeft, Sparkles, Palette, Settings, FileText, ArrowRight
+  Download, Save, Eye, X, ZoomIn, ZoomOut, RefreshCw, FolderOpen, Languages, Loader2, GitCompare, MoreHorizontal, ChevronLeft, ChevronRight, Sparkles, Palette, Settings, FileText, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { notify } from '@/lib/notify';
@@ -12,6 +12,7 @@ import { getDoc, doc, updateDoc, serverTimestamp, collection, query, orderBy, ge
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import EditorPanel, { TabType } from '../components/cv-editor/EditorPanel';
+import TemplatesTab from '../components/cv-editor/tabs/TemplatesTab';
 import PreviewContainer from '../components/cv-editor/PreviewContainer';
 import AICompanionPanel from '../components/cv-editor/AICompanionPanel';
 import CompanyHeader from '../components/cv-editor/CompanyHeader';
@@ -117,6 +118,7 @@ export default function PremiumCVEditor() {
   } | undefined>();
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Save As modal state
@@ -1685,7 +1687,7 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
               </div>
             </div>
 
-            {/* Right: Preview Panel */}
+            {/* Center: Preview Panel */}
             <AnimatePresence>
               {showPreview && (
                 <motion.div
@@ -1710,6 +1712,86 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Right: Templates Panel */}
+            {isRightPanelCollapsed ? (
+              /* Collapsed state - Make entire panel clickable */
+              <div
+                className="hidden lg:flex h-full relative border-l border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325] overflow-hidden flex-shrink-0 w-12 cursor-pointer group/rightpanel hover:bg-gray-50 dark:hover:bg-[#2b2a2c] transition-colors duration-200"
+                onClick={() => setIsRightPanelCollapsed(false)}
+                title="Ouvrir le panneau"
+              >
+                <div className="h-full w-full overflow-hidden flex flex-col">
+                  {/* Collapsed Header */}
+                  <div className="flex-shrink-0 border-b border-gray-200 dark:border-[#3d3c3e] group-hover/rightpanel:bg-gray-50 dark:group-hover/rightpanel:bg-[#2b2a2c] transition-colors">
+                    <div className="flex items-center justify-center py-2">
+                      <div className="flex items-center justify-center w-6 h-6 rounded-md text-gray-400 group-hover/rightpanel:text-[#635BFF] transition-all duration-200">
+                        <ChevronRight className="w-4 h-4 rotate-180" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Collapsed Icon */}
+                  <div className="flex-1 flex flex-col items-center pt-4">
+                    <div className="p-2 rounded-lg text-gray-400 group-hover/rightpanel:text-[#635BFF] transition-all">
+                      <Palette className="w-5 h-5" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Expanded state */
+              <div
+                className="hidden lg:flex h-full relative border-l border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325] overflow-hidden flex-shrink-0 w-[380px] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              >
+                <div className="h-full w-full overflow-hidden flex flex-col">
+                  {/* Right Panel Header - Tab Navigation */}
+                  <div className="flex-shrink-0 border-b border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#242325]">
+                    <div className="flex items-center">
+                      {/* Collapse Button */}
+                      <button
+                        onClick={() => setIsRightPanelCollapsed(true)}
+                        className="flex items-center justify-center w-6 h-6 ml-3 rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/50 transition-all duration-200"
+                        aria-label="Collapse panel"
+                        title="Réduire le panneau"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+
+                      {/* Tabs */}
+                      <div className="flex items-center overflow-x-auto scrollbar-hide snap-x snap-mandatory flex-1">
+                        <div className="flex items-center px-2 py-1.5 gap-0.5">
+                          {/* Templates Tab */}
+                          <button
+                            className="relative flex items-center gap-1 px-2 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap rounded snap-start text-[#635BFF] dark:text-[#a5a0ff]"
+                          >
+                            <Palette className="w-3.5 h-3.5" />
+                            <span>Templates</span>
+                            <motion.div
+                              layoutId="rightPanelActiveTab"
+                              className="absolute -bottom-1.5 left-1 right-1 h-0.5 bg-[#635BFF] rounded-full"
+                              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                            />
+                          </button>
+
+                          {/* Future tabs can be added here */}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tab Content */}
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    <TemplatesTab
+                      template={template}
+                      onTemplateChange={setTemplate}
+                      layoutSettings={layoutSettings}
+                      onSettingsChange={handleLayoutSettingsChange}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Mobile Preview Overlay */}
             <AnimatePresence>
@@ -2041,16 +2123,6 @@ Respond ONLY with the translated JSON object. No explanations, no markdown.`;
               setIsMobileMenuOpen(false);
               setEditorTab('ai-review');
               setShowPreview(false); // Switch to editor view
-            }}
-          />
-          <BottomSheetMenuItem
-            icon={<Palette className="w-5 h-5" />}
-            label="Templates"
-            description="Change CV template"
-            onClick={() => {
-              setIsMobileMenuOpen(false);
-              setEditorTab('templates');
-              setShowPreview(false);
             }}
           />
           <BottomSheetMenuItem

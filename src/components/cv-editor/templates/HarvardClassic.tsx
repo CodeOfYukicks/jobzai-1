@@ -35,7 +35,7 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
     >
       {/* Header - Harvard Style: Centered, Name in caps */}
       <ClickableSection sectionType="personal" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-        <header className="text-center mb-4 pb-3">
+        <header data-cv-section="personal" className="text-center mb-4 pb-3">
           <h1
             className="font-bold text-gray-900 tracking-wider mb-1"
             style={{ fontSize: '1.75em', letterSpacing: '0.15em' }}
@@ -98,7 +98,7 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
           case 'summary':
             return (
               <ClickableSection key={section.id} sectionType="summary" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                <section className="mb-4">
+                <section data-cv-section="summary" className="mb-4">
                   <h2
                     className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2"
                     style={{ fontSize: '0.9em', letterSpacing: '0.1em' }}
@@ -121,7 +121,7 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
           case 'education':
             return (
               <ClickableSection key={section.id} sectionType="education" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                <section className="mb-4">
+                <section data-cv-section="education" className="mb-4">
                   <h2
                     className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2"
                     style={{ fontSize: '0.9em', letterSpacing: '0.1em' }}
@@ -170,7 +170,7 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
             const experienceSpacing = layoutSettings.experienceSpacing ?? 6;
             return (
               <ClickableSection key={section.id} sectionType="experience" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                <section className="mb-4">
+                <section data-cv-section="experience" className="mb-4">
                   <h2
                     className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2"
                     style={{ fontSize: '0.9em', letterSpacing: '0.1em' }}
@@ -223,7 +223,7 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
           case 'skills':
             return (
               <ClickableSection key={section.id} sectionType="skills" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                <section className="mb-4">
+                <section data-cv-section="skills" className="mb-4">
                   <h2
                     className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2"
                     style={{ fontSize: '0.9em', letterSpacing: '0.1em' }}
@@ -253,7 +253,7 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
           case 'certifications':
             return (
               <ClickableSection key={section.id} sectionType="certifications" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                <section className="mb-4">
+                <section data-cv-section="certifications" className="mb-4">
                   <h2
                     className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2"
                     style={{ fontSize: '0.9em', letterSpacing: '0.1em' }}
@@ -286,7 +286,7 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
           case 'projects':
             return (
               <ClickableSection key={section.id} sectionType="projects" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                <section className="mb-4">
+                <section data-cv-section="projects" className="mb-4">
                   <h2
                     className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2"
                     style={{ fontSize: '0.9em', letterSpacing: '0.1em' }}
@@ -340,7 +340,7 @@ export default function HarvardClassic({ cvData, layoutSettings, onSectionClick,
           case 'languages':
             return (
               <ClickableSection key={section.id} sectionType="languages" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                <section className="mb-4">
+                <section data-cv-section="languages" className="mb-4">
                   <h2
                     className="font-semibold text-gray-800 tracking-widest uppercase border-b border-gray-300 pb-1 mb-2"
                     style={{ fontSize: '0.9em', letterSpacing: '0.1em' }}

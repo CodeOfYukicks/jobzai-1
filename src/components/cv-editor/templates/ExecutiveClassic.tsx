@@ -33,7 +33,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
       case 'summary':
         return (
           <ClickableSection key={section.id} sectionType="summary" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-            <section className="mb-6">
+            <section data-cv-section="section" className="mb-6">
               <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
                 Executive Summary
               </h2>
@@ -54,7 +54,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
       case 'experience':
         return (
           <ClickableSection key={section.id} sectionType="experience" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-            <section className="mb-6">
+            <section data-cv-section="section" className="mb-6">
               <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
                 Professional Experience
               </h2>
@@ -107,7 +107,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
       case 'projects':
         return (
           <ClickableSection key={section.id} sectionType="projects" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-            <section className="mb-6">
+            <section data-cv-section="section" className="mb-6">
               <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
                 Key Projects
               </h2>
@@ -154,7 +154,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
       case 'education':
         return (
           <ClickableSection key={section.id} sectionType="education" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-            <section className="mb-6">
+            <section data-cv-section="section" className="mb-6">
               <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
                 Education
               </h2>
@@ -200,7 +200,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
       case 'skills':
         return (
           <ClickableSection key={section.id} sectionType="skills" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-            <section className="mb-6">
+            <section data-cv-section="section" className="mb-6">
               <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
                 Core Competencies
               </h2>
@@ -241,7 +241,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
       case 'certifications':
         return (
           <ClickableSection key={section.id} sectionType="certifications" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-            <section className="mb-6">
+            <section data-cv-section="section" className="mb-6">
               <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
                 Certifications
               </h2>
@@ -271,7 +271,7 @@ export default function ExecutiveClassic({ cvData, layoutSettings, onSectionClic
       case 'languages':
         return (
           <ClickableSection key={section.id} sectionType="languages" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-            <section className="mb-6">
+            <section data-cv-section="section" className="mb-6">
               <h2 className="font-bold uppercase tracking-widest text-gray-800 mb-3" style={{ fontSize: '1em' }}>
                 Languages
               </h2>

@@ -26,7 +26,7 @@ export default function ZoomControls({
   maxZoom = 150
 }: ZoomControlsProps) {
   return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#2b2a2c] rounded-lg shadow-sm border border-gray-200 dark:border-[#3d3c3e]">
+    <div className="flex items-center gap-2 px-3 py-2 bg-white/70 dark:bg-[#2b2a2c]/70 backdrop-blur-xl rounded-xl shadow-lg border border-white/20 dark:border-white/10">
       {/* Zoom Out */}
       <button
         onClick={onZoomOut}
@@ -42,7 +42,7 @@ export default function ZoomControls({
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[45px] text-center">
           {zoom}%
         </span>
-        
+
         {/* Zoom Slider */}
         <input
           type="range"

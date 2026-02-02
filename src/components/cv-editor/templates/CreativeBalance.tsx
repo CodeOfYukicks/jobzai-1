@@ -110,7 +110,7 @@ export default function CreativeBalance({ cvData, layoutSettings, onSectionClick
       {/* Summary with background */}
       {enabledSections.find(s => s.type === 'summary') && (
         <ClickableSection sectionType="summary" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-          <section className="mb-6">
+          <section data-cv-section="section" className="mb-6">
             {cvData.summary ? (
               <div className="rounded-lg p-4 border-l-4" style={{ backgroundColor: accentColorLight, borderColor: accentColor }}>
                 <p className="text-gray-700 leading-relaxed" style={{ fontSize: '1em' }}>

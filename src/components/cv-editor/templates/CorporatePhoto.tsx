@@ -135,7 +135,7 @@ export default function CorporatePhoto({ cvData, layoutSettings, onSectionClick,
               case 'summary':
                 return (
                   <ClickableSection key={section.id} sectionType="summary" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                    <section className="mb-5">
+                    <section data-cv-section="section" className="mb-5">
                       <h2 className="font-bold uppercase tracking-wide mb-2 pb-1 border-b-2" style={{ fontSize: '0.9em', color: accentColor, borderColor: accentColor }}>
                         Professional Summary
                       </h2>
@@ -156,7 +156,7 @@ export default function CorporatePhoto({ cvData, layoutSettings, onSectionClick,
                 const experienceSpacing = layoutSettings.experienceSpacing ?? 6;
                 return (
                   <ClickableSection key={section.id} sectionType="experience" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                    <section className="mb-5">
+                    <section data-cv-section="section" className="mb-5">
                       <h2 className="font-bold uppercase tracking-wide mb-2 pb-1 border-b-2" style={{ fontSize: '0.9em', color: accentColor, borderColor: accentColor }}>
                         Professional Experience
                       </h2>
@@ -205,7 +205,7 @@ export default function CorporatePhoto({ cvData, layoutSettings, onSectionClick,
               case 'projects':
                 return (
                   <ClickableSection key={section.id} sectionType="projects" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                    <section className="mb-5">
+                    <section data-cv-section="section" className="mb-5">
                       <h2 className="font-bold uppercase tracking-wide mb-2 pb-1 border-b-2" style={{ fontSize: '0.9em', color: accentColor, borderColor: accentColor }}>
                         Key Projects
                       </h2>
@@ -262,7 +262,7 @@ export default function CorporatePhoto({ cvData, layoutSettings, onSectionClick,
               case 'skills':
                 return (
                   <ClickableSection key={section.id} sectionType="skills" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                    <section className="mb-5">
+                    <section data-cv-section="section" className="mb-5">
                       <h2 className="font-bold uppercase tracking-wide mb-2 pb-1 border-b-2" style={{ fontSize: '0.85em', color: accentColor, borderColor: accentColor }}>
                         Core Skills
                       </h2>
@@ -290,7 +290,7 @@ export default function CorporatePhoto({ cvData, layoutSettings, onSectionClick,
               case 'education':
                 return (
                   <ClickableSection key={section.id} sectionType="education" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                    <section className="mb-5">
+                    <section data-cv-section="section" className="mb-5">
                       <h2 className="font-bold uppercase tracking-wide mb-2 pb-1 border-b-2" style={{ fontSize: '0.85em', color: accentColor, borderColor: accentColor }}>
                         Education
                       </h2>
@@ -326,7 +326,7 @@ export default function CorporatePhoto({ cvData, layoutSettings, onSectionClick,
               case 'certifications':
                 return (
                   <ClickableSection key={section.id} sectionType="certifications" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                    <section className="mb-5">
+                    <section data-cv-section="section" className="mb-5">
                       <h2 className="font-bold uppercase tracking-wide mb-2 pb-1 border-b-2" style={{ fontSize: '0.85em', color: accentColor, borderColor: accentColor }}>
                         Certifications
                       </h2>
@@ -354,7 +354,7 @@ export default function CorporatePhoto({ cvData, layoutSettings, onSectionClick,
               case 'languages':
                 return (
                   <ClickableSection key={section.id} sectionType="languages" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-                    <section className="mb-5">
+                    <section data-cv-section="section" className="mb-5">
                       <h2 className="font-bold uppercase tracking-wide mb-2 pb-1 border-b-2" style={{ fontSize: '0.85em', color: accentColor, borderColor: accentColor }}>
                         Languages
                       </h2>
