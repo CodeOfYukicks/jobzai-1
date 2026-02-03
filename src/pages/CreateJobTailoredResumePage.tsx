@@ -527,7 +527,7 @@ export default function CreateJobTailoredResumePage() {
                         <nav className="flex items-center gap-2 text-sm">
                             <button
                                 onClick={() => navigate('/cv-analysis')}
-                                className="text-[#004b23] dark:text-[#cdff34] hover:text-[#70E000] dark:hover:text-[#70E000] font-medium transition-colors"
+                                className="text-[#00B48C] dark:text-[#E2F4EE] hover:text-[#00B48C] dark:hover:text-[#00B48C] font-medium transition-colors"
                             >
                                 Resume Builder
                             </button>
@@ -544,7 +544,7 @@ export default function CreateJobTailoredResumePage() {
                     <div className="w-full md:w-1/3 pt-2 md:sticky md:top-16">
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Create a new</p>
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                            <span className="text-[#004b23] dark:text-[#cdff34]">Job Tailored Resume</span>
+                            <span className="text-[#00B48C] dark:text-[#E2F4EE]">Job Tailored Resume</span>
                         </h1>
 
                         <p className="text-gray-500 dark:text-gray-400 mt-4 leading-relaxed text-sm">
@@ -555,7 +555,7 @@ export default function CreateJobTailoredResumePage() {
                             <button
                                 onClick={handleCreate}
                                 disabled={isCreating}
-                                className="px-6 py-2.5 bg-[#004b23] hover:bg-[#70E000] text-white font-semibold rounded-full shadow-md shadow-[#004b23]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+                                className="px-6 py-2.5 bg-[#00B48C] hover:bg-[#00B48C] text-white font-semibold rounded-full shadow-md shadow-[#00B48C]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
                             >
                                 {isCreating ? (
                                     <>
@@ -633,22 +633,22 @@ export default function CreateJobTailoredResumePage() {
                                                             key={resume.id}
                                                             onClick={() => setSelectedResumeId(resume.id)}
                                                             className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border ${selectedResumeId === resume.id
-                                                                ? 'bg-[#70E000]/5 border-[#70E000] dark:bg-[#70E000]/10'
+                                                                ? 'bg-[#00B48C]/5 border-[#00B48C] dark:bg-[#00B48C]/10'
                                                                 : 'border-transparent hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
                                                                 }`}
                                                         >
-                                                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedResumeId === resume.id ? 'border-[#70E000]' : 'border-gray-300 dark:border-gray-600'
+                                                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedResumeId === resume.id ? 'border-[#00B48C]' : 'border-gray-300 dark:border-gray-600'
                                                                 }`}>
-                                                                {selectedResumeId === resume.id && <div className="w-2 h-2 rounded-full bg-[#70E000]" />}
+                                                                {selectedResumeId === resume.id && <div className="w-2 h-2 rounded-full bg-[#00B48C]" />}
                                                             </div>
-                                                            <FileText className={`w-5 h-5 flex-shrink-0 ${selectedResumeId === resume.id ? 'text-[#004b23] dark:text-[#cdff34]' : 'text-gray-400'}`} />
+                                                            <FileText className={`w-5 h-5 flex-shrink-0 ${selectedResumeId === resume.id ? 'text-[#00B48C] dark:text-[#E2F4EE]' : 'text-gray-400'}`} />
                                                             <div className="min-w-0">
                                                                 <div className="flex items-center gap-2">
                                                                     <p className={`font-medium text-sm truncate ${selectedResumeId === resume.id ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
                                                                         {resume.name}
                                                                     </p>
                                                                     {resume.isProfile && (
-                                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#cdff34]/20 text-[#004b23] dark:bg-[#cdff34]/10 dark:text-[#cdff34] border border-[#cdff34]/30 dark:border-[#cdff34]/20">
+                                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E2F4EE]/20 text-[#00B48C] dark:bg-[#E2F4EE]/10 dark:text-[#E2F4EE] border border-[#E2F4EE]/30 dark:border-[#E2F4EE]/20">
                                                                             PROFILE
                                                                         </span>
                                                                     )}
@@ -671,7 +671,7 @@ export default function CreateJobTailoredResumePage() {
                                                     <p className="text-sm text-gray-500 dark:text-gray-400">No base resumes found.</p>
                                                     <button
                                                         onClick={() => navigate('/resume-builder/new')}
-                                                        className="mt-2 text-sm font-medium text-[#004b23] dark:text-[#cdff34] hover:underline"
+                                                        className="mt-2 text-sm font-medium text-[#00B48C] dark:text-[#E2F4EE] hover:underline"
                                                     >
                                                         Create a base resume first
                                                     </button>
@@ -685,14 +685,14 @@ export default function CreateJobTailoredResumePage() {
                                             <div
                                                 onClick={() => fileInputRef.current?.click()}
                                                 className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors ${uploadedFile
-                                                    ? 'border-[#70E000] bg-[#cdff34]/10 dark:bg-[#cdff34]/5'
-                                                    : 'border-gray-200 dark:border-[#3d3c3e] hover:border-[#70E000] dark:hover:border-[#70E000]'
+                                                    ? 'border-[#00B48C] bg-[#E2F4EE]/10 dark:bg-[#E2F4EE]/5'
+                                                    : 'border-gray-200 dark:border-[#3d3c3e] hover:border-[#00B48C] dark:hover:border-[#00B48C]'
                                                     }`}
                                             >
                                                 {uploadedFile ? (
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-lg bg-[#cdff34]/20 dark:bg-[#cdff34]/10 flex items-center justify-center">
-                                                            <Check className="w-5 h-5 text-[#004b23] dark:text-[#cdff34]" />
+                                                        <div className="w-10 h-10 rounded-lg bg-[#E2F4EE]/20 dark:bg-[#E2F4EE]/10 flex items-center justify-center">
+                                                            <Check className="w-5 h-5 text-[#00B48C] dark:text-[#E2F4EE]" />
                                                         </div>
                                                         <div>
                                                             <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[200px]">
@@ -719,9 +719,9 @@ export default function CreateJobTailoredResumePage() {
 
                                             {/* Parsing Progress */}
                                             {isParsing && (
-                                                <div className="flex items-center gap-3 p-3 bg-[#cdff34]/10 dark:bg-[#cdff34]/5 rounded-lg border border-[#cdff34]/30 dark:border-[#cdff34]/20">
-                                                    <Loader2 className="w-4 h-4 animate-spin text-[#004b23] dark:text-[#cdff34]" />
-                                                    <span className="text-sm text-[#004b23] dark:text-[#cdff34]">{parsingStep}</span>
+                                                <div className="flex items-center gap-3 p-3 bg-[#E2F4EE]/10 dark:bg-[#E2F4EE]/5 rounded-lg border border-[#E2F4EE]/30 dark:border-[#E2F4EE]/20">
+                                                    <Loader2 className="w-4 h-4 animate-spin text-[#00B48C] dark:text-[#E2F4EE]" />
+                                                    <span className="text-sm text-[#00B48C] dark:text-[#E2F4EE]">{parsingStep}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -742,7 +742,7 @@ export default function CreateJobTailoredResumePage() {
 
                         <div className="border-t border-gray-100 dark:border-[#3d3c3e] pt-5 space-y-4">
                             <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                <Briefcase className="w-4 h-4 text-[#004b23] dark:text-[#cdff34]" />
+                                <Briefcase className="w-4 h-4 text-[#00B48C] dark:text-[#E2F4EE]" />
                                 Target Job Details
                             </h3>
 
@@ -781,7 +781,7 @@ export default function CreateJobTailoredResumePage() {
                             {jobInputMode === 'saved' && (
                                 <div className="space-y-2">
                                     <div className="space-y-1">
-                                        <label className="text-sm font-semibold text-gray-900 dark:text-white">Select Saved Job <span className="text-[#004b23] dark:text-[#cdff34]">*</span></label>
+                                        <label className="text-sm font-semibold text-gray-900 dark:text-white">Select Saved Job <span className="text-[#00B48C] dark:text-[#E2F4EE]">*</span></label>
 
                                         {/* Custom Dropdown */}
                                         <div className="relative" ref={dropdownRef}>
@@ -790,7 +790,7 @@ export default function CreateJobTailoredResumePage() {
                                                 type="button"
                                                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                                                 className={`w-full px-3 py-2.5 bg-white dark:bg-[#2b2a2c] border rounded-lg text-left flex items-center justify-between transition-all text-sm ${isDropdownOpen
-                                                    ? 'border-[#70E000] ring-2 ring-[#70E000]/20'
+                                                    ? 'border-[#00B48C] ring-2 ring-[#00B48C]/20'
                                                     : 'border-gray-200 dark:border-[#3d3c3e] hover:border-gray-300 dark:hover:border-gray-600'
                                                     }`}
                                             >
@@ -841,7 +841,7 @@ export default function CreateJobTailoredResumePage() {
                                                                 value={jobSearchQuery}
                                                                 onChange={(e) => setJobSearchQuery(e.target.value)}
                                                                 placeholder="Search"
-                                                                className="w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-[#2b2a2c] border-0 rounded-md text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#70E000]/30"
+                                                                className="w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-[#2b2a2c] border-0 rounded-md text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00B48C]/30"
                                                                 autoFocus
                                                             />
                                                         </div>
@@ -867,7 +867,7 @@ export default function CreateJobTailoredResumePage() {
                                                                             setIsDropdownOpen(false);
                                                                             setJobSearchQuery('');
                                                                         }}
-                                                                        className={`w-full px-3 py-2.5 flex items-center gap-2.5 text-left hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors ${selectedSavedJobId === job.id ? 'bg-[#cdff34]/10 dark:bg-[#cdff34]/5' : ''
+                                                                        className={`w-full px-3 py-2.5 flex items-center gap-2.5 text-left hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors ${selectedSavedJobId === job.id ? 'bg-[#E2F4EE]/10 dark:bg-[#E2F4EE]/5' : ''
                                                                             } ${index !== 0 ? 'border-t border-gray-100 dark:border-[#3d3c3e]' : ''}`}
                                                                     >
                                                                         {/* Company Logo */}
@@ -896,7 +896,7 @@ export default function CreateJobTailoredResumePage() {
                                                                         </div>
                                                                         {/* Checkmark if selected */}
                                                                         {selectedSavedJobId === job.id && (
-                                                                            <Check className="w-4 h-4 text-[#004b23] dark:text-[#cdff34] flex-shrink-0" />
+                                                                            <Check className="w-4 h-4 text-[#00B48C] dark:text-[#E2F4EE] flex-shrink-0" />
                                                                         )}
                                                                     </button>
                                                                 );
@@ -914,13 +914,13 @@ export default function CreateJobTailoredResumePage() {
                             {jobInputMode === 'link' && (
                                 <div className="space-y-3">
                                     <div className="space-y-1">
-                                        <label className="text-sm font-semibold text-gray-900 dark:text-white">Job URL <span className="text-[#004b23] dark:text-[#cdff34]">*</span></label>
+                                        <label className="text-sm font-semibold text-gray-900 dark:text-white">Job URL <span className="text-[#00B48C] dark:text-[#E2F4EE]">*</span></label>
                                         <input
                                             type="url"
                                             value={jobUrl}
                                             onChange={(e) => setJobUrl(e.target.value)}
                                             placeholder="https://linkedin.com/jobs/..."
-                                            className="w-full px-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#70E000]/20 focus:border-[#70E000] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
+                                            className="w-full px-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#00B48C]/20 focus:border-[#00B48C] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
                                         />
                                         <p className="text-xs text-gray-400 dark:text-gray-500">
                                             We'll extract the job details automatically.
@@ -934,19 +934,19 @@ export default function CreateJobTailoredResumePage() {
                                 <div className="space-y-3">
                                     {/* Job Title */}
                                     <div className="space-y-1">
-                                        <label className="text-sm font-semibold text-gray-900 dark:text-white">Job Title <span className="text-[#004b23] dark:text-[#cdff34]">*</span></label>
+                                        <label className="text-sm font-semibold text-gray-900 dark:text-white">Job Title <span className="text-[#00B48C] dark:text-[#E2F4EE]">*</span></label>
                                         <input
                                             type="text"
                                             value={jobTitle}
                                             onChange={(e) => setJobTitle(e.target.value)}
                                             placeholder="e.g. Senior Product Designer"
-                                            className="w-full px-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#70E000]/20 focus:border-[#70E000] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
+                                            className="w-full px-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#00B48C]/20 focus:border-[#00B48C] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
                                         />
                                     </div>
 
                                     {/* Company */}
                                     <div className="space-y-1">
-                                        <label className="text-sm font-semibold text-gray-900 dark:text-white">Company <span className="text-[#004b23] dark:text-[#cdff34]">*</span></label>
+                                        <label className="text-sm font-semibold text-gray-900 dark:text-white">Company <span className="text-[#00B48C] dark:text-[#E2F4EE]">*</span></label>
                                         <div className="relative">
                                             <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                             <input
@@ -954,7 +954,7 @@ export default function CreateJobTailoredResumePage() {
                                                 value={company}
                                                 onChange={(e) => setCompany(e.target.value)}
                                                 placeholder="e.g. Google"
-                                                className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#70E000]/20 focus:border-[#70E000] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
+                                                className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#00B48C]/20 focus:border-[#00B48C] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
                                             />
                                         </div>
                                     </div>
@@ -962,7 +962,7 @@ export default function CreateJobTailoredResumePage() {
                                     {/* Job Description */}
                                     <div className="space-y-1">
                                         <div className="flex justify-between items-baseline">
-                                            <label className="text-sm font-semibold text-gray-900 dark:text-white">Job Description <span className="text-[#004b23] dark:text-[#cdff34]">*</span></label>
+                                            <label className="text-sm font-semibold text-gray-900 dark:text-white">Job Description <span className="text-[#00B48C] dark:text-[#E2F4EE]">*</span></label>
                                             <span className="text-xs text-gray-400">Paste the full JD</span>
                                         </div>
                                         <div className="relative">
@@ -972,7 +972,7 @@ export default function CreateJobTailoredResumePage() {
                                                 onChange={(e) => setJobDescription(e.target.value)}
                                                 placeholder="Paste the job description here..."
                                                 rows={5}
-                                                className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#70E000]/20 focus:border-[#70E000] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm resize-none"
+                                                className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#00B48C]/20 focus:border-[#00B48C] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm resize-none"
                                             />
                                         </div>
                                     </div>
@@ -985,7 +985,7 @@ export default function CreateJobTailoredResumePage() {
                             <button
                                 onClick={handleCreate}
                                 disabled={isCreating}
-                                className="w-full px-8 py-3 bg-[#004b23] hover:bg-[#70E000] text-white font-semibold rounded-full shadow-md shadow-[#004b23]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                                className="w-full px-8 py-3 bg-[#00B48C] hover:bg-[#00B48C] text-white font-semibold rounded-full shadow-md shadow-[#00B48C]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
                             >
                                 {isCreating ? (
                                     <>

@@ -229,21 +229,21 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [currentPageContext, setCurrentPageContext] = useState<PageContext | null>(null);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
-  
+
   // Conversation history
   const [conversations, setConversations] = useState<Conversation[]>(() => loadConversationsFromStorage());
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  
+
   // Use ref for page data to avoid re-renders when data changes
   const pageDataRef = useRef<PageData>({});
   const [pageData, setPageData] = useState<PageData>({});
-  
+
   // Note editor integration
   const [noteEditorCallbacks, setNoteEditorCallbacks] = useState<NoteEditorCallbacks | null>(null);
-  
+
   // Whiteboard editor integration
   const [whiteboardEditorCallbacks, setWhiteboardEditorCallbacks] = useState<WhiteboardEditorCallbacks | null>(null);
-  
+
   // Rewrite workflow state (legacy)
   const [rewriteInProgress, setRewriteInProgress] = useState(false);
   const [pendingRewrite, setPendingRewrite] = useState<PendingRewrite | null>(null);
@@ -270,14 +270,14 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   // Auto-save current messages to the current conversation
   useEffect(() => {
     if (currentConversationId && messages.length > 0) {
-      setConversations(prev => prev.map(conv => 
-        conv.id === currentConversationId 
-          ? { 
-              ...conv, 
-              messages, 
-              updatedAt: new Date(),
-              title: conv.title === 'New conversation' ? generateConversationTitle(messages) : conv.title,
-            }
+      setConversations(prev => prev.map(conv =>
+        conv.id === currentConversationId
+          ? {
+            ...conv,
+            messages,
+            updatedAt: new Date(),
+            title: conv.title === 'New conversation' ? generateConversationTitle(messages) : conv.title,
+          }
           : conv
       ));
     }
@@ -307,9 +307,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateMessage = useCallback((id: string, content: string, isStreaming?: boolean) => {
-    setMessages(prev => prev.map(msg => 
-      msg.id === id 
-        ? { ...msg, content, isStreaming: isStreaming ?? msg.isStreaming } 
+    setMessages(prev => prev.map(msg =>
+      msg.id === id
+        ? { ...msg, content, isStreaming: isStreaming ?? msg.isStreaming }
         : msg
     ));
   }, []);
@@ -334,7 +334,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       };
       setConversations(prev => [newConv, ...prev]);
     }
-    
+
     // Create fresh conversation
     const freshConvId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const freshConv: Conversation = {
@@ -361,7 +361,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   // Delete a conversation
   const deleteConversation = useCallback((conversationId: string) => {
     setConversations(prev => prev.filter(c => c.id !== conversationId));
-    
+
     // If we deleted the current conversation, clear messages
     if (currentConversationId === conversationId) {
       setCurrentConversationId(null);
@@ -518,7 +518,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         // Insert mode: append new content below existing content
         const currentContent = noteEditorCallbacks.getContent();
         const newContent = inlineEdit.pendingContent;
-        
+
         // Merge content arrays if both are TipTap documents
         if (currentContent?.type === 'doc' && newContent?.type === 'doc') {
           const mergedContent = {
@@ -554,7 +554,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         console.warn('Cannot confirm inline edit: no appropriate callback');
         return;
       }
-      
+
       // Reset inline edit state
       setInlineEdit({
         isActive: false,

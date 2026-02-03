@@ -1432,7 +1432,7 @@ export default function MockInterviewPage() {
           disabled={!selectedApplication}
           className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-medium transition-all
             ${selectedApplication
-              ? 'bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] text-gray-900 font-semibold shadow-sm hover:shadow-md'
+              ? 'bg-[#9FF01A] hover:bg-[#a5cb17] text-gray-900 font-semibold shadow-sm hover:shadow-md'
               : 'bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-600 cursor-not-allowed'
             }`}
         >
@@ -1682,7 +1682,7 @@ export default function MockInterviewPage() {
                 disabled={!selectedApplication}
                 className={`w-full py-3 rounded-xl text-base font-semibold shadow-lg transition-all
                     ${selectedApplication
-                    ? 'bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900'
+                    ? 'bg-[#9FF01A] hover:bg-[#a5cb17] text-gray-900'
                     : 'bg-gray-200 dark:bg-zinc-800 text-gray-400 cursor-not-allowed'
                   }`}
               >
@@ -1905,7 +1905,7 @@ export default function MockInterviewPage() {
               {/* Start Interview Button (Full Width) */}
               <button
                 onClick={() => handleBeginInterview(false)}
-                className="w-full py-3.5 rounded-xl bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 text-base font-semibold shadow-lg active:scale-[0.98] transition-all"
+                className="w-full py-3.5 rounded-xl bg-[#9FF01A] hover:bg-[#a5cb17] text-gray-900 text-base font-semibold shadow-lg active:scale-[0.98] transition-all"
               >
                 Start Interview
               </button>
@@ -1933,7 +1933,7 @@ export default function MockInterviewPage() {
               onClick={() => handleBeginInterview(false)}
               disabled={!isMicReady}
               className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 ${isMicReady
-                ? 'bg-[#b7e219] hover:bg-[#c5eb2d] text-gray-900 shadow-lg shadow-[#b7e219]/20'
+                ? 'bg-[#9FF01A] hover:bg-[#c5eb2d] text-gray-900 shadow-lg shadow-[#9FF01A]/20'
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                 }`}
             >
@@ -2507,7 +2507,7 @@ export default function MockInterviewPage() {
                 </button>
                 <button
                   onClick={handleConfirmEndInterview}
-                  className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 transition-colors"
+                  className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold bg-[#9FF01A] hover:bg-[#a5cb17] text-gray-900 transition-colors"
                 >
                   End & Analyze
                 </button>
@@ -2570,7 +2570,7 @@ export default function MockInterviewPage() {
               <div className="flex gap-2 p-4 pt-0">
                 <button
                   onClick={() => setShowBackConfirmation(false)}
-                  className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 transition-colors"
+                  className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold bg-[#9FF01A] hover:bg-[#a5cb17] text-gray-900 transition-colors"
                 >
                   Continue Interview
                 </button>
@@ -2840,7 +2840,7 @@ export default function MockInterviewPage() {
               <div className="flex gap-2 p-4 pt-0">
                 <button
                   onClick={handleCancelNavigation}
-                  className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold bg-[#b7e219] hover:bg-[#a5cb17] text-gray-900 transition-colors"
+                  className="flex-1 px-3 py-2.5 rounded-lg text-sm font-semibold bg-[#9FF01A] hover:bg-[#a5cb17] text-gray-900 transition-colors"
                 >
                   Continue Interview
                 </button>

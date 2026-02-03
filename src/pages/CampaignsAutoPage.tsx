@@ -1707,7 +1707,7 @@ export default function CampaignsAutoPage() {
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={(e) => { e.stopPropagation(); handleNewCampaignClick(); }}
-                  className="flex-shrink-0 flex items-center justify-center w-[52px] h-[52px] bg-[#b7e219] rounded-xl shadow-lg border border-[#9fc015] active:bg-[#a5cb17] ring-1 ring-white/10"
+                  className="flex-shrink-0 flex items-center justify-center w-[52px] h-[52px] bg-[#9FF01A] rounded-xl shadow-lg active:bg-[#a5cb17] ring-1 ring-white/10"
                 >
                   <Plus className="w-6 h-6 text-gray-900" />
                 </motion.button>
@@ -1832,7 +1832,7 @@ export default function CampaignsAutoPage() {
 
                   <button
                     onClick={() => handleNewCampaignClick()}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#b7e219] hover:bg-[#a5cb17] text-black text-sm font-medium rounded-lg transition-colors shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2 bg-[#9FF01A] hover:bg-[#a5cb17] text-black text-sm font-medium rounded-lg transition-colors shadow-sm"
                   >
                     <Sparkles className="w-4 h-4" />
                     <span>New Campaign</span>
@@ -2017,7 +2017,7 @@ export default function CampaignsAutoPage() {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => handleNewCampaignClick()}
-              className="flex-shrink-0 flex items-center justify-center w-11 h-11 bg-[#b7e219] rounded-xl shadow-sm text-gray-900 border border-[#9fc015]"
+              className="flex-shrink-0 flex items-center justify-center w-11 h-11 bg-[#9FF01A] rounded-xl shadow-sm text-gray-900"
             >
               <Plus className="w-6 h-6" />
             </motion.button>
@@ -2882,7 +2882,7 @@ export default function CampaignsAutoPage() {
               </p>
               <button
                 onClick={() => handleNewCampaignClick()}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 bg-[#b7e219] hover:bg-[#a5cb17] rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 bg-[#9FF01A] hover:bg-[#a5cb17] rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
               >
                 <Sparkles className="w-4 h-4" />
                 <span>New Campaign</span>

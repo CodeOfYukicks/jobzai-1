@@ -217,7 +217,7 @@ export default function PreviewContainer({
   };
 
   return (
-    <div ref={containerRef} className="h-full flex flex-col bg-gray-100 dark:bg-[#333234] relative">
+    <div ref={containerRef} className="h-full flex flex-col bg-[#F8F8FB] dark:bg-[#333234] relative">
       {/* Floating Zoom Controls */}
       <div className="absolute top-4 right-4 z-[100] flex items-center gap-0.5 bg-white/20 dark:bg-black/30 backdrop-blur-xl text-gray-700 dark:text-white rounded-xl px-1.5 py-1.5 shadow-lg border border-white/30 dark:border-white/10">
         <button

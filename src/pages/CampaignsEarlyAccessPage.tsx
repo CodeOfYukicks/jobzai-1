@@ -168,7 +168,7 @@ export default function CampaignsEarlyAccessPage() {
                 disabled={isSubmitting}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="px-6 py-3 rounded-xl bg-[#b7e219] hover:bg-[#a5cb17] border border-[#9fc015] text-gray-900 font-semibold text-sm shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="px-6 py-3 rounded-xl bg-[#9FF01A] hover:bg-[#a5cb17] text-gray-900 font-semibold text-sm shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>
@@ -259,8 +259,8 @@ export default function CampaignsEarlyAccessPage() {
                 <div
                   key={index}
                   className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${index === currentCardIndex
-                      ? 'bg-[#635BFF] w-4'
-                      : 'bg-gray-300 dark:bg-[#4a494b]'
+                    ? 'bg-[#635BFF] w-4'
+                    : 'bg-gray-300 dark:bg-[#4a494b]'
                     }`}
                 />
               ))}

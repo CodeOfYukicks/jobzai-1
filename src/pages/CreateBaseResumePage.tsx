@@ -266,11 +266,11 @@ export default function CreateBaseResumePage() {
                             className="bg-white dark:bg-[#2b2a2c] rounded-2xl p-8 shadow-2xl max-w-sm mx-4 text-center"
                         >
                             <div className="relative mb-6">
-                                <div className="w-16 h-16 mx-auto rounded-full bg-[#cdff34]/20 dark:bg-[#cdff34]/10 flex items-center justify-center">
-                                    <Sparkles className="w-8 h-8 text-[#004b23] dark:text-[#cdff34]" />
+                                <div className="w-16 h-16 mx-auto rounded-full bg-[#E8E1FF]/20 dark:bg-[#E8E1FF]/10 flex items-center justify-center">
+                                    <Sparkles className="w-8 h-8 text-[#6236FF] dark:text-[#E8E1FF]" />
                                 </div>
                                 <div className="absolute inset-0 w-16 h-16 mx-auto">
-                                    <Loader2 className="w-16 h-16 text-[#004b23]/30 dark:text-[#cdff34]/30 animate-spin" />
+                                    <Loader2 className="w-16 h-16 text-[#6236FF]/30 dark:text-[#E8E1FF]/30 animate-spin" />
                                 </div>
                             </div>
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -281,7 +281,7 @@ export default function CreateBaseResumePage() {
                             </p>
                             <div className="h-1 w-full bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
                                 <motion.div
-                                    className="h-full bg-gradient-to-r from-[#004b23] to-[#70E000]"
+                                    className="h-full bg-gradient-to-r from-[#6236FF] to-[#6236FF]"
                                     initial={{ width: '0%' }}
                                     animate={{ width: '100%' }}
                                     transition={{ duration: 15, ease: 'linear' }}
@@ -299,7 +299,7 @@ export default function CreateBaseResumePage() {
                         <nav className="flex items-center gap-2 text-sm">
                             <button
                                 onClick={() => navigate('/cv-analysis')}
-                                className="text-[#004b23] dark:text-[#cdff34] hover:text-[#70E000] dark:hover:text-[#70E000] font-medium transition-colors"
+                                className="text-[#6236FF] dark:text-[#E8E1FF] hover:text-[#6236FF] dark:hover:text-[#6236FF] font-medium transition-colors"
                             >
                                 Resume Builder
                             </button>
@@ -316,7 +316,7 @@ export default function CreateBaseResumePage() {
                     <div className="w-full md:w-1/3 pt-2 md:sticky md:top-16">
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Create a new</p>
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                            <span className="text-[#004b23] dark:text-[#cdff34]">Base Resume</span>
+                            <span className="text-[#6236FF] dark:text-[#E8E1FF]">Base Resume</span>
                         </h1>
 
                         <p className="text-gray-500 dark:text-gray-400 mt-4 leading-relaxed text-sm">
@@ -327,7 +327,7 @@ export default function CreateBaseResumePage() {
                             <button
                                 onClick={handleCreate}
                                 disabled={isCreating}
-                                className="px-6 py-2.5 bg-[#004b23] hover:bg-[#70E000] text-white font-semibold rounded-full shadow-md shadow-[#004b23]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+                                className="px-6 py-2.5 bg-[#6236FF] hover:bg-[#6236FF] text-white font-semibold rounded-full shadow-md shadow-[#6236FF]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
                             >
                                 {isCreating ? (
                                     <>
@@ -373,7 +373,7 @@ export default function CreateBaseResumePage() {
                                     }
                                 }}
                                 placeholder="e.g. Senior Product Designer"
-                                className="w-full mt-1.5 px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#70E000]/20 focus:border-[#70E000] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
+                                className="w-full mt-1.5 px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#6236FF]/20 focus:border-[#6236FF] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
                             />
                         </div>
 
@@ -399,7 +399,7 @@ export default function CreateBaseResumePage() {
                                             }`}
                                     >
                                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${experienceLevel === level.id
-                                            ? 'border-[#004b23] dark:border-[#cdff34] bg-[#004b23] dark:bg-[#cdff34]'
+                                            ? 'border-[#6236FF] dark:border-[#E8E1FF] bg-[#6236FF] dark:bg-[#E8E1FF]'
                                             : 'border-gray-300 dark:border-gray-500'
                                             }`}>
                                             {experienceLevel === level.id && (
@@ -435,7 +435,7 @@ export default function CreateBaseResumePage() {
                                 value={documentTitle}
                                 onChange={(e) => setDocumentTitle(e.target.value)}
                                 placeholder="Document title"
-                                className="w-full mt-1.5 px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#70E000]/20 focus:border-[#70E000] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
+                                className="w-full mt-1.5 px-3 py-2 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#6236FF]/20 focus:border-[#6236FF] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
                             />
                         </div>
 
@@ -455,7 +455,7 @@ export default function CreateBaseResumePage() {
                                     <button
                                         onClick={() => setDataSource('profile')}
                                         className={`flex-1 py-1.5 px-3 rounded-full text-xs font-medium transition-all ${dataSource === 'profile'
-                                            ? 'border border-[#004b23] text-[#004b23] dark:border-[#cdff34] dark:text-[#cdff34]'
+                                            ? 'border border-[#6236FF] text-[#6236FF] dark:border-[#E8E1FF] dark:text-[#E8E1FF]'
                                             : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                                             }`}
                                     >
@@ -464,7 +464,7 @@ export default function CreateBaseResumePage() {
                                     <button
                                         onClick={() => setDataSource('upload')}
                                         className={`flex-1 py-1.5 px-3 rounded-full text-xs font-medium transition-all ${dataSource === 'upload'
-                                            ? 'border border-[#004b23] text-[#004b23] dark:border-[#cdff34] dark:text-[#cdff34]'
+                                            ? 'border border-[#6236FF] text-[#6236FF] dark:border-[#E8E1FF] dark:text-[#E8E1FF]'
                                             : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                                             }`}
                                     >
@@ -473,7 +473,7 @@ export default function CreateBaseResumePage() {
                                     <button
                                         onClick={() => setDataSource('linkedin')}
                                         className={`flex-1 py-1.5 px-3 rounded-full text-xs font-medium transition-all ${dataSource === 'linkedin'
-                                            ? 'border border-[#004b23] text-[#004b23] dark:border-[#cdff34] dark:text-[#cdff34]'
+                                            ? 'border border-[#6236FF] text-[#6236FF] dark:border-[#E8E1FF] dark:text-[#E8E1FF]'
                                             : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                                             }`}
                                     >
@@ -493,11 +493,11 @@ export default function CreateBaseResumePage() {
                                                     : 'border-transparent hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
                                                     }`}
                                             >
-                                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${selectedResumeId === null ? 'border-[#004b23] dark:border-[#cdff34]' : 'border-gray-300 dark:border-gray-600'
+                                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${selectedResumeId === null ? 'border-[#6236FF] dark:border-[#E8E1FF]' : 'border-gray-300 dark:border-gray-600'
                                                     }`}>
-                                                    {selectedResumeId === null && <div className="w-2 h-2 rounded-full bg-[#004b23] dark:bg-[#cdff34]" />}
+                                                    {selectedResumeId === null && <div className="w-2 h-2 rounded-full bg-[#6236FF] dark:bg-[#E8E1FF]" />}
                                                 </div>
-                                                <User className={`w-5 h-5 flex-shrink-0 ${selectedResumeId === null ? 'text-[#004b23] dark:text-[#cdff34]' : 'text-gray-400'}`} />
+                                                <User className={`w-5 h-5 flex-shrink-0 ${selectedResumeId === null ? 'text-[#6236FF] dark:text-[#E8E1FF]' : 'text-gray-400'}`} />
                                                 <div>
                                                     <p className={`font-medium text-sm ${selectedResumeId === null ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
                                                         Cubbbe Profile Summary
@@ -520,15 +520,15 @@ export default function CreateBaseResumePage() {
                                                                 key={resume.id}
                                                                 onClick={() => setSelectedResumeId(resume.id)}
                                                                 className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border ${selectedResumeId === resume.id
-                                                                    ? 'bg-[#70E000]/5 border-[#70E000] dark:bg-[#70E000]/10'
+                                                                    ? 'bg-[#6236FF]/5 border-[#6236FF] dark:bg-[#6236FF]/10'
                                                                     : 'border-transparent hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
                                                                     }`}
                                                             >
-                                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedResumeId === resume.id ? 'border-[#70E000]' : 'border-gray-300 dark:border-gray-600'
+                                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedResumeId === resume.id ? 'border-[#6236FF]' : 'border-gray-300 dark:border-gray-600'
                                                                     }`}>
-                                                                    {selectedResumeId === resume.id && <div className="w-2 h-2 rounded-full bg-[#70E000]" />}
+                                                                    {selectedResumeId === resume.id && <div className="w-2 h-2 rounded-full bg-[#6236FF]" />}
                                                                 </div>
-                                                                <FileText className={`w-5 h-5 flex-shrink-0 ${selectedResumeId === resume.id ? 'text-[#004b23] dark:text-[#cdff34]' : 'text-gray-400'}`} />
+                                                                <FileText className={`w-5 h-5 flex-shrink-0 ${selectedResumeId === resume.id ? 'text-[#6236FF] dark:text-[#E8E1FF]' : 'text-gray-400'}`} />
                                                                 <div className="min-w-0">
                                                                     <p className={`font-medium text-sm truncate ${selectedResumeId === resume.id ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
                                                                         {resume.name}
@@ -550,7 +550,7 @@ export default function CreateBaseResumePage() {
                                         <div className="space-y-3">
                                             <div
                                                 onClick={() => fileInputRef.current?.click()}
-                                                className="border-2 border-dashed border-gray-200 dark:border-[#3d3c3e] hover:border-[#70E000] dark:hover:border-[#70E000] rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors"
+                                                className="border-2 border-dashed border-gray-200 dark:border-[#3d3c3e] hover:border-[#6236FF] dark:hover:border-[#6236FF] rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors"
                                             >
                                                 <Upload className="w-8 h-8 text-gray-400 mb-2" />
                                                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Click to upload PDF</p>
@@ -590,7 +590,7 @@ export default function CreateBaseResumePage() {
                             <button
                                 onClick={handleCreate}
                                 disabled={isCreating}
-                                className="w-full px-8 py-3 bg-[#004b23] hover:bg-[#70E000] text-white font-semibold rounded-full shadow-md shadow-[#004b23]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                                className="w-full px-8 py-3 bg-[#6236FF] hover:bg-[#6236FF] text-white font-semibold rounded-full shadow-md shadow-[#6236FF]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
                             >
                                 {isCreating ? (
                                     <>
