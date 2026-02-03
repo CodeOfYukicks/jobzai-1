@@ -187,9 +187,9 @@ const ModernProfessionalPDF: React.FC<ModernProfessionalPDFProps> = ({ data, set
     const renderSection = (type: string) => {
         switch (type) {
             case 'summary':
-                return summary ? (
+                return summary && typeof summary === 'string' && summary.trim() ? (
                     <View style={styles.section} key="summary">
-                        <Text style={styles.sectionTitle}>Professional Summary</Text>
+                        <Text style={styles.sectionTitle} wrap={false} minPresenceAhead={30}>Professional Summary</Text>
                         <Text style={styles.description}>{summary}</Text>
                     </View>
                 ) : null;
@@ -197,39 +197,54 @@ const ModernProfessionalPDF: React.FC<ModernProfessionalPDFProps> = ({ data, set
             case 'experience':
                 return experiences.length > 0 ? (
                     <View style={styles.section} key="experience">
-                        <Text style={styles.sectionTitle}>Work Experience</Text>
-                        {experiences.map((exp, idx) => (
-                            <View key={exp.id} style={{ marginBottom: idx === experiences.length - 1 ? 0 : expItemGap }} wrap={false}>
-                                <View style={styles.itemHeader}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.itemTitle}>{exp.title}</Text>
-                                        <Text style={styles.itemSubtitle}>
-                                            {exp.company}{exp.location ? ` • ${exp.location}` : ''}
+                        {/* Section title with minPresenceAhead to prevent orphan headers */}
+                        <Text style={styles.sectionTitle} wrap={false} minPresenceAhead={50}>Work Experience</Text>
+                        {experiences.map((exp, idx) => {
+                            // Filter and validate bullets
+                            const validBullets = (exp.bullets || []).filter(
+                                (b): b is string => typeof b === 'string' && b.trim().length > 0
+                            );
+
+                            return (
+                                // Experience container - ALLOW wrapping across pages
+                                <View key={exp.id} style={{ marginBottom: idx === experiences.length - 1 ? 0 : expItemGap }}>
+                                    {/* Header row ONLY - keep together */}
+                                    <View style={styles.itemHeader} wrap={false}>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.itemTitle}>{exp.title || ''}</Text>
+                                            <Text style={styles.itemSubtitle}>
+                                                {exp.company || ''}{exp.location ? ` • ${exp.location}` : ''}
+                                            </Text>
+                                        </View>
+                                        <Text style={styles.dateText}>
+                                            {formatDateRange(exp.startDate, exp.endDate, exp.current)}
                                         </Text>
                                     </View>
-                                    <Text style={styles.dateText}>
-                                        {formatDateRange(exp.startDate, exp.endDate, exp.current)}
-                                    </Text>
+                                    {/* Description - flows naturally */}
+                                    {exp.description && typeof exp.description === 'string' && exp.description.trim() && (
+                                        <Text style={styles.description}>{exp.description}</Text>
+                                    )}
+                                    {/* All bullets - flow naturally across pages */}
+                                    {validBullets.map((bullet, bulletIdx) => (
+                                        <View key={bulletIdx} style={styles.bulletRow}>
+                                            <Text style={styles.bullet}>•</Text>
+                                            <Text style={styles.bulletText}>{bullet}</Text>
+                                        </View>
+                                    ))}
                                 </View>
-                                {exp.description && <Text style={styles.description}>{exp.description}</Text>}
-                                {exp.bullets && exp.bullets.length > 0 && exp.bullets.map((bullet, i) => (
-                                    <View key={i} style={styles.bulletRow}>
-                                        <Text style={styles.bullet}>•</Text>
-                                        <Text style={styles.bulletText}>{bullet}</Text>
-                                    </View>
-                                ))}
-                            </View>
-                        ))}
+                            );
+                        })}
                     </View>
                 ) : null;
 
             case 'education':
                 return education.length > 0 ? (
                     <View style={styles.section} key="education">
-                        <Text style={styles.sectionTitle}>Education</Text>
+                        <Text style={styles.sectionTitle} wrap={false} minPresenceAhead={50}>Education</Text>
                         {education.map((edu, idx) => (
-                            <View key={edu.id} style={{ marginBottom: idx === education.length - 1 ? 0 : 8 }} wrap={false}>
-                                <View style={styles.itemHeader}>
+                            <View key={edu.id} style={{ marginBottom: idx === education.length - 1 ? 0 : 8 }}>
+                                {/* Header - keep together */}
+                                <View style={styles.itemHeader} wrap={false}>
                                     <View style={{ flex: 1 }}>
                                         <Text style={styles.itemTitle}>
                                             {edu.degree}{edu.field ? ` in ${edu.field}` : ''}
@@ -266,7 +281,7 @@ const ModernProfessionalPDF: React.FC<ModernProfessionalPDFProps> = ({ data, set
                 };
                 return skills.length > 0 ? (
                     <View style={styles.section} key="skills">
-                        <Text style={styles.sectionTitle}>Skills</Text>
+                        <Text style={styles.sectionTitle} wrap={false} minPresenceAhead={30}>Skills</Text>
                         <Text style={styles.skillsText}>
                             {skills.map((skill, index) => {
                                 const level = skill.level || 'intermediate';
@@ -285,7 +300,7 @@ const ModernProfessionalPDF: React.FC<ModernProfessionalPDFProps> = ({ data, set
             case 'certifications':
                 return certifications.length > 0 ? (
                     <View style={styles.section} key="certifications">
-                        <Text style={styles.sectionTitle}>Certifications</Text>
+                        <Text style={styles.sectionTitle} wrap={false} minPresenceAhead={30}>Certifications</Text>
                         {certifications.map((cert, idx) => (
                             <View key={cert.id} style={{ marginBottom: idx === certifications.length - 1 ? 0 : 6 }} wrap={false}>
                                 <Text style={styles.itemTitle}>{cert.name}</Text>
@@ -300,10 +315,12 @@ const ModernProfessionalPDF: React.FC<ModernProfessionalPDFProps> = ({ data, set
             case 'projects':
                 return projects.length > 0 ? (
                     <View style={styles.section} key="projects">
-                        <Text style={styles.sectionTitle}>Projects</Text>
+                        <Text style={styles.sectionTitle} wrap={false} minPresenceAhead={50}>Projects</Text>
                         {projects.map((project, idx) => (
-                            <View key={project.id} style={{ marginBottom: idx === projects.length - 1 ? 0 : 10 }} wrap={false}>
-                                <View style={styles.itemHeader}>
+                            // Project container - allow wrapping
+                            <View key={project.id} style={{ marginBottom: idx === projects.length - 1 ? 0 : 10 }}>
+                                {/* Header - keep together */}
+                                <View style={styles.itemHeader} wrap={false}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                                         <Text style={styles.itemTitle}>{project.name}</Text>
                                         {project.url && (
@@ -338,7 +355,7 @@ const ModernProfessionalPDF: React.FC<ModernProfessionalPDFProps> = ({ data, set
             case 'languages':
                 return languages.length > 0 ? (
                     <View style={styles.section} key="languages">
-                        <Text style={styles.sectionTitle}>Languages</Text>
+                        <Text style={styles.sectionTitle} wrap={false} minPresenceAhead={30}>Languages</Text>
                         <Text style={styles.skillsText}>
                             {languages.map((lang, index) => (
                                 <Text key={lang.id}>

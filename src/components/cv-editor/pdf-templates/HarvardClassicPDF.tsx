@@ -166,48 +166,65 @@ const HarvardClassicPDF: React.FC<HarvardClassicPDFProps> = ({ data, settings })
     const renderSection = (type: string) => {
         switch (type) {
             case 'summary':
-                return summary && (
+                return summary && typeof summary === 'string' && summary.trim() && (
                     <View style={dynamicStyles.section} key="summary">
-                        <Text style={dynamicStyles.sectionTitle}>Summary</Text>
+                        <Text style={dynamicStyles.sectionTitle} wrap={false} minPresenceAhead={30}>Summary</Text>
                         <Text style={dynamicStyles.description}>{summary}</Text>
                     </View>
                 );
             case 'experience':
                 return experiences.length > 0 && (
                     <View style={dynamicStyles.section} key="experience">
-                        <Text style={dynamicStyles.sectionTitle}>Experience</Text>
-                        {experiences.map((exp, index) => (
-                            <View key={exp.id} style={{ ...dynamicStyles.experienceItem, marginBottom: index === experiences.length - 1 ? 0 : itemSpacing }}>
-                                <View style={dynamicStyles.experienceHeader}>
-                                    <View>
-                                        <Text style={dynamicStyles.itemTitle}>{exp.company}</Text>
-                                        <Text style={dynamicStyles.itemSubtitle}>{exp.title}</Text>
+                        {/* Section title with minPresenceAhead to prevent orphan headers */}
+                        <Text style={dynamicStyles.sectionTitle} wrap={false} minPresenceAhead={50}>
+                            Experience
+                        </Text>
+                        {experiences.map((exp, index) => {
+                            // Filter and validate bullets
+                            const validBullets = (exp.bullets || []).filter(
+                                (b): b is string => typeof b === 'string' && b.trim().length > 0
+                            );
+
+                            return (
+                                // Experience container - allow wrapping across pages
+                                <View key={exp.id} style={{ ...dynamicStyles.experienceItem, marginBottom: index === experiences.length - 1 ? 0 : itemSpacing }}>
+                                    {/* Header row ONLY - keep together, not too big */}
+                                    <View style={dynamicStyles.experienceHeader} wrap={false}>
+                                        <View>
+                                            <Text style={dynamicStyles.itemTitle}>{exp.company || ''}</Text>
+                                            <Text style={dynamicStyles.itemSubtitle}>{exp.title || ''}</Text>
+                                        </View>
+                                        <View style={{ alignItems: 'flex-end' }}>
+                                            {exp.location && <Text style={dynamicStyles.dateLocation}>{exp.location}</Text>}
+                                            <Text style={dynamicStyles.dateLocation}>
+                                                {formatDateRange(exp.startDate, exp.endDate, exp.current)}
+                                            </Text>
+                                        </View>
                                     </View>
-                                    <View style={{ alignItems: 'flex-end' }}>
-                                        {exp.location && <Text style={dynamicStyles.dateLocation}>{exp.location}</Text>}
-                                        <Text style={dynamicStyles.dateLocation}>
-                                            {formatDateRange(exp.startDate, exp.endDate, exp.current)}
-                                        </Text>
-                                    </View>
+                                    {/* Description - flows naturally */}
+                                    {exp.description && typeof exp.description === 'string' && exp.description.trim() && (
+                                        <Text style={dynamicStyles.description}>{exp.description}</Text>
+                                    )}
+                                    {/* All bullets - flow naturally across pages */}
+                                    {validBullets.map((bullet, bulletIndex) => (
+                                        <View key={bulletIndex} style={dynamicStyles.bulletPoint}>
+                                            <Text style={dynamicStyles.bullet}>•</Text>
+                                            <Text style={dynamicStyles.bulletText}>{bullet}</Text>
+                                        </View>
+                                    ))}
                                 </View>
-                                {exp.description && <Text style={dynamicStyles.description}>{exp.description}</Text>}
-                                {exp.bullets.map((bullet, index) => (
-                                    <View key={index} style={dynamicStyles.bulletPoint}>
-                                        <Text style={dynamicStyles.bullet}>•</Text>
-                                        <Text style={dynamicStyles.bulletText}>{bullet}</Text>
-                                    </View>
-                                ))}
-                            </View>
-                        ))}
+                            );
+                        })}
                     </View>
                 );
             case 'education':
                 return education.length > 0 && (
                     <View style={dynamicStyles.section} key="education">
-                        <Text style={dynamicStyles.sectionTitle}>Education</Text>
+                        <Text style={dynamicStyles.sectionTitle} wrap={false} minPresenceAhead={50}>Education</Text>
                         {education.map((edu, index) => (
                             <View key={edu.id} style={{ ...dynamicStyles.experienceItem, marginBottom: index === education.length - 1 ? 0 : itemSpacing }}>
-                                <View style={dynamicStyles.experienceHeader}>
+                                {/* Header - keep together */}
+                                <View style={dynamicStyles.experienceHeader} wrap={false}>
                                     <View>
                                         <Text style={dynamicStyles.itemTitle}>{edu.institution}</Text>
                                         <Text style={dynamicStyles.itemSubtitle}>
@@ -234,7 +251,7 @@ const HarvardClassicPDF: React.FC<HarvardClassicPDFProps> = ({ data, settings })
             case 'skills':
                 return skills.length > 0 && (
                     <View style={dynamicStyles.section} key="skills">
-                        <Text style={dynamicStyles.sectionTitle}>Skills</Text>
+                        <Text style={dynamicStyles.sectionTitle} wrap={false} minPresenceAhead={30}>Skills</Text>
                         <Text style={{ ...dynamicStyles.description, textAlign: 'justify' }}>
                             {skills.map((skill, index) => (
                                 <Text key={skill.id}>
@@ -248,39 +265,60 @@ const HarvardClassicPDF: React.FC<HarvardClassicPDFProps> = ({ data, settings })
             case 'projects':
                 return projects.length > 0 && (
                     <View style={dynamicStyles.section} key="projects">
-                        <Text style={dynamicStyles.sectionTitle}>Projects</Text>
-                        {projects.map((project, index) => (
-                            <View key={project.id} style={{ ...dynamicStyles.experienceItem, marginBottom: index === projects.length - 1 ? 0 : itemSpacing }}>
-                                <View style={dynamicStyles.experienceHeader}>
-                                    <Text style={dynamicStyles.itemTitle}>{project.name}</Text>
-                                    {project.startDate && (
-                                        <Text style={dynamicStyles.dateLocation}>
-                                            {formatDateRange(project.startDate, project.endDate || '', !project.endDate)}
-                                        </Text>
-                                    )}
-                                </View>
-                                <Text style={dynamicStyles.description}>{project.description}</Text>
-                                {project.technologies.length > 0 && (
-                                    <Text style={{ ...dynamicStyles.description, fontStyle: 'italic' }}>
-                                        Technologies: {project.technologies.join(', ')}
-                                    </Text>
-                                )}
-                                {project.highlights.map((highlight, index) => (
-                                    <View key={index} style={dynamicStyles.bulletPoint}>
-                                        <Text style={dynamicStyles.bullet}>•</Text>
-                                        <Text style={dynamicStyles.bulletText}>{highlight}</Text>
+                        <Text style={dynamicStyles.sectionTitle} wrap={false} minPresenceAhead={50}>Projects</Text>
+                        {projects.map((project, index) => {
+                            // Filter and validate highlights
+                            const validHighlights = (project.highlights || []).filter(
+                                (h): h is string => typeof h === 'string' && h.trim().length > 0
+                            );
+
+                            return (
+                                // Project container - allow wrapping
+                                <View key={project.id} style={{ ...dynamicStyles.experienceItem, marginBottom: index === projects.length - 1 ? 0 : itemSpacing }}>
+                                    {/* Header + first highlight grouped together */}
+                                    <View wrap={false}>
+                                        <View style={dynamicStyles.experienceHeader}>
+                                            <Text style={dynamicStyles.itemTitle}>{project.name || ''}</Text>
+                                            {project.startDate && (
+                                                <Text style={dynamicStyles.dateLocation}>
+                                                    {formatDateRange(project.startDate, project.endDate || '', !project.endDate)}
+                                                </Text>
+                                            )}
+                                        </View>
+                                        {project.description && typeof project.description === 'string' && project.description.trim() && (
+                                            <Text style={dynamicStyles.description}>{project.description}</Text>
+                                        )}
+                                        {(project.technologies || []).length > 0 && (
+                                            <Text style={{ ...dynamicStyles.description, fontStyle: 'italic' }}>
+                                                Technologies: {project.technologies.filter(t => t && t.trim()).join(', ')}
+                                            </Text>
+                                        )}
+                                        {/* First highlight stays with header */}
+                                        {validHighlights.length > 0 && (
+                                            <View style={dynamicStyles.bulletPoint}>
+                                                <Text style={dynamicStyles.bullet}>•</Text>
+                                                <Text style={dynamicStyles.bulletText}>{validHighlights[0]}</Text>
+                                            </View>
+                                        )}
                                     </View>
-                                ))}
-                            </View>
-                        ))}
+                                    {/* Remaining highlights - flow naturally */}
+                                    {validHighlights.slice(1).map((highlight, highlightIndex) => (
+                                        <View key={highlightIndex + 1} style={dynamicStyles.bulletPoint}>
+                                            <Text style={dynamicStyles.bullet}>•</Text>
+                                            <Text style={dynamicStyles.bulletText}>{highlight}</Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            );
+                        })}
                     </View>
                 );
             case 'certifications':
                 return certifications.length > 0 && (
                     <View style={dynamicStyles.section} key="certifications">
-                        <Text style={dynamicStyles.sectionTitle}>Certifications</Text>
+                        <Text style={dynamicStyles.sectionTitle} wrap={false} minPresenceAhead={30}>Certifications</Text>
                         {certifications.map((cert) => (
-                            <View key={cert.id} style={{ marginBottom: 4, flexDirection: 'row', justifyContent: 'space-between' }}>
+                            <View key={cert.id} style={{ marginBottom: 4, flexDirection: 'row', justifyContent: 'space-between' }} wrap={false}>
                                 <View style={{ flexDirection: 'row' }}>
                                     <Text style={{ ...dynamicStyles.itemTitle, marginRight: 4 }}>{cert.name}</Text>
                                     <Text style={dynamicStyles.itemSubtitle}>— {cert.issuer}</Text>
@@ -293,7 +331,7 @@ const HarvardClassicPDF: React.FC<HarvardClassicPDFProps> = ({ data, settings })
             case 'languages':
                 return languages.length > 0 && (
                     <View style={dynamicStyles.section} key="languages">
-                        <Text style={dynamicStyles.sectionTitle}>Languages</Text>
+                        <Text style={dynamicStyles.sectionTitle} wrap={false} minPresenceAhead={30}>Languages</Text>
                         <Text style={{ ...dynamicStyles.description, textAlign: 'justify' }}>
                             {languages.map((lang, index) => (
                                 <Text key={lang.id}>

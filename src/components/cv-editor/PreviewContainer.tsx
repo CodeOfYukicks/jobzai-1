@@ -113,13 +113,13 @@ export default function PreviewContainer({
       return;
     }
 
-    // Calculate smart page breaks with start AND end positions
+    // Calculate page breaks - ALLOW content to flow across pages naturally
+    // Only move small sections that would be barely cut (less than 30% on current page)
     const breaks: PageBreak[] = [];
     let currentPageStart = 0;
     let currentPageEnd = CONTENT_HEIGHT;
 
     while (currentPageStart < totalHeight) {
-      // Check if any section would be cut at currentPageEnd
       let adjustedEnd = currentPageEnd;
 
       for (const section of measurements) {
@@ -128,13 +128,19 @@ export default function PreviewContainer({
 
         // Would this section be cut by the current page boundary?
         if (sectionStart < currentPageEnd && sectionEnd > currentPageEnd) {
-          // Section would be cut!
-          // If section fits on a page, end this page BEFORE the section
-          if (section.height <= CONTENT_HEIGHT) {
+          // Calculate how much of the section is on the current page
+          const visibleOnCurrentPage = currentPageEnd - sectionStart;
+          const percentVisible = visibleOnCurrentPage / section.height;
+
+          // Only move section to next page if:
+          // 1. Section is small enough to fit on one page
+          // 2. Less than 15% of the section would be visible (it would look weird)
+          // Otherwise, let it split naturally across pages
+          if (section.height <= CONTENT_HEIGHT && percentVisible < 0.15) {
             adjustedEnd = sectionStart;
             break;
           }
-          // If section is too big, just let it break naturally
+          // If section is large OR more than 15% visible, let it split naturally
         }
       }
 

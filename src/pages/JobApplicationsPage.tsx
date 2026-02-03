@@ -3185,63 +3185,194 @@ END:VCALENDAR`;
           }}
         />
 
-        {/* Cover Photo Section with all header elements (Desktop only) */}
-        <div
-          className="relative group/cover flex-shrink-0 hidden md:block"
-          onMouseEnter={() => setIsHoveringCover(true)}
-          onMouseLeave={() => setIsHoveringCover(false)}
-        >
-          {/* Cover Photo Area - Height adjusted to contain all header elements */}
-          <div className={`relative w-full transition-all duration-300 ease-in-out ${effectiveCoverPhoto ? 'h-[200px] sm:h-auto sm:min-h-[220px]' : 'h-[160px] sm:h-auto sm:min-h-[170px]'}`}>
-            {/* Cover Background */}
-            {effectiveCoverPhoto ? (
-              <div className="absolute inset-0 w-full h-full overflow-hidden">
-                <img
-                  key={effectiveCoverPhoto}
-                  src={effectiveCoverPhoto}
-                  alt="Applications cover"
-                  className="w-full h-full object-cover animate-in fade-in duration-500"
-                />
-                <div className="absolute inset-0 bg-black/15 dark:bg-black/50 transition-colors duration-300" />
-              </div>
-            ) : (
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/50 dark:from-gray-900/50 dark:via-gray-800/30 dark:to-purple-900/20 border-b border-white/20 dark:border-[#3d3c3e]/20">
-                <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]"
-                  style={{ backgroundImage: 'radial-gradient(#8B5CF6 1px, transparent 1px)', backgroundSize: '32px 32px' }}
-                />
-                {/* Subtle animated gradient orbs */}
-                <div className="absolute top-10 right-20 w-64 h-64 bg-purple-200/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-blob" />
-                <div className="absolute bottom-10 left-20 w-64 h-64 bg-indigo-200/20 dark:bg-indigo-600/10 rounded-full blur-3xl animate-blob animation-delay-2000" />
-              </div>
-            )}
-
-            {/* Mobile Cover Overlay - Board-Specific Info + FAB */}
-            <div className="absolute bottom-0 left-0 right-0 z-20 md:hidden">
-              <div className="bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-12 pb-4 px-4">
-                <div className="flex items-center justify-between">
-                  {/* Board Info - Only when inside a board */}
-                  {view !== 'boards' && currentBoardId && currentBoard ? (
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
+        {/* Compact Top Toolbar (Desktop only) - Replaces hero header - Hidden for boards view which has its own cover header */}
+        {view !== 'boards' && (
+          <div className="hidden md:block flex-shrink-0 bg-white dark:bg-[#1a1a1b] border-b border-gray-200 dark:border-[#3d3c3e]">
+            <div className="px-6 py-3">
+              {/* Main Toolbar Row */}
+              <div className="flex items-center justify-between gap-4">
+                {/* Left Section: Board Title & Navigation */}
+                <div className="flex items-center gap-3 min-w-0">
+                  {/* Board Icon - Only when inside a board */}
+                  {view !== 'boards' && currentBoardId && (() => {
+                    const board = boards.find(b => b.id === currentBoardId);
+                    return (
                       <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center text-lg shadow-lg flex-shrink-0"
-                        style={{ backgroundColor: currentBoard.color || '#635BFF' }}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shadow-sm flex-shrink-0"
+                        style={{ backgroundColor: board?.color || '#635BFF' }}
                       >
-                        {currentBoard.icon || '📋'}
+                        <span className="text-white">{board?.icon || '📋'}</span>
                       </div>
-                      <div className="min-w-0">
-                        <h2 className="text-sm font-bold text-white truncate">{currentBoard.name}</h2>
-                        <p className="text-xs text-white/70">{filteredApplications.length} applications</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-white/80">{boards.length} boards</span>
-                    </div>
+                    );
+                  })()}
+
+                  {/* Title */}
+                  <div className="min-w-0">
+                    <h1 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                      {view === 'boards'
+                        ? 'My Boards'
+                        : (() => {
+                          const board = boards.find(b => b.id === currentBoardId);
+                          return board?.name || 'Applications';
+                        })()
+                      }
+                    </h1>
+                  </div>
+
+                  {/* Back to boards button */}
+                  {view !== 'boards' && currentBoardId && (
+                    <button
+                      onClick={() => {
+                        setView('boards');
+                        setCurrentBoardId(null);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#2b2a2c] transition-colors"
+                    >
+                      <LayoutGrid className="w-3 h-3" />
+                      <span>All Boards</span>
+                    </button>
                   )}
 
-                  {/* Embedded FAB - Add Button */}
+                  {/* Status Counter Pills - Only in Kanban view */}
+                  {view === 'kanban' && currentBoardId && (
+                    <div className="hidden lg:flex items-center gap-1.5 ml-3 pl-3 border-l border-gray-200 dark:border-[#3d3c3e]">
+                      {(() => {
+                        const stats = currentBoardType === 'campaigns'
+                          ? [
+                            { label: 'Targets', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'targets').length, color: '#6B7280' },
+                            { label: 'Contacted', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'contacted').length, color: '#3B82F6' },
+                            { label: 'Replied', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'replied').length, color: '#8B5CF6' },
+                            { label: 'Meeting', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'meeting').length, color: '#F59E0B' },
+                            { label: 'Opportunity', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'opportunity').length, color: '#10B981' }
+                          ]
+                          : [
+                            { label: 'Applied', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'applied').length, color: '#3B82F6' },
+                            { label: 'Interview', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'interview').length, color: '#8B5CF6' },
+                            { label: 'Pending', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'pending_decision').length, color: '#F59E0B' },
+                            { label: 'Offer', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'offer').length, color: '#10B981' },
+                            { label: 'Rejected', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'rejected').length, color: '#EF4444' }
+                          ];
+                        return stats.map((stat) => (
+                          <div
+                            key={stat.label}
+                            className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-50 dark:bg-[#2b2a2c] border border-gray-100 dark:border-[#3d3c3e]"
+                          >
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ backgroundColor: stat.color }}
+                            />
+                            <span className="text-xs font-semibold text-gray-900 dark:text-white tabular-nums">{stat.count}</span>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400">{stat.label}</span>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Section: Search, Filters, Actions */}
+                <div className="flex items-center gap-2">
+                  {view === 'kanban' && (
+                    <>
+                      {/* Search Input */}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-48 pl-8 pr-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#2b2a2c] focus:bg-white dark:focus:bg-[#242325] focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 dark:focus:border-purple-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all"
+                        />
+                        <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+                      </div>
+
+                      {/* Filter Buttons */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setOpenFilterModal(openFilterModal === 'date' ? null : 'date')}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${dateFilter !== 'all' || customDateRange
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#2b2a2c]'
+                            }`}
+                        >
+                          <CalIcon className="w-3.5 h-3.5" />
+                          <span>Date</span>
+                        </button>
+
+                        <button
+                          onClick={() => setOpenFilterModal(openFilterModal === 'company' ? null : 'company')}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${selectedCompanies.length > 0
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#2b2a2c]'
+                            }`}
+                        >
+                          <Building className="w-3.5 h-3.5" />
+                          <span>Company</span>
+                        </button>
+
+                        <button
+                          onClick={() => setOpenFilterModal(openFilterModal === 'sort' ? null : 'sort')}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${(currentBoardType === 'campaigns' ? sortBy !== 'lastContactedAt' : sortBy !== 'appliedDate') || sortOrder !== 'desc'
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#2b2a2c]'
+                            }`}
+                        >
+                          <Filter className="w-3.5 h-3.5" />
+                          <span>Sort</span>
+                        </button>
+
+                        {getActiveFilterCount() > 0 && (
+                          <button
+                            onClick={clearAllFilters}
+                            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {/* View Toggle - Always visible for kanban/analytics */}
+                  <div className="flex items-center bg-gray-100 dark:bg-[#2b2a2c] rounded-lg p-0.5">
+                    <button
+                      onClick={() => setView('kanban')}
+                      className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${view === 'kanban'
+                        ? 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                        }`}
+                    >
+                      <FolderKanban className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setView('analytics')}
+                      className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${view === 'analytics'
+                        ? 'bg-white dark:bg-[#3d3c3e] text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                        }`}
+                    >
+                      <LineChart className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Settings Button */}
+                  {currentBoardType !== 'campaigns' && (
+                    <button
+                      onClick={() => setShowAutomationSettingsModal(true)}
+                      className="relative p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#2b2a2c] transition-colors"
+                      title="Automation Settings"
+                    >
+                      <Settings className="w-4 h-4" />
+                      {Object.values(automationSettings).some((s: any) => (s as { enabled?: boolean }).enabled) && (
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-purple-500 rounded-full" />
+                      )}
+                    </button>
+                  )}
+
+                  {/* Primary Action Button */}
                   <motion.button
-                    whileTap={{ scale: 0.9 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       if (view === 'boards') {
                         setEditingBoard(null);
@@ -3256,494 +3387,63 @@ END:VCALENDAR`;
                         setNewApplicationModal(true);
                       }
                     }}
-                    className="flex-shrink-0 flex items-center justify-center w-[52px] h-[52px] bg-[#b7e219] rounded-xl shadow-lg border border-[#9fc015] active:bg-[#a5cb17] ring-1 ring-white/10"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg bg-[#9ff019] text-gray-900 hover:bg-[#8ed918] shadow-sm transition-all"
                   >
-                    <Plus className="w-6 h-6 text-gray-900" />
+                    <Plus className="w-4 h-4" />
+                    <span>{view === 'boards' ? 'New Board' : (currentBoardType === 'campaigns' ? 'Add Contact' : 'Add Application')}</span>
                   </motion.button>
                 </div>
               </div>
-            </div>
 
-            {/* Cover Controls - Visible on hover - Context-aware (modifies board cover when in a board, or global cover when in boards view) */}
-            <div className="absolute top-4 left-0 right-0 flex justify-center z-30 pointer-events-none">
-              <AnimatePresence>
-                {(isHoveringCover || !effectiveCoverPhoto) && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex items-center gap-2 pointer-events-auto"
-                  >
-                    {!effectiveCoverPhoto ? (
-                      <button
-                        onClick={() => setIsCoverGalleryOpen(true)}
-                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 
-                          bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm hover:bg-white dark:hover:bg-[#3d3c3e]
-                          border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-sm transition-all duration-200
-                          hover:shadow-md group"
-                      >
-                        <Image className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
-                        <span>Add {view !== 'boards' && currentBoardId ? 'board' : ''} cover</span>
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-1 p-1 bg-white/90 dark:bg-[#242325]/90 backdrop-blur-md rounded-lg border border-black/5 dark:border-white/10 shadow-lg">
-                        {/* Indicator showing which cover is being edited */}
-                        {view !== 'boards' && currentBoardId && (
-                          <span className="px-2 py-1 text-[10px] font-semibold text-[#635BFF] bg-[#635BFF]/10 rounded-md mr-1">
-                            Board Cover
-                          </span>
-                        )}
-                        <button
-                          onClick={() => setIsCoverGalleryOpen(true)}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                            hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
-                        >
-                          <Image className="w-3.5 h-3.5" />
-                          Change
+              {/* Active Filters Row - Compact */}
+              {view === 'kanban' && getActiveFilterCount() > 0 && (
+                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 dark:border-[#3d3c3e]/50">
+                  <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Filters:</span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {dateFilter !== 'all' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300">
+                        {dateFilter === '7d' ? '7 days' : dateFilter === '30d' ? '30 days' : dateFilter === '3m' ? '3 months' : dateFilter === '6m' ? '6 months' : 'Custom'}
+                        <button onClick={() => { setDateFilter('all'); setCustomDateRange(null); }} className="hover:opacity-70">
+                          <X className="w-2.5 h-2.5" />
                         </button>
-
-                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
-
-                        <button
-                          onClick={() => coverFileInputRef.current?.click()}
-                          disabled={isUpdatingCover}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 
-                            hover:bg-gray-100 dark:hover:bg-[#3d3c3e] rounded-md transition-colors"
-                        >
-                          {isUpdatingCover ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Camera className="w-3.5 h-3.5" />
-                          )}
-                          Upload
-                        </button>
-
-                        <div className="w-px h-3 bg-gray-200 dark:bg-[#3d3c3e] mx-0.5" />
-
-                        <button
-                          onClick={handleRemoveCover}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 
-                            hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
-                          title="Remove cover"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      </span>
                     )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* All Header Content - Premium Restructured Layout */}
-            <div className="relative z-10 px-4 sm:px-6 pt-4 pb-4">
-              {/* Main Header Row */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="hidden md:flex items-center justify-between"
-              >
-                {/* Left Section: Title & Board Info */}
-                <div className="flex items-center gap-4">
-                  {/* Board Icon/Avatar */}
-                  {view !== 'boards' && currentBoardId && (() => {
-                    const currentBoard = boards.find(b => b.id === currentBoardId);
-                    return (
-                      <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center text-xl shadow-lg"
-                        style={{ backgroundColor: currentBoard?.color || '#635BFF' }}
-                      >
-                        <span className="text-white">{currentBoard?.icon || '📋'}</span>
-                      </div>
-                    );
-                  })()}
-
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <h1 className={`text-2xl font-bold ${effectiveCoverPhoto
-                        ? 'text-white drop-shadow-2xl'
-                        : 'text-gray-900 dark:text-white'
-                        }`}>
-                        {view === 'boards'
-                          ? 'My Boards'
-                          : (() => {
-                            const currentBoard = boards.find(b => b.id === currentBoardId);
-                            return currentBoard?.name || 'Applications';
-                          })()
-                        }
-                      </h1>
-
-                      {/* Board Navigation Badge - only when inside a board */}
-                      {view !== 'boards' && currentBoardId && (
-                        <button
-                          onClick={() => {
-                            setView('boards');
-                            setCurrentBoardId(null);
-                          }}
-                          className={`group inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full transition-all duration-200
-                            ${effectiveCoverPhoto
-                              ? 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
-                              : 'bg-gray-100 dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-300 hover:bg-[#635BFF]/10 hover:text-[#635BFF]'
-                            }`}
-                        >
-                          <LayoutGrid className="w-3 h-3" />
-                          <span>All Boards</span>
+                    {selectedCompanies.length > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300">
+                        {selectedCompanies.length} {selectedCompanies.length === 1 ? 'company' : 'companies'}
+                        <button onClick={() => setSelectedCompanies([])} className="hover:opacity-70">
+                          <X className="w-2.5 h-2.5" />
                         </button>
-                      )}
-                    </div>
-
-                    <p className={`text-sm mt-0.5 ${effectiveCoverPhoto
-                      ? 'text-white/80 drop-shadow-lg'
-                      : 'text-gray-500 dark:text-gray-400'
-                      }`}>
-                      {view === 'boards'
-                        ? `${boards.length} board${boards.length !== 1 ? 's' : ''} • ${applications.length} total applications`
-                        : `${filteredApplications.length} applications in this board`
-                      }
-                    </p>
-                  </div>
-                </div>
-
-                {/* Right Section: Actions */}
-                <div className="flex items-center gap-3">
-                  {view === 'boards' ? (
-                    /* New Board button when in boards overview */
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        setEditingBoard(null);
-                        setShowBoardSettingsModal(true);
-                      }}
-                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-md transition-all duration-200"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>New Board</span>
-                    </motion.button>
-                  ) : (
-                    /* Actions when inside a board */
-                    <>
-                      {/* View Toggle Pills */}
-                      <div className={`p-1 rounded-xl flex ${effectiveCoverPhoto ? 'bg-black/20 backdrop-blur-sm' : 'bg-gray-100 dark:bg-[#2b2a2c]'}`}>
-                        <button
-                          onClick={() => setView('kanban')}
-                          className={`px-3.5 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${view === 'kanban'
-                            ? 'bg-white dark:bg-[#3d3c3e] text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
-                            : effectiveCoverPhoto
-                              ? 'text-white/80 hover:text-white'
-                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                            }`}
-                        >
-                          <FolderKanban className="w-4 h-4" />
-                          <span>Kanban</span>
-                        </button>
-                        <button
-                          onClick={() => setView('analytics')}
-                          className={`px-3.5 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${view === 'analytics'
-                            ? 'bg-white dark:bg-[#3d3c3e] text-[#635BFF] dark:text-[#a5a0ff] shadow-sm'
-                            : effectiveCoverPhoto
-                              ? 'text-white/80 hover:text-white'
-                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                            }`}
-                        >
-                          <LineChart className="w-4 h-4" />
-                          <span>Analytics</span>
-                        </button>
-                      </div>
-
-                      {/* Add Application Button */}
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                          // Always go directly to application form
-                          setEventType('application');
-                          setWizardStep(1);
-                          setLookupSelectedApplication(null);
-                          setLinkedApplicationId(null);
-                          setLookupSearchQuery('');
-                          setShowLookupDropdown(false);
-                          setNewApplicationModal(true);
-                        }}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm bg-[#b7e219] text-gray-900 hover:bg-[#a5cb17] hover:shadow-md transition-all duration-200"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>{currentBoardType === 'campaigns' ? 'Add Contact' : 'Add Application'}</span>
-                      </motion.button>
-
-                      {/* Settings Button - Only show for jobs board */}
-                      {currentBoardType !== 'campaigns' && (
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setShowAutomationSettingsModal(true)}
-                          className={`relative p-2.5 rounded-xl transition-all duration-200
-                  ${effectiveCoverPhoto
-                              ? 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
-                              : 'bg-gray-100 dark:bg-[#2b2a2c] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#3d3c3e]'
-                            }`}
-                          title="Automation Settings"
-                        >
-                          <Settings className="w-5 h-5" />
-                          {Object.values(automationSettings).some((s: any) => (s as { enabled?: boolean }).enabled) && (
-                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#635BFF] rounded-full border-2 border-white dark:border-[#242325]" />
-                          )}
-                        </motion.button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </motion.div>
-
-              {/* Stats Row - Only show when inside a board (Kanban view) */}
-              {view === 'kanban' && currentBoardId && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.2 }}
-                  className="hidden md:flex items-center gap-2 mt-4"
-                >
-                  {(() => {
-                    const stats = currentBoardType === 'campaigns'
-                      ? [
-                        { label: 'Targets', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'targets').length, color: '#6B7280', bg: 'bg-gray-500/10' },
-                        { label: 'Contacted', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'contacted').length, color: '#3B82F6', bg: 'bg-blue-500/10' },
-                        { label: 'Replied', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'replied').length, color: '#8B5CF6', bg: 'bg-purple-500/10' },
-                        { label: 'Meeting', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'meeting').length, color: '#F59E0B', bg: 'bg-amber-500/10' },
-                        { label: 'Opportunity', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'opportunity').length, color: '#10B981', bg: 'bg-emerald-500/10' }
-                      ]
-                      : [
-                        { label: 'Applied', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'applied').length, color: '#3B82F6', bg: 'bg-blue-500/10' },
-                        { label: 'Interview', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'interview').length, color: '#8B5CF6', bg: 'bg-purple-500/10' },
-                        { label: 'Pending', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'pending_decision').length, color: '#F59E0B', bg: 'bg-amber-500/10' },
-                        { label: 'Offer', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'offer').length, color: '#10B981', bg: 'bg-emerald-500/10' },
-                        { label: 'Rejected', count: filteredApplications.filter(a => getEffectiveStatus(a.status) === 'rejected').length, color: '#EF4444', bg: 'bg-red-500/10' }
-                      ];
-                    return stats.map((stat, index) => (
-                      <motion.div
-                        key={stat.label}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3, delay: 0.05 * index }}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${effectiveCoverPhoto ? 'bg-white/90 dark:bg-[#2b2a2c]/90 backdrop-blur-sm shadow-lg' : 'bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e]'}`}
-                      >
-                        <span
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: stat.color }}
-                        />
-                        <span className="text-sm font-bold text-gray-900 dark:text-white">{stat.count}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{stat.label}</span>
-                      </motion.div>
-                    ));
-                  })()}
-                </motion.div>
-              )}
-
-              {/* Search and Filters Row - Only show for kanban view */}
-              {view === 'kanban' && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                  className="hidden md:block mt-6"
-                >
-                  {/* Search bar + Filters en une ligne */}
-                  <div className="flex items-center gap-3">
-                    {/* Search bar plus compact */}
-                    <div className="relative flex-1 max-w-md">
-                      <input
-                        type="text"
-                        placeholder="Search by company or position..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#2b2a2c] focus:ring-2 focus:ring-purple-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-                      />
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-                    </div>
-
-                    {/* Filters en ligne */}
-                    <div className="flex items-center gap-2">
-                      {/* Date Filter */}
-                      <button
-                        onClick={() => setOpenFilterModal(openFilterModal === 'date' ? null : 'date')}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${dateFilter !== 'all' || customDateRange
-                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
-                          : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
-                          }`}
-                      >
-                        <Calendar className="w-4 h-4" />
-                        <span>Date</span>
-                        {dateFilter !== 'all' || customDateRange ? (
-                          <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-semibold bg-purple-600 dark:bg-purple-500 text-white">
-                            1
-                          </span>
-                        ) : null}
-                      </button>
-
-                      {/* Interview Filter */}
-                      <button
-                        onClick={() => setOpenFilterModal(openFilterModal === 'interview' ? null : 'interview')}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasInterviews !== 'all' || interviewTypes.length > 0 || interviewStatus.length > 0 || upcomingInterviewsDays !== null
-                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
-                          : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
-                          }`}
-                      >
-                        <Users className="w-4 h-4" />
-                        <span>{currentBoardType === 'campaigns' ? 'Meetings' : 'Interviews'}</span>
-                        {hasInterviews !== 'all' || interviewTypes.length > 0 || interviewStatus.length > 0 || upcomingInterviewsDays !== null ? (
-                          <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-semibold bg-purple-600 dark:bg-purple-500 text-white">
-                            {[hasInterviews !== 'all' ? 1 : 0, interviewTypes.length, interviewStatus.length, upcomingInterviewsDays !== null ? 1 : 0].reduce((a, b) => a + b, 0)}
-                          </span>
-                        ) : null}
-                      </button>
-
-                      {/* Company Filter */}
-                      <button
-                        onClick={() => setOpenFilterModal(openFilterModal === 'company' ? null : 'company')}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${selectedCompanies.length > 0
-                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
-                          : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
-                          }`}
-                      >
-                        <Building className="w-4 h-4" />
-                        <span>Company</span>
-                        {selectedCompanies.length > 0 ? (
-                          <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-semibold bg-purple-600 dark:bg-purple-500 text-white">
-                            {selectedCompanies.length}
-                          </span>
-                        ) : null}
-                      </button>
-
-                      {/* Sort Filter */}
-                      <button
-                        onClick={() => setOpenFilterModal(openFilterModal === 'sort' ? null : 'sort')}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${(currentBoardType === 'campaigns' ? sortBy !== 'lastContactedAt' : sortBy !== 'appliedDate') || sortOrder !== 'desc'
-                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700'
-                          : 'bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e]'
-                          }`}
-                      >
-                        <Filter className="w-4 h-4" />
-                        <span>Sort</span>
-                        {(currentBoardType === 'campaigns' ? sortBy !== 'lastContactedAt' : sortBy !== 'appliedDate') || sortOrder !== 'desc' ? (
-                          <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-semibold bg-purple-600 dark:bg-purple-500 text-white">
-                            1
-                          </span>
-                        ) : null}
-                      </button>
-                    </div>
-
-                    {/* Clear filters button */}
-                    {getActiveFilterCount() > 0 && (
-                      <button
-                        onClick={clearAllFilters}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        <span>Clear all</span>
-                      </button>
+                      </span>
                     )}
-
-                    {/* Results count */}
-                    <div className={`text-sm whitespace-nowrap ${coverPhoto
-                      ? (isCoverDark ? 'text-white/90' : 'text-gray-700 dark:text-white/90')
-                      : 'text-gray-600 dark:text-gray-400'
-                      }`}>
-                      {filteredApplications.length} {filteredApplications.length === 1 ? 'result' : 'results'}
-                      {getActiveFilterCount() > 0 && (
-                        <span className="ml-1 text-purple-600 dark:text-purple-400">
-                          ({getActiveFilterCount()} {getActiveFilterCount() === 1 ? 'filter' : 'filters'})
-                        </span>
-                      )}
-                    </div>
+                    {hasInterviews !== 'all' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300">
+                        {currentBoardType === 'campaigns' ? 'Meetings' : 'Interviews'}: {hasInterviews}
+                        <button onClick={() => setHasInterviews('all')} className="hover:opacity-70">
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </span>
+                    )}
+                    {((currentBoardType === 'campaigns' ? sortBy !== 'lastContactedAt' : sortBy !== 'appliedDate') || sortOrder !== 'desc') && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300">
+                        Sort: {sortBy === 'appliedDate' ? 'Date' : sortBy === 'companyName' ? 'Company' : sortBy === 'updatedAt' ? 'Updated' : 'Custom'}
+                        <button onClick={() => { setSortBy(currentBoardType === 'campaigns' ? 'lastContactedAt' : 'appliedDate'); setSortOrder('desc'); }} className="hover:opacity-70">
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </span>
+                    )}
                   </div>
-
-                  {/* Active filter badges */}
-                  {getActiveFilterCount() > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {dateFilter !== 'all' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                          Date: {dateFilter === 'custom' && customDateRange
-                            ? `${new Date(customDateRange.start).toLocaleDateString()} - ${new Date(customDateRange.end).toLocaleDateString()}`
-                            : dateFilter === '7d' ? 'Last 7 days'
-                              : dateFilter === '30d' ? 'Last 30 days'
-                                : dateFilter === '3m' ? 'Last 3 months'
-                                  : dateFilter === '6m' ? 'Last 6 months'
-                                    : 'All'}
-                          <button
-                            onClick={() => {
-                              setDateFilter('all');
-                              setCustomDateRange(null);
-                            }}
-                            className="ml-1 hover:opacity-70"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      )}
-                      {selectedCompanies.length > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                          Companies: {selectedCompanies.length}
-                          <button
-                            onClick={() => setSelectedCompanies([])}
-                            className="ml-1 hover:opacity-70"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      )}
-                      {hasInterviews !== 'all' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                          {currentBoardType === 'campaigns' ? 'Meetings' : 'Interviews'}: {hasInterviews === 'with' ? 'With' : hasInterviews === 'without' ? 'Without' : 'Upcoming'}
-                          <button
-                            onClick={() => setHasInterviews('all')}
-                            className="ml-1 hover:opacity-70"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      )}
-                      {((currentBoardType === 'campaigns' ? sortBy !== 'lastContactedAt' : sortBy !== 'appliedDate') || sortOrder !== 'desc') && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
-                          Sort: {sortBy === 'appliedDate' ? 'Applied Date' :
-                            sortBy === 'lastContactedAt' ? 'Last Contacted' :
-                              sortBy === 'updatedAt' ? 'Updated' :
-                                sortBy === 'companyName' ? 'Company' :
-                                  sortBy === 'position' ? 'Position' :
-                                    sortBy === 'contactName' ? 'Contact Name' :
-                                      sortBy === 'interviewCount' ? 'Interviews' :
-                                        sortBy === 'meetingCount' ? 'Meetings' : 'Other'} ({sortOrder === 'asc' ? 'Asc' : 'Desc'})
-                          <button
-                            onClick={() => {
-                              setSortBy(currentBoardType === 'campaigns' ? 'lastContactedAt' : 'appliedDate');
-                              setSortOrder('desc');
-                            }}
-                            className="ml-1 hover:opacity-70"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </motion.div>
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400 ml-auto">
+                    {filteredApplications.length} results
+                  </span>
+                </div>
               )}
             </div>
-
-            {/* Hidden File Input */}
-            <input
-              type="file"
-              ref={coverFileInputRef}
-              className="hidden"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleCoverFileSelect}
-            />
           </div>
-        </div>
+        )}
 
-        {/* Main Content Area */}
-        <div className="px-4 pt-6 pb-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
+        {/* Main Content Area - Full viewport height minus toolbar */}
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
           {/* Main content area - switch between kanban, boards, and analytics */}
           <AnimatePresence mode="wait">
             {view === 'boards' ? (
@@ -3753,29 +3453,63 @@ END:VCALENDAR`;
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
-                className="flex-1"
+                className="flex-1 overflow-y-auto"
               >
-                <BoardsOverview
-                  boards={boards}
-                  applications={applications}
-                  onSelectBoard={(boardId) => {
-                    setCurrentBoardId(boardId);
-                    setView('kanban');
-                  }}
-                  onCreateBoard={() => {
-                    setEditingBoard(null);
-                    setShowBoardSettingsModal(true);
-                  }}
-                  onEditBoard={(board) => {
-                    setEditingBoard(board);
-                    setShowBoardSettingsModal(true);
-                  }}
-                  onDeleteBoard={(board) => {
-                    setBoardToDelete(board);
-                    setShowDeleteBoardModal(true);
-                  }}
-                  onDuplicateBoard={handleDuplicateBoard}
-                />
+                {/* Simple Top Bar for Boards View */}
+                <div className="hidden md:flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3d3c3e] bg-white dark:bg-[#1a1a1b]">
+                  {/* Left: Title */}
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-9 h-9 rounded-lg flex items-center justify-center"
+                      style={{ background: 'linear-gradient(135deg, #F59E0B, #EA580C)' }}
+                    >
+                      <FolderKanban className="w-4.5 h-4.5 text-white" />
+                    </div>
+                    <div>
+                      <h1 className="text-lg font-semibold text-gray-900 dark:text-white">My Boards</h1>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {boards.length} board{boards.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: New Board button */}
+                  <button
+                    onClick={() => {
+                      setEditingBoard(null);
+                      setShowBoardSettingsModal(true);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#9ff019] hover:bg-[#8ed918] text-black text-sm font-medium transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    New Board
+                  </button>
+                </div>
+
+                {/* Board Cards Grid with padding */}
+                <div className="px-4 sm:px-6 pt-4">
+                  <BoardsOverview
+                    boards={boards}
+                    applications={applications}
+                    onSelectBoard={(boardId) => {
+                      setCurrentBoardId(boardId);
+                      setView('kanban');
+                    }}
+                    onCreateBoard={() => {
+                      setEditingBoard(null);
+                      setShowBoardSettingsModal(true);
+                    }}
+                    onEditBoard={(board) => {
+                      setEditingBoard(board);
+                      setShowBoardSettingsModal(true);
+                    }}
+                    onDeleteBoard={(board) => {
+                      setBoardToDelete(board);
+                      setShowDeleteBoardModal(true);
+                    }}
+                    onDuplicateBoard={handleDuplicateBoard}
+                  />
+                </div>
               </motion.div>
             ) : view === 'kanban' ? (
               <motion.div
@@ -3784,7 +3518,7 @@ END:VCALENDAR`;
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
-                className="flex-1 flex flex-col min-h-0"
+                className="flex-1 flex flex-col min-h-0 pt-4"
               >
                 {/* Mobile List View - Replaces Kanban on mobile */}
                 <div className="md:hidden flex flex-col flex-1 min-h-0">
@@ -3876,7 +3610,7 @@ END:VCALENDAR`;
                 </div>
 
                 {/* Desktop Kanban Board - Hidden on mobile */}
-                <div className="hidden md:flex md:flex-col md:flex-1 md:min-h-0">
+                <div className="hidden md:flex md:flex-col md:flex-1 md:min-h-0 px-4">
                   <DragDropContext
                     onDragStart={handleDragStart}
                     onDragUpdate={handleDragUpdate}
@@ -4021,7 +3755,7 @@ END:VCALENDAR`;
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.3 }}
-                className="space-y-6"
+                className="flex-1 overflow-y-auto space-y-6 pt-4 px-4 pb-6"
               >
                 {/* Analytics Dashboard */}
                 {applications.length === 0 ? (
