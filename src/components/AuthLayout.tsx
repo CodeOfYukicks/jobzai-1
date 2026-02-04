@@ -2,7 +2,7 @@
 import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Plus, ChevronLeft, ChevronRight, Search, User } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useRecommendationsLoading } from '../contexts/RecommendationsLoadingContext';
@@ -23,6 +23,7 @@ import { useGlobalSearch } from '../hooks/useGlobalSearch';
 import { CommandPalette } from './GlobalSearch';
 import type { ProfileAvatarConfig, ProfileAvatarType } from './profile/avatar';
 import { DEFAULT_PROFILE_AVATAR_CONFIG, ProfileAvatar } from './profile/avatar';
+import { KanbanTutorialBar } from './kanban/KanbanTutorialBar';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -161,6 +162,41 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [hasScrolled, setHasScrolled] = useState<boolean>(false);
   const [isHoveringSidebar, setIsHoveringSidebar] = useState(false);
+
+  // Tutorial Bar State
+  const [showTutorialBar, setShowTutorialBar] = useState(false);
+
+  useEffect(() => {
+    // Only show if on applications page
+    const isKanbanPage = location.pathname === '/applications';
+
+    // Initial state: Hidden until signaled (safer)
+    if (!isKanbanPage) {
+      setShowTutorialBar(false);
+      return;
+    }
+
+    const handleVisibilityChange = (e: CustomEvent<{ visible: boolean }>) => {
+      const hasSeenTour = localStorage.getItem('jobKanbanTourSeen');
+      // Show if signaled visible AND not seen yet
+      if (e.detail.visible && !hasSeenTour) {
+        setShowTutorialBar(true);
+      } else {
+        setShowTutorialBar(false);
+      }
+    };
+
+    window.addEventListener('tutorial-visibility-change' as any, handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('tutorial-visibility-change' as any, handleVisibilityChange);
+    };
+  }, [location.pathname]);
+
+  const handleDismissTutorial = () => {
+    localStorage.setItem('jobKanbanTourSeen', 'true');
+    setShowTutorialBar(false);
+  };
 
   useEffect(() => {
     // Auto-collapse sidebar on CV Optimizer edit pages, Applications page, Jobs page, Upcoming Interviews page, Mock Interview page, Calendar page, Interview Prep pages, Resume Builder, Resume Builder editor, Campaigns Auto, Notes, and Whiteboards for full-width editing
@@ -452,6 +488,21 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
   return (
     <div className={`min-h-dvh bg-white dark:bg-[#1a1a1a] md:bg-gray-50 md:dark:bg-[#333234] flex flex-col overflow-x-hidden ${needsFullHeight ? 'md:h-screen md:overflow-hidden' : 'md:min-h-screen'}`}>
+
+      {/* Tutorial Bar - Fixed at extreme top */}
+      <AnimatePresence>
+        {showTutorialBar && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="fixed top-0 left-0 right-0 z-[60]"
+          >
+            <KanbanTutorialBar onDismiss={handleDismissTutorial} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Top Bar - Desktop only */}
       <div className="hidden md:block">
         <TopBar
@@ -467,14 +518,15 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           profileCompletion={profileCompletion}
           onSignOut={handleSignOut}
           onOpenSearch={globalSearch.openSearch}
+          topOffset={showTutorialBar ? 40 : 0}
         />
       </div>
 
       {/* Sidebar desktop - Full height, in front of top bar */}
       <aside
-        className={`hidden md:fixed md:flex md:flex-col z-50 bg-white dark:bg-[#2b2a2c] border-r border-gray-200 dark:border-[#3d3c3e] ${isCollapsed && isHoveringSidebar ? 'shadow-xl' : ''}`}
+        className={`hidden md:fixed md:flex md:flex-col z-50 bg-white dark:bg-[#2b2a2c] border-r border-gray-200 dark:border-[#3d3c3e] transition-[top,width] duration-300 ${isCollapsed && isHoveringSidebar ? 'shadow-xl' : ''}`}
         style={{
-          top: 0,
+          top: showTutorialBar ? 40 : 0,
           left: 0,
           bottom: 0,
           width: displaySidebarWidth
@@ -881,8 +933,8 @@ transition-all duration-200 relative overflow-hidden
       >
         {/* Desktop: spacer for fixed top bar */}
         <div
-          className="hidden md:block flex-shrink-0"
-          style={{ height: TOP_BAR_HEIGHT }}
+          className="hidden md:block flex-shrink-0 transition-[height] duration-300"
+          style={{ height: TOP_BAR_HEIGHT + (showTutorialBar ? 40 : 0) }}
         />
 
         <main

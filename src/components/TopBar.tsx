@@ -23,6 +23,7 @@ interface TopBarProps {
   profileCompletion: number;
   onSignOut: () => void;
   onOpenSearch?: () => void;
+  topOffset?: number;
 }
 
 export default function TopBar({
@@ -38,16 +39,17 @@ export default function TopBar({
   profileCompletion,
   onSignOut,
   onOpenSearch,
+  topOffset = 0,
 }: TopBarProps) {
   const navigate = useNavigate();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const { isOpen: isAssistantOpen, openAssistant, closeAssistant } = useAssistant();
   const { currentUser } = useAuth();
-  
+
   // Avatar config for assistant button
   const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>(DEFAULT_AVATAR_CONFIG);
-  
+
   // Load avatar config - reload when assistant closes (after potential save)
   useEffect(() => {
     const loadConfig = async () => {
@@ -76,9 +78,9 @@ export default function TopBar({
   }, []);
 
   return (
-    <header 
-      className="fixed top-0 right-0 z-50 h-12 bg-white dark:bg-[#2b2a2c] border-b border-gray-200 dark:border-[#3d3c3e]"
-      style={{ left: sidebarWidth }}
+    <header
+      className="fixed right-0 z-50 h-12 bg-white dark:bg-[#2b2a2c] border-b border-gray-200 dark:border-[#3d3c3e] transition-all duration-300"
+      style={{ left: sidebarWidth, top: topOffset }}
     >
       <div className="h-full flex items-center justify-center px-4 relative">
         {/* Center: Search Bar */}
@@ -141,7 +143,7 @@ export default function TopBar({
             aria-label="Assistant"
             title="AI Assistant"
           >
-            <Avatar 
+            <Avatar
               config={avatarConfig}
               size={24}
               className={`rounded-md ${!isDarkMode ? 'invert' : ''}`}
@@ -162,14 +164,14 @@ export default function TopBar({
                   flex items-center justify-center overflow-hidden
                   ring-2 ring-transparent group-hover:ring-[#635BFF]/20 transition-all">
                   {profileAvatarType === 'avatar' && profileAvatarConfig.hair ? (
-                    <ProfileAvatar 
+                    <ProfileAvatar
                       config={profileAvatarConfig}
                       size={28}
                       className="h-full w-full"
                     />
                   ) : profilePhoto ? (
-                    <img 
-                      src={profilePhoto} 
+                    <img
+                      src={profilePhoto}
                       alt={userFirstName}
                       className="h-full w-full object-cover"
                     />
@@ -200,14 +202,14 @@ export default function TopBar({
                       <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#635BFF] to-[#7c75ff] 
                         flex items-center justify-center overflow-hidden flex-shrink-0">
                         {profileAvatarType === 'avatar' && profileAvatarConfig.hair ? (
-                          <ProfileAvatar 
+                          <ProfileAvatar
                             config={profileAvatarConfig}
                             size={40}
                             className="h-full w-full"
                           />
                         ) : profilePhoto ? (
-                          <img 
-                            src={profilePhoto} 
+                          <img
+                            src={profilePhoto}
                             alt={userFirstName}
                             className="h-full w-full object-cover"
                           />
@@ -285,7 +287,7 @@ export default function TopBar({
                       </span>
                     </div>
                     <div className="h-1.5 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-gradient-to-r from-[#635BFF] to-[#7c75ff] rounded-full transition-all duration-500"
                         style={{ width: `${profileCompletion}%` }}
                       />

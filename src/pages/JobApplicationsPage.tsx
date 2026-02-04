@@ -600,6 +600,14 @@ export default function JobApplicationsPage() {
     const createBoard = searchParams.get('createBoard');
     const boardType = searchParams.get('type');
 
+    // Notify AuthLayout about tutorial visibility
+    // Show only when in Kanban view AND on a Jobs board (or default view which implies jobs usually)
+    const shouldShowTutorial = view === 'kanban' && (!currentBoard || currentBoard.boardType === 'jobs' || !currentBoard.boardType);
+
+    // Dispatch event whenever visibility condition changes
+    const event = new CustomEvent('tutorial-visibility-change', { detail: { visible: shouldShowTutorial } });
+    window.dispatchEvent(event);
+
     // Handle mobile board creation trigger
     if (createBoard === 'true' && isMobile) {
       setShowMobileBoardWizard(true);
@@ -1191,6 +1199,9 @@ export default function JobApplicationsPage() {
         setLinkedApplicationId(null);
         setLookupSearchQuery('');
         setShowLookupDropdown(false);
+
+        // Dispatch tutorial event
+        window.dispatchEvent(new CustomEvent('tutorial-application-created'));
 
         // Check if we need to generate AI summary in background
         const needsAiAnalysis = newApplication.fullJobDescription &&
@@ -3378,6 +3389,8 @@ END:VCALENDAR`;
                         setEditingBoard(null);
                         setShowBoardSettingsModal(true);
                       } else {
+                        // Dispatch event for tutorial bar interaction
+                        window.dispatchEvent(new CustomEvent('tutorial-add-application-clicked'));
                         setEventType('application');
                         setWizardStep(1);
                         setLookupSelectedApplication(null);
