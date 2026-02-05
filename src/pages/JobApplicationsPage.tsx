@@ -3768,118 +3768,36 @@ END:VCALENDAR`;
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.3 }}
-                className="flex-1 overflow-y-auto space-y-6 pt-4 px-4 pb-6"
+                className="flex-1 overflow-y-auto space-y-6 pt-4 px-4 pb-6 flex flex-col"
               >
                 {/* Analytics Dashboard */}
                 {applications.length === 0 ? (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
-                    className="relative overflow-hidden bg-gradient-to-br from-white via-white to-violet-50/50 dark:from-[#2b2a2c] dark:via-[#2b2a2c] dark:to-violet-950/20 rounded-2xl border border-gray-200/60 dark:border-[#3d3c3e]/50 p-12"
-                  >
-                    {/* Decorative background elements */}
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                      {/* Grid pattern */}
-                      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '32px 32px' }} />
-
-                      {/* Gradient orbs */}
-                      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-violet-500/10 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                      <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-blue-500/10 to-transparent rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-
-                      {/* Floating shapes */}
-                      <motion.div
-                        animate={{ y: [0, -10, 0] }}
-                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                        className="absolute top-20 right-20 w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 border border-violet-200/30 dark:border-violet-800/30 rotate-12"
-                      />
-                      <motion.div
-                        animate={{ y: [0, 10, 0] }}
-                        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                        className="absolute bottom-20 left-20 w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-200/30 dark:border-blue-800/30 -rotate-6"
-                      />
+                  <div className="flex-1 flex flex-col items-center justify-center py-16 px-4">
+                    <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center mb-4">
+                      <LineChart className="w-8 h-8 text-gray-400 dark:text-gray-500" />
                     </div>
-
-                    <div className="relative max-w-md mx-auto text-center">
-                      {/* Premium icon */}
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ duration: 0.5, delay: 0.2, type: "spring" }}
-                        className="relative inline-flex mb-6"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-purple-600 rounded-3xl blur-xl opacity-30" />
-                        <div className="relative p-5 bg-gradient-to-br from-violet-500 to-purple-600 rounded-3xl shadow-xl shadow-violet-500/25">
-                          <LineChart className="w-10 h-10 text-white" />
-                        </div>
-                      </motion.div>
-
-                      <motion.h3
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: 0.3 }}
-                        className="text-2xl font-bold text-gray-900 dark:text-white mb-3"
-                      >
-                        Your analytics await
-                      </motion.h3>
-
-                      <motion.p
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: 0.4 }}
-                        className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed"
-                      >
-                        Start tracking your {currentBoardType === 'campaigns' ? 'networking contacts' : 'job applications'} to unlock powerful insights, track your progress, and optimize your strategy.
-                      </motion.p>
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: 0.5 }}
-                        className="flex flex-col sm:flex-row items-center justify-center gap-3"
-                      >
-                        <button
-                          onClick={() => {
-                            setEventType('application');
-                            setWizardStep(1);
-                            setLookupSelectedApplication(null);
-                            setLinkedApplicationId(null);
-                            setLookupSearchQuery('');
-                            setShowLookupDropdown(false);
-                            setNewApplicationModal(true);
-                          }}
-                          className="group relative inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300 hover:-translate-y-0.5"
-                        >
-                          <PlusCircle className="h-4 w-4" />
-                          <span>{currentBoardType === 'campaigns' ? 'Add Your First Contact' : 'Add Your First Application'}</span>
-                          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </button>
-                      </motion.div>
-
-                      {/* Feature hints */}
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.5, delay: 0.7 }}
-                        className="mt-10 flex items-center justify-center gap-6 text-xs text-gray-400 dark:text-gray-500"
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <TrendingUp className="w-3.5 h-3.5" />
-                          <span>Track trends</span>
-                        </div>
-                        <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-[#4a494b]" />
-                        <div className="flex items-center gap-1.5">
-                          <PieChart className="w-3.5 h-3.5" />
-                          <span>Visual insights</span>
-                        </div>
-                        <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-[#4a494b]" />
-                        <div className="flex items-center gap-1.5">
-                          <Target className="w-3.5 h-3.5" />
-                          <span>Find patterns</span>
-                        </div>
-                      </motion.div>
-                    </div>
-                  </motion.div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      No analytics yet
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm mb-6">
+                      Start tracking your {currentBoardType === 'campaigns' ? 'networking contacts' : 'job applications'} to unlock powerful insights, track your progress, and optimize your strategy.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setEventType('application');
+                        setWizardStep(1);
+                        setLookupSelectedApplication(null);
+                        setLinkedApplicationId(null);
+                        setLookupSearchQuery('');
+                        setShowLookupDropdown(false);
+                        setNewApplicationModal(true);
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 bg-[#9FF01A] hover:bg-[#a5cb17] rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>{currentBoardType === 'campaigns' ? 'Add Contact' : 'Add Application'}</span>
+                    </button>
+                  </div>
                 ) : (
                   <>
                     {/* Section 1: Hero Metrics */}

@@ -10,6 +10,7 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 // Steps
 import TargetingStep from './steps/TargetingStep';
 import GmailConnectStep from './steps/GmailConnectStep';
+import { useGmailOAuth } from '../../hooks/useGmailOAuth';
 import EmailGenerationModeStep from './steps/EmailGenerationModeStep';
 import TemplateGenerationStep from './steps/TemplateGenerationStep';
 import ABTestingStep from './steps/ABTestingStep';
@@ -215,6 +216,48 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
     setCampaignData(prev => ({ ...prev, ...updates }));
   }, []);
 
+  // Check if we can proceed to next step
+  const { isConnected: isGmailConnected, email: gmailEmailFromHook } = useGmailOAuth();
+
+  // Backup: Sync hook state to campaign data if child fails to update
+  useEffect(() => {
+    if (isGmailConnected && gmailEmailFromHook && !campaignData.gmailConnected) {
+      console.log('🔄 Syncing parent hook state to campaignData');
+      updateCampaignData({
+        gmailConnected: true,
+        gmailEmail: gmailEmailFromHook
+      });
+    }
+  }, [isGmailConnected, gmailEmailFromHook, campaignData.gmailConnected, updateCampaignData]);
+
+  const canProceed = (): boolean => {
+    switch (currentStep) {
+      case 'targeting':
+        return !!campaignData.outreachGoal && campaignData.personTitles.length > 0 && campaignData.personLocations.length > 0;
+      case 'gmail':
+        // Check both local state and actual hook state for redundancy
+        return campaignData.gmailConnected || isGmailConnected;
+      case 'mode':
+        return !!campaignData.emailGenerationMode;
+      case 'template':
+        return !!campaignData.selectedTemplate;
+      case 'abtest':
+        const config = campaignData.abTestConfig;
+        return !!(config &&
+          config.hooks.some(h => h.trim()) &&
+          config.bodies.some(b => b.trim()) &&
+          config.ctas.some(c => c.trim()));
+      case 'cvAttachment':
+        // CV attachment is optional, always valid
+        return true;
+      case 'review':
+        // Review step is always valid, user can launch
+        return true;
+      default:
+        return false;
+    }
+  };
+
   // Validation per step
   const validateCurrentStep = (): boolean => {
     switch (currentStep) {
@@ -234,7 +277,8 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
         return true;
 
       case 'gmail':
-        if (!campaignData.gmailConnected) {
+        // Allow if either data says connected OR hook says connected
+        if (!campaignData.gmailConnected && !isGmailConnected) {
           notify.error('Connect Gmail to send emails');
           return false;
         }
@@ -319,8 +363,8 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
           expandTitles: campaignData.expandTitles
         },
         gmail: {
-          email: campaignData.gmailEmail,
-          connected: campaignData.gmailConnected
+          email: campaignData.gmailEmail || gmailEmailFromHook || '', // Fallback to hook email
+          connected: campaignData.gmailConnected || isGmailConnected
         },
         emailPreferences: {
           tone: campaignData.emailTone,
@@ -383,33 +427,7 @@ export default function NewCampaignModal({ isOpen, onClose, onCampaignCreated }:
     }
   };
 
-  // Check if we can proceed to next step
-  const canProceed = (): boolean => {
-    switch (currentStep) {
-      case 'targeting':
-        return !!campaignData.outreachGoal && campaignData.personTitles.length > 0 && campaignData.personLocations.length > 0;
-      case 'gmail':
-        return campaignData.gmailConnected;
-      case 'mode':
-        return !!campaignData.emailGenerationMode;
-      case 'template':
-        return !!campaignData.selectedTemplate;
-      case 'abtest':
-        const config = campaignData.abTestConfig;
-        return !!(config &&
-          config.hooks.some(h => h.trim()) &&
-          config.bodies.some(b => b.trim()) &&
-          config.ctas.some(c => c.trim()));
-      case 'cvAttachment':
-        // CV attachment is optional, always valid
-        return true;
-      case 'review':
-        // Review step is always valid, user can launch
-        return true;
-      default:
-        return false;
-    }
-  };
+
 
   // Check for mobile optimized steps to hide default modal UI
   const isMobile = useIsMobile();

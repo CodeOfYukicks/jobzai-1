@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 
 // ============================================
 // TYPES
@@ -94,9 +95,9 @@ export const TOUR_STEPS: TourStep[] = [
 // CONSTANTS
 // ============================================
 
-const STORAGE_KEY = 'cubbbe_onboarding_seen';
-const DISABLED_KEY = 'cubbbe_onboarding_disabled';
-const TOUR_COMPLETED_KEY = 'cubbbe_tour_completed_at'; // Stores timestamp
+const STORAGE_KEY_BASE = 'cubbbe_onboarding_seen';
+const DISABLED_KEY_BASE = 'cubbbe_onboarding_disabled';
+const TOUR_COMPLETED_KEY_BASE = 'cubbbe_tour_completed_at'; // Stores timestamp
 
 const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
@@ -111,35 +112,34 @@ const OnboardingContext = createContext<OnboardingContextType | null>(null);
 // ============================================
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
-    const [seenPages, setSeenPages] = useState<Set<string>>(() => {
-        if (typeof window === 'undefined') return new Set();
-        try {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            return stored ? new Set(JSON.parse(stored)) : new Set();
-        } catch {
-            return new Set();
-        }
-    });
+    const { currentUser } = useAuth();
+    const userId = currentUser?.uid;
 
-    const [isOnboardingDisabled, setIsOnboardingDisabled] = useState<boolean>(() => {
-        if (typeof window === 'undefined') return false;
-        try {
-            return localStorage.getItem(DISABLED_KEY) === 'true';
-        } catch {
-            return false;
-        }
-    });
+    const [seenPages, setSeenPages] = useState<Set<string>>(new Set());
+    const [isOnboardingDisabled, setIsOnboardingDisabled] = useState<boolean>(false);
+    const [tourCompletedAt, setTourCompletedAt] = useState<number | null>(null);
 
-    // Tour completion state - stores timestamp
-    const [tourCompletedAt, setTourCompletedAt] = useState<number | null>(() => {
-        if (typeof window === 'undefined') return null;
-        try {
-            const stored = localStorage.getItem(TOUR_COMPLETED_KEY);
-            return stored ? parseInt(stored, 10) : null;
-        } catch {
-            return null;
+    // Initial load when userId changes
+    useEffect(() => {
+        if (!userId) {
+            setSeenPages(new Set());
+            setIsOnboardingDisabled(false);
+            setTourCompletedAt(null);
+            return;
         }
-    });
+
+        try {
+            const seen = localStorage.getItem(`${STORAGE_KEY_BASE}_${userId}`);
+            const disabled = localStorage.getItem(`${DISABLED_KEY_BASE}_${userId}`);
+            const completedAt = localStorage.getItem(`${TOUR_COMPLETED_KEY_BASE}_${userId}`);
+
+            if (seen) setSeenPages(new Set(JSON.parse(seen)));
+            if (disabled) setIsOnboardingDisabled(disabled === 'true');
+            if (completedAt) setTourCompletedAt(parseInt(completedAt, 10));
+        } catch (e) {
+            console.error('Error loading onboarding state:', e);
+        }
+    }, [userId]);
 
     // Derived state
     const hasCompletedTour = tourCompletedAt !== null;
@@ -151,12 +151,13 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
     // Sync to localStorage when seenPages changes
     useEffect(() => {
+        if (!userId) return;
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify([...seenPages]));
+            localStorage.setItem(`${STORAGE_KEY_BASE}_${userId}`, JSON.stringify([...seenPages]));
         } catch {
             // Ignore storage errors
         }
-    }, [seenPages]);
+    }, [seenPages, userId]);
 
     // Check if a page has been seen
     const hasSeenPage = useCallback((pageKey: string): boolean => {
@@ -184,12 +185,13 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     // Disable all onboarding globally
     const disableAllOnboarding = useCallback(() => {
         setIsOnboardingDisabled(true);
+        if (!userId) return;
         try {
-            localStorage.setItem(DISABLED_KEY, 'true');
+            localStorage.setItem(`${DISABLED_KEY_BASE}_${userId}`, 'true');
         } catch {
             // Ignore storage errors
         }
-    }, []);
+    }, [userId]);
 
     // Reset all onboarding (dev utility)
     const resetOnboarding = useCallback(() => {
@@ -198,14 +200,15 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         setTourCompletedAt(null);
         setIsTourActive(false);
         setCurrentTourStep(0);
+        if (!userId) return;
         try {
-            localStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem(DISABLED_KEY);
-            localStorage.removeItem(TOUR_COMPLETED_KEY);
+            localStorage.removeItem(`${STORAGE_KEY_BASE}_${userId}`);
+            localStorage.removeItem(`${DISABLED_KEY_BASE}_${userId}`);
+            localStorage.removeItem(`${TOUR_COMPLETED_KEY_BASE}_${userId}`);
         } catch {
             // Ignore storage errors
         }
-    }, []);
+    }, [userId]);
 
     // Start the guided tour
     const startTour = useCallback(() => {
@@ -213,6 +216,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         setCurrentTourStep(0);
         // Reset seen pages for fresh tour experience
         setSeenPages(new Set());
+        // Do NOT create the key yet, so if they refresh mid-tour, it's not "completed"
     }, []);
 
     // Move to next tour step (called by OnboardingSpotlight)
@@ -234,13 +238,14 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
             setIsTourActive(false);
             const now = Date.now();
             setTourCompletedAt(now);
+            if (!userId) return;
             try {
-                localStorage.setItem(TOUR_COMPLETED_KEY, now.toString());
+                localStorage.setItem(`${TOUR_COMPLETED_KEY_BASE}_${userId}`, now.toString());
             } catch {
                 // Ignore
             }
         }
-    }, [currentTourStep]);
+    }, [currentTourStep, userId]);
 
     // Skip the entire tour
     const skipTour = useCallback(() => {
@@ -253,12 +258,13 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
             TOUR_STEPS.forEach(step => newSet.add(step.pageKey));
             return newSet;
         });
+        if (!userId) return;
         try {
-            localStorage.setItem(TOUR_COMPLETED_KEY, now.toString());
+            localStorage.setItem(`${TOUR_COMPLETED_KEY_BASE}_${userId}`, now.toString());
         } catch {
             // Ignore
         }
-    }, []);
+    }, [userId]);
 
     return (
         <OnboardingContext.Provider

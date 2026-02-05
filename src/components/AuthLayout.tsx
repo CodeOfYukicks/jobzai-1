@@ -165,6 +165,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
   // Tutorial Bar State
   const [showTutorialBar, setShowTutorialBar] = useState(false);
+  const userId = currentUser?.uid;
 
   useEffect(() => {
     // Only show if on applications page
@@ -177,7 +178,13 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     }
 
     const handleVisibilityChange = (e: CustomEvent<{ visible: boolean }>) => {
-      const hasSeenTour = localStorage.getItem('jobKanbanTourSeen');
+      // If no user, default to not showing or use non-namespaced key? 
+      // Better to only show if we have a user to track state against.
+      if (!userId) return;
+
+      const storageKey = `jobKanbanTourSeen_${userId}`;
+      const hasSeenTour = localStorage.getItem(storageKey);
+
       // Show if signaled visible AND not seen yet
       if (e.detail.visible && !hasSeenTour) {
         setShowTutorialBar(true);
@@ -191,10 +198,12 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     return () => {
       window.removeEventListener('tutorial-visibility-change' as any, handleVisibilityChange);
     };
-  }, [location.pathname]);
+  }, [location.pathname, userId]);
 
   const handleDismissTutorial = () => {
-    localStorage.setItem('jobKanbanTourSeen', 'true');
+    if (userId) {
+      localStorage.setItem(`jobKanbanTourSeen_${userId}`, 'true');
+    }
     setShowTutorialBar(false);
   };
 

@@ -578,8 +578,264 @@ export default function CreateJobTailoredResumePage() {
                     {/* Right Column - Form */}
                     <div className="w-full md:w-2/3 max-w-lg space-y-5">
 
+                        {/* Target Job Details */}
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                <Briefcase className="w-4 h-4 text-[#00B48C] dark:text-[#E2F4EE]" />
+                                Target Job Details
+                            </h3>
+
+                            {/* Job Input Tabs */}
+                            <div className="flex p-1 bg-gray-100 dark:bg-[#2b2a2c] rounded-full">
+                                <button
+                                    onClick={() => setJobInputMode('saved')}
+                                    className={`flex-1 py-2 text-xs font-semibold rounded-full transition-all ${jobInputMode === 'saved'
+                                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                        }`}
+                                >
+                                    Saved Job
+                                </button>
+                                <button
+                                    onClick={() => setJobInputMode('link')}
+                                    className={`flex-1 py-2 text-xs font-semibold rounded-full transition-all ${jobInputMode === 'link'
+                                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                        }`}
+                                >
+                                    Link
+                                </button>
+                                <button
+                                    onClick={() => setJobInputMode('manual')}
+                                    className={`flex-1 py-2 text-xs font-semibold rounded-full transition-all ${jobInputMode === 'manual'
+                                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                        }`}
+                                >
+                                    Manual
+                                </button>
+                            </div>
+
+                            {/* Saved Job Mode */}
+                            {jobInputMode === 'saved' && (
+                                <div className="space-y-6">
+                                    <div className="space-y-3">
+                                        <label className="text-sm font-semibold text-gray-900 dark:text-white block">
+                                            Select Saved Job <span className="text-[#00B48C] dark:text-[#E2F4EE]">*</span>
+                                        </label>
+
+                                        {/* Custom Dropdown */}
+                                        <div className="relative" ref={dropdownRef}>
+                                            {/* Dropdown Trigger - Anchor feel, taller, muted bg */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                                className={`w-full h-13 px-4 py-3.5 bg-gray-50 dark:bg-[#3d3c3e]/30 border rounded-xl text-left flex items-center justify-between transition-all group ${isDropdownOpen
+                                                    ? 'border-[#00B48C] ring-2 ring-[#00B48C]/10 bg-white dark:bg-[#2b2a2c]'
+                                                    : 'border-gray-200 dark:border-[#3d3c3e] hover:border-[#00B48C]/50 hover:bg-white dark:hover:bg-[#3d3c3e]/50'
+                                                    }`}
+                                            >
+                                                {selectedSavedJobId ? (() => {
+                                                    const selectedJob = savedJobs.find(j => j.id === selectedSavedJobId);
+                                                    const domain = getCompanyDomain(selectedJob?.companyName);
+                                                    const initials = getCompanyInitials(selectedJob?.companyName || '');
+                                                    const gradient = getCompanyGradient(selectedJob?.companyName || '');
+                                                    return (
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            {domain ? (
+                                                                <img
+                                                                    src={getLogoDevUrl(domain)}
+                                                                    alt=""
+                                                                    className="w-6 h-6 rounded-full object-cover flex-shrink-0 grayscale group-hover:grayscale-0 transition-all"
+                                                                    onError={(e) => {
+                                                                        (e.target as HTMLImageElement).style.display = 'none';
+                                                                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                                                    }}
+                                                                />
+                                                            ) : null}
+                                                            <div
+                                                                className={`${domain ? 'hidden' : ''} w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white shadow-sm`}
+                                                                style={{ background: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})` }}
+                                                            >
+                                                                {initials}
+                                                            </div>
+                                                            <span className="truncate text-gray-900 dark:text-white font-medium text-[15px]">
+                                                                {selectedJob?.position} <span className="text-gray-400 font-normal mx-1">@</span> {selectedJob?.companyName}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })() : (
+                                                    <span className="text-gray-400 text-[15px] font-medium">Select a job from your board...</span>
+                                                )}
+                                                <ChevronUp className={`w-4 h-4 text-gray-400 transition-transform duration-300 flex-shrink-0 ${isDropdownOpen ? '' : 'rotate-180'}`} />
+                                            </button>
+
+                                            {/* Dropdown Panel - Floating, shadow-xl */}
+                                            {isDropdownOpen && (
+                                                <div className="absolute z-50 w-full mt-2 bg-white dark:bg-[#1e1e20] border border-gray-100 dark:border-[#3d3c3e] rounded-xl shadow-xl shadow-gray-200/50 dark:shadow-black/20 overflow-hidden ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100">
+
+                                                    {/* Search Input - Visually separated */}
+                                                    <div className="p-3 border-b border-gray-50 dark:border-[#3d3c3e] bg-gray-50/50 dark:bg-[#2b2a2c]/50">
+                                                        <div className="relative group">
+                                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#00B48C] transition-colors" />
+                                                            <input
+                                                                type="text"
+                                                                value={jobSearchQuery}
+                                                                onChange={(e) => setJobSearchQuery(e.target.value)}
+                                                                placeholder="Search saved jobs..."
+                                                                className="w-full pl-9 pr-3 h-10 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00B48C]/20 focus:border-[#00B48C] transition-all"
+                                                                autoFocus
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Job List - Spaced out, dividers */}
+                                                    <div className="max-h-[280px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
+                                                        {filteredSavedJobs.length === 0 ? (
+                                                            <div className="px-3 py-8 text-center">
+                                                                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">No jobs found</p>
+                                                                <p className="text-xs text-gray-400 mt-1">Try a different search term</p>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="divide-y divide-gray-50 dark:divide-[#3d3c3e]">
+                                                                {filteredSavedJobs.map((job) => {
+                                                                    const domain = getCompanyDomain(job.companyName);
+                                                                    const initials = getCompanyInitials(job.companyName || '');
+                                                                    const gradient = getCompanyGradient(job.companyName || '');
+                                                                    const isSelected = selectedSavedJobId === job.id;
+                                                                    return (
+                                                                        <button
+                                                                            key={job.id}
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                handleSavedJobSelect(job.id);
+                                                                                setIsDropdownOpen(false);
+                                                                                setJobSearchQuery('');
+                                                                            }}
+                                                                            className={`w-full px-4 py-3.5 flex items-start gap-3.5 text-left transition-all hover:bg-gray-50 dark:hover:bg-[#3d3c3e]/50 group ${isSelected ? 'bg-[#E2F4EE]/30 dark:bg-[#E2F4EE]/5' : ''
+                                                                                }`}
+                                                                        >
+                                                                            {/* Company Logo */}
+                                                                            <div className="pt-0.5">
+                                                                                {domain ? (
+                                                                                    <img
+                                                                                        src={getLogoDevUrl(domain)}
+                                                                                        alt=""
+                                                                                        className="w-8 h-8 rounded-lg object-cover flex-shrink-0 bg-white shadow-sm border border-gray-100 dark:border-gray-700"
+                                                                                        onError={(e) => {
+                                                                                            (e.target as HTMLImageElement).style.display = 'none';
+                                                                                            (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                                                                        }}
+                                                                                    />
+                                                                                ) : null}
+                                                                                <div
+                                                                                    className={`${domain ? 'hidden' : ''} w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white shadow-sm`}
+                                                                                    style={{ background: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})` }}
+                                                                                >
+                                                                                    {initials}
+                                                                                </div>
+                                                                            </div>
+
+                                                                            {/* Job Info - Better Hierarchy */}
+                                                                            <div className="min-w-0 flex-1">
+                                                                                <div className="flex items-center justify-between mb-0.5">
+                                                                                    <p className={`text-[15px] font-medium truncate ${isSelected ? 'text-[#00B48C] dark:text-[#E2F4EE]' : 'text-gray-900 dark:text-white'
+                                                                                        }`}>
+                                                                                        {job.position}
+                                                                                    </p>
+                                                                                    {isSelected && (
+                                                                                        <Check className="w-4 h-4 text-[#00B48C] dark:text-[#E2F4EE] flex-shrink-0 ml-2" />
+                                                                                    )}
+                                                                                </div>
+                                                                                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                                                                                    {job.companyName}
+                                                                                </p>
+                                                                            </div>
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Link Mode */}
+                            {jobInputMode === 'link' && (
+                                <div className="space-y-3">
+                                    <div className="space-y-1">
+                                        <label className="text-sm font-semibold text-gray-900 dark:text-white">Job URL <span className="text-[#00B48C] dark:text-[#E2F4EE]">*</span></label>
+                                        <input
+                                            type="url"
+                                            value={jobUrl}
+                                            onChange={(e) => setJobUrl(e.target.value)}
+                                            placeholder="https://linkedin.com/jobs/..."
+                                            className="w-full px-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#00B48C]/20 focus:border-[#00B48C] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
+                                        />
+                                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                                            We'll extract the job details automatically.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Manual Mode */}
+                            {jobInputMode === 'manual' && (
+                                <div className="space-y-3">
+                                    {/* Job Title */}
+                                    <div className="space-y-1">
+                                        <label className="text-sm font-semibold text-gray-900 dark:text-white">Job Title <span className="text-[#00B48C] dark:text-[#E2F4EE]">*</span></label>
+                                        <input
+                                            type="text"
+                                            value={jobTitle}
+                                            onChange={(e) => setJobTitle(e.target.value)}
+                                            placeholder="e.g. Senior Product Designer"
+                                            className="w-full px-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#00B48C]/20 focus:border-[#00B48C] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
+                                        />
+                                    </div>
+
+                                    {/* Company */}
+                                    <div className="space-y-1">
+                                        <label className="text-sm font-semibold text-gray-900 dark:text-white">Company <span className="text-[#00B48C] dark:text-[#E2F4EE]">*</span></label>
+                                        <div className="relative">
+                                            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                            <input
+                                                type="text"
+                                                value={company}
+                                                onChange={(e) => setCompany(e.target.value)}
+                                                placeholder="e.g. Google"
+                                                className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#00B48C]/20 focus:border-[#00B48C] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Job Description */}
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-baseline">
+                                            <label className="text-sm font-semibold text-gray-900 dark:text-white">Job Description <span className="text-[#00B48C] dark:text-[#E2F4EE]">*</span></label>
+                                            <span className="text-xs text-gray-400">Paste the full JD</span>
+                                        </div>
+                                        <div className="relative">
+                                            <AlignLeft className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                                            <textarea
+                                                value={jobDescription}
+                                                onChange={(e) => setJobDescription(e.target.value)}
+                                                placeholder="Paste the job description here..."
+                                                rows={5}
+                                                className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#00B48C]/20 focus:border-[#00B48C] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm resize-none"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Source Resume Selection */}
-                        <div className="space-y-1">
+                        <div className="border-t border-gray-100 dark:border-[#3d3c3e] pt-5 space-y-1">
                             <div className="flex justify-between items-baseline">
                                 <label className="text-sm font-semibold text-gray-900 dark:text-white">Source Resume</label>
                                 <span className="text-xs text-gray-400">Required</span>
@@ -738,246 +994,6 @@ export default function CreateJobTailoredResumePage() {
                                     )}
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="border-t border-gray-100 dark:border-[#3d3c3e] pt-5 space-y-4">
-                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                <Briefcase className="w-4 h-4 text-[#00B48C] dark:text-[#E2F4EE]" />
-                                Target Job Details
-                            </h3>
-
-                            {/* Job Input Tabs */}
-                            <div className="flex p-1 bg-gray-100 dark:bg-[#2b2a2c] rounded-full">
-                                <button
-                                    onClick={() => setJobInputMode('saved')}
-                                    className={`flex-1 py-2 text-xs font-semibold rounded-full transition-all ${jobInputMode === 'saved'
-                                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                        }`}
-                                >
-                                    Saved Job
-                                </button>
-                                <button
-                                    onClick={() => setJobInputMode('link')}
-                                    className={`flex-1 py-2 text-xs font-semibold rounded-full transition-all ${jobInputMode === 'link'
-                                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                        }`}
-                                >
-                                    Link
-                                </button>
-                                <button
-                                    onClick={() => setJobInputMode('manual')}
-                                    className={`flex-1 py-2 text-xs font-semibold rounded-full transition-all ${jobInputMode === 'manual'
-                                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                        }`}
-                                >
-                                    Manual
-                                </button>
-                            </div>
-
-                            {/* Saved Job Mode */}
-                            {jobInputMode === 'saved' && (
-                                <div className="space-y-2">
-                                    <div className="space-y-1">
-                                        <label className="text-sm font-semibold text-gray-900 dark:text-white">Select Saved Job <span className="text-[#00B48C] dark:text-[#E2F4EE]">*</span></label>
-
-                                        {/* Custom Dropdown */}
-                                        <div className="relative" ref={dropdownRef}>
-                                            {/* Dropdown Trigger */}
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                                className={`w-full px-3 py-2.5 bg-white dark:bg-[#2b2a2c] border rounded-lg text-left flex items-center justify-between transition-all text-sm ${isDropdownOpen
-                                                    ? 'border-[#00B48C] ring-2 ring-[#00B48C]/20'
-                                                    : 'border-gray-200 dark:border-[#3d3c3e] hover:border-gray-300 dark:hover:border-gray-600'
-                                                    }`}
-                                            >
-                                                {selectedSavedJobId ? (() => {
-                                                    const selectedJob = savedJobs.find(j => j.id === selectedSavedJobId);
-                                                    const domain = getCompanyDomain(selectedJob?.companyName);
-                                                    const initials = getCompanyInitials(selectedJob?.companyName || '');
-                                                    const gradient = getCompanyGradient(selectedJob?.companyName || '');
-                                                    return (
-                                                        <div className="flex items-center gap-2 min-w-0">
-                                                            {domain ? (
-                                                                <img
-                                                                    src={getLogoDevUrl(domain)}
-                                                                    alt=""
-                                                                    className="w-5 h-5 rounded-full object-cover flex-shrink-0"
-                                                                    onError={(e) => {
-                                                                        (e.target as HTMLImageElement).style.display = 'none';
-                                                                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                                                                    }}
-                                                                />
-                                                            ) : null}
-                                                            <div
-                                                                className={`${domain ? 'hidden' : ''} w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-white`}
-                                                                style={{ background: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})` }}
-                                                            >
-                                                                {initials}
-                                                            </div>
-                                                            <span className="truncate text-gray-900 dark:text-white text-sm">
-                                                                {selectedJob?.position} <span className="text-gray-400">@</span> {selectedJob?.companyName}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })() : (
-                                                    <span className="text-gray-400 text-sm">Select one of your saved jobs</span>
-                                                )}
-                                                <ChevronUp className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${isDropdownOpen ? '' : 'rotate-180'}`} />
-                                            </button>
-
-                                            {/* Dropdown Panel */}
-                                            {isDropdownOpen && (
-                                                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg shadow-lg overflow-hidden">
-                                                    {/* Search Input */}
-                                                    <div className="p-2 border-b border-gray-100 dark:border-[#3d3c3e]">
-                                                        <div className="relative">
-                                                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                                                            <input
-                                                                type="text"
-                                                                value={jobSearchQuery}
-                                                                onChange={(e) => setJobSearchQuery(e.target.value)}
-                                                                placeholder="Search"
-                                                                className="w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-[#2b2a2c] border-0 rounded-md text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00B48C]/30"
-                                                                autoFocus
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Job List */}
-                                                    <div className="max-h-[150px] overflow-y-auto">
-                                                        {filteredSavedJobs.length === 0 ? (
-                                                            <div className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                                                                No jobs found
-                                                            </div>
-                                                        ) : (
-                                                            filteredSavedJobs.map((job, index) => {
-                                                                const domain = getCompanyDomain(job.companyName);
-                                                                const initials = getCompanyInitials(job.companyName || '');
-                                                                const gradient = getCompanyGradient(job.companyName || '');
-                                                                return (
-                                                                    <button
-                                                                        key={job.id}
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            handleSavedJobSelect(job.id);
-                                                                            setIsDropdownOpen(false);
-                                                                            setJobSearchQuery('');
-                                                                        }}
-                                                                        className={`w-full px-3 py-2.5 flex items-center gap-2.5 text-left hover:bg-gray-50 dark:hover:bg-[#3d3c3e] transition-colors ${selectedSavedJobId === job.id ? 'bg-[#E2F4EE]/10 dark:bg-[#E2F4EE]/5' : ''
-                                                                            } ${index !== 0 ? 'border-t border-gray-100 dark:border-[#3d3c3e]' : ''}`}
-                                                                    >
-                                                                        {/* Company Logo */}
-                                                                        {domain ? (
-                                                                            <img
-                                                                                src={getLogoDevUrl(domain)}
-                                                                                alt=""
-                                                                                className="w-7 h-7 rounded-full object-cover flex-shrink-0 bg-gray-100 dark:bg-[#3d3c3e]"
-                                                                                onError={(e) => {
-                                                                                    (e.target as HTMLImageElement).style.display = 'none';
-                                                                                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                                                                                }}
-                                                                            />
-                                                                        ) : null}
-                                                                        <div
-                                                                            className={`${domain ? 'hidden' : ''} w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white`}
-                                                                            style={{ background: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})` }}
-                                                                        >
-                                                                            {initials}
-                                                                        </div>
-                                                                        {/* Job Info */}
-                                                                        <div className="min-w-0 flex-1">
-                                                                            <p className="text-sm text-gray-900 dark:text-white truncate">
-                                                                                {job.position} <span className="text-gray-400">@</span> <span className="font-medium">{job.companyName}</span>
-                                                                            </p>
-                                                                        </div>
-                                                                        {/* Checkmark if selected */}
-                                                                        {selectedSavedJobId === job.id && (
-                                                                            <Check className="w-4 h-4 text-[#00B48C] dark:text-[#E2F4EE] flex-shrink-0" />
-                                                                        )}
-                                                                    </button>
-                                                                );
-                                                            })
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Link Mode */}
-                            {jobInputMode === 'link' && (
-                                <div className="space-y-3">
-                                    <div className="space-y-1">
-                                        <label className="text-sm font-semibold text-gray-900 dark:text-white">Job URL <span className="text-[#00B48C] dark:text-[#E2F4EE]">*</span></label>
-                                        <input
-                                            type="url"
-                                            value={jobUrl}
-                                            onChange={(e) => setJobUrl(e.target.value)}
-                                            placeholder="https://linkedin.com/jobs/..."
-                                            className="w-full px-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#00B48C]/20 focus:border-[#00B48C] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
-                                        />
-                                        <p className="text-xs text-gray-400 dark:text-gray-500">
-                                            We'll extract the job details automatically.
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Manual Mode */}
-                            {jobInputMode === 'manual' && (
-                                <div className="space-y-3">
-                                    {/* Job Title */}
-                                    <div className="space-y-1">
-                                        <label className="text-sm font-semibold text-gray-900 dark:text-white">Job Title <span className="text-[#00B48C] dark:text-[#E2F4EE]">*</span></label>
-                                        <input
-                                            type="text"
-                                            value={jobTitle}
-                                            onChange={(e) => setJobTitle(e.target.value)}
-                                            placeholder="e.g. Senior Product Designer"
-                                            className="w-full px-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#00B48C]/20 focus:border-[#00B48C] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
-                                        />
-                                    </div>
-
-                                    {/* Company */}
-                                    <div className="space-y-1">
-                                        <label className="text-sm font-semibold text-gray-900 dark:text-white">Company <span className="text-[#00B48C] dark:text-[#E2F4EE]">*</span></label>
-                                        <div className="relative">
-                                            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                            <input
-                                                type="text"
-                                                value={company}
-                                                onChange={(e) => setCompany(e.target.value)}
-                                                placeholder="e.g. Google"
-                                                className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#00B48C]/20 focus:border-[#00B48C] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Job Description */}
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between items-baseline">
-                                            <label className="text-sm font-semibold text-gray-900 dark:text-white">Job Description <span className="text-[#00B48C] dark:text-[#E2F4EE]">*</span></label>
-                                            <span className="text-xs text-gray-400">Paste the full JD</span>
-                                        </div>
-                                        <div className="relative">
-                                            <AlignLeft className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                                            <textarea
-                                                value={jobDescription}
-                                                onChange={(e) => setJobDescription(e.target.value)}
-                                                placeholder="Paste the job description here..."
-                                                rows={5}
-                                                className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-[#2b2a2c] border border-gray-200 dark:border-[#3d3c3e] rounded-lg focus:ring-2 focus:ring-[#00B48C]/20 focus:border-[#00B48C] outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 text-sm resize-none"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </div>
 
                         {/* Mobile Continue Button */}

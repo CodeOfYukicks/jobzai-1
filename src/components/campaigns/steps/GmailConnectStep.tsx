@@ -18,12 +18,15 @@ function DesktopGmailConnectStep({ data, onUpdate }: GmailConnectStepProps) {
 
   // Sync connection state with campaign data
   useEffect(() => {
+    console.log('🔄 GmailConnectStep effect:', { isConnected, email });
     if (isConnected && email) {
+      console.log('✅ Updating parent with connected state');
       onUpdate({
         gmailConnected: true,
         gmailEmail: email
       });
     } else {
+      console.log('❌ Updating parent with disconnected state');
       onUpdate({
         gmailConnected: false,
         gmailEmail: ''

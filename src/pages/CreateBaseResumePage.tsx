@@ -5,7 +5,7 @@ import { ChevronRight, FileText, Upload, Linkedin, User, ArrowLeft, Check, Loade
 import AuthLayout from '../components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { db, storage } from '../lib/firebase';
-import { doc, setDoc, serverTimestamp, collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, query, orderBy, getDocs, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { notify } from '@/lib/notify';
 import { generateId } from '../lib/cvEditorUtils';
@@ -75,9 +75,9 @@ export default function CreateBaseResumePage() {
 
     // Form State
     const [jobTitle, setJobTitle] = useState('');
-    const [experienceLevel, setExperienceLevel] = useState('mid');
+
     const [documentTitle, setDocumentTitle] = useState('');
-    const [dataSource, setDataSource] = useState<'profile' | 'upload' | 'linkedin'>('profile');
+    const [dataSource, setDataSource] = useState<'profile' | 'upload' | 'linkedin' | 'scratch'>('profile');
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
     // Existing Resumes State
@@ -92,14 +92,58 @@ export default function CreateBaseResumePage() {
             if (!currentUser) return;
             setIsLoadingResumes(true);
             try {
+                // 1. Fetch User Profile to get Profile CV
+                const userDocRef = doc(db, 'users', currentUser.uid);
+                const userDocSnap = await getDoc(userDocRef);
+                const userData = userDocSnap.exists() ? userDocSnap.data() : null;
+                const profileCvUrl = userData?.cvUrl;
+                const profileCvName = userData?.cvName || 'Profile Resume';
+
+                // 2. Fetch Existing CVs from Collection
                 const resumesRef = collection(db, 'users', currentUser.uid, 'cvs');
                 const q = query(resumesRef, orderBy('updatedAt', 'desc'));
                 const querySnapshot = await getDocs(q);
-                const resumes = querySnapshot.docs.map(doc => ({
+                const cvsResumes = querySnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 }));
-                setExistingResumes(resumes);
+
+                let allResumes = [...cvsResumes];
+                let profileResumeId = null;
+
+                // 3. Identify or Create Profile Resume Object
+                if (profileCvUrl) {
+                    // Check if it exists in the collection
+                    const matchIndex = allResumes.findIndex(r => r.sourceFileUrl === profileCvUrl);
+
+                    if (matchIndex !== -1) {
+                        // Found in collection, mark it
+                        allResumes[matchIndex] = { ...allResumes[matchIndex], isProfile: true };
+                        profileResumeId = allResumes[matchIndex].id;
+
+                        // Move to top if not already
+                        if (matchIndex !== 0) {
+                            const [profileItem] = allResumes.splice(matchIndex, 1);
+                            allResumes.unshift(profileItem);
+                        }
+                    } else {
+                        // Not in collection (uploaded via Profile Documents), create virtual entry
+                        const virtualProfileResume = {
+                            id: 'profile_cv_virtual',
+                            name: profileCvName,
+                            sourceFileUrl: profileCvUrl,
+                            updatedAt: userData?.updatedAt || new Date(),
+                            isProfile: true,
+                            isVirtual: true // Flag to know it's not in 'cvs' collection
+                        };
+                        allResumes.unshift(virtualProfileResume);
+                        profileResumeId = virtualProfileResume.id;
+                    }
+                }
+
+                setExistingResumes(allResumes);
+
+                // Pre-select logic if needed, or leave null
             } catch (error) {
                 console.error('Error fetching resumes:', error);
             } finally {
@@ -155,14 +199,61 @@ export default function CreateBaseResumePage() {
             let cvData: any = createEmptyCVData(jobTitle);
             let fileUrl = null;
 
+            // Handle data source: Scratch
+            if (dataSource === 'scratch') {
+                // Already initialized as empty
+            }
             // Handle data source: Profile (Summary or existing CV)
-            if (dataSource === 'profile') {
+            else if (dataSource === 'profile') {
                 if (selectedResumeId) {
-                    // Clone existing CV
                     const selectedResume = existingResumes.find(r => r.id === selectedResumeId);
-                    if (selectedResume && selectedResume.cvData) {
-                        cvData = cloneCVData(selectedResume.cvData, jobTitle);
-                        notify.info('Copying from existing resume...');
+
+                    if (selectedResume) {
+                        if (selectedResume.cvData) {
+                            // Clone existing CV data
+                            cvData = cloneCVData(selectedResume.cvData, jobTitle);
+                            notify.info('Copying from existing resume...');
+                        } else if (selectedResume.sourceFileUrl) {
+                            // Parse from PDF URL (Virtual Profile Resume or PDF-only resume)
+                            try {
+                                setIsParsing(true);
+
+                                // Step 1: Fetch PDF
+                                setParsingStep('Fetching resume file...');
+                                const response = await fetch(selectedResume.sourceFileUrl);
+                                const blob = await response.blob();
+                                const file = new File([blob], selectedResume.name + '.pdf', { type: 'application/pdf' });
+
+                                // Reuse parsing logic
+                                // Step 2: Convert PDF to images
+                                setParsingStep('Converting PDF to images...');
+                                const images = await pdfToImages(file, 3, 1.5);
+
+                                // Step 3: Extract text
+                                setParsingStep('Reading your resume content...');
+                                const { text } = await extractCVTextAndTags(images);
+
+                                if (!text || text.length < 50) throw new Error('Could not extract text from PDF.');
+
+                                // Step 4: Parse AI
+                                setParsingStep('Analyzing your experience...');
+                                const extractedProfile = await extractFullProfileFromText(text);
+
+                                // Step 5: Map
+                                setParsingStep('Creating your resume...');
+                                cvData = mapExtractedProfileToCVData(extractedProfile, jobTitle);
+
+                                // Keep the source file association
+                                fileUrl = selectedResume.sourceFileUrl;
+
+                            } catch (err: any) {
+                                console.error('Error parsing profile PDF:', err);
+                                notify.error('Failed to parse the selected resume. Creating empty one.');
+                                cvData = createEmptyCVData(jobTitle);
+                            } finally {
+                                setIsParsing(false);
+                            }
+                        }
                     }
                 } else {
                     // Use Cubbbe Profile Summary
@@ -172,7 +263,7 @@ export default function CreateBaseResumePage() {
             }
 
             // Handle data source: PDF Upload with parsing
-            if (dataSource === 'upload' && uploadedFile) {
+            else if (dataSource === 'upload' && uploadedFile) {
                 setIsParsing(true);
 
                 try {
@@ -223,7 +314,7 @@ export default function CreateBaseResumePage() {
                 name: documentTitle.trim(),
                 cvData: cvData,
                 targetJobTitle: jobTitle,
-                experienceLevel: experienceLevel,
+                experienceLevel: 'mid',
                 dataSource: dataSource,
                 sourceFileUrl: fileUrl,
                 createdAt: serverTimestamp(),
@@ -377,51 +468,7 @@ export default function CreateBaseResumePage() {
                             />
                         </div>
 
-                        {/* Experience Level */}
-                        <div className="space-y-0.5">
-                            <div className="flex justify-between items-baseline">
-                                <label className="text-sm font-semibold text-gray-900 dark:text-white">Experience Level</label>
-                                <span className="text-xs text-gray-400">Required</span>
-                            </div>
-                            <p className="text-xs text-gray-400 dark:text-gray-500">What experience level are your targeting?</p>
 
-                            <div className="space-y-0 mt-1">
-                                {[
-                                    { id: 'entry', label: 'Entry · 0-2 years of exp.' },
-                                    { id: 'mid', label: 'Mid Level · 2-5 years of exp.' },
-                                    { id: 'senior', label: 'Senior · 5+ years of exp.' }
-                                ].map((level) => (
-                                    <label
-                                        key={level.id}
-                                        className={`flex items-center py-1.5 cursor-pointer transition-all ${experienceLevel === level.id
-                                            ? ''
-                                            : 'hover:bg-gray-50 dark:hover:bg-[#2b2a2c]'
-                                            }`}
-                                    >
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${experienceLevel === level.id
-                                            ? 'border-[#6236FF] dark:border-[#E8E1FF] bg-[#6236FF] dark:bg-[#E8E1FF]'
-                                            : 'border-gray-300 dark:border-gray-500'
-                                            }`}>
-                                            {experienceLevel === level.id && (
-                                                <div className="w-2 h-2 rounded-full bg-white dark:bg-[#1a191b]" />
-                                            )}
-                                        </div>
-                                        <input
-                                            type="radio"
-                                            name="experienceLevel"
-                                            value={level.id}
-                                            checked={experienceLevel === level.id}
-                                            onChange={(e) => setExperienceLevel(e.target.value)}
-                                            className="hidden"
-                                        />
-                                        <span className={`ml-2.5 text-sm ${experienceLevel === level.id ? 'font-medium text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'
-                                            }`}>
-                                            {level.label}
-                                        </span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
 
                         {/* Document Title */}
                         <div className="space-y-0.5">
@@ -530,9 +577,21 @@ export default function CreateBaseResumePage() {
                                                                 </div>
                                                                 <FileText className={`w-5 h-5 flex-shrink-0 ${selectedResumeId === resume.id ? 'text-[#6236FF] dark:text-[#E8E1FF]' : 'text-gray-400'}`} />
                                                                 <div className="min-w-0">
-                                                                    <p className={`font-medium text-sm truncate ${selectedResumeId === resume.id ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
-                                                                        {resume.name}
-                                                                    </p>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <p className={`font-medium text-sm truncate ${selectedResumeId === resume.id ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                                                                            {resume.name}
+                                                                        </p>
+                                                                        {resume.isProfile && (
+                                                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E8E1FF]/50 text-[#6236FF] dark:bg-[#E8E1FF]/10 dark:text-[#E8E1FF] border border-[#E8E1FF]/60 dark:border-[#E8E1FF]/20">
+                                                                                PROFILE
+                                                                            </span>
+                                                                        )}
+                                                                        {resume.sourceFileUrl && (
+                                                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800">
+                                                                                PDF
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                     <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                                                                         <Clock className="w-3 h-3" />
                                                                         <span>Updated {formatDate(resume.updatedAt)}</span>
@@ -581,7 +640,38 @@ export default function CreateBaseResumePage() {
                                             </div>
                                         </div>
                                     )}
+
+                                    {dataSource === 'scratch' && (
+                                        <div className="flex flex-col items-center justify-center py-6 text-center space-y-3">
+                                            <div className="w-12 h-12 rounded-full bg-[#6236FF]/10 flex items-center justify-center">
+                                                <FileText className="w-6 h-6 text-[#6236FF]" />
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-gray-900 dark:text-white">Start with a clean slate</p>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto mt-1">
+                                                    We'll create an empty resume for you to fill out manually. No data will be imported.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
+                            </div>
+
+                            {/* Start from Scratch Link */}
+                            <div className="flex items-center justify-start gap-2 pt-1 pl-1">
+                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                    Prefer to start with a blank resume?
+                                </span>
+                                <button
+                                    onClick={() => {
+                                        setDataSource('scratch');
+                                        setSelectedResumeId(null);
+                                        setUploadedFile(null);
+                                    }}
+                                    className="text-sm font-medium text-gray-500 hover:text-[#6236FF] dark:text-gray-400 dark:hover:text-[#E8E1FF] underline decoration-gray-300 dark:decoration-gray-600 hover:decoration-[#6236FF] dark:hover:decoration-[#E8E1FF] transition-all flex items-center gap-1"
+                                >
+                                    Start from scratch <ChevronRight className="w-3 h-3" />
+                                </button>
                             </div>
                         </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -30,33 +30,7 @@ interface UseGmailOAuthReturn {
   checkConnection: () => Promise<boolean>;
 }
 
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        oauth2: {
-          initCodeClient: (config: {
-            client_id: string;
-            scope: string;
-            ux_mode: string;
-            callback: (response: { code?: string; error?: string }) => void;
-            error_callback?: (error: { type: string; message: string }) => void;
-          }) => {
-            requestCode: () => void;
-          };
-          initTokenClient: (config: {
-            client_id: string;
-            scope: string;
-            callback: (response: { access_token?: string; error?: string; expires_in?: number }) => void;
-            error_callback?: (error: { type: string; message: string }) => void;
-          }) => {
-            requestAccessToken: () => void;
-          };
-        };
-      };
-    };
-  }
-}
+
 
 export function useGmailOAuth(): UseGmailOAuthReturn {
   const { currentUser } = useAuth();
@@ -162,11 +136,13 @@ export function useGmailOAuth(): UseGmailOAuthReturn {
       await loadGoogleScript();
 
       // Use Authorization Code flow to get refresh token
+      // Cast config to any to support 'prompt' property which might be missing in type definition
       const client = window.google!.accounts.oauth2.initCodeClient({
         client_id: gmailSettings.CLIENT_ID,
         scope: GMAIL_SCOPES,
         ux_mode: 'popup',
-        callback: async (response) => {
+        prompt: 'consent', // Force consent screen to ensure we get a refresh token
+        callback: async (response: any) => {
           if (response.error) {
             setError(response.error);
             setIsLoading(false);
@@ -206,12 +182,12 @@ export function useGmailOAuth(): UseGmailOAuthReturn {
           }
           setIsLoading(false);
         },
-        error_callback: (err) => {
+        error_callback: (err: any) => {
           console.error('OAuth error:', err);
           setError(err.message || 'OAuth failed');
           setIsLoading(false);
         }
-      });
+      } as any);
 
       // Trigger the OAuth flow
       client.requestCode();

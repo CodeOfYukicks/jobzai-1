@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useOnboarding, TOUR_STEPS } from '../../contexts/OnboardingContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * WelcomeTourModal
@@ -11,42 +12,44 @@ import { useOnboarding, TOUR_STEPS } from '../../contexts/OnboardingContext';
  * Appears once after signup to offer a guided tour.
  */
 
-const WELCOME_SHOWN_KEY = 'cubbbe_welcome_shown';
+const WELCOME_SHOWN_KEY_BASE = 'cubbbe_welcome_shown';
 
 export function WelcomeTourModal() {
-    console.log('[WelcomeTourModal] Component rendering');
     const navigate = useNavigate();
     const { startTour, isTourActive, hasCompletedTour } = useOnboarding();
+    const { currentUser } = useAuth();
+    const userId = currentUser?.uid;
+
     const [isVisible, setIsVisible] = useState(false);
     const [shouldRender, setShouldRender] = useState(false);
 
     useEffect(() => {
-        console.log('[WelcomeTourModal] Checking conditions:', { isTourActive, hasCompletedTour });
+        if (!userId) return;
 
         // Don't show if in tour or already completed
         if (isTourActive || hasCompletedTour) {
-            console.log('[WelcomeTourModal] Skipping: tour active or completed');
             return;
         }
 
-        // Check localStorage - if already shown ever, don't show again
-        const alreadyShown = localStorage.getItem(WELCOME_SHOWN_KEY);
-        console.log('[WelcomeTourModal] alreadyShown:', alreadyShown);
+        // Check localStorage - if already shown, don't show again
+        const storageKey = `${WELCOME_SHOWN_KEY_BASE}_${userId}`;
+        const alreadyShown = localStorage.getItem(storageKey);
+
         if (alreadyShown) return;
 
-        console.log('[WelcomeTourModal] Will show modal in 1s');
         // Show after delay
         const timer = setTimeout(() => {
-            console.log('[WelcomeTourModal] Showing modal now');
             setShouldRender(true);
             requestAnimationFrame(() => setIsVisible(true));
         }, 1000);
 
         return () => clearTimeout(timer);
-    }, [isTourActive, hasCompletedTour]);
+    }, [isTourActive, hasCompletedTour, userId]);
 
     const handleStartTour = () => {
-        localStorage.setItem(WELCOME_SHOWN_KEY, 'true');
+        if (userId) {
+            localStorage.setItem(`${WELCOME_SHOWN_KEY_BASE}_${userId}`, 'true');
+        }
         setIsVisible(false);
         setTimeout(() => {
             setShouldRender(false);
@@ -58,7 +61,9 @@ export function WelcomeTourModal() {
     };
 
     const handleSkip = () => {
-        localStorage.setItem(WELCOME_SHOWN_KEY, 'true');
+        if (userId) {
+            localStorage.setItem(`${WELCOME_SHOWN_KEY_BASE}_${userId}`, 'true');
+        }
         setIsVisible(false);
         setTimeout(() => setShouldRender(false), 200);
     };

@@ -8570,17 +8570,33 @@ app.post('/api/gmail/exchange-code', verifyFirebaseToken, async (req, res) => {
     const userInfo = await userInfoResponse.json();
     const userEmail = userInfo.email;
 
-    // Store tokens in Firestore
-    await db.collection('gmailTokens').doc(userId).set({
-      accessToken: access_token,
-      refreshToken: refresh_token,
-      email: userEmail,
-      expiresAt: Date.now() + (expires_in || 3600) * 1000,
-      connectedAt: admin.firestore.FieldValue.serverTimestamp(),
-      userId: userId
-    });
+    // Construct token object - only include defined values
+    const tokenUpdate = {};
 
-    console.log(`✅ Gmail connected for ${userEmail} with refresh token`);
+    // Add fields only if they are defined
+    if (access_token) tokenUpdate.accessToken = access_token;
+    if (userEmail) tokenUpdate.email = userEmail;
+    if (expires_in) tokenUpdate.expiresAt = Date.now() + expires_in * 1000;
+    else tokenUpdate.expiresAt = Date.now() + 3600 * 1000; // Default 1h
+
+    tokenUpdate.connectedAt = admin.firestore.FieldValue.serverTimestamp();
+    tokenUpdate.userId = userId;
+
+    // Only add refresh_token if it exists
+    if (refresh_token) {
+      tokenUpdate.refreshToken = refresh_token;
+    }
+
+    console.log('📝 Saving token update to Firestore:', JSON.stringify(tokenUpdate, null, 2));
+
+    // Store tokens in Firestore with merge: true to preserve existing refresh token if new one is missing
+    await db.collection('gmailTokens').doc(userId).set(tokenUpdate, { merge: true });
+
+    let msg = `✅ Gmail connected for ${userEmail}`;
+    if (refresh_token) msg += ' with NEW refresh token';
+    else msg += ' (using existing refresh token)';
+
+    console.log(msg);
 
     res.json({
       success: true,
@@ -8590,7 +8606,7 @@ app.post('/api/gmail/exchange-code', verifyFirebaseToken, async (req, res) => {
 
   } catch (error) {
     console.error('Error exchanging Gmail code:', error);
-    res.status(500).json({ error: 'Failed to exchange code', details: error.message });
+    res.status(500).json({ error: 'Backend Error: Failed to exchange code', details: error.message });
   }
 });
 

@@ -977,43 +977,37 @@ END:VCALENDAR`;
               ))}
             </motion.div>
           ) : getFilteredInterviews().length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center py-16 bg-white dark:bg-[#2b2a2c] rounded-2xl shadow-sm border border-gray-100 dark:border-[#3d3c3e]">
-              <div className="w-20 h-20 bg-gradient-to-br from-[#635BFF]/10 to-[#7c75ff]/10 dark:from-[#635BFF]/30 dark:to-[#7c75ff]/30 rounded-full flex items-center justify-center mx-auto mb-5">
-                <Calendar className="w-10 h-10 text-[#635BFF] dark:text-[#a5a0ff]" />
+            <div className="flex-1 flex flex-col items-center justify-center py-16 px-4">
+              <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-[#3d3c3e] flex items-center justify-center mb-4">
+                <Calendar className="w-8 h-8 text-gray-400 dark:text-gray-500" />
               </div>
-              <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                 {filterType !== 'all' || filterPeriod !== 'all'
                   ? 'No interviews match your filters'
                   : 'No interviews yet'}
               </h3>
-              <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-6">
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm mb-6">
                 {filterType !== 'all' || filterPeriod !== 'all'
                   ? 'Try adjusting your filters to see more results.'
                   : 'Track all your interviews in one place and get prepared with AI-powered interview tools.'}
               </p>
 
-              <div className="flex flex-col sm:flex-row justify-center gap-3 max-w-md mx-auto">
-                <Link
-                  to="/applications"
-                  className="inline-flex items-center justify-center px-5 py-2.5 bg-white dark:bg-[#2b2a2c] text-gray-700 dark:text-gray-300 
-                  border border-gray-200 dark:border-[#3d3c3e] rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
-                >
-                  <Briefcase className="w-4 h-4 mr-2" />
-                  <span className="text-sm font-medium">Track Applications</span>
-                </Link>
+              <div className="flex flex-col sm:flex-row justify-center gap-3 w-full max-w-md">
                 <Link
                   to="/calendar"
-                  className="inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-[#635BFF] to-[#7c75ff] hover:opacity-90 
-                  text-white rounded-lg font-medium transition-all shadow-lg shadow-[#635BFF]/20"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-900 bg-[#9FF01A] hover:bg-[#a5cb17] rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
                 >
-                  <Calendar className="w-4 h-4 mr-2" />
-                  <span className="text-sm font-medium">Schedule Interview</span>
+                  <Calendar className="w-4 h-4" />
+                  <span>Schedule Interview</span>
+                </Link>
+                <Link
+                  to="/applications"
+                  className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3d3c3e] rounded-lg transition-colors"
+                >
+                  <span>Track Applications</span>
                 </Link>
               </div>
-            </motion.div>
+            </div>
           ) : (
             <div className="space-y-8">
               {/* Show separated sections when viewing all interviews */}
