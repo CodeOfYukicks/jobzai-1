@@ -103,6 +103,30 @@ export default function PreviewContainer({
       });
     });
 
+    // Fallback: if no measurements found (e.g. initial render or error), 
+    // just treat the whole content as one block or use simple height division
+    if (measurements.length === 0 && measureRef.current.scrollHeight > 0) {
+      const totalHeight = measureRef.current.scrollHeight || CONTENT_HEIGHT; // Fallback to content height if scrollHeight gives 0
+      setTotalContentHeight(Math.max(totalHeight, CONTENT_HEIGHT));
+
+      // Simple height-based pagination if we can't measure individual sections
+      if (totalHeight <= CONTENT_HEIGHT) {
+        setPageBreaks([{ startY: 0, endY: totalHeight }]);
+      } else {
+        const breaks: PageBreak[] = [];
+        let currentY = 0;
+        while (currentY < totalHeight) {
+          breaks.push({
+            startY: currentY,
+            endY: Math.min(currentY + CONTENT_HEIGHT, totalHeight)
+          });
+          currentY += CONTENT_HEIGHT;
+        }
+        setPageBreaks(breaks);
+      }
+      return;
+    }
+
     // Calculate total content height
     const totalHeight = measureRef.current.scrollHeight;
     setTotalContentHeight(Math.max(totalHeight, CONTENT_HEIGHT));
@@ -162,8 +186,8 @@ export default function PreviewContainer({
   useEffect(() => {
     if (!measureRef.current) return;
 
-    // Initial calculation
-    const timeoutId = setTimeout(calculatePageBreaks, 100);
+    // Initial calculation - Increased delay to ensure fonts/styles are fully applied
+    const timeoutId = setTimeout(calculatePageBreaks, 300);
 
     // Set up observer for changes
     const observer = new ResizeObserver(() => {
@@ -292,36 +316,33 @@ export default function PreviewContainer({
                     borderRadius: '2px'
                   }}
                 >
-                  {/* Content wrapper - uses clip-path for precise clipping */}
+                  {/* Content viewport - masks content to show only this page's slice */}
                   <div
-                    className="absolute"
+                    className="absolute text-left"
                     style={{
-                      top: PAGE_MARGIN - page.startY,
+                      top: PAGE_MARGIN, // Start content at top margin
                       left: PAGE_MARGIN,
                       right: PAGE_MARGIN,
-                      // Clip to exactly the content height for this page
-                      clipPath: `inset(${page.startY}px 0 ${Math.max(0, totalContentHeight - page.endY)}px 0)`
+                      height: `${page.endY - page.startY}px`, // Height of this page's content slice
+                      overflow: 'hidden', // Clip everything outside this slice
+                      border: '1px solid transparent' // Fix for some browser rendering artifacts
                     }}
                   >
-                    <TemplateComponent
-                      cvData={cvData}
-                      layoutSettings={layoutSettingsWithDefaults}
-                      onSectionClick={onSectionClick}
-                      highlightTarget={highlightTarget}
-                    />
+                    {/* Shifted Content - moves the full content up to show the correct slice */}
+                    <div
+                      style={{
+                        marginTop: `-${page.startY}px`, // Shift content up
+                        minHeight: `${totalContentHeight}px` // Ensure full height is allocated
+                      }}
+                    >
+                      <TemplateComponent
+                        cvData={cvData}
+                        layoutSettings={layoutSettingsWithDefaults}
+                        onSectionClick={onSectionClick}
+                        highlightTarget={highlightTarget}
+                      />
+                    </div>
                   </div>
-
-                  {/* Top margin area (white) */}
-                  <div
-                    className="absolute top-0 left-0 right-0 bg-white z-10"
-                    style={{ height: `${PAGE_MARGIN}px` }}
-                  />
-
-                  {/* Bottom margin area (white) */}
-                  <div
-                    className="absolute bottom-0 left-0 right-0 bg-white z-10"
-                    style={{ height: `${PAGE_MARGIN}px` }}
-                  />
                 </div>
               </div>
             );

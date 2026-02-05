@@ -43,7 +43,7 @@ export default function ModernProfessional({ cvData, layoutSettings, onSectionCl
     >
       {/* Header */}
       <ClickableSection sectionType="personal" onSectionClick={onSectionClick} highlightTarget={highlightTarget}>
-        <header className="mb-6">
+        <header data-cv-section="personal" className="mb-6">
           <h1 className="font-bold text-gray-900 mb-1" style={{ fontSize: '2.25em' }}>
             {cvData.personalInfo.firstName} {cvData.personalInfo.lastName}
           </h1>
