@@ -85,6 +85,28 @@ const FAQPage = () => {
                 {/* Subtle noise texture overlay (optional, using CSS pattern if available or just gradient) */}
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay"></div>
 
+                {/* Decorative Stickers */}
+                <img
+                    src="/images/stickers/6.png"
+                    alt=""
+                    className="absolute top-96 left-[-20px] md:left-10 w-24 md:w-32 lg:w-40 rotate-[-12deg] opacity-80 md:opacity-100 pointer-events-none z-0"
+                />
+                <img
+                    src="/images/stickers/7.png"
+                    alt=""
+                    className="absolute top-20 right-[-20px] md:right-10 w-28 md:w-36 lg:w-44 rotate-[15deg] opacity-80 md:opacity-100 pointer-events-none z-0"
+                />
+                <img
+                    src="/images/stickers/8.png"
+                    alt=""
+                    className="absolute bottom-1/4 left-[-10px] md:left-12 w-32 md:w-40 lg:w-52 rotate-[5deg] opacity-80 md:opacity-100 pointer-events-none z-0"
+                />
+                <img
+                    src="/images/stickers/9.png"
+                    alt=""
+                    className="absolute bottom-32 right-[-10px] md:right-12 w-24 md:w-32 lg:w-40 rotate-[-8deg] opacity-80 md:opacity-100 pointer-events-none z-0"
+                />
+
                 <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
 
                     {/* Header Section */}
