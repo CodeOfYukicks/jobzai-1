@@ -88,7 +88,7 @@ export function ApplicationCard({
       />
     );
   }
-  
+
   // Jobs card (original)
   return (
     <JobsCard
@@ -124,20 +124,20 @@ function CampaignCard({
   const meetingCount = app.meetings?.length || app.interviews?.length || 0;
   const channelConfig = app.outreachChannel ? OUTREACH_CHANNEL_CONFIG[app.outreachChannel] : null;
   const warmthColors = app.warmthLevel ? WARMTH_LEVEL_COLORS[app.warmthLevel] : null;
-  
+
   return (
     <div
       onClick={onClick}
       className={[
         'group relative w-full cursor-pointer select-none',
-        'rounded-xl border',
-        'bg-white/90 dark:bg-[#2b2a2c]/80 backdrop-blur-md',
-        'border-gray-200/60 dark:border-[#3d3c3e]/60',
-        'hover:border-gray-300/80 dark:hover:border-[#4a494b]/80',
-        'shadow-sm hover:shadow-lg dark:shadow-black/20',
+        'rounded-lg border',
+        'bg-white dark:bg-[#2b2a2c] box-border',
+        'border-gray-200 dark:border-[#3d3c3e]',
+        'hover:border-gray-300 dark:hover:border-[#4a494b]',
+        'shadow-sm hover:shadow-md dark:shadow-black/20',
         'transition-all duration-200',
-        'h-full flex flex-col',
-        isDragging ? 'ring-2 ring-[#635BFF] ring-offset-0 shadow-xl dark:shadow-[#635BFF]/20' : '',
+        'flex flex-col',
+        isDragging ? 'ring-2 ring-[#635BFF] ring-offset-0 shadow-xl dark:shadow-[#635BFF]/20 rotate-2' : '',
       ].join(' ')}
       role="button"
     >
@@ -160,7 +160,7 @@ function CampaignCard({
             </span>
           </div>
         )}
-        
+
         {/* Section 1: Header - Contact Name avec avatar */}
         <div className="flex items-start gap-3 mb-3 flex-shrink-0">
           {/* Contact Avatar */}
@@ -252,7 +252,7 @@ function CampaignCard({
             )}
           </div>
         )}
-        
+
         {/* Spacer to push footer to bottom */}
         <div className="flex-1"></div>
 
@@ -266,7 +266,7 @@ function CampaignCard({
             </span>
           )}
           {!app.nextFollowUpDate && <div />}
-          
+
           {/* Actions visibles au hover */}
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {onMoveToBoard && (
@@ -325,14 +325,14 @@ function JobsCard({
       onClick={onClick}
       className={[
         'group relative w-full cursor-pointer select-none',
-        'rounded-xl border',
-        'bg-white/90 dark:bg-[#2b2a2c]/80 backdrop-blur-md',
-        'border-gray-200/60 dark:border-[#3d3c3e]/60',
-        'hover:border-gray-300/80 dark:hover:border-[#4a494b]/80',
-        'shadow-sm hover:shadow-lg dark:shadow-black/20',
+        'rounded-lg border',
+        'bg-white dark:bg-[#2b2a2c] box-border',
+        'border-gray-200 dark:border-[#3d3c3e]',
+        'hover:border-gray-300 dark:hover:border-[#4a494b]',
+        'shadow-sm hover:shadow-md dark:shadow-black/20',
         'transition-all duration-200',
-        'h-full flex flex-col',
-        isDragging ? 'ring-2 ring-[#635BFF] ring-offset-0 shadow-xl dark:shadow-[#635BFF]/20' : '',
+        'flex flex-col',
+        isDragging ? 'ring-2 ring-[#635BFF] ring-offset-0 shadow-xl dark:shadow-[#635BFF]/20 rotate-2' : '',
       ].join(' ')}
       role="button"
     >
@@ -348,8 +348,8 @@ function JobsCard({
 
         {/* Section 1: Header - Position avec logo */}
         <div className="flex items-start gap-3 mb-3 flex-shrink-0">
-          <CompanyLogo 
-            companyName={app.companyName} 
+          <CompanyLogo
+            companyName={app.companyName}
             size="lg"
             className="rounded-lg border border-gray-100 dark:border-[#3d3c3e] flex-shrink-0"
           />
@@ -364,57 +364,64 @@ function JobsCard({
         </div>
 
         {/* Section 2: Métadonnées avec icônes */}
-        <div className="flex flex-wrap items-center gap-3 mb-3 flex-shrink-0">
+
+
+        {/* Section 2: Métadonnées avec icônes (Company • Date • Location) */}
+        <div className="flex flex-wrap items-center content-start gap-y-1.5 gap-x-2 mb-3 flex-shrink-0 text-gray-500 dark:text-gray-400 min-h-[42px]">
+          {/* Company Name */}
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {app.companyName}
+          </span>
+
+          <span className="text-gray-300 dark:text-gray-600 text-xs">•</span>
+
           {/* Date */}
-          <div className="flex items-center gap-1.5">
-            <Calendar className="w-4 h-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />
-            <span className="text-sm text-gray-500 dark:text-gray-400">{formatDate(app.appliedDate)}</span>
-          </div>
+          <span className="text-sm whitespace-nowrap">{formatDate(app.appliedDate)}</span>
 
           {/* Location */}
           {app.location && (
-            <div className="flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
-              <span className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{app.location}</span>
-            </div>
+            <>
+              <span className="text-gray-300 dark:text-gray-600 text-xs">•</span>
+              <span className="text-sm truncate max-w-[100px]">{app.location}</span>
+            </>
           )}
 
-          {/* Interviews */}
+          {/* Interview Count */}
           {hasInterviews && (
-            <div className="flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                {interviewCount} {interviewCount === 1 ? 'interview' : 'interviews'}
+            <>
+              <span className="text-gray-300 dark:text-gray-600 text-xs">•</span>
+              <span className="text-sm whitespace-nowrap">
+                {interviewCount} {interviewCount === 1 ? 'int.' : 'int.'}
               </span>
-            </div>
+            </>
           )}
         </div>
 
-        {/* Section 3: Entreprise */}
-        <div className="mb-3 flex-shrink-0">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-gray-100/80 dark:bg-[#3d3c3e]/50 border border-gray-200 dark:border-[#3d3c3e]">
-            <span className="text-sm font-normal text-gray-600 dark:text-gray-400">{app.companyName}</span>
-          </div>
-        </div>
 
-        {/* Section 4: Tags - interview types */}
-        {hasInterviews && interviewTypes.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 mb-3 flex-shrink-0">
-            {interviewTypes.slice(0, 3).map((t) => <StepChip key={t} type={t} />)}
-            {interviewTypes.length > 3 && (
-              <span className="text-[10px] text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full border border-gray-200 dark:border-[#3d3c3e] bg-gray-50 dark:bg-[#3d3c3e]/40">
-                +{interviewTypes.length - 3}
-              </span>
-            )}
-          </div>
-        )}
 
         {/* Spacer to push footer to bottom */}
         <div className="flex-1"></div>
 
-        {/* Section 5: Footer avec actions */}
-        <div className="flex items-center justify-end pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50 flex-shrink-0">
-          {/* Actions visibles au hover */}
+        {/* Section 5: Footer avec Tags et Actions */}
+        <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50 flex-shrink-0 min-h-[40px]">
+          {/* Tags (Left) */}
+          <div className="flex flex-wrap items-center gap-1.5 max-w-[70%] overflow-hidden">
+            {hasInterviews && interviewTypes.length > 0 ? (
+              <>
+                {interviewTypes.slice(0, 2).map((t) => <StepChip key={t} type={t} muted />)}
+                {interviewTypes.length > 2 && (
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                    +{interviewTypes.length - 2}
+                  </span>
+                )}
+              </>
+            ) : (
+              /* Empty placeholder or just space? Using empty div to keep spacing if needed, but flex-col handles it. */
+              <div />
+            )}
+          </div>
+
+          {/* Actions visibles au hover (Right) */}
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {onMoveToBoard && (
               <button
@@ -422,7 +429,7 @@ function JobsCard({
                   e.stopPropagation();
                   onMoveToBoard();
                 }}
-                className="p-1.5 rounded-md hover:bg-[#635BFF]/10 text-gray-500 dark:text-gray-400 hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors"
+                className="p-1.5 rounded-md hover:bg-[#635BFF]/10 text-gray-400 dark:text-gray-500 hover:text-[#635BFF] dark:hover:text-[#a5a0ff] transition-colors"
                 aria-label="Move to another board"
                 title="Move to board"
               >
@@ -434,7 +441,7 @@ function JobsCard({
                 e.stopPropagation();
                 onDelete();
               }}
-              className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+              className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
               aria-label="Delete application"
             >
               <Trash2 className="w-4 h-4" />

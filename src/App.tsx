@@ -75,6 +75,9 @@ const BlogPage = lazy(() => import('./pages/BlogPage'));
 const BlogPostPage = lazy(() => import('./pages/BlogPostPage'));
 const AdminBlogPage = lazy(() => import('./pages/admin/AdminBlogPage'));
 const BlogEditorPage = lazy(() => import('./pages/admin/BlogEditorPage'));
+const AdminContentPage = lazy(() => import('./pages/admin/AdminContentPage'));
+const SocialPostEditorPage = lazy(() => import('./pages/admin/SocialPostEditorPage'));
+const SocialCalendarPage = lazy(() => import('./pages/admin/SocialCalendarPage'));
 const FAQPage = lazy(() => import('./pages/FAQPage'));
 
 import { initNotificationService } from './services/notificationService';
@@ -178,6 +181,36 @@ function AppContent() {
             <PrivateRoute requireProfileCompleted={false}>
               <AdminGuard>
                 <BlogEditorPage />
+              </AdminGuard>
+            </PrivateRoute>
+          } />
+
+          {/* Admin Social Content Routes - Protected */}
+          <Route path="/admin/content" element={
+            <PrivateRoute requireProfileCompleted={false}>
+              <AdminGuard>
+                <AdminContentPage />
+              </AdminGuard>
+            </PrivateRoute>
+          } />
+          <Route path="/admin/content/new" element={
+            <PrivateRoute requireProfileCompleted={false}>
+              <AdminGuard>
+                <SocialPostEditorPage />
+              </AdminGuard>
+            </PrivateRoute>
+          } />
+          <Route path="/admin/content/edit/:id" element={
+            <PrivateRoute requireProfileCompleted={false}>
+              <AdminGuard>
+                <SocialPostEditorPage />
+              </AdminGuard>
+            </PrivateRoute>
+          } />
+          <Route path="/admin/content/calendar" element={
+            <PrivateRoute requireProfileCompleted={false}>
+              <AdminGuard>
+                <SocialCalendarPage />
               </AdminGuard>
             </PrivateRoute>
           } />

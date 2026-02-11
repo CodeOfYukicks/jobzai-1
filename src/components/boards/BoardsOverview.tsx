@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Plus, 
-  MoreHorizontal, 
-  Edit2, 
-  Trash2, 
+import {
+  Plus,
+  MoreHorizontal,
+  Edit2,
+  Trash2,
   Copy,
   ArrowUpRight,
   Briefcase,
@@ -50,12 +50,12 @@ export default function BoardsOverview({
 
     const boardType = board.boardType || 'jobs';
     const columns = BOARD_TYPE_COLUMNS[boardType];
-    
+
     const stats: BoardStats = { total: boardApps.length };
     columns.forEach(col => {
       stats[col] = boardApps.filter(a => a.status === col).length;
     });
-    
+
     return stats;
   };
 
@@ -84,7 +84,7 @@ export default function BoardsOverview({
               key={board.id}
               initial={{ opacity: 0, y: 20, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ 
+              transition={{
                 delay: index * 0.05,
                 type: "spring",
                 stiffness: 120,
@@ -96,20 +96,20 @@ export default function BoardsOverview({
               className="group relative cursor-pointer"
             >
               {/* Subtle glow effect on hover */}
-              <div 
-                className="absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 blur-lg"
+              <div
+                className="absolute -inset-0.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 blur-lg"
                 style={{ background: `linear-gradient(135deg, ${color}30, ${color}10)` }}
               />
-              
+
               {/* Main Card - Compact */}
-              <div className="relative h-full bg-white/90 dark:bg-[#2b2a2c]/80 backdrop-blur-md rounded-2xl border border-gray-200/80 dark:border-[#3d3c3e]/60 shadow-sm hover:shadow-xl dark:shadow-black/20 hover:border-gray-300 dark:hover:border-[#4a494b] transition-all duration-300">
-                
+              <div className="relative h-full bg-white/90 dark:bg-[#2b2a2c]/80 backdrop-blur-md rounded-lg border border-gray-200/80 dark:border-[#3d3c3e]/60 shadow-sm hover:shadow-xl dark:shadow-black/20 hover:border-gray-300 dark:hover:border-[#4a494b] transition-all duration-300">
+
                 {/* Compact Cover Section */}
-                <div className="relative h-16 overflow-hidden rounded-t-2xl">
+                <div className="relative h-16 overflow-hidden rounded-t-lg">
                   {board.coverPhoto ? (
                     <>
-                      <motion.img 
-                        src={board.coverPhoto} 
+                      <motion.img
+                        src={board.coverPhoto}
                         alt={`${board.name} cover`}
                         className="w-full h-full object-cover"
                         animate={{ scale: isHovered ? 1.05 : 1 }}
@@ -118,9 +118,9 @@ export default function BoardsOverview({
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     </>
                   ) : (
-                    <div 
+                    <div
                       className="w-full h-full"
-                      style={{ 
+                      style={{
                         background: `linear-gradient(135deg, ${color}25 0%, ${color}08 100%)`,
                       }}
                     />
@@ -194,7 +194,7 @@ export default function BoardsOverview({
                 </div>
 
                 {/* Floating Icon - Outside cover to avoid clipping */}
-                <motion.div 
+                <motion.div
                   className="absolute top-12 left-3 z-20 w-9 h-9 rounded-xl flex items-center justify-center text-base shadow-md ring-2 ring-white dark:ring-[#242325]"
                   style={{ background: `linear-gradient(135deg, ${color}, ${color}dd)` }}
                   animate={{ y: isHovered ? -2 : 0 }}
@@ -211,11 +211,10 @@ export default function BoardsOverview({
                       {board.name}
                     </h3>
                     {/* Type Badge - Minimal */}
-                    <span className={`flex-shrink-0 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-md font-medium ${
-                      boardType === 'campaigns'
+                    <span className={`flex-shrink-0 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-md font-medium ${boardType === 'campaigns'
                         ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
                         : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                    }`}>
+                      }`}>
                       {boardType === 'campaigns' ? (
                         <Send className="w-2 h-2" />
                       ) : (
@@ -271,7 +270,7 @@ export default function BoardsOverview({
                         <div
                           key={segment.key}
                           className="h-full rounded-full"
-                          style={{ 
+                          style={{
                             width: `${percentage}%`,
                             backgroundColor: segment.color,
                             minWidth: count > 0 ? '4px' : 0
@@ -284,9 +283,9 @@ export default function BoardsOverview({
                   {/* Hover Arrow */}
                   <motion.div
                     className="absolute bottom-3 right-3"
-                    animate={{ 
+                    animate={{
                       x: isHovered ? 0 : -5,
-                      opacity: isHovered ? 1 : 0 
+                      opacity: isHovered ? 1 : 0
                     }}
                     transition={{ duration: 0.15 }}
                   >
@@ -302,7 +301,7 @@ export default function BoardsOverview({
         <motion.button
           initial={{ opacity: 0, y: 20, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ 
+          transition={{
             delay: boards.length * 0.05,
             type: "spring",
             stiffness: 120,
@@ -311,8 +310,8 @@ export default function BoardsOverview({
           onClick={onCreateBoard}
           className="group relative h-full min-h-[140px]"
         >
-          <div className="h-full bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-[#3d3c3e] hover:border-[#635BFF] dark:hover:border-[#635BFF] hover:bg-[#635BFF]/5 dark:hover:bg-[#635BFF]/10 transition-all duration-300 flex flex-col items-center justify-center p-4">
-            <motion.div 
+          <div className="h-full bg-gray-50 dark:bg-[#2b2a2c]/50 rounded-lg border-2 border-dashed border-gray-200 dark:border-[#3d3c3e] hover:border-[#635BFF] dark:hover:border-[#635BFF] hover:bg-[#635BFF]/5 dark:hover:bg-[#635BFF]/10 transition-all duration-300 flex flex-col items-center justify-center p-4">
+            <motion.div
               className="w-10 h-10 rounded-xl bg-gray-200 dark:bg-[#3d3c3e] flex items-center justify-center mb-2 group-hover:bg-[#635BFF]/20 transition-all duration-200"
               whileHover={{ scale: 1.05, rotate: 90 }}
               transition={{ duration: 0.3 }}

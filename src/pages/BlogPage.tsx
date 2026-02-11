@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ArrowRight, ArrowLeft } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { syncUserToBrevo } from '../services/brevo';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { forceLightMode } from '../lib/theme';
@@ -10,6 +11,33 @@ import { useBlogPosts } from '../hooks/useBlogPosts';
 export default function BlogPage() {
     const [activeCategory, setActiveCategory] = useState('All');
     const [carouselIndex, setCarouselIndex] = useState(0);
+
+    // Newsletter state
+    const [email, setEmail] = useState('');
+    const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [message, setMessage] = useState('');
+
+    const handleSubscribe = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!email) return;
+
+        setStatus('loading');
+        setMessage('');
+
+        try {
+            await syncUserToBrevo({
+                email,
+                MARKETING: true
+            });
+            setStatus('success');
+            setMessage('You have successfully subscribed to our newsletter!');
+            setEmail('');
+        } catch (error) {
+            console.error('Subscription error:', error);
+            setStatus('error');
+            setMessage('An error occurred. Please try again later.');
+        }
+    };
 
     // Force light mode
     useEffect(() => {
@@ -301,20 +329,55 @@ export default function BlogPage() {
                         Join 150,000+ professionals who get our weekly career tips.
                     </p>
 
-                    <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onSubmit={(e) => e.preventDefault()}>
-                        <input
-                            type="email"
-                            placeholder="Your email address"
-                            className="flex-1 px-5 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-black focus:border-transparent text-gray-900"
-                            required
-                        />
+                    <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto relative" onSubmit={handleSubscribe}>
+                        <div className="flex-1 relative">
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Your email address"
+                                className="w-full px-5 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-black focus:border-transparent text-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
+                                required
+                                disabled={status === 'loading' || status === 'success'}
+                            />
+                        </div>
                         <button
                             type="submit"
-                            className="px-6 py-3 bg-black text-white font-semibold rounded-md hover:bg-gray-800 transition-colors"
+                            disabled={status === 'loading' || status === 'success'}
+                            className={`px-6 py-3 font-semibold rounded-md transition-all flex items-center justify-center min-w-[120px]
+                                ${status === 'success'
+                                    ? 'bg-green-600 text-white hover:bg-green-700'
+                                    : status === 'error'
+                                        ? 'bg-red-600 text-white hover:bg-red-700'
+                                        : 'bg-black text-white hover:bg-gray-800'
+                                } disabled:opacity-80 disabled:cursor-not-allowed`}
                         >
-                            Subscribe
+                            {status === 'loading' ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : status === 'success' ? (
+                                <>
+                                    <CheckCircle className="w-5 h-5 mr-2" />
+                                    Subscribed
+                                </>
+                            ) : status === 'error' ? (
+                                <>
+                                    <AlertCircle className="w-5 h-5 mr-2" />
+                                    Retry
+                                </>
+                            ) : (
+                                'Subscribe'
+                            )}
                         </button>
                     </form>
+                    {message && (
+                        <motion.p
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={`mt-4 text-sm font-medium ${status === 'success' ? 'text-green-600' : 'text-red-600'}`}
+                        >
+                            {message}
+                        </motion.p>
+                    )}
                 </div>
             </section>
 

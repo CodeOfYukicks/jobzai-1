@@ -144,6 +144,8 @@ import { processDynamicBatch as _processDynamicBatch } from './dynamicBatchProce
 import { getDatabaseStats as _getDatabaseStats, manualCleanup as _manualCleanup } from './maintenance';
 import { fetchAggregatorsManual as _fetchAggregatorsManual } from './aggregators';
 import { processTaskManual as _processTaskManual, getQueueStatus as _getQueueStatus } from './queue';
+import { authRedirect as _authRedirect, authCallback as _authCallback } from './socialAuth';
+import { publishPost as _publishPost } from './socialPublishing';
 
 // Re-export with explicit names
 export const runDynamicBatch = _processDynamicBatch;
@@ -152,6 +154,9 @@ export const cleanupJobs = _manualCleanup;
 export const fetchAggregators = _fetchAggregatorsManual;
 export const testFetchTask = _processTaskManual;
 export const queueStatus = _getQueueStatus;
+export const authRedirect = _authRedirect;
+export const authCallback = _authCallback;
+export const publishPost = _publishPost;
 
 /**
  * Import function triggers from their respective submodules:
