@@ -35,8 +35,7 @@ export async function publishSocialPost(post: SocialPost): Promise<PublishResult
                 content: post.content,
                 subreddit: post.subreddit,
                 redditTitle: post.redditTitle,
-                images: post.images,
-                threadTweets: post.threadTweets
+                images: post.images
             })
         });
 

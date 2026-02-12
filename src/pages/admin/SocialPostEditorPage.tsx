@@ -20,6 +20,7 @@ import {
     X,
     Maximize2,
     Minimize2,
+    Search,
 } from 'lucide-react';
 import { useSocialPosts } from '../../hooks/useSocialPosts';
 import { generateMultiPlatformPosts, regenerateSinglePost } from '../../services/socialContentAI';
@@ -139,9 +140,7 @@ function PlatformPreviewCard({
     content,
     hashtags,
     redditTitle,
-    threadTweets,
     onChange,
-    onThreadTweetChange,
     onRegenerate,
     onCopy,
     onPublish,
@@ -154,9 +153,7 @@ function PlatformPreviewCard({
     content: string;
     hashtags: string[];
     redditTitle?: string;
-    threadTweets?: string[];
     onChange: (content: string) => void;
-    onThreadTweetChange?: (index: number, newContent: string) => void;
     onRegenerate: () => void;
     onCopy: () => void;
     onPublish: () => void;
@@ -169,7 +166,6 @@ function PlatformPreviewCard({
     const limit = PLATFORM_LIMITS[platform];
     const [copied, setCopied] = useState(false);
     const [focusMode, setFocusMode] = useState(false);
-    const isThread = threadTweets && threadTweets.length > 0;
 
     const handleCopy = () => {
         onCopy();
@@ -192,15 +188,10 @@ function PlatformPreviewCard({
                             style={{ backgroundColor: info.bgColor, color: info.color }}
                         >
                             {platform === 'linkedin' && <Linkedin size={16} />}
-                            {platform === 'twitter' && <span className="text-sm font-bold">{'\ud835\udd4f'}</span>}
+                            {platform === 'twitter' && <span className="text-sm font-bold">𝕏</span>}
                             {platform === 'reddit' && <MessageCircle size={16} />}
                         </div>
                         <span className="font-semibold text-gray-900 text-sm">{info.name}</span>
-                        {isThread && (
-                            <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                                Thread · {threadTweets.length} tweets
-                            </span>
-                        )}
                     </div>
                     <div className="flex items-center gap-1">
                         <button
@@ -245,49 +236,18 @@ function PlatformPreviewCard({
                         </div>
                     )}
 
-                    {/* Thread display */}
-                    {isThread ? (
-                        <div className="space-y-2">
-                            {threadTweets.map((tweet, i) => (
-                                <div key={i} className="relative">
-                                    <div className="flex items-start gap-3">
-                                        <div className="flex flex-col items-center pt-2 shrink-0">
-                                            <div className="w-6 h-6 rounded-full bg-gray-900 text-white text-[10px] font-bold flex items-center justify-center">
-                                                {i + 1}
-                                            </div>
-                                            {i < threadTweets.length - 1 && (
-                                                <div className="w-0.5 flex-1 bg-gray-200 mt-1 min-h-[20px]" />
-                                            )}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <textarea
-                                                value={tweet}
-                                                onChange={(e) => onThreadTweetChange?.(i, e.target.value)}
-                                                rows={3}
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-300 transition-all"
-                                            />
-                                            <div className="mt-1">
-                                                <CharacterCounter current={tweet.length} limit={PLATFORM_LIMITS.twitter} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <>
-                            <textarea
-                                value={content}
-                                onChange={(e) => onChange(e.target.value)}
-                                rows={platform === 'twitter' ? 4 : 8}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-300 transition-all"
-                                placeholder={`Write your ${info.name} post...`}
-                            />
-                            <div className="mt-3">
-                                <CharacterCounter current={content.length} limit={limit} />
-                            </div>
-                        </>
-                    )}
+                    <textarea
+                        value={content}
+                        onChange={(e) => onChange(e.target.value)}
+                        rows={platform === 'twitter' ? 4 : 8}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-300 transition-all"
+                        placeholder={`Write your ${info.name} post...`}
+                    />
+
+                    {/* Character counter */}
+                    <div className="mt-3">
+                        <CharacterCounter current={content.length} limit={limit} />
+                    </div>
 
                     {/* Hashtags */}
                     {hashtags.length > 0 && (
@@ -346,7 +306,10 @@ function PlatformPreviewCard({
                         className="fixed inset-0 z-[100] flex items-center justify-center"
                         onClick={() => setFocusMode(false)}
                     >
+                        {/* Backdrop */}
                         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+                        {/* Modal */}
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -363,14 +326,12 @@ function PlatformPreviewCard({
                                         style={{ backgroundColor: info.bgColor, color: info.color }}
                                     >
                                         {platform === 'linkedin' && <Linkedin size={18} />}
-                                        {platform === 'twitter' && <span className="text-base font-bold">{'\ud835\udd4f'}</span>}
+                                        {platform === 'twitter' && <span className="text-base font-bold">𝕏</span>}
                                         {platform === 'reddit' && <MessageCircle size={18} />}
                                     </div>
                                     <div>
                                         <span className="font-semibold text-gray-900">{info.name}</span>
-                                        <p className="text-xs text-gray-500">
-                                            {isThread ? `Thread · ${threadTweets.length} tweets` : 'Focus Mode'}
-                                        </p>
+                                        <p className="text-xs text-gray-500">Focus Mode</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1">
@@ -411,57 +372,10 @@ function PlatformPreviewCard({
                                     </div>
                                 )}
 
-                                {/* Thread focus view */}
-                                {isThread ? (
-                                    <div className="space-y-4">
-                                        {threadTweets.map((tweet, i) => (
-                                            <div key={i} className="flex gap-4">
-                                                <div className="flex flex-col items-center shrink-0">
-                                                    <div className="w-8 h-8 rounded-full bg-gray-900 text-white text-xs font-bold flex items-center justify-center">
-                                                        {i + 1}
-                                                    </div>
-                                                    {i < threadTweets.length - 1 && (
-                                                        <div className="w-0.5 flex-1 bg-gray-200 mt-1" />
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 pb-4">
-                                                    <div className="text-[15px] text-gray-800 leading-[1.8] whitespace-pre-wrap mb-2">
-                                                        {tweet}
-                                                    </div>
-                                                    <textarea
-                                                        value={tweet}
-                                                        onChange={(e) => onThreadTweetChange?.(i, e.target.value)}
-                                                        rows={3}
-                                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-300 transition-all"
-                                                    />
-                                                    <div className="mt-1">
-                                                        <CharacterCounter current={tweet.length} limit={PLATFORM_LIMITS.twitter} />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="text-[15px] text-gray-800 leading-[1.8] whitespace-pre-wrap">
-                                            {content}
-                                        </div>
-                                        <div className="pt-2">
-                                            <CharacterCounter current={content.length} limit={limit} />
-                                        </div>
-                                        <div className="pt-2 border-t border-gray-100">
-                                            <label className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 block">
-                                                Edit Content
-                                            </label>
-                                            <textarea
-                                                value={content}
-                                                onChange={(e) => onChange(e.target.value)}
-                                                rows={platform === 'twitter' ? 5 : 12}
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[15px] text-gray-900 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-300 transition-all"
-                                            />
-                                        </div>
-                                    </>
-                                )}
+                                {/* Readable content */}
+                                <div className="text-[15px] text-gray-800 leading-[1.8] whitespace-pre-wrap">
+                                    {content}
+                                </div>
 
                                 {/* Hashtags */}
                                 {hashtags.length > 0 && (
@@ -477,9 +391,27 @@ function PlatformPreviewCard({
                                         ))}
                                     </div>
                                 )}
+
+                                {/* Character counter */}
+                                <div className="pt-2">
+                                    <CharacterCounter current={content.length} limit={limit} />
+                                </div>
+
+                                {/* Editable textarea */}
+                                <div className="pt-2 border-t border-gray-100">
+                                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 block">
+                                        Edit Content
+                                    </label>
+                                    <textarea
+                                        value={content}
+                                        onChange={(e) => onChange(e.target.value)}
+                                        rows={platform === 'twitter' ? 5 : 12}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[15px] text-gray-900 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-300 transition-all"
+                                    />
+                                </div>
                             </div>
 
-                            {/* Focus Footer */}
+                            {/* Focus Footer Actions */}
                             <div className="px-6 py-4 border-t border-gray-100 flex items-center gap-2 shrink-0 bg-gray-50/50">
                                 <button
                                     onClick={onPublish}
@@ -511,6 +443,7 @@ function PlatformPreviewCard({
         </>
     );
 }
+
 // ============================================
 // MAIN EDITOR PAGE
 // ============================================
@@ -541,10 +474,10 @@ export default function SocialPostEditorPage() {
     const [topicSuggestions, setTopicSuggestions] = useState<TopicSuggestion[]>([]);
     const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [suggestionContext, setSuggestionContext] = useState('');
 
     // Brand mention toggle
     const [mentionBrand, setMentionBrand] = useState(false);
-    const [isThread, setIsThread] = useState(false);
 
     // Scheduling state
     const [showScheduler, setShowScheduler] = useState(false);
@@ -570,7 +503,6 @@ export default function SocialPostEditorPage() {
                 hashtags: post.hashtags || [],
                 characterCount: post.characterCount || post.content.length,
                 redditTitle: post.redditTitle,
-                threadTweets: post.threadTweets,
             };
             setGeneratedContent(new Map([[post.platform, content]]));
             setHasGenerated(true);
@@ -588,7 +520,6 @@ export default function SocialPostEditorPage() {
                         hashtags: sibling.hashtags || [],
                         characterCount: sibling.characterCount || sibling.content.length,
                         redditTitle: sibling.redditTitle,
-                        threadTweets: sibling.threadTweets,
                     });
                 });
                 setSelectedPlatforms(platforms);
@@ -607,7 +538,7 @@ export default function SocialPostEditorPage() {
         setIsLoadingSuggestions(true);
         setShowSuggestions(true);
         try {
-            const suggestions = await suggestTopics('en');
+            const suggestions = await suggestTopics(language, suggestionContext);
             setTopicSuggestions(suggestions);
         } catch (error) {
             console.error('Topic suggestion error:', error);
@@ -638,7 +569,6 @@ export default function SocialPostEditorPage() {
                 tone,
                 language,
                 mentionBrand,
-                isThread,
             });
 
             const map = new Map<SocialPlatform, GeneratedSocialContent>();
@@ -657,7 +587,7 @@ export default function SocialPostEditorPage() {
 
         setRegeneratingPlatform(platform);
         try {
-            const result = await regenerateSinglePost(topic, platform, tone, language, mentionBrand, undefined, isThread);
+            const result = await regenerateSinglePost(topic, platform, tone, language, mentionBrand);
             setGeneratedContent((prev) => {
                 const map = new Map(prev);
                 map.set(platform, result);
@@ -694,8 +624,7 @@ export default function SocialPostEditorPage() {
                 ...(platform === 'reddit' && {
                     redditTitle: content.redditTitle,
                     subreddit: content.suggestedSubreddits?.[0]
-                }),
-                threadTweets: content.threadTweets,
+                })
             };
 
             const result = await publishSocialPost(tempPost);
@@ -707,7 +636,6 @@ export default function SocialPostEditorPage() {
                 status: result.success ? 'published' : 'failed',
                 hashtags: content.hashtags,
                 characterCount: content.content.length,
-                threadTweets: content.threadTweets,
                 ...(platform === 'reddit' && { redditTitle: content.redditTitle }),
                 ...(result.success && { publishedAt: Timestamp.now() }),
                 ...(result.platformPostId && { platformPostId: result.platformPostId }),
@@ -754,7 +682,6 @@ export default function SocialPostEditorPage() {
                 hashtags: content.hashtags,
                 characterCount: content.content.length,
                 scheduledAt: Timestamp.fromDate(scheduledAt),
-                threadTweets: content.threadTweets,
                 ...(schedulingPlatform === 'reddit' && { redditTitle: content.redditTitle }),
             };
 
@@ -782,7 +709,6 @@ export default function SocialPostEditorPage() {
                 status: 'draft',
                 hashtags: content.hashtags,
                 characterCount: content.content.length,
-                threadTweets: content.threadTweets,
                 ...(platform === 'reddit' && { redditTitle: content.redditTitle }),
             };
 
@@ -804,28 +730,6 @@ export default function SocialPostEditorPage() {
                     ...existing,
                     content: newContent,
                     characterCount: newContent.length,
-                });
-            }
-            return map;
-        });
-    };
-
-    const handleThreadTweetChange = (index: number, newContent: string) => {
-        setGeneratedContent((prev) => {
-            const map = new Map(prev);
-            const existing = map.get('twitter');
-            if (existing && existing.threadTweets) {
-                const newTweets = [...existing.threadTweets];
-                newTweets[index] = newContent;
-
-                // Also update the main content field with the joined version
-                const fullContent = newTweets.join('\n\n---\n\n');
-
-                map.set('twitter', {
-                    ...existing,
-                    threadTweets: newTweets,
-                    content: fullContent,
-                    characterCount: fullContent.length,
                 });
             }
             return map;
@@ -870,8 +774,7 @@ export default function SocialPostEditorPage() {
                         ...(platform === 'reddit' && {
                             redditTitle: content.redditTitle,
                             subreddit: content.suggestedSubreddits?.[0]
-                        }),
-                        threadTweets: content.threadTweets,
+                        })
                     };
 
                     const result = await publishSocialPost(tempPost);
@@ -893,7 +796,6 @@ export default function SocialPostEditorPage() {
                     status: finalStatus as SocialPostStatus,
                     hashtags: content.hashtags,
                     characterCount: content.content.length,
-                    threadTweets: content.threadTweets,
                     ...(platform === 'reddit' && {
                         redditTitle: content.redditTitle,
                         subreddit: content.suggestedSubreddits?.[0]
@@ -1084,18 +986,31 @@ export default function SocialPostEditorPage() {
                                 <label className="block text-sm font-semibold text-gray-900">
                                     Topic / Idea
                                 </label>
-                                <button
-                                    onClick={handleSuggestTopics}
-                                    disabled={isLoadingSuggestions}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-all disabled:opacity-50"
-                                >
-                                    {isLoadingSuggestions ? (
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    ) : (
-                                        <Lightbulb className="w-3.5 h-3.5" />
-                                    )}
-                                    {isLoadingSuggestions ? 'Analyzing trends...' : '💡 Suggest Topics'}
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <div className="relative hidden sm:block">
+                                        <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            value={suggestionContext}
+                                            onChange={(e) => setSuggestionContext(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleSuggestTopics()}
+                                            placeholder={language === 'fr' ? 'Focus (ex: IA, Recrutement)...' : 'Focus (e.g. AI, Hiring)...'}
+                                            className="w-48 bg-gray-50 border border-gray-200 rounded-lg pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400 transition-all placeholder:text-gray-400"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={handleSuggestTopics}
+                                        disabled={isLoadingSuggestions}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-all disabled:opacity-50"
+                                    >
+                                        {isLoadingSuggestions ? (
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                            <Lightbulb className="w-3.5 h-3.5" />
+                                        )}
+                                        {isLoadingSuggestions ? 'Analyzing...' : 'Suggest Topics'}
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Topic Suggestions Panel */}
@@ -1256,26 +1171,6 @@ export default function SocialPostEditorPage() {
                             </div>
                         </label>
 
-                        {/* Thread Toggle (only when Twitter is selected) */}
-                        {selectedPlatforms.includes('twitter') && (
-                            <label className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors">
-                                <input
-                                    type="checkbox"
-                                    checked={isThread}
-                                    onChange={(e) => setIsThread(e.target.checked)}
-                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <div className="flex-1">
-                                    <span className="text-sm font-medium text-gray-900">Twitter Thread</span>
-                                    <p className="text-xs text-gray-500 mt-0.5">
-                                        {language === 'fr'
-                                            ? 'Générer un thread de 5-8 tweets au lieu d\'un seul tweet'
-                                            : 'Generate a 5-8 tweet thread instead of a single tweet'}
-                                    </p>
-                                </div>
-                            </label>
-                        )}
-
                         {/* Generate Button */}
                         <button
                             onClick={handleGenerate}
@@ -1341,9 +1236,7 @@ export default function SocialPostEditorPage() {
                                                 content={content.content}
                                                 hashtags={content.hashtags}
                                                 redditTitle={content.redditTitle}
-                                                threadTweets={content.threadTweets}
                                                 onChange={(newContent) => handleContentChange(platform, newContent)}
-                                                onThreadTweetChange={platform === 'twitter' ? handleThreadTweetChange : undefined}
                                                 onRegenerate={() => handleRegenerateSingle(platform)}
                                                 onCopy={() => handleCopyContent(platform)}
                                                 onPublish={() => handlePublishSingle(platform)}

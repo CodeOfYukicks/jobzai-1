@@ -67,54 +67,38 @@ LANGUAGE: English`,
     },
 
     twitter: {
-        fr: `Tu écris des tweets comme quelqu'un qui vit le sujet au quotidien — pas comme un compte corporate.
+        fr: `Tu es un Éditeur en Chef d'un média Tech/Business (type Bloomberg).
+Ton objectif : Créer un tweet "Flash Info" percutant et ultra-court.
 
-CE QUI MARCHE SUR X/TWITTER:
-- Court et percutant. Un tweet = une idée, une observation, un constat.
-- Le meilleur format : une vérité que les gens ressentent mais que personne ne dit à voix haute.
-- Les prises de position franches fonctionnent mieux que les conseils génériques.
-- Les chiffres concrets captent l'attention ("78% des recruteurs..." plutôt que "beaucoup de recruteurs...")
-- Écris comme tu parlerais à un collègue, pas comme un communiqué de presse.
+STRUCTURE OBLIGATOIRE (DOIT TENIR EN < 250 CARACTÈRES) :
+1. 🔴 ACCROCHE : 3-5 mots pour le sujet.
+2. 📄 L'ESSENTIEL : 1 ou 2 points clés maximum (puces •).
+3. 🧠 IMPACT : Une phrase très courte sur la conséquence.
 
-FORMATS EFFICACES:
-- Observation directe ("J'ai reviewé 200 CV cette semaine. Ce qui manque le plus souvent :")
-- Contraste ("Ce que les candidats pensent que les recruteurs regardent vs. ce qu'ils regardent vraiment")
-- One-liner percutant
-- Question qui provoque un débat
+RÈGLES DE LONGUEUR CRITIQUES :
+- VISER 220-240 CARACTÈRES MAX. Il faut de la marge.
+- Supprime tous les mots de liaison inutiles.
+- Style télégraphique autorisé mais clair.
+- Pas de hashtags dans le texte (ils seront ajoutés après).
 
-CE QU'IL NE FAUT PAS FAIRE:
-- Du thread-bait vide ("🧵Thread:")
-- Des hashtags qui prennent la moitié du tweet
-- Un ton motivational speaker
-- Mentionner des outils de façon forcée
+MAXIMUM ABSOLU : 250 caractères pour le texte.
+LANGUE : Français`,
 
-MAXIMUM STRICT: ${PLATFORM_LIMITS.twitter} caractères (tout inclus: texte + hashtags).
-2-3 hashtags courts max.
-LANGUE: Français`,
+        en: `You are an Editor-in-Chief at a leading Tech/Business media (like Bloomberg).
+Your goal: Create a punchy, ultra-short "News Flash" tweet.
 
-        en: `You write tweets like someone who lives the topic daily — not like a corporate account.
+MANDATORY STRUCTURE (MUST FIT IN < 250 CHARS):
+1. 🔴 HEADLINE: 3-5 words for the topic.
+2. 📄 THE CORE: 1 or 2 key points maximum (bullets •).
+3. 🧠 IMPACT: One very short sentence on the consequence.
 
-WHAT WORKS ON X/TWITTER:
-- Short and sharp. One tweet = one idea, one observation, one take.
-- Best format: a truth people feel but nobody says out loud.
-- Honest takes outperform generic advice.
-- Concrete numbers catch attention ("78% of recruiters..." rather than "many recruiters...")
-- Write like you'd talk to a colleague, not like a press release.
+CRITICAL LENGTH RULES:
+- AIM FOR 220-240 CHARS MAX. Leave breathing room.
+- Cut all unnecessary connector words.
+- Telegraphic style allowed but must be clear.
+- No hashtags in the text (they will be added after).
 
-EFFECTIVE FORMATS:
-- Direct observation ("Reviewed 200 CVs this week. What's missing most often:")
-- Contrast ("What candidates think recruiters look at vs. what they actually look at")
-- Punchy one-liner
-- Question that sparks debate
-
-WHAT NOT TO DO:
-- Empty thread-bait ("🧵Thread:")
-- Hashtags taking up half the tweet
-- Motivational speaker tone
-- Forcing tool mentions
-
-STRICT MAXIMUM: ${PLATFORM_LIMITS.twitter} characters (everything included: text + hashtags).
-2-3 short hashtags max.
+ABSOLUTE MAXIMUM: 250 characters for the text.
 LANGUAGE: English`,
     },
 
@@ -209,60 +193,6 @@ const HUMAN_WRITING_RULES = {
 - Use simple, concrete words. No unnecessary jargon.
 - If you want to write "it is advisable to" → write "try" or "just do". If you want to write "consequently" → write "so" or "result?".
 - Write like someone who has something to say, not like someone trying to fill a post.`,
-};
-
-// ============================================
-// TWITTER THREAD PROMPTS
-// ============================================
-
-const TWITTER_THREAD_PROMPTS: Record<'fr' | 'en', string> = {
-    fr: `Tu crées des threads Twitter/X comme quelqu'un qui a une vraie expertise — pas comme un influenceur qui recycle des conseils.
-
-CE QUI FAIT UN BON THREAD:
-- Le premier tweet est un HOOK qui donne envie de lire la suite. Pas de "🧵Thread:", c'est ringard. Commence par une affirmation forte, un constat surprenant, ou une question percutante.
-- Chaque tweet = une idée complète qui se lit bien seule, mais crée une progression logique.
-- 5 à 8 tweets max. Pas plus. La qualité prime sur la quantité.
-- Le dernier tweet doit conclure avec un takeaway clair ou une ouverture vers le débat.
-- Utilise des transitions naturelles entre les tweets (pas de numérotation forcée, pas de "1/n").
-
-FORMATS EFFICACES:
-- Observation + analyse + conclusion
-- "Ce que j'ai appris en faisant X" (retour d'expérience)
-- Mythes vs réalité (débunking)
-- Étude de cas en plusieurs étapes
-- "Les 5 erreurs que je vois tout le temps" (mais avec de vrais exemples, pas des généralités)
-
-RÈGLES:
-- Chaque tweet DOIT faire MAXIMUM ${PLATFORM_LIMITS.twitter} caractères.
-- 2-3 hashtags UNIQUEMENT sur le dernier tweet.
-- Pas de hashtags sur les tweets intermédiaires.
-- Écris de manière conversationnelle et directe.
-
-LANGUE: Français`,
-
-    en: `You create Twitter/X threads like someone with real expertise — not like an influencer recycling advice.
-
-WHAT MAKES A GOOD THREAD:
-- First tweet is a HOOK that makes people want to read more. No "🧵Thread:", that's lame. Start with a bold statement, surprising observation, or sharp question.
-- Each tweet = one complete idea that reads well alone, but creates a logical progression.
-- 5 to 8 tweets max. No more. Quality over quantity.
-- Last tweet should conclude with a clear takeaway or open the floor for debate.
-- Use natural transitions between tweets (no forced numbering, no "1/n").
-
-EFFECTIVE FORMATS:
-- Observation + analysis + conclusion
-- "What I learned from doing X" (experience report)
-- Myths vs reality (debunking)
-- Multi-step case study
-- "The 5 mistakes I see all the time" (but with real examples, not generalities)
-
-RULES:
-- Each tweet MUST be MAXIMUM ${PLATFORM_LIMITS.twitter} characters.
-- 2-3 hashtags ONLY on the last tweet.
-- No hashtags on intermediate tweets.
-- Write in a conversational, direct way.
-
-LANGUAGE: English`,
 };
 
 // ============================================
@@ -363,108 +293,17 @@ ${language === 'fr'
 }
 
 // ============================================
-// TWITTER THREAD GENERATION
-// ============================================
-
-async function generateThreadForTwitter(
-    topic: string,
-    tone: SocialTone,
-    language: 'fr' | 'en',
-    mentionBrand: boolean = false,
-    additionalContext?: string
-): Promise<GeneratedSocialContent> {
-    const threadPrompt = TWITTER_THREAD_PROMPTS[language];
-    const toneInstruction = TONE_INSTRUCTIONS[tone][language];
-    const humanRules = HUMAN_WRITING_RULES[language];
-    const brandContext = mentionBrand ? CUBBBE_CONTEXT[language] : '';
-
-    const systemPrompt = `${threadPrompt}
-
-${humanRules}
-
-TONE: ${toneInstruction}
-
-${brandContext ? `\n${brandContext}\n` : ''}
-${additionalContext ? `CONTEXTE / ACTUALITÉ: ${additionalContext}` : ''}
-
-${language === 'fr'
-            ? `RÉPONDS UNIQUEMENT EN JSON valide avec ce format exact:
-{
-    "tweets": ["premier tweet (le hook)", "deuxième tweet", "troisième tweet", "...", "dernier tweet avec #hashtags"],
-    "hashtags": ["hashtag1", "hashtag2"]
-}`
-            : `RESPOND ONLY in valid JSON with this exact format:
-{
-    "tweets": ["first tweet (the hook)", "second tweet", "third tweet", "...", "last tweet with #hashtags"],
-    "hashtags": ["hashtag1", "hashtag2"]
-}`}`;
-
-    const userMessage = language === 'fr'
-        ? `Crée un thread Twitter/X sur ce sujet:\n\n${topic}`
-        : `Create a Twitter/X thread about this topic:\n\n${topic}`;
-
-    const fullPrompt = `${systemPrompt}\n\n---\n\n${userMessage}`;
-
-    const response = await fetch('/api/chatgpt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            prompt: fullPrompt,
-            type: 'social-content',
-        }),
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    let rawContent: string;
-    if (data.content && typeof data.content === 'object') {
-        rawContent = JSON.stringify(data.content);
-    } else if (data.content && typeof data.content === 'string') {
-        rawContent = data.content;
-    } else {
-        throw new Error('Unexpected response format from /api/chatgpt');
-    }
-
-    const parsed = JSON.parse(rawContent);
-    const tweets: string[] = (parsed.tweets || []).map((tweet: string) => {
-        if (tweet.length > PLATFORM_LIMITS.twitter) {
-            return tweet.substring(0, PLATFORM_LIMITS.twitter - 3) + '...';
-        }
-        return tweet;
-    });
-
-    // content = all tweets joined with double newline for display/draft
-    const fullContent = tweets.join('\n\n---\n\n');
-
-    return {
-        platform: 'twitter',
-        content: fullContent,
-        hashtags: parsed.hashtags || [],
-        characterCount: fullContent.length,
-        threadTweets: tweets,
-    };
-}
-
-// ============================================
 // MULTI-PLATFORM GENERATION
 // ============================================
 
 export async function generateMultiPlatformPosts(
     config: GenerateSocialPostConfig
 ): Promise<GeneratedSocialContent[]> {
-    const { topic, platforms, tone, language, additionalContext, mentionBrand, isThread } = config;
+    const { topic, platforms, tone, language, additionalContext, mentionBrand } = config;
 
-    const promises = platforms.map((platform) => {
-        if (platform === 'twitter' && isThread) {
-            return generateThreadForTwitter(topic, tone, language, mentionBrand ?? false, additionalContext);
-        }
-        return generateForPlatform(topic, platform, tone, language, mentionBrand ?? false, additionalContext);
-    });
+    const promises = platforms.map((platform) =>
+        generateForPlatform(topic, platform, tone, language, mentionBrand ?? false, additionalContext)
+    );
 
     const results = await Promise.all(promises);
     return results;
@@ -480,11 +319,7 @@ export async function regenerateSinglePost(
     tone: SocialTone,
     language: 'fr' | 'en',
     mentionBrand: boolean = false,
-    additionalContext?: string,
-    isThread?: boolean
+    additionalContext?: string
 ): Promise<GeneratedSocialContent> {
-    if (platform === 'twitter' && isThread) {
-        return generateThreadForTwitter(topic, tone, language, mentionBrand, additionalContext);
-    }
     return generateForPlatform(topic, platform, tone, language, mentionBrand, additionalContext);
 }

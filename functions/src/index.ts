@@ -35,6 +35,7 @@ export { backfillJobsV5Manual, backfillUserEmbeddings } from './backfillJobsV5';
 // Scalable, fault-tolerant system for fetching jobs from multiple ATS sources
 export { scheduleFetchJobs } from './schedulers/fetchJobsScheduler';
 export { refreshMonthlyCredits } from './schedulers/creditRefreshScheduler';
+export { socialPostScheduler } from './schedulers/socialPostScheduler';
 export { fetchJobsWorker } from './workers/fetchJobsWorker';
 export { enrichSkillsWorker } from './workers/enrichSkillsWorker';
 

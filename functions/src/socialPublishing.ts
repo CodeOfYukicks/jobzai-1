@@ -17,7 +17,8 @@ async function getPlatformConfig(platform: string) {
         return { ...data.credentials };
     }
 
-    if (!data?.credentials?.clientId || !data?.credentials?.clientSecret) {
+    // For Twitter, clientSecret is optional (PKCE)
+    if (platform !== 'twitter' && (!data?.credentials?.clientId || !data?.credentials?.clientSecret)) {
         // If tokens are present manually, maybe we can skip this check? 
         // But best practice is to require config.
         // For now, let's allow if accessToken exists, assuming manual entry or previous oauth.
@@ -25,11 +26,38 @@ async function getPlatformConfig(platform: string) {
 
         throw new Error(`Client ID or Secret missing for ${platform}.`);
     }
+    if (platform === 'twitter' && !data?.credentials?.clientId) {
+        // Twitter needs at least Client ID
+        if (data?.credentials?.accessToken) return { ...data.credentials };
+        throw new Error(`Client ID missing for ${platform}.`);
+    }
     return {
         clientId: data.credentials.clientId,
         clientSecret: data.credentials.clientSecret,
         ...data.credentials
     };
+}
+
+// Shared function for both HTTP and Scheduled triggers
+export async function executePublish(
+    platform: string,
+    content: string,
+    subreddit?: string,
+    redditTitle?: string,
+    images?: string[]
+) {
+    const config = await getPlatformConfig(platform);
+
+    switch (platform) {
+        case 'linkedin':
+            return await publishToLinkedIn(content, config, images);
+        case 'twitter':
+            return await publishToTwitter(content, config, images);
+        case 'reddit':
+            return await publishToReddit(content, subreddit || '', redditTitle || '', config);
+        default:
+            throw new Error(`Platform ${platform} not supported`);
+    }
 }
 
 export const publishPost = onRequest({ cors: true }, async (req, res) => {
@@ -39,7 +67,7 @@ export const publishPost = onRequest({ cors: true }, async (req, res) => {
         return;
     }
 
-    const { platform, content, subreddit, redditTitle, images, threadTweets } = req.body;
+    const { platform, content, subreddit, redditTitle, images } = req.body;
 
     if (!platform || !content) {
         res.status(400).json({ success: false, error: 'Missing platform or content' });
@@ -47,23 +75,7 @@ export const publishPost = onRequest({ cors: true }, async (req, res) => {
     }
 
     try {
-        const config = await getPlatformConfig(platform);
-        let result;
-
-        switch (platform) {
-            case 'linkedin':
-                result = await publishToLinkedIn(content, config, images);
-                break;
-            case 'twitter':
-                result = await publishToTwitter(content, config, images, threadTweets);
-                break;
-            case 'reddit':
-                result = await publishToReddit(content, subreddit, redditTitle, config);
-                break;
-            default:
-                throw new Error(`Platform ${platform} not supported`);
-        }
-
+        const result = await executePublish(platform, content, subreddit, redditTitle, images);
         res.status(200).json(result);
 
     } catch (error: any) {
@@ -119,7 +131,7 @@ async function publishToLinkedIn(content: string, config: any, images?: string[]
     return { success: true, platformPostId: data.id };
 }
 
-async function publishToTwitter(content: string, config: any, images?: string[], threadTweets?: string[]) {
+async function publishToTwitter(content: string, config: any, images?: string[]) {
     let { accessToken, refreshToken, clientId, clientSecret } = config;
 
     if (!accessToken) {
@@ -127,52 +139,6 @@ async function publishToTwitter(content: string, config: any, images?: string[],
     }
 
     const url = 'https://api.twitter.com/2/tweets';
-
-    // If it's a thread, we post each tweet sequentially
-    if (threadTweets && threadTweets.length > 0) {
-        let lastTweetId: string | undefined;
-        let firstTweetId: string | undefined;
-
-        for (let i = 0; i < threadTweets.length; i++) {
-            const tweetText = threadTweets[i];
-            const body: any = { text: tweetText };
-
-            if (lastTweetId) {
-                body.reply = { in_reply_to_tweet_id: lastTweetId };
-            }
-
-            let response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(body)
-            });
-
-            // Handle token refresh for threads (simplified version for each step)
-            if (!response.ok && (response.status === 401 || response.status === 403) && refreshToken && clientId && clientSecret) {
-                // ... same refresh logic as before, but we need to update accessToken for subsequent tweets
-                // To keep it clean, let's extract refresh logic or just use the existing one for the first tweet
-            }
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`Failed at tweet ${i + 1}: ${JSON.stringify(errorData)}`);
-            }
-
-            const data = await response.json();
-            lastTweetId = data.data.id;
-            if (i === 0) firstTweetId = lastTweetId;
-
-            // Subtle delay between tweets to avoid rate limits or ordering issues
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-
-        return { success: true, platformPostId: firstTweetId };
-    }
-
-    // Single tweet logic (original)
     const body = { text: content };
 
     let response = await fetch(url, {
@@ -185,37 +151,44 @@ async function publishToTwitter(content: string, config: any, images?: string[],
     });
 
     // Check for 401 or 403 (Token Expired or Invalid Type -> Try Refresh)
-    if (!response.ok && (response.status === 401 || response.status === 403) && refreshToken && clientId && clientSecret) {
+    if (!response.ok && (response.status === 401 || response.status === 403) && refreshToken && clientId) {
         console.log('Twitter token expired or invalid, attempting refresh...');
         try {
             const tokenUrl = 'https://api.twitter.com/2/oauth2/token';
-            const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+            const headers: any = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            };
+
             const refreshBody = new URLSearchParams({
                 grant_type: 'refresh_token',
                 refresh_token: refreshToken,
                 client_id: clientId
             });
 
+            if (clientSecret) {
+                const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+                headers['Authorization'] = `Basic ${auth}`;
+            }
+
             const refreshResponse = await fetch(tokenUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Authorization': `Basic ${auth}`
-                },
+                headers,
                 body: refreshBody
             });
 
             if (refreshResponse.ok) {
                 const data = await refreshResponse.json();
                 accessToken = data.access_token;
-                const newRefreshToken = data.refresh_token;
+                const newRefreshToken = data.refresh_token; // Twitter refreshes the refresh token too!
 
+                // Save new tokens to DB
                 await db.collection('settings').doc('social_twitter').update({
                     'credentials.accessToken': accessToken,
                     'credentials.refreshToken': newRefreshToken,
                     'credentials.updatedAt': Date.now()
                 });
 
+                // Retry request with new token
                 response = await fetch(url, {
                     method: 'POST',
                     headers: {
@@ -224,9 +197,17 @@ async function publishToTwitter(content: string, config: any, images?: string[],
                     },
                     body: JSON.stringify(body)
                 });
+            } else {
+                const refreshError = await refreshResponse.text();
+                console.error('Failed to refresh Twitter token:', refreshError);
+                throw new Error('Twitter session expired. Please reconnect your account in settings.');
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error during Twitter token refresh:', err);
+            // Re-throw if it's our intentional error
+            if (err.message && err.message.includes('Twitter session expired')) {
+                throw err;
+            }
         }
     }
 

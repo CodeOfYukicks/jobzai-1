@@ -1,4 +1,4 @@
-import { onRequest } from "firebase-functions/v2/https";
+import * as functions from "firebase-functions";
 import * as admin from 'firebase-admin';
 import * as fetch from 'node-fetch';
 import * as crypto from 'crypto';
@@ -20,8 +20,12 @@ async function getPlatformConfig(platform: string) {
         throw new Error(`Configuration for ${platform} not found.`);
     }
     const data = doc.data();
-    if (!data?.credentials?.clientId || !data?.credentials?.clientSecret) {
+    // For Twitter, clientSecret is optional (PKCE)
+    if (platform !== 'twitter' && (!data?.credentials?.clientId || !data?.credentials?.clientSecret)) {
         throw new Error(`Client ID or Secret missing for ${platform}.`);
+    }
+    if (platform === 'twitter' && !data?.credentials?.clientId) {
+        throw new Error(`Client ID missing for ${platform}.`);
     }
     return {
         clientId: data.credentials.clientId,
@@ -55,7 +59,19 @@ function generateCodeChallenge(verifier: string) {
 // 1. AUTH REDIRECT
 // ==========================================
 
-export const authRedirect = onRequest({ cors: true }, async (req, res) => {
+// ==========================================
+// 1. AUTH REDIRECT
+// ==========================================
+
+export const authRedirect = functions.https.onRequest(async (req, res) => {
+    // Basic CORS check
+    if (req.method === 'OPTIONS') {
+        res.set('Access-Control-Allow-Origin', '*');
+        res.set('Access-Control-Allow-Methods', 'GET, POST');
+        res.status(204).send('');
+        return;
+    }
+
     const platform = req.query.platform as string;
 
     if (!['linkedin', 'twitter', 'reddit'].includes(platform)) {
@@ -91,7 +107,8 @@ export const authRedirect = onRequest({ cors: true }, async (req, res) => {
             });
 
             // Twitter OAuth 2.0 URL
-            authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${config.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+            // Force consent to ensure we receive a refresh_token
+            authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${config.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256&prompt=consent`;
         }
         else if (platform === 'reddit') {
             const scope = 'submit identity mysubreddits read';
@@ -111,7 +128,15 @@ export const authRedirect = onRequest({ cors: true }, async (req, res) => {
 // 2. AUTH CALLBACK
 // ==========================================
 
-export const authCallback = onRequest({ cors: true }, async (req, res) => {
+export const authCallback = functions.https.onRequest(async (req, res) => {
+    // Basic CORS check
+    if (req.method === 'OPTIONS') {
+        res.set('Access-Control-Allow-Origin', '*');
+        res.set('Access-Control-Allow-Methods', 'GET, POST');
+        res.status(204).send('');
+        return;
+    }
+
     const code = req.query.code as string;
     const state = req.query.state as string; // This is either the full params string (LinkedIn/Reddit) or just the ID (Twitter)
     const error = req.query.error as string;
@@ -199,7 +224,14 @@ export const authCallback = onRequest({ cors: true }, async (req, res) => {
         else if (platform === 'twitter') {
             // OAuth 2.0 PKCE Token Exchange
             const tokenUrl = 'https://api.twitter.com/2/oauth2/token';
-            const auth = Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64');
+            const headers: any = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            };
+
+            if (config.clientSecret) {
+                const auth = Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64');
+                headers['Authorization'] = `Basic ${auth}`;
+            }
 
             const body = new URLSearchParams({
                 code,
@@ -211,16 +243,19 @@ export const authCallback = onRequest({ cors: true }, async (req, res) => {
 
             const response = await fetch(tokenUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Authorization': `Basic ${auth}`
-                },
+                headers,
                 body
             });
 
             const data = await response.json();
+            console.log('Twitter Token Response:', JSON.stringify(data)); // DEBUG log
 
             if (data.error) throw new Error(data.error_description || JSON.stringify(data));
+
+            if (!data.refresh_token) {
+                console.error('Missing refresh_token in Twitter response!', data);
+                throw new Error('Twitter did not return a refresh token. Please revoke access in Twitter Settings and try again.');
+            }
 
             accessToken = data.access_token;
             refreshToken = data.refresh_token;

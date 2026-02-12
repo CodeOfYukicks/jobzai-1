@@ -27,8 +27,6 @@ export interface SocialPost {
     // Timestamps
     createdAt: Timestamp;
     updatedAt: Timestamp;
-    // Twitter thread
-    threadTweets?: string[];
 }
 
 export interface SocialPostData extends Omit<SocialPost, 'id'> { }
@@ -40,7 +38,6 @@ export interface GenerateSocialPostConfig {
     language: 'fr' | 'en';
     additionalContext?: string;
     mentionBrand?: boolean;
-    isThread?: boolean;
 }
 
 export interface GeneratedSocialContent {
@@ -51,8 +48,6 @@ export interface GeneratedSocialContent {
     // Reddit-specific
     redditTitle?: string;
     suggestedSubreddits?: string[];
-    // Twitter thread
-    threadTweets?: string[];
 }
 
 export interface SocialPlatformConfig {
