@@ -4,13 +4,14 @@
  * Puppeteer scrapes, GPT extracts key info
  * ===========================================
  */
+import { queryPerplexityForJobExtraction } from './perplexity';
 
 /**
  * Scrape job page content using server endpoint
  */
 async function scrapeJobPageSimple(url: string): Promise<{ content: string; title?: string; company?: string; location?: string }> {
   console.log('🔍 [Scrape] Fetching page content from:', url);
-  
+
   const response = await fetch('/api/extract-job-url', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -23,15 +24,15 @@ async function scrapeJobPageSimple(url: string): Promise<{ content: string; titl
   }
 
   const data = await response.json();
-  
+
   if (data.status === 'error') {
     throw new Error(data.message || 'Scraping failed');
   }
 
-  console.log('✅ [Scrape] Got content:', { 
+  console.log('✅ [Scrape] Got content:', {
     length: data.content?.length || 0,
     title: data.title,
-    company: data.company 
+    company: data.company
   });
 
   return {
@@ -57,7 +58,7 @@ function extractCompanyFromUrl(url: string): string {
       /([a-z0-9-]+)\.workday\.com/i,
       /([a-z0-9-]+)\.myworkdayjobs\.com/i,
     ];
-    
+
     for (const pattern of patterns) {
       const match = hostname.match(pattern);
       if (match && match[1] && match[1].length > 2) {
@@ -65,7 +66,7 @@ function extractCompanyFromUrl(url: string): string {
         return match[1].charAt(0).toUpperCase() + match[1].slice(1);
       }
     }
-  } catch (e) {}
+  } catch (e) { }
   return '';
 }
 
@@ -78,10 +79,10 @@ async function extractWithGPTSimple(scraped: { content: string; title?: string; 
   if (!company || company.length <= 2) {
     company = extractCompanyFromUrl(url);
   }
-  
+
   // Truncate content for GPT
   const truncatedContent = scraped.content.substring(0, 4000);
-  
+
   const prompt = `Extract job info from this page content. Return JSON only.
 
 PAGE CONTENT:
@@ -115,7 +116,7 @@ IMPORTANT: Use the DETECTED values if provided. Return valid JSON only.`;
   }
 
   const data = await response.json();
-  
+
   if (data.status !== 'success') {
     throw new Error(data.message || 'GPT failed');
   }
@@ -166,15 +167,15 @@ IMPORTANT: Use the DETECTED values if provided. Return valid JSON only.`;
  * ===========================================
  */
 
-export type UrlType = 
-  | 'linkedin' 
-  | 'indeed' 
-  | 'workday' 
-  | 'lever' 
-  | 'greenhouse' 
-  | 'ashby' 
-  | 'smartrecruiters' 
-  | 'jobvite' 
+export type UrlType =
+  | 'linkedin'
+  | 'indeed'
+  | 'workday'
+  | 'lever'
+  | 'greenhouse'
+  | 'ashby'
+  | 'smartrecruiters'
+  | 'jobvite'
   | 'icims'
   | 'bamboohr'
   | 'recruitee'
@@ -388,7 +389,7 @@ export interface JobExtractionOptions {
  */
 async function scrapeJobPage(url: string): Promise<ScrapedJobContent> {
   console.log('🔍 [GPT Method] Scraping job page with Puppeteer:', url);
-  
+
   const response = await fetch('/api/extract-job-url', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -401,7 +402,7 @@ async function scrapeJobPage(url: string): Promise<ScrapedJobContent> {
   }
 
   const data = await response.json();
-  
+
   if (data.status !== 'success') {
     throw new Error(data.message || 'Failed to extract job content from page');
   }
@@ -422,7 +423,7 @@ async function scrapeJobPage(url: string): Promise<ScrapedJobContent> {
  */
 async function analyzeJobWithGPT(scrapedContent: ScrapedJobContent): Promise<DetailedJobInfo> {
   console.log('🤖 [GPT Method] Analyzing job content with GPT-4o...');
-  
+
   const prompt = `You are an expert job posting analyzer. Analyze the following job posting content and extract structured information.
 
 JOB POSTING CONTENT:
@@ -475,9 +476,9 @@ RULES:
   const response = await fetch('/api/chatgpt', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
+    body: JSON.stringify({
       type: 'cv-edit', // This type allows JSON responses
-      prompt 
+      prompt
     }),
   });
 
@@ -487,7 +488,7 @@ RULES:
   }
 
   const data = await response.json();
-  
+
   if (data.status !== 'success') {
     throw new Error(data.message || 'GPT analysis failed');
   }
@@ -565,10 +566,10 @@ RULES:
 export async function extractJobInfoWithGPT(url: string): Promise<DetailedJobInfo> {
   // Step 1: Scrape the page with Puppeteer
   const scrapedContent = await scrapeJobPage(url);
-  
+
   // Step 2: Analyze with GPT-4o
   const detailedInfo = await analyzeJobWithGPT(scrapedContent);
-  
+
   return detailedInfo;
 }
 
@@ -584,16 +585,16 @@ export async function extractJobInfoWithGPT(url: string): Promise<DetailedJobInf
  */
 function parseJobJSON(jsonString: string): any {
   // Check if the API is refusing to browse (common error message)
-  if (jsonString.includes('cannot actually visit') || 
-      jsonString.includes('cannot access URLs') ||
-      jsonString.includes('don\'t have the ability to browse')) {
+  if (jsonString.includes('cannot actually visit') ||
+    jsonString.includes('cannot access URLs') ||
+    jsonString.includes('don\'t have the ability to browse')) {
     throw new Error('API cannot browse URLs. Please check your Perplexity API configuration and ensure you\'re using a model with web browsing capabilities (e.g., sonar-pro)');
   }
-  
+
   try {
     // Clean markdown code blocks
     let cleaned = jsonString.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-    
+
     // Extract JSON object - find first { to last }
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -602,7 +603,7 @@ function parseJobJSON(jsonString: string): any {
       // No JSON found in response
       throw new Error('No JSON object found in API response');
     }
-    
+
     // Try direct parse first
     return JSON.parse(cleaned);
   } catch (error) {
@@ -612,18 +613,18 @@ function parseJobJSON(jsonString: string): any {
         .replace(/```json\s*/gi, '')
         .replace(/```\s*/g, '')
         .trim();
-      
+
       const jsonMatch = repaired.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         repaired = jsonMatch[0];
       }
-      
+
       // Fix common JSON errors
       repaired = repaired
         .replace(/,\s*\]/g, ']')           // Remove trailing commas before ]
         .replace(/,\s*\}/g, '}')            // Remove trailing commas before }
         .replace(/:\s*'([^']*)'/g, ': "$1"'); // Replace single quotes with double quotes
-      
+
       return JSON.parse(repaired);
     } catch (repairError) {
       console.error('JSON parsing failed:', error);
@@ -704,7 +705,7 @@ URL to visit: ${url}
 `;
 
   const response = await queryPerplexityForJobExtraction(prompt);
-  
+
   if (response.error) {
     throw new Error(response.errorMessage || 'Failed to analyze job posting');
   }
@@ -723,14 +724,14 @@ URL to visit: ${url}
   // Validate location - warn if it looks suspicious (like company HQ instead of job location)
   const location = extractedData.location?.trim() || '';
   const summary = extractedData.summary?.toLowerCase() || '';
-  
+
   // Check if summary mentions a different city than the extracted location
   if (location && summary) {
     const majorCities = [
       'paris', 'london', 'berlin', 'tokyo', 'sydney', 'toronto', 'singapore',
       'mumbai', 'dubai', 'madrid', 'amsterdam', 'stockholm', 'copenhagen'
     ];
-    
+
     for (const city of majorCities) {
       if (summary.includes(city) && !location.toLowerCase().includes(city)) {
         console.warn(`⚠️ Location mismatch detected: extracted location is "${location}" but job description mentions "${city}"`);
@@ -855,7 +856,7 @@ URL to visit: ${url}
 `;
 
   const response = await queryPerplexityForJobExtraction(prompt);
-  
+
   if (response.error) {
     throw new Error(response.errorMessage || 'Failed to extract detailed information');
   }
@@ -1224,10 +1225,10 @@ export async function extractJobInfo(
   options: JobExtractionOptions = { detailed: false }
 ): Promise<BasicJobInfo | DetailedJobInfo> {
   console.log('🚀 [extractJobInfo] Scraping + GPT extraction for:', url);
-  
+
   // Step 1: Scrape the page (Puppeteer visits the real URL)
   const scraped = await scrapeJobPageSimple(url);
-  
+
   // Step 2: Extract info with GPT (simple prompt)
   return await extractWithGPTSimple(scraped, url);
 }
@@ -1273,11 +1274,11 @@ export function generateBasicInsightsFromJobData(
   jobData: JobDataForFallback
 ): DetailedJobInfo['jobInsights'] {
   const { title, company, location, description, tags, skills, technologies, type, seniority, salaryRange, remote, industries, roleFunction } = jobData;
-  
+
   // Extract key responsibilities from description if available
   let keyResponsibilities = `${title} role at ${company}`;
   if (location) keyResponsibilities += ` (${location})`;
-  
+
   if (description && description.trim().length > 50) {
     // Try to find responsibility-related content
     const responsibilityPatterns = [
@@ -1286,7 +1287,7 @@ export function generateBasicInsightsFromJobData(
       /your role:?\s*([\s\S]*?)(?=requirements?|qualifications?|skills?|about|$)/i,
       /key duties:?\s*([\s\S]*?)(?=requirements?|qualifications?|skills?|about|$)/i,
     ];
-    
+
     for (const pattern of responsibilityPatterns) {
       const match = description.match(pattern);
       if (match && match[1] && match[1].trim().length > 20) {
@@ -1296,7 +1297,7 @@ export function generateBasicInsightsFromJobData(
         break;
       }
     }
-    
+
     // If no pattern matched, use first part of description
     if (keyResponsibilities.includes('role at')) {
       const firstPart = description.substring(0, 400).trim();
@@ -1305,11 +1306,11 @@ export function generateBasicInsightsFromJobData(
       }
     }
   }
-  
+
   // Build required skills from all available sources (tags, skills, technologies)
   let requiredSkills = '';
   const allSkills: string[] = [];
-  
+
   // Prioritize technologies
   if (technologies && technologies.length > 0) {
     allSkills.push(...technologies.slice(0, 5));
@@ -1324,7 +1325,7 @@ export function generateBasicInsightsFromJobData(
     const newTags = tags.filter(t => !allSkills.includes(t));
     allSkills.push(...newTags.slice(0, 3));
   }
-  
+
   if (allSkills.length > 0) {
     requiredSkills = `Key skills: ${allSkills.slice(0, 8).join(', ')}`;
   } else if (description) {
@@ -1338,17 +1339,17 @@ export function generateBasicInsightsFromJobData(
   } else {
     requiredSkills = 'Skills not specified in listing';
   }
-  
+
   // Build experience level with more context
   const experienceParts: string[] = [];
   if (seniority) experienceParts.push(seniority);
   if (type) experienceParts.push(type);
   if (roleFunction) experienceParts.push(`${roleFunction} role`);
-  
-  let experienceLevel = experienceParts.length > 0 
+
+  let experienceLevel = experienceParts.length > 0
     ? experienceParts.join(' • ')
     : 'Experience level not specified';
-  
+
   // Try to extract years from description
   if (description) {
     const yearsMatch = description.match(/(\d+)\+?\s*years?/i);
@@ -1356,7 +1357,7 @@ export function generateBasicInsightsFromJobData(
       experienceLevel += ` • ${yearsMatch[0]} experience`;
     }
   }
-  
+
   // Build compensation/benefits with more detail
   const compensationParts: string[] = [];
   if (salaryRange && salaryRange.trim().length > 0) {
@@ -1371,17 +1372,17 @@ export function generateBasicInsightsFromJobData(
   if (location) {
     compensationParts.push(`Location: ${location}`);
   }
-  
-  const compensationBenefits = compensationParts.length > 0 
+
+  const compensationBenefits = compensationParts.length > 0
     ? compensationParts.join(' • ')
     : 'Compensation details not specified - check full job posting';
-  
+
   // Company culture - include industry context
   let companyCulture = '';
   if (industries && industries.length > 0) {
     companyCulture = `Industry: ${industries.join(', ')}`;
   }
-  
+
   if (description) {
     const culturePatterns = [
       /about (?:us|the company|our company):?\s*([\s\S]*?)(?=responsibilities?|requirements?|qualifications?|$)/i,
@@ -1389,23 +1390,23 @@ export function generateBasicInsightsFromJobData(
       /who we are:?\s*([\s\S]*?)(?=responsibilities?|requirements?|what you|$)/i,
       /our values:?\s*([\s\S]*?)(?=responsibilities?|requirements?|what you|$)/i,
     ];
-    
+
     for (const pattern of culturePatterns) {
       const match = description.match(pattern);
       if (match && match[1] && match[1].trim().length > 20) {
         const cultureText = match[1].trim().substring(0, 300);
-        companyCulture = companyCulture 
+        companyCulture = companyCulture
           ? `${companyCulture}. ${cultureText}${match[1].length > 300 ? '...' : ''}`
           : cultureText + (match[1].length > 300 ? '...' : '');
         break;
       }
     }
   }
-  
+
   if (!companyCulture) {
     companyCulture = `${company} - see full job posting for company details`;
   }
-  
+
   // Growth opportunities - try to extract from description
   let growthOpportunities = 'Growth opportunity details not specified';
   if (description) {
@@ -1414,7 +1415,7 @@ export function generateBasicInsightsFromJobData(
       /(?:learning|training|development) opportunities?:?\s*([\s\S]*?)(?=responsibilities?|requirements?|qualifications?|$)/i,
       /what we offer:?\s*([\s\S]*?)(?=responsibilities?|requirements?|qualifications?|how to apply|$)/i,
     ];
-    
+
     for (const pattern of growthPatterns) {
       const match = description.match(pattern);
       if (match && match[1] && match[1].trim().length > 20) {
@@ -1423,7 +1424,7 @@ export function generateBasicInsightsFromJobData(
         break;
       }
     }
-    
+
     // Generic check if growth-related keywords are mentioned
     if (growthOpportunities === 'Growth opportunity details not specified') {
       const hasGrowthMention = /growth|career development|advancement|learning|training|mentorship|professional development/i.test(description);
@@ -1432,7 +1433,7 @@ export function generateBasicInsightsFromJobData(
       }
     }
   }
-  
+
   return {
     keyResponsibilities,
     requiredSkills,
@@ -1452,9 +1453,9 @@ export function generateBasicInsightsFromJobData(
  */
 export function generateBasicSummaryFromJobData(jobData: JobDataForFallback): string {
   const { title, company, location, tags, skills, technologies, type, seniority, remote, salaryRange, industries, roleFunction } = jobData;
-  
+
   const bulletPoints: string[] = [];
-  
+
   // First bullet: Role overview with location and remote info
   let roleOverview = `${title} position at ${company}`;
   if (location) roleOverview += ` in ${location}`;
@@ -1464,7 +1465,7 @@ export function generateBasicSummaryFromJobData(jobData: JobDataForFallback): st
     else if (remoteLower.includes('hybrid')) roleOverview += ' (Hybrid)';
   }
   bulletPoints.push(roleOverview);
-  
+
   // Second bullet: Job type, level, and industry context
   const details: string[] = [];
   if (seniority) details.push(seniority);
@@ -1476,11 +1477,11 @@ export function generateBasicSummaryFromJobData(jobData: JobDataForFallback): st
     details.push(industries[0]);
   }
   if (salaryRange) details.push(salaryRange);
-  
+
   if (details.length > 0) {
     bulletPoints.push(details.join(' • '));
   }
-  
+
   // Third bullet: Key skills/technologies (prioritize technologies, then skills, then tags)
   const allSkills: string[] = [];
   if (technologies && technologies.length > 0) {
@@ -1494,16 +1495,16 @@ export function generateBasicSummaryFromJobData(jobData: JobDataForFallback): st
     const newTags = tags.filter(t => !allSkills.includes(t));
     allSkills.push(...newTags.slice(0, 2));
   }
-  
+
   if (allSkills.length > 0) {
     bulletPoints.push(`Key skills: ${allSkills.slice(0, 6).join(', ')}`);
   }
-  
+
   // Format as bullet points (ensure we have at least 2 points)
   if (bulletPoints.length < 2) {
     bulletPoints.push(`Opportunity at ${company} - see full description for details`);
   }
-  
+
   return bulletPoints.map(point => `• ${point}`).join('\n');
 }
 
@@ -1519,7 +1520,7 @@ export async function generateJobSummaryAndInsights(
   jobData: JobDataForFallback
 ): Promise<JobSummaryAndInsightsResult> {
   const { title, company, location, description, tags, skills, technologies, industries, type, seniority, salaryRange, remote, roleFunction } = jobData;
-  
+
   // If no description or too short, use local fallback immediately
   if (!description || description.trim().length < 100) {
     console.log('📋 [generateJobSummaryAndInsights] Description too short, using local fallback');
@@ -1592,7 +1593,7 @@ CRITICAL RULES:
 
   try {
     console.log('🤖 [generateJobSummaryAndInsights] Calling ChatGPT for combined analysis...');
-    
+
     const response = await fetch('/api/chatgpt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1689,7 +1690,7 @@ CRITICAL RULES:
     };
   } catch (error) {
     console.error('❌ [generateJobSummaryAndInsights] ChatGPT failed, using local fallback:', error);
-    
+
     // Use local fallback when API fails
     return {
       summary: generateBasicSummaryFromJobData(jobData),
@@ -1708,7 +1709,7 @@ CRITICAL RULES:
  */
 export function generateBasicTagsFromJobData(jobData: JobDataForFallback): JobTags {
   const { location, tags, skills, technologies, industries, type, seniority, salaryRange, remote } = jobData;
-  
+
   // Parse location string to extract city/country
   let city: string | undefined;
   let country: string | undefined;
@@ -1852,9 +1853,9 @@ RULES: Extract EXACT position title. Return valid JSON only, no markdown.`;
     const response = await fetch('/api/chatgpt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         type: 'cv-edit',
-        prompt 
+        prompt
       }),
     });
 
@@ -1864,7 +1865,7 @@ RULES: Extract EXACT position title. Return valid JSON only, no markdown.`;
     }
 
     const data = await response.json();
-    
+
     if (data.status !== 'success') {
       throw new Error(data.message || 'GPT analysis failed');
     }

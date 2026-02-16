@@ -475,6 +475,8 @@ export default function SocialPostEditorPage() {
     const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [suggestionContext, setSuggestionContext] = useState('');
+    const [topicLocation, setTopicLocation] = useState<string>('Global');
+    const [customLocation, setCustomLocation] = useState('');
 
     // Brand mention toggle
     const [mentionBrand, setMentionBrand] = useState(false);
@@ -538,7 +540,8 @@ export default function SocialPostEditorPage() {
         setIsLoadingSuggestions(true);
         setShowSuggestions(true);
         try {
-            const suggestions = await suggestTopics(language, suggestionContext);
+            const location = topicLocation === 'Custom' ? customLocation : topicLocation;
+            const suggestions = await suggestTopics(language, suggestionContext, location);
             setTopicSuggestions(suggestions);
         } catch (error) {
             console.error('Topic suggestion error:', error);
@@ -550,7 +553,9 @@ export default function SocialPostEditorPage() {
 
     const handleSelectSuggestion = (suggestion: TopicSuggestion) => {
         // Fill the topic with the suggestion title + context for richer generation
-        setTopic(`${suggestion.title}\n\n${suggestion.context}`);
+        const enrichedTopic = `${suggestion.title}\n\nContext: ${suggestion.context}\nWhy Now: ${suggestion.whyNow}\nAngle: ${suggestion.angle}`;
+        setTopic(enrichedTopic);
+
         // Auto-select suggested platforms
         if (suggestion.suggestedPlatforms.length > 0) {
             setSelectedPlatforms(suggestion.suggestedPlatforms);
@@ -987,16 +992,39 @@ export default function SocialPostEditorPage() {
                                     Topic / Idea
                                 </label>
                                 <div className="flex items-center gap-2">
-                                    <div className="relative hidden sm:block">
-                                        <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            value={suggestionContext}
-                                            onChange={(e) => setSuggestionContext(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleSuggestTopics()}
-                                            placeholder={language === 'fr' ? 'Focus (ex: IA, Recrutement)...' : 'Focus (e.g. AI, Hiring)...'}
-                                            className="w-48 bg-gray-50 border border-gray-200 rounded-lg pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400 transition-all placeholder:text-gray-400"
-                                        />
+                                    <div className="relative hidden sm:flex items-center gap-2">
+                                        {/* Location Selector */}
+                                        <select
+                                            value={topicLocation}
+                                            onChange={(e) => setTopicLocation(e.target.value)}
+                                            className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400 transition-all text-gray-700 cursor-pointer"
+                                        >
+                                            <option value="Global">Global / US</option>
+                                            <option value="France">France</option>
+                                            <option value="Custom">Custom...</option>
+                                        </select>
+
+                                        {topicLocation === 'Custom' && (
+                                            <input
+                                                type="text"
+                                                value={customLocation}
+                                                onChange={(e) => setCustomLocation(e.target.value)}
+                                                placeholder="City/Region..."
+                                                className="w-24 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400 transition-all"
+                                            />
+                                        )}
+
+                                        <div className="relative">
+                                            <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" />
+                                            <input
+                                                type="text"
+                                                value={suggestionContext}
+                                                onChange={(e) => setSuggestionContext(e.target.value)}
+                                                onKeyDown={(e) => e.key === 'Enter' && handleSuggestTopics()}
+                                                placeholder={language === 'fr' ? 'Focus (ex: IA, Recrutement)...' : 'Focus (e.g. AI, Hiring)...'}
+                                                className="w-48 bg-gray-50 border border-gray-200 rounded-lg pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400 transition-all placeholder:text-gray-400"
+                                            />
+                                        </div>
                                     </div>
                                     <button
                                         onClick={handleSuggestTopics}
@@ -1140,7 +1168,10 @@ export default function SocialPostEditorPage() {
                                     <button
                                         key={lang.value}
                                         type="button"
-                                        onClick={() => setLanguage(lang.value as 'fr' | 'en')}
+                                        onClick={() => {
+                                            setLanguage(lang.value as 'fr' | 'en');
+                                            setTopicLocation(lang.value === 'fr' ? 'France' : 'Global');
+                                        }}
                                         className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all ${language === lang.value
                                             ? 'border-gray-900 bg-gray-50 shadow-sm'
                                             : 'border-gray-200 hover:border-gray-300 bg-white'

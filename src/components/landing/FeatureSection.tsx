@@ -56,41 +56,48 @@ function HeroFeatureCard() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="bg-[#f5f5f5] rounded-3xl p-6 lg:p-8 min-h-[400px] lg:min-h-[520px] flex flex-col flex-shrink-0 w-[85vw] sm:w-[75vw] lg:w-auto snap-center"
+          className="bg-[#f5f5f5] rounded-3xl p-6 flex flex-col flex-shrink-0 w-[85vw] sm:w-[75vw] lg:w-auto snap-center relative overflow-hidden group hover:shadow-lg transition-all duration-300"
         >
-          {/* Pill Badge with Premium Icon */}
-          <div className="flex items-center gap-2 mb-4">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-full text-sm font-medium text-gray-900 shadow-sm">
-              <Icon icon="solar:plain-bold" className="w-4 h-4 text-gray-700" />
-              {t('features.campaigns.badge')}
-            </span>
+          {/* Header Section */}
+          <div className="flex flex-col gap-4 mb-6 z-10 relative">
+            <div className="flex items-start justify-between">
+              {/* Badge */}
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-full text-xs font-medium text-gray-900 shadow-sm border border-gray-100">
+                <Icon icon="solar:plain-bold" className="w-3.5 h-3.5 text-gray-700" />
+                {t('features.campaigns.badge')}
+              </span>
+
+              {/* Link - Top Right */}
+              <Link
+                to="/signup"
+                className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-full text-gray-900 hover:bg-gray-50 transition-colors shadow-sm border border-gray-100"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {/* Title */}
+            <h3 className="text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+              {t('features.campaigns.title1')} {t('features.campaigns.title2')}
+            </h3>
           </div>
 
-          {/* Title */}
-          <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 leading-tight mb-6">
-            {t('features.campaigns.title1')}<br />
-            {t('features.campaigns.title2')}
-          </h3>
-
-          <div className="flex-1 flex items-center justify-center rounded-2xl overflow-hidden min-h-[200px]">
-            {/* Placeholder - will be replaced by video */}
-            {/* @ts-ignore */}
-            <dotlottie-wc
-              src="https://lottie.host/7475e3cb-535f-49d2-a542-f9325ac537ac/c6VYRTAoIq.lottie"
-              style={{ width: '300px', height: '300px' }}
-              autoplay
-              loop
-            ></dotlottie-wc>
+          {/* Video Container - Compact */}
+          <div className="relative w-full rounded-2xl overflow-hidden aspect-video">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <video
+                className="w-full h-full object-contain rounded-xl scale-125"
+                autoPlay
+                loop
+                muted
+                playsInline
+                poster="/images/placeholders/campaigns-poster.png"
+              >
+                <source src="/videos/onboarding/campaigns.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
           </div>
-
-          {/* Bottom Link - Pill Style */}
-          <Link
-            to="/signup"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white shadow-sm rounded-full text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors mt-auto w-fit"
-          >
-            {t('features.campaigns.link')}
-            <ArrowRight className="w-4 h-4" />
-          </Link>
         </motion.div>
 
         {/* Card 2 - CV Rewrite */}
@@ -99,41 +106,48 @@ function HeroFeatureCard() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
-          className="bg-[#f5f5f5] rounded-3xl p-6 lg:p-8 min-h-[400px] lg:min-h-[520px] flex flex-col flex-shrink-0 w-[85vw] sm:w-[75vw] lg:w-auto snap-center"
+          className="bg-[#f5f5f5] rounded-3xl p-6 flex flex-col flex-shrink-0 w-[85vw] sm:w-[75vw] lg:w-auto snap-center relative overflow-hidden group hover:shadow-lg transition-all duration-300"
         >
-          {/* Pill Badge with Premium Icon */}
-          <div className="flex items-center gap-2 mb-4">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-full text-sm font-medium text-gray-900 shadow-sm">
-              <Icon icon="solar:document-bold" className="w-4 h-4 text-gray-700" />
-              {t('features.cvRewrite.badge')}
-            </span>
+          {/* Header Section */}
+          <div className="flex flex-col gap-4 mb-6 z-10 relative">
+            <div className="flex items-start justify-between">
+              {/* Badge */}
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-full text-xs font-medium text-gray-900 shadow-sm border border-gray-100">
+                <Icon icon="solar:document-bold" className="w-3.5 h-3.5 text-gray-700" />
+                {t('features.cvRewrite.badge')}
+              </span>
+
+              {/* Link - Top Right */}
+              <Link
+                to="/signup"
+                className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-full text-gray-900 hover:bg-gray-50 transition-colors shadow-sm border border-gray-100"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {/* Title */}
+            <h3 className="text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+              {t('features.cvRewrite.title1')} {t('features.cvRewrite.title2')}
+            </h3>
           </div>
 
-          {/* Title */}
-          <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 leading-tight mb-6">
-            {t('features.cvRewrite.title1')}<br />
-            {t('features.cvRewrite.title2')}
-          </h3>
-
-          <div className="flex-1 flex items-center justify-center rounded-2xl overflow-hidden min-h-[200px]">
-            {/* Placeholder - will be replaced by video */}
-            {/* @ts-ignore */}
-            <dotlottie-wc
-              src="https://lottie.host/5a96743b-c132-448b-927c-9a16a7c0f44c/WXkbRgvhgo.lottie"
-              style={{ width: '300px', height: '300px' }}
-              autoplay
-              loop
-            ></dotlottie-wc>
+          {/* Video Container - Compact */}
+          <div className="relative w-full rounded-2xl overflow-hidden aspect-video">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <video
+                className="w-full h-full object-contain rounded-xl scale-125"
+                autoPlay
+                loop
+                muted
+                playsInline
+                poster="/images/placeholders/cv-rewrite-poster.png"
+              >
+                <source src="/videos/onboarding/cv-analysis.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
           </div>
-
-          {/* Bottom Link - Pill Style */}
-          <Link
-            to="/signup"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white shadow-sm rounded-full text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors mt-auto w-fit"
-          >
-            {t('features.cvRewrite.link')}
-            <ArrowRight className="w-4 h-4" />
-          </Link>
         </motion.div>
       </div>
     </div>
@@ -1158,7 +1172,7 @@ export default function FeatureSection() {
         <img
           src="/images/stickers/1.png"
           alt=""
-          className="absolute top-0 -left-4 lg:-left-20 w-24 md:w-32 lg:w-40 rotate-[-12deg] z-10 pointer-events-none hidden xl:block"
+          className="absolute top-0 -left-4 lg:-left-20 w-20 md:w-28 lg:w-32 rotate-[-12deg] z-10 pointer-events-none hidden xl:block"
         />
         {/* Section Title - Responsive */}
         <motion.div

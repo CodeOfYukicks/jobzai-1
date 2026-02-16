@@ -526,9 +526,196 @@ Respond ONLY with valid JSON:
     }
 };
 
+
+/**
+ * Generate a hyper-optimized SEO article based on trending news
+ */
+export const generateNewsArticle = async (config: SEOArticleConfig, newsContext: string): Promise<GeneratedSEOArticle> => {
+    const openai = await getOpenAIInstance();
+    const wordCount = WORD_COUNTS[config.articleLength];
+    const isFrench = config.language === 'fr';
+    const services = isFrench ? CUBBBE_SERVICES.fr : CUBBBE_SERVICES.en;
+
+    const audienceDesc = isFrench
+        ? AUDIENCE_DESCRIPTIONS[config.targetAudience]
+        : AUDIENCE_DESCRIPTIONS_EN[config.targetAudience];
+
+    const toneDesc = isFrench
+        ? TONE_INSTRUCTIONS[config.tone]
+        : TONE_INSTRUCTIONS_EN[config.tone];
+
+    const servicesContext = isFrench ? `
+## SERVICES CUBBBE À MENTIONNER (intègre 4-5 de ces outils de façon naturelle):
+
+### 🎯 APPLY (Postuler)
+- **${services.jobBoard.name}** (${services.jobBoard.url}): ${services.jobBoard.description}
+- **${services.autoPilot.name}** (${services.autoPilot.url}): ${services.autoPilot.description}
+- **${services.outreachCampaigns.name}** (${services.outreachCampaigns.url}): ${services.outreachCampaigns.description}
+- **${services.cvAnalysis.name}** (${services.cvAnalysis.url}): ${services.cvAnalysis.description}
+
+### 📊 TRACK (Suivre)
+- **${services.applicationTracking.name}** (${services.applicationTracking.url}): ${services.applicationTracking.description}
+- **${services.calendar.name}** (${services.calendar.url}): ${services.calendar.description}
+
+### 🎤 PREPARE (Préparer)
+- **${services.interviewHub.name}** (${services.interviewHub.url}): ${services.interviewHub.description}
+- **${services.mockInterview.name}** (${services.mockInterview.url}): ${services.mockInterview.description}
+- **${services.resumeBuilder.name}** (${services.resumeBuilder.url}): ${services.resumeBuilder.description}
+
+### 📈 IMPROVE (Améliorer)
+- **${services.professionalProfile.name}** (${services.professionalProfile.url}): ${services.professionalProfile.description}
+- **${services.recommendations.name}** (${services.recommendations.url}): ${services.recommendations.description}
+- **${services.dashboard.name}** (${services.dashboard.url}): ${services.dashboard.description}
+
+### 🏠 HUB
+- **${services.hub.name}** (${services.hub.url}): ${services.hub.description}
+
+## RÈGLES D'INTÉGRATION DES BACKLINKS (TRÈS IMPORTANT):
+1. Intègre **4-5 outils Cubbbe** naturellement dans l'article comme solutions concrètes
+2. Utilise le format markdown pour les liens: [Nom de l'outil](URL)
+3. Ajoute **au moins 2 encadrés CTA stylisés** dans le corps de l'article avec ce format:
+   > 💡 **Astuce Cubbbe:** [Texte encourageant avec lien vers l'outil]
+4. Termine l'article par une section "**🚀 Outils Cubbbe recommandés**" listant 3-4 outils pertinents
+5. Varie les outils mentionnés en fonction du sujet de l'article
+` : `
+## CUBBBE SERVICES TO MENTION (naturally integrate 4-5 of these tools):
+
+### 🎯 APPLY
+- **${services.jobBoard.name}** (${services.jobBoard.url}): ${services.jobBoard.description}
+- **${services.autoPilot.name}** (${services.autoPilot.url}): ${services.autoPilot.description}
+- **${services.outreachCampaigns.name}** (${services.outreachCampaigns.url}): ${services.outreachCampaigns.description}
+- **${services.cvAnalysis.name}** (${services.cvAnalysis.url}): ${services.cvAnalysis.description}
+
+### 📊 TRACK
+- **${services.applicationTracking.name}** (${services.applicationTracking.url}): ${services.applicationTracking.description}
+- **${services.calendar.name}** (${services.calendar.url}): ${services.calendar.description}
+
+### 🎤 PREPARE
+- **${services.interviewHub.name}** (${services.interviewHub.url}): ${services.interviewHub.description}
+- **${services.mockInterview.name}** (${services.mockInterview.url}): ${services.mockInterview.description}
+- **${services.resumeBuilder.name}** (${services.resumeBuilder.url}): ${services.resumeBuilder.description}
+
+### 📈 IMPROVE
+- **${services.professionalProfile.name}** (${services.professionalProfile.url}): ${services.professionalProfile.description}
+- **${services.recommendations.name}** (${services.recommendations.url}): ${services.recommendations.description}
+- **${services.dashboard.name}** (${services.dashboard.url}): ${services.dashboard.description}
+
+### 🏠 HUB
+- **${services.hub.name}** (${services.hub.url}): ${services.hub.description}
+
+## BACKLINK INTEGRATION RULES (VERY IMPORTANT):
+1. Naturally integrate **4-5 Cubbbe tools** in the article as concrete solutions
+2. Use markdown format for links: [Tool Name](URL)
+3. Add **at least 2 styled CTA boxes** in the article body with this format:
+   > 💡 **Cubbbe Tip:** [Encouraging text with link to the tool]
+4. End the article with a "**🚀 Recommended Cubbbe Tools**" section listing 3-4 relevant tools
+5. Vary the tools mentioned based on the article topic
+`;
+
+    const systemPrompt = isFrench ? `
+Tu es un journaliste et copywriter SEO d'élite pour "Cubbbe".
+Ta mission: Écrire un article d'actualité basé sur les informations fournies, qui va DOMINER les résultats Google tout en promouvant subtilement les outils Cubbbe.
+
+IMPORTANT: Utilise les informations fournies dans le CONTEXTE D'ACTUALITÉ comme source principale. Ne pas inventer de faits non présents dans le contexte, mais tu peux les enrichir avec tes connaissances générales.
+
+Tu maîtrises parfaitement:
+- Le journalisme web (titres accrocheurs, pyramide inversée)
+- Les algorithmes de Google (E-E-A-T, Helpful Content)
+- Le copywriting persuasif
+` : `
+You are an elite journalist and SEO copywriter for "Cubbbe".
+Your mission: Write a news article based on the provided information that will DOMINATE Google search results while subtly promoting Cubbbe tools.
+
+IMPORTANT: Use the information provided in the NEWS CONTEXT as the primary source. Do not invent facts not present in the context, but you can enrich them with your general knowledge.
+
+You have mastered:
+- Web journalism (catchy titles, inverted pyramid)
+- Google algorithms (E-E-A-T, Helpful Content)
+- Persuasive copywriting
+`;
+
+    const userPrompt = isFrench ? `
+## CONTEXTE D'ACTUALITÉ (SOURCE PRINCIPALE)
+${newsContext}
+
+## BRIEF DE L'ARTICLE
+**SUJET:** ${config.topic}
+**MOTS-CLÉS CIBLES:** ${config.targetKeywords.join(', ')}
+**AUDIENCE:** ${audienceDesc}
+**LONGUEUR:** ${wordCount.min}-${wordCount.max} mots
+**TON:** ${toneDesc}
+
+${servicesContext}
+
+## RÈGLES DE RÉDACTION
+1. **Titres et Accroche**: Commence fort. Le titre doit être irrésistible. Le premier paragraphe doit résumer l'info clé (Qui, Quoi, Quand, Où, Pourquoi).
+2. **Structure**: Utilise des sous-titres (H2, H3) pour aérer le texte.
+3. **Analyse**: Ne fais pas que rapporter les faits. Analyse l'impact pour les chercheurs d'emploi et les professionnels.
+4. **Integration Cubbbe**: Positionne les outils Cubbbe comme des solutions aux défis mentionnés dans l'actualité.
+5. **Formatage**: Utilise du gras pour les points clés, des listes pour les détails.
+6. **Sources & Crédibilité (académique)**: Cite EXPLICITEMENT le NOM de la source pour chaque chiffre ou fait clé (ex: "Selon Le Monde...", "D'après une étude McKinsey..."). 
+    - **INTERDIT**: Ne mets JAMAIS de liens URL dans le texte.
+    - **STYLE**: Utilise un ton journalistique sérieux. "Comme rapporté par...", "Les données de... indiquent".
+
+## FORMAT DE SORTIE (JSON STRICT)
+Réponds UNIQUEMENT avec un JSON valide avec les mêmes champs que précédemment (title, slug, excerpt, content, suggestedKeywords).
+` : `
+## NEWS CONTEXT (PRIMARY SOURCE)
+${newsContext}
+
+## ARTICLE BRIEF
+**TOPIC:** ${config.topic}
+**TARGET KEYWORDS:** ${config.targetKeywords.join(', ')}
+**AUDIENCE:** ${audienceDesc}
+**LENGTH:** ${wordCount.min}-${wordCount.max} words
+**TONE:** ${toneDesc}
+
+${servicesContext}
+
+## WRITING RULES
+1. **Headlines and Hook**: Start strong. The headline must be irresistible. The first paragraph must summarize the key info (Who, What, When, Where, Why).
+2. **Structure**: Use subheadings (H2, H3) to break up the text.
+3. **Analysis**: Don't just report facts. Analyze the impact for job seekers and professionals.
+4. **Cubbbe Integration**: Position Cubbbe tools as solutions to the challenges mentioned in the news.
+5. **Formatting**: Use bold for key points, lists for details.
+6. **Sources & Credibility (Academic)**: EXPLICITLY cite the SOURCE NAME for every key figure or fact (e.g., "According to Reuters...", "As reported by TechCrunch...").
+    - **FORBIDDEN**: NEVER include URL links in the text.
+    - **STYLE**: Use a serious journalistic tone.
+
+## OUTPUT FORMAT (STRICT JSON)
+Respond ONLY with valid JSON with the same fields as before (title, slug, excerpt, content, suggestedKeywords).
+`;
+
+    try {
+        const completion = await openai.chat.completions.create({
+            model: "gpt-5.2",
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt }
+            ],
+            temperature: 0.7,
+            response_format: { type: "json_object" }
+        });
+
+        const responseText = completion.choices[0].message.content || '{}';
+        const parsed = JSON.parse(responseText) as GeneratedSEOArticle;
+
+        // Clean up content - remove duplicate title if present
+        if (parsed.content.startsWith(`# ${parsed.title}`)) {
+            parsed.content = parsed.content.replace(/^# .+\n+/, '');
+        }
+
+        return parsed;
+    } catch (error) {
+        console.error('Error generating News article:', error);
+        throw error;
+    }
+};
+
 // ============================================
 // LEGACY ARTICLE GENERATION (kept for compatibility)
 // ============================================
+
 
 export const generateAIArticle = async (config: AIArticleConfig) => {
     const openai = await getOpenAIInstance();

@@ -1,4 +1,4 @@
-import { queryPerplexity } from '../lib/perplexity';
+import { searchPerplexity } from '../lib/perplexity';
 import { SocialPlatform } from '../types/socialPost';
 
 // ============================================
@@ -17,7 +17,11 @@ export interface TopicSuggestion {
 // SUGGEST TOPICS
 // ============================================
 
-export async function suggestTopics(language: 'fr' | 'en' = 'fr', customTopic?: string): Promise<TopicSuggestion[]> {
+export async function suggestTopics(
+    language: 'fr' | 'en' = 'fr',
+    customTopic?: string,
+    location: 'Global' | 'US' | 'France' | string = 'Global'
+): Promise<TopicSuggestion[]> {
     const today = new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', {
         year: 'numeric',
         month: 'long',
@@ -25,14 +29,20 @@ export async function suggestTopics(language: 'fr' | 'en' = 'fr', customTopic?: 
     });
 
     let scopeInstruction = '';
+
+    // Add location context
+    const locationContext = location === 'Global'
+        ? (language === 'fr' ? "Monde entier" : "Global")
+        : location;
+
     if (customTopic) {
         scopeInstruction = language === 'fr'
-            ? `FOCUS SPÉCIFIQUE OBLIGATOIRE : Tu dois trouver des actualités et tendances UNIQUEMENT liées à : "${customTopic}".`
-            : `MANDATORY SPECIFIC FOCUS: You must find news and trends ONLY related to: "${customTopic}".`;
+            ? `FOCUS SPÉCIFIQUE OBLIGATOIRE : Tu dois trouver des actualités et tendances UNIQUEMENT liées à : "${customTopic}" dans la zone géographique : ${locationContext}.`
+            : `MANDATORY SPECIFIC FOCUS: You must find news and trends ONLY related to: "${customTopic}" in the region: ${locationContext}.`;
     } else {
         scopeInstruction = language === 'fr'
-            ? `Domaines à couvrir (Large) : Marché de l'emploi, Recrutement, Tech RH, Management, IA au travail.`
-            : `Areas to cover (Broad): Job Market, Recruiting, HR Tech, Management, AI at work.`;
+            ? `Domaines à couvrir (Large) : Marché de l'emploi, Recrutement, Tech RH, Management, IA au travail. Zone géographique : ${locationContext}.`
+            : `Areas to cover (Broad): Job Market, Recruiting, HR Tech, Management, AI at work. Region: ${locationContext}.`;
     }
 
     const prompt = language === 'fr'
@@ -84,27 +94,29 @@ RULES:
 Respond in strict JSON:
 { "suggestions": [{ "title": "...", "context": "...", "whyNow": "...", "suggestedPlatforms": [...], "angle": "..." }] }`;
 
-    const response = await queryPerplexity(prompt, {
-        model: 'sonar-pro',
-        temperature: 0.7,
-        maxTokens: 3000,
-        systemMessage: language === 'fr'
-            ? 'Tu es un expert en veille stratégique et création de contenu business. Réponds UNIQUEMENT en JSON valide.'
-            : 'You are an expert in strategic intelligence and business content creation. Respond ONLY in valid JSON.',
-    });
+    const systemMessage = language === 'fr'
+        ? 'Tu es un expert en veille stratégique et création de contenu business. Réponds UNIQUEMENT en JSON valide.'
+        : 'You are an expert in strategic intelligence and business content creation. Respond ONLY in valid JSON.';
 
-    if (response.error) {
-        throw new Error(response.errorMessage || 'Failed to get topic suggestions');
+    try {
+        const result = await searchPerplexity([
+            { role: 'system', content: systemMessage },
+            { role: 'user', content: prompt }
+        ], 'sonar-pro');
+
+        const text = result.content || '';
+
+
+        // Parse the JSON, handling potential markdown code block wrappers
+        let cleanText = text.trim();
+        if (cleanText.startsWith('```')) {
+            cleanText = cleanText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+        }
+
+        const parsed = JSON.parse(cleanText);
+        return (parsed.suggestions || []) as TopicSuggestion[];
+    } catch (error) {
+        console.error('Error fetching topic suggestions:', error);
+        throw error;
     }
-
-    const text = response.text || '';
-
-    // Parse the JSON, handling potential markdown code block wrappers
-    let cleanText = text.trim();
-    if (cleanText.startsWith('```')) {
-        cleanText = cleanText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-    }
-
-    const parsed = JSON.parse(cleanText);
-    return (parsed.suggestions || []) as TopicSuggestion[];
 }
