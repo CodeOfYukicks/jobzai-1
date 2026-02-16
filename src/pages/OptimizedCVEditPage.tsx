@@ -219,16 +219,16 @@ function parseMarkdownToCVData(markdown: string): CVData {
     /^##\s*(.+?)(?:\n|$)/m, // ## Name
     /^(.+?)\n(?:Email|Phone|Location|LinkedIn)/i, // Name before contact info
   ];
-  
+
   for (const pattern of namePatterns) {
     const match = markdown.match(pattern);
     if (match) {
       const nameText = match[1].trim();
       // Skip if it looks like a section title
-      if (!nameText.toLowerCase().includes('experience') && 
-          !nameText.toLowerCase().includes('education') &&
-          !nameText.toLowerCase().includes('summary') &&
-          !nameText.toLowerCase().includes('skill')) {
+      if (!nameText.toLowerCase().includes('experience') &&
+        !nameText.toLowerCase().includes('education') &&
+        !nameText.toLowerCase().includes('summary') &&
+        !nameText.toLowerCase().includes('skill')) {
         const nameParts = nameText.split(/\s+/);
         if (nameParts.length >= 2) {
           cvData.personalInfo.firstName = nameParts[0];
@@ -301,9 +301,9 @@ function parseMarkdownToCVData(markdown: string): CVData {
     if (match) {
       const location = (match[1] || match[0]).trim();
       // Filter out false positives
-      if (location.length > 2 && location.length < 100 && 
-          !location.toLowerCase().includes('email') &&
-          !location.toLowerCase().includes('phone')) {
+      if (location.length > 2 && location.length < 100 &&
+        !location.toLowerCase().includes('email') &&
+        !location.toLowerCase().includes('phone')) {
         cvData.personalInfo.location = location;
         break;
       }
@@ -327,7 +327,7 @@ function parseMarkdownToCVData(markdown: string): CVData {
   // Main parsing loop
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    
+
     // Detect sections
     if (line.startsWith('# ')) {
       const sectionTitle = line.substring(2).toLowerCase();
@@ -351,7 +351,7 @@ function parseMarkdownToCVData(markdown: string): CVData {
     } else if (line.startsWith('## ')) {
       // Subsection (e.g., job title or company)
       const title = line.substring(3).trim();
-      
+
       if (currentSection === 'experience') {
         // Save previous experience
         if (currentExperience) {
@@ -366,7 +366,7 @@ function parseMarkdownToCVData(markdown: string): CVData {
             order: cvData.experiences.length,
           });
         }
-        
+
         // Parse title and company from format like "Job Title - Company" or "Job Title at Company"
         const titleCompanyMatch = title.match(/^(.+?)(?:\s*[-–—]\s*|\s+at\s+|\s+chez\s+)(.+)$/i);
         if (titleCompanyMatch) {
@@ -392,7 +392,7 @@ function parseMarkdownToCVData(markdown: string): CVData {
             order: cvData.educations.length,
           });
         }
-        
+
         // Parse degree and institution
         const degreeInstitutionMatch = title.match(/^(.+?)(?:\s*[-–—]\s*|\s+at\s+|\s+à\s+)(.+)$/i);
         if (degreeInstitutionMatch) {
@@ -544,7 +544,7 @@ function convertCVDataToMarkdown(cvData: CVData): string {
     if (fullName) {
       markdown += `# ${fullName}\n\n`;
     }
-    
+
     // Contact information
     const contactInfo: string[] = [];
     if (pi.email) contactInfo.push(`Email: ${pi.email}`);
@@ -553,7 +553,7 @@ function convertCVDataToMarkdown(cvData: CVData): string {
     if (pi.linkedin) contactInfo.push(`LinkedIn: ${pi.linkedin}`);
     if (pi.portfolio) contactInfo.push(`Portfolio: ${pi.portfolio}`);
     if (pi.jobTitle) contactInfo.push(`Current Title: ${pi.jobTitle}`);
-    
+
     if (contactInfo.length > 0) {
       markdown += contactInfo.join(' | ') + '\n\n';
     }
@@ -571,9 +571,9 @@ function convertCVDataToMarkdown(cvData: CVData): string {
       markdown += `## ${exp.title} - ${exp.company}\n`;
       markdown += `${exp.startDate} - ${exp.isCurrent ? 'Present' : exp.endDate}\n\n`;
       if (exp.description && exp.description.length > 0) {
-      exp.description.forEach(desc => {
-        markdown += `- ${desc}\n`;
-      });
+        exp.description.forEach(desc => {
+          markdown += `- ${desc}\n`;
+        });
       }
       markdown += '\n';
     });
@@ -634,7 +634,7 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
       if (!cvData.professionalSummary) return null;
       return (
         <div key="professionalSummary" style={{ marginBottom: '25px' }}>
-          <h2 style={{ 
+          <h2 style={{
             fontSize: '14px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -645,7 +645,7 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
           }}>
             Professional Summary
           </h2>
-          <p style={{ 
+          <p style={{
             fontSize: '11px',
             color: '#2d3748',
             lineHeight: '1.6',
@@ -656,12 +656,12 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
           </p>
         </div>
       );
-    
+
     case 'experience':
       if (cvData.experiences.length === 0) return null;
       return (
         <div key="experience" style={{ marginBottom: '25px' }}>
-          <h2 style={{ 
+          <h2 style={{
             fontSize: '14px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -674,20 +674,20 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
           </h2>
           {cvData.experiences.map((exp) => (
             <div key={exp.id} style={{ marginBottom: '15px' }}>
-              <div style={{ 
+              <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'flex-start',
                 marginBottom: '6px'
               }}>
-                <h3 style={{ 
+                <h3 style={{
                   fontSize: '12px',
                   fontWeight: 'bold',
                   color: '#1a202c'
                 }}>
                   {exp.title || 'Job Title'} | {exp.company || 'Company'}
                 </h3>
-                <p style={{ 
+                <p style={{
                   fontSize: '10px',
                   color: '#4a5568',
                   whiteSpace: 'nowrap',
@@ -697,13 +697,13 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
                 </p>
               </div>
               {exp.description.length > 0 && (
-                <ul style={{ 
+                <ul style={{
                   listStyle: 'none',
                   padding: 0,
                   margin: '8px 0 0 0'
                 }}>
                   {exp.description.map((desc, idx) => (
-                    <li key={idx} style={{ 
+                    <li key={idx} style={{
                       fontSize: '10px',
                       color: '#2d3748',
                       lineHeight: '1.5',
@@ -721,12 +721,12 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
           ))}
         </div>
       );
-    
+
     case 'education':
       if (cvData.educations.length === 0) return null;
       return (
         <div key="education" style={{ marginBottom: '25px' }}>
-          <h2 style={{ 
+          <h2 style={{
             fontSize: '14px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -739,7 +739,7 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
           </h2>
           {cvData.educations.map((edu) => (
             <div key={edu.id} style={{ marginBottom: '12px' }}>
-              <h3 style={{ 
+              <h3 style={{
                 fontSize: '12px',
                 fontWeight: 'bold',
                 color: '#1a202c',
@@ -747,7 +747,7 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
               }}>
                 {edu.degree || 'Degree'}
               </h3>
-              <p style={{ 
+              <p style={{
                 fontSize: '10px',
                 color: '#4a5568',
                 marginBottom: '4px'
@@ -756,7 +756,7 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
                 {edu.startDate && `, ${edu.startDate}${edu.endDate ? ` - ${edu.endDate}` : ''}`}
               </p>
               {edu.description && (
-                <p style={{ 
+                <p style={{
                   fontSize: '10px',
                   color: '#2d3748',
                   lineHeight: '1.5',
@@ -769,12 +769,12 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
           ))}
         </div>
       );
-    
+
     case 'skills':
       if (cvData.skills.length === 0) return null;
       return (
         <div key="skills" style={{ marginBottom: '25px' }}>
-          <h2 style={{ 
+          <h2 style={{
             fontSize: '14px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -794,12 +794,12 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
           </div>
         </div>
       );
-    
+
     case 'languages':
       if (cvData.languages.length === 0) return null;
       return (
         <div key="languages" style={{ marginBottom: '25px' }}>
-          <h2 style={{ 
+          <h2 style={{
             fontSize: '14px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -819,12 +819,12 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
           </div>
         </div>
       );
-    
+
     case 'certificates':
       if (cvData.certificates.length === 0) return null;
       return (
         <div key="certificates">
-          <h2 style={{ 
+          <h2 style={{
             fontSize: '14px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -837,7 +837,7 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
           </h2>
           {cvData.certificates.map((cert) => (
             <div key={cert.id} style={{ marginBottom: '8px' }}>
-              <p style={{ 
+              <p style={{
                 fontSize: '11px',
                 fontWeight: '600',
                 color: '#1a202c',
@@ -845,7 +845,7 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
               }}>
                 {cert.name}
               </p>
-              <p style={{ 
+              <p style={{
                 fontSize: '10px',
                 color: '#4a5568'
               }}>
@@ -855,12 +855,12 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
           ))}
         </div>
       );
-    
+
     case 'hobbies':
       if (!cvData.hobbies || cvData.hobbies.length === 0) return null;
       return (
         <div key="hobbies">
-          <h2 style={{ 
+          <h2 style={{
             fontSize: '14px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -881,62 +881,12 @@ function renderCVSection(sectionId: string, cvData: CVData, styling: any, showSk
         </div>
       );
 
-    case 'hobbies':
-      if (!cvData.hobbies || cvData.hobbies.length === 0) return null;
-      return (
-        <div key="hobbies">
-          <h2 style={{ 
-            fontSize: '12px',
-            fontWeight: 'bold',
-            textTransform: 'uppercase',
-            letterSpacing: '1px',
-            color: styling.color,
-            borderBottom: `2px solid ${styling.color}`,
-            paddingBottom: '5px',
-            marginBottom: '10px'
-          }}>
-            HOBBIES
-          </h2>
-          <ul style={{ paddingLeft: '16px', margin: 0 }}>
-            {cvData.hobbies.map((h) => (
-              <li key={h.id} style={{ fontSize: '10px', color: '#1a202c', marginBottom: '4px' }}>
-                {h.name}
-              </li>
-            ))}
-          </ul>
-        </div>
-      );
-    
-    case 'hobbies':
-      if (!cvData.hobbies || cvData.hobbies.length === 0) return null;
-      return (
-        <div key="hobbies" style={{ marginTop: '16px' }}>
-          <h2 style={{ 
-            fontSize: '12px',
-            fontWeight: 'bold',
-            textTransform: 'uppercase',
-            letterSpacing: '1px',
-            color: styling.color,
-            borderBottom: `2px solid ${styling.color}`,
-            paddingBottom: '5px',
-            marginBottom: '10px'
-          }}>
-            HOBBIES
-          </h2>
-          <ul style={{ paddingLeft: '16px', margin: 0 }}>
-            {cvData.hobbies.map((h) => (
-              <li key={h.id} style={{ fontSize: '10px', color: '#1a202c', marginBottom: '4px' }}>
-                {h.name}
-              </li>
-            ))}
-          </ul>
-        </div>
-      );
-    
+
     default:
       return null;
   }
 }
+
 
 // Harvard Template Component
 function HarvardTemplate({ cvData, styling, sectionOrder, showSkillLevel }: { cvData: CVData | null; styling: any; sectionOrder?: string[]; showSkillLevel?: boolean }) {
@@ -946,9 +896,9 @@ function HarvardTemplate({ cvData, styling, sectionOrder, showSkillLevel }: { cv
   const order = sectionOrder || defaultOrder;
 
   return (
-    <div 
+    <div
       data-cv-preview
-      style={{ 
+      style={{
         fontFamily: styling.font,
         minHeight: '297mm',
         width: '100%',
@@ -960,7 +910,7 @@ function HarvardTemplate({ cvData, styling, sectionOrder, showSkillLevel }: { cv
     >
       {/* Header */}
       <div style={{ marginBottom: '30px', paddingBottom: '20px' }}>
-        <h1 style={{ 
+        <h1 style={{
           fontSize: '28px',
           fontWeight: 'bold',
           color: styling.color,
@@ -969,7 +919,7 @@ function HarvardTemplate({ cvData, styling, sectionOrder, showSkillLevel }: { cv
         }}>
           {cvData.personalInfo.firstName || 'First'} {cvData.personalInfo.lastName || 'Last'}
         </h1>
-        <p style={{ 
+        <p style={{
           fontSize: '14px',
           color: '#4a5568',
           marginBottom: '8px'
@@ -998,7 +948,7 @@ function renderModernRightSection(sectionId: string, cvData: CVData, styling: an
       if (!cvData.professionalSummary) return null;
       return (
         <div key="professionalSummary" style={{ marginBottom: '20px' }}>
-          <p style={{ 
+          <p style={{
             fontSize: '10px',
             color: '#2d3748',
             lineHeight: '1.6',
@@ -1009,12 +959,12 @@ function renderModernRightSection(sectionId: string, cvData: CVData, styling: an
           </p>
         </div>
       );
-    
+
     case 'experience':
       if (cvData.experiences.length === 0) return null;
       return (
         <div key="experience" style={{ marginBottom: '20px' }}>
-          <h2 style={{ 
+          <h2 style={{
             fontSize: '11px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -1027,19 +977,19 @@ function renderModernRightSection(sectionId: string, cvData: CVData, styling: an
             WORK EXPERIENCE
           </h2>
           {cvData.experiences.map((exp, idx) => (
-            <div key={exp.id} style={{ 
+            <div key={exp.id} style={{
               marginBottom: idx < cvData.experiences.length - 1 ? '15px' : '0',
               paddingBottom: idx < cvData.experiences.length - 1 ? '15px' : '0',
               borderBottom: idx < cvData.experiences.length - 1 ? '1px solid #e2e8f0' : 'none'
             }}>
-              <div style={{ 
+              <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'flex-start',
                 marginBottom: '6px'
               }}>
                 <div style={{ flex: 1 }}>
-                  <h3 style={{ 
+                  <h3 style={{
                     fontSize: '10px',
                     fontWeight: 'bold',
                     color: '#1a202c',
@@ -1047,7 +997,7 @@ function renderModernRightSection(sectionId: string, cvData: CVData, styling: an
                   }}>
                     {exp.title || 'Job Title'}
                   </h3>
-                  <p style={{ 
+                  <p style={{
                     fontSize: '9px',
                     color: '#4a5568',
                     marginBottom: '6px'
@@ -1057,13 +1007,13 @@ function renderModernRightSection(sectionId: string, cvData: CVData, styling: an
                 </div>
               </div>
               {exp.description.length > 0 && (
-                <ul style={{ 
+                <ul style={{
                   listStyle: 'none',
                   padding: 0,
                   margin: '6px 0 0 0'
                 }}>
                   {exp.description.map((desc, descIdx) => (
-                    <li key={descIdx} style={{ 
+                    <li key={descIdx} style={{
                       fontSize: '9px',
                       color: '#2d3748',
                       lineHeight: '1.5',
@@ -1081,12 +1031,12 @@ function renderModernRightSection(sectionId: string, cvData: CVData, styling: an
           ))}
         </div>
       );
-    
+
     case 'education':
       if (cvData.educations.length === 0) return null;
       return (
         <div key="education" style={{ marginBottom: '20px' }}>
-          <h2 style={{ 
+          <h2 style={{
             fontSize: '11px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -1099,12 +1049,12 @@ function renderModernRightSection(sectionId: string, cvData: CVData, styling: an
             EDUCATION
           </h2>
           {cvData.educations.map((edu, idx) => (
-            <div key={edu.id} style={{ 
+            <div key={edu.id} style={{
               marginBottom: idx < cvData.educations.length - 1 ? '12px' : '0',
               paddingBottom: idx < cvData.educations.length - 1 ? '12px' : '0',
               borderBottom: idx < cvData.educations.length - 1 ? '1px solid #e2e8f0' : 'none'
             }}>
-              <h3 style={{ 
+              <h3 style={{
                 fontSize: '10px',
                 fontWeight: 'bold',
                 color: '#1a202c',
@@ -1112,7 +1062,7 @@ function renderModernRightSection(sectionId: string, cvData: CVData, styling: an
               }}>
                 {edu.degree || 'Degree'}
               </h3>
-              <p style={{ 
+              <p style={{
                 fontSize: '9px',
                 color: '#4a5568',
                 marginBottom: '4px'
@@ -1121,7 +1071,7 @@ function renderModernRightSection(sectionId: string, cvData: CVData, styling: an
                 {edu.startDate && `, ${edu.startDate}${edu.endDate ? ` - ${edu.endDate}` : ''}`}
               </p>
               {edu.description && (
-                <p style={{ 
+                <p style={{
                   fontSize: '9px',
                   color: '#2d3748',
                   lineHeight: '1.5',
@@ -1134,17 +1084,17 @@ function renderModernRightSection(sectionId: string, cvData: CVData, styling: an
           ))}
         </div>
       );
-    
+
     case 'skills':
     case 'languages':
       // Skills and Languages stay in left column for Modern template
       return null;
-    
+
     case 'certificates':
       if (cvData.certificates.length === 0) return null;
       return (
         <div key="certificates">
-          <h2 style={{ 
+          <h2 style={{
             fontSize: '12px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -1158,7 +1108,7 @@ function renderModernRightSection(sectionId: string, cvData: CVData, styling: an
           </h2>
           {cvData.certificates.map((cert) => (
             <div key={cert.id} style={{ marginBottom: '8px' }}>
-              <p style={{ 
+              <p style={{
                 fontSize: '10px',
                 fontWeight: '600',
                 color: '#1a202c',
@@ -1166,7 +1116,7 @@ function renderModernRightSection(sectionId: string, cvData: CVData, styling: an
               }}>
                 {cert.name}
               </p>
-              <p style={{ 
+              <p style={{
                 fontSize: '9px',
                 color: '#4a5568'
               }}>
@@ -1176,7 +1126,7 @@ function renderModernRightSection(sectionId: string, cvData: CVData, styling: an
           ))}
         </div>
       );
-    
+
     default:
       return null;
   }
@@ -1192,9 +1142,9 @@ function ModernTemplate({ cvData, styling, cvPhoto, sectionOrder, showSkillLevel
   const rightColumnSections = order.filter(id => id !== 'skills' && id !== 'languages');
 
   return (
-    <div 
+    <div
       data-cv-preview
-      style={{ 
+      style={{
         fontFamily: styling.font,
         minHeight: '297mm',
         width: '100%',
@@ -1206,14 +1156,14 @@ function ModernTemplate({ cvData, styling, cvPhoto, sectionOrder, showSkillLevel
       }}
     >
       {/* Left Column - Dark Blue */}
-      <div style={{ 
+      <div style={{
         width: '35%',
         padding: '30px 20px',
         backgroundColor: '#1e3a5f',
         color: '#ffffff'
       }}>
         {/* Profile Picture */}
-        <div style={{ 
+        <div style={{
           width: '100px',
           height: '100px',
           borderRadius: '50%',
@@ -1226,29 +1176,29 @@ function ModernTemplate({ cvData, styling, cvPhoto, sectionOrder, showSkillLevel
           justifyContent: 'center'
         }}>
           {cvPhoto ? (
-            <img 
-              src={cvPhoto} 
-              alt="Profile" 
-              style={{ 
-                width: '100%', 
-                height: '100%', 
-                objectFit: 'cover' 
-              }} 
+            <img
+              src={cvPhoto}
+              alt="Profile"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }}
             />
           ) : (
-            <span style={{ 
-              fontSize: '32px', 
-              fontWeight: 'bold', 
-              color: '#ffffff' 
+            <span style={{
+              fontSize: '32px',
+              fontWeight: 'bold',
+              color: '#ffffff'
             }}>
               {cvData?.personalInfo.firstName?.charAt(0).toUpperCase() || '?'}
             </span>
           )}
         </div>
-        
+
         {/* CONTACT */}
         <div style={{ marginBottom: '25px' }}>
-          <h2 style={{ 
+          <h2 style={{
             fontSize: '11px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -1283,7 +1233,7 @@ function ModernTemplate({ cvData, styling, cvPhoto, sectionOrder, showSkillLevel
         {/* SKILLS */}
         {cvData.skills.length > 0 && (
           <div>
-            <h2 style={{ 
+            <h2 style={{
               fontSize: '11px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -1295,7 +1245,7 @@ function ModernTemplate({ cvData, styling, cvPhoto, sectionOrder, showSkillLevel
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {cvData.skills.map((skill) => (
-                <p key={skill.id} style={{ 
+                <p key={skill.id} style={{
                   fontSize: '9px',
                   lineHeight: '1.5'
                 }}>
@@ -1308,13 +1258,13 @@ function ModernTemplate({ cvData, styling, cvPhoto, sectionOrder, showSkillLevel
       </div>
 
       {/* Right Column */}
-      <div style={{ 
+      <div style={{
         flex: 1,
         padding: '30px'
       }}>
         {/* Header */}
         <div style={{ marginBottom: '25px' }}>
-          <h1 style={{ 
+          <h1 style={{
             fontSize: '22px',
             fontWeight: 'bold',
             textTransform: 'uppercase',
@@ -1325,7 +1275,7 @@ function ModernTemplate({ cvData, styling, cvPhoto, sectionOrder, showSkillLevel
           }}>
             {cvData.personalInfo.firstName || 'FIRST'} {cvData.personalInfo.lastName || 'LAST'}
           </h1>
-          <p style={{ 
+          <p style={{
             fontSize: '11px',
             fontWeight: '600',
             textTransform: 'uppercase',
@@ -1347,9 +1297,9 @@ function ModernTemplate({ cvData, styling, cvPhoto, sectionOrder, showSkillLevel
 function HtmlThemePreview({ html }: { html: string }) {
   if (!html) {
     return (
-      <div style={{ 
-        padding: '40px', 
-        textAlign: 'center', 
+      <div style={{
+        padding: '40px',
+        textAlign: 'center',
         color: '#6b7280',
         fontFamily: 'system-ui, sans-serif'
       }}>
@@ -1359,10 +1309,10 @@ function HtmlThemePreview({ html }: { html: string }) {
   }
 
   return (
-    <div 
+    <div
       data-cv-preview
       dangerouslySetInnerHTML={{ __html: html }}
-      style={{ 
+      style={{
         minHeight: '297mm',
         width: '100%'
       }}
@@ -1498,20 +1448,20 @@ function OptimizedCVEditPage() {
     const loadCV = async () => {
       try {
         console.log('🔍 DEBUG: Loading CV with id:', id);
-        
+
         // Load CV document
         const cvDoc = await getDoc(doc(db, 'users', currentUser.uid, 'optimizedCVs', id));
-        
+
         // Load user profile data in parallel
         const profileDoc = await getDoc(doc(db, 'users', currentUser.uid));
         const profileData = profileDoc.exists() ? profileDoc.data() : null;
-        
+
         // Load profile photo
         if (profileData?.profilePhoto) {
           console.log('📸 Profile photo loaded from user profile');
           setCvPhoto(profileData.profilePhoto);
         }
-        
+
         if (cvDoc.exists()) {
           const data = cvDoc.data() as OptimizedCV;
           console.log('📄 CV Document loaded:', {
@@ -1525,7 +1475,7 @@ function OptimizedCVEditPage() {
           if ((data as any).jobOverview) {
             setJobOverview((data as any).jobOverview);
           }
-          
+
           if (profileData) {
             console.log('👤 Profile data loaded for merge:', {
               hasFirstName: !!profileData.firstName,
@@ -1534,14 +1484,14 @@ function OptimizedCVEditPage() {
               hasLinkedIn: !!profileData.linkedinUrl
             });
           }
-          
+
           setCv({ ...data, id: cvDoc.id });
-          
+
           // Load section order if saved
           if ((data as any).sectionOrder && Array.isArray((data as any).sectionOrder)) {
             setSectionOrder((data as any).sectionOrder);
           }
-          
+
           // Load CV photo if saved, fallback to profile photo
           const savedPhoto = (data as any).cvPhoto;
           if (savedPhoto) {
@@ -1556,10 +1506,10 @@ function OptimizedCVEditPage() {
           if ((data as any).showSkillLevel !== undefined) {
             setShowSkillLevel((data as any).showSkillLevel);
           }
-          
+
           // Parse markdown to structured data or use existing cvData
           let loadedCVData: CVData;
-          
+
           if (data.cvData) {
             console.log('✅ Using existing cvData from Firestore');
             console.log('cvData structure:', {
@@ -1580,7 +1530,7 @@ function OptimizedCVEditPage() {
               eduCount: parsed.educations.length,
               skillsCount: parsed.skills.length
             });
-            
+
             // If parsing didn't extract much, create default structure
             if (parsed.experiences.length === 0 && parsed.educations.length === 0) {
               console.warn('⚠️ Parsing failed, creating default structure');
@@ -1612,7 +1562,7 @@ function OptimizedCVEditPage() {
             }
             loadedCVData = normalizeCVData(loadedCVData);
           }
-          
+
           // Merge with Professional Profile data (fill missing fields only)
           if (profileData) {
             console.log('🔄 Merging CV data with Professional Profile...');
@@ -1772,7 +1722,7 @@ ${jobContent.substring(0, 6000)}
         );
         const querySnapshot = await getDocs(q);
         const versions: OptimizedCV[] = [];
-        
+
         querySnapshot.forEach((doc) => {
           versions.push({ ...doc.data(), id: doc.id } as OptimizedCV);
         });
@@ -1810,11 +1760,11 @@ ${jobContent.substring(0, 6000)}
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
-      
+
       const newWidth = e.clientX;
       const minWidth = 520;
       const maxWidth = 800;
-      
+
       if (newWidth >= minWidth && newWidth <= maxWidth) {
         setPanelWidth(newWidth);
       } else if (newWidth < minWidth) {
@@ -1885,7 +1835,7 @@ ${jobContent.substring(0, 6000)}
       setIsLoadingTemplatePreviews(true);
       try {
         const storage = getStorage();
-        
+
         // Load Harvard template preview
         try {
           const harvardRef = ref(storage, 'images/harvard-template-preview.png');
@@ -1963,7 +1913,7 @@ ${jobContent.substring(0, 6000)}
 
     // Activate glow effect
     setIsGlowing(true);
-    
+
     // Save the CV
     setIsSaving(true);
     try {
@@ -1987,7 +1937,7 @@ ${jobContent.substring(0, 6000)}
 
     // Wait 300ms to show the save animation
     await new Promise(resolve => setTimeout(resolve, 300));
-    
+
     // Reset states and navigate
     setIsSaving(false);
     setIsGlowing(false);
@@ -2161,7 +2111,7 @@ Be specific, actionable, and focus on quick wins that will improve the ATS score
           break;
         case 'experience':
           // Edit last experience or all experiences
-          contentToEdit = cvData.experiences.map(e => 
+          contentToEdit = cvData.experiences.map(e =>
             `${e.title} at ${e.company}: ${e.description.join(' ')}`
           ).join('\n');
           updateFunction = () => {
@@ -2208,10 +2158,10 @@ Be specific, actionable, and focus on quick wins that will improve the ATS score
     if (!cvData) return;
     const exp = cvData.experiences.find(e => e.id === expId);
     if (!exp) return;
-    
+
     try {
       setAiUpdatingExperience(expId);
-      
+
       // Add user message to chat history
       if (userPrompt) {
         const currentMessages = chatMessages[expId] || [];
@@ -2220,13 +2170,13 @@ Be specific, actionable, and focus on quick wins that will improve the ATS score
           [expId]: [...currentMessages, { role: 'user', content: userPrompt }]
         });
       }
-      
+
       const jobTitle = cv?.jobTitle || cvData.personalInfo.jobTitle || '';
       const company = cv?.company || '';
       const keywords = (cv?.keywordsUsed || []).slice(0, 20).join(', ');
-      const jobDescription = cv?.optimizedResumeMarkdown ? 
+      const jobDescription = cv?.optimizedResumeMarkdown ?
         (cv.optimizedResumeMarkdown.split('##')[0] || '').slice(0, 1000) : '';
-      
+
       const otherExperiencesArr = cvData.experiences
         .filter(e => e.id !== expId)
         .map(e => {
@@ -2234,13 +2184,13 @@ Be specific, actionable, and focus on quick wins that will improve the ATS score
           return `${e.title} | ${e.company}\n${e.startDate} - ${e.isCurrent ? 'Present' : e.endDate}\n${bullets}`;
         });
       const otherExperiences = otherExperiencesArr.join('\n\n');
-      
+
       // Get chat history for this experience
       const history = chatMessages[expId] || [];
-      const historyContext = history.length > 0 
+      const historyContext = history.length > 0
         ? `\n\nPREVIOUS CONVERSATION HISTORY:\n${history.map(m => `${m.role === 'user' ? 'USER' : 'ASSISTANT'}: ${m.content}`).join('\n\n')}`
         : '';
-      
+
       // Very simple phrase list to discourage duplicates
       const avoidPhrases = otherExperiencesArr
         .flatMap(bloc => bloc.split('\n').filter(l => l.startsWith('- ')).map(l => l.slice(2)))
@@ -2288,7 +2238,7 @@ RETURN JSON ONLY:
 }
 `;
 
-      const prompt = userPrompt 
+      const prompt = userPrompt
         ? `${basePrompt}\n\nUSER REQUEST: ${userPrompt}\n\nPlease modify the bullets according to the user's request while following all guidelines above.`
         : basePrompt;
       const res = await fetch('/api/chatgpt', {
@@ -2362,7 +2312,7 @@ RETURN JSON ONLY:
     } catch (e: any) {
       console.error(e);
       notify.error(e.message || 'Failed to improve bullets');
-      
+
       // Add error message to chat
       const currentMessages = chatMessages[expId] || [];
       setChatMessages({
@@ -2379,7 +2329,7 @@ RETURN JSON ONLY:
     if (!cvData) return;
     try {
       setAiUpdatingSummary(true);
-      
+
       // Add user message to chat history
       if (userPrompt) {
         const currentMessages = chatMessages['summary'] || [];
@@ -2388,24 +2338,24 @@ RETURN JSON ONLY:
           'summary': [...currentMessages, { role: 'user', content: userPrompt }]
         });
       }
-      
+
       const jobTitle = cv?.jobTitle || cvData.personalInfo.jobTitle || '';
       const company = cv?.company || '';
       const keywords = (cv?.keywordsUsed || []).slice(0, 20).join(', ');
-      const jobDescription = cv?.optimizedResumeMarkdown ? 
+      const jobDescription = cv?.optimizedResumeMarkdown ?
         (cv.optimizedResumeMarkdown.split('##')[0] || '').slice(0, 1000) : '';
       const experiences = cvData.experiences
         .map(e => {
           const bullets = (e.description || []).slice(0, 3).map(b => `- ${b}`).join('\n');
           return `${e.title} | ${e.company}\n${bullets}`;
         }).join('\n\n');
-      
+
       // Get chat history
       const history = chatMessages['summary'] || [];
-      const historyContext = history.length > 0 
+      const historyContext = history.length > 0
         ? `\n\nPREVIOUS CONVERSATION HISTORY:\n${history.map(m => `${m.role === 'user' ? 'USER' : 'ASSISTANT'}: ${m.content}`).join('\n\n')}`
         : '';
-      
+
       const basePrompt = `
 You are a principal HR/ATS expert (GPT-5 level). Write a concise 2–4 sentence Professional Summary tailored to the target role.
 Use the candidate's background and keep coherence with experiences; weave keywords naturally; avoid clichés, buzzwords and repetitions.
@@ -2428,7 +2378,7 @@ Return JSON only:
 { "summary": "<2-4 sentences>" }
 `;
 
-      const prompt = userPrompt 
+      const prompt = userPrompt
         ? `${basePrompt}\n\nUSER REQUEST: ${userPrompt}\n\nPlease modify the summary according to the user's request while following all guidelines above.`
         : basePrompt;
       const res = await fetch('/api/chatgpt', {
@@ -2466,7 +2416,7 @@ Return JSON only:
     } catch (e: any) {
       console.error(e);
       notify.error(e.message || 'Failed to improve summary');
-      
+
       // Add error message to chat
       const currentMessages = chatMessages['summary'] || [];
       setChatMessages({
@@ -2483,10 +2433,10 @@ Return JSON only:
     if (!cvData) return;
     const edu = cvData.educations.find(e => e.id === eduId);
     if (!edu) return;
-    
+
     try {
       setAiUpdatingEducation(eduId);
-      
+
       // Add user message to chat history
       if (userPrompt) {
         const currentMessages = chatMessages[`education-${eduId}`] || [];
@@ -2495,19 +2445,19 @@ Return JSON only:
           [`education-${eduId}`]: [...currentMessages, { role: 'user', content: userPrompt }]
         });
       }
-      
+
       const jobTitle = cv?.jobTitle || cvData.personalInfo.jobTitle || '';
       const company = cv?.company || '';
       const keywords = (cv?.keywordsUsed || []).slice(0, 20).join(', ');
-      const jobDescription = cv?.optimizedResumeMarkdown ? 
+      const jobDescription = cv?.optimizedResumeMarkdown ?
         (cv.optimizedResumeMarkdown.split('##')[0] || '').slice(0, 1000) : '';
-      
+
       // Get chat history
       const history = chatMessages[`education-${eduId}`] || [];
-      const historyContext = history.length > 0 
+      const historyContext = history.length > 0
         ? `\n\nPREVIOUS CONVERSATION HISTORY:\n${history.map(m => `${m.role === 'user' ? 'USER' : 'ASSISTANT'}: ${m.content}`).join('\n\n')}`
         : '';
-      
+
       const basePrompt = `
 You are a principal HR/ATS expert. Create a 1–2 sentence description for this education entry, tailored to the target role.
 Include relevant coursework, projects, honors or specialization ONLY if relevant to the target role. Avoid generic filler.
@@ -2535,7 +2485,7 @@ Return JSON only:
 { "description": "<1-2 sentences>" }
 `;
 
-      const prompt = userPrompt 
+      const prompt = userPrompt
         ? `${basePrompt}\n\nUSER REQUEST: ${userPrompt}\n\nPlease modify the education description according to the user's request while following all guidelines above.`
         : basePrompt;
       const res = await fetch('/api/chatgpt', {
@@ -2573,7 +2523,7 @@ Return JSON only:
     } catch (e: any) {
       console.error(e);
       notify.error(e.message || 'Failed to improve education');
-      
+
       // Add error message to chat
       const currentMessages = chatMessages[`education-${eduId}`] || [];
       setChatMessages({
@@ -2590,7 +2540,7 @@ Return JSON only:
     if (!cvData) return;
     try {
       setAiUpdatingSkills(true);
-      
+
       // Add user message to chat history
       if (userPrompt) {
         const currentMessages = chatMessages['skills'] || [];
@@ -2599,20 +2549,20 @@ Return JSON only:
           'skills': [...currentMessages, { role: 'user', content: userPrompt }]
         });
       }
-      
+
       const jobTitle = cv?.jobTitle || cvData.personalInfo.jobTitle || '';
       const company = cv?.company || '';
       const keywords = (cv?.keywordsUsed || []).slice(0, 25).join(', ');
-      const jobDescription = cv?.optimizedResumeMarkdown ? 
+      const jobDescription = cv?.optimizedResumeMarkdown ?
         (cv.optimizedResumeMarkdown.split('##')[0] || '').slice(0, 1000) : '';
       const existing = (cvData.skills || []).map(s => s.name).join(', ');
       const experiences = cvData.experiences
         .map(e => `${e.title} | ${e.company}: ${(e.description || []).slice(0, 2).join(' ')}`)
         .join('\n');
-      
+
       // Get chat history
       const history = chatMessages['skills'] || [];
-      const historyContext = history.length > 0 
+      const historyContext = history.length > 0
         ? `\n\nPREVIOUS CONVERSATION HISTORY:\n${history.map(m => `${m.role === 'user' ? 'USER' : 'ASSISTANT'}: ${m.content}`).join('\n\n')}`
         : '';
 
@@ -2647,10 +2597,10 @@ JSON ONLY:
 }
 `;
 
-      const prompt = userPrompt 
+      const prompt = userPrompt
         ? `${basePrompt}\n\nUSER REQUEST: ${userPrompt}\n\nPlease modify the skills list according to the user's request while following all guidelines above.`
         : basePrompt;
-      
+
       const res = await fetch('/api/chatgpt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2691,7 +2641,7 @@ JSON ONLY:
         .slice(0, 10) as any[];
 
       if (!cleaned.length) throw new Error('AI did not return skills');
-      
+
       // Add assistant suggestion instead of directly updating
       const responseText = `Suggested skills list:\n\n${cleaned.map((s, i) => `${i + 1}. ${s.name} (${s.level})`).join('\n')}`;
       const currentMessages = chatMessages['skills'] || [];
@@ -2706,7 +2656,7 @@ JSON ONLY:
     } catch (e: any) {
       console.error(e);
       notify.error(e.message || 'Failed to generate skills');
-      
+
       // Add error message to chat
       const currentMessages = chatMessages['skills'] || [];
       setChatMessages({
@@ -2931,10 +2881,10 @@ JSON ONLY:
   // Download as PDF
   const handleDownloadPDF = async () => {
     if (!cv || !cvData) return;
-    
+
     try {
       notify.info('Generating PDF...');
-      
+
       // Dynamically import jsPDF (use doc.html first for better text fidelity)
       const { default: jsPDF } = await import('jspdf');
       const preview = document.querySelector('[data-cv-preview]') as HTMLElement;
@@ -3042,7 +2992,7 @@ JSON ONLY:
       );
       const querySnapshot = await getDocs(q);
       const allVersions: OptimizedCV[] = [];
-      
+
       querySnapshot.forEach((doc) => {
         allVersions.push({ ...doc.data(), id: doc.id } as OptimizedCV);
       });
@@ -3293,7 +3243,7 @@ Return ONLY the JSON object. No markdown code blocks, no explanations, no additi
       const enhancedPrompt = `${translationPrompt}
 
 IMPORTANT: You MUST return a valid JSON object with both "translated_content" (markdown string) and "translated_cv_data" (structured JSON object) fields. Do not wrap the response in markdown code blocks. Return only the raw JSON.`;
-      
+
       // Use 'resume-optimizer' type to get higher token limit (8000 tokens) for comprehensive translations
       const response = await fetch('/api/chatgpt', {
         method: 'POST',
@@ -3315,11 +3265,11 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
       if (data.status !== 'success') {
         throw new Error(data.message || 'Translation failed');
       }
-      
+
       // Extract translated content from response
       let translatedMarkdown = '';
       let translatedCVData: CVData | null = null;
-      
+
       // Parse the response
       let parsedResponse: any = null;
       if (typeof data.content === 'string') {
@@ -3332,7 +3282,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
       } else if (data.content && typeof data.content === 'object') {
         parsedResponse = data.content;
       }
-      
+
       // Extract translated_cv_data if available (preferred method)
       if (parsedResponse && parsedResponse.translated_cv_data) {
         console.log('✅ Using structured translated_cv_data from AI response');
@@ -3346,14 +3296,14 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
       } else {
         throw new Error('No translation received');
       }
-      
+
       // Clean up markdown code fences if present
       translatedMarkdown = translatedMarkdown
         .replace(/```markdown\s*/gi, '')
         .replace(/```json\s*/gi, '')
         .replace(/```\s*/g, '')
         .trim();
-      
+
       if (!translatedMarkdown) {
         throw new Error('Translation is empty');
       }
@@ -3362,10 +3312,10 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
       if (!translatedCVData) {
         console.log('⚠️ No structured data, parsing markdown...');
         translatedCVData = parseMarkdownToCVData(translatedMarkdown);
-        
+
         // If parsing failed or returned empty data, use current CV data structure as fallback
-        if (!translatedCVData || !translatedCVData.personalInfo || 
-            (translatedCVData.experiences.length === 0 && translatedCVData.educations.length === 0 && !translatedCVData.professionalSummary)) {
+        if (!translatedCVData || !translatedCVData.personalInfo ||
+          (translatedCVData.experiences.length === 0 && translatedCVData.educations.length === 0 && !translatedCVData.professionalSummary)) {
           console.warn('⚠️ Parsing translated markdown failed, using current CV structure with translated content');
           // Use current CV data structure but update with translated content where possible
           translatedCVData = {
@@ -3374,10 +3324,10 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
           };
         }
       }
-      
+
       // Normalize the parsed data to ensure proper structure
       translatedCVData = normalizeCVData(translatedCVData);
-      
+
       console.log('✅ Translated CV Data parsed:', {
         hasName: !!translatedCVData.personalInfo.firstName,
         expCount: translatedCVData.experiences.length,
@@ -3414,7 +3364,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
       // Create new CV document
       const newCvRef = collection(db, 'users', currentUser.uid, 'optimizedCVs');
       const originalCVId = cv.originalCVId || cv.id;
-      
+
       // Prepare data object, ensuring no undefined values
       const newCvDataRaw: any = {
         jobTitle: cv.jobTitle || '',
@@ -3432,16 +3382,16 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
-      
+
       // Add optional fields only if they exist
       if (cv.jobUrl) newCvDataRaw.jobUrl = cv.jobUrl;
       if (cvPhoto) newCvDataRaw.cvPhoto = cvPhoto;
       if (cv.atsScore !== undefined && cv.atsScore !== null) newCvDataRaw.atsScore = cv.atsScore;
       if (cv.keywordsUsed && Array.isArray(cv.keywordsUsed)) newCvDataRaw.keywordsUsed = cv.keywordsUsed;
-      
+
       // Remove all undefined values recursively before saving
       const newCvData = removeUndefined(newCvDataRaw);
-      
+
       console.log('💾 Saving translated CV with data:', {
         hasCvData: !!newCvData.cvData,
         cvDataKeys: newCvData.cvData ? Object.keys(newCvData.cvData) : [],
@@ -3449,16 +3399,16 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
         expCount: newCvData.cvData?.experiences?.length || 0,
         markdownLength: newCvData.optimizedResumeMarkdown?.length || 0
       });
-      
+
       const newCvDoc = await addDoc(newCvRef, newCvData);
-      
+
       console.log('✅ Translated CV saved with ID:', newCvDoc.id);
 
       notify.success(`${targetLanguageName} version created!`);
-      
+
       // Small delay to ensure Firestore write is complete
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // Navigate to the new CV
       navigate(`/cv-optimizer/${newCvDoc.id}`);
     } catch (error: any) {
@@ -3500,11 +3450,11 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                 <>
                   <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ 
+                    animate={{
                       opacity: [0, 1, 0.9, 0.7, 0],
                       scale: [0.8, 1.3, 1.6, 1.8, 2]
                     }}
-                    transition={{ 
+                    transition={{
                       duration: 0.6,
                       times: [0, 0.2, 0.4, 0.6, 1],
                       ease: "easeOut"
@@ -3517,11 +3467,11 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                   />
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ 
+                    animate={{
                       opacity: [0, 0.8, 0.6, 0],
                       scale: [0.9, 1.5, 1.8, 2.2]
                     }}
-                    transition={{ 
+                    transition={{
                       duration: 0.5,
                       times: [0, 0.3, 0.6, 1],
                       ease: "easeOut",
@@ -3602,7 +3552,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                 Reset
               </button>
             </div>
-            
+
             <button
               onClick={handleDownloadPDF}
               className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-[#EB7134] to-[#5D4D6B] rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
@@ -3618,9 +3568,9 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
       {/* Main Content - Split Layout */}
       <div className="flex-1 flex overflow-hidden bg-gray-50 dark:bg-gray-900 p-4">
         {/* Left Control Panel */}
-        <div 
+        <div
           className="min-h-0 bg-white dark:bg-gray-800 border-r border-gray-200/50 dark:border-gray-700/50 overflow-y-auto relative group mr-4 flex-shrink-0"
-          style={{ 
+          style={{
             width: `${panelWidth}px`,
             borderRadius: '20px',
             boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05)',
@@ -3635,10 +3585,9 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
               e.preventDefault();
               setIsResizing(true);
             }}
-            className={`absolute top-0 right-0 w-2 h-full cursor-col-resize z-20 ${
-              isResizing ? 'bg-[#EB7134]/60' : 'bg-transparent hover:bg-[#EB7134]/30'
-            } transition-colors`}
-            style={{ 
+            className={`absolute top-0 right-0 w-2 h-full cursor-col-resize z-20 ${isResizing ? 'bg-[#EB7134]/60' : 'bg-transparent hover:bg-[#EB7134]/30'
+              } transition-colors`}
+            style={{
               borderRadius: '0 20px 20px 0',
               touchAction: 'none'
             }}
@@ -3650,7 +3599,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
               <div className="w-1 h-1 rounded-full bg-[#EB7134]"></div>
             </div>
           </div>
-          
+
           <div className="p-8 space-y-8">
             {/* CV Title - Apple Style */}
             <div className="pb-6 border-b border-gray-200/60 dark:border-gray-700/60">
@@ -3816,11 +3765,10 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                 <button
                                   key={version.id}
                                   onClick={() => { close(); navigate(`/cv-optimizer/${version.id}`); }}
-                                  className={`w-full px-3 py-2 text-left text-sm flex items-center justify-between transition-colors ${
-                                    isActive
+                                  className={`w-full px-3 py-2 text-left text-sm flex items-center justify-between transition-colors ${isActive
                                       ? 'bg-[#EB7134]/10 dark:bg-[#EB7134]/20 text-[#EB7134] dark:text-[#EB7134]'
                                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-                                  }`}
+                                    }`}
                                 >
                                   <span className="flex items-center gap-2">
                                     <span className="font-medium">{lang.name}</span>
@@ -3847,8 +3795,8 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                   <>
                     <Disclosure.Button className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium text-left text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200/60 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm hover:shadow">
                       <div className="flex items-center gap-3">
-                  <div className="p-1.5 rounded-lg bg-[#EB7134]/10 dark:bg-[#EB7134]/20">
-                    <CopyIcon className="w-4 h-4 text-[#EB7134] dark:text-[#EB7134]" />
+                        <div className="p-1.5 rounded-lg bg-[#EB7134]/10 dark:bg-[#EB7134]/20">
+                          <CopyIcon className="w-4 h-4 text-[#EB7134] dark:text-[#EB7134]" />
                         </div>
                         <span>Duplicate and translate</span>
                       </div>
@@ -3862,7 +3810,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                           return versionLang === lang.code;
                         });
                         const isCurrentVersion = (cv?.language || 'en') === lang.code;
-                        
+
                         return (
                           <button
                             key={lang.code}
@@ -3876,23 +3824,21 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                               }
                             }}
                             disabled={isDuplicating || isCurrentVersion}
-                            className={`w-full px-3 py-2 text-sm text-left rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                              isCurrentVersion
+                            className={`w-full px-3 py-2 text-sm text-left rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isCurrentVersion
                                 ? 'bg-[#EB7134]/20 dark:bg-[#EB7134]/30 text-[#EB7134] dark:text-[#EB7134] border border-[#EB7134]/40 dark:border-[#EB7134]/70'
                                 : existingVersion
-                                ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30'
-                                : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-                            }`}
+                                  ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                                  : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                              }`}
                           >
                             <div className="flex items-center justify-between">
                               <span className="flex items-center gap-3">
-                                <div className={`flex items-center justify-center w-8 h-8 rounded-md text-xs font-semibold transition-colors ${
-                                  isCurrentVersion
+                                <div className={`flex items-center justify-center w-8 h-8 rounded-md text-xs font-semibold transition-colors ${isCurrentVersion
                                     ? 'bg-[#EB7134] text-white'
                                     : existingVersion
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                                }`}>
+                                      ? 'bg-blue-600 text-white'
+                                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                  }`}>
                                   {lang.shortCode}
                                 </div>
                                 <span className="font-medium">{lang.name}</span>
@@ -4093,11 +4039,10 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                 </div>
                 <div className="relative h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner">
                   <div
-                    className={`absolute h-full transition-all duration-700 ease-out rounded-full ${
-                      cv.atsScore >= 80 ? 'bg-gradient-to-r from-[#EB7134] to-[#5D4D6B]' :
-                      cv.atsScore >= 65 ? 'bg-gradient-to-r from-blue-500 to-[#5D4D6B]' :
-                      'bg-gradient-to-r from-pink-500 to-red-600'
-                    }`}
+                    className={`absolute h-full transition-all duration-700 ease-out rounded-full ${cv.atsScore >= 80 ? 'bg-gradient-to-r from-[#EB7134] to-[#5D4D6B]' :
+                        cv.atsScore >= 65 ? 'bg-gradient-to-r from-blue-500 to-[#5D4D6B]' :
+                          'bg-gradient-to-r from-pink-500 to-red-600'
+                      }`}
                     style={{ width: `${cv.atsScore}%` }}
                   />
                 </div>
@@ -4249,11 +4194,11 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                   ...provided.draggableProps.style,
                                   transition: snapshot.isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                   opacity: snapshot.isDragging ? 1 : 1,
-                                  transform: snapshot.isDragging 
+                                  transform: snapshot.isDragging
                                     ? `${provided.draggableProps.style?.transform || ''} rotate(0.5deg) scale(1.01)`
                                     : provided.draggableProps.style?.transform || 'none',
-                                  boxShadow: snapshot.isDragging 
-                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)' 
+                                  boxShadow: snapshot.isDragging
+                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)'
                                     : '0 1px 3px rgba(0, 0, 0, 0.05)',
                                   zIndex: snapshot.isDragging ? 1000 : 'auto',
                                   backgroundColor: snapshot.isDragging ? '#faf5ff' : 'transparent',
@@ -4295,7 +4240,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                   rows={4}
                                   placeholder="Experienced CRM consultant passionate about leveraging technology..."
                                 />
-                                
+
                                 {/* AI Chat Interface for Summary */}
                                 {openChatSummary && (
                                   <motion.div
@@ -4315,7 +4260,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                           <p className="text-xs text-gray-600 dark:text-gray-400">Describe what you'd like to modify</p>
                                         </div>
                                       </div>
-                                      
+
                                       {/* Chat Messages */}
                                       <div className="max-h-48 overflow-y-auto mb-3 space-y-3">
                                         {chatMessages['summary'] && chatMessages['summary'].length > 0 ? (
@@ -4326,11 +4271,10 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                               animate={{ opacity: 1, y: 0 }}
                                               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                             >
-                                              <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs ${
-                                                msg.role === 'user'
+                                              <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs ${msg.role === 'user'
                                                   ? 'bg-[#EB7134] text-white'
                                                   : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
-                                              }`}>
+                                                }`}>
                                                 <p className="whitespace-pre-wrap">{msg.content}</p>
                                               </div>
                                               {msg.role === 'assistant' && msg.suggestion && (
@@ -4375,7 +4319,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                           </div>
                                         )}
                                       </div>
-                                      
+
                                       {/* Chat Input */}
                                       <div className="flex gap-2">
                                         <input
@@ -4421,7 +4365,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                           </Draggable>
                         );
                       }
-                      
+
                       // Experience Section
                       if (sectionId === 'experience') {
                         return (
@@ -4434,11 +4378,11 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                   ...provided.draggableProps.style,
                                   transition: snapshot.isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                   opacity: snapshot.isDragging ? 1 : 1,
-                                  transform: snapshot.isDragging 
+                                  transform: snapshot.isDragging
                                     ? `${provided.draggableProps.style?.transform || ''} rotate(0.5deg) scale(1.01)`
                                     : provided.draggableProps.style?.transform || 'none',
-                                  boxShadow: snapshot.isDragging 
-                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)' 
+                                  boxShadow: snapshot.isDragging
+                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)'
                                     : '0 1px 3px rgba(0, 0, 0, 0.05)',
                                   zIndex: snapshot.isDragging ? 1000 : 'auto',
                                   backgroundColor: snapshot.isDragging ? '#faf5ff' : 'transparent',
@@ -4475,17 +4419,16 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                                   ...provided.draggableProps.style,
                                                   transition: snapshot.isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                                   opacity: snapshot.isDragging ? 1 : 1,
-                                                  transform: snapshot.isDragging 
+                                                  transform: snapshot.isDragging
                                                     ? `${provided.draggableProps.style?.transform || ''} rotate(0.5deg) scale(1.01)`
                                                     : provided.draggableProps.style?.transform || 'none',
-                                                  boxShadow: snapshot.isDragging 
-                                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)' 
+                                                  boxShadow: snapshot.isDragging
+                                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)'
                                                     : '0 1px 3px rgba(0, 0, 0, 0.05)',
                                                   zIndex: snapshot.isDragging ? 1000 : 'auto',
                                                 }}
-                                                className={`bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600 ${
-                                                  snapshot.isDragging ? 'bg-[#EB7134]/10 dark:bg-[#EB7134]/20' : ''
-                                                }`}
+                                                className={`bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600 ${snapshot.isDragging ? 'bg-[#EB7134]/10 dark:bg-[#EB7134]/20' : ''
+                                                  }`}
                                               >
                                                 <div className="flex items-start justify-between mb-3">
                                                   <div {...provided.dragHandleProps} className="flex items-center gap-2 flex-1">
@@ -4603,7 +4546,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                                     {openChatExperienceId === exp.id ? 'Close AI Chat' : 'Generate by AI'}
                                                   </button>
                                                 </div>
-                                                
+
                                                 {/* AI Chat Interface */}
                                                 {openChatExperienceId === exp.id && (
                                                   <motion.div
@@ -4623,7 +4566,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                                           <p className="text-xs text-gray-600 dark:text-gray-400">Describe what you'd like to modify</p>
                                                         </div>
                                                       </div>
-                                                      
+
                                                       {/* Chat Messages */}
                                                       <div className="max-h-48 overflow-y-auto mb-3 space-y-3">
                                                         {chatMessages[exp.id] && chatMessages[exp.id].length > 0 ? (
@@ -4634,11 +4577,10 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                                               animate={{ opacity: 1, y: 0 }}
                                                               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                                             >
-                                                              <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs ${
-                                                                msg.role === 'user'
+                                                              <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs ${msg.role === 'user'
                                                                   ? 'bg-blue-600 text-white'
                                                                   : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
-                                                              }`}>
+                                                                }`}>
                                                                 <p className="whitespace-pre-wrap">{msg.content}</p>
                                                               </div>
                                                               {msg.role === 'assistant' && msg.suggestion && (
@@ -4683,7 +4625,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                                           </div>
                                                         )}
                                                       </div>
-                                                      
+
                                                       {/* Chat Input */}
                                                       <div className="flex gap-2">
                                                         <input
@@ -4739,7 +4681,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                           </Draggable>
                         );
                       }
-                      
+
                       // Education Section
                       if (sectionId === 'education') {
                         return (
@@ -4752,11 +4694,11 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                   ...provided.draggableProps.style,
                                   transition: snapshot.isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                   opacity: snapshot.isDragging ? 1 : 1,
-                                  transform: snapshot.isDragging 
+                                  transform: snapshot.isDragging
                                     ? `${provided.draggableProps.style?.transform || ''} rotate(0.5deg) scale(1.01)`
                                     : provided.draggableProps.style?.transform || 'none',
-                                  boxShadow: snapshot.isDragging 
-                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)' 
+                                  boxShadow: snapshot.isDragging
+                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)'
                                     : '0 1px 3px rgba(0, 0, 0, 0.05)',
                                   zIndex: snapshot.isDragging ? 1000 : 'auto',
                                   backgroundColor: snapshot.isDragging ? '#faf5ff' : 'transparent',
@@ -4863,7 +4805,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                         <Sparkles className="w-3 h-3" />
                                         {openChatEducationId === edu.id ? 'Close AI Chat' : 'Generate by AI'}
                                       </button>
-                                      
+
                                       {/* AI Chat Interface for Education */}
                                       {openChatEducationId === edu.id && (
                                         <motion.div
@@ -4883,7 +4825,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                                 <p className="text-xs text-gray-600 dark:text-gray-400">Describe what you'd like to modify</p>
                                               </div>
                                             </div>
-                                            
+
                                             {/* Chat Messages */}
                                             <div className="max-h-48 overflow-y-auto mb-3 space-y-3">
                                               {chatMessages[`education-${edu.id}`] && chatMessages[`education-${edu.id}`].length > 0 ? (
@@ -4894,11 +4836,10 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                                     animate={{ opacity: 1, y: 0 }}
                                                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                                   >
-                                                    <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs ${
-                                                      msg.role === 'user'
+                                                    <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs ${msg.role === 'user'
                                                         ? 'bg-blue-600 text-white'
                                                         : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
-                                                    }`}>
+                                                      }`}>
                                                       <p className="whitespace-pre-wrap">{msg.content}</p>
                                                     </div>
                                                     {msg.role === 'assistant' && msg.suggestion && (
@@ -4943,7 +4884,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                                 </div>
                                               )}
                                             </div>
-                                            
+
                                             {/* Chat Input */}
                                             <div className="flex gap-2">
                                               <input
@@ -4993,7 +4934,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                           </Draggable>
                         );
                       }
-                      
+
                       // Skills Section
                       if (sectionId === 'skills') {
                         return (
@@ -5006,11 +4947,11 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                   ...provided.draggableProps.style,
                                   transition: snapshot.isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                   opacity: snapshot.isDragging ? 1 : 1,
-                                  transform: snapshot.isDragging 
+                                  transform: snapshot.isDragging
                                     ? `${provided.draggableProps.style?.transform || ''} rotate(0.5deg) scale(1.01)`
                                     : provided.draggableProps.style?.transform || 'none',
-                                  boxShadow: snapshot.isDragging 
-                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)' 
+                                  boxShadow: snapshot.isDragging
+                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)'
                                     : '0 1px 3px rgba(0, 0, 0, 0.05)',
                                   zIndex: snapshot.isDragging ? 1000 : 'auto',
                                   backgroundColor: snapshot.isDragging ? '#faf5ff' : 'transparent',
@@ -5087,15 +5028,15 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                   ))}
                                 </div>
                                 <label className="flex items-center gap-2 mt-4 text-xs text-gray-600 dark:text-gray-400">
-                                  <input 
-                                    type="checkbox" 
-                                    className="rounded" 
+                                  <input
+                                    type="checkbox"
+                                    className="rounded"
                                     checked={showSkillLevel}
                                     onChange={(e) => setShowSkillLevel(e.target.checked)}
                                   />
                                   Show skill level in CV
                                 </label>
-                                
+
                                 {/* AI Chat Interface for Skills */}
                                 {openChatSkills && (
                                   <motion.div
@@ -5115,7 +5056,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                           <p className="text-xs text-gray-600 dark:text-gray-400">Describe what you'd like to modify</p>
                                         </div>
                                       </div>
-                                      
+
                                       {/* Chat Messages */}
                                       <div className="max-h-48 overflow-y-auto mb-3 space-y-3">
                                         {chatMessages['skills'] && chatMessages['skills'].length > 0 ? (
@@ -5126,11 +5067,10 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                               animate={{ opacity: 1, y: 0 }}
                                               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                             >
-                                              <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs ${
-                                                msg.role === 'user'
+                                              <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs ${msg.role === 'user'
                                                   ? 'bg-[#EB7134] text-white'
                                                   : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
-                                              }`}>
+                                                }`}>
                                                 <p className="whitespace-pre-wrap">{msg.content}</p>
                                               </div>
                                               {msg.role === 'assistant' && msg.suggestion && (
@@ -5175,7 +5115,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                           </div>
                                         )}
                                       </div>
-                                      
+
                                       {/* Chat Input */}
                                       <div className="flex gap-2">
                                         <input
@@ -5221,7 +5161,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                           </Draggable>
                         );
                       }
-                      
+
                       // Languages Section
                       if (sectionId === 'languages') {
                         return (
@@ -5234,11 +5174,11 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                   ...provided.draggableProps.style,
                                   transition: snapshot.isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                   opacity: snapshot.isDragging ? 1 : 1,
-                                  transform: snapshot.isDragging 
+                                  transform: snapshot.isDragging
                                     ? `${provided.draggableProps.style?.transform || ''} rotate(0.5deg) scale(1.01)`
                                     : provided.draggableProps.style?.transform || 'none',
-                                  boxShadow: snapshot.isDragging 
-                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)' 
+                                  boxShadow: snapshot.isDragging
+                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)'
                                     : '0 1px 3px rgba(0, 0, 0, 0.05)',
                                   zIndex: snapshot.isDragging ? 1000 : 'auto',
                                   backgroundColor: snapshot.isDragging ? '#faf5ff' : 'transparent',
@@ -5298,7 +5238,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                           </Draggable>
                         );
                       }
-                      
+
                       // Certificates Section
                       if (sectionId === 'certificates') {
                         return (
@@ -5311,11 +5251,11 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                   ...provided.draggableProps.style,
                                   transition: snapshot.isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                   opacity: snapshot.isDragging ? 1 : 1,
-                                  transform: snapshot.isDragging 
+                                  transform: snapshot.isDragging
                                     ? `${provided.draggableProps.style?.transform || ''} rotate(0.5deg) scale(1.01)`
                                     : provided.draggableProps.style?.transform || 'none',
-                                  boxShadow: snapshot.isDragging 
-                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)' 
+                                  boxShadow: snapshot.isDragging
+                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)'
                                     : '0 1px 3px rgba(0, 0, 0, 0.05)',
                                   zIndex: snapshot.isDragging ? 1000 : 'auto',
                                   backgroundColor: snapshot.isDragging ? '#faf5ff' : 'transparent',
@@ -5383,7 +5323,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                           </Draggable>
                         );
                       }
-                      
+
                       // Hobbies Section
                       if (sectionId === 'hobbies') {
                         return (
@@ -5396,11 +5336,11 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                                   ...provided.draggableProps.style,
                                   transition: snapshot.isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                   opacity: snapshot.isDragging ? 1 : 1,
-                                  transform: snapshot.isDragging 
+                                  transform: snapshot.isDragging
                                     ? `${provided.draggableProps.style?.transform || ''} rotate(0.5deg) scale(1.01)`
                                     : provided.draggableProps.style?.transform || 'none',
-                                  boxShadow: snapshot.isDragging 
-                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)' 
+                                  boxShadow: snapshot.isDragging
+                                    ? '0 20px 40px -10px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3)'
                                     : '0 1px 3px rgba(0, 0, 0, 0.05)',
                                   zIndex: snapshot.isDragging ? 1000 : 'auto',
                                   backgroundColor: snapshot.isDragging ? '#faf5ff' : 'transparent',
@@ -5450,7 +5390,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                           </Draggable>
                         );
                       }
-                      
+
                       return null;
                     })}
                     {provided.placeholder}
@@ -5496,7 +5436,7 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
 
         {/* Right Preview Area - PDF-like View with Zoom */}
         <div className="flex-1 min-h-0 bg-gray-50 dark:bg-gray-900 overflow-y-auto p-8 flex items-start justify-center">
-          <div className="bg-white shadow-2xl transition-transform duration-200" style={{ 
+          <div className="bg-white shadow-2xl transition-transform duration-200" style={{
             width: '210mm',
             minHeight: '297mm',
             boxShadow: '0 10px 40px -10px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.08)',
@@ -5546,11 +5486,10 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                       setIsTemplateModalOpen(false);
                       notify.success('Template: Harvard');
                     }}
-                    className={`group relative rounded-lg overflow-hidden transition-all ${
-                      styling.template === 'harvard'
+                    className={`group relative rounded-lg overflow-hidden transition-all ${styling.template === 'harvard'
                         ? 'ring-2 ring-[#EB7134] shadow-xl'
                         : 'ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-[#EB7134] shadow-md hover:shadow-lg'
-                    }`}
+                      }`}
                   >
                     <div className="bg-white overflow-hidden relative" style={{ aspectRatio: '210/297', width: '100%' }}>
                       {isLoadingTemplatePreviews || !harvardTemplatePreviewUrl ? (
@@ -5607,11 +5546,10 @@ IMPORTANT: You MUST return a valid JSON object with both "translated_content" (m
                       setIsTemplateModalOpen(false);
                       notify.success('Template: Modern');
                     }}
-                    className={`group relative rounded-lg overflow-hidden transition-all ${
-                      styling.template === 'modern'
+                    className={`group relative rounded-lg overflow-hidden transition-all ${styling.template === 'modern'
                         ? 'ring-2 ring-[#EB7134] shadow-xl'
                         : 'ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-[#EB7134] shadow-md hover:shadow-lg'
-                    }`}
+                      }`}
                   >
                     <div className="bg-white overflow-hidden relative" style={{ aspectRatio: '210/297', width: '100%' }}>
                       {isLoadingTemplatePreviews || !modernTemplatePreviewUrl ? (

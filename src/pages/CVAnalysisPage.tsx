@@ -61,8 +61,8 @@ import { Resume } from './ResumeBuilderPage';
 import CVPreviewCard from '../components/resume-builder/CVPreviewCard';
 import HuntrCVCard from '../components/resume-builder/HuntrCVCard';
 import jsPDF from 'jspdf';
-// Import Perplexity for job extraction
-import { queryPerplexityForJobExtraction } from '../lib/perplexity';
+// Import job extraction service
+import { extractJobInfo } from '../lib/jobExtractor';
 import CoverPhotoCropper from '../components/profile/CoverPhotoCropper';
 import CoverPhotoGallery from '../components/profile/CoverPhotoGallery';
 import { usePlanLimits } from '../hooks/usePlanLimits';
@@ -3997,273 +3997,37 @@ Return ONLY a structured JSON object with the following schema:
 
     try {
       const jobUrl = formData.jobUrl.trim();
-      const prompt = `
-You are a precise web scraper. Your ONLY task is to visit this URL and extract EXACT information from the job posting page: ${jobUrl}
 
-CRITICAL INSTRUCTIONS - FOLLOW EXACTLY:
+      console.log('🔍 Extracting job info from URL:', jobUrl);
+      // Use new extraction service which handles everything (Jina > Claude)
+      const extractedInfo = await extractJobInfo(jobUrl);
 
-1. YOU MUST VISIT THE URL: Use web browsing to access ${jobUrl} and read the ACTUAL page content
-2. DO NOT USE TRAINING DATA: Extract ONLY what is VISIBLY DISPLAYED on the page - never guess or infer
-3. DO NOT INVENT INFORMATION: If information is not on the page, do NOT make it up or use similar job postings
-4. DO NOT SUMMARIZE: Extract the COMPLETE, FULL text - word for word when possible
-
-EXTRACTION REQUIREMENTS:
-
-For "companyName":
-- Find the EXACT company name as displayed on the page
-- Look in the header, job title area, or company information section
-- Copy it EXACTLY as shown (case-sensitive, with exact spelling)
-
-For "position":
-- Find the EXACT job title as displayed on the page
-- Look for <h1>, <h2>, title tags, or the main job title element
-- Copy it EXACTLY as shown (case-sensitive, with exact spelling)
-- This is CRITICAL for accurate CV matching
-
-For "jobDescription" - THIS IS THE MOST IMPORTANT FIELD:
-- Extract the COMPLETE, FULL job description with ABSOLUTELY EVERYTHING from the page
-- Include ALL sections you see on the page, including but not limited to:
-  * Job Overview/Summary/About the Role
-  * Key Responsibilities/Duties/What You'll Do
-  * Required Qualifications/Must Have
-  * Preferred Qualifications/Nice to Have
-  * Required Skills (technical and soft skills) - list EVERY skill mentioned
-  * Preferred Skills
-  * Experience Requirements (years, type, industry)
-  * Education Requirements (degree, certifications)
-  * Location/Remote work information
-  * Salary/Benefits/Compensation (if mentioned)
-  * Company Culture/Values/Mission
-  * Team Information
-  * Application Process
-  * Equal Opportunity statements
-  * Any other text, paragraphs, or sections visible on the page
-- DO NOT summarize, shorten, or condense ANY section
-- DO NOT skip any paragraphs or bullet points
-- Include ALL text, even if it seems repetitive or long
-- Preserve the structure, formatting, and ALL details
-- If the description is 5000+ characters, that's fine - include EVERYTHING
-- The jobDescription MUST be the COMPLETE, FULL description - nothing less
-- This is CRITICAL: Missing information will make the CV analysis inaccurate
-
-VALIDATION CHECKLIST - Before returning, verify:
-1. ✓ The job title matches EXACTLY what's on the page
-2. ✓ The company name matches EXACTLY what's on the page
-3. ✓ The job description includes EVERY section visible on the page
-4. ✓ You have NOT summarized or shortened any section
-5. ✓ You have NOT skipped any paragraphs or bullet points
-6. ✓ You have NOT added any information that wasn't on the page
-7. ✓ The jobDescription field contains the FULL, COMPLETE text from the page
-
-IMPORTANT: The jobDescription field should typically be 1000-5000+ characters for a complete job posting. If it's shorter than 500 characters, you likely missed sections.
-
-Return ONLY a valid JSON object (no markdown, no code blocks, no explanations, no additional text):
-{
-  "companyName": "exact company name from page",
-  "position": "exact job title from page",
-  "jobDescription": "COMPLETE FULL job description with ALL sections, ALL paragraphs, ALL bullet points, ALL text from the page - nothing omitted"
-}
-
-URL to visit: ${jobUrl}
-`;
-
-      const response = await queryPerplexityForJobExtraction(prompt);
-
-      if (response.error) {
-        throw new Error(response.errorMessage || 'Failed to analyze job posting');
+      if (!extractedInfo.fullJobDescription || extractedInfo.fullJobDescription.length < 50) {
+        throw new Error('Failed to extract sufficient job description');
       }
 
-      // Parser la réponse JSON avec amélioration pour gérer les descriptions longues
-      let extractedData;
-      try {
-        let jsonString = response.text || '';
+      const extractedJobTitle = extractedInfo.position || '';
+      const extractedCompany = extractedInfo.companyName || '';
+      const extractedDescription = extractedInfo.fullJobDescription;
 
-        // Nettoyer la réponse pour extraire le JSON
-        jsonString = jsonString.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
-        jsonString = jsonString.trim();
+      setFormData({
+        ...formData,
+        jobTitle: extractedJobTitle,
+        company: extractedCompany,
+        jobDescription: extractedDescription,
+      });
 
-        // Trouver le JSON object - chercher le premier { jusqu'au dernier }
-        // Utiliser une approche plus robuste pour gérer les descriptions longues avec guillemets
-        const jsonMatch = jsonString.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          jsonString = jsonMatch[0];
-        }
+      console.log('✅ Job extraction successful:', {
+        company: extractedCompany,
+        position: extractedJobTitle,
+        descriptionLength: extractedDescription.length
+      });
 
-        // Fonction pour réparer les erreurs JSON communes (surtout pour les descriptions longues)
-        const tryParseJSON = (str: string) => {
-          try {
-            return JSON.parse(str);
-          } catch (e) {
-            console.log('Initial JSON parse failed, attempting repair...');
-            // Essayer de réparer les erreurs communes
-            let repaired = str
-              // Réparer les guillemets échappés dans les chaînes
-              .replace(/\\"/g, '\\"')  // Préserver les guillemets échappés
-              // Réparer les sauts de ligne dans les chaînes JSON
-              .replace(/("jobDescription"\s*:\s*")([\s\S]*?)(")/g, (_match, prefix, content, suffix) => {
-                // Échapper les guillemets et sauts de ligne dans le contenu
-                const escaped = content
-                  .replace(/\\/g, '\\\\')
-                  .replace(/"/g, '\\"')
-                  .replace(/\n/g, '\\n')
-                  .replace(/\r/g, '\\r')
-                  .replace(/\t/g, '\\t');
-                return prefix + escaped + suffix;
-              })
-              // Réparer les virgules finales
-              .replace(/,\s*\]/g, ']')
-              .replace(/,\s*\}/g, '}')
-              // Réparer les clés non citées
-              .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3')
-              // Réparer les valeurs avec guillemets simples
-              .replace(/:\s*'([^']*)'/g, ': "$1"');
+      notify.success('Job information extracted successfully!');
 
-            try {
-              return JSON.parse(repaired);
-            } catch (e2) {
-              console.error('JSON repair failed:', e2);
-              // Dernière tentative : extraire manuellement avec regex amélioré
-              return null;
-            }
-          }
-        };
+      // Switch to manual mode to show the extracted data
+      setJobInputMode('manual');
 
-        // Essayer de parser le JSON
-        extractedData = tryParseJSON(jsonString);
-
-        // Si le parsing échoue, essayer une extraction manuelle améliorée
-        if (!extractedData) {
-          console.log('JSON parsing failed, attempting manual extraction...');
-          const text = response.text || '';
-
-          // Extraction améliorée avec support pour descriptions longues
-          let companyName = '';
-          const companyMatch = text.match(/"companyName"\s*:\s*"((?:[^"\\]|\\.)*)"/i) ||
-            text.match(/companyName["\s]*:["\s]*([^",\n}]+)/i);
-          if (companyMatch) companyName = companyMatch[1].trim();
-
-          let position = '';
-          const positionMatch = text.match(/"position"\s*:\s*"((?:[^"\\]|\\.)*)"/i) ||
-            text.match(/position["\s]*:["\s]*"((?:[^"\\]|\\.)*)"/i);
-          if (positionMatch) position = positionMatch[1].trim();
-
-          // Extraction améliorée pour jobDescription (peut être très long)
-          let jobDescription = '';
-          // Chercher jobDescription avec support pour chaînes multi-lignes
-          const descMatch = text.match(/"jobDescription"\s*:\s*"((?:[^"\\]|\\.|\\n|\\r)*)"/s) ||
-            text.match(/"jobDescription"\s*:\s*"([\s\S]*?)"(?=\s*[,}])/);
-
-          if (descMatch && descMatch[1]) {
-            // Décoder les séquences d'échappement
-            jobDescription = descMatch[1]
-              .replace(/\\n/g, '\n')
-              .replace(/\\r/g, '\r')
-              .replace(/\\t/g, '\t')
-              .replace(/\\"/g, '"')
-              .replace(/\\\\/g, '\\')
-              .trim();
-          }
-
-          // Si on a au moins le titre et la company, créer l'objet
-          if (position && companyName) {
-            extractedData = {
-              companyName,
-              position,
-              jobDescription: jobDescription || ''
-            };
-          } else {
-            throw new Error('Could not extract required fields from the response');
-          }
-        }
-
-        // Validation des données extraites
-        if (!extractedData.position || !extractedData.companyName) {
-          console.error('Missing required fields:', extractedData);
-          throw new Error('Could not automatically extract job details from this URL. Please enter them manually.');
-        }
-
-        // Validation stricte de la longueur de la description
-        const descriptionLength = extractedData.jobDescription?.length || 0;
-        const description = (extractedData.jobDescription || '').toLowerCase();
-
-        // Vérifications de complétude
-        const hasRequirements = description.includes('requirement') || description.includes('qualification') || description.includes('skill') || description.includes('must have');
-        const hasResponsibilities = description.includes('responsibilit') || description.includes('dutie') || description.includes('role') || description.includes('what you');
-        const hasExperience = description.includes('experience') || description.includes('years') || description.includes('minimum');
-        const hasEducation = description.includes('education') || description.includes('degree') || description.includes('bachelor') || description.includes('master');
-
-        // Avertissements selon la longueur et le contenu
-        if (descriptionLength < 300) {
-          console.warn('Job description seems very short. It may be incomplete.');
-          notify.warning('The job description extracted seems very short (< 300 chars). Please verify it contains all sections from the page.');
-        } else if (descriptionLength < 800) {
-          console.warn('Job description may be incomplete. Most job postings are longer.');
-          notify.warning('The extracted description may be incomplete. Please review and ensure all sections were captured.');
-        }
-
-        // Vérifier les sections critiques manquantes
-        const missingSections = [];
-        if (!hasRequirements && !hasResponsibilities) {
-          missingSections.push('requirements or responsibilities');
-        }
-        if (!hasExperience && descriptionLength < 1000) {
-          missingSections.push('experience requirements');
-        }
-
-        if (missingSections.length > 0 && descriptionLength < 1000) {
-          console.warn(`Job description may be missing key sections: ${missingSections.join(', ')}`);
-          notify.warning(`The extracted description may be missing some sections (${missingSections.join(', ')}). Please review the original page and add missing information manually if needed.`);
-        }
-
-        // Log pour vérification
-        console.log(`Extracted job description length: ${descriptionLength} characters`);
-        if (descriptionLength > 2000) {
-          console.log('✓ Long description extracted - likely complete');
-        }
-
-        // Mettre à jour le formulaire avec les données extraites
-        const extractedJobTitle = extractedData.position?.trim() || '';
-        const extractedCompany = extractedData.companyName?.trim() || '';
-        const extractedDescription = (extractedData.jobDescription || '').trim();
-
-        console.log('📥 Extracted data:', {
-          jobTitle: extractedJobTitle,
-          company: extractedCompany,
-          descriptionLength: extractedDescription.length
-        });
-
-        if (!extractedJobTitle || !extractedCompany) {
-          throw new Error('Failed to extract job title or company name. Please try again or enter manually.');
-        }
-
-        setFormData({
-          ...formData,
-          jobTitle: extractedJobTitle,
-          company: extractedCompany,
-          jobDescription: extractedDescription,
-        });
-
-        console.log('✅ FormData updated:', {
-          jobTitle: extractedJobTitle,
-          company: extractedCompany,
-          descriptionLength: extractedDescription.length
-        });
-
-        // Message de succès avec information sur la longueur
-        const descLength = extractedDescription.length;
-        if (descLength > 500) {
-          notify.success(`Job information extracted successfully! (${descLength} characters)`);
-        } else {
-          notify.success('Job information extracted successfully!');
-        }
-
-        // Switch to manual mode to show the extracted data
-        setJobInputMode('manual');
-      } catch (parseError: any) {
-        console.error('Error parsing extracted data:', parseError);
-        notify.error(`Failed to parse extracted information: ${parseError.message || 'Unknown error'}. Please try again or enter the information manually.`);
-        throw parseError;
-      }
     } catch (error: any) {
       console.error('Error extracting job info:', error);
       notify.error(`Failed to extract job information: ${error.message || 'Unknown error'}. Please try again or enter the information manually.`);
@@ -4356,33 +4120,33 @@ URL to visit: ${jobUrl}
           // Personal Info
           if (cvData.personalInfo) {
             const p = cvData.personalInfo;
-            textContent += `${p.firstName || ''} ${p.lastName || ''}\n`;
-            if (p.title) textContent += `${p.title}\n`;
-            if (p.email) textContent += `Email: ${p.email}\n`;
-            if (p.phone) textContent += `Phone: ${p.phone}\n`;
-            if (p.location) textContent += `Location: ${p.location}\n`;
-            if (p.linkedin) textContent += `LinkedIn: ${p.linkedin}\n`;
-            if (p.portfolio) textContent += `Portfolio: ${p.portfolio}\n`;
-            if (p.github) textContent += `GitHub: ${p.github}\n`;
+            textContent += `${p.firstName || ''} ${p.lastName || ''} \n`;
+            if (p.title) textContent += `${p.title} \n`;
+            if (p.email) textContent += `Email: ${p.email} \n`;
+            if (p.phone) textContent += `Phone: ${p.phone} \n`;
+            if (p.location) textContent += `Location: ${p.location} \n`;
+            if (p.linkedin) textContent += `LinkedIn: ${p.linkedin} \n`;
+            if (p.portfolio) textContent += `Portfolio: ${p.portfolio} \n`;
+            if (p.github) textContent += `GitHub: ${p.github} \n`;
             textContent += '\n';
           }
 
           // Summary
           if (cvData.summary) {
-            textContent += `PROFESSIONAL SUMMARY\n${cvData.summary}\n\n`;
+            textContent += `PROFESSIONAL SUMMARY\n${cvData.summary} \n\n`;
           }
 
           // Experience
           if (cvData.experiences && cvData.experiences.length > 0) {
             textContent += 'WORK EXPERIENCE\n';
             for (const exp of cvData.experiences) {
-              textContent += `${exp.title || ''} at ${exp.company || ''}\n`;
-              textContent += `${exp.startDate || ''} - ${exp.current ? 'Present' : exp.endDate || ''}\n`;
-              if (exp.location) textContent += `${exp.location}\n`;
-              if (exp.description) textContent += `${exp.description}\n`;
+              textContent += `${exp.title || ''} at ${exp.company || ''} \n`;
+              textContent += `${exp.startDate || ''} - ${exp.current ? 'Present' : exp.endDate || ''} \n`;
+              if (exp.location) textContent += `${exp.location} \n`;
+              if (exp.description) textContent += `${exp.description} \n`;
               if (exp.achievements && exp.achievements.length > 0) {
                 for (const achievement of exp.achievements) {
-                  textContent += `• ${achievement}\n`;
+                  textContent += `• ${achievement} \n`;
                 }
               }
               textContent += '\n';
@@ -4393,13 +4157,13 @@ URL to visit: ${jobUrl}
           if (cvData.education && cvData.education.length > 0) {
             textContent += 'EDUCATION\n';
             for (const edu of cvData.education) {
-              textContent += `${edu.degree || ''} in ${edu.field || ''}\n`;
-              textContent += `${edu.institution || ''}\n`;
-              textContent += `${edu.startDate || ''} - ${edu.endDate || ''}\n`;
-              if (edu.gpa) textContent += `GPA: ${edu.gpa}\n`;
+              textContent += `${edu.degree || ''} in ${edu.field || ''} \n`;
+              textContent += `${edu.institution || ''} \n`;
+              textContent += `${edu.startDate || ''} - ${edu.endDate || ''} \n`;
+              if (edu.gpa) textContent += `GPA: ${edu.gpa} \n`;
               if (edu.achievements && edu.achievements.length > 0) {
                 for (const achievement of edu.achievements) {
-                  textContent += `• ${achievement}\n`;
+                  textContent += `• ${achievement} \n`;
                 }
               }
               textContent += '\n';
@@ -4416,7 +4180,7 @@ URL to visit: ${jobUrl}
               skillsByCategory[category].push(skill.name);
             }
             for (const [category, skills] of Object.entries(skillsByCategory)) {
-              textContent += `${category}: ${skills.join(', ')}\n`;
+              textContent += `${category}: ${skills.join(', ')} \n`;
             }
             textContent += '\n';
           }
@@ -4425,8 +4189,8 @@ URL to visit: ${jobUrl}
           if (cvData.certifications && cvData.certifications.length > 0) {
             textContent += 'CERTIFICATIONS\n';
             for (const cert of cvData.certifications) {
-              textContent += `${cert.name || ''} - ${cert.issuer || ''}\n`;
-              if (cert.date) textContent += `Issued: ${cert.date}\n`;
+              textContent += `${cert.name || ''} - ${cert.issuer || ''} \n`;
+              if (cert.date) textContent += `Issued: ${cert.date} \n`;
               textContent += '\n';
             }
           }
@@ -4435,7 +4199,7 @@ URL to visit: ${jobUrl}
           if (cvData.languages && cvData.languages.length > 0) {
             textContent += 'LANGUAGES\n';
             for (const lang of cvData.languages) {
-              textContent += `${lang.name}: ${lang.proficiency || 'N/A'}\n`;
+              textContent += `${lang.name}: ${lang.proficiency || 'N/A'} \n`;
             }
             textContent += '\n';
           }
@@ -4444,12 +4208,12 @@ URL to visit: ${jobUrl}
           if (cvData.projects && cvData.projects.length > 0) {
             textContent += 'PROJECTS\n';
             for (const proj of cvData.projects) {
-              textContent += `${proj.name || ''}\n`;
-              if (proj.description) textContent += `${proj.description}\n`;
+              textContent += `${proj.name || ''} \n`;
+              if (proj.description) textContent += `${proj.description} \n`;
               if (proj.technologies && proj.technologies.length > 0) {
-                textContent += `Technologies: ${proj.technologies.join(', ')}\n`;
+                textContent += `Technologies: ${proj.technologies.join(', ')} \n`;
               }
-              if (proj.url) textContent += `URL: ${proj.url}\n`;
+              if (proj.url) textContent += `URL: ${proj.url} \n`;
               textContent += '\n';
             }
           }
@@ -4630,7 +4394,7 @@ URL to visit: ${jobUrl}
 
           // Generate job summary in parallel
           const jobSummary = await generateJobSummary(jobTitle, company, jobDescription);
-          console.log('✅ Job summary generated:', jobSummary ? `Yes (${jobSummary.length} chars)` : 'No');
+          console.log('✅ Job summary generated:', jobSummary ? `Yes(${jobSummary.length} chars)` : 'No');
 
           // The premium analysis already saved to Firestore in the Cloud Function
           // Extract cvText from the analysis (should be extracted by AI during analysis)
@@ -4669,7 +4433,7 @@ URL to visit: ${jobUrl}
             experienceAnalysis: [],
             recommendations: result.analysis?.analysis?.top_gaps?.map((gap: any) => ({
               title: gap.name,
-              description: `${gap.why_it_matters}\n\n${gap.how_to_fix}`,
+              description: `${gap.why_it_matters} \n\n${gap.how_to_fix} `,
               priority: gap.severity === 'High' ? 'high' : gap.severity === 'Medium' ? 'medium' : 'low',
               examples: gap.how_to_fix
             })) || [],
@@ -4687,7 +4451,7 @@ URL to visit: ${jobUrl}
             jobDescription
           );
 
-          console.log(`✅ Premium Analysis Validated: ${tempAnalysis.matchScore}% -> ${validatedTempAnalysis.matchScore}%`);
+          console.log(`✅ Premium Analysis Validated: ${tempAnalysis.matchScore}% -> ${validatedTempAnalysis.matchScore}% `);
 
           // Update the placeholder with real data (using validated scores)
           const fullAnalysis = {
@@ -4723,15 +4487,15 @@ URL to visit: ${jobUrl}
 
             // 🔗 Link analysis to job application if jobToLink is set
             if (jobToLink?.id) {
-              console.log(`🔗 Linking analysis ${placeholderId} to job ${jobToLink.id}`);
+              console.log(`🔗 Linking analysis ${placeholderId} to job ${jobToLink.id} `);
               try {
                 const jobRef = doc(db, 'users', auth.currentUser.uid, 'jobApplications', jobToLink.id);
                 await updateDoc(jobRef, {
                   cvAnalysisId: placeholderId,
                   updatedAt: serverTimestamp()
                 });
-                console.log(`✅ Successfully linked analysis to ${jobToLink.companyName} - ${jobToLink.position}`);
-                notify.success(`Analysis linked to ${jobToLink.companyName}`);
+                console.log(`✅ Successfully linked analysis to ${jobToLink.companyName} - ${jobToLink.position} `);
+                notify.success(`Analysis linked to ${jobToLink.companyName} `);
               } catch (linkError) {
                 console.error('❌ Error linking analysis:', linkError);
               }
@@ -4758,7 +4522,7 @@ URL to visit: ${jobUrl}
           setCvSelectorSearch('');
 
           // Notification de succès
-          notify.success(`Analysis complete! Match score: ${fullAnalysis.matchScore}%`, {
+          notify.success(`Analysis complete! Match score: ${fullAnalysis.matchScore}% `, {
             duration: 5000,
             icon: '🎉'
           });
@@ -4773,7 +4537,7 @@ URL to visit: ${jobUrl}
             console.error('❌ Error deleting placeholder from Firestore:', deleteError);
           }
           setAnalyses(prev => prev.filter(a => a.id !== placeholderId));
-          notify.error(`Analysis failed: ${error.message || 'Unknown error'}`, {
+          notify.error(`Analysis failed: ${error.message || 'Unknown error'} `, {
             duration: 5000
           });
         }
@@ -4800,7 +4564,7 @@ URL to visit: ${jobUrl}
         }
         setAnalyses(prev => prev.filter(a => a.id !== placeholderId));
       }
-      notify.error(`Analysis failed: ${error.message || 'Unknown error'}`, {
+      notify.error(`Analysis failed: ${error.message || 'Unknown error'} `, {
         duration: 5000
       });
     }
@@ -4919,7 +4683,7 @@ URL to visit: ${jobUrl}
     try {
       const copy: ATSAnalysis = {
         ...analysis,
-        id: `local_${Date.now()}`,
+        id: `local_${Date.now()} `,
         jobTitle: `${analysis.jobTitle} (Copy)`,
         date: formatDateString(new Date().toISOString().split('T')[0]),
       };
@@ -5018,7 +4782,7 @@ URL to visit: ${jobUrl}
     try {
       const timestamp = Date.now();
       const fileName = `cv_analysis_cover_${timestamp}.jpg`;
-      const coverRef = ref(storage, `cover-photos/${currentUser.uid}/${fileName}`);
+      const coverRef = ref(storage, `cover - photos / ${currentUser.uid}/${fileName}`);
 
       await uploadBytes(coverRef, blob, { contentType: 'image/jpeg' });
       const coverUrl = await getDownloadURL(coverRef);
@@ -5237,6 +5001,7 @@ URL to visit: ${jobUrl}
 
     const scoreStyles = getScoreBadgeStyles(analysis.matchScore);
 
+
     return (
       <motion.div
         key={analysis.id}
@@ -5244,12 +5009,12 @@ URL to visit: ${jobUrl}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
         layout={false}
-        className={`group relative bg-white/80 dark:bg-[#2b2a2c]/80 backdrop-blur-sm rounded-xl p-4 sm:p-5 
+        className={`group relative bg-white dark:bg-[#1E1E1E] rounded-xl p-4
           border transition-all duration-300
           ${isHighlighted
             ? 'border-teal-500 ring-2 ring-teal-500/20 shadow-lg shadow-teal-500/10'
-            : 'border-gray-200/60 dark:border-[#3d3c3e]/50 hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.3)] hover:border-[#70E000] dark:hover:border-[#70E000] hover:border-2'}
-          cursor-pointer ${isGrid ? 'h-[220px] flex flex-col' : ''}`}
+            : 'border-gray-100 dark:border-[#2A2A2A] hover:shadow-xl hover:-translate-y-0.5 hover:border-[#635BFF]/30 dark:hover:border-[#635BFF]/30'}
+          cursor-pointer ${isGrid ? 'h-[200px] flex flex-col' : ''}`}
         onClick={() => {
           if (onSelect) {
             onSelect();
@@ -5258,139 +5023,124 @@ URL to visit: ${jobUrl}
           }
         }}
       >
+        {/* Glow Effect on Hover */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#635BFF]/0 to-purple-500/0 group-hover:from-[#635BFF]/5 group-hover:to-purple-500/5 rounded-xl transition-all duration-300" />
+
         <div className={`relative ${isGrid ? 'flex flex-col h-full' : ''}`}>
           {/* Header */}
           <div className="flex items-start gap-3">
             {/* Company Logo */}
             <CompanyLogo
               companyName={analysis.company}
-              size="lg"
-              className="rounded-lg border border-gray-100 dark:border-[#3d3c3e] flex-shrink-0"
+              size="md"
+              className="rounded-lg border border-gray-100 dark:border-[#2A2A2A] flex-shrink-0 shadow-sm"
             />
 
             {/* Content */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2 sm:gap-3">
+            <div className="flex-1 min-w-0 pt-0.5">
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white truncate">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate leading-tight">
                     {analysis.jobTitle}
                   </h3>
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate flex items-center gap-1.5 mt-0.5">
-                    <Building2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 flex-shrink-0 opacity-60" />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate flex items-center gap-1.5 mt-1">
+                    <Building2 className="w-3 h-3 flex-shrink-0 opacity-60" />
                     <span className="truncate">{analysis.company}</span>
                   </p>
                 </div>
 
-                {/* Score Badge - Circular for native app feel */}
-                <div className="flex-shrink-0 relative" style={{ width: 40, height: 40 }}>
-                  <svg
-                    width={40}
-                    height={40}
-                    viewBox="0 0 40 40"
-                    className="transform -rotate-90"
-                  >
-                    {/* Background circle */}
-                    <circle
-                      cx={20}
-                      cy={20}
-                      r={16}
-                      fill="transparent"
-                      stroke="currentColor"
-                      strokeWidth={3}
-                      className="text-gray-100 dark:text-gray-700"
-                    />
-                    {/* Progress circle */}
-                    <circle
-                      cx={20}
-                      cy={20}
-                      r={16}
-                      fill="transparent"
-                      stroke={analysis.matchScore >= 80 ? '#635BFF' : analysis.matchScore >= 65 ? '#3b82f6' : '#f43f5e'}
-                      strokeWidth={3}
-                      strokeLinecap="round"
-                      strokeDasharray={100.53}
-                      strokeDashoffset={100.53 - (analysis.matchScore / 100) * 100.53}
-                    />
-                  </svg>
-                  {/* Score value in center */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className={`text-xs font-bold tabular-nums ${scoreStyles.text}`}>
-                      {analysis.matchScore}
-                    </span>
-                  </div>
+                {/* Score Badge - Compact & Stylish */}
+                <div className={`flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full 
+                  ${analysis.matchScore >= 80 ? 'bg-[#635BFF]/10 text-[#635BFF] ring-1 ring-[#635BFF]/20' :
+                    analysis.matchScore >= 65 ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20' :
+                      'bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/20'}`}>
+                  <span className="text-xs font-bold leading-none">{analysis.matchScore}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Tags preview */}
+          {/* Tags preview - Improved Logic */}
           {!isExpanded && (() => {
-            // Get tags from analysis or derive them as fallback
-            // Check length to ensure we don't use empty arrays from AI response
-            let positiveTags = (analysis.tags?.positive && analysis.tags.positive.length > 0)
-              ? analysis.tags.positive
-              : (analysis.skillsMatch?.matching?.slice(0, 2).map((s: any) => typeof s === 'string' ? s : s.name) || []);
+            // Priority 1: Use Tags if available
+            let displayTags: { text: string; type: 'positive' | 'negative' | 'neutral' }[] = [];
 
-            let negativeTags = (analysis.tags?.negative && analysis.tags.negative.length > 0)
-              ? analysis.tags.negative
-              : (analysis.skillsMatch?.missing?.slice(0, 2).map((s: any) => typeof s === 'string' ? s : s.name) || []);
-
-            // Filter out any undefined/null/empty tags
-            positiveTags = positiveTags.filter(t => t && typeof t === 'string' && t.trim().length > 0);
-            negativeTags = negativeTags.filter(t => t && typeof t === 'string' && t.trim().length > 0);
-
-            // If we still don't have enough tags, try other sources
-            if (positiveTags.length < 2 && analysis.keyFindings) {
-              const remaining = 2 - positiveTags.length;
-              // Try to find short positive findings (increased length limit to 60)
-              const shortFindings = analysis.keyFindings
-                .filter(f => f.length < 60 && !f.toLowerCase().includes('missing') && !f.toLowerCase().includes('lack'))
-                .slice(0, remaining);
-              positiveTags = [...positiveTags, ...shortFindings];
+            // Collect positive tags
+            if (analysis.tags?.positive && analysis.tags.positive.length > 0) {
+              analysis.tags.positive.slice(0, 2).forEach(t => displayTags.push({ text: t, type: 'positive' }));
             }
 
-            if (negativeTags.length < 2 && analysis.recommendations) {
-              const remaining = 2 - negativeTags.length;
-              // Use recommendation titles as negative tags (areas to improve)
-              const shortRecs = analysis.recommendations
-                .map(r => r.title)
-                .filter(t => t.length < 60)
-                .slice(0, remaining);
-              negativeTags = [...negativeTags, ...shortRecs];
+            // Collect negative tags if we need more
+            if (displayTags.length < 2 && analysis.tags?.negative && analysis.tags.negative.length > 0) {
+              analysis.tags.negative.slice(0, 2 - displayTags.length).forEach(t => displayTags.push({ text: t, type: 'negative' }));
             }
 
-            // Limit to 2 of each
-            const finalPositiveTags = positiveTags.slice(0, 2);
-            const finalNegativeTags = negativeTags.slice(0, 2);
+            // Priority 2: Fallback to Skills Matching
+            if (displayTags.length === 0) {
+              // Matching skills
+              if (analysis.skillsMatch?.matching) {
+                analysis.skillsMatch.matching
+                  .slice(0, 2)
+                  .forEach(s => {
+                    const name = typeof s === 'string' ? s : s.name;
+                    if (name) displayTags.push({ text: name, type: 'positive' });
+                  });
+              }
 
-            if (finalPositiveTags.length === 0 && finalNegativeTags.length === 0) return null;
+              // Missing skills (if needed)
+              if (displayTags.length < 2 && analysis.skillsMatch?.missing) {
+                analysis.skillsMatch.missing
+                  .slice(0, 2 - displayTags.length)
+                  .forEach(s => {
+                    const name = typeof s === 'string' ? s : s.name;
+                    if (name) displayTags.push({ text: name, type: 'negative' });
+                  });
+              }
+            }
+
+            // Priority 3: Fallback to Key Findings (Positive) & Recommendations (Negative)
+            if (displayTags.length === 0) {
+              if (analysis.keyFindings && analysis.keyFindings.length > 0) {
+                // Find short findings
+                const shortFinding = analysis.keyFindings.find(f => f.length < 30);
+                if (shortFinding) displayTags.push({ text: shortFinding, type: 'positive' });
+              }
+
+              if (displayTags.length < 2 && analysis.recommendations && analysis.recommendations.length > 0) {
+                const shortRec = analysis.recommendations.find(r => r.title.length < 30);
+                if (shortRec) displayTags.push({ text: shortRec.title, type: 'negative' });
+              }
+            }
+
+            // Final filter for validity and duplicates
+            displayTags = displayTags
+              .filter(t => t.text && typeof t.text === 'string' && t.text.trim().length > 0)
+              .filter((tag, index, self) =>
+                index === self.findIndex((t) => (
+                  t.text === tag.text
+                ))
+              )
+              .slice(0, 3); // Max 3 tags
+
+            if (displayTags.length === 0) return (
+              <div className="mt-3 min-h-[22px]"></div>
+            );
 
             return (
               <div className="flex flex-wrap gap-1.5 mt-3">
-                {finalPositiveTags.map((tag, idx) => (
+                {displayTags.map((tag, idx) => (
                   <span
-                    key={`pos-${idx}`}
-                    className="text-[10px] px-2 py-0.5 rounded-md 
-                      bg-green-50 dark:bg-green-500/10 
-                      text-green-700 dark:text-green-400
-                      border border-green-100 dark:border-green-500/20
-                      font-medium truncate max-w-[120px]"
-                    title={tag}
+                    key={`${tag.type}-${idx}`}
+                    className={`text-[10px] px-2 py-0.5 rounded-md font-medium truncate max-w-[120px] transition-colors
+                      ${tag.type === 'positive'
+                        ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20'
+                        : tag.type === 'negative'
+                          ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20'
+                          : 'bg-gray-50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-400 border border-gray-100 dark:border-gray-600'
+                      }`}
+                    title={tag.text}
                   >
-                    {tag}
-                  </span>
-                ))}
-                {finalNegativeTags.map((tag, idx) => (
-                  <span
-                    key={`neg-${idx}`}
-                    className="text-[10px] px-2 py-0.5 rounded-md 
-                      bg-red-50 dark:bg-red-500/10 
-                      text-red-700 dark:text-red-400
-                      border border-red-100 dark:border-red-500/20
-                      font-medium truncate max-w-[120px]"
-                    title={tag}
-                  >
-                    {tag}
+                    {tag.text}
                   </span>
                 ))}
               </div>
@@ -5398,17 +5148,17 @@ URL to visit: ${jobUrl}
           })()}
 
           {/* Footer - minimal */}
-          <div className={`flex items-center justify-between pt-3 border-t border-gray-100 dark:border-[#3d3c3e]/50 ${isGrid ? 'mt-auto' : 'mt-3'}`}>
-            <span className="text-xs text-gray-400 dark:text-gray-500">
+          <div className={`flex items-center justify-between pt-3 border-t border-gray-50 dark:border-[#2A2A2A] ${isGrid ? 'mt-auto' : 'mt-3'}`}>
+            <span className="text-[10px] uppercase tracking-wider font-medium text-gray-400 dark:text-gray-500">
               {formatDateString(analysis.date)}
             </span>
 
             {/* Quick actions - appear on hover */}
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <button
                 onClick={(e) => { e.stopPropagation(); onSelect && onSelect(); }}
-                className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 
-                  dark:hover:text-gray-300 dark:hover:bg-[#3d3c3e]
+                className="p-1.5 rounded-md text-gray-400 hover:text-[#635BFF] hover:bg-[#635BFF]/5 
+                  dark:hover:text-[#a5a0ff] dark:hover:bg-[#635BFF]/10
                   transition-colors"
                 aria-label="View details"
               >
@@ -5435,917 +5185,10 @@ URL to visit: ${jobUrl}
             </div>
           </div>
 
-          {/* Expanded Content */}
-          {isExpanded && (
-            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-[#3d3c3e]">
-              {/* Score Explanation Card */}
-              <div className="mb-5 bg-white dark:bg-[#2b2a2c] rounded-xl border border-gray-100 dark:border-[#3d3c3e] overflow-hidden">
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-medium text-gray-900 dark:text-white flex items-center">
-                      <Target className="w-5 h-5 mr-2 text-purple-500" />
-                      Match Score Explained
-                    </h3>
-                    <div className={`text-2xl font-bold ${getScoreColorClass(analysis.matchScore)}`}>
-                      {analysis.matchScore}%
-                    </div>
-                  </div>
-
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    {analysis.matchScore >= 80 ?
-                      "Your resume is very well aligned with this position! You appear to be a strong candidate based on the requirements." :
-                      analysis.matchScore >= 65 ?
-                        "Your resume meets many of the key requirements, but there are some areas that could be improved." :
-                        "Your resume needs significant adjustments to better align with this position's requirements."
-                    }
-                  </p>
-
-                  <div className="w-full h-2.5 bg-gray-100 dark:bg-[#3d3c3e] rounded-full mb-3 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${analysis.matchScore >= 80 ? 'bg-gradient-to-r from-purple-500 to-indigo-500' :
-                        analysis.matchScore >= 65 ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
-                          'bg-gradient-to-r from-pink-500 to-rose-500'
-                        }`}
-                      style={{ width: `${analysis.matchScore}%` }}
-                    ></div>
-                  </div>
-
-                  <div className="grid grid-cols-3 text-xs text-center gap-2">
-                    <div className="text-pink-600 dark:text-pink-400">
-                      <div className="font-medium">Low Match</div>
-                      <div className="text-gray-500 dark:text-gray-400">30-65%</div>
-                    </div>
-                    <div className="text-blue-600 dark:text-blue-400">
-                      <div className="font-medium">Medium Match</div>
-                      <div className="text-gray-500 dark:text-gray-400">66-79%</div>
-                    </div>
-                    <div className="text-purple-600 dark:text-purple-400">
-                      <div className="font-medium">Strong Match</div>
-                      <div className="text-gray-500 dark:text-gray-400">80-95%</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Category Scores */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 mb-5">
-                {Object.entries(analysis.categoryScores).map(([category, score], idx) => (
-                  <div key={idx} className="bg-gray-50 dark:bg-[#3d3c3e]/40 rounded-xl p-3 flex flex-col items-center justify-center">
-                    <div className="text-xs uppercase tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      {category.replace(/([A-Z])/g, ' $1').trim()}
-                    </div>
-                    <div className={`text-xl font-bold ${getScoreColorClass(score)}`}>
-                      {Math.round(score)}%
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Expandable sections */}
-              <div className="space-y-3">
-                {/* Executive Summary */}
-                <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => toggleSection('summary')}
-                    className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60 transition-colors"
-                  >
-                    <div className="flex items-center">
-                      <FileText className="w-5 h-5 mr-2 text-purple-500" />
-                      <span className="font-medium">Executive Summary</span>
-                    </div>
-                    {expandedSection === 'summary' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </button>
-                  {expandedSection === 'summary' && (
-                    <div className="p-4 bg-white dark:bg-[#2b2a2c]">
-                      <p className="text-gray-700 dark:text-gray-300">{analysis.executiveSummary}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Skills Match */}
-                <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => toggleSection('skills')}
-                    className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60 transition-colors"
-                  >
-                    <div className="flex items-center">
-                      <CheckCircle className="w-5 h-5 mr-2 text-[#635BFF]" />
-                      <span className="font-medium">Matching Skills</span>
-                    </div>
-                    {expandedSection === 'skills' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </button>
-                  {expandedSection === 'skills' && (
-                    <div className="p-4 bg-white dark:bg-[#2b2a2c]">
-                      {analysis.skillsMatch?.matching && analysis.skillsMatch.matching.length > 0 ? (
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {analysis.skillsMatch.matching.map((skill, idx) => (
-                            <SkillTag
-                              key={idx}
-                              skill={skill.name}
-                              matched={true}
-                              relevance={skill.relevance}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">No skills data available</p>
-                      )}
-
-                      {analysis.skillsMatch?.missing && analysis.skillsMatch.missing.length > 0 && (
-                        <div className="mt-4">
-                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Missing Skills</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {analysis.skillsMatch.missing.map((skill, idx) => (
-                              <SkillTag
-                                key={idx}
-                                skill={skill.name}
-                                matched={false}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Experience Analysis */}
-                <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => toggleSection('experience')}
-                    className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60 transition-colors"
-                  >
-                    <div className="flex items-center">
-                      <Briefcase className="w-5 h-5 mr-2 text-blue-500" />
-                      <span className="font-medium">Experience Analysis</span>
-                    </div>
-                    {expandedSection === 'experience' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </button>
-                  {expandedSection === 'experience' && (
-                    <div className="p-4 bg-white dark:bg-[#2b2a2c]">
-                      <div className="space-y-4">
-                        {analysis.experienceAnalysis.map((item, idx) => (
-                          <div key={idx} className="pb-4 border-b border-gray-100 dark:border-[#3d3c3e] last:border-0 last:pb-0">
-                            <h4 className="font-medium text-gray-900 dark:text-white mb-1">{item.aspect}</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{item.analysis}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Critical Requirements Analysis - NEW SECTION */}
-                {analysis.criticalRequirementsAnalysis && (
-                  <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => toggleSection('criticalRequirements')}
-                      className="w-full flex items-center justify-between p-3 text-left bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 hover:from-red-100 hover:to-orange-100 dark:hover:from-red-900/30 dark:hover:to-orange-900/30 transition-colors"
-                    >
-                      <div className="flex items-center">
-                        <AlertTriangle className="w-5 h-5 mr-2 text-red-600 dark:text-red-400" />
-                        <span className="font-medium">Critical Requirements Analysis</span>
-                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-semibold">
-                          {analysis.criticalRequirementsAnalysis.summary.criticalMet}/{analysis.criticalRequirementsAnalysis.summary.criticalTotal} Critical Met
-                        </span>
-                      </div>
-                      {expandedSection === 'criticalRequirements' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-                    {expandedSection === 'criticalRequirements' && (
-                      <div className="p-4 bg-white dark:bg-[#2b2a2c]">
-                        {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                          <div className="bg-red-50 dark:bg-red-900/10 rounded-lg p-4 border border-red-200 dark:border-red-800">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-red-700 dark:text-red-400">Critical Must-Have</span>
-                              <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                            </div>
-                            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                              {analysis.criticalRequirementsAnalysis.summary.criticalMet}/{analysis.criticalRequirementsAnalysis.summary.criticalTotal}
-                            </div>
-                            <div className="text-xs text-red-600 dark:text-red-400 mt-1">
-                              {analysis.criticalRequirementsAnalysis.summary.criticalTotal > 0
-                                ? Math.round((analysis.criticalRequirementsAnalysis.summary.criticalMet / analysis.criticalRequirementsAnalysis.summary.criticalTotal) * 100)
-                                : 100}% Met
-                            </div>
-                          </div>
-                          <div className="bg-orange-50 dark:bg-orange-900/10 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-orange-700 dark:text-orange-400">Highly Important</span>
-                              <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                            </div>
-                            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                              {analysis.criticalRequirementsAnalysis.summary.highlyImportantMet}/{analysis.criticalRequirementsAnalysis.summary.highlyImportantTotal}
-                            </div>
-                            <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                              {analysis.criticalRequirementsAnalysis.summary.highlyImportantTotal > 0
-                                ? Math.round((analysis.criticalRequirementsAnalysis.summary.highlyImportantMet / analysis.criticalRequirementsAnalysis.summary.highlyImportantTotal) * 100)
-                                : 100}% Met
-                            </div>
-                          </div>
-                          <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-blue-700 dark:text-blue-400">Nice-to-Have</span>
-                              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                              {analysis.criticalRequirementsAnalysis.summary.niceToHaveMet}/{analysis.criticalRequirementsAnalysis.summary.niceToHaveTotal}
-                            </div>
-                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                              {analysis.criticalRequirementsAnalysis.summary.niceToHaveTotal > 0
-                                ? Math.round((analysis.criticalRequirementsAnalysis.summary.niceToHaveMet / analysis.criticalRequirementsAnalysis.summary.niceToHaveTotal) * 100)
-                                : 100}% Met
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Critical Must-Have Requirements */}
-                        {analysis.criticalRequirementsAnalysis.criticalMustHave.length > 0 && (
-                          <div className="mb-6">
-                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                              <AlertTriangle className="w-5 h-5 mr-2 text-red-600 dark:text-red-400" />
-                              Critical Must-Have Requirements (Deal-Breakers)
-                            </h4>
-                            <div className="space-y-3">
-                              {analysis.criticalRequirementsAnalysis.criticalMustHave.map((req, idx) => (
-                                <div
-                                  key={idx}
-                                  className={`p-4 rounded-lg border-2 ${req.found
-                                    ? 'bg-[#635BFF]/5 dark:bg-[#5249e6]/10 border-[#635BFF]/30 dark:border-[#5249e6]/50'
-                                    : 'bg-red-50 dark:bg-red-900/10 border-red-300 dark:border-red-800'
-                                    }`}
-                                >
-                                  <div className="flex items-start justify-between mb-2">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        {req.found ? (
-                                          <CheckCircle className="w-5 h-5 text-[#5249e6] dark:text-[#a5a0ff] flex-shrink-0" />
-                                        ) : (
-                                          <X className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
-                                        )}
-                                        <span className="font-semibold text-gray-900 dark:text-white">{req.requirement}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2 mt-1">
-                                        <span className={`text-xs px-2 py-0.5 rounded-full ${req.category === 'skill' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' :
-                                          req.category === 'experience' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
-                                            req.category === 'education' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' :
-                                              req.category === 'certification' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
-                                                'bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-400'
-                                          }`}>
-                                          {req.category}
-                                        </span>
-                                        {!req.found && (
-                                          <span className="text-xs font-semibold text-red-600 dark:text-red-400">
-                                            -{req.scorePenalty} points
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  {req.found && req.location && (
-                                    <p className="text-xs text-[#635BFF] dark:text-[#a5a0ff] mt-2">
-                                      ✓ Found in: {req.location}
-                                    </p>
-                                  )}
-                                  {!req.found && (
-                                    <p className="text-xs text-red-700 dark:text-red-400 mt-2 font-medium">
-                                      ⚠ Missing - This is a DEAL-BREAKER. Your application will likely be rejected without this.
-                                    </p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Highly Important Requirements */}
-                        {analysis.criticalRequirementsAnalysis.highlyImportant.length > 0 && (
-                          <div className="mb-6">
-                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                              <AlertCircle className="w-5 h-5 mr-2 text-orange-600 dark:text-orange-400" />
-                              Highly Important Requirements
-                            </h4>
-                            <div className="space-y-2">
-                              {analysis.criticalRequirementsAnalysis.highlyImportant.map((req, idx) => (
-                                <div
-                                  key={idx}
-                                  className={`p-3 rounded-lg border ${req.found
-                                    ? 'bg-[#635BFF]/5 dark:bg-[#5249e6]/10 border-[#635BFF]/20 dark:border-[#5249e6]/50'
-                                    : 'bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-800'
-                                    }`}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                      {req.found ? (
-                                        <CheckCircle className="w-4 h-4 text-[#5249e6] dark:text-[#a5a0ff]" />
-                                      ) : (
-                                        <X className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                                      )}
-                                      <span className="font-medium text-gray-900 dark:text-white">{req.requirement}</span>
-                                    </div>
-                                    {!req.found && (
-                                      <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
-                                        -{req.scorePenalty} pts
-                                      </span>
-                                    )}
-                                  </div>
-                                  {req.found && req.location && (
-                                    <p className="text-xs text-[#635BFF] dark:text-[#a5a0ff] mt-1 ml-6">
-                                      Found in: {req.location}
-                                    </p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Nice-to-Have Requirements */}
-                        {analysis.criticalRequirementsAnalysis.niceToHave.length > 0 && (
-                          <div>
-                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                              <Info className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
-                              Nice-to-Have Requirements (Secondary)
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                              {analysis.criticalRequirementsAnalysis.niceToHave.map((req, idx) => (
-                                <div
-                                  key={idx}
-                                  className={`p-2 rounded-lg border text-sm ${req.found
-                                    ? 'bg-[#635BFF]/5 dark:bg-[#5249e6]/10 border-[#635BFF]/20 dark:border-[#5249e6]/50'
-                                    : 'bg-gray-50 dark:bg-[#3d3c3e]/40 border-gray-200 dark:border-[#3d3c3e]'
-                                    }`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    {req.found ? (
-                                      <CheckCircle className="w-3.5 h-3.5 text-[#5249e6] dark:text-[#a5a0ff] flex-shrink-0" />
-                                    ) : (
-                                      <span className="w-3.5 h-3.5 flex-shrink-0">•</span>
-                                    )}
-                                    <span className="text-gray-700 dark:text-gray-300">{req.requirement}</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Gap Analysis - NEW SECTION */}
-                {analysis.gapAnalysis && (
-                  <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => toggleSection('gapAnalysis')}
-                      className="w-full flex items-center justify-between p-3 text-left bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 hover:from-red-100 hover:to-pink-100 dark:hover:from-red-900/30 dark:hover:to-pink-900/30 transition-colors"
-                    >
-                      <div className="flex items-center">
-                        <Target className="w-5 h-5 mr-2 text-red-600 dark:text-red-400" />
-                        <span className="font-medium">Gap Analysis - What's Missing & Why It Matters</span>
-                        {analysis.gapAnalysis.overallImpact.criticalGapsCount > 0 && (
-                          <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-semibold">
-                            {analysis.gapAnalysis.overallImpact.criticalGapsCount} Critical Gaps
-                          </span>
-                        )}
-                      </div>
-                      {expandedSection === 'gapAnalysis' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-                    {expandedSection === 'gapAnalysis' && (
-                      <div className="p-4 bg-white dark:bg-[#2b2a2c]">
-                        {/* Overall Impact Summary */}
-                        <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/10 dark:to-orange-900/10 rounded-lg p-4 mb-6 border border-red-200 dark:border-red-800">
-                          <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Overall Impact Summary</h4>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total Score Penalty</div>
-                              <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                                -{analysis.gapAnalysis.overallImpact.totalScorePenalty}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Critical Gaps</div>
-                              <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                                {analysis.gapAnalysis.overallImpact.criticalGapsCount}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Important Gaps</div>
-                              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                                {analysis.gapAnalysis.overallImpact.importantGapsCount}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Interview Probability</div>
-                              <div className={`text-2xl font-bold ${getScoreColorClass(analysis.gapAnalysis.overallImpact.estimatedInterviewProbability)}`}>
-                                {analysis.gapAnalysis.overallImpact.estimatedInterviewProbability}%
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Critical Gaps */}
-                        {analysis.gapAnalysis.criticalGaps.length > 0 && (
-                          <div className="mb-6">
-                            <h4 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-3 flex items-center">
-                              <AlertTriangle className="w-5 h-5 mr-2" />
-                              Critical Gaps (Deal-Breakers) - {analysis.gapAnalysis.criticalGaps.length} Missing
-                            </h4>
-                            <div className="space-y-4">
-                              {analysis.gapAnalysis.criticalGaps.map((gap, idx) => (
-                                <div
-                                  key={idx}
-                                  className="bg-red-50 dark:bg-red-900/10 rounded-lg p-4 border-2 border-red-300 dark:border-red-800"
-                                >
-                                  <div className="flex items-start justify-between mb-2">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <X className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
-                                        <span className="font-semibold text-gray-900 dark:text-white text-lg">{gap.requirement}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2 mb-3">
-                                        <span className={`text-xs px-2 py-0.5 rounded-full ${gap.category === 'skill' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' :
-                                          gap.category === 'experience' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
-                                            gap.category === 'education' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' :
-                                              gap.category === 'certification' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
-                                                'bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-400'
-                                          }`}>
-                                          {gap.category}
-                                        </span>
-                                        <span className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">
-                                          -{gap.scoreImpact} points | CRITICAL
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="bg-white dark:bg-[#2b2a2c] rounded-lg p-3 mb-3 border border-red-200 dark:border-red-800">
-                                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-1">Why This Matters:</p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">{gap.impact}</p>
-                                  </div>
-                                  {gap.alternatives && gap.alternatives.length > 0 && (
-                                    <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-3 mb-3 border border-blue-200 dark:border-blue-800">
-                                      <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">Alternative Skills/Experience You Have:</p>
-                                      <ul className="list-disc list-inside text-xs text-blue-600 dark:text-blue-400 space-y-1">
-                                        {gap.alternatives.map((alt, altIdx) => (
-                                          <li key={altIdx}>{alt}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
-                                  <div className="bg-yellow-50 dark:bg-yellow-900/10 rounded-lg p-3 border border-yellow-200 dark:border-yellow-800">
-                                    <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-2 uppercase tracking-wide">Action Plan:</p>
-                                    <ul className="space-y-2">
-                                      {gap.recommendations.map((rec, recIdx) => (
-                                        <li key={recIdx} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
-                                          <span className="text-yellow-600 dark:text-yellow-400 mt-0.5">→</span>
-                                          <span>{rec}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Important Gaps */}
-                        {analysis.gapAnalysis.importantGaps.length > 0 && (
-                          <div>
-                            <h4 className="text-lg font-semibold text-orange-600 dark:text-orange-400 mb-3 flex items-center">
-                              <AlertCircle className="w-5 h-5 mr-2" />
-                              Important Gaps - {analysis.gapAnalysis.importantGaps.length} Missing
-                            </h4>
-                            <div className="space-y-3">
-                              {analysis.gapAnalysis.importantGaps.map((gap, idx) => (
-                                <div
-                                  key={idx}
-                                  className="bg-orange-50 dark:bg-orange-900/10 rounded-lg p-4 border border-orange-200 dark:border-orange-800"
-                                >
-                                  <div className="flex items-start justify-between mb-2">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <X className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
-                                        <span className="font-semibold text-gray-900 dark:text-white">{gap.requirement}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <span className={`text-xs px-2 py-0.5 rounded-full ${gap.category === 'skill' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' :
-                                          gap.category === 'experience' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
-                                            gap.category === 'education' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' :
-                                              gap.category === 'certification' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
-                                                'bg-gray-100 dark:bg-[#3d3c3e] text-gray-700 dark:text-gray-400'
-                                          }`}>
-                                          {gap.category}
-                                        </span>
-                                        <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
-                                          -{gap.scoreImpact} points | {gap.priority.toUpperCase()}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="bg-white dark:bg-[#2b2a2c] rounded-lg p-2 mb-2 border border-orange-200 dark:border-orange-800">
-                                    <p className="text-xs text-gray-600 dark:text-gray-400">{gap.impact}</p>
-                                  </div>
-                                  <div className="bg-yellow-50 dark:bg-yellow-900/10 rounded-lg p-2 border border-yellow-200 dark:border-yellow-800">
-                                    <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-1">Recommendations:</p>
-                                    <ul className="space-y-1">
-                                      {gap.recommendations.map((rec, recIdx) => (
-                                        <li key={recIdx} className="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300">
-                                          <span className="text-yellow-600 dark:text-yellow-400 mt-0.5">→</span>
-                                          <span>{rec}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Recommendations */}
-                <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => toggleSection('recommendations')}
-                    className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60 transition-colors"
-                  >
-                    <div className="flex items-center">
-                      <Lightbulb className="w-5 h-5 mr-2 text-yellow-500" />
-                      <span className="font-medium">Recommendations</span>
-                    </div>
-                    {expandedSection === 'recommendations' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </button>
-                  {expandedSection === 'recommendations' && (
-                    <div className="p-4 bg-white dark:bg-[#2b2a2c]">
-                      <div className="space-y-3">
-                        {analysis.recommendations.map((rec, idx) => (
-                          <div key={idx} className="rounded-lg border border-gray-100 dark:border-[#3d3c3e] p-3">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-medium text-gray-900 dark:text-white">{rec.title}</h4>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${rec.priority === 'high'
-                                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-                                : rec.priority === 'medium'
-                                  ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400'
-                                  : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                                }`}>
-                                {rec.priority.charAt(0).toUpperCase() + rec.priority.slice(1)}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{rec.description}</p>
-                            {rec.examples && (
-                              <div className="mt-2 text-sm bg-gray-50 dark:bg-[#3d3c3e]/40 p-2 rounded-md text-gray-700 dark:text-gray-300">
-                                <span className="font-medium text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">Example</span>
-                                {rec.examples}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* ATS Optimization Section */}
-                {analysis.atsOptimization && (
-                  <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => toggleSection('atsOptimization')}
-                      className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60 transition-colors"
-                    >
-                      <div className="flex items-center">
-                        <SearchCheck className="w-5 h-5 mr-2 text-purple-500" />
-                        <span className="font-medium">ATS Optimization</span>
-                        {analysis.atsOptimization.score && (
-                          <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${getScoreColorClass(analysis.atsOptimization.score)}`}>
-                            {analysis.atsOptimization.score}%
-                          </span>
-                        )}
-                      </div>
-                      {expandedSection === 'atsOptimization' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-                    {expandedSection === 'atsOptimization' && (
-                      <div className="p-4 bg-white dark:bg-[#2b2a2c]">
-                        <div className="space-y-4">
-                          <div>
-                            <h4 className="font-medium text-gray-900 dark:text-white mb-1">Formatting</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{analysis.atsOptimization.formatting}</p>
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-gray-900 dark:text-white mb-1">Keyword Optimization</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{analysis.atsOptimization.keywordOptimization}</p>
-                          </div>
-
-                          {/* Keyword Density Analysis */}
-                          {analysis.atsOptimization.keywordDensity && (
-                            <div className="border-t border-gray-200 dark:border-[#3d3c3e] pt-4">
-                              <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center">
-                                <Target className="w-4 h-4 mr-2 text-purple-500" />
-                                Keyword Density Analysis
-                              </h4>
-                              <div className="mb-3">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-sm text-gray-600 dark:text-gray-400">Overall Density</span>
-                                  <span className={`text-sm font-semibold ${getScoreColorClass(analysis.atsOptimization.keywordDensity.overallDensity)}`}>
-                                    {analysis.atsOptimization.keywordDensity.overallDensity}%
-                                  </span>
-                                </div>
-                                <div className="w-full h-2 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full transition-all ${analysis.atsOptimization.keywordDensity.overallDensity >= 80
-                                      ? 'bg-gradient-to-r from-purple-500 to-indigo-500'
-                                      : analysis.atsOptimization.keywordDensity.overallDensity >= 60
-                                        ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
-                                        : 'bg-gradient-to-r from-pink-500 to-rose-500'
-                                      }`}
-                                    style={{ width: `${analysis.atsOptimization.keywordDensity.overallDensity}%` }}
-                                  />
-                                </div>
-                              </div>
-                              {analysis.atsOptimization.keywordDensity.criticalKeywords.length > 0 && (
-                                <div className="space-y-2 mb-3">
-                                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Critical Keywords</p>
-                                  <div className="grid grid-cols-1 gap-2">
-                                    {analysis.atsOptimization.keywordDensity.criticalKeywords.slice(0, 10).map((kw, idx) => (
-                                      <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-[#3d3c3e]/60 rounded-md">
-                                        <div className="flex items-center">
-                                          {kw.found ? (
-                                            <CheckCircle className="w-4 h-4 text-[#635BFF] mr-2" />
-                                          ) : (
-                                            <X className="w-4 h-4 text-red-500 mr-2" />
-                                          )}
-                                          <span className="text-sm font-medium text-gray-900 dark:text-white">{kw.keyword}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          {kw.found && (
-                                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                                              {kw.frequency}/{kw.optimalFrequency}
-                                            </span>
-                                          )}
-                                          <span className={`text-xs px-2 py-0.5 rounded-full ${kw.found
-                                            ? kw.frequency >= kw.optimalFrequency
-                                              ? 'bg-[#635BFF]/10 dark:bg-[#5249e6]/30 text-[#635BFF] dark:text-[#a5a0ff]'
-                                              : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-                                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                                            }`}>
-                                            {kw.found ? (kw.frequency >= kw.optimalFrequency ? 'Optimal' : 'Low') : 'Missing'}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                              {analysis.atsOptimization.keywordDensity.recommendations.length > 0 && (
-                                <div>
-                                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Recommendations</p>
-                                  <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                                    {analysis.atsOptimization.keywordDensity.recommendations.map((rec, idx) => (
-                                      <li key={idx}>{rec}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Section Completeness */}
-                          {analysis.atsOptimization.sectionCompleteness && (
-                            <div className="border-t border-gray-200 dark:border-[#3d3c3e] pt-4">
-                              <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center">
-                                <FileText className="w-4 h-4 mr-2 text-indigo-500" />
-                                Section Completeness
-                              </h4>
-                              <div className="mb-3">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-sm text-gray-600 dark:text-gray-400">Overall Score</span>
-                                  <span className={`text-sm font-semibold ${getScoreColorClass(analysis.atsOptimization.sectionCompleteness.overallScore)}`}>
-                                    {analysis.atsOptimization.sectionCompleteness.overallScore}%
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                {analysis.atsOptimization.sectionCompleteness.sections.map((section, idx) => (
-                                  <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-[#3d3c3e]/60 rounded-md">
-                                    <div className="flex items-center">
-                                      {section.present ? (
-                                        <CheckCircle className="w-4 h-4 text-[#635BFF] mr-2" />
-                                      ) : (
-                                        <X className="w-4 h-4 text-red-500 mr-2" />
-                                      )}
-                                      <span className="text-sm text-gray-900 dark:text-white">{section.name}</span>
-                                    </div>
-                                    {section.present && (
-                                      <span className={`text-xs px-2 py-0.5 rounded-full ${getScoreColorClass(section.quality)}`}>
-                                        {section.quality}%
-                                      </span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Readability */}
-                          {analysis.atsOptimization.readability && (
-                            <div className="border-t border-gray-200 dark:border-[#3d3c3e] pt-4">
-                              <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center">
-                                <Eye className="w-4 h-4 mr-2 text-blue-500" />
-                                Readability Score
-                              </h4>
-                              <div className="mb-3">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-sm text-gray-600 dark:text-gray-400">Score</span>
-                                  <span className={`text-sm font-semibold ${getScoreColorClass(analysis.atsOptimization.readability.score)}`}>
-                                    {analysis.atsOptimization.readability.score}%
-                                  </span>
-                                </div>
-                                <div className="w-full h-2 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full transition-all ${analysis.atsOptimization.readability.score >= 80
-                                      ? 'bg-gradient-to-r from-purple-500 to-indigo-500'
-                                      : analysis.atsOptimization.readability.score >= 60
-                                        ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
-                                        : 'bg-gradient-to-r from-pink-500 to-rose-500'
-                                      }`}
-                                    style={{ width: `${analysis.atsOptimization.readability.score}%` }}
-                                  />
-                                </div>
-                              </div>
-                              {analysis.atsOptimization.readability.issues.length > 0 && (
-                                <div className="mb-3">
-                                  <p className="text-xs font-medium text-red-600 dark:text-red-400 uppercase tracking-wide mb-2">Issues</p>
-                                  <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                                    {analysis.atsOptimization.readability.issues.map((issue, idx) => (
-                                      <li key={idx}>{issue}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                              {analysis.atsOptimization.readability.recommendations.length > 0 && (
-                                <div>
-                                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Recommendations</p>
-                                  <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                                    {analysis.atsOptimization.readability.recommendations.map((rec, idx) => (
-                                      <li key={idx}>{rec}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {analysis.atsOptimization.improvements.length > 0 && (
-                            <div className="border-t border-gray-200 dark:border-[#3d3c3e] pt-4">
-                              <h4 className="font-medium text-gray-900 dark:text-white mb-1">Recommended Improvements</h4>
-                              <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                                {analysis.atsOptimization.improvements.map((improvement, idx) => (
-                                  <li key={idx}>{improvement}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Market Positioning Section */}
-                {analysis.marketPositioning && (
-                  <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => toggleSection('marketPositioning')}
-                      className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60 transition-colors"
-                    >
-                      <div className="flex items-center">
-                        <LineChart className="w-5 h-5 mr-2 text-indigo-500" />
-                        <span className="font-medium">Competitive Analysis</span>
-                      </div>
-                      {expandedSection === 'marketPositioning' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-                    {expandedSection === 'marketPositioning' && (
-                      <div className="p-4 bg-white dark:bg-[#2b2a2c]">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-[#635BFF]/5 dark:bg-[#5249e6]/10 rounded-lg p-3">
-                            <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-2 flex items-center">
-                              <TrendingUp className="w-4 h-4 mr-1.5 text-[#635BFF]" />
-                              Your Competitive Advantages
-                            </h4>
-                            <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                              {analysis.marketPositioning.competitiveAdvantages.map((advantage, idx) => (
-                                <li key={idx} className="text-sm">{advantage}</li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div className="bg-orange-50 dark:bg-orange-900/10 rounded-lg p-3">
-                            <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-2 flex items-center">
-                              <TrendingDown className="w-4 h-4 mr-1.5 text-orange-500" />
-                              Areas for Improvement
-                            </h4>
-                            <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                              {analysis.marketPositioning.competitiveDisadvantages.map((disadvantage, idx) => (
-                                <li key={idx} className="text-sm">{disadvantage}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                        <div className="mt-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg p-3">
-                          <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-2 flex items-center">
-                            <Activity className="w-4 h-4 mr-1.5 text-blue-500" />
-                            Industry Trends Alignment
-                          </h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {analysis.marketPositioning.industryTrends}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Application Strategy Section */}
-                {analysis.applicationStrategy && (
-                  <div className="border border-gray-100 dark:border-[#3d3c3e] rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => toggleSection('applicationStrategy')}
-                      className="w-full flex items-center justify-between p-3 text-left bg-gray-50 dark:bg-[#2b2a2c] hover:bg-gray-100 dark:hover:bg-[#3d3c3e]/60 transition-colors"
-                    >
-                      <div className="flex items-center">
-                        <Target className="w-5 h-5 mr-2 text-teal-500" />
-                        <span className="font-medium">Application Strategy</span>
-                      </div>
-                      {expandedSection === 'applicationStrategy' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-                    {expandedSection === 'applicationStrategy' && (
-                      <div className="p-4 bg-white dark:bg-[#2b2a2c]">
-                        <div className="space-y-4">
-                          <div className="bg-gray-50 dark:bg-[#3d3c3e]/40 rounded-lg p-3">
-                            <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1.5 flex items-center">
-                              <FileText className="w-4 h-4 mr-1.5 text-gray-600 dark:text-gray-400" />
-                              Cover Letter Focus
-                            </h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {analysis.applicationStrategy.coverLetterFocus}
-                            </p>
-                          </div>
-                          <div className="bg-gray-50 dark:bg-[#3d3c3e]/40 rounded-lg p-3">
-                            <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1.5 flex items-center">
-                              <UserRound className="w-4 h-4 mr-1.5 text-gray-600 dark:text-gray-400" />
-                              Interview Preparation
-                            </h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {analysis.applicationStrategy.interviewPreparation}
-                            </p>
-                          </div>
-                          <div className="bg-gray-50 dark:bg-[#3d3c3e]/40 rounded-lg p-3">
-                            <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1.5 flex items-center">
-                              <Palette className="w-4 h-4 mr-1.5 text-gray-600 dark:text-gray-400" />
-                              Portfolio Suggestions
-                            </h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {analysis.applicationStrategy.portfolioSuggestions}
-                            </p>
-                          </div>
-                          {analysis.applicationStrategy.networkingTips && analysis.applicationStrategy.networkingTips.length > 0 && (
-                            <div className="bg-gray-50 dark:bg-[#3d3c3e]/40 rounded-lg p-3">
-                              <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1.5 flex items-center">
-                                <UserRound className="w-4 h-4 mr-1.5 text-gray-600 dark:text-gray-400" />
-                                Networking Tips
-                              </h4>
-                              <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                                {analysis.applicationStrategy.networkingTips.map((tip, idx) => (
-                                  <li key={idx}>{tip}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                          {analysis.applicationStrategy.followUpStrategy && (
-                            <div className="bg-gray-50 dark:bg-[#3d3c3e]/40 rounded-lg p-3">
-                              <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1.5 flex items-center">
-                                <Activity className="w-4 h-4 mr-1.5 text-gray-600 dark:text-gray-400" />
-                                Follow-Up Strategy
-                              </h4>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {analysis.applicationStrategy.followUpStrategy}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Premium Delete Confirmation Dialog */}
+
+        {/* Delete Confirmation Dialog */}
         <AnimatePresence>
           {isDeleteDialogOpen && (
             <Dialog
@@ -6404,63 +5247,6 @@ URL to visit: ${jobUrl}
             </Dialog>
           )}
         </AnimatePresence>
-
-        {/* User Guidance Section - shows when analysis is expanded */}
-        {isExpanded && (
-          <div className="px-5 pt-1 pb-5">
-            <details className="bg-purple-50 dark:bg-purple-900/10 rounded-xl overflow-hidden text-sm border border-purple-100 dark:border-purple-800/20">
-              <summary className="cursor-pointer p-3 font-medium text-purple-700 dark:text-purple-300 flex items-center">
-                <InformationCircleIcon className="w-4 h-4 mr-2 flex-shrink-0" />
-                <span>How to use this analysis</span>
-              </summary>
-              <div className="p-3 pt-0 text-gray-600 dark:text-gray-400 space-y-3 text-sm">
-                <div className="border-t border-purple-100 dark:border-purple-800/20 pt-3">
-                  <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-1">Understanding Your Results</h4>
-                  <p>
-                    This AI-powered analysis compares your resume to the job description and industry standards, providing scores and recommendations to improve your application.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <div className="bg-white dark:bg-[#2b2a2c] rounded-lg p-2 shadow-sm">
-                    <h5 className="font-medium text-purple-600 dark:text-purple-400 text-xs mb-1">Match Score</h5>
-                    <p className="text-xs">Indicates your overall alignment with the job requirements. A score above 75% is considered strong.</p>
-                  </div>
-
-                  <div className="bg-white dark:bg-[#2b2a2c] rounded-lg p-2 shadow-sm">
-                    <h5 className="font-medium text-purple-600 dark:text-purple-400 text-xs mb-1">Skills Match</h5>
-                    <p className="text-xs">Shows which skills from the job you have and which are missing. Focus on adding missing high-relevance skills.</p>
-                  </div>
-
-                  <div className="bg-white dark:bg-[#2b2a2c] rounded-lg p-2 shadow-sm">
-                    <h5 className="font-medium text-purple-600 dark:text-purple-400 text-xs mb-1">ATS Optimization</h5>
-                    <p className="text-xs">Evaluates how well your resume will perform in Applicant Tracking Systems. Implement formatting suggestions for better results.</p>
-                  </div>
-
-                  <div className="bg-white dark:bg-[#2b2a2c] rounded-lg p-2 shadow-sm">
-                    <h5 className="font-medium text-purple-600 dark:text-purple-400 text-xs mb-1">Competitive Analysis</h5>
-                    <p className="text-xs">Shows how you compare to typical candidates for this role. Highlight your advantages in your application.</p>
-                  </div>
-                </div>
-
-                <div className="border-t border-purple-100 dark:border-purple-800/20 pt-3">
-                  <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-1">Action Steps</h4>
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>Review high-priority recommendations first</li>
-                    <li>Update your resume with missing skills you actually possess</li>
-                    <li>Implement formatting improvements for better ATS compatibility</li>
-                    <li>Use the Application Strategy section to prepare your complete application package</li>
-                    <li>After making changes, run a new analysis to see your improved score</li>
-                  </ol>
-                </div>
-
-                <div className="bg-indigo-50 dark:bg-indigo-900/10 p-2 rounded-lg text-xs italic">
-                  Note: This analysis is powered by AI and should be used as a helpful guide, not as a definitive assessment of your qualifications.
-                </div>
-              </div>
-            </details>
-          </div>
-        )}
       </motion.div>
     );
   };

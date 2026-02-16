@@ -1,0 +1,29 @@
+Note: Unnecessary use of -X or --request, POST is already inferred.
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying 127.0.0.1:3000...
+* Connected to 127.0.0.1 (127.0.0.1) port 3000
+> POST /api/extract-job-url HTTP/1.1
+> Host: 127.0.0.1:3000
+> User-Agent: curl/8.7.1
+> Accept: */*
+> Content-Type: application/json
+> Content-Length: 32
+> 
+} [32 bytes data]
+* upload completely sent off: 32 bytes
+100    32    0     0  100    32      0     31  0:00:01  0:00:01 --:--:--    31100    32    0     0  100    32      0     15  0:00:02  0:00:02 --:--:--    15100    32    0     0  100    32      0     10  0:00:03  0:00:03 --:--:--    10100    32    0     0  100    32      0      7  0:00:04  0:00:04 --:--:--     7100    32    0     0  100    32      0      6  0:00:05  0:00:05 --:--:--     6100    32    0     0  100    32      0      5  0:00:06  0:00:06 --:--:--     0100    32    0     0  100    32      0      4  0:00:08  0:00:07  0:00:01     0< HTTP/1.1 200 OK
+< X-Powered-By: Express
+< Vary: Origin
+< Access-Control-Allow-Credentials: true
+< Content-Type: application/json; charset=utf-8
+< Content-Length: 3579
+< ETag: W/"dfb-877UPwkuUWQtXkvrcvi4OSYtzUQ"
+< Date: Mon, 16 Feb 2026 12:38:46 GMT
+< Connection: keep-alive
+< Keep-Alive: timeout=5
+< 
+{ [3579 bytes data]
+100  3611  100  3579  100    32    463      4  0:00:08  0:00:07  0:00:01   759100  3611  100  3579  100    32    463      4  0:00:08  0:00:07  0:00:01   964
+* Connection #0 to host 127.0.0.1 left intact
+{"status":"success","content":"GmailImages\nSign in\n \nGoogle offered in: Français\nFrance\nAboutAdvertisingBusiness How Search works\nReport inappropriate contentConsumer informationPrivacyTerms\nSettings\nen\n‪English‬\n‪Deutsch‬\n‪English (United Kingdom)‬\n‪Español (España)‬\n‪Français (France)‬\n‪Italiano‬\nAll languages\n‪Afrikaans‬\n‪azərbaycan‬\n‪bosanski‬\n‪català‬\n‪Čeština‬\n‪Cymraeg‬\n‪Dansk‬\n‪Deutsch‬\n‪eesti‬\n‪English (United Kingdom)‬\n‪English (United States)‬\n‪Español (España)‬\n‪Español (Latinoamérica)‬\n‪euskara‬\n‪Filipino‬\n‪Français (Canada)‬\n‪Français (France)‬\n‪Gaeilge‬\n‪galego‬\n‪Hrvatski‬\n‪Indonesia‬\n‪isiZulu‬\n‪íslenska‬\n‪Italiano‬\n‪Kiswahili‬\n‪latviešu‬\n‪lietuvių‬\n‪magyar‬\n‪Melayu‬\n‪Nederlands‬\n‪norsk‬\n‪o‘zbek‬\n‪polski‬\n‪Português (Brasil)‬\n‪Português (Portugal)‬\n‪română‬\n‪shqip‬\n‪Slovenčina‬\n‪slovenščina‬\n‪srpski (latinica)‬\n‪Suomi‬\n‪Svenska‬\n‪Tiếng Việt‬\n‪Türkçe‬\n‪Ελληνικά‬\n‪беларуская‬\n‪български‬\n‪кыргызча‬\n‪македонски‬\n‪монгол‬\n‪Русский‬\n‪српски (ћирилица)‬\n‪Українська‬\n‪ქართული‬\n‪қазақ тілі‬\n‪հայերեն‬\n‫עברית‬\n‫اردو‬\n‫العربية‬\n‫فارسی‬\n‪አማርኛ‬\n‪नेपाली‬\n‪मराठी‬\n‪हिन्दी‬\n‪বাংলা‬\n‪ਪੰਜਾਬੀ‬\n‪ગુજરાતી‬\n‪தமிழ்‬\n‪తెలుగు‬\n‪ಕನ್ನಡ‬\n‪മലയാളം‬\n‪සිංහල‬\n‪ไทย‬\n‪ລາວ‬\n‪မြန်မာ‬\n‪ខ្មែរ‬\n‪한국어‬\n‪中文（香港）‬\n‪日本語‬\n‪简体中文‬\n‪繁體中文‬\nSign in\nBefore you continue to Google\nWe use cookies and data to\nDeliver and maintain Google services\nTrack outages and protect against spam, fraud and abuse\nMeasure audience engagement and site statistics to understand how our services are used and enhance the quality of those services\nIf you choose to 'Accept all', we will also use cookies and data to\nDevelop and improve new services\nDeliver and measure the effectiveness of ads\nShow personalised content, depending on your settings\nShow personalised ads, depending on your settings\nIf you choose to 'Reject all', we will not use cookies for these additional purposes.\nNon-personalised content is influenced by things like the content that you’re currently viewing, activity in your active Search session, and your location. Non-personalised ads are influenced by the content that you’re currently viewing and your general location. Personalised content and ads can also include more relevant results, recommendations and tailored ads based on past activity from this browser, like previous Google searches. We also use cookies and data to tailor the experience to be age-appropriate, if relevant.\nSelect 'More options' to see additional information, including details about managing your privacy settings. You can also visit g.co/privacytools at any time.\nReject all\nAccept all\nMore options\nPrivacy\n·\nTerms\nShare\nFacebook\nWhatsApp\nX\nEmail\nClick to copy link\nShare link\nGoogle apps","title":"Before you continue to Google","url":"https://www.google.com/"}

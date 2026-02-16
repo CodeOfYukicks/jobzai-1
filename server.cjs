@@ -5308,10 +5308,8 @@ app.post('/api/transcribe-audio', async (req, res) => {
   }
 });
 
-// Extract job posting content from URL using Puppeteer
+// Extract job posting content using Jina Reader + Claude
 app.post('/api/extract-job-url', async (req, res) => {
-  let browser = null;
-
   try {
     const { url } = req.body;
 
@@ -5325,8 +5323,6 @@ app.post('/api/extract-job-url', async (req, res) => {
 
     // Normalize URL
     let normalizedUrl = url.trim();
-
-    // Add protocol if missing
     if (!normalizedUrl.match(/^https?:\/\//i)) {
       normalizedUrl = 'https://' + normalizedUrl;
     }
@@ -5341,605 +5337,275 @@ app.post('/api/extract-job-url', async (req, res) => {
       });
     }
 
-    console.log('🔍 Extracting job posting from URL:', normalizedUrl);
+    console.log('🔍 Extracting job from URL:', normalizedUrl);
 
-    // Detect ATS type from URL for optimized extraction
-    const hostname = new URL(normalizedUrl).hostname.toLowerCase();
-    let atsType = 'generic';
+    // 1. Get Anthropic API Key (Env -> Firestore)
+    let apiKey = process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
 
-    if (hostname.includes('myworkdayjobs.com') || hostname.includes('workday.com')) {
-      atsType = 'workday';
-    } else if (hostname.includes('lever.co') || hostname.includes('jobs.lever.co')) {
-      atsType = 'lever';
-    } else if (hostname.includes('greenhouse.io') || hostname.includes('boards.greenhouse.io')) {
-      atsType = 'greenhouse';
-    } else if (hostname.includes('ashbyhq.com')) {
-      atsType = 'ashby';
-    } else if (hostname.includes('smartrecruiters.com')) {
-      atsType = 'smartrecruiters';
-    } else if (hostname.includes('jobvite.com')) {
-      atsType = 'jobvite';
-    } else if (hostname.includes('icims.com') || hostname.includes('careers-')) {
-      atsType = 'icims';
-    } else if (hostname.includes('bamboohr.com')) {
-      atsType = 'bamboohr';
-    } else if (hostname.includes('recruitee.com')) {
-      atsType = 'recruitee';
-    } else if (hostname.includes('breezy.hr')) {
-      atsType = 'breezy';
-    } else if (hostname.includes('jazz.co') || hostname.includes('applytojob.com')) {
-      atsType = 'jazz';
-    } else if (hostname.includes('welcometothejungle.com') || hostname.includes('wttj.co')) {
-      atsType = 'welcometothejungle';
+    if (!apiKey) {
+      try {
+        console.log('🔑 API key not in env, fetching from Firestore (settings/anthropic)...');
+        const docSnap = await admin.firestore().collection('settings').doc('anthropic').get();
+        if (docSnap.exists) {
+          const data = docSnap.data();
+          apiKey = data.apiKey;
+          if (apiKey) console.log('✅ Found API key in Firestore');
+        }
+      } catch (err) {
+        console.warn('⚠️ Failed to fetch API key from Firestore:', err.message);
+      }
     }
 
-    console.log(`🏷️  Detected ATS type: ${atsType}`);
-
-    // ATS-specific selectors for better extraction accuracy
-    const ATS_SELECTORS = {
-      workday: {
-        title: ['[data-automation-id="jobPostingHeader"] h2', '.css-1q2dra3', 'h2[data-automation-id="jobPostingHeader"]', '.WGDC-jss-job-header h2'],
-        company: ['[data-automation-id="employerLogo"] + div', '.css-8neuee', '[data-automation-id="jobPostingHeader"] span', '.WGDC-jss-company'],
-        location: ['[data-automation-id="locations"]', '.css-cygeeu', '[data-automation-id="jobPostingHeader"] .css-129m7dg'],
-        description: ['[data-automation-id="jobPostingDescription"]', '.WGDC-jss-job-description', '[data-automation-id="jobDescription"]']
-      },
-      lever: {
-        title: ['.posting-headline h2', '.posting-title', 'h2.posting-headline'],
-        company: ['.posting-categories .sort-by-team', '.main-header-logo img[alt]', 'a.main-header-logo'],
-        location: ['.posting-categories .location', '.sort-by-location', '.posting-location'],
-        description: ['.posting-description', '.content', '.posting-page-content']
-      },
-      greenhouse: {
-        title: ['.app-title', '#header .job-title', 'h1.job-title', '.job-post-title'],
-        company: ['.company-name', '#header .company-name', '[data-automation="company-name"]'],
-        location: ['.location', '.job-post-location', '#header .location'],
-        description: ['#content', '.job-post-content', '#app_body', '.content-wrapper']
-      },
-      ashby: {
-        title: ['h1.ashby-job-posting-heading', '[data-testid="job-title"]', 'h1'],
-        company: ['[data-testid="company-name"]', '.ashby-company-name', 'header .company'],
-        location: ['[data-testid="job-location"]', '.ashby-job-location', '.location'],
-        description: ['[data-testid="job-description"]', '.ashby-job-description', '.job-description']
-      },
-      smartrecruiters: {
-        title: ['h1.job-title', '.job-title', 'h1[class*="title"]'],
-        company: ['.company-name', '.employer-name', '[class*="company"]'],
-        location: ['.job-location', '.location', '[class*="location"]'],
-        description: ['.job-description', '.job-details', '#job-description']
-      },
-      welcometothejungle: {
-        title: ['h1[class*="Title"]', '[data-testid="job-title"]', 'h1'],
-        company: ['[data-testid="company-name"]', 'a[href*="/companies/"]', '.company-name'],
-        location: ['[data-testid="job-location"]', '.job-location', '[class*="location"]'],
-        description: ['[data-testid="job-description"]', '.job-description', '.job-details']
-      },
-      generic: {
-        title: ['h1', '.job-title', '[data-testid="job-title"]', '[class*="job-title"]', '[class*="jobTitle"]'],
-        company: ['.company-name', '[data-testid="company-name"]', '[class*="company"]', '[class*="employer"]'],
-        location: ['.location', '[data-testid="location"]', '[class*="location"]'],
-        description: ['.job-description', '#job-description', '.description', 'article', 'main']
-      }
-    };
-
-    // Get selectors for detected ATS (fallback to generic)
-    const selectors = ATS_SELECTORS[atsType] || ATS_SELECTORS.generic;
-    console.log(`📋 Using ${atsType} selectors for extraction`);
-
-    // Lazy load puppeteer to avoid startup issues
-    let puppeteer;
-    try {
-      puppeteer = require('puppeteer');
-      console.log('✅ Puppeteer loaded successfully');
-    } catch (e) {
-      console.error('❌ Puppeteer not available:', e.message);
-      console.error('   Stack:', e.stack);
+    if (!apiKey) {
+      console.error('❌ No Anthropic API key found (Env or Firestore)');
       return res.status(500).json({
         status: 'error',
-        message: `Puppeteer is not available on the server: ${e.message}`
+        message: 'Server configuration error: Missing API Key'
       });
     }
 
+    // 1. Initialize variables
+    let scrapedContent = '';
+    let pageTitle = '';
+    let pageDescription = '';
+
+    // 1.5 Try to extract JSON-LD (JobPosting) directly first
+    // This is often more reliable for ATS schema (Teamtailor, Workday, etc)
     try {
-      console.log('🚀 Launching browser...');
-      // Launch browser with optimized settings
-      browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--disable-gpu',
-          '--window-size=1920,1080'
-        ]
-      });
-      console.log('✅ Browser launched successfully');
-
-      const page = await browser.newPage();
-
-      // Set a reasonable timeout (increased for slow sites)
-      await page.setDefaultNavigationTimeout(60000);
-      await page.setDefaultTimeout(60000);
-
-      // Set user agent to avoid bot detection
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
-
-      // Set extra headers to appear more like a real browser
-      await page.setExtraHTTPHeaders({
-        'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1'
+      console.log('🕵️‍♂️ Attempting direct JSON-LD extraction...');
+      const directResponse = await fetch(normalizedUrl, {
+        headers: {
+          'User-Agent': 'curl/8.7.1',
+          'Accept': '*/*'
+        },
+        timeout: 15000,
+        redirect: 'follow'
       });
 
-      console.log('📄 Navigating to URL...');
-      try {
-        await page.goto(normalizedUrl, {
-          waitUntil: 'networkidle2',
-          timeout: 45000
-        });
-        console.log('✅ Page loaded with networkidle2');
-      } catch (navError) {
-        console.warn('⚠️  networkidle2 failed, trying domcontentloaded:', navError.message);
-        try {
-          await page.goto(normalizedUrl, {
-            waitUntil: 'domcontentloaded',
-            timeout: 45000
-          });
-          console.log('✅ Page loaded with domcontentloaded');
-        } catch (fallbackError) {
-          console.error('❌ Navigation failed with both methods:', fallbackError.message);
-          throw new Error(`Failed to navigate to URL: ${fallbackError.message}`);
-        }
-      }
+      console.log('📡 Direct fetch status:', directResponse.status);
 
-      // Wait for dynamic content to load (longer for complex SPAs)
-      console.log('⏳ Waiting for dynamic content...');
-      await new Promise(resolve => setTimeout(resolve, 4000));
+      if (directResponse.ok) {
+        const html = await directResponse.text();
+        console.log('📄 Direct fetch HTML length:', html.length);
 
-      // For Workday, wait for specific elements
-      if (atsType === 'workday') {
-        try {
-          await page.waitForSelector('[data-automation-id="jobPostingDescription"]', { timeout: 10000 });
-          console.log('✅ Workday job description loaded');
-        } catch (e) {
-          console.log('⚠️ Workday selector not found, continuing with generic extraction');
-        }
-      }
+        // Simple regex to find application/ld+json scripts
+        const jsonLdMatches = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi);
+        console.log('🧩 JSON-LD matches found:', jsonLdMatches ? jsonLdMatches.length : 0);
 
-      console.log('📝 Extracting page content with ATS-specific selectors...');
-
-      // Extract all text content from the page using ATS-specific selectors
-      const pageContent = await page.evaluate((atsSelectors) => {
-        // Remove script and style elements
-        const scripts = document.querySelectorAll('script, style, noscript, iframe');
-        scripts.forEach(el => el.remove());
-
-        // Helper to try multiple selectors and return first match
-        function trySelectors(selectorList, extractText = true) {
-          for (const selector of selectorList) {
+        if (jsonLdMatches) {
+          for (const match of jsonLdMatches) {
             try {
-              const element = document.querySelector(selector);
-              if (element) {
-                const text = extractText ? (element.innerText || element.textContent || '').trim() : element;
-                if (text && text.length > 0) {
-                  return text;
-                }
+              let jsonContent = match.replace(/<\/?script[^>]*>/gi, '').trim();
+              // Sanitize: Replace control chars (newlines/tabs) with spaces to prevent JSON parsing errors
+              // This flattens the JSON but ensures it's valid even if source had bad escaping
+              jsonContent = jsonContent.replace(/[\r\n\t]/g, ' ');
+
+              const data = JSON.parse(jsonContent);
+
+              // Check if it's a JobPosting (can be array or object)
+              const checkEntity = (entity) => {
+                const type = entity['@type'];
+                return type === 'JobPosting' || (Array.isArray(type) && type.includes('JobPosting'));
+              };
+
+              let jobEntity = null;
+              if (Array.isArray(data)) {
+                jobEntity = data.find(checkEntity);
+              } else if (checkEntity(data)) {
+                jobEntity = data;
+              } else if (data['@graph']) {
+                jobEntity = data['@graph'].find(checkEntity);
               }
-            } catch (e) {
-              // Selector might be invalid, continue
-            }
-          }
-          return '';
-        }
 
-        // Get description content using ATS-specific selectors first
-        let content = '';
+              if (jobEntity) {
+                console.log('✅ Found structured JobPosting data via JSON-LD!');
+                // Use this structured data as the content for Claude
+                scrapedContent = JSON.stringify(jobEntity, null, 2);
 
-        // Try ATS-specific description selectors first
-        if (atsSelectors && atsSelectors.description) {
-          content = trySelectors(atsSelectors.description);
-        }
-
-        // Fallback to generic selectors
-        if (!content || content.length < 200) {
-          const genericSelectors = [
-            'main',
-            '[role="main"]',
-            '.job-description',
-            '.job-posting',
-            '.job-details',
-            '#job-description',
-            '#job-details',
-            'article',
-            '.content',
-            'body'
-          ];
-
-          for (const selector of genericSelectors) {
-            try {
-              const element = document.querySelector(selector);
-              if (element) {
-                const text = element.innerText || element.textContent || '';
-                if (text.length > content.length) {
-                  content = text;
-                }
-                if (content.length > 1000) break;
-              }
-            } catch (e) { }
-          }
-        }
-
-        // Fallback to body if no specific content found
-        if (!content || content.length < 200) {
-          content = document.body.innerText || document.body.textContent || '';
-        }
-
-        // Extract job title with ATS-specific selectors first
-        let title = '';
-        if (atsSelectors && atsSelectors.title) {
-          title = trySelectors(atsSelectors.title);
-        }
-
-        // Fallback to generic title selectors
-        if (!title) {
-          const genericTitleSelectors = [
-            'h1',
-            '.job-title',
-            '[data-testid="job-title"]',
-            '[data-testid="jobTitle"]',
-            '.jobTitle',
-            'h1.job-title',
-            '.job-header h1',
-            '.job-header-title',
-            '[class*="job-title"]',
-            '[class*="jobTitle"]'
-          ];
-          title = trySelectors(genericTitleSelectors);
-        }
-
-        // Extract company with ATS-specific selectors first
-        let company = '';
-        if (atsSelectors && atsSelectors.company) {
-          company = trySelectors(atsSelectors.company);
-        }
-
-        // Fallback to generic company selectors if not found
-        if (!company) {
-          const genericCompanySelectors = [
-            '.company-name',
-            '[data-testid="company-name"]',
-            '[data-testid="companyName"]',
-            '.employer-name',
-            '.company',
-            '.employer',
-            '[class*="company-name"]',
-            '[class*="companyName"]',
-            '[class*="employer"]',
-            '.job-company',
-            '.job-header .company',
-            '[itemprop="hiringOrganization"]',
-            '[itemprop="name"]'
-          ];
-          company = trySelectors(genericCompanySelectors);
-        }
-
-        // Helper function to clean company name (defined early for use in extraction)
-        function cleanCompanyNameEarly(name) {
-          if (!name) return '';
-          let cleaned = name.trim();
-
-          // Common words to exclude from company names
-          const commonWordsRegex = /^(Now|The|How|What|When|Where|Why|This|That|These|Those|Here|There|From|With|About|Learn|See|View|Read|More|Page|Site|Link|Job|Jobs|Career|Careers)$/i;
-
-          // If the text is too long (> 50 chars), it's likely a sentence/description, not just the company name
-          // Try to extract the company name from the sentence
-          if (cleaned.length > 50) {
-            // Pattern 1: Extract company name from patterns like "how [CompanyName] uses [CompanyName]"
-            // Also handles cases like "Now on NowHear how ServiceNow uses ServiceNow"
-            const pattern1 = /(?:how|about|learn\s+about|see\s+how|on\s+\w+\s+how)\s+([A-Z][a-zA-Z0-9&\s-]{3,30}?)\s+(?:uses|works|does|is)/i;
-            const match1 = cleaned.match(pattern1);
-            if (match1 && match1[1]) {
-              const extracted1 = match1[1].trim();
-              // If the extracted name is valid, use it
-              if (extracted1.length >= 4 && !commonWordsRegex.test(extracted1)) {
-                cleaned = extracted1;
-              }
-            }
-
-            // Pattern 1b: Look for company name that appears after "how" and before "uses/works/etc"
-            // This handles cases where there's text before "how"
-            // Only try if pattern1 didn't find a valid name
-            if (cleaned.length > 50) {
-              const pattern1b = /how\s+([A-Z][a-zA-Z0-9&\s-]{3,30}?)\s+(?:uses|works|does|is)/i;
-              const match1b = cleaned.match(pattern1b);
-              if (match1b && match1b[1]) {
-                const extracted = match1b[1].trim();
-                if (extracted.length >= 4 && !commonWordsRegex.test(extracted)) {
-                  cleaned = extracted;
-                }
-              }
-            }
-
-            // Pattern 2: Look for repeated company names (e.g., "ServiceNow uses ServiceNow")
-            const words = cleaned.split(/\s+/);
-            const wordCounts = {};
-            words.forEach(word => {
-              const cleanWord = word.replace(/[^\w&]/g, '');
-              // Focus on longer words (3+ chars) that start with capital and are likely company names
-              // Exclude common short words like "Now", "The", "How", etc.
-              if (cleanWord.length >= 3 && /^[A-Z]/.test(cleanWord) && !commonWordsRegex.test(cleanWord)) {
-                wordCounts[cleanWord] = (wordCounts[cleanWord] || 0) + 1;
-              }
-            });
-            // Find the most repeated capitalized word (likely the company name)
-            // Prefer longer words if they appear multiple times
-            const mostRepeated = Object.entries(wordCounts)
-              .sort((a, b) => {
-                // First sort by count (descending)
-                if (b[1] !== a[1]) return b[1] - a[1];
-                // Then by length (descending) - longer words are more likely to be company names
-                return b[0].length - a[0].length;
-              })[0];
-            if (mostRepeated && mostRepeated[1] > 1) {
-              cleaned = mostRepeated[0];
-            } else {
-              // Pattern 3: Extract first capitalized word/phrase (likely company name)
-              const firstCapMatch = cleaned.match(/^[^A-Z]*([A-Z][a-zA-Z0-9&\s-]{2,30}?)(?:\s|$|\.|,)/);
-              if (firstCapMatch && firstCapMatch[1]) {
-                cleaned = firstCapMatch[1].trim();
-              } else {
-                // Pattern 4: Take first 3-4 words if they start with capital
-                const firstWords = words.slice(0, 4).filter(w => /^[A-Z]/.test(w));
-                if (firstWords.length > 0) {
-                  cleaned = firstWords.join(' ').substring(0, 50);
-                }
-              }
-            }
-          }
-
-          // Remove common prefixes
-          cleaned = cleaned.replace(/^(at|from|by|with|via|for)\s+/i, '').trim();
-
-          // Remove common suffixes and navigation text
-          cleaned = cleaned.replace(/\s*(linkedin|linkedin page|page|website|site|careers|jobs|job board|job posting|learn more|see more|view|read more).*$/i, '').trim();
-          cleaned = cleaned.replace(/\s*-\s*(linkedin|page|website|site).*$/i, '').trim();
-
-          // Remove sentence endings and descriptions
-          cleaned = cleaned.replace(/\s*(uses|works|does|is|are|was|were|will|can|may|might|should|could|would|has|have|had|get|got|go|goes|went|come|comes|came|make|makes|made|take|takes|took|see|sees|saw|know|knows|knew|think|thinks|thought|say|says|said|tell|tells|told|give|gives|gave|find|finds|found|use|using|used|work|working|worked|do|doing|done|be|being|been|have|having|had|get|getting|got|go|going|went|come|coming|came|make|making|made|take|taking|took|see|seeing|saw|know|knowing|knew|think|thinking|thought|say|saying|said|tell|telling|told|give|giving|gave|find|finding|found).*$/i, '').trim();
-
-          // Remove URLs
-          cleaned = cleaned.replace(/https?:\/\/[^\s]+/gi, '').trim();
-
-          // Remove email addresses
-          cleaned = cleaned.replace(/[^\s]+@[^\s]+/gi, '').trim();
-
-          // Remove trailing punctuation and common sentence endings
-          cleaned = cleaned.replace(/[.,;:!?]+$/g, '').trim();
-
-          // Remove extra whitespace
-          cleaned = cleaned.replace(/\s+/g, ' ').trim();
-
-          // Final validation: if still too long or contains too many words, take first 2-3 words
-          const finalWords = cleaned.split(/\s+/);
-          if (finalWords.length > 4 || cleaned.length > 50) {
-            cleaned = finalWords.slice(0, 3).join(' ').trim();
-          }
-
-          // Remove any remaining trailing punctuation
-          cleaned = cleaned.replace(/[.,;:!?]+$/g, '').trim();
-
-          return cleaned;
-        }
-
-        // Clean company name
-        company = cleanCompanyNameEarly(company);
-
-        // If company not found with selectors, try extracting from links
-        if (!company || company.length === 0) {
-          const companyLinks = document.querySelectorAll('a[href*="/company/"], a[href*="/employer/"], a[href*="/organizations/"]');
-          for (const link of companyLinks) {
-            const linkText = link.innerText.trim();
-            if (linkText && linkText.length > 0) {
-              const cleanedLinkText = cleanCompanyNameEarly(linkText);
-              if (cleanedLinkText.length > 0 && cleanedLinkText.length < 100) {
-                company = cleanedLinkText;
+                // If description contains HTML, we might want to clean it or let Claude handle it
+                // Claude handles HTML in JSON strings reasonably well.
+                pageTitle = jobEntity.title || pageTitle;
+                pageDescription = jobEntity.description || pageDescription;
                 break;
-              }
-            }
-          }
-        }
-
-        // Clean the company name we found (final pass)
-        company = cleanCompanyNameEarly(company);
-
-        // If company not found, try to extract from meta tags
-        if (!company || company.length === 0) {
-          const metaCompany = document.querySelector('meta[property="og:site_name"], meta[name="company"], meta[property="company"]');
-          if (metaCompany) {
-            const metaValue = metaCompany.getAttribute('content') || metaCompany.getAttribute('value') || '';
-            company = cleanCompanyNameEarly(metaValue);
-          }
-        }
-
-        // If still not found, try to extract from structured data (JSON-LD)
-        if (!company || company.length === 0) {
-          const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
-          for (const script of jsonLdScripts) {
-            try {
-              const data = JSON.parse(script.textContent || '{}');
-              if (data.hiringOrganization && data.hiringOrganization.name) {
-                company = cleanCompanyNameEarly(data.hiringOrganization.name);
-                if (company) break;
-              }
-              if (data.employer && data.employer.name) {
-                company = cleanCompanyNameEarly(data.employer.name);
-                if (company) break;
+              } else {
+                console.log('⚠️ JSON-LD found but no JobPosting entity. Type:', data['@type']);
               }
             } catch (e) {
-              // Ignore JSON parse errors
+              console.error('❌ JSON-LD parse error:', e.message);
+              // console.error('❌ JSON-LD content causing error:', match.substring(0, 200));
             }
           }
         }
-
-        // Final cleanup
-        company = cleanCompanyNameEarly(company);
-
-        // Extract location with ATS-specific selectors first
-        let location = '';
-        if (atsSelectors && atsSelectors.location) {
-          location = trySelectors(atsSelectors.location);
-        }
-
-        // Fallback to generic location selectors
-        if (!location) {
-          const genericLocationSelectors = [
-            '.location',
-            '[data-testid="location"]',
-            '[data-testid="jobLocation"]',
-            '.job-location',
-            '[class*="location"]',
-            '[itemprop="jobLocation"]'
-          ];
-          location = trySelectors(genericLocationSelectors);
-        }
-
-        return {
-          fullText: content.trim(),
-          title: title.trim(),
-          company: company.trim(),
-          location: location.trim(),
-          url: window.location.href
-        };
-      }, selectors);
-
-      await browser.close();
-      browser = null;
-
-      // Validate and clean extracted data
-      const extractedTitle = (pageContent.title || '').trim();
-      const extractedCompany = (pageContent.company || '').trim();
-      const extractedContent = (pageContent.fullText || '').trim();
-      const extractedLocation = (pageContent.location || '').trim();
-      const extractedUrl = (pageContent.url || normalizedUrl).trim();
-
-      // Validate that we have sufficient content
-      if (!extractedContent || extractedContent.length < 100) {
-        console.warn('⚠️  Extracted content is too short:', extractedContent.length);
-        // Don't fail, but log warning - let client decide
       }
-
-      // Clean and normalize title
-      let cleanedTitle = extractedTitle;
-      if (cleanedTitle) {
-        // Remove common prefixes/suffixes
-        cleanedTitle = cleanedTitle.replace(/^(Job|Position|Role|Opening):\s*/i, '').trim();
-        cleanedTitle = cleanedTitle.replace(/\s*-\s*(Apply|View|See).*$/i, '').trim();
-        // Limit length
-        if (cleanedTitle.length > 200) {
-          cleanedTitle = cleanedTitle.substring(0, 200).trim();
-        }
-      }
-
-      // Clean and normalize company
-      let cleanedCompany = extractedCompany;
-      if (cleanedCompany) {
-        // Remove common prefixes
-        cleanedCompany = cleanedCompany.replace(/^(Company|Employer|Organization):\s*/i, '').trim();
-        // Limit length
-        if (cleanedCompany.length > 100) {
-          cleanedCompany = cleanedCompany.substring(0, 100).trim();
-        }
-      }
-
-      // Clean content - remove excessive whitespace
-      let cleanedContent = extractedContent;
-      if (cleanedContent) {
-        // Remove excessive newlines and whitespace
-        cleanedContent = cleanedContent.replace(/\n{3,}/g, '\n\n');
-        cleanedContent = cleanedContent.replace(/[ \t]+/g, ' ');
-        cleanedContent = cleanedContent.trim();
-      }
-
-      console.log('✅ Successfully extracted and cleaned content:', {
-        title: cleanedTitle || 'NOT FOUND',
-        titleLength: cleanedTitle.length,
-        company: cleanedCompany || 'NOT FOUND',
-        companyLength: cleanedCompany.length,
-        contentLength: cleanedContent.length,
-        location: extractedLocation || 'NOT FOUND',
-        hasContent: cleanedContent.length >= 100
-      });
-
-      // Validate minimum requirements
-      if (!cleanedContent || cleanedContent.length < 50) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Could not extract sufficient job description content from the URL. The page may be protected, require login, or not contain a job posting.',
-          extracted: {
-            title: cleanedTitle,
-            company: cleanedCompany,
-            contentLength: cleanedContent.length
-          }
-        });
-      }
-
-      return res.json({
-        status: 'success',
-        content: cleanedContent,
-        title: cleanedTitle || undefined,
-        company: cleanedCompany || undefined,
-        location: extractedLocation || undefined,
-        url: extractedUrl
-      });
-
-    } catch (browserError) {
-      console.error('❌ Browser error:', browserError);
-      console.error('   Error name:', browserError.name);
-      console.error('   Error message:', browserError.message);
-      console.error('   Error stack:', browserError.stack);
-
-      if (browser) {
-        try {
-          await browser.close();
-        } catch (closeError) {
-          console.error('❌ Error closing browser:', closeError.message);
-        }
-        browser = null;
-      }
-      throw browserError;
+    } catch (e) {
+      console.warn('⚠️ Direct JSON-LD extraction failed:', e.message);
     }
+
+    // 2. Scrape content (Jina Reader -> Cheerio Fallback)
+    // Only proceed to Jina if we didn't find good JSON-LD content
+    if (!scrapedContent) {
+      // Try Jina Reader
+      try {
+        console.log('Trying Jina Reader...');
+        const jinaResponse = await fetch(`https://r.jina.ai/${normalizedUrl}`, {
+          headers: {
+            'Accept': 'application/json',
+            'X-With-Images-Summary': 'true',
+            'X-With-Links-Summary': 'true'
+          },
+          timeout: 15000 // 15s timeout
+        });
+
+        if (jinaResponse.ok) {
+          const jinaData = await jinaResponse.json();
+          const content = jinaData.data?.content || jinaData.data?.text || '';
+          pageTitle = pageTitle || jinaData.data?.title || '';
+          pageDescription = pageDescription || jinaData.data?.description || '';
+
+          if (content && content.length > 100) {
+            scrapedContent = content;
+            console.log('✅ Jina scraping successful. Content length:', content.length);
+          } else {
+            console.warn('⚠️ Jina returned empty or too short content');
+          }
+        } else {
+          console.warn(`⚠️ Jina request failed: ${jinaResponse.status}`);
+        }
+      } catch (jinaError) {
+        console.warn('⚠️ Jina scraping error:', jinaError.message);
+      }
+    }
+
+    // Fallback: Direct fetch + Cheerio
+    if (!scrapedContent || scrapedContent.length < 100) {
+      console.log('🔄 Jina failed/insufficient. Trying direct fetch + Cheerio...');
+      // Note: This fallback is simplified for Node.js environment where full browser emulation isn't available
+      // In a real production env, you might use Puppeteer here, but we are avoiding it as per requirements
+      // Only generic fetch is possible here if no headless browser
+      try {
+        const fetchRes = await fetch(normalizedUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'
+          },
+          timeout: 10000
+        });
+        if (fetchRes.ok) {
+          const html = await fetchRes.text();
+          // Basic cheerio extraction would go here if we imported cheerio
+          // For now, we rely on Jina as primary. If Jina fails, we might just fail or return basic error.
+          // But let's try a regex-based scrape for simple body text as a last resort
+          scrapedContent = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 20000);
+          console.log('✅ Fallback fetch successful (basic text)');
+        }
+      } catch (e) {
+        console.error('❌ Fallback fetch failed:', e.message);
+      }
+    }
+
+    if (!scrapedContent || scrapedContent.length < 100) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Impossible de lire cette page. Elle est peut-être inaccessible ou protégée.'
+      });
+    }
+
+    // 3. Extract with Claude
+    console.log('🧠 Sending content to Claude for extraction...');
+    const systemPrompt = `You are a precise job data extraction engine. You will receive the raw text of a job posting.
+    Your task is to extract specific details into a clean JSON format.
+    
+    If the text provided is a privacy policy or cookie consent but the PAGE TITLE or DESCRIPTION contains job info, use that.
+    
+    Return ONLY JSON. No markdown, no "Here is the JSON".
+    
+    JSON Schema:
+    {
+      "company": "Company Name",
+      "title": "Job Title",
+      "location": "City, Country or Remote",
+      "description": "A concise summary of the role (3-4 sentences max)",
+      "responsibilities": ["List", "of", "key", "responsibilities"],
+      "requirements": ["List", "of", "key", "requirements"],
+      "salary": "Salary range if available, else null",
+      "benefits": ["List", "of", "benefits"],
+      "experience_level": "Seniority level (e.g. Senior, Junior)",
+      "contract_type": "Full-time, Part-time, Contract, etc."
+    }`;
+
+    // console.log('🔑 Debug - API Key present:', !!apiKey, 'Length:', apiKey ? apiKey.length : 0);
+    // console.log('🔑 Debug - API Key start:', apiKey ? apiKey.substring(0, 10) : 'null');
+
+    const userMessage = `PAGE TITLE: ${pageTitle}\nPAGE DESCRIPTION: ${pageDescription}\n\nRAW CONTENT:\n${scrapedContent.substring(0, 30000)}`;
+
+    const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: [
+          { role: "user", content: `Extract job info from this text:\n\n${userMessage}` }
+        ]
+      })
+    });
+
+    console.log('📡 Claude API Status:', claudeResponse.status, claudeResponse.statusText);
+
+    if (!claudeResponse.ok) {
+      const errText = await claudeResponse.text();
+      console.error('❌ Claude API Error Body:', errText);
+      throw new Error(`Claude API Error: ${claudeResponse.status}`);
+    }
+
+    const claudeData = await claudeResponse.json();
+    // console.log('🔍 Claude raw response:', JSON.stringify(claudeData, null, 2)); 
+
+    if (!claudeData.content || !claudeData.content[0] || !claudeData.content[0].text) {
+      console.error('❌ Unexpected Claude response structure:', claudeData);
+      throw new Error('Invalid response structure from Claude');
+    }
+
+    const rawContent = claudeData.content[0].text;
+    console.log('📝 Claude response preview:', rawContent.substring(0, 200) + '...');
+
+    let parsedData;
+    try {
+      // Find JSON block more robustly
+      let jsonStr = rawContent;
+      const firstBrace = jsonStr.indexOf('{');
+      const lastBrace = jsonStr.lastIndexOf('}');
+
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+      }
+
+      parsedData = JSON.parse(jsonStr);
+    } catch (e) {
+      console.error('❌ JSON Parse Error:', rawContent);
+      throw new Error('Failed to parse Claude extraction result');
+    }
+
+    console.log('✅ Parsed Data keys:', Object.keys(parsedData || {}));
+
+    // Return success
+    return res.json({
+      status: 'success',
+      data: {
+        ...parsedData,
+        application_url: normalizedUrl
+      }
+    });
 
   } catch (error) {
-    console.error('❌ Error extracting job URL:', error);
-    console.error('   Error name:', error.name);
-    console.error('   Error message:', error.message);
-    console.error('   Error stack:', error.stack);
-
-    // Ensure browser is closed even if error occurred
-    if (browser) {
-      try {
-        await browser.close().catch(() => { });
-      } catch (closeError) {
-        console.error('❌ Error closing browser in catch block:', closeError.message);
-      }
-    }
-
-    // Check if response was already sent
-    if (res.headersSent) {
-      console.error("⚠️  Response already sent, cannot send error response");
-      return;
-    }
-
+    console.error('❌ Error in extract-job-url:', error);
     return res.status(500).json({
       status: 'error',
-      message: error.message || 'Failed to extract job posting content',
-      errorType: error.name || 'UnknownError',
+      message: error.message || 'Extraction failed',
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
@@ -9487,257 +9153,257 @@ app.listen(PORT, () => {
 // ==========================================
 
 async function getPlatformConfig(platform) {
-    const doc = await admin.firestore().collection('settings').doc(`social_${platform}`).get();
-    if (!doc.exists) {
-        throw new Error(`Configuration for ${platform} not found.`);
-    }
-    const data = doc.data();
-    // Allow manual token entry for Twitter if Client ID is missing but Access Token is present
-    if (platform === 'twitter' && data?.credentials?.accessToken && !data?.credentials?.clientId) {
-        return { ...data.credentials };
-    }
+  const doc = await admin.firestore().collection('settings').doc(`social_${platform}`).get();
+  if (!doc.exists) {
+    throw new Error(`Configuration for ${platform} not found.`);
+  }
+  const data = doc.data();
+  // Allow manual token entry for Twitter if Client ID is missing but Access Token is present
+  if (platform === 'twitter' && data?.credentials?.accessToken && !data?.credentials?.clientId) {
+    return { ...data.credentials };
+  }
 
-    if (!data?.credentials?.clientId || !data?.credentials?.clientSecret) {
-        if (data?.credentials?.accessToken) return { ...data.credentials };
-        throw new Error(`Client ID or Secret missing for ${platform}.`);
-    }
-    return {
-        clientId: data.credentials.clientId,
-        clientSecret: data.credentials.clientSecret,
-        ...data.credentials
-    };
+  if (!data?.credentials?.clientId || !data?.credentials?.clientSecret) {
+    if (data?.credentials?.accessToken) return { ...data.credentials };
+    throw new Error(`Client ID or Secret missing for ${platform}.`);
+  }
+  return {
+    clientId: data.credentials.clientId,
+    clientSecret: data.credentials.clientSecret,
+    ...data.credentials
+  };
 }
 
 async function refreshTwitterToken(config) {
-    const { refreshToken, clientId, clientSecret } = config;
-    if (!refreshToken || !clientId || !clientSecret) {
-        throw new Error('Missing credentials for token refresh.');
-    }
+  const { refreshToken, clientId, clientSecret } = config;
+  if (!refreshToken || !clientId || !clientSecret) {
+    throw new Error('Missing credentials for token refresh.');
+  }
 
-    const tokenUrl = 'https://api.twitter.com/2/oauth2/token';
-    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-    const refreshBody = new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken,
-        client_id: clientId
-    });
+  const tokenUrl = 'https://api.twitter.com/2/oauth2/token';
+  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+  const refreshBody = new URLSearchParams({
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+    client_id: clientId
+  });
 
-    const refreshResponse = await fetch(tokenUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': `Basic ${auth}`
-        },
-        body: refreshBody
-    });
+  const refreshResponse = await fetch(tokenUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${auth}`
+    },
+    body: refreshBody
+  });
 
-    if (!refreshResponse.ok) {
-        const refreshError = await refreshResponse.text();
-        throw new Error(`Failed to refresh Twitter token: ${refreshError}`);
-    }
+  if (!refreshResponse.ok) {
+    const refreshError = await refreshResponse.text();
+    throw new Error(`Failed to refresh Twitter token: ${refreshError}`);
+  }
 
-    const data = await refreshResponse.json();
-    const newAccessToken = data.access_token;
-    const newRefreshToken = data.refresh_token;
+  const data = await refreshResponse.json();
+  const newAccessToken = data.access_token;
+  const newRefreshToken = data.refresh_token;
 
-    // Save new tokens to DB
-    await admin.firestore().collection('settings').doc('social_twitter').update({
-        'credentials.accessToken': newAccessToken,
-        'credentials.refreshToken': newRefreshToken,
-        'credentials.updatedAt': Date.now()
-    });
+  // Save new tokens to DB
+  await admin.firestore().collection('settings').doc('social_twitter').update({
+    'credentials.accessToken': newAccessToken,
+    'credentials.refreshToken': newRefreshToken,
+    'credentials.updatedAt': Date.now()
+  });
 
-    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+  return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 }
 
 async function publishToTwitter(content, config, images, threadTweets) {
-    let { accessToken } = config;
+  let { accessToken } = config;
 
-    if (!accessToken) {
-        throw new Error('Twitter Access Token missing.');
+  if (!accessToken) {
+    throw new Error('Twitter Access Token missing.');
+  }
+
+  const url = 'https://api.twitter.com/2/tweets';
+
+  // Helper for a single tweet attempt with retry on 401
+  const postTweet = async (body) => {
+    let response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok && (response.status === 401 || response.status === 403)) {
+      console.log('Twitter token expired, attempting refresh...');
+      const newTokens = await refreshTwitterToken(config);
+      accessToken = newTokens.accessToken;
+
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
     }
 
-    const url = 'https://api.twitter.com/2/tweets';
-
-    // Helper for a single tweet attempt with retry on 401
-    const postTweet = async (body) => {
-        let response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body)
-        });
-
-        if (!response.ok && (response.status === 401 || response.status === 403)) {
-            console.log('Twitter token expired, attempting refresh...');
-            const newTokens = await refreshTwitterToken(config);
-            accessToken = newTokens.accessToken;
-
-            response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(body)
-            });
-        }
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(JSON.stringify(errorData));
-        }
-
-        return await response.json();
-    };
-
-    // If it's a thread, we post each tweet sequentially
-    if (threadTweets && threadTweets.length > 0) {
-        let lastTweetId;
-        let firstTweetId;
-
-        for (let i = 0; i < threadTweets.length; i++) {
-            const tweetText = threadTweets[i];
-            const body = { text: tweetText };
-
-            if (lastTweetId) {
-                body.reply = { in_reply_to_tweet_id: lastTweetId };
-            }
-
-            try {
-                const data = await postTweet(body);
-                lastTweetId = data.data.id;
-                if (i === 0) firstTweetId = lastTweetId;
-
-                // Subtle delay between tweets
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            } catch (err) {
-                throw new Error(`Failed at tweet ${i + 1}: ${err.message}`);
-            }
-        }
-
-        return { success: true, platformPostId: firstTweetId };
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(JSON.stringify(errorData));
     }
 
-    // Single tweet logic
-    const data = await postTweet({ text: content });
-    return { success: true, platformPostId: data.data.id };
+    return await response.json();
+  };
+
+  // If it's a thread, we post each tweet sequentially
+  if (threadTweets && threadTweets.length > 0) {
+    let lastTweetId;
+    let firstTweetId;
+
+    for (let i = 0; i < threadTweets.length; i++) {
+      const tweetText = threadTweets[i];
+      const body = { text: tweetText };
+
+      if (lastTweetId) {
+        body.reply = { in_reply_to_tweet_id: lastTweetId };
+      }
+
+      try {
+        const data = await postTweet(body);
+        lastTweetId = data.data.id;
+        if (i === 0) firstTweetId = lastTweetId;
+
+        // Subtle delay between tweets
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (err) {
+        throw new Error(`Failed at tweet ${i + 1}: ${err.message}`);
+      }
+    }
+
+    return { success: true, platformPostId: firstTweetId };
+  }
+
+  // Single tweet logic
+  const data = await postTweet({ text: content });
+  return { success: true, platformPostId: data.data.id };
 }
 
 async function publishToLinkedIn(content, config, images) {
-    const { accessToken, personUrn, organizationId } = config;
+  const { accessToken, personUrn, organizationId } = config;
 
-    if (!accessToken || (!personUrn && !organizationId)) {
-        throw new Error('LinkedIn Access Token or Person URN / Organization ID missing.');
+  if (!accessToken || (!personUrn && !organizationId)) {
+    throw new Error('LinkedIn Access Token or Person URN / Organization ID missing.');
+  }
+
+  const authorUrn = organizationId ? `urn:li:organization:${organizationId}` : `urn:li:person:${personUrn}`;
+  const url = 'https://api.linkedin.com/v2/ugcPosts';
+
+  const body = {
+    author: authorUrn,
+    lifecycleState: 'PUBLISHED',
+    specificContent: {
+      'com.linkedin.ugc.ShareContent': {
+        shareCommentary: { text: content },
+        shareMediaCategory: 'NONE'
+      }
+    },
+    visibility: {
+      'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
     }
+  };
 
-    const authorUrn = organizationId ? `urn:li:organization:${organizationId}` : `urn:li:person:${personUrn}`;
-    const url = 'https://api.linkedin.com/v2/ugcPosts';
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      'X-Restli-Protocol-Version': '2.0.0'
+    },
+    body: JSON.stringify(body)
+  });
 
-    const body = {
-        author: authorUrn,
-        lifecycleState: 'PUBLISHED',
-        specificContent: {
-            'com.linkedin.ugc.ShareContent': {
-                shareCommentary: { text: content },
-                shareMediaCategory: 'NONE'
-            }
-        },
-        visibility: {
-            'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
-        }
-    };
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(JSON.stringify(errorData));
+  }
 
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-            'X-Restli-Protocol-Version': '2.0.0'
-        },
-        body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(JSON.stringify(errorData));
-    }
-
-    const data = await response.json();
-    return { success: true, platformPostId: data.id };
+  const data = await response.json();
+  return { success: true, platformPostId: data.id };
 }
 
 async function publishToReddit(content, subreddit, title, config) {
-    const { accessToken } = config;
+  const { accessToken } = config;
 
-    if (!accessToken) {
-        throw new Error('Reddit Access Token missing.');
-    }
+  if (!accessToken) {
+    throw new Error('Reddit Access Token missing.');
+  }
 
-    const url = 'https://oauth.reddit.com/api/submit';
-    const params = new URLSearchParams();
-    params.append('kind', 'self');
-    params.append('sr', subreddit || 'u_me');
-    params.append('title', title || content.substring(0, 50) + '...');
-    params.append('text', content);
+  const url = 'https://oauth.reddit.com/api/submit';
+  const params = new URLSearchParams();
+  params.append('kind', 'self');
+  params.append('sr', subreddit || 'u_me');
+  params.append('title', title || content.substring(0, 50) + '...');
+  params.append('text', content);
 
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'Jobzai/1.0.0'
-        },
-        body: params
-    });
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': 'Jobzai/1.0.0'
+    },
+    body: params
+  });
 
-    if (!response.ok) {
-        throw new Error('Failed to publish to Reddit');
-    }
+  if (!response.ok) {
+    throw new Error('Failed to publish to Reddit');
+  }
 
-    const data = await response.json();
-    if (data.json && data.json.errors && data.json.errors.length > 0) {
-        throw new Error(data.json.errors[0][1] || 'Reddit API Error');
-    }
+  const data = await response.json();
+  if (data.json && data.json.errors && data.json.errors.length > 0) {
+    throw new Error(data.json.errors[0][1] || 'Reddit API Error');
+  }
 
-    return {
-        success: true,
-        platformPostId: data.json?.data?.name
-    };
+  return {
+    success: true,
+    platformPostId: data.json?.data?.name
+  };
 }
 
 app.post('/api/social/publish', async (req, res) => {
-    const { platform, content, subreddit, redditTitle, images, threadTweets } = req.body;
+  const { platform, content, subreddit, redditTitle, images, threadTweets } = req.body;
 
-    if (!platform || !content) {
-        return res.status(400).json({ success: false, error: 'Missing platform or content' });
+  if (!platform || !content) {
+    return res.status(400).json({ success: false, error: 'Missing platform or content' });
+  }
+
+  try {
+    console.log(`Publishing to ${platform}...`);
+    const config = await getPlatformConfig(platform);
+    let result;
+
+    switch (platform) {
+      case 'linkedin':
+        result = await publishToLinkedIn(content, config, images);
+        break;
+      case 'twitter':
+        result = await publishToTwitter(content, config, images, threadTweets);
+        break;
+      case 'reddit':
+        result = await publishToReddit(content, subreddit, redditTitle, config);
+        break;
+      default:
+        throw new Error(`Platform ${platform} not supported`);
     }
 
-    try {
-        console.log(`Publishing to ${platform}...`);
-        const config = await getPlatformConfig(platform);
-        let result;
+    res.status(200).json(result);
 
-        switch (platform) {
-            case 'linkedin':
-                result = await publishToLinkedIn(content, config, images);
-                break;
-            case 'twitter':
-                result = await publishToTwitter(content, config, images, threadTweets);
-                break;
-            case 'reddit':
-                result = await publishToReddit(content, subreddit, redditTitle, config);
-                break;
-            default:
-                throw new Error(`Platform ${platform} not supported`);
-        }
-
-        res.status(200).json(result);
-
-    } catch (error) {
-        console.error(`Error publishing to ${platform}:`, error);
-        res.status(500).json({ success: false, error: error.message || 'Internal Server Error' });
-    }
+  } catch (error) {
+    console.error(`Error publishing to ${platform}:`, error);
+    res.status(500).json({ success: false, error: error.message || 'Internal Server Error' });
+  }
 });
