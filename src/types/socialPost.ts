@@ -112,6 +112,13 @@ export interface GeneratedSocialContent {
     suggestedSubreddits?: string[];
 }
 
+export interface BatchTweetResult {
+    id: string; // unique local ID
+    topic: string;
+    template: TweetTemplate;
+    content: GeneratedSocialContent;
+}
+
 export interface SocialPlatformConfig {
     platform: SocialPlatform;
     enabled: boolean;

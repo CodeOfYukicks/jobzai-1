@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Upload, Loader2, Sparkles, Layout, Globe, Check, ChevronLeft, Wand2, Image as ImageIcon } from 'lucide-react';
+import { Upload, Loader2, Sparkles, Layout, Globe, Check, ChevronLeft, Wand2, Image as ImageIcon, Clock, Calendar, X } from 'lucide-react';
+import { Timestamp } from 'firebase/firestore';
 import { useBlogPosts } from '../../hooks/useBlogPosts';
 import { CATEGORIES } from '../../data/blogPosts';
 import { generateAIImage, generateSEOArticle, generateSEOCoverImage, SEOArticleConfig, GeneratedSEOArticle } from '../../services/blogAI';
 import AIArticleGeneratorModal from '../../components/blog/AIArticleGeneratorModal';
-import { NotionEditor, NotionEditorRef } from '../../components/notion-editor';
+import { NotionEditor } from '../../components/notion-editor';
 import CoverPhotoGallery from '../../components/profile/CoverPhotoGallery';
 import { forceLightMode } from '../../lib/theme';
 
@@ -17,7 +18,7 @@ export default function BlogEditorPage() {
     const navigate = useNavigate();
     const { id } = useParams();
     const { createPost, updatePost, getAllPosts, uploadImage, loading: hookLoading } = useBlogPosts();
-    const editorRef = useRef<NotionEditorRef>(null);
+    const editorRef = useRef<any>(null);
 
     const [form, setForm] = useState({
         title: '',
@@ -28,7 +29,8 @@ export default function BlogEditorPage() {
         author: 'Team Cubbbe',
         readTime: '5 min read',
         image: '',
-        status: 'draft' as 'draft' | 'published'
+        status: 'draft' as 'draft' | 'published' | 'scheduled',
+        scheduledAt: null as Date | null
     });
 
     const [uploading, setUploading] = useState(false);
@@ -48,6 +50,11 @@ export default function BlogEditorPage() {
 
     // Toast notification state
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+    // Schedule modal state
+    const [showScheduleModal, setShowScheduleModal] = useState(false);
+    const [scheduleDate, setScheduleDate] = useState('');
+    const [scheduleTime, setScheduleTime] = useState('09:00');
 
     // Convert markdown to TipTap JSON format
     const markdownToTipTap = useCallback((markdown: string): any => {
@@ -267,7 +274,7 @@ export default function BlogEditorPage() {
                     }
 
                     setForm({
-                        title: post.title,
+                        title: post.title || '',
                         slug: post.slug || '',
                         excerpt: post.excerpt || '',
                         content: contentToSet,
@@ -275,7 +282,8 @@ export default function BlogEditorPage() {
                         author: post.author || 'Team Cubbbe',
                         readTime: post.readTime || '5 min read',
                         image: post.image || '',
-                        status: (post.status as any) || 'draft'
+                        status: post.status as any || 'draft',
+                        scheduledAt: (post as any).scheduledAt?.toDate() || null
                     });
                 }
                 setInitialLoading(false);
@@ -415,7 +423,7 @@ export default function BlogEditorPage() {
         }
     };
 
-    const savePost = async (statusOverride?: 'draft' | 'published') => {
+    const savePost = async (statusOverride?: 'draft' | 'published' | 'scheduled', scheduledAtOverride?: Date) => {
         try {
             const statusToSave = statusOverride || form.status;
             const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -426,11 +434,19 @@ export default function BlogEditorPage() {
                 contentToSave = tipTapToMarkdown(contentToSave);
             }
 
+            // Setup scheduled time if status is scheduled and we have a valid date
+            let scheduledAtTimestamp = null;
+            const finalScheduledDate = scheduledAtOverride || form.scheduledAt;
+            if (statusToSave === 'scheduled' && finalScheduledDate) {
+                scheduledAtTimestamp = Timestamp.fromDate(finalScheduledDate);
+            }
+
             const dataToSave = {
                 ...form,
                 content: contentToSave,
                 status: statusToSave,
-                date
+                date,
+                ...(scheduledAtTimestamp ? { scheduledAt: scheduledAtTimestamp } : {})
             };
 
             if (id) {
@@ -439,21 +455,39 @@ export default function BlogEditorPage() {
                 await createPost(dataToSave);
             }
 
-            // Show toast notification
-            const message = statusToSave === 'published'
-                ? '✨ Article published successfully!'
-                : '📝 Draft saved successfully!';
+            let message = '📝 Draft saved successfully!';
+            if (statusToSave === 'published') message = '✨ Article published successfully!';
+            if (statusToSave === 'scheduled') message = '⏰ Article scheduled successfully!';
+
             setToast({ message, type: 'success' });
 
             // Auto-hide toast after 3 seconds
             setTimeout(() => setToast(null), 3000);
 
-            // Update form status
-            setForm(prev => ({ ...prev, status: statusToSave }));
-        } catch (err) {
+            // Navigate back after a short delay
+            setTimeout(() => {
+                navigate('/admin/blog');
+            }, 1000);
+
+        } catch (error) {
+            console.error('Save error:', error);
             setToast({ message: 'Error saving post', type: 'error' });
             setTimeout(() => setToast(null), 3000);
         }
+    };
+
+    const handleScheduleConfirm = () => {
+        if (!scheduleDate || !scheduleTime) {
+            alert('Please select a valid date and time.');
+            return;
+        }
+
+        const dateStr = `${scheduleDate}T${scheduleTime}:00`;
+        const scheduledDate = new Date(dateStr);
+
+        setForm(prev => ({ ...prev, scheduledAt: scheduledDate }));
+        setShowScheduleModal(false);
+        savePost('scheduled', scheduledDate);
     };
 
     if (initialLoading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
@@ -537,6 +571,15 @@ export default function BlogEditorPage() {
                         className="px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
                     >
                         Draft
+                    </button>
+
+                    {/* Schedule */}
+                    <button
+                        onClick={() => setShowScheduleModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-blue-200"
+                    >
+                        <Clock className="w-3 h-3" />
+                        <span>Schedule</span>
                     </button>
 
                     {/* Publish */}
@@ -765,6 +808,86 @@ export default function BlogEditorPage() {
                         >
                             ×
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Schedule Post Modal */}
+            {showScheduleModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50/50">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                                    <Clock className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900">Schedule Post</h3>
+                                    <p className="text-xs text-gray-500">Choose when this post should go live</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowScheduleModal(false)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 space-y-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                                        <Calendar className="w-4 h-4 text-gray-400" />
+                                        Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={scheduleDate}
+                                        onChange={(e) => setScheduleDate(e.target.value)}
+                                        min={new Date().toISOString().split('T')[0]}
+                                        className="w-full bg-white border border-gray-200 text-gray-900 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium appearance-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                                        <Clock className="w-4 h-4 text-gray-400" />
+                                        Time
+                                    </label>
+                                    <input
+                                        type="time"
+                                        value={scheduleTime}
+                                        onChange={(e) => setScheduleTime(e.target.value)}
+                                        className="w-full bg-white border border-gray-200 text-gray-900 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium appearance-none"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Help Text */}
+                            <div className="bg-blue-50 text-blue-700 p-4 rounded-xl text-xs font-medium border border-blue-100/50">
+                                This post will remain hidden until the selected date and time, after which it will automatically appear on the public blog.
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-5 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+                            <button
+                                onClick={() => setShowScheduleModal(false)}
+                                className="px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-white border border-transparent hover:border-gray-200 hover:shadow-sm rounded-xl transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleScheduleConfirm}
+                                disabled={!scheduleDate || !scheduleTime}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 hover:shadow-md transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Clock className="w-4 h-4" />
+                                Schedule Post
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

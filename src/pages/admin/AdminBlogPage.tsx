@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, Eye, FileText, CheckCircle, Clock, TrendingUp, Search, Globe } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, FileText, CheckCircle, Clock, TrendingUp, Search, Globe, Calendar as CalendarIcon, LayoutGrid, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useBlogPosts } from '../../hooks/useBlogPosts';
 import { useBlogScheduler } from '../../hooks/useBlogScheduler';
 import { BlogPost } from '../../data/blogPosts';
@@ -10,6 +10,40 @@ import { generateSEOArticle, generateSEOCoverImage, generateNewsArticle } from '
 import CreateNewsModal from '../../components/blog/CreateNewsModal';
 import { forceLightMode } from '../../lib/theme';
 
+// ============================================
+// CALENDAR HELPERS
+// ============================================
+function getDaysInMonth(year: number, month: number) {
+    return new Date(year, month + 1, 0).getDate();
+}
+
+function getFirstDayOfMonth(year: number, month: number) {
+    const day = new Date(year, month, 1).getDay();
+    return day === 0 ? 6 : day - 1; // 0 = Mon, 6 = Sun
+}
+
+const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+export const isPostLive = (post: any) => {
+    if (post.status === 'published') return true;
+    if (post.status === 'scheduled' && post.scheduledAt) {
+        let timeMs = 0;
+        if (typeof post.scheduledAt.toMillis === 'function') timeMs = post.scheduledAt.toMillis();
+        else if (post.scheduledAt.seconds != null) timeMs = post.scheduledAt.seconds * 1000;
+        else if (post.scheduledAt instanceof Date) timeMs = post.scheduledAt.getTime();
+        else if (typeof post.scheduledAt === 'number') timeMs = post.scheduledAt;
+        else if (typeof post.scheduledAt === 'string') timeMs = new Date(post.scheduledAt).getTime();
+
+        return timeMs > 0 && timeMs <= Date.now();
+    }
+    return false;
+};
+
 export default function AdminBlogPage() {
     // Force light mode for admin pages
     useEffect(() => {
@@ -18,9 +52,11 @@ export default function AdminBlogPage() {
     const navigate = useNavigate();
     const { getAllPosts, deletePost, createPost, loading } = useBlogPosts();
     const { config, updateConfig, reload: reloadScheduler } = useBlogScheduler();
-    const [posts, setPosts] = useState<(BlogPost & { status: string })[]>([]);
+    const [posts, setPosts] = useState<(BlogPost & { status: string, scheduledAt?: any })[]>([]);
     const [stats, setStats] = useState({ total: 0, published: 0, drafts: 0, views: 0 });
     const [isAutoGenerating, setIsAutoGenerating] = useState(false);
+    const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+    const [currentDate, setCurrentDate] = useState(new Date());
 
     // Delete modal state
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -35,8 +71,8 @@ export default function AdminBlogPage() {
         setPosts(data);
 
         // Calculate stats
-        const published = data.filter(p => p.status === 'published').length;
-        const drafts = data.filter(p => p.status !== 'published').length;
+        const published = data.filter(p => isPostLive(p)).length;
+        const drafts = data.filter(p => !isPostLive(p)).length;
         // Sum actual views from all posts (views field in Firestore if it exists)
         const totalViews = data.reduce((sum, post) => sum + ((post as any).views || 0), 0);
         setStats({
@@ -205,6 +241,42 @@ export default function AdminBlogPage() {
         }
     };
 
+    // Calendar Calculations
+    const daysInMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
+    const firstDay = getFirstDayOfMonth(currentDate.getFullYear(), currentDate.getMonth());
+    const blanks = Array.from({ length: firstDay }, (_, i) => i);
+    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+    const getPostsForDay = (day: number) => {
+        return posts.filter(post => {
+            if (post.status === 'scheduled' && post.scheduledAt) {
+                let timeMs = 0;
+                if (typeof post.scheduledAt.toMillis === 'function') timeMs = post.scheduledAt.toMillis();
+                else if (post.scheduledAt.seconds != null) timeMs = post.scheduledAt.seconds * 1000;
+                else if (post.scheduledAt instanceof Date) timeMs = post.scheduledAt.getTime();
+                else if (typeof post.scheduledAt === 'number') timeMs = post.scheduledAt;
+                else if (typeof post.scheduledAt === 'string') timeMs = new Date(post.scheduledAt).getTime();
+
+                if (timeMs > 0) {
+                    const postDate = new Date(timeMs);
+                    return postDate.getFullYear() === currentDate.getFullYear() &&
+                        postDate.getMonth() === currentDate.getMonth() &&
+                        postDate.getDate() === day;
+                }
+            }
+
+            if (post.date) {
+                const postDate = new Date(post.date);
+                if (!isNaN(postDate.getTime())) {
+                    return postDate.getFullYear() === currentDate.getFullYear() &&
+                        postDate.getMonth() === currentDate.getMonth() &&
+                        postDate.getDate() === day;
+                }
+            }
+            return false;
+        });
+    };
+
     return (
         <div className="bg-[#FAFAFA] min-h-screen font-sans">
             {/* Minimalist Premium Header */}
@@ -269,18 +341,61 @@ export default function AdminBlogPage() {
                     />
                 </div>
 
-                {/* Content Table */}
+                {/* Content Area */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
-                        <h3 className="font-semibold text-gray-900">All Articles</h3>
-                        <div className="relative">
-                            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                className="pl-9 pr-4 py-2 bg-gray-50 border-none rounded-lg text-sm text-gray-700 focus:ring-0 w-64"
-                            />
+                    <div className="px-6 py-4 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <h3 className="font-semibold text-gray-900">All Articles</h3>
+
+                            {/* View Toggle */}
+                            <div className="flex items-center bg-gray-100 p-1 rounded-lg">
+                                <button
+                                    onClick={() => setViewMode('list')}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    <LayoutGrid className="w-4 h-4" />
+                                    List
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('calendar')}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'calendar' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    <CalendarIcon className="w-4 h-4" />
+                                    Calendar
+                                </button>
+                            </div>
                         </div>
+
+                        {viewMode === 'list' ? (
+                            <div className="relative">
+                                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                <input
+                                    type="text"
+                                    placeholder="Search..."
+                                    className="pl-9 pr-4 py-2 bg-gray-50 border-none rounded-lg text-sm text-gray-700 focus:ring-0 w-64"
+                                />
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
+                                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                                >
+                                    <ChevronLeft className="w-5 h-5 text-gray-600" />
+                                </button>
+                                <h2 className="text-lg font-bold text-gray-900 min-w-[140px] text-center">
+                                    {MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}
+                                </h2>
+                                <button
+                                    onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
+                                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                                >
+                                    <ChevronRight className="w-5 h-5 text-gray-600" />
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {loading ? (
@@ -294,6 +409,56 @@ export default function AdminBlogPage() {
                             </div>
                             <h3 className="text-gray-900 font-medium mb-1">No articles yet</h3>
                             <p className="text-gray-500 text-sm">Start writing your first masterpiece.</p>
+                        </div>
+                    ) : viewMode === 'calendar' ? (
+                        <div className="p-6">
+                            <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-xl overflow-hidden">
+                                {/* Week Days Header */}
+                                {DAY_NAMES.map(day => (
+                                    <div key={day} className="bg-white py-3 text-center text-[10px] md:text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                        {day}
+                                    </div>
+                                ))}
+
+                                {/* Blanks */}
+                                {blanks.map(blank => (
+                                    <div key={`blank-${blank}`} className="bg-gray-50/50 min-h-[100px] md:min-h-[140px] p-2" />
+                                ))}
+
+                                {/* Days */}
+                                {days.map(day => {
+                                    const dayPosts = getPostsForDay(day);
+                                    const isToday =
+                                        day === new Date().getDate() &&
+                                        currentDate.getMonth() === new Date().getMonth() &&
+                                        currentDate.getFullYear() === new Date().getFullYear();
+
+                                    return (
+                                        <div key={day} className={`bg-white min-h-[100px] md:min-h-[140px] p-2 hover:bg-gray-50 transition-colors border-t border-r border-gray-100 relative group`}>
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className={`text-xs md:text-sm font-medium w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full ${isToday ? 'bg-black text-white' : 'text-gray-900 group-hover:bg-gray-100'}`}>
+                                                    {day}
+                                                </span>
+                                            </div>
+                                            <div className="space-y-1.5 flex flex-col items-center sm:items-stretch">
+                                                {dayPosts.map(post => (
+                                                    <div
+                                                        key={post.id}
+                                                        onClick={() => navigate(`/admin/blog/edit/${post.id}`)}
+                                                        className="cursor-pointer flex flex-col gap-1 p-1.5 rounded-md border border-gray-100 bg-white hover:border-gray-300 transition-all shadow-sm w-full"
+                                                        title={post.title}
+                                                    >
+                                                        <div className="font-medium text-gray-900 truncate text-[10px] md:text-xs">{post.title}</div>
+                                                        <div className="flex items-center gap-1">
+                                                            <StatusBadge post={post} small />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     ) : (
                         <table className="w-full text-left border-collapse">
@@ -330,7 +495,7 @@ export default function AdminBlogPage() {
                                             <div className="text-xs text-gray-400 font-mono mt-0.5 truncate">/{post.slug}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <StatusBadge status={post.status} />
+                                            <StatusBadge post={post} />
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-xs font-medium">
@@ -407,13 +572,27 @@ function StatCard({ icon: Icon, label, value, color }: { icon: any, label: strin
     );
 }
 
-function StatusBadge({ status }: { status: string }) {
-    const isPublished = status === 'published';
+function StatusBadge({ post, small = false }: { post: any, small?: boolean }) {
+    if (isPostLive(post)) {
+        return (
+            <span className={`inline-flex items-center gap-1.5 rounded-full font-semibold bg-green-50 text-green-700 border border-green-100 ${small ? 'px-1.5 py-0.5 text-[9px]' : 'px-3 py-1 text-xs'}`}>
+                <span className={`${small ? 'w-1 h-1' : 'w-1.5 h-1.5'} rounded-full bg-green-500`} />
+                {small ? 'Pub' : 'Published'}
+            </span>
+        );
+    }
+    if (post.status === 'scheduled') {
+        return (
+            <span className={`inline-flex items-center gap-1.5 rounded-full font-semibold bg-blue-50 text-blue-700 border border-blue-100 ${small ? 'px-1.5 py-0.5 text-[9px]' : 'px-3 py-1 text-xs'}`}>
+                <span className={`${small ? 'w-1 h-1' : 'w-1.5 h-1.5'} rounded-full bg-blue-500`} />
+                {small ? 'Sch' : 'Scheduled'}
+            </span>
+        );
+    }
     return (
-        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${isPublished ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-yellow-50 text-yellow-700 border border-yellow-100'
-            }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${isPublished ? 'bg-green-500' : 'bg-yellow-500'}`} />
-            {isPublished ? 'Published' : 'Draft'}
+        <span className={`inline-flex items-center gap-1.5 rounded-full font-semibold bg-yellow-50 text-yellow-700 border border-yellow-100 ${small ? 'px-1.5 py-0.5 text-[9px]' : 'px-3 py-1 text-xs'}`}>
+            <span className={`${small ? 'w-1 h-1' : 'w-1.5 h-1.5'} rounded-full bg-yellow-500`} />
+            {small ? 'Drf' : 'Draft'}
         </span>
     );
 }

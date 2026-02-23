@@ -32,6 +32,7 @@ import {
     TweetTemplate,
     ContentMode,
     GeneratedSocialContent,
+    BatchTweetResult,
     PLATFORM_LIMITS,
     PLATFORM_INFO,
     SocialPostData,
@@ -494,6 +495,19 @@ export default function SocialPostEditorPage() {
     const [scheduleDate, setScheduleDate] = useState('');
     const [scheduleTime, setScheduleTime] = useState('09:00');
 
+    // Batch generation state
+    const [selectedTopics, setSelectedTopics] = useState<TopicSuggestion[]>([]);
+    const [batchResults, setBatchResults] = useState<BatchTweetResult[]>([]);
+    const [isBatchGenerating, setIsBatchGenerating] = useState(false);
+
+    // Batch scheduling state
+    const [showBatchScheduler, setShowBatchScheduler] = useState(false);
+    const [isBatchScheduling, setIsBatchScheduling] = useState(false);
+    const [isBatchSaving, setIsBatchSaving] = useState(false);
+    const [batchScheduleStartDate, setBatchScheduleStartDate] = useState('');
+    const [batchScheduleStartTime, setBatchScheduleStartTime] = useState('09:00');
+    const [batchScheduleInterval, setBatchScheduleInterval] = useState(2);
+
     // Edit mode: load existing post
     useEffect(() => {
         if (id) {
@@ -559,16 +573,139 @@ export default function SocialPostEditorPage() {
         }
     };
 
-    const handleSelectSuggestion = (suggestion: TopicSuggestion) => {
-        // Fill the topic with the suggestion title + context for richer generation
-        const enrichedTopic = `${suggestion.title}\n\nContext: ${suggestion.context}\nWhy Now: ${suggestion.whyNow}\nAngle: ${suggestion.angle}`;
-        setTopic(enrichedTopic);
 
-        // Auto-select suggested platforms
-        if (suggestion.suggestedPlatforms.length > 0) {
-            setSelectedPlatforms(suggestion.suggestedPlatforms);
+
+    const handleToggleTopicSelection = (suggestion: TopicSuggestion) => {
+        setSelectedTopics(prev => {
+            const exists = prev.find(t => t.title === suggestion.title);
+            if (exists) {
+                return prev.filter(t => t.title !== suggestion.title);
+            }
+            return [...prev, suggestion];
+        });
+    };
+
+    const handleBatchGenerate = async () => {
+        if (selectedTopics.length === 0 || selectedPlatforms.length === 0) return;
+
+        setIsBatchGenerating(true);
+        setBatchResults([]); // clear old results
+        try {
+            const results = await Promise.all(selectedTopics.map(async (topic) => {
+                const enrichedTopic = `${topic.title}\n\nContext: ${topic.context}\nWhy Now: ${topic.whyNow}\nAngle: ${topic.angle}`;
+
+                const generated = await generateMultiPlatformPosts({
+                    topic: enrichedTopic,
+                    platforms: selectedPlatforms,
+                    tone,
+                    language,
+                    mentionBrand,
+                    tweetTemplate,
+                    contentMode,
+                });
+
+                // Focus on Twitter for batch mode since templates are Twitter specific
+                const twitterContent = generated.find(r => r.platform === 'twitter');
+                if (twitterContent) {
+                    return {
+                        id: `batch_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+                        topic: topic.title,
+                        template: tweetTemplate,
+                        content: twitterContent
+                    } as BatchTweetResult;
+                }
+                return null;
+            }));
+
+            // Make sure to unselect the ones we generated to not run them twice by mistake later
+            setTopic('');
+            setHasGenerated(false);
+            setBatchResults(results.filter(Boolean) as BatchTweetResult[]);
+        } catch (error) {
+            console.error('Batch generation error:', error);
+            alert('❌ Failed to generate batch tweets');
+        } finally {
+            setIsBatchGenerating(false);
         }
-        setShowSuggestions(false);
+    };
+
+    const handleRemoveBatchItem = (id: string) => {
+        setBatchResults(prev => prev.filter(item => item.id !== id));
+    };
+
+    const handleBatchSaveDrafts = async () => {
+        if (batchResults.length === 0) return;
+        setIsBatchSaving(true);
+        try {
+            await Promise.all(batchResults.map(async (item) => {
+                const postData: Partial<SocialPostData> = {
+                    content: item.content.content,
+                    platform: 'twitter', // Hardcoded as batch mode focuses on Twitter templates
+                    tone,
+                    status: 'draft',
+                    hashtags: item.content.hashtags,
+                    characterCount: item.content.characterCount,
+                };
+                return createPost(postData);
+            }));
+            alert(`✅ ${batchResults.length} drafts saved successfully!`);
+            setBatchResults([]); // Clear queue
+        } catch (error) {
+            console.error('Batch save error:', error);
+            alert('❌ Failed to save drafts');
+        } finally {
+            setIsBatchSaving(false);
+        }
+    };
+
+    const handleBatchSchedule = async () => {
+        if (batchResults.length === 0 || !batchScheduleStartDate || !batchScheduleStartTime) return;
+        setIsBatchScheduling(true);
+
+        try {
+            // Parse start date/time
+            const startDateTime = new Date(`${batchScheduleStartDate}T${batchScheduleStartTime}`);
+
+            await Promise.all(batchResults.map(async (item, index) => {
+                // Calculate scheduled time based on interval
+                const scheduledDate = new Date(startDateTime.getTime() + (index * batchScheduleInterval * 60 * 60 * 1000));
+                const postData: Partial<SocialPostData> = {
+                    content: item.content.content,
+                    platform: 'twitter',
+                    tone,
+                    status: 'scheduled',
+                    hashtags: item.content.hashtags,
+                    characterCount: item.content.characterCount,
+                    scheduledAt: Timestamp.fromDate(scheduledDate),
+                };
+                return createPost(postData);
+            }));
+
+            alert(`✅ ${batchResults.length} posts scheduled successfully!`);
+            setShowBatchScheduler(false);
+            setBatchResults([]); // Clear queue
+        } catch (error) {
+            console.error('Batch schedule error:', error);
+            alert('❌ Failed to schedule posts');
+        } finally {
+            setIsBatchScheduling(false);
+        }
+    };
+
+    const handleBatchContentChange = (id: string, newContent: string) => {
+        setBatchResults(prev => prev.map(item => {
+            if (item.id === id) {
+                return {
+                    ...item,
+                    content: {
+                        ...item.content,
+                        content: newContent,
+                        characterCount: newContent.length
+                    }
+                };
+            }
+            return item;
+        }));
     };
 
     const handleGenerate = async () => {
@@ -1093,37 +1230,142 @@ export default function SocialPostEditorPage() {
                                                 </p>
                                             ) : (
                                                 <div className="space-y-2 max-h-80 overflow-y-auto">
-                                                    {topicSuggestions.map((suggestion, i) => (
-                                                        <button
-                                                            key={i}
-                                                            onClick={() => handleSelectSuggestion(suggestion)}
-                                                            className="w-full text-left bg-white/80 hover:bg-white rounded-lg border border-amber-100 hover:border-amber-300 p-3 transition-all group"
-                                                        >
-                                                            <div className="flex items-start gap-2">
-                                                                <span className="text-amber-500 text-base mt-0.5">💡</span>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <h4 className="text-sm font-semibold text-gray-900 group-hover:text-amber-800 transition-colors leading-snug">
-                                                                        {suggestion.title}
-                                                                    </h4>
-                                                                    <p className="text-xs text-gray-500 mt-1 leading-relaxed line-clamp-2">
-                                                                        {suggestion.context}
-                                                                    </p>
-                                                                    <div className="flex items-center gap-2 mt-2">
-                                                                        <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded font-medium">
-                                                                            {suggestion.angle}
-                                                                        </span>
-                                                                        <span className="text-[10px] text-gray-400">
-                                                                            {suggestion.suggestedPlatforms.map(p => PLATFORM_INFO[p]?.name || p).join(', ')}
-                                                                        </span>
+                                                    {topicSuggestions.map((suggestion, i) => {
+                                                        const isSelected = selectedTopics.some(t => t.title === suggestion.title);
+                                                        return (
+                                                            <button
+                                                                key={i}
+                                                                onClick={() => handleToggleTopicSelection(suggestion)}
+                                                                className={`w-full text-left rounded-lg border p-3 transition-all group relative ${isSelected
+                                                                    ? 'bg-amber-50 border-amber-400 shadow-sm'
+                                                                    : 'bg-white/80 hover:bg-white border-amber-100 hover:border-amber-300'
+                                                                    }`}
+                                                            >
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className={`mt-0.5 shrink-0 flex items-center justify-center w-5 h-5 rounded border transition-colors ${isSelected ? 'bg-amber-500 border-amber-500' : 'bg-white border-amber-200 group-hover:border-amber-400'
+                                                                        }`}>
+                                                                        {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <h4 className={`text-sm font-semibold transition-colors leading-snug ${isSelected ? 'text-amber-900' : 'text-gray-900 group-hover:text-amber-800'
+                                                                            }`}>
+                                                                            {suggestion.title}
+                                                                        </h4>
+                                                                        <p className="text-xs text-gray-500 mt-1 leading-relaxed line-clamp-2">
+                                                                            {suggestion.context}
+                                                                        </p>
+                                                                        <div className="flex items-center gap-2 mt-2">
+                                                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${isSelected ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-amber-50 text-amber-700'
+                                                                                }`}>
+                                                                                {suggestion.angle}
+                                                                            </span>
+                                                                            <span className="text-[10px] text-gray-400">
+                                                                                {suggestion.suggestedPlatforms.map(p => PLATFORM_INFO[p]?.name || p).join(', ')}
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        </button>
-                                                    ))}
+                                                            </button>
+                                                        );
+                                                    })}
                                                 </div>
                                             )}
                                         </div>
                                     </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {/* Batch Schedule Modal */}
+                            <AnimatePresence>
+                                {showBatchScheduler && (
+                                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                                        <motion.div
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+                                            onClick={() => setShowBatchScheduler(false)}
+                                        />
+
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden"
+                                        >
+                                            <div className="p-6">
+                                                <div className="w-12 h-12 bg-violet-100 rounded-2xl flex items-center justify-center mb-4">
+                                                    <Clock className="w-6 h-6 text-violet-600" />
+                                                </div>
+
+                                                <h3 className="text-xl font-semibold text-gray-900 mb-1">Schedule Batch ({batchResults.length} posts)</h3>
+                                                <p className="text-gray-500 text-sm mb-6">
+                                                    Posts will be scheduled sequentially, separated by the interval you select.
+                                                </p>
+
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Start Date</label>
+                                                        <input
+                                                            type="date"
+                                                            value={batchScheduleStartDate}
+                                                            onChange={(e) => setBatchScheduleStartDate(e.target.value)}
+                                                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-300 transition-all"
+                                                            min={new Date().toISOString().split('T')[0]}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Start Time</label>
+                                                        <input
+                                                            type="time"
+                                                            value={batchScheduleStartTime}
+                                                            onChange={(e) => setBatchScheduleStartTime(e.target.value)}
+                                                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-300 transition-all"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Interval between posts</label>
+                                                        <select
+                                                            value={batchScheduleInterval}
+                                                            onChange={(e) => setBatchScheduleInterval(Number(e.target.value))}
+                                                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-300 transition-all"
+                                                        >
+                                                            <option value={1}>1 hour</option>
+                                                            <option value={2}>2 hours</option>
+                                                            <option value={3}>3 hours</option>
+                                                            <option value={4}>4 hours</option>
+                                                            <option value={8}>8 hours</option>
+                                                            <option value={12}>12 hours</option>
+                                                            <option value={24}>24 hours</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="p-4 bg-gray-50 border-t border-gray-100 flex gap-3">
+                                                <button
+                                                    onClick={() => setShowBatchScheduler(false)}
+                                                    className="flex-1 px-4 py-3 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={handleBatchSchedule}
+                                                    disabled={isBatchScheduling || !batchScheduleStartDate || !batchScheduleStartTime}
+                                                    className="flex-[2] flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-violet-600 rounded-xl hover:bg-violet-700 transition-colors shadow-sm disabled:opacity-50"
+                                                >
+                                                    {isBatchScheduling ? (
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                    ) : (
+                                                        <>
+                                                            <Clock className="w-4 h-4" />
+                                                            Schedule Queue
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    </div>
                                 )}
                             </AnimatePresence>
 
@@ -1179,8 +1421,8 @@ export default function SocialPostEditorPage() {
                                         type="button"
                                         onClick={() => setContentMode(key)}
                                         className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 transition-all text-left ${contentMode === key
-                                                ? 'border-violet-500 bg-violet-50 shadow-sm'
-                                                : 'border-gray-200 hover:border-gray-300 bg-white'
+                                            ? 'border-violet-500 bg-violet-50 shadow-sm'
+                                            : 'border-gray-200 hover:border-gray-300 bg-white'
                                             }`}
                                     >
                                         <span className="text-lg">{mode.icon}</span>
@@ -1210,8 +1452,8 @@ export default function SocialPostEditorPage() {
                                             type="button"
                                             onClick={() => setTweetTemplate(key)}
                                             className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 transition-all text-left ${tweetTemplate === key
-                                                    ? 'border-blue-500 bg-blue-50 shadow-sm'
-                                                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                                                ? 'border-blue-500 bg-blue-50 shadow-sm'
+                                                : 'border-gray-200 hover:border-gray-300 bg-white'
                                                 }`}
                                         >
                                             <span className="text-base flex-shrink-0">{template.icon}</span>
@@ -1275,23 +1517,43 @@ export default function SocialPostEditorPage() {
                         </label>
 
                         {/* Generate Button */}
-                        <button
-                            onClick={handleGenerate}
-                            disabled={isGenerating || !topic.trim() || selectedPlatforms.length === 0}
-                            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-2xl hover:from-violet-700 hover:to-indigo-700 transition-all shadow-lg shadow-violet-200 hover:shadow-xl hover:shadow-violet-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-base group"
-                        >
-                            {isGenerating ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    Generating for {selectedPlatforms.length} platform{selectedPlatforms.length > 1 ? 's' : ''}...
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                                    {hasGenerated ? 'Regenerate All' : 'Generate with AI'}
-                                </>
-                            )}
-                        </button>
+                        {selectedTopics.length > 0 ? (
+                            <button
+                                onClick={handleBatchGenerate}
+                                disabled={isBatchGenerating || selectedPlatforms.length === 0}
+                                className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl hover:from-amber-600 hover:to-orange-600 transition-all shadow-lg shadow-amber-200 hover:shadow-xl hover:shadow-amber-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-base group"
+                            >
+                                {isBatchGenerating ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        Generating {selectedTopics.length} batch tweets...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                                        Generate {selectedTopics.length} Batch Tweets
+                                    </>
+                                )}
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleGenerate}
+                                disabled={isGenerating || !topic.trim() || selectedPlatforms.length === 0}
+                                className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-2xl hover:from-violet-700 hover:to-indigo-700 transition-all shadow-lg shadow-violet-200 hover:shadow-xl hover:shadow-violet-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-base group"
+                            >
+                                {isGenerating ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        Generating for {selectedPlatforms.length} platform{selectedPlatforms.length > 1 ? 's' : ''}...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                                        {hasGenerated ? 'Regenerate All' : 'Generate with AI'}
+                                    </>
+                                )}
+                            </button>
+                        )}
 
                         {hasGenerated && (
                             <div className="bg-violet-50 rounded-xl p-4 flex items-start gap-3">
@@ -1305,7 +1567,71 @@ export default function SocialPostEditorPage() {
 
                     {/* Right: Generated Content Preview */}
                     <div className="space-y-6">
-                        {!hasGenerated && !isGenerating ? (
+                        {batchResults.length > 0 ? (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+                                    <h3 className="text-lg font-semibold text-gray-900">
+                                        Batch Queue ({batchResults.length})
+                                    </h3>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleBatchSaveDrafts}
+                                            disabled={isBatchSaving}
+                                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors disabled:opacity-50"
+                                        >
+                                            {isBatchSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                            Save All Drafts
+                                        </button>
+                                        <button
+                                            onClick={() => setShowBatchScheduler(true)}
+                                            className="px-4 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 rounded-lg flex items-center gap-2 transition-colors"
+                                        >
+                                            <Clock className="w-4 h-4" />
+                                            Schedule All
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {batchResults.map((result) => (
+                                    <div key={result.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 relative group mt-4">
+                                        <button
+                                            onClick={() => handleRemoveBatchItem(result.id)}
+                                            className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                            title="Remove from batch"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <span className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-medium border border-blue-100 flex items-center gap-1">
+                                                <span>{TWEET_TEMPLATES[result.template]?.icon}</span> {TWEET_TEMPLATES[result.template]?.label}
+                                            </span>
+                                            <span className="text-xs text-gray-500 font-medium truncate max-w-[200px]">
+                                                {result.topic}
+                                            </span>
+                                        </div>
+                                        <textarea
+                                            value={result.content.content}
+                                            onChange={(e) => handleBatchContentChange(result.id, e.target.value)}
+                                            rows={6}
+                                            className="w-full text-gray-800 text-sm leading-relaxed resize-none bg-transparent focus:outline-none focus:ring-2 focus:ring-violet-500/20 rounded-lg p-2 -mx-2 mb-2 transition-all border border-transparent focus:border-violet-300"
+                                        />
+                                        <div className="flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
+                                            <CharacterCounter current={result.content.characterCount} limit={PLATFORM_LIMITS['twitter']} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : isBatchGenerating ? (
+                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center">
+                                <Loader2 className="w-12 h-12 text-amber-500 animate-spin mx-auto mb-5" />
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                    Creating batch tweets...
+                                </h3>
+                                <p className="text-gray-500 text-sm">
+                                    Generating adapted posts for {selectedTopics.length} topics.
+                                </p>
+                            </div>
+                        ) : !hasGenerated && !isGenerating ? (
                             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center">
                                 <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
                                     <Sparkles className="w-10 h-10 text-violet-400" />

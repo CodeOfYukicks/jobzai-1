@@ -4012,7 +4012,8 @@ You can browse the web when needed for specific information, but keep search res
         // Return response in the same format as the original client-side function
         return res.json({
           ...parsedResponse,
-          text: textContent
+          text: textContent,
+          content: textContent // Added for compatibility with socialTopicSuggestions.ts
         });
       } else {
         console.error('Unexpected response structure:', parsedResponse);

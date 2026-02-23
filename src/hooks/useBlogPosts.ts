@@ -18,7 +18,8 @@ import { db, storage } from '../lib/firebase';
 import { BlogPost } from '../data/blogPosts';
 
 export interface BlogPostData extends Omit<BlogPost, 'id'> {
-    status: 'draft' | 'published';
+    status: 'draft' | 'published' | 'scheduled';
+    scheduledAt?: any; // Firestore Timestamp
     createdAt: any;
     updatedAt: any;
 }
@@ -31,15 +32,40 @@ export function useBlogPosts() {
     const getPublishedPosts = async () => {
         setLoading(true);
         try {
+            // First, get posts that might be visible (published or scheduled)
             const q = query(
                 collection(db, 'blog_posts'),
-                where('status', '==', 'published')
+                where('status', 'in', ['published', 'scheduled'])
             );
             const querySnapshot = await getDocs(q);
-            const posts = querySnapshot.docs.map(doc => ({
+            let posts = querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
-            })) as BlogPost[];
+            })) as (BlogPost & { status: string, scheduledAt?: any })[];
+
+            // Filter out scheduled posts that are in the future
+            const now = Date.now();
+            posts = posts.filter(post => {
+                if (post.status === 'published') return true;
+                if (post.status === 'scheduled' && post.scheduledAt) {
+                    // Resilient timestamp extraction
+                    let timeMs = 0;
+                    if (typeof post.scheduledAt.toMillis === 'function') {
+                        timeMs = post.scheduledAt.toMillis();
+                    } else if (post.scheduledAt.seconds != null) {
+                        timeMs = post.scheduledAt.seconds * 1000;
+                    } else if (post.scheduledAt instanceof Date) {
+                        timeMs = post.scheduledAt.getTime();
+                    } else if (typeof post.scheduledAt === 'number') {
+                        timeMs = post.scheduledAt;
+                    } else if (typeof post.scheduledAt === 'string') {
+                        timeMs = new Date(post.scheduledAt).getTime();
+                    }
+
+                    return timeMs > 0 && timeMs <= now;
+                }
+                return false;
+            });
 
             // Client-side sort to avoid Firestore Index requirement
             return posts.sort((a, b) => {

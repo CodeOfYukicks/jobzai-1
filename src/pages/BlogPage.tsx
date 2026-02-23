@@ -145,7 +145,7 @@ export default function BlogPage() {
 
                                     <div className="flex items-center gap-6">
                                         <button
-                                            onClick={() => window.location.href = `/ blog / ${featuredPost.slug} `}
+                                            onClick={() => window.location.href = `/blog/${featuredPost.slug}`}
                                             className="group inline-flex items-center text-lg font-medium text-white border-b border-white pb-0.5 hover:text-[#9EF01A] hover:border-[#9EF01A] transition-all"
                                         >
                                             Read article
@@ -249,7 +249,7 @@ export default function BlogPage() {
                                     <motion.div
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        onClick={() => window.location.href = `/ blog / ${otherPosts[0].slug} `}
+                                        onClick={() => window.location.href = `/blog/${otherPosts[0].slug}`}
                                         className="group cursor-pointer h-full flex flex-col"
                                     >
                                         <div className="aspect-[4/3] overflow-hidden rounded-lg mb-6 bg-gray-100">
@@ -294,7 +294,7 @@ export default function BlogPage() {
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: index * 0.1 }}
-                                        onClick={() => window.location.href = `/ blog / ${post.slug} `}
+                                        onClick={() => window.location.href = `/blog/${post.slug}`}
                                         className="group cursor-pointer border-b border-gray-100 pb-8 last:border-0"
                                     >
                                         <div className="flex items-center justify-between mb-2">
