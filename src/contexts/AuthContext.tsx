@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { notify } from '@/lib/notify';
 import { applyTheme, loadThemeFromStorage, forceLightMode, type Theme } from '../lib/theme';
 import { syncUserToBrevo } from '../services/brevo';
+import { trackLead } from '../lib/trackingEvents';
 
 interface UserData {
   email: string;
@@ -288,6 +289,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (brevoError) {
           console.warn('Brevo sync failed (non-critical):', brevoError);
         }
+
+        // Track Lead event for new Google signups
+        trackLead();
       }
 
       if (isNewUser || !isProfileComplete) {
@@ -451,6 +455,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (brevoError) {
         console.warn('Brevo sync failed (non-critical):', brevoError);
       }
+
+      // Track Lead event for new email signups
+      trackLead();
 
       console.log("Redirecting to verify-email after signup");
       navigate('/verify-email');

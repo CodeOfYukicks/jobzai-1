@@ -88,6 +88,10 @@
         "function": "api"
       },
       {
+        "source": "/api/extract-job-url",
+        "function": "api"
+      },
+      {
         "source": "/api/fetch-job-post",
         "function": "api"
       },

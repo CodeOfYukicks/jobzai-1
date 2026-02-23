@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import SEO from '../components/SEO';
 import { Link } from 'react-router-dom';
 import { Cookie, ArrowLeft, Check, X } from 'lucide-react';
 import Footer from '../components/Footer';
@@ -54,6 +55,11 @@ const cookieCategories = [
 export default function CookiesPage() {
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
+      <SEO
+        title="Politique de cookies – Cubbbe"
+        description="Découvrez comment Cubbbe utilise les cookies pour améliorer votre expérience sur la plateforme."
+        url="/cookies"
+      />
       {/* Header */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">

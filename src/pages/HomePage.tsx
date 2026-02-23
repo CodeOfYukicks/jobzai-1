@@ -1,6 +1,7 @@
 import { useEffect, lazy, Suspense } from 'react';
 import Hero from '../components/Hero';
 import { forceLightMode } from '../lib/theme';
+import SEO from '../components/SEO';
 
 // Lazy-load below-fold sections to reduce initial bundle
 // Note: These all use default exports
@@ -27,6 +28,11 @@ export default function HomePage() {
 
   return (
     <div className="bg-white overflow-x-hidden">
+      <SEO
+        title="Cubbbe – Automatisez votre recherche d'emploi avec l'IA"
+        description="Cubbbe est la plateforme IA qui automatise vos candidatures, réécrit votre CV, prépare vos entretiens et booste votre recherche d'emploi. Essayez gratuitement."
+        url="/"
+      />
       {/* Hero Section - Critical, renders immediately */}
       <Hero />
 

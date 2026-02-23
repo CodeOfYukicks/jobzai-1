@@ -49,11 +49,11 @@ export interface PremiumATSAnalysis {
   date: string;
   status?: 'processing' | 'completed' | 'failed';
   type: 'premium';
-  
+
   // Source data (for CV Rewrite feature)
   cvText?: string;
   jobDescription?: string;
-  
+
   // For backward compatibility and queries
   matchScore: number; // Same as match_scores.overall_score
   categoryScores: {
@@ -62,7 +62,7 @@ export interface PremiumATSAnalysis {
     education: number;
     industryFit: number;
   };
-  
+
   // Premium analysis data
   executive_summary: string;
   scoring_rationale?: string; // Detailed explanation of how the score was calculated

@@ -19,6 +19,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import EditableWidgetGrid from '../components/hub/EditableWidgetGrid';
+import { trackStartTrial } from '../lib/trackingEvents';
 import { loadThemeFromStorage } from '../lib/theme';
 import MobileNavigation from '../components/mobile/MobileNavigation';
 import MobileTopBar from '../components/mobile/MobileTopBar';
@@ -72,6 +73,14 @@ export default function HubPage() {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [successRate, setSuccessRate] = useState(0);
   const [showAllFeatures, setShowAllFeatures] = useState(false);
+
+  // Track StartTrial for new users (first hub visit)
+  useEffect(() => {
+    if (isNewUser && !sessionStorage.getItem('startTrialTracked')) {
+      trackStartTrial();
+      sessionStorage.setItem('startTrialTracked', 'true');
+    }
+  }, [isNewUser]);
 
   // Load logos (light and dark)
   useEffect(() => {

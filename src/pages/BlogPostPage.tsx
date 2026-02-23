@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import SEO from '../components/SEO';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { ArrowLeft, Calendar, User, Clock, Share2 } from 'lucide-react';
@@ -99,6 +100,15 @@ export default function BlogPostPage() {
 
     return (
         <div className="bg-white min-h-screen font-sans text-gray-900">
+            {post && (
+                <SEO
+                    title={`${post.title} – Blog Cubbbe`}
+                    description={post.excerpt || post.title}
+                    url={`/blog/${slug}`}
+                    image={post.coverImage}
+                    type="article"
+                />
+            )}
             <Navbar />
 
             <main className="pb-20">

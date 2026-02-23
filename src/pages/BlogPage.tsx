@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import SEO from '../components/SEO';
 import { ArrowRight, ArrowLeft, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { syncUserToBrevo } from '../services/brevo';
 import Navbar from '../components/Navbar';
@@ -97,6 +98,11 @@ export default function BlogPage() {
 
     return (
         <div className="bg-white min-h-screen font-sans text-gray-900">
+            <SEO
+                title="Blog Cubbbe – Conseils emploi, carrière et recherche d'emploi"
+                description="Retrouvez nos articles et conseils sur la recherche d'emploi, la rédaction de CV, la préparation d'entretiens et les tendances du marché du travail."
+                url="/blog"
+            />
             <Navbar />
 
             {/* Decorative Grid Background */}
@@ -129,17 +135,17 @@ export default function BlogPage() {
                                         </span>
                                     </div>
 
-                                    <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-[1.15] tracking-tight">
+                                    <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-[1.15] tracking-tight line-clamp-3">
                                         {featuredPost.title}
                                     </h2>
 
-                                    <p className="text-lg text-white/80 mb-8 leading-relaxed">
+                                    <p className="text-lg text-white/80 mb-8 leading-relaxed line-clamp-2">
                                         {featuredPost.excerpt}
                                     </p>
 
                                     <div className="flex items-center gap-6">
                                         <button
-                                            onClick={() => window.location.href = `/blog/${featuredPost.slug}`}
+                                            onClick={() => window.location.href = `/ blog / ${featuredPost.slug} `}
                                             className="group inline-flex items-center text-lg font-medium text-white border-b border-white pb-0.5 hover:text-[#9EF01A] hover:border-[#9EF01A] transition-all"
                                         >
                                             Read article
@@ -167,8 +173,8 @@ export default function BlogPage() {
                                                     <button
                                                         key={idx}
                                                         onClick={() => setCarouselIndex(idx)}
-                                                        className={`w-2 h-2 rounded-full transition-all ${idx === carouselIndex ? 'bg-[#9EF01A] w-6' : 'bg-white/30 hover:bg-white/50'
-                                                            }`}
+                                                        className={`w - 2 h - 2 rounded - full transition - all ${idx === carouselIndex ? 'bg-[#9EF01A] w-6' : 'bg-white/30 hover:bg-white/50'
+                                                            } `}
                                                     />
                                                 ))}
                                             </div>
@@ -222,10 +228,10 @@ export default function BlogPage() {
                                         <button
                                             key={category}
                                             onClick={() => setActiveCategory(category)}
-                                            className={`text-sm font-medium transition-colors ${activeCategory === category
+                                            className={`text - sm font - medium transition - colors ${activeCategory === category
                                                 ? 'text-gray-900 font-bold decoration-2 underline underline-offset-4'
                                                 : 'text-gray-500 hover:text-gray-900'
-                                                }`}
+                                                } `}
                                         >
                                             {category}
                                         </button>
@@ -243,7 +249,7 @@ export default function BlogPage() {
                                     <motion.div
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        onClick={() => window.location.href = `/blog/${otherPosts[0].slug}`}
+                                        onClick={() => window.location.href = `/ blog / ${otherPosts[0].slug} `}
                                         className="group cursor-pointer h-full flex flex-col"
                                     >
                                         <div className="aspect-[4/3] overflow-hidden rounded-lg mb-6 bg-gray-100">
@@ -263,11 +269,11 @@ export default function BlogPage() {
                                             </span>
                                         </div>
 
-                                        <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-[#7066fd] transition-colors leading-tight">
+                                        <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-[#7066fd] transition-colors leading-tight line-clamp-2">
                                             {otherPosts[0].title}
                                         </h3>
 
-                                        <p className="text-gray-600 text-sm leading-relaxed mb-6">
+                                        <p className="text-gray-600 text-sm leading-relaxed mb-6 line-clamp-2">
                                             {otherPosts[0].excerpt}
                                         </p>
 
@@ -288,7 +294,7 @@ export default function BlogPage() {
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: index * 0.1 }}
-                                        onClick={() => window.location.href = `/blog/${post.slug}`}
+                                        onClick={() => window.location.href = `/ blog / ${post.slug} `}
                                         className="group cursor-pointer border-b border-gray-100 pb-8 last:border-0"
                                     >
                                         <div className="flex items-center justify-between mb-2">
@@ -300,7 +306,7 @@ export default function BlogPage() {
                                             </span>
                                         </div>
 
-                                        <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-[#7066fd] transition-colors leading-tight">
+                                        <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-[#7066fd] transition-colors leading-tight line-clamp-2">
                                             {post.title}
                                         </h3>
 
@@ -344,13 +350,13 @@ export default function BlogPage() {
                         <button
                             type="submit"
                             disabled={status === 'loading' || status === 'success'}
-                            className={`px-6 py-3 font-semibold rounded-md transition-all flex items-center justify-center min-w-[120px]
+                            className={`px - 6 py - 3 font - semibold rounded - md transition - all flex items - center justify - center min - w - [120px]
                                 ${status === 'success'
                                     ? 'bg-green-600 text-white hover:bg-green-700'
                                     : status === 'error'
                                         ? 'bg-red-600 text-white hover:bg-red-700'
                                         : 'bg-black text-white hover:bg-gray-800'
-                                } disabled:opacity-80 disabled:cursor-not-allowed`}
+                                } disabled: opacity - 80 disabled: cursor - not - allowed`}
                         >
                             {status === 'loading' ? (
                                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -373,7 +379,7 @@ export default function BlogPage() {
                         <motion.p
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className={`mt-4 text-sm font-medium ${status === 'success' ? 'text-green-600' : 'text-red-600'}`}
+                            className={`mt - 4 text - sm font - medium ${status === 'success' ? 'text-green-600' : 'text-red-600'} `}
                         >
                             {message}
                         </motion.p>

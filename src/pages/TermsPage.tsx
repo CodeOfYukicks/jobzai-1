@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import SEO from '../components/SEO';
 import { Link } from 'react-router-dom';
 import { FileText, ArrowLeft } from 'lucide-react';
 import Footer from '../components/Footer';
@@ -6,6 +7,11 @@ import Footer from '../components/Footer';
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
+      <SEO
+        title="Conditions d'utilisation – Cubbbe"
+        description="Consultez les conditions générales d'utilisation de la plateforme Cubbbe."
+        url="/terms"
+      />
       {/* Header */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">

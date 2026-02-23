@@ -36,7 +36,7 @@ function GapItem({ gap, index }: { gap: Gap; index: number }) {
 
   const severityLabel = {
     High: 'High Priority',
-    Medium: 'Medium Priority', 
+    Medium: 'Medium Priority',
     Low: 'Low Priority'
   };
 
@@ -261,15 +261,15 @@ export default function GapsActionsTab({ analysis }: GapsActionsTabProps) {
 
           {/* Messages */}
           {actionPlan.message_to_recruiter && (
-            <CopyableMessage 
-              title="Message to Recruiter" 
-              message={actionPlan.message_to_recruiter} 
+            <CopyableMessage
+              title="Message to Recruiter"
+              message={actionPlan.message_to_recruiter}
             />
           )}
           {actionPlan.job_specific_positioning && (
-            <CopyableMessage 
-              title="Job-Specific Positioning" 
-              message={actionPlan.job_specific_positioning} 
+            <CopyableMessage
+              title="Job-Specific Positioning"
+              message={actionPlan.job_specific_positioning}
             />
           )}
         </div>

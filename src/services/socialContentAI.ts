@@ -1,6 +1,8 @@
 import {
     SocialPlatform,
     SocialTone,
+    TweetTemplate,
+    ContentMode,
     GenerateSocialPostConfig,
     GeneratedSocialContent,
     PLATFORM_LIMITS,
@@ -67,38 +69,28 @@ LANGUAGE: English`,
     },
 
     twitter: {
-        fr: `Tu es un Éditeur en Chef d'un média Tech/Business (type Bloomberg).
-Ton objectif : Créer un tweet "Flash Info" percutant et ultra-court.
+        fr: `Tu écris des tweets pour Twitter/X. Tu connais les codes de la plateforme.
 
-STRUCTURE OBLIGATOIRE (DOIT TENIR EN < 250 CARACTÈRES) :
-1. 🔴 ACCROCHE : 3-5 mots pour le sujet.
-2. 📄 L'ESSENTIEL : 1 ou 2 points clés maximum (puces •).
-3. 🧠 IMPACT : Une phrase très courte sur la conséquence.
+RÈGLES UNIVERSELLES TWITTER :
+- VISER 220-250 CARACTÈRES MAX. C'est court, chaque mot compte.
+- Supprime les mots de liaison inutiles.
+- Pas de hashtags dans le texte (ils seront ajoutés séparément).
+- Style direct, percutant, mémorable.
+- Un seul message par tweet, pas de liste exhaustive.
 
-RÈGLES DE LONGUEUR CRITIQUES :
-- VISER 220-240 CARACTÈRES MAX. Il faut de la marge.
-- Supprime tous les mots de liaison inutiles.
-- Style télégraphique autorisé mais clair.
-- Pas de hashtags dans le texte (ils seront ajoutés après).
-
-MAXIMUM ABSOLU : 250 caractères pour le texte.
+MAXIMUM ABSOLU : 260 caractères pour le texte.
 LANGUE : Français`,
 
-        en: `You are an Editor-in-Chief at a leading Tech/Business media (like Bloomberg).
-Your goal: Create a punchy, ultra-short "News Flash" tweet.
+        en: `You write tweets for Twitter/X. You know the platform's codes.
 
-MANDATORY STRUCTURE (MUST FIT IN < 250 CHARS):
-1. 🔴 HEADLINE: 3-5 words for the topic.
-2. 📄 THE CORE: 1 or 2 key points maximum (bullets •).
-3. 🧠 IMPACT: One very short sentence on the consequence.
+UNIVERSAL TWITTER RULES:
+- AIM FOR 220-250 CHARS MAX. It's short, every word matters.
+- Cut unnecessary connector words.
+- No hashtags in the text (they will be added separately).
+- Direct, punchy, memorable style.
+- One message per tweet, no exhaustive lists.
 
-CRITICAL LENGTH RULES:
-- AIM FOR 220-240 CHARS MAX. Leave breathing room.
-- Cut all unnecessary connector words.
-- Telegraphic style allowed but must be clear.
-- No hashtags in the text (they will be added after).
-
-ABSOLUTE MAXIMUM: 250 characters for the text.
+ABSOLUTE MAXIMUM: 260 characters for the text.
 LANGUAGE: English`,
     },
 
@@ -148,6 +140,165 @@ STRICT RULES:
 - Suggest 2-3 real relevant subreddits
 - Native markdown formatting
 - LANGUAGE: English`,
+    },
+};
+
+// ============================================
+// TWEET TEMPLATE PROMPTS (applied on top of base twitter prompt)
+// ============================================
+
+const TWEET_TEMPLATE_PROMPTS: Record<TweetTemplate, Record<'fr' | 'en', string>> = {
+    news_flash: {
+        fr: `STYLE : Flash Info (type Bloomberg/Reuters)
+STRUCTURE OBLIGATOIRE :
+1. 🔴 ACCROCHE : 3-5 mots pour le sujet
+2. 📄 L'ESSENTIEL : 1-2 points clés max (puces •)
+3. 🧠 IMPACT : Une phrase très courte sur la conséquence
+
+Exemple de résultat :
+🔴 Job Search Surge
+📄 THE CORE: • Indeed: recherches +31% vs Dec • Offres flat/down
+🧠 IMPACT: Plus de candidats pour les mêmes postes`,
+
+        en: `STYLE: News Flash (Bloomberg/Reuters style)
+MANDATORY STRUCTURE:
+1. 🔴 HEADLINE: 3-5 words for the topic
+2. 📄 THE CORE: 1-2 key points max (bullets •)
+3. 🧠 IMPACT: One very short sentence on the consequence
+
+Example output:
+🔴 Job Search Surge
+📄 THE CORE: • Indeed: searches +31% vs Dec • Postings flat/down
+🧠 IMPACT: More people chasing the same roles`,
+    },
+
+    hot_take: {
+        fr: `STYLE : Hot Take — opinion tranchée et contrariante
+STRUCTURE :
+1. Commence par une affirmation BOLD qui fait réagir
+2. 1-2 phrases de justification rapide
+3. Fin provocante ou question rhétorique
+
+Ton : Confiant, un peu provocateur, mais toujours smart. Pas agressif.
+Utilise aucun emoji ou 1 maximum.`,
+
+        en: `STYLE: Hot Take — bold, contrarian opinion
+STRUCTURE:
+1. Start with a BOLD statement that makes people react
+2. 1-2 quick justification sentences
+3. Provocative ending or rhetorical question
+
+Tone: Confident, slightly provocative, but always smart. Not aggressive.
+Use zero or 1 emoji max.`,
+    },
+
+    data_drop: {
+        fr: `STYLE : Data Drop — stat percutante en ouverture
+STRUCTURE :
+1. Commence DIRECTEMENT par un chiffre/stat frappant (pas de phrase d'intro)
+2. 1-2 phrases de contexte ou comparaison
+3. "Et alors ?" — la conséquence en 1 phrase
+
+Utilise 📊 comme ancre visuelle.`,
+
+        en: `STYLE: Data Drop — lead with a striking stat
+STRUCTURE:
+1. Start DIRECTLY with a striking number/stat (no intro sentence)
+2. 1-2 sentences of context or comparison
+3. "So what?" — the consequence in 1 sentence
+
+Use 📊 as visual anchor.`,
+    },
+
+    story_hook: {
+        fr: `STYLE : Story Hook — accroche personnelle narrative
+STRUCTURE :
+1. Commence par "J'ai..." ou "La semaine dernière..." ou "Un recruteur m'a dit..."
+2. Une anecdote COURTE et concrète (2-3 phrases max)
+3. La leçon / le takeaway en 1 phrase
+
+Ton : Personnel, authentique, conversationnel. Comme si tu racontais ça à un ami.`,
+
+        en: `STYLE: Story Hook — personal narrative opener
+STRUCTURE:
+1. Start with "I..." or "Last week..." or "A recruiter told me..."
+2. A SHORT concrete anecdote (2-3 sentences max)
+3. The lesson / takeaway in 1 sentence
+
+Tone: Personal, authentic, conversational. Like telling a friend.`,
+    },
+
+    question_hook: {
+        fr: `STYLE : Question Hook — question provocante pour engagement
+STRUCTURE :
+1. Ouvre avec une QUESTION percutante qui fait réfléchir/réagir
+2. 1-2 phrases qui développent ou apportent un angle surprenant
+3. (Optionnel) Relance avec "Et vous ?"
+
+La question doit être SPÉCIFIQUE, pas générique.
+❌ "Que pensez-vous du recrutement ?"
+✅ "Pourquoi on demande encore des lettres de motivation en 2026 ?"`,
+
+        en: `STYLE: Question Hook — provocative question for engagement
+STRUCTURE:
+1. Open with a PUNCHY question that makes people think/react
+2. 1-2 sentences that develop or provide a surprising angle
+3. (Optional) Follow up with "What about you?"
+
+The question must be SPECIFIC, not generic.
+❌ "What do you think about recruiting?"
+✅ "Why are we still asking for cover letters in 2026?"`,
+    },
+
+    thread_opener: {
+        fr: `STYLE : Thread Opener — teaser de thread viral
+STRUCTURE :
+1. Accroche qui annonce du contenu précieux ("J'ai analysé...", "Voici ce que personne ne dit sur...")
+2. Un aperçu de ce qu'on va trouver (2-3 points avec →)
+3. Fin avec "Thread 🧵"
+
+Le tweet doit donner ENVIE de lire la suite. C'est un cliffhanger.`,
+
+        en: `STYLE: Thread Opener — viral thread teaser
+STRUCTURE:
+1. Hook that promises valuable content ("I analyzed...", "Here's what nobody says about...")
+2. A preview of what's coming (2-3 points with →)
+3. End with "Thread 🧵"
+
+The tweet must make people WANT to read more. It's a cliffhanger.`,
+    },
+};
+
+// ============================================
+// CONTENT MODE INSTRUCTIONS
+// ============================================
+
+const CONTENT_MODE_INSTRUCTIONS: Record<ContentMode, Record<'fr' | 'en', string>> = {
+    news: {
+        fr: `MODE CONTENU : ACTUALITÉ
+Le sujet donné est une actualité récente ou une tendance du moment. Traite-le comme un fait d'actualité :
+- Cite la source ou l'événement si possible
+- Donne le contexte temporel ("cette semaine", "vient d'être publié")
+- Focus sur ce qui est NOUVEAU et pourquoi ça compte maintenant`,
+
+        en: `CONTENT MODE: NEWS
+The given topic is recent news or a current trend. Treat it as a current event:
+- Cite the source or event if possible
+- Give temporal context ("this week", "just released")
+- Focus on what's NEW and why it matters now`,
+    },
+    topic: {
+        fr: `MODE CONTENU : SUJET / INSIGHT
+Le sujet donné est un thème de fond, pas une actu. Traite-le comme un insight sectoriel :
+- Partage une perspective ou un angle original
+- Appuie-toi sur ton expérience ou des observations terrain
+- L'objectif est d'apporter de la VALEUR et de susciter la réflexion, pas de rapporter un événement`,
+
+        en: `CONTENT MODE: TOPIC / INSIGHT
+The given topic is a broad theme, not breaking news. Treat it as an industry insight:
+- Share a perspective or original angle
+- Draw from experience or field observations
+- The goal is to deliver VALUE and provoke thought, not report an event`,
     },
 };
 
@@ -205,9 +356,27 @@ async function generateForPlatform(
     tone: SocialTone,
     language: 'fr' | 'en',
     mentionBrand: boolean = false,
-    additionalContext?: string
+    additionalContext?: string,
+    tweetTemplate?: TweetTemplate,
+    contentMode?: ContentMode
 ): Promise<GeneratedSocialContent> {
-    const platformPrompt = PLATFORM_PROMPTS[platform][language];
+    let platformPrompt = PLATFORM_PROMPTS[platform][language];
+
+    // Inject tweet template prompt for Twitter
+    if (platform === 'twitter' && tweetTemplate) {
+        const templatePrompt = TWEET_TEMPLATE_PROMPTS[tweetTemplate][language];
+        platformPrompt += `\n\n${templatePrompt}`;
+    } else if (platform === 'twitter') {
+        // Default to news_flash if no template specified
+        platformPrompt += `\n\n${TWEET_TEMPLATE_PROMPTS.news_flash[language]}`;
+    }
+
+    // Inject content mode instructions
+    if (contentMode) {
+        const modeInstruction = CONTENT_MODE_INSTRUCTIONS[contentMode][language];
+        platformPrompt += `\n\n${modeInstruction}`;
+    }
+
     const toneInstruction = TONE_INSTRUCTIONS[tone][language];
     const humanRules = HUMAN_WRITING_RULES[language];
     const brandContext = mentionBrand ? CUBBBE_CONTEXT[language] : '';
@@ -299,10 +468,10 @@ ${language === 'fr'
 export async function generateMultiPlatformPosts(
     config: GenerateSocialPostConfig
 ): Promise<GeneratedSocialContent[]> {
-    const { topic, platforms, tone, language, additionalContext, mentionBrand } = config;
+    const { topic, platforms, tone, language, additionalContext, mentionBrand, tweetTemplate, contentMode } = config;
 
     const promises = platforms.map((platform) =>
-        generateForPlatform(topic, platform, tone, language, mentionBrand ?? false, additionalContext)
+        generateForPlatform(topic, platform, tone, language, mentionBrand ?? false, additionalContext, tweetTemplate, contentMode)
     );
 
     const results = await Promise.all(promises);
@@ -319,7 +488,9 @@ export async function regenerateSinglePost(
     tone: SocialTone,
     language: 'fr' | 'en',
     mentionBrand: boolean = false,
-    additionalContext?: string
+    additionalContext?: string,
+    tweetTemplate?: TweetTemplate,
+    contentMode?: ContentMode
 ): Promise<GeneratedSocialContent> {
-    return generateForPlatform(topic, platform, tone, language, mentionBrand, additionalContext);
+    return generateForPlatform(topic, platform, tone, language, mentionBrand, additionalContext, tweetTemplate, contentMode);
 }

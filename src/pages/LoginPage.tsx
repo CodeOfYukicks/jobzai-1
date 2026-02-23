@@ -1,4 +1,5 @@
 import { useState, useLayoutEffect } from 'react';
+import SEO from '../components/SEO';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Loader2, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -104,6 +105,12 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex bg-white">
+      <SEO
+        title="Connexion – Cubbbe"
+        description="Connectez-vous à votre compte Cubbbe pour accéder à vos candidatures, CV et outils de recherche d'emploi."
+        url="/login"
+        noindex={true}
+      />
       {/* Form Panel - Left */}
       <div className="w-full lg:w-[45%] min-h-screen flex items-center justify-center p-6 lg:p-12">
         <motion.div

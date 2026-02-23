@@ -1,4 +1,5 @@
 import { useState, useLayoutEffect, useMemo } from 'react';
+import SEO from '../components/SEO';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Loader2, RefreshCw, Eye, EyeOff, Check, X, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -149,6 +150,11 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex bg-white">
+      <SEO
+        title="Inscription – Cubbbe | Créez votre compte gratuitement"
+        description="Créez votre compte Cubbbe et commencez à automatiser votre recherche d'emploi avec l'IA. Inscription gratuite."
+        url="/signup"
+      />
       {/* Form Panel - Left */}
       <div className="w-full lg:w-[45%] min-h-screen flex items-center justify-center p-6 lg:p-12">
         <motion.div

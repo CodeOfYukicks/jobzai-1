@@ -20,6 +20,7 @@ export const sitemap = functions.https.onRequest(async (req, res) => {
             { path: '/privacy', changefreq: 'yearly', priority: '0.3' },
             { path: '/terms', changefreq: 'yearly', priority: '0.3' },
             { path: '/cookies', changefreq: 'yearly', priority: '0.3' },
+            { path: '/faq', changefreq: 'monthly', priority: '0.6' },
         ];
 
         // Fetch published blog posts

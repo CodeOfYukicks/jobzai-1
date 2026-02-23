@@ -2,7 +2,7 @@
 import './lib/suppressTldrawLicense';
 
 import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import { createRoot, hydrateRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { RecommendationsProvider } from './contexts/RecommendationsContext';
@@ -15,7 +15,9 @@ import { initializeTheme } from './lib/theme';
 // Initialize theme from localStorage on startup
 initializeTheme();
 
-createRoot(document.getElementById('root')!).render(
+const rootElement = document.getElementById('root')!;
+
+const app = (
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
@@ -30,3 +32,10 @@ createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </StrictMode>
 );
+
+// If react-snap has pre-rendered content, hydrate instead of creating new root
+if (rootElement.hasChildNodes()) {
+  hydrateRoot(rootElement, app);
+} else {
+  createRoot(rootElement).render(app);
+}

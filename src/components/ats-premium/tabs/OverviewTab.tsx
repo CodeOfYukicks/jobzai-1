@@ -148,8 +148,8 @@ export default function OverviewTab({ analysis }: OverviewTabProps) {
           <div className="flex items-center gap-3 sm:gap-6">
             <div className="flex items-baseline gap-1 sm:gap-2 flex-shrink-0">
               <span className={`text-2xl sm:text-4xl font-semibold tabular-nums ${analysis.match_scores.ats_keywords_score >= 70
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-amber-600 dark:text-amber-400'
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-amber-600 dark:text-amber-400'
                 }`}>
                 {analysis.match_scores.ats_keywords_score}%
               </span>
@@ -158,8 +158,8 @@ export default function OverviewTab({ analysis }: OverviewTabProps) {
             <div className="flex-1 h-1.5 sm:h-2 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
               <div
                 className={`h-full transition-all duration-700 ${analysis.match_scores.ats_keywords_score >= 70
-                    ? 'bg-emerald-500'
-                    : 'bg-amber-500'
+                  ? 'bg-emerald-500'
+                  : 'bg-amber-500'
                   }`}
                 style={{ width: `${analysis.match_scores.ats_keywords_score}%` }}
               />

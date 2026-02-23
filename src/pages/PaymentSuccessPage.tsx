@@ -7,6 +7,7 @@ import { doc, onSnapshot, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { notify } from '@/lib/notify';
 import { recordCreditHistory } from '../lib/creditHistory';
+import { trackPurchase } from '../lib/trackingEvents';
 
 export default function PaymentSuccessPage() {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ export default function PaymentSuccessPage() {
     let hasRedirected = false;
     let timeoutId: NodeJS.Timeout;
     let hasProcessedSession = false;
+    let hasTrackedPurchase = false;
 
     // Function to manually process the session if webhook didn't fire
     const processSessionManually = async () => {
@@ -111,6 +113,16 @@ export default function PaymentSuccessPage() {
 
           if (data.paymentStatus === 'active' || data.lastPaymentDate || data.plan) {
             hasRedirected = true;
+
+            // Track Purchase conversion event
+            if (!hasTrackedPurchase) {
+              hasTrackedPurchase = true;
+              const subData = pendingSubscription || data.pendingSubscription || {};
+              const purchaseValue = parseFloat(subData.price || subData.plan?.price || '0');
+              if (purchaseValue > 0) {
+                trackPurchase(purchaseValue, 'EUR');
+              }
+            }
             if (timeoutId) clearTimeout(timeoutId);
 
             if (shouldCompleteProfile && profileData && pendingSubscription) {
@@ -235,6 +247,16 @@ export default function PaymentSuccessPage() {
           }
         } catch (error) {
           console.error('Error checking for pending profile:', error);
+        }
+
+        // Track Purchase conversion event (fallback path)
+        if (!hasTrackedPurchase) {
+          hasTrackedPurchase = true;
+          const subData = pendingSubscription || {};
+          const purchaseValue = parseFloat(subData.price || subData.plan?.price || '0');
+          if (purchaseValue > 0) {
+            trackPurchase(purchaseValue, 'EUR');
+          }
         }
 
         if (shouldCompleteProfile && profileData && pendingSubscription) {

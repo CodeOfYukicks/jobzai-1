@@ -114,10 +114,10 @@ export default function CreateNewsModal({
                         </div>
                         <div>
                             <h2 className="text-base font-bold text-gray-900 leading-tight">
-                                Actualités & Tendances
+                                {language === 'fr' ? 'Actualités & Tendances' : 'News & Trends'}
                             </h2>
                             <p className="text-xs text-gray-500">
-                                Propulsé par Perplexity + GPT-5
+                                {language === 'fr' ? 'Propulsé par Perplexity + GPT-5' : 'Powered by Perplexity + GPT-5'}
                             </p>
                         </div>
                     </div>
@@ -136,7 +136,7 @@ export default function CreateNewsModal({
                             {/* Topic Input */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Sujet d'actualité
+                                    {language === 'fr' ? 'Sujet d\'actualité' : 'News Topic'}
                                 </label>
                                 <div className="space-y-3">
                                     <div className="relative">
@@ -147,7 +147,7 @@ export default function CreateNewsModal({
                                             type="text"
                                             value={topic}
                                             onChange={(e) => setTopic(e.target.value)}
-                                            placeholder="Ex: IA dans le recrutement, Marché du travail 2025..."
+                                            placeholder={language === 'fr' ? 'Ex: IA dans le recrutement, Marché du travail 2025...' : 'Ex: AI in recruiting, Job market 2025...'}
                                             className="w-full pl-10 pr-4 py-3 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-gray-400"
                                             autoFocus
                                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -160,13 +160,13 @@ export default function CreateNewsModal({
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                                        Idées tendances
+                                                        {language === 'fr' ? 'Idées tendances' : 'Trending Ideas'}
                                                     </span>
                                                     <button
                                                         onClick={() => setSuggestedTopics([])}
                                                         className="text-xs text-gray-400 hover:text-gray-600"
                                                     >
-                                                        Masquer
+                                                        {language === 'fr' ? 'Masquer' : 'Hide'}
                                                     </button>
                                                 </div>
                                                 <div className="flex flex-wrap gap-2">
@@ -192,7 +192,7 @@ export default function CreateNewsModal({
                                                 ) : (
                                                     <Sparkles className="w-3 h-3" />
                                                 )}
-                                                {isSuggesting ? 'Recherche d\'idées...' : 'Suggérer des sujets tendances'}
+                                                {isSuggesting ? (language === 'fr' ? 'Recherche d\'idées...' : 'Searching for ideas...') : (language === 'fr' ? 'Suggérer des sujets tendances' : 'Suggest trending topics')}
                                             </button>
                                         )}
                                     </div>
@@ -200,7 +200,7 @@ export default function CreateNewsModal({
 
                                 <p className="mt-2 text-xs text-gray-500 flex items-center gap-1.5">
                                     <Globe className="w-3 h-3 text-gray-400" />
-                                    Perplexity va scanner le web pour les infos récentes sur ce sujet.
+                                    {language === 'fr' ? 'Perplexity va scanner le web pour les infos récentes sur ce sujet.' : 'Perplexity will scan the web for recent info on this topic.'}
                                 </p>
                             </div>
 
@@ -208,7 +208,7 @@ export default function CreateNewsModal({
                             <div className="grid grid-cols-2 gap-5">
                                 <div className="col-span-2">
                                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                                        Langue
+                                        {language === 'fr' ? 'Langue' : 'Language'}
                                     </label>
                                     <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
                                         <button
@@ -228,7 +228,7 @@ export default function CreateNewsModal({
 
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                                        Audience
+                                        {language === 'fr' ? 'Audience' : 'Audience'}
                                     </label>
                                     <select
                                         value={audience}
@@ -237,7 +237,7 @@ export default function CreateNewsModal({
                                     >
                                         {AUDIENCE_OPTIONS.map((option) => (
                                             <option key={option.value} value={option.value}>
-                                                {option.label}
+                                                {language === 'fr' ? option.label : option.labelEn}
                                             </option>
                                         ))}
                                     </select>
@@ -245,7 +245,7 @@ export default function CreateNewsModal({
 
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                                        Longueur
+                                        {language === 'fr' ? 'Longueur' : 'Length'}
                                     </label>
                                     <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
                                         {LENGTH_OPTIONS.map((option) => (
@@ -267,7 +267,7 @@ export default function CreateNewsModal({
                             <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
                                 <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2 mb-2">
                                     <Sparkles className="w-4 h-4 text-blue-600" />
-                                    Résultats de recherche
+                                    {language === 'fr' ? 'Résultats de recherche' : 'Search Results'}
                                 </h3>
                                 <textarea
                                     value={newsSummary}
@@ -276,7 +276,7 @@ export default function CreateNewsModal({
                                     className="w-full text-sm text-blue-800 bg-transparent border-0 p-0 focus:ring-0 resize-none font-medium leading-relaxed"
                                 />
                                 <p className="mt-2 text-xs text-blue-600/70 border-t border-blue-200/50 pt-2">
-                                    Vous pouvez éditer ce résumé avant de générer l'article.
+                                    {language === 'fr' ? 'Vous pouvez éditer ce résumé avant de générer l\'article.' : 'You can edit this summary before generating the article.'}
                                 </p>
                             </div>
 
@@ -284,19 +284,19 @@ export default function CreateNewsModal({
                             <div className="grid grid-cols-2 gap-5">
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                                        Mots-clés cibles
+                                        {language === 'fr' ? 'Mots-clés cibles' : 'Target Keywords'}
                                     </label>
                                     <input
                                         type="text"
                                         value={keywords}
                                         onChange={(e) => setKeywords(e.target.value)}
-                                        placeholder="Ex: recrutement, avenir..."
+                                        placeholder={language === 'fr' ? 'Ex: recrutement, avenir...' : 'Ex: recruiting, future...'}
                                         className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg"
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                                        Ton
+                                        {language === 'fr' ? 'Ton' : 'Tone'}
                                     </label>
                                     <select
                                         value={tone}
@@ -318,7 +318,7 @@ export default function CreateNewsModal({
                     {step === 'topic' ? (
                         <>
                             <p className="text-xs text-gray-500">
-                                Étape 1/2 : Recherche d'actualités
+                                {language === 'fr' ? 'Étape 1/2 : Recherche d\'actualités' : 'Step 1/2: News Research'}
                             </p>
                             <button
                                 onClick={handleSearch}
@@ -328,12 +328,12 @@ export default function CreateNewsModal({
                                 {isSearching ? (
                                     <>
                                         <Loader2 className="w-4 h-4 animate-spin" />
-                                        Recherche en cours...
+                                        {language === 'fr' ? 'Recherche en cours...' : 'Searching...'}
                                     </>
                                 ) : (
                                     <>
                                         <Search className="w-4 h-4" />
-                                        Rechercher l'actualité
+                                        {language === 'fr' ? 'Rechercher l\'actualité' : 'Search News'}
                                     </>
                                 )}
                             </button>
@@ -344,7 +344,7 @@ export default function CreateNewsModal({
                                 onClick={() => setStep('topic')}
                                 className="text-sm font-medium text-gray-600 hover:text-gray-900"
                             >
-                                Retour
+                                {language === 'fr' ? 'Retour' : 'Back'}
                             </button>
                             <button
                                 onClick={handleSubmit}
@@ -354,12 +354,12 @@ export default function CreateNewsModal({
                                 {isGenerating ? (
                                     <>
                                         <Loader2 className="w-4 h-4 animate-spin" />
-                                        Rédaction...
+                                        {language === 'fr' ? 'Rédaction...' : 'Writing...'}
                                     </>
                                 ) : (
                                     <>
                                         <FileText className="w-4 h-4" />
-                                        Générer l'Article
+                                        {language === 'fr' ? 'Générer l\'Article' : 'Generate Article'}
                                     </>
                                 )}
                             </button>

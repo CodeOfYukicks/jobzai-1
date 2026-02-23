@@ -29,10 +29,14 @@ import {
     SocialPlatform,
     SocialTone,
     SocialPostStatus,
+    TweetTemplate,
+    ContentMode,
     GeneratedSocialContent,
     PLATFORM_LIMITS,
     PLATFORM_INFO,
     SocialPostData,
+    TWEET_TEMPLATES,
+    CONTENT_MODES,
 } from '../../types/socialPost';
 import { publishSocialPost } from '../../services/socialPublisher';
 import { forceLightMode } from '../../lib/theme';
@@ -481,6 +485,10 @@ export default function SocialPostEditorPage() {
     // Brand mention toggle
     const [mentionBrand, setMentionBrand] = useState(false);
 
+    // Tweet template & content mode
+    const [tweetTemplate, setTweetTemplate] = useState<TweetTemplate>('news_flash');
+    const [contentMode, setContentMode] = useState<ContentMode>('news');
+
     // Scheduling state
     const [showScheduler, setShowScheduler] = useState(false);
     const [scheduleDate, setScheduleDate] = useState('');
@@ -574,6 +582,8 @@ export default function SocialPostEditorPage() {
                 tone,
                 language,
                 mentionBrand,
+                tweetTemplate,
+                contentMode,
             });
 
             const map = new Map<SocialPlatform, GeneratedSocialContent>();
@@ -592,7 +602,7 @@ export default function SocialPostEditorPage() {
 
         setRegeneratingPlatform(platform);
         try {
-            const result = await regenerateSinglePost(topic, platform, tone, language, mentionBrand);
+            const result = await regenerateSinglePost(topic, platform, tone, language, mentionBrand, undefined, tweetTemplate, contentMode);
             setGeneratedContent((prev) => {
                 const map = new Map(prev);
                 map.set(platform, result);
@@ -1156,6 +1166,68 @@ export default function SocialPostEditorPage() {
                             <label className="block text-sm font-semibold text-gray-900 mb-3">Tone</label>
                             <ToneSelector value={tone} onChange={setTone} />
                         </div>
+
+                        {/* Content Mode */}
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                            <label className="block text-sm font-semibold text-gray-900 mb-3">
+                                {language === 'fr' ? 'Mode de contenu' : 'Content Mode'}
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {(Object.entries(CONTENT_MODES) as [ContentMode, typeof CONTENT_MODES[ContentMode]][]).map(([key, mode]) => (
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        onClick={() => setContentMode(key)}
+                                        className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 transition-all text-left ${contentMode === key
+                                                ? 'border-violet-500 bg-violet-50 shadow-sm'
+                                                : 'border-gray-200 hover:border-gray-300 bg-white'
+                                            }`}
+                                    >
+                                        <span className="text-lg">{mode.icon}</span>
+                                        <div>
+                                            <span className="font-medium text-sm text-gray-900">
+                                                {language === 'fr' ? mode.labelFr : mode.label}
+                                            </span>
+                                            <p className="text-[11px] text-gray-500 mt-0.5">
+                                                {language === 'fr' ? mode.descriptionFr : mode.description}
+                                            </p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Tweet Template (only visible when Twitter is selected) */}
+                        {selectedPlatforms.includes('twitter') && (
+                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                                    {language === 'fr' ? 'Style de tweet' : 'Tweet Style'}
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {(Object.entries(TWEET_TEMPLATES) as [TweetTemplate, typeof TWEET_TEMPLATES[TweetTemplate]][]).map(([key, template]) => (
+                                        <button
+                                            key={key}
+                                            type="button"
+                                            onClick={() => setTweetTemplate(key)}
+                                            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 transition-all text-left ${tweetTemplate === key
+                                                    ? 'border-blue-500 bg-blue-50 shadow-sm'
+                                                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                                                }`}
+                                        >
+                                            <span className="text-base flex-shrink-0">{template.icon}</span>
+                                            <div className="min-w-0">
+                                                <span className="font-medium text-sm text-gray-900 block">
+                                                    {template.label}
+                                                </span>
+                                                <p className="text-[10px] text-gray-500 mt-0.5 truncate">
+                                                    {language === 'fr' ? template.descriptionFr : template.description}
+                                                </p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Language */}
                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">

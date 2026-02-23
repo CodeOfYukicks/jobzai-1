@@ -7,13 +7,13 @@ interface MatchDetailsTabProps {
 }
 
 // Minimalist category section
-function CategorySection({ 
-  title, 
-  score, 
-  matched, 
-  missing, 
-  explanation 
-}: { 
+function CategorySection({
+  title,
+  score,
+  matched,
+  missing,
+  explanation
+}: {
   title: string;
   score: number;
   matched: string[];
@@ -49,7 +49,7 @@ function CategorySection({
           </span>
           {/* Inline progress indicator */}
           <div className="flex-1 max-w-[120px] h-1.5 bg-gray-100 dark:bg-[#3d3c3e] rounded-full overflow-hidden">
-            <div 
+            <div
               className={`h-full ${getBgColor(score)} transition-all`}
               style={{ width: `${score}%` }}
             />
@@ -74,7 +74,7 @@ function CategorySection({
               </div>
               <div className="flex flex-wrap gap-2">
                 {matched.map((item, i) => (
-                  <span 
+                  <span
                     key={i}
                     className="px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 rounded-md"
                   >
@@ -93,7 +93,7 @@ function CategorySection({
               </div>
               <div className="flex flex-wrap gap-2">
                 {missing.map((item, i) => (
-                  <span 
+                  <span
                     key={i}
                     className="px-2.5 py-1 text-xs font-medium text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/30 rounded-md"
                   >
@@ -141,7 +141,7 @@ function StrengthItem({ strength, index }: { strength: Strength; index: number }
           <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
         </div>
       </button>
-      
+
       {isExpanded && (
         <div className="mt-3 ml-8 space-y-3">
           <div className="text-sm text-gray-600 dark:text-gray-400 italic border-l-2 border-gray-200 dark:border-[#3d3c3e] pl-3">
@@ -215,7 +215,7 @@ export default function MatchDetailsTab({ analysis }: MatchDetailsTabProps) {
               </div>
               <div className="flex flex-wrap gap-2">
                 {analysis.match_breakdown.keywords.found.map((kw, i) => (
-                  <span 
+                  <span
                     key={i}
                     className="px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#3d3c3e] rounded-md"
                   >
@@ -237,7 +237,7 @@ export default function MatchDetailsTab({ analysis }: MatchDetailsTabProps) {
               </div>
               <div className="flex flex-wrap gap-2">
                 {analysis.match_breakdown.keywords.priority_missing.map((kw, i) => (
-                  <span 
+                  <span
                     key={i}
                     className="px-2.5 py-1 text-xs font-medium text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/30 rounded-md border border-rose-200/50 dark:border-rose-800/50"
                   >
@@ -259,7 +259,7 @@ export default function MatchDetailsTab({ analysis }: MatchDetailsTabProps) {
               </div>
               <div className="flex flex-wrap gap-2">
                 {analysis.match_breakdown.keywords.missing.map((kw, i) => (
-                  <span 
+                  <span
                     key={i}
                     className="px-2.5 py-1 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#3d3c3e]/50 rounded-md"
                   >

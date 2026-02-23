@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import SEO from '../components/SEO';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Check, Loader2, Sparkles, X } from 'lucide-react';
@@ -134,6 +135,11 @@ export default function PlanSelectionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
+      <SEO
+        title="Tarifs – Cubbbe | Plans et abonnements"
+        description="Découvrez les plans Cubbbe : Free, Starter et Pro. Automatisez vos candidatures, réécrivez votre CV avec l'IA et préparez vos entretiens."
+        url="/select-plan"
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Close Button */}
         <div className="absolute top-4 right-4">
@@ -171,9 +177,8 @@ export default function PlanSelectionPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 + 0.2 }}
-              className={`relative flex flex-col h-full bg-white rounded-2xl shadow-sm ${
-                plan.mostPopular ? 'ring-2 ring-[hsl(var(--primary))]' : ''
-              }`}
+              className={`relative flex flex-col h-full bg-white rounded-2xl shadow-sm ${plan.mostPopular ? 'ring-2 ring-[hsl(var(--primary))]' : ''
+                }`}
             >
               {plan.mostPopular && (
                 <div className="absolute -top-5 inset-x-0 flex justify-center">
@@ -187,7 +192,7 @@ export default function PlanSelectionPage() {
               <div className="p-6 flex-grow">
                 <h3 className="text-xl font-semibold text-gray-900">{plan.name}</h3>
                 <p className="mt-2 text-sm text-gray-500">{plan.description}</p>
-                
+
                 <div className="mt-4 flex items-baseline">
                   <span className="text-3xl font-bold tracking-tight text-gray-900">
                     €{plan.price}
@@ -211,11 +216,10 @@ export default function PlanSelectionPage() {
                 <button
                   onClick={() => handlePlanSelect(plan.id)}
                   disabled={isLoading && selectedPlan === plan.id}
-                  className={`w-full py-3 px-4 rounded-lg font-semibold text-center transition-colors ${
-                    plan.mostPopular
+                  className={`w-full py-3 px-4 rounded-lg font-semibold text-center transition-colors ${plan.mostPopular
                       ? 'bg-[hsl(var(--primary))] text-white hover:bg-[#7B65D4]'
                       : 'bg-gray-900 text-white hover:bg-gray-800'
-                  }`}
+                    }`}
                 >
                   {isLoading && selectedPlan === plan.id ? (
                     <div className="flex items-center justify-center">

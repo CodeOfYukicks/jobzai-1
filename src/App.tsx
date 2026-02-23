@@ -87,6 +87,7 @@ import { useGmailReplyChecker } from './hooks/useGmailReplyChecker';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { MicroFeedback } from './components/ui/MicroFeedback';
 import CookieConsent from './components/CookieConsent';
+import { HelmetProvider } from 'react-helmet-async';
 
 const queryClient = new QueryClient();
 
@@ -335,25 +336,27 @@ function AppContent() {
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <ToastInitializer />
-          <NotificationProvider>
-            <AssistantProvider>
-              <TourProvider>
-                <OnboardingProvider>
-                  <AppContent />
-                  <AIAssistantModal />
-                  <TourOverlay />
-                  <MicroFeedback />
-                  <CookieConsent />
-                </OnboardingProvider>
-              </TourProvider>
-            </AssistantProvider>
-          </NotificationProvider>
-        </ToastProvider>
-      </QueryClientProvider>
-    </LanguageProvider>
+    <HelmetProvider>
+      <LanguageProvider>
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <ToastInitializer />
+            <NotificationProvider>
+              <AssistantProvider>
+                <TourProvider>
+                  <OnboardingProvider>
+                    <AppContent />
+                    <AIAssistantModal />
+                    <TourOverlay />
+                    <MicroFeedback />
+                    <CookieConsent />
+                  </OnboardingProvider>
+                </TourProvider>
+              </AssistantProvider>
+            </NotificationProvider>
+          </ToastProvider>
+        </QueryClientProvider>
+      </LanguageProvider>
+    </HelmetProvider>
   );
 }

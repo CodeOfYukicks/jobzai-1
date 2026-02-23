@@ -5,18 +5,18 @@ import { notify } from '@/lib/notify';
  * @returns Base URL for API calls
  */
 function getApiBaseUrl(): string {
-  // In production, use direct Cloud Run URL for Firebase Functions v2
-  // Firebase Functions v2 are deployed on Cloud Run and need direct URL
-  // The rewrite in firebase.json doesn't work reliably with v2 functions
-  if (import.meta.env.PROD || window.location.hostname !== 'localhost') {
-    // Production: Use direct Cloud Run URL
-    // Format: https://FUNCTION_NAME-HASH-REGION.a.run.app
-    // For analyzeCVVision: https://analyzecvvision-pyozgz4rbq-uc.a.run.app
-    return 'https://analyzecvvision-pyozgz4rbq-uc.a.run.app';
-  }
+    // In production, use direct Cloud Run URL for Firebase Functions v2
+    // Firebase Functions v2 are deployed on Cloud Run and need direct URL
+    // The rewrite in firebase.json doesn't work reliably with v2 functions
+    if (import.meta.env.PROD || window.location.hostname !== 'localhost') {
+        // Production: Use direct Cloud Run URL
+        // Format: https://FUNCTION_NAME-HASH-REGION.a.run.app
+        // For analyzeCVVision: https://analyzecvvision-pyozgz4rbq-uc.a.run.app
+        return 'https://analyzecvvision-pyozgz4rbq-uc.a.run.app';
+    }
 
-  // Development: Use relative URL with proxy
-  return '/api';
+    // Development: Use relative URL with proxy
+    return '/api';
 }
 
 /**
@@ -25,11 +25,11 @@ function getApiBaseUrl(): string {
  * @returns Formatted prompt string
  */
 function buildATSAnalysisPrompt(jobDetails: {
-  jobTitle: string;
-  company: string;
-  jobDescription: string;
+    jobTitle: string;
+    company: string;
+    jobDescription: string;
 }): string {
-  return `
+    return `
 # ELITE ATS & RECRUITMENT ANALYSIS ENGINE - COMPREHENSIVE VISION ANALYSIS
 
 CRITICAL: Return ONLY valid JSON. No markdown, no code blocks, no explanations outside JSON structure.
@@ -1056,127 +1056,127 @@ Return ONLY this JSON structure (no other text):
  * @returns Analysis results
  */
 export async function analyzeCVWithGPT4Vision(
-  images: string[],
-  jobDetails: {
-    jobTitle: string;
-    company: string;
-    jobDescription: string;
-  }
+    images: string[],
+    jobDetails: {
+        jobTitle: string;
+        company: string;
+        jobDescription: string;
+    }
 ): Promise<any> {
-  try {
-    console.log('🔍 Starting CV analysis with GPT-4o Vision...');
-    console.log(`   Images: ${images.length} page(s)`);
-    console.log(`   Job: ${jobDetails.jobTitle} at ${jobDetails.company}`);
-
-    const baseApiUrl = getApiBaseUrl();
-    // For direct Cloud Run URL, use it directly (no /api/analyze-cv-vision path)
-    // For relative URL (/api), append the endpoint path
-    const apiUrl = baseApiUrl.startsWith('http')
-      ? baseApiUrl  // Direct Cloud Run URL - use as is
-      : `${baseApiUrl}/analyze-cv-vision`;  // Relative URL - append path
-
-    // Build the prompt
-    const prompt = buildATSAnalysisPrompt(jobDetails);
-
-    // Build content array with text prompt and images
-    const content: any[] = [
-      {
-        type: "text",
-        text: prompt
-      }
-    ];
-
-    // Add each image with optimized settings for comprehensive analysis
-    images.forEach((image, index) => {
-      content.push({
-        type: "image_url",
-        image_url: {
-          url: `data:image/jpeg;base64,${image}`,
-          // Using "high" detail for comprehensive visual analysis (logos, images, structure, formatting)
-          // This enables GPT-4o Vision to analyze visual elements, not just text
-          detail: "high" // High detail for comprehensive visual analysis (logos, images, structure, formatting, typography)
-        }
-      });
-      console.log(`   ✓ Added image ${index + 1} (${(image.length / 1024).toFixed(1)} KB) with high detail for comprehensive analysis`);
-    });
-
-    console.log('📡 Sending request to GPT-4o Vision API...');
-
-    // Send request to API endpoint
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: "gpt-5.2",
-        messages: [
-          {
-            role: "system",
-            content: "You are a senior ATS specialist with 25+ years of experience analyzing 100,000+ resumes, a certified HR recruiter, a career strategist, and a visual design expert. You understand exactly what makes candidates pass or fail ATS filters, recruiter screening, and hiring manager review. You are an expert at reading between the lines, understanding visual hierarchy, and extracting meaning from both text and visual elements. Your analysis must be COMPREHENSIVE, SURGICAL, EVIDENCE-BASED, BRUTALLY HONEST, RUTHLESSLY SEVERE, and HYPER-PRECISE. You MUST analyze EVERYTHING visible in the resume images: text content, visual elements (logos, images, graphics, icons), structure, formatting, layout, typography, color schemes, and information architecture. You MUST distinguish between CRITICAL requirements (primordial) and SECONDARY requirements (nice-to-have). Missing even ONE critical requirement MUST result in a significant score penalty (20-40 points). Missing multiple critical requirements MUST result in severe penalties (40-60+ points). Use the FULL score range (0-100) and be POLARIZED - don't inflate scores. The candidate needs to TRUST your analysis, so be HONEST and SEVERE. Every score, finding, and recommendation must be justified with specific evidence from the resume images (both visual and textual). Think like a recruiter making a hiring decision - would you actually call this candidate? CRITICAL VERIFICATION RULE: Before marking ANY requirement as MISSING, you MUST thoroughly search the ENTIRE resume images for: (1) EXACT terms in text, (2) SYNONYMS and VARIATIONS (e.g., 'French' = 'français' = 'French native' = 'French speaker' = 'French language'), (3) ABBREVIATIONS (e.g., 'JS' = 'JavaScript'), (4) VISUAL INDICATORS (logos, badges, icons that indicate skills/qualifications), (5) ALL sections (Skills, Experience, Education, Summary, Certifications, Languages, Projects, etc.). For languages specifically, check for: 'French native', 'native French', 'French speaker', 'fluent in French', 'French language', 'français', 'bilingual French/English', language flags/icons, etc. If you find the requirement in ANY form (text or visual), mark it as FOUND with the exact location. DO NOT mark as missing if you haven't thoroughly searched both text and visual elements. Return ONLY valid JSON - no markdown, no code blocks, no explanations outside the JSON structure."
-          },
-          {
-            role: "user",
-            content: content
-          }
-        ],
-        response_format: { type: "json_object" }, // Force JSON response
-        max_tokens: 8000, // Increased for comprehensive analysis (visual + textual elements)
-        temperature: 0.1, // Lower temperature for more precise, consistent, evidence-based analysis
-        reasoning_effort: "high" // GPT-5.1 feature for comprehensive ATS analysis
-      })
-    });
-
-    if (!response.ok) {
-      let errorMessage = `API error: ${response.status} ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        console.error('❌ GPT-4o Vision API error:', errorData);
-        errorMessage = `GPT-4o Vision API error: ${errorData.error?.message || errorData.message || response.statusText}`;
-      } catch (e) {
-        console.error('Could not parse error response', e);
-      }
-      throw new Error(errorMessage);
-    }
-
-    const data = await response.json();
-    console.log('✅ GPT-4o Vision analysis completed successfully');
-
-    // Parse the response
     try {
-      if (data.status === 'success' && data.content) {
-        let parsedAnalysis;
+        console.log('🔍 Starting CV analysis with GPT-4o Vision...');
+        console.log(`   Images: ${images.length} page(s)`);
+        console.log(`   Job: ${jobDetails.jobTitle} at ${jobDetails.company}`);
 
-        // The API should return JSON directly due to response_format: "json_object"
-        if (typeof data.content === 'string') {
-          // Try to parse as JSON
-          parsedAnalysis = JSON.parse(data.content);
-        } else if (typeof data.content === 'object') {
-          // Already parsed
-          parsedAnalysis = data.content;
-        } else {
-          throw new Error('Invalid response format from GPT-4o Vision API');
+        const baseApiUrl = getApiBaseUrl();
+        // For direct Cloud Run URL, use it directly (no /api/analyze-cv-vision path)
+        // For relative URL (/api), append the endpoint path
+        const apiUrl = baseApiUrl.startsWith('http')
+            ? baseApiUrl  // Direct Cloud Run URL - use as is
+            : `${baseApiUrl}/analyze-cv-vision`;  // Relative URL - append path
+
+        // Build the prompt
+        const prompt = buildATSAnalysisPrompt(jobDetails);
+
+        // Build content array with text prompt and images
+        const content: any[] = [
+            {
+                type: "text",
+                text: prompt
+            }
+        ];
+
+        // Add each image with optimized settings for comprehensive analysis
+        images.forEach((image, index) => {
+            content.push({
+                type: "image_url",
+                image_url: {
+                    url: `data:image/jpeg;base64,${image}`,
+                    // Using "high" detail for comprehensive visual analysis (logos, images, structure, formatting)
+                    // This enables GPT-4o Vision to analyze visual elements, not just text
+                    detail: "high" // High detail for comprehensive visual analysis (logos, images, structure, formatting, typography)
+                }
+            });
+            console.log(`   ✓ Added image ${index + 1} (${(image.length / 1024).toFixed(1)} KB) with high detail for comprehensive analysis`);
+        });
+
+        console.log('📡 Sending request to GPT-4o Vision API...');
+
+        // Send request to API endpoint
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: "gpt-5.2",
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a senior ATS specialist with 25+ years of experience analyzing 100,000+ resumes, a certified HR recruiter, a career strategist, and a visual design expert. You understand exactly what makes candidates pass or fail ATS filters, recruiter screening, and hiring manager review. You are an expert at reading between the lines, understanding visual hierarchy, and extracting meaning from both text and visual elements. Your analysis must be COMPREHENSIVE, SURGICAL, EVIDENCE-BASED, BRUTALLY HONEST, RUTHLESSLY SEVERE, and HYPER-PRECISE. You MUST analyze EVERYTHING visible in the resume images: text content, visual elements (logos, images, graphics, icons), structure, formatting, layout, typography, color schemes, and information architecture. You MUST distinguish between CRITICAL requirements (primordial) and SECONDARY requirements (nice-to-have). Missing even ONE critical requirement MUST result in a significant score penalty (20-40 points). Missing multiple critical requirements MUST result in severe penalties (40-60+ points). Use the FULL score range (0-100) and be POLARIZED - don't inflate scores. The candidate needs to TRUST your analysis, so be HONEST and SEVERE. Every score, finding, and recommendation must be justified with specific evidence from the resume images (both visual and textual). Think like a recruiter making a hiring decision - would you actually call this candidate? CRITICAL VERIFICATION RULE: Before marking ANY requirement as MISSING, you MUST thoroughly search the ENTIRE resume images for: (1) EXACT terms in text, (2) SYNONYMS and VARIATIONS (e.g., 'French' = 'français' = 'French native' = 'French speaker' = 'French language'), (3) ABBREVIATIONS (e.g., 'JS' = 'JavaScript'), (4) VISUAL INDICATORS (logos, badges, icons that indicate skills/qualifications), (5) ALL sections (Skills, Experience, Education, Summary, Certifications, Languages, Projects, etc.). For languages specifically, check for: 'French native', 'native French', 'French speaker', 'fluent in French', 'French language', 'français', 'bilingual French/English', language flags/icons, etc. If you find the requirement in ANY form (text or visual), mark it as FOUND with the exact location. DO NOT mark as missing if you haven't thoroughly searched both text and visual elements. Return ONLY valid JSON - no markdown, no code blocks, no explanations outside the JSON structure."
+                    },
+                    {
+                        role: "user",
+                        content: content
+                    }
+                ],
+                response_format: { type: "json_object" }, // Force JSON response
+                max_tokens: 8000, // Increased for comprehensive analysis (visual + textual elements)
+                temperature: 0.1, // Lower temperature for more precise, consistent, evidence-based analysis
+                reasoning_effort: "high" // GPT-5.1 feature for comprehensive ATS analysis
+            })
+        });
+
+        if (!response.ok) {
+            let errorMessage = `API error: ${response.status} ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                console.error('❌ GPT-4o Vision API error:', errorData);
+                errorMessage = `GPT-4o Vision API error: ${errorData.error?.message || errorData.message || response.statusText}`;
+            } catch (e) {
+                console.error('Could not parse error response', e);
+            }
+            throw new Error(errorMessage);
         }
 
-        return {
-          ...parsedAnalysis,
-          date: new Date().toISOString(),
-          id: `gpt4_vision_${Date.now()}`
-        };
-      } else {
-        throw new Error(data.message || 'API returned error status');
-      }
-    } catch (parseError) {
-      console.error('Failed to parse GPT-4o Vision response:', parseError);
-      throw new Error('Invalid analysis format received from GPT-4o Vision. Please try again.');
+        const data = await response.json();
+        console.log('✅ GPT-4o Vision analysis completed successfully');
+
+        // Parse the response
+        try {
+            if (data.status === 'success' && data.content) {
+                let parsedAnalysis;
+
+                // The API should return JSON directly due to response_format: "json_object"
+                if (typeof data.content === 'string') {
+                    // Try to parse as JSON
+                    parsedAnalysis = JSON.parse(data.content);
+                } else if (typeof data.content === 'object') {
+                    // Already parsed
+                    parsedAnalysis = data.content;
+                } else {
+                    throw new Error('Invalid response format from GPT-4o Vision API');
+                }
+
+                return {
+                    ...parsedAnalysis,
+                    date: new Date().toISOString(),
+                    id: `gpt4_vision_${Date.now()}`
+                };
+            } else {
+                throw new Error(data.message || 'API returned error status');
+            }
+        } catch (parseError) {
+            console.error('Failed to parse GPT-4o Vision response:', parseError);
+            throw new Error('Invalid analysis format received from GPT-4o Vision. Please try again.');
+        }
+    } catch (error: unknown) {
+        console.error('❌ GPT-4o Vision API call failed:', error);
+        notify.error(
+            `Failed to analyze CV with GPT-4o Vision: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+        throw error;
     }
-  } catch (error: unknown) {
-    console.error('❌ GPT-4o Vision API call failed:', error);
-    notify.error(
-      `Failed to analyze CV with GPT-4o Vision: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
-    throw error;
-  }
 }
 
 

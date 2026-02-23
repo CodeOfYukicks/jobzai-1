@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import SEO from '../components/SEO';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Mail, MessageCircle, HelpCircle } from 'lucide-react';
 import Footer from '../components/Footer';
@@ -75,6 +76,12 @@ const FAQPage = () => {
 
     return (
         <div className="bg-white dark:bg-[#0a0a0a] min-h-screen pb-12 transition-colors duration-300">
+            <SEO
+                title="FAQ – Cubbbe | Questions fréquentes"
+                description="Trouvez les réponses à vos questions sur Cubbbe : fonctionnalités, tarifs, IA, sécurité des données et bien plus encore."
+                url="/faq"
+            />
+            {/* Floating Stickers */}
             <section
                 className="relative pt-24 pb-16 md:pt-28 md:pb-20 lg:pt-32 lg:pb-24 overflow-hidden mx-3 md:mx-4 lg:mx-6 mt-3 rounded-[24px] md:rounded-[32px]"
                 style={{

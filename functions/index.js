@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
 const dotenv = require('dotenv');
 const admin = require('firebase-admin');
+const cheerio = require('cheerio');
 const serverlessFunctions = require('./lib/index.js');
 
 // Load environment variables
@@ -45,6 +46,44 @@ async function getOpenAIApiKey() {
     if (config.openai?.api_key) {
       console.log('Using OpenAI API key from Firebase config');
       return config.openai.api_key;
+    }
+  } catch (e) {
+    console.warn('Could not access Firebase config:', e);
+  }
+
+  return null;
+}
+
+// Function to get Anthropic API key from Firestore or environment
+async function getAnthropicApiKey() {
+  try {
+    console.log('🔑 Attempting to retrieve Anthropic API key from Firestore...');
+    const settingsDoc = await admin.firestore().collection('settings').doc('anthropic').get();
+
+    if (settingsDoc.exists) {
+      const data = settingsDoc.data();
+      const apiKey = data?.apiKey || data?.api_key;
+      if (apiKey) {
+        console.log('✅ Anthropic API key retrieved from Firestore');
+        return apiKey;
+      }
+    }
+  } catch (error) {
+    console.error('❌ Failed to retrieve Anthropic API key from Firestore:', error.message);
+  }
+
+  // Fallback to environment variable
+  if (process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY) {
+    console.log('Using Anthropic API key from environment variable');
+    return process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY;
+  }
+
+  // Fallback to Firebase config
+  try {
+    const config = functions.config();
+    if (config.anthropic?.api_key) {
+      console.log('Using Anthropic API key from Firebase config');
+      return config.anthropic.api_key;
     }
   } catch (e) {
     console.warn('Could not access Firebase config:', e);
@@ -710,6 +749,222 @@ Provide 5-10 specific, actionable suggestions. Be specific to this CV.`;
 });
 
 // Exporter l'app Express en tant que fonction Firebase
+// Endpoint for job extraction (Jina + Claude)
+app.post('/api/extract-job-url', async (req, res) => {
+  try {
+    const { url } = req.body;
+
+    if (!url) {
+      return res.status(400).json({ status: 'error', message: 'URL is required' });
+    }
+
+    // Normalize URL
+    let normalizedUrl = url;
+    if (!normalizedUrl.startsWith('http')) {
+      normalizedUrl = 'https://' + normalizedUrl;
+    }
+
+    console.log('🔍 Extracting job from URL:', normalizedUrl);
+
+    // 1. Get Anthropic API Key
+    const apiKey = await getAnthropicApiKey();
+
+    if (!apiKey) {
+      console.error('❌ No Anthropic API key found');
+      return res.status(500).json({
+        status: 'error',
+        message: 'Server configuration error: Missing API Key'
+      });
+    }
+
+    // 2. Initialize variables
+    let scrapedContent = '';
+    let pageTitle = '';
+    let pageDescription = '';
+
+    // 2.5 Try to extract JSON-LD (JobPosting) directly first
+    try {
+      console.log('🕵️‍♂️ Attempting direct JSON-LD extraction...');
+      const directResponse = await fetch(normalizedUrl, {
+        headers: {
+          'User-Agent': 'curl/8.7.1',
+          'Accept': '*/*'
+        },
+        timeout: 15000,
+        redirect: 'follow'
+      });
+
+      console.log('📡 Direct fetch status:', directResponse.status);
+
+      if (directResponse.ok) {
+        const html = await directResponse.text();
+        console.log('📄 Direct fetch HTML length:', html.length);
+
+        const jsonLdMatches = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi);
+        console.log('🧩 JSON-LD matches found:', jsonLdMatches ? jsonLdMatches.length : 0);
+
+        if (jsonLdMatches) {
+          for (const match of jsonLdMatches) {
+            try {
+              let jsonContent = match.replace(/<\/?script[^>]*>/gi, '').trim();
+              jsonContent = jsonContent.replace(/[\r\n\t]/g, ' ');
+
+              const data = JSON.parse(jsonContent);
+
+              const checkEntity = (entity) => {
+                const type = entity['@type'];
+                return type === 'JobPosting' || (Array.isArray(type) && type.includes('JobPosting'));
+              };
+
+              let jobEntity = null;
+              if (Array.isArray(data)) {
+                jobEntity = data.find(checkEntity);
+              } else if (checkEntity(data)) {
+                jobEntity = data;
+              } else if (data['@graph']) {
+                jobEntity = data['@graph'].find(checkEntity);
+              }
+
+              if (jobEntity) {
+                console.log('✅ Found structured JobPosting data via JSON-LD!');
+                scrapedContent = JSON.stringify(jobEntity, null, 2);
+                pageTitle = jobEntity.title || pageTitle;
+                pageDescription = jobEntity.description || pageDescription;
+                break;
+              }
+            } catch (e) {
+              console.error('❌ JSON-LD parse error:', e.message);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ Direct JSON-LD extraction failed:', e.message);
+    }
+
+    // 3. Scrape content (Jina Reader -> Cheerio Fallback)
+    if (!scrapedContent) {
+      try {
+        console.log('Trying Jina Reader...');
+        const jinaResponse = await fetch(`https://r.jina.ai/${normalizedUrl}`, {
+          headers: {
+            'Accept': 'application/json',
+            'X-With-Images-Summary': 'true',
+            'X-With-Links-Summary': 'true'
+          },
+          timeout: 15000
+        });
+
+        if (jinaResponse.ok) {
+          const jinaData = await jinaResponse.json();
+          if (jinaData && jinaData.data && jinaData.data.content) {
+            console.log('✅ Jina Reader success');
+            scrapedContent = jinaData.data.content;
+            pageTitle = jinaData.data.title || pageTitle;
+            pageDescription = jinaData.data.description || pageDescription;
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Jina Reader failed:', error.message);
+      }
+    }
+
+    // 4. Fallback scraping (Cheerio)
+    if (!scrapedContent || scrapedContent.length < 100) {
+      try {
+        console.log('Trying direct fetch with Cheerio...');
+        const response = await fetch(normalizedUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          }
+        });
+        const html = await response.text();
+        const $ = cheerio.load(html);
+
+        // Remove scripts, styles, etc.
+        $('script, style, noscript, nav, footer, header').remove();
+        scrapedContent = $('body').text().replace(/\s+/g, ' ').trim();
+        pageTitle = $('title').text().trim() || pageTitle;
+      } catch (error) {
+        console.warn('⚠️ Cheerio fallback failed:', error.message);
+      }
+    }
+
+    if (!scrapedContent || scrapedContent.length < 50) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Could not extract content from this URL'
+      });
+    }
+
+    // 5. Extract with Claude
+    console.log('🧠 Sending content to Claude for extraction...');
+
+    const extractionPrompt = `You are a professional UR recruiter. Extract job details from the provided text into a JSON object.
+    
+    Structure:
+    {
+      "company": "Company Name",
+      "title": "Job Title",
+      "location": "City, Country or Remote",
+      "description": "Full job description summary (2-3 paragraphs)",
+      "responsibilities": ["list of key responsibilities"],
+      "requirements": ["list of requirements/qualifications"],
+      "salary": "Salary range if available, else null",
+      "benefits": ["list of benefits"],
+      "experience_level": "Entry/Mid/Senior/Executive",
+      "contract_type": "Full-time/Part-time/Contract/Freelance",
+      "application_url": "${normalizedUrl}"
+    }
+
+    Text content to analyze:
+    ${scrapedContent.substring(0, 15000)}
+    `;
+
+    const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 2000,
+        temperature: 0,
+        system: "You are a precise job data extraction API. Return ONLY valid JSON.",
+        messages: [{ role: "user", content: extractionPrompt }]
+      })
+    });
+
+    if (!claudeResponse.ok) {
+      const errorText = await claudeResponse.text();
+      throw new Error(`Claude API error: ${claudeResponse.status} - ${errorText}`);
+    }
+
+    const data = await claudeResponse.json();
+    const content = data.content[0].text;
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+
+    if (jsonMatch) {
+      const extractedData = JSON.parse(jsonMatch[0]);
+      return res.json({
+        status: 'success',
+        data: extractedData
+      });
+    } else {
+      throw new Error("Failed to parse JSON from Claude response");
+    }
+
+  } catch (error) {
+    console.error('❌ Error in extract-job-url:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'Internal server error'
+    });
+  }
+});
+
 exports.api = functions.https.onRequest(app);
 exports.startCampaign = serverlessFunctions.startCampaign;
 exports.updateCampaignEmails = serverlessFunctions.updateCampaignEmails;

@@ -157,6 +157,7 @@ function PostDetailPanel({
             const d = post.publishedAt.toDate ? post.publishedAt.toDate() : new Date(post.publishedAt as any);
             return `Published: ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
         }
+        if (post.status === 'failed') return 'Failed';
         return 'Draft';
     };
 
@@ -173,7 +174,8 @@ function PostDetailPanel({
                     <PlatformPill platform={post.platform} />
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${post.status === 'published' ? 'bg-emerald-50 text-emerald-700' :
                         post.status === 'scheduled' ? 'bg-blue-50 text-blue-700' :
-                            'bg-amber-50 text-amber-700'
+                            post.status === 'failed' ? 'bg-red-50 text-red-700' :
+                                'bg-amber-50 text-amber-700'
                         }`}>
                         {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
                     </span>
@@ -199,6 +201,14 @@ function PostDetailPanel({
                     </div>
                 )}
                 <p className="text-xs text-gray-400 font-mono">{post.content.length} characters</p>
+
+                {/* Error message for failed posts */}
+                {post.status === 'failed' && (post as any).error && (
+                    <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-lg">
+                        <p className="text-xs font-medium text-red-700 mb-0.5">Publish Error:</p>
+                        <p className="text-xs text-red-600">{(post as any).error}</p>
+                    </div>
+                )}
             </div>
 
             {/* Actions */}
@@ -217,33 +227,42 @@ function PostDetailPanel({
                     </button>
                 </div>
 
-                {post.status === 'draft' && (
+                {(post.status === 'draft' || post.status === 'failed') && (
                     <div className="flex gap-2">
                         <button
                             onClick={() => setShowScheduler(!showScheduler)}
                             className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors"
                         >
                             <Clock size={14} />
-                            Schedule
+                            {post.status === 'failed' ? 'Reschedule' : 'Schedule'}
                         </button>
                         <button
                             onClick={onPublish}
                             className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl hover:from-violet-700 hover:to-indigo-700 transition-all"
                         >
                             <Send size={14} />
-                            Publish
+                            {post.status === 'failed' ? 'Retry' : 'Publish'}
                         </button>
                     </div>
                 )}
 
                 {post.status === 'scheduled' && (
-                    <button
-                        onClick={onPublish}
-                        className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl hover:from-violet-700 hover:to-indigo-700 transition-all"
-                    >
-                        <Send size={14} />
-                        Publish Now
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setShowScheduler(!showScheduler)}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors"
+                        >
+                            <Clock size={14} />
+                            Reschedule
+                        </button>
+                        <button
+                            onClick={onPublish}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl hover:from-violet-700 hover:to-indigo-700 transition-all"
+                        >
+                            <Send size={14} />
+                            Publish Now
+                        </button>
+                    </div>
                 )}
 
                 {/* Schedule picker */}
@@ -347,8 +366,8 @@ export default function SocialCalendarPage() {
                 const d = post.publishedAt.toDate ? post.publishedAt.toDate() : new Date(post.publishedAt as any);
                 if (isSameDay(d, date)) return true;
             }
-            // Check createdAt for drafts
-            if (post.status === 'draft' && post.createdAt) {
+            // Check createdAt for drafts and failed posts without scheduledAt
+            if ((post.status === 'draft' || (post.status === 'failed' && !post.scheduledAt)) && post.createdAt) {
                 const d = post.createdAt.toDate ? post.createdAt.toDate() : new Date(post.createdAt as any);
                 if (isSameDay(d, date)) return true;
             }
@@ -389,9 +408,15 @@ export default function SocialCalendarPage() {
     };
 
     const handleSchedule = async (post: SocialPost, date: Date) => {
-        await schedulePost(post.id, date);
-        setSelectedPost(null);
-        loadPosts();
+        try {
+            await schedulePost(post.id, date);
+            alert(`✅ Post scheduled for ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at ${formatTime(date)}`);
+            setSelectedPost(null);
+            loadPosts();
+        } catch (error) {
+            console.error('Schedule error:', error);
+            alert('❌ Failed to schedule post. Please try again.');
+        }
     };
 
     const handleDelete = async () => {
@@ -407,6 +432,7 @@ export default function SocialCalendarPage() {
     const scheduledCount = posts.filter((p) => p.status === 'scheduled').length;
     const publishedCount = posts.filter((p) => p.status === 'published').length;
     const draftCount = posts.filter((p) => p.status === 'draft').length;
+    const failedCount = posts.filter((p) => p.status === 'failed').length;
 
     return (
         <div className="bg-[#FAFAFA] min-h-screen font-sans">
@@ -451,6 +477,12 @@ export default function SocialCalendarPage() {
                                 <span className="w-2 h-2 rounded-full bg-amber-500" />
                                 {draftCount} drafts
                             </span>
+                            {failedCount > 0 && (
+                                <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                                    <span className="w-2 h-2 rounded-full bg-red-500" />
+                                    {failedCount} failed
+                                </span>
+                            )}
                         </div>
                     </div>
                     <div className="flex items-center gap-2">

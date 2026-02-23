@@ -76,7 +76,7 @@ export default function AIArticleGeneratorModal({
                             <Sparkles className="w-3.5 h-3.5 text-white" />
                         </div>
                         <h2 className="text-[15px] font-semibold text-gray-900">
-                            Générer un article SEO
+                            {language === 'fr' ? 'Générer un article SEO' : 'Generate SEO Article'}
                         </h2>
                     </div>
                     <button
@@ -89,16 +89,43 @@ export default function AIArticleGeneratorModal({
 
                 {/* Content - Notion-style form */}
                 <div className="px-6 py-5 space-y-5">
+                    {/* Language Toggle - FIRST */}
+                    <div>
+                        <label className="block text-[13px] font-medium text-gray-500 mb-1.5">
+                            {language === 'fr' ? 'Langue de l\'article' : 'Article Language'}
+                        </label>
+                        <div className="flex gap-1 p-1 bg-gray-100 rounded-md">
+                            <button
+                                onClick={() => setLanguage('fr')}
+                                className={`flex-1 py-2 text-[13px] font-medium rounded transition-all ${language === 'fr'
+                                    ? 'bg-white text-gray-900 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                🇫🇷 Français
+                            </button>
+                            <button
+                                onClick={() => setLanguage('en')}
+                                className={`flex-1 py-2 text-[13px] font-medium rounded transition-all ${language === 'en'
+                                    ? 'bg-white text-gray-900 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                🇬🇧 English
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Topic */}
                     <div>
                         <label className="block text-[13px] font-medium text-gray-500 mb-1.5">
-                            Sujet de l'article
+                            {language === 'fr' ? 'Sujet de l\'article' : 'Article Topic'}
                         </label>
                         <input
                             type="text"
                             value={topic}
                             onChange={(e) => setTopic(e.target.value)}
-                            placeholder="Comment décrocher un job en 2025..."
+                            placeholder={language === 'fr' ? 'Comment décrocher un job en 2025...' : 'How to land your dream job in 2025...'}
                             className="w-full px-3 py-2 text-[14px] text-gray-900 bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-gray-400"
                             autoFocus
                         />
@@ -107,17 +134,17 @@ export default function AIArticleGeneratorModal({
                     {/* Keywords */}
                     <div>
                         <label className="block text-[13px] font-medium text-gray-500 mb-1.5">
-                            Mots-clés SEO
+                            {language === 'fr' ? 'Mots-clés SEO' : 'SEO Keywords'}
                         </label>
                         <input
                             type="text"
                             value={keywords}
                             onChange={(e) => setKeywords(e.target.value)}
-                            placeholder="CV, entretien, recruteur, LinkedIn..."
+                            placeholder={language === 'fr' ? 'CV, entretien, recruteur, LinkedIn...' : 'resume, interview, recruiter, LinkedIn...'}
                             className="w-full px-3 py-2 text-[14px] text-gray-900 bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-gray-400"
                         />
                         <p className="mt-1 text-[11px] text-gray-400">
-                            Séparez par des virgules
+                            {language === 'fr' ? 'Séparez par des virgules' : 'Separate with commas'}
                         </p>
                     </div>
 
@@ -135,7 +162,7 @@ export default function AIArticleGeneratorModal({
                             >
                                 {AUDIENCE_OPTIONS.map((option) => (
                                     <option key={option.value} value={option.value}>
-                                        {option.label}
+                                        {language === 'fr' ? option.label : option.labelEn}
                                     </option>
                                 ))}
                             </select>
@@ -144,7 +171,7 @@ export default function AIArticleGeneratorModal({
                         {/* Length */}
                         <div>
                             <label className="block text-[13px] font-medium text-gray-500 mb-1.5">
-                                Longueur
+                                {language === 'fr' ? 'Longueur' : 'Length'}
                             </label>
                             <div className="flex gap-1 p-1 bg-gray-100 rounded-md">
                                 {LENGTH_OPTIONS.map((option) => (
@@ -163,66 +190,34 @@ export default function AIArticleGeneratorModal({
                         </div>
                     </div>
 
-                    {/* Grid: Language + Tone */}
-                    <div className="grid grid-cols-2 gap-4">
-                        {/* Language */}
-                        <div>
-                            <label className="block text-[13px] font-medium text-gray-500 mb-1.5">
-                                Langue
-                            </label>
-                            <div className="flex gap-1 p-1 bg-gray-100 rounded-md">
-                                <button
-                                    onClick={() => setLanguage('fr')}
-                                    className={`flex-1 py-1.5 text-[12px] font-medium rounded transition-all ${language === 'fr'
-                                        ? 'bg-white text-gray-900 shadow-sm'
-                                        : 'text-gray-500 hover:text-gray-700'
-                                        }`}
-                                >
-                                    🇫🇷 Français
-                                </button>
-                                <button
-                                    onClick={() => setLanguage('en')}
-                                    className={`flex-1 py-1.5 text-[12px] font-medium rounded transition-all ${language === 'en'
-                                        ? 'bg-white text-gray-900 shadow-sm'
-                                        : 'text-gray-500 hover:text-gray-700'
-                                        }`}
-                                >
-                                    🇬🇧 English
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Tone */}
-                        <div>
-                            <label className="block text-[13px] font-medium text-gray-500 mb-1.5">
-                                Ton
-                            </label>
-                            <select
-                                value={tone}
-                                onChange={(e) => setTone(e.target.value as SEOArticleConfig['tone'])}
-                                className="w-full px-3 py-2 text-[14px] text-gray-900 bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all appearance-none cursor-pointer"
-                            >
-                                {TONE_OPTIONS.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                    {/* Tone */}
+                    <div>
+                        <label className="block text-[13px] font-medium text-gray-500 mb-1.5">
+                            {language === 'fr' ? 'Ton' : 'Tone'}
+                        </label>
+                        <select
+                            value={tone}
+                            onChange={(e) => setTone(e.target.value as SEOArticleConfig['tone'])}
+                            className="w-full px-3 py-2 text-[14px] text-gray-900 bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all appearance-none cursor-pointer"
+                        >
+                            {TONE_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 
                 {/* Footer - Minimal */}
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
                     <p className="text-[11px] text-gray-400">
-                        Génère titre, contenu, image et SEO
+                        {language === 'fr' ? 'Génère titre, contenu, image et SEO' : 'Generates title, content, image & SEO'}
                     </p>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={onClose}
                             className="px-3 py-1.5 text-[13px] font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
                         >
-                            Annuler
+                            {language === 'fr' ? 'Annuler' : 'Cancel'}
                         </button>
                         <button
                             onClick={handleSubmit}
@@ -232,12 +227,12 @@ export default function AIArticleGeneratorModal({
                             {isGenerating ? (
                                 <>
                                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    Génération...
+                                    {language === 'fr' ? 'Génération...' : 'Generating...'}
                                 </>
                             ) : (
                                 <>
                                     <Sparkles className="w-3.5 h-3.5" />
-                                    Générer
+                                    {language === 'fr' ? 'Générer' : 'Generate'}
                                 </>
                             )}
                         </button>
