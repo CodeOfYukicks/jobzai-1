@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, Eye, FileText, CheckCircle, Clock, TrendingUp, Search, Globe, Calendar as CalendarIcon, LayoutGrid, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, FileText, CheckCircle, Clock, TrendingUp, Search, Globe, Calendar as CalendarIcon, LayoutGrid, ChevronLeft, ChevronRight, ChevronDown, Zap } from 'lucide-react';
 import { useBlogPosts } from '../../hooks/useBlogPosts';
-import { useBlogScheduler } from '../../hooks/useBlogScheduler';
 import { BlogPost } from '../../data/blogPosts';
 import DeleteBlogPostModal from '../../components/blog/DeleteBlogPostModal';
-import BlogSchedulerPanel from '../../components/blog/BlogSchedulerPanel';
-import { generateSEOArticle, generateSEOCoverImage, generateNewsArticle } from '../../services/blogAI';
+import { generateSEOCoverImage, generateNewsArticle, generateSEOArticle, suggestRandomCareerTopic } from '../../services/blogAI';
+import { getTrendingTopics, findTrendingNews } from '../../services/perplexity';
 import CreateNewsModal from '../../components/blog/CreateNewsModal';
+import CreateStandardArticleModal from '../../components/blog/CreateStandardArticleModal';
+import CreateMagicArticleModal from '../../components/blog/CreateMagicArticleModal';
 import { forceLightMode } from '../../lib/theme';
+import { Timestamp } from 'firebase/firestore';
 
 // ============================================
 // CALENDAR HELPERS
@@ -50,13 +52,12 @@ export default function AdminBlogPage() {
         forceLightMode();
     }, []);
     const navigate = useNavigate();
-    const { getAllPosts, deletePost, createPost, loading } = useBlogPosts();
-    const { config, updateConfig, reload: reloadScheduler } = useBlogScheduler();
+    const { getAllPosts, deletePost, createPost, updatePost, uploadImage, loading } = useBlogPosts();
     const [posts, setPosts] = useState<(BlogPost & { status: string, scheduledAt?: any })[]>([]);
     const [stats, setStats] = useState({ total: 0, published: 0, drafts: 0, views: 0 });
-    const [isAutoGenerating, setIsAutoGenerating] = useState(false);
     const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [showCreateMenu, setShowCreateMenu] = useState(false);
 
     // Delete modal state
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -99,113 +100,113 @@ export default function AdminBlogPage() {
     };
 
 
-    // Auto-generate a new article using AI
-    const handleAutoGenerate = async () => {
-        if (config.monthlyGenerated >= config.monthlyLimit) {
-            alert('Monthly limit reached (100 articles). Please wait for next month.');
-            return;
-        }
-
-        setIsAutoGenerating(true);
-        try {
-            // Get existing titles to avoid duplicates
-            const existingTitles = posts.map(p => p.title.toLowerCase());
-
-            // Pick a random category from configured ones
-            const categories = config.categories.length > 0 ? config.categories : ['Career Advice'];
-            const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-
-            // Generate unique topic using existing titles context
-            const topicPrompt = `Generate a unique blog topic for category "${randomCategory}" that is NOT similar to these existing articles: ${existingTitles.slice(0, 10).join(', ')}. Focus on job search, career development, CV writing, interviews, or LinkedIn optimization.`;
-
-            // Generate the article
-            const article = await generateSEOArticle({
-                topic: topicPrompt,
-                targetKeywords: [randomCategory.toLowerCase(), 'career', 'job'],
-                targetAudience: 'job_seekers',
-                articleLength: 'medium',
-                language: config.language,
-                tone: config.tone
-            });
-
-            // Generate cover image
-            let imageUrl = '';
-            try {
-                const generatedImage = await generateSEOCoverImage(article.title, [randomCategory]);
-                imageUrl = generatedImage || '';
-            } catch (imgError) {
-                console.warn('Image generation failed, continuing without image:', imgError);
-            }
-
-            // Calculate read time
-            const wordCount = article.content.split(/\s+/).filter(Boolean).length;
-            const readTime = Math.max(1, Math.ceil(wordCount / 200));
-
-            // Create the post
-            await createPost({
-                title: article.title,
-                slug: article.slug,
-                excerpt: article.excerpt,
-                content: article.content,
-                category: randomCategory,
-                author: 'Team Cubbbe',
-                image: imageUrl,
-                readTime: `${readTime} min read`,
-                status: 'published',
-                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-            });
-
-            // Update scheduler stats
-            await updateConfig({
-                lastRun: new Date(),
-                totalGenerated: config.totalGenerated + 1,
-                monthlyGenerated: config.monthlyGenerated + 1
-            });
-
-            // Reload everything
-            await loadPosts();
-            await reloadScheduler();
-
-            alert(`✅ Article "${article.title}" generated and published successfully!`);
-        } catch (error) {
-            console.error('Auto-generation error:', error);
-            alert('Error generating article. Please try again.');
-        } finally {
-            setIsAutoGenerating(false);
-        }
-    };
 
     // New: News Article Generation
     const [showNewsModal, setShowNewsModal] = useState(false);
     const [isNewsGenerating, setIsNewsGenerating] = useState(false);
 
-    const handleNewsGenerate = async (configData: any, newsContext: string) => {
-        setIsNewsGenerating(true);
+    // New: Standard Article Generation
+    const [showStandardModal, setShowStandardModal] = useState(false);
+    const [isStandardGenerating, setIsStandardGenerating] = useState(false);
+
+    // New: Magic AutoPilot Generation
+    const [showMagicModal, setShowMagicModal] = useState(false);
+
+    const handleMagicGenerate = async (type: 'standard' | 'news', language: 'fr' | 'en', publishMode: 'publish' | 'draft' | 'schedule', scheduledAt?: Date) => {
         try {
-            // 1. Generate Article with News Context
-            const article = await generateNewsArticle(configData, newsContext);
+            let articleResponse;
+            let finalKeywords: string[] = [];
+
+            if (type === 'standard') {
+                // 1. Brainstorm Topic
+                const topic = await suggestRandomCareerTopic(language);
+                finalKeywords = ['carrière', 'tendance', 'emploi']; // Fallback
+
+                // 2. Generate Standard Article
+                articleResponse = await generateSEOArticle({
+                    topic,
+                    targetKeywords: finalKeywords,
+                    targetAudience: 'general',
+                    articleLength: 'medium',
+                    language,
+                    tone: 'professional'
+                });
+            } else {
+                // 1. Fetch Trending News
+                const trends = await getTrendingTopics('fr'); // Force FR for topics for now, or match language if better
+                const topTrend = trends[0] || "Les nouvelles tendances de l'emploi";
+
+                // 2. Search Web Context
+                const searchResults = await findTrendingNews(topTrend);
+                finalKeywords = ['actualité', 'RH'];
+
+                // 3. Generate News Article
+                articleResponse = await generateNewsArticle({
+                    topic: topTrend,
+                    targetKeywords: finalKeywords,
+                    targetAudience: 'general',
+                    articleLength: 'medium',
+                    language,
+                    tone: 'professional'
+                }, searchResults);
+            }
+
+            // 4. Generate Image
+            let imageUrl = '';
+            try {
+                const generatedImage = await generateSEOCoverImage(articleResponse.title, finalKeywords);
+                if (generatedImage) imageUrl = generatedImage;
+            } catch (err) {
+                console.warn('Magic image gen failed', err);
+            }
+
+            // 5. Save Post
+            const wordCount = articleResponse.content.split(/\s+/).filter(Boolean).length;
+            const readTime = Math.max(1, Math.ceil(wordCount / 200));
+
+            let statusToSave = 'draft';
+            if (publishMode === 'publish') statusToSave = 'published';
+            if (publishMode === 'schedule' && scheduledAt) statusToSave = 'scheduled';
+
+            const postData: any = {
+                title: articleResponse.title,
+                slug: articleResponse.slug,
+                excerpt: articleResponse.excerpt,
+                content: articleResponse.content,
+                category: type === 'news' ? 'News' : 'Conseils & Carrière',
+                author: 'Team Cubbbe',
+                image: imageUrl,
+                readTime: `${readTime} min read`,
+                status: statusToSave,
+                date: scheduledAt ? scheduledAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            };
+
+            if (scheduledAt) {
+                postData.scheduledAt = Timestamp.fromDate(scheduledAt);
+            }
+
+            const postId = await createPost(postData);
+            await loadPosts();
+            return { id: postId, title: articleResponse.title };
+
+        } catch (error) {
+            console.error('Magic Generation Error:', error);
+            alert('L\'AutoPilot a rencontré une erreur.');
+            return null;
+        }
+    };
+
+    const handleStandardGenerate = async (configData: any, publishMode: 'publish' | 'draft' | 'schedule', scheduledAt?: Date) => {
+        setIsStandardGenerating(true);
+        try {
+            // 1. Generate Article
+            const article = await generateSEOArticle(configData);
 
             // 2. Generate Cover Image
             let imageUrl = '';
             try {
-                // Use proxy logic if needed, but for now direct url
-                // Note: DALL-E urls expire, so ideally we upload to storage.
-                // For simplicity here we just use the url, but in production we should upload.
-                // Given the context of `handleAutoGenerate` above doesn't upload, I'll follow suit for now
-                // BUT `BlogEditorPage` uploads. 
-                // Let's see if `createPost` handles image URLs. yes it does.
-                // However, `handleAutoGenerate` uses `generateSEOCoverImage` which returns a DALL-E URL.
-                // If that URL expires, the image breaks.
-                // I will add a TODO or try to use the proxy if available in this context.
-                // `uploadImage` hook is available in `useBlogPosts`?
-                // Let's check `useBlogPosts`.
                 const generatedImage = await generateSEOCoverImage(article.title, configData.targetKeywords);
-
-                // If we want to persist it, we need to fetch blob and upload.
-                // Const { uploadImage } = useBlogPosts(); // I need to destructure this.
                 if (generatedImage) {
-                    // Attempt to upload to firestore storage if possible, otherwise use url
-                    // For now, consistent with existing `handleAutoGenerate` (lines 94-97)
                     imageUrl = generatedImage;
                 }
             } catch (imgError) {
@@ -216,26 +217,103 @@ export default function AdminBlogPage() {
             const wordCount = article.content.split(/\s+/).filter(Boolean).length;
             const readTime = Math.max(1, Math.ceil(wordCount / 200));
 
-            await createPost({
+            let statusToSave = 'draft';
+            if (publishMode === 'publish') statusToSave = 'published';
+            if (publishMode === 'schedule' && scheduledAt) statusToSave = 'scheduled';
+
+            const postData: any = {
                 title: article.title,
                 slug: article.slug,
                 excerpt: article.excerpt,
                 content: article.content, // Markdown
-                category: 'News', // Or determine from topic?
+                category: 'Conseils & Carrière', // Better default for standard
                 author: 'Team Cubbbe',
                 image: imageUrl,
                 readTime: `${readTime} min read`,
-                status: 'draft', // Draft by default for review
-                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-            });
+                status: statusToSave,
+                date: scheduledAt ? scheduledAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            };
+
+            if (scheduledAt) {
+                postData.scheduledAt = Timestamp.fromDate(scheduledAt);
+            }
+
+            const postId = await createPost(postData);
 
             await loadPosts();
-            setShowNewsModal(false);
-            alert(`✅ News Article "${article.title}" created successfully!`);
+            return { id: postId, title: article.title };
+
+        } catch (error) {
+            console.error('Standard generation error:', error);
+            alert('Failed to generate standard article.');
+            return null;
+        } finally {
+            setIsStandardGenerating(false);
+        }
+    };
+
+    const handleNewsGenerate = async (configData: any, newsContext: string, publishMode: 'publish' | 'draft' | 'schedule', scheduledAt?: Date) => {
+        setIsNewsGenerating(true);
+        try {
+            // 1. Generate Article with News Context
+            const article = await generateNewsArticle(configData, newsContext);
+
+            // 2. Generate Cover Image
+            let imageUrl = '';
+            try {
+                const generatedImage = await generateSEOCoverImage(article.title, configData.targetKeywords);
+                if (generatedImage) {
+                    imageUrl = generatedImage;
+                }
+            } catch (imgError) {
+                console.warn('Image generation failed:', imgError);
+            }
+
+            // 3. Create Post
+            const wordCount = article.content.split(/\s+/).filter(Boolean).length;
+            const readTime = Math.max(1, Math.ceil(wordCount / 200));
+
+            // Determine status based on explicit publish mode
+            let statusToSave = 'draft';
+            if (publishMode === 'publish') statusToSave = 'published';
+            if (publishMode === 'schedule' && scheduledAt) statusToSave = 'scheduled';
+
+            // To be safe with importing Timestamp from firebase/firestore, we can also store Date
+            // because createPost in useBlogPosts.ts can check it. Wait, the Firebase hook uses `serverTimestamp()` 
+            // for creation, but we can pass a raw JS Date if we update useBlogPosts to handle it, or we can just 
+            // pass the Date object and let the hook transform it. Looking at `BlogEditorPage.tsx` previously, 
+            // it uses `Timestamp.fromDate(form.scheduledAt)`. 
+            // We import `import { Timestamp } from 'firebase/firestore';` at top. Let's do that!
+
+            const postData: any = {
+                title: article.title,
+                slug: article.slug,
+                excerpt: article.excerpt,
+                content: article.content, // Markdown
+                category: 'News', // Or determine from topic
+                author: 'Team Cubbbe',
+                image: imageUrl,
+                readTime: `${readTime} min read`,
+                status: statusToSave,
+                date: scheduledAt ? scheduledAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            };
+
+            // Note: `createPost` from useBlogPosts needs to handle the generated Date. We will pass the raw JS Date or import Timestamp.
+            // Wait, we need `import { Timestamp } from 'firebase/firestore'` for proper Timestamp handling if saving directly.
+            // Let's just pass `scheduledAt` as the raw JS Date and we'll check `useBlogPosts.ts` if it handles `Date` properly in `createPost`.
+            if (scheduledAt) {
+                postData.scheduledAt = Timestamp.fromDate(scheduledAt);
+            }
+
+            const postId = await createPost(postData);
+
+            await loadPosts();
+            return { id: postId, title: article.title };
 
         } catch (error) {
             console.error('News generation error:', error);
             alert('Failed to generate news article.');
+            return null;
         } finally {
             setIsNewsGenerating(false);
         }
@@ -307,38 +385,99 @@ export default function AdminBlogPage() {
                         <h1 className="text-4xl font-bold text-gray-900 tracking-tight mb-2">Content Dashboard</h1>
                         <p className="text-gray-500">Manage your publication with precision.</p>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="relative">
                         <button
-                            onClick={() => setShowNewsModal(true)}
-                            className="group flex items-center gap-2 px-5 py-3 bg-white text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm hover:shadow-md"
-                        >
-                            <Globe className="w-5 h-5 text-blue-500" />
-                            <span className="font-medium">News Article</span>
-                        </button>
-                        <button
-                            onClick={() => navigate('/admin/blog/new')}
+                            onClick={() => setShowCreateMenu(!showCreateMenu)}
                             className="group flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
                         >
                             <Plus className="w-5 h-5 transition-transform group-hover:rotate-90" />
-                            <span className="font-medium">Write New Article</span>
+                            <span className="font-medium">Create Content</span>
+                            <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${showCreateMenu ? 'rotate-180' : 'opacity-70 group-hover:opacity-100'}`} />
                         </button>
+
+                        {/* Dropdown Menu */}
+                        {showCreateMenu && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setShowCreateMenu(false)} />
+                                <div className="absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
+                                    <div className="p-2 space-y-1">
+                                        <button
+                                            onClick={() => {
+                                                setShowCreateMenu(false);
+                                                setShowMagicModal(true);
+                                            }}
+                                            className="w-full text-left flex items-start gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors group"
+                                        >
+                                            <div className="p-2 bg-gradient-to-tr from-purple-100 to-indigo-100 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors relative overflow-hidden">
+                                                <div className="absolute inset-0 bg-white/20 group-hover:bg-black/10"></div>
+                                                <Zap className="w-5 h-5 relative z-10" />
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                                                    AutoPilot Article
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-0.5">
+                                                    Génération 1-clic 100% magique
+                                                </div>
+                                            </div>
+                                        </button>
+
+                                        <div className="h-px bg-gray-100 my-1 mx-2"></div>
+
+                                        <button
+                                            onClick={() => {
+                                                setShowCreateMenu(false);
+                                                setShowStandardModal(true);
+                                            }}
+                                            className="w-full text-left flex items-start gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors group"
+                                        >
+                                            <div className="bg-blue-50 text-blue-600 p-2.5 rounded-xl group-hover:bg-blue-100 transition-colors">
+                                                <FileText className="w-5 h-5" />
+                                            </div>
+                                            <div className="flex-1 mt-0.5">
+                                                <div className="font-semibold text-gray-900 text-sm">Standard Article</div>
+                                                <div className="text-xs text-gray-500 mt-0.5">Write manually or use AI writing assistant</div>
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            onClick={() => {
+                                                setShowCreateMenu(false);
+                                                setShowNewsModal(true);
+                                            }}
+                                            className="w-full text-left flex items-start gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors group"
+                                        >
+                                            <div className="bg-purple-50 text-purple-600 p-2.5 rounded-xl group-hover:bg-purple-100 transition-colors relative">
+                                                <Globe className="w-5 h-5" />
+                                                <div className="absolute -top-1 -right-1">
+                                                    <span className="relative flex h-3 w-3">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-purple-500 border-2 border-white"></span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="flex-1 mt-0.5">
+                                                <div className="font-semibold text-gray-900 text-sm">Quick News Flash</div>
+                                                <div className="text-xs text-gray-500 mt-0.5">Generate hot news instantly from keywords</div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <div className="bg-gray-50 p-3 text-xs text-gray-500 text-center border-t border-gray-100 flex items-center justify-center gap-1.5 font-medium">
+                                        <Zap className="w-3.5 h-3.5 text-yellow-500" />
+                                        Powered by AI Studio
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <StatCard icon={FileText} label="Total Posts" value={stats.total} color="bg-blue-50 text-blue-600" />
+                    <StatCard icon={FileText} label="Total Posts" value={stats.total} color="bg-gray-50 text-gray-700" />
                     <StatCard icon={CheckCircle} label="Published" value={stats.published} color="bg-green-50 text-green-600" />
-                    <StatCard icon={Clock} label="Drafts" value={stats.drafts} color="bg-yellow-50 text-yellow-600" />
+                    <StatCard icon={Clock} label="Drafts & Scheduled" value={stats.drafts} color="bg-blue-50 text-blue-600" />
                     <StatCard icon={TrendingUp} label="Total Views" value={stats.views.toLocaleString()} color="bg-purple-50 text-purple-600" />
-                </div>
-
-                {/* Auto Pilot Scheduler */}
-                <div className="mb-8">
-                    <BlogSchedulerPanel
-                        onGenerateNow={handleAutoGenerate}
-                        isGenerating={isAutoGenerating}
-                    />
                 </div>
 
                 {/* Content Area */}
@@ -552,7 +691,28 @@ export default function AdminBlogPage() {
                 isOpen={showNewsModal}
                 onClose={() => setShowNewsModal(false)}
                 onGenerate={handleNewsGenerate}
+                onUploadImage={uploadImage}
+                onUpdatePost={updatePost}
                 isGenerating={isNewsGenerating}
+            />
+
+            {/* Standard Article Creation Modal */}
+            <CreateStandardArticleModal
+                isOpen={showStandardModal}
+                onClose={() => setShowStandardModal(false)}
+                onGenerate={handleStandardGenerate}
+                onUploadImage={uploadImage}
+                onUpdatePost={updatePost}
+                isGenerating={isStandardGenerating}
+            />
+
+            {/* Magic AutoPilot Creation Modal */}
+            <CreateMagicArticleModal
+                isOpen={showMagicModal}
+                onClose={() => setShowMagicModal(false)}
+                onGenerate={handleMagicGenerate}
+                onUploadImage={uploadImage}
+                onUpdatePost={updatePost}
             />
         </div>
     );

@@ -1,14 +1,12 @@
 import { useState } from 'react';
-import { X, Sparkles, Loader2, Globe, Search, FileText, Clock, Check, Image as ImageIcon, Calendar } from 'lucide-react';
+import { X, Sparkles, Loader2, FileText, Clock, Check, Image as ImageIcon, Calendar } from 'lucide-react';
 import { SEOArticleConfig } from '../../services/blogAI';
-import { getTrendingTopics } from '../../services/perplexity';
-import { findTrendingNews } from '../../services/perplexity';
 import CoverPhotoGallery from '../profile/CoverPhotoGallery';
 
-interface CreateNewsModalProps {
+interface CreateStandardArticleModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onGenerate: (config: SEOArticleConfig, newsContext: string, publishMode: 'publish' | 'draft' | 'schedule', scheduledAt?: Date) => Promise<{ id: string, title: string } | null>;
+    onGenerate: (config: SEOArticleConfig, publishMode: 'publish' | 'draft' | 'schedule', scheduledAt?: Date) => Promise<{ id: string, title: string } | null>;
     onUploadImage?: (file: File) => Promise<string | null>;
     onUpdatePost?: (postId: string, data: any) => Promise<void>;
     isGenerating: boolean;
@@ -34,15 +32,15 @@ const TONE_OPTIONS = [
     { value: 'friendly', label: 'Chaleureux' },
 ] as const;
 
-export default function CreateNewsModal({
+export default function CreateStandardArticleModal({
     isOpen,
     onClose,
     onGenerate,
     onUploadImage,
     onUpdatePost,
     isGenerating
-}: CreateNewsModalProps) {
-    const [step, setStep] = useState<'topic' | 'review' | 'success'>('topic');
+}: CreateStandardArticleModalProps) {
+    const [step, setStep] = useState<'config' | 'success'>('config');
     const [createdPostId, setCreatedPostId] = useState<string | null>(null);
     const [createdPostTitle, setCreatedPostTitle] = useState<string | null>(null);
     const [isUpdatingImage, setIsUpdatingImage] = useState(false);
@@ -60,43 +58,9 @@ export default function CreateNewsModal({
     const [scheduleDate, setScheduleDate] = useState('');
     const [scheduleTime, setScheduleTime] = useState('');
 
-    // News specific states
-    const [isSearching, setIsSearching] = useState(false);
-    const [newsSummary, setNewsSummary] = useState('');
-
-    // Suggestion states
-    const [isSuggesting, setIsSuggesting] = useState(false);
-    const [suggestedTopics, setSuggestedTopics] = useState<string[]>([]);
-
-    const handleSuggest = async () => {
-        setIsSuggesting(true);
-        try {
-            const topics = await getTrendingTopics('Recrutement, Carrière, Future of Work', language);
-            setSuggestedTopics(topics);
-        } catch (error) {
-            console.error('Failed to suggest topics:', error);
-        } finally {
-            setIsSuggesting(false);
-        }
-    };
-
-    const handleSearch = async () => {
+    const handleSubmit = async () => {
         if (!topic.trim()) return;
 
-        setIsSearching(true);
-        try {
-            const summary = await findTrendingNews(topic, language);
-            setNewsSummary(summary);
-            setStep('review');
-        } catch (error) {
-            console.error('Search failed:', error);
-            alert('Failed to find news. Please try again.');
-        } finally {
-            setIsSearching(false);
-        }
-    };
-
-    const handleSubmit = async () => {
         const config: SEOArticleConfig = {
             topic: topic.trim(),
             targetKeywords: keywords.split(',').map(k => k.trim()).filter(Boolean),
@@ -111,7 +75,7 @@ export default function CreateNewsModal({
             scheduledAtDate = new Date(`${scheduleDate}T${scheduleTime}`);
         }
 
-        const result = await onGenerate(config, newsSummary, publishMode, scheduledAtDate);
+        const result = await onGenerate(config, publishMode, scheduledAtDate);
         if (result) {
             setCreatedPostId(result.id);
             setCreatedPostTitle(result.title);
@@ -183,14 +147,14 @@ export default function CreateNewsModal({
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <Globe className="w-4 h-4 text-blue-600" />
+                            <FileText className="w-4 h-4 text-blue-600" />
                         </div>
                         <div>
                             <h2 className="text-base font-bold text-gray-900 leading-tight">
-                                {language === 'fr' ? 'Actualités & Tendances' : 'News & Trends'}
+                                {language === 'fr' ? 'Article Standard' : 'Standard Article'}
                             </h2>
                             <p className="text-xs text-gray-500">
-                                {language === 'fr' ? 'Propulsé par Perplexity + GPT-5' : 'Powered by Perplexity + GPT-5'}
+                                {language === 'fr' ? 'Propulsé par GPT-5' : 'Powered by GPT-5'}
                             </p>
                         </div>
                     </div>
@@ -204,77 +168,51 @@ export default function CreateNewsModal({
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-                    {step === 'topic' && (
-                        <>
+                    {step === 'config' && (
+                        <div className="space-y-6">
                             {/* Topic Input */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    {language === 'fr' ? 'Sujet d\'actualité' : 'News Topic'}
+                                    {language === 'fr' ? 'Sujet de l\'article' : 'Article Topic'}
                                 </label>
-                                <div className="space-y-3">
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                                            <Search className="h-4 w-4 text-gray-400" />
-                                        </div>
-                                        <input
-                                            type="text"
-                                            value={topic}
-                                            onChange={(e) => setTopic(e.target.value)}
-                                            placeholder={language === 'fr' ? 'Ex: IA dans le recrutement, Marché du travail 2025...' : 'Ex: AI in recruiting, Job market 2025...'}
-                                            className="w-full pl-10 pr-4 py-3 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-gray-400"
-                                            autoFocus
-                                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                        />
-                                    </div>
+                                <textarea
+                                    value={topic}
+                                    onChange={(e) => setTopic(e.target.value)}
+                                    rows={4}
+                                    placeholder={language === 'fr' ? 'Ex: Les 5 tendances du recrutement en 2025. Décris ce que tu veux comme article...' : 'Ex: 5 recruitment trends in 2025. Describe what you want...'}
+                                    className="w-full px-4 py-3 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-gray-400 resize-none"
+                                    autoFocus
+                                />
+                            </div>
 
-                                    {/* Suggestions Area */}
-                                    <div>
-                                        {suggestedTopics.length > 0 ? (
-                                            <div className="space-y-2">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                                        {language === 'fr' ? 'Idées tendances' : 'Trending Ideas'}
-                                                    </span>
-                                                    <button
-                                                        onClick={() => setSuggestedTopics([])}
-                                                        className="text-xs text-gray-400 hover:text-gray-600"
-                                                    >
-                                                        {language === 'fr' ? 'Masquer' : 'Hide'}
-                                                    </button>
-                                                </div>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {suggestedTopics.map((t, i) => (
-                                                        <button
-                                                            key={i}
-                                                            onClick={() => setTopic(t)}
-                                                            className="text-left px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 transition-colors border border-blue-100"
-                                                        >
-                                                            {t}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <button
-                                                onClick={handleSuggest}
-                                                disabled={isSuggesting}
-                                                className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50"
-                                            >
-                                                {isSuggesting ? (
-                                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                                ) : (
-                                                    <Sparkles className="w-3 h-3" />
-                                                )}
-                                                {isSuggesting ? (language === 'fr' ? 'Recherche d\'idées...' : 'Searching for ideas...') : (language === 'fr' ? 'Suggérer des sujets tendances' : 'Suggest trending topics')}
-                                            </button>
-                                        )}
-                                    </div>
+                            {/* Additional SEO settings */}
+                            <div className="grid grid-cols-2 gap-5">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                                        {language === 'fr' ? 'Mots-clés cibles' : 'Target Keywords'}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={keywords}
+                                        onChange={(e) => setKeywords(e.target.value)}
+                                        placeholder={language === 'fr' ? 'Ex: recrutement, avenir...' : 'Ex: recruiting, future...'}
+                                        className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg"
+                                    />
                                 </div>
-
-                                <p className="mt-2 text-xs text-gray-500 flex items-center gap-1.5">
-                                    <Globe className="w-3 h-3 text-gray-400" />
-                                    {language === 'fr' ? 'Perplexity va scanner le web pour les infos récentes sur ce sujet.' : 'Perplexity will scan the web for recent info on this topic.'}
-                                </p>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                                        {language === 'fr' ? 'Ton' : 'Tone'}
+                                    </label>
+                                    <select
+                                        value={tone}
+                                        onChange={(e) => setTone(e.target.value as SEOArticleConfig['tone'])}
+                                        className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg"
+                                    >
+                                        {TONE_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>{option.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
                             {/* Options Grid */}
@@ -331,57 +269,6 @@ export default function CreateNewsModal({
                                             </button>
                                         ))}
                                     </div>
-                                </div>
-                            </div>
-                        </>
-                    )}
-
-                    {step === 'review' && (
-                        // Review Step
-                        <div className="space-y-6">
-                            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                                <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2 mb-2">
-                                    <Sparkles className="w-4 h-4 text-blue-600" />
-                                    {language === 'fr' ? 'Résultats de recherche' : 'Search Results'}
-                                </h3>
-                                <textarea
-                                    value={newsSummary}
-                                    onChange={(e) => setNewsSummary(e.target.value)}
-                                    rows={8}
-                                    className="w-full text-sm text-blue-800 bg-transparent border-0 p-0 focus:ring-0 resize-none font-medium leading-relaxed"
-                                />
-                                <p className="mt-2 text-xs text-blue-600/70 border-t border-blue-200/50 pt-2">
-                                    {language === 'fr' ? 'Vous pouvez éditer ce résumé avant de générer l\'article.' : 'You can edit this summary before generating the article.'}
-                                </p>
-                            </div>
-
-                            {/* Additional SEO settings for step 2 */}
-                            <div className="grid grid-cols-2 gap-5">
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                                        {language === 'fr' ? 'Mots-clés cibles' : 'Target Keywords'}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={keywords}
-                                        onChange={(e) => setKeywords(e.target.value)}
-                                        placeholder={language === 'fr' ? 'Ex: recrutement, avenir...' : 'Ex: recruiting, future...'}
-                                        className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                                        {language === 'fr' ? 'Ton' : 'Tone'}
-                                    </label>
-                                    <select
-                                        value={tone}
-                                        onChange={(e) => setTone(e.target.value as SEOArticleConfig['tone'])}
-                                        className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg"
-                                    >
-                                        {TONE_OPTIONS.map((option) => (
-                                            <option key={option.value} value={option.value}>{option.label}</option>
-                                        ))}
-                                    </select>
                                 </div>
                             </div>
 
@@ -466,8 +353,8 @@ export default function CreateNewsModal({
                                 )}
                                 <p className="text-gray-500">
                                     {language === 'fr'
-                                        ? 'Votre Flash Info est prêt. Que souhaitez-vous faire ensuite ?'
-                                        : 'Your News Flash is ready. What would you like to do next?'}
+                                        ? 'Votre article est prêt. Que souhaitez-vous faire ensuite ?'
+                                        : 'Your article is ready. What would you like to do next?'}
                                 </p>
                             </div>
 
@@ -567,61 +454,30 @@ export default function CreateNewsModal({
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between shrink-0">
-                    {step === 'topic' ? (
-                        <>
-                            <p className="text-xs text-gray-500">
-                                {language === 'fr' ? 'Étape 1/2 : Recherche d\'actualités' : 'Step 1/2: News Research'}
-                            </p>
-                            <button
-                                onClick={handleSearch}
-                                disabled={!topic.trim() || isSearching}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/20"
-                            >
-                                {isSearching ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        {language === 'fr' ? 'Recherche en cours...' : 'Searching...'}
-                                    </>
-                                ) : (
-                                    <>
-                                        <Search className="w-4 h-4" />
-                                        {language === 'fr' ? 'Rechercher l\'actualité' : 'Search News'}
-                                    </>
-                                )}
-                            </button>
-                        </>
-                    ) : step === 'review' ? (
-                        <>
-                            <button
-                                onClick={() => setStep('topic')}
-                                className="text-sm font-medium text-gray-600 hover:text-gray-900"
-                            >
-                                {language === 'fr' ? 'Retour' : 'Back'}
-                            </button>
-                            <button
-                                onClick={handleSubmit}
-                                disabled={isGenerating || (publishMode === 'schedule' && (!scheduleDate || !scheduleTime))}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-lg hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-gray-900/20"
-                            >
-                                {isGenerating ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        {language === 'fr' ? 'Rédaction...' : 'Writing...'}
-                                    </>
-                                ) : publishMode === 'schedule' ? (
-                                    <>
-                                        <Clock className="w-4 h-4" />
-                                        {language === 'fr' ? 'Programmer' : 'Schedule'}
-                                    </>
-                                ) : (
-                                    <>
-                                        <FileText className="w-4 h-4" />
-                                        {language === 'fr' ? 'Générer l\'Article' : 'Generate Article'}
-                                    </>
-                                )}
-                            </button>
-                        </>
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end shrink-0">
+                    {step === 'config' ? (
+                        <button
+                            onClick={handleSubmit}
+                            disabled={!topic.trim() || isGenerating || (publishMode === 'schedule' && (!scheduleDate || !scheduleTime))}
+                            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-lg hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-gray-900/20"
+                        >
+                            {isGenerating ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    {language === 'fr' ? 'Génération...' : 'Generating...'}
+                                </>
+                            ) : publishMode === 'schedule' ? (
+                                <>
+                                    <Clock className="w-4 h-4" />
+                                    {language === 'fr' ? 'Programmer' : 'Schedule'}
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="w-4 h-4 text-blue-400" />
+                                    {language === 'fr' ? 'Générer l\'Article' : 'Generate Article'}
+                                </>
+                            )}
+                        </button>
                     ) : (
                         <button
                             onClick={onClose}

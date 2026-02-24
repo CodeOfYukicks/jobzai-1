@@ -843,3 +843,42 @@ Make it so simple that it almost feels empty - that's the goal.`,
         return null;
     }
 };
+
+/**
+ * Suggests a highly engaging, trending topic related to careers, recruitment, or job searching.
+ */
+export const suggestRandomCareerTopic = async (language: 'fr' | 'en'): Promise<string> => {
+    const openai = await getOpenAIInstance();
+
+    const systemPrompt = language === 'fr' ? `
+Tu es un expert du monde du travail, du recrutement et du développement de carrière.
+Génère UN SEUL sujet d'article très accrocheur, original, et utile pour des chercheurs d'emploi ou professionnels des RH.
+Concentre-toi sur les tendances de l'emploi en 2026, les conseils CV/Lettre de motivation, la réussite en entretien, ou la productivité.
+Réponds UNIQUEMENT avec le titre du sujet (pas de guillemets, pas de contexte).
+Exemple: "Comment utiliser l'IA pour doubler vos réponses de recruteurs en 2026"
+` : `
+You are an expert in the professional world, recruitment, and career development.
+Generate EXACTLY ONE highly engaging, original, and useful article topic.
+Focus on job market trends for 2026, resume/cover letter advice, interview success, or productivity.
+Respond ONLY with the topic title (no quotes, no context).
+Example: "How to use AI to double your recruiter response rate in 2026"
+`;
+
+    try {
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: "Donne-moi un excellent sujet d'article." }
+            ],
+            temperature: 0.9,
+            max_tokens: 60,
+        });
+
+        return completion.choices[0].message.content?.replace(/^["']|["']$/g, '').trim() ||
+            (language === 'fr' ? "Les 5 compétences les plus recherchées par les recruteurs cette année" : "The top 5 skills recruiters are looking for this year");
+    } catch (error) {
+        console.error('Error suggesting career topic:', error);
+        return language === 'fr' ? "Réussir son entretien d'embauche : le guide complet" : "Mastering the job interview: the complete guide";
+    }
+};
